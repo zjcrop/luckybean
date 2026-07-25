@@ -1,2 +1,35 @@
-# luckybean
-Local-first coffee bean cellar, brewing log and sensory tracking app.
+# 富贵盒子 Lucky Bean
+
+一款本地优先的咖啡豆仓、冲煮记录与感官评价管理工具。
+
+## 项目简介
+
+富贵盒子用于管理咖啡豆档案、养豆周期、库存变化、冲煮方案和感官评价，
+为每一支咖啡豆建立从入库、储存、冲煮到饮用反馈的完整记录。
+
+## 核心功能
+
+- 咖啡豆档案与库存管理
+- 养豆期和最佳赏味期追踪
+- 冲煮方案记录与复刻
+- 感官评价与历史对比
+- 本地数据存储与导入导出
+- 咖啡豆二维码识别与关联
+- 数据分析与饮用优先级推荐
+
+## 项目状态
+
+项目目前处于早期开发阶段，数据结构、功能模块和交互设计仍在持续完善。
+
+## 技术原则
+
+- Local-first
+- Mobile-first
+- Offline-capable
+- Structured coffee data
+- User-controlled data
+
+## License
+
+本项目代码采用 GNU AGPL-3.0 License。
+项目名称、Logo 和品牌视觉元素不包含在开源授权范围内。
