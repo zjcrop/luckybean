@@ -1,0 +1,81 @@
+plugins {
+    id 'com.android.application'
+}
+
+def repositoryRoot = rootProject.projectDir.parentFile
+def generatedWebAssets = layout.buildDirectory.dir('generated/luckybeanWebAssets')
+
+tasks.register('syncLuckyBeanWebAssets') {
+    inputs.files(
+        new File(repositoryRoot, 'index.html'),
+        new File(repositoryRoot, 'styles.css'),
+        new File(repositoryRoot, 'manifest.webmanifest'),
+        new File(repositoryRoot, 'sw.js'),
+        fileTree(new File(repositoryRoot, 'src')),
+        fileTree(new File(repositoryRoot, 'public'))
+    )
+    outputs.dir(generatedWebAssets)
+    doLast {
+        File output = generatedWebAssets.get().asFile
+        delete output
+        copy {
+            from(repositoryRoot) {
+                include 'index.html', 'styles.css', 'manifest.webmanifest', 'sw.js'
+                include 'src/**', 'public/**'
+            }
+            into output
+        }
+        File appScript = new File(output, 'src/app.js')
+        String original = appScript.getText('UTF-8')
+        String target = "if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});"
+        String replacement = "if (!globalThis.__LUCKYBEAN_ANDROID__ && 'serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});"
+        if (!original.contains(target)) {
+            throw new GradleException('未找到 Service Worker 注册语句，Android 资产同步中止。')
+        }
+        appScript.write(original.replace(target, replacement), 'UTF-8')
+    }
+}
+
+android {
+    namespace 'com.luckybean.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.luckybean.app'
+        minSdk 26
+        targetSdk 35
+        versionCode 600
+        versionName '0.6.0'
+    }
+
+    sourceSets {
+        main.assets.srcDir(generatedWebAssets)
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
+        release {
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    packaging {
+        resources {
+            excludes += ['/META-INF/{AL2.0,LGPL2.1}']
+        }
+    }
+}
+
+tasks.named('preBuild').configure {
+    dependsOn tasks.named('syncLuckyBeanWebAssets')
+}
