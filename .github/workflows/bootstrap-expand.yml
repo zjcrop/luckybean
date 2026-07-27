@@ -33,46 +33,56 @@ jobs:
           ref: feat/v0.6.0-implementation
           fetch-depth: 0
 
-      - name: Check all package parts
-        id: parts
+      - name: Validate source package parts
         shell: bash
         run: |
           set -euo pipefail
-          missing=0
+          total=0
           for part in $(seq 1 16); do
             file="$(printf 'release/luckybean-v0.6.0.zip.b64.part%03d' "$part")"
-            if [[ ! -s "$file" ]]; then
-              echo "Waiting for $file"
-              missing=1
+            test -s "$file"
+            size="$(wc -c < "$file")"
+            printf '%s %s bytes\n' "$file" "$size"
+            if [[ "$part" -lt 16 && "$size" -ne 10000 ]]; then
+              echo "Unexpected part size: $file=$size" >&2
+              exit 1
             fi
+            if [[ "$part" -eq 16 && "$size" -ne 4576 ]]; then
+              echo "Unexpected final part size: $file=$size" >&2
+              exit 1
+            fi
+            total=$((total + size))
           done
-          if [[ "$missing" -eq 1 ]]; then
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          fi
+          test "$total" -eq 154576
+          echo "Combined Base64 size: $total bytes"
 
-      - name: Decode and expand source package
-        if: steps.parts.outputs.ready == 'true'
+      - name: Assemble and verify ZIP
         shell: bash
         run: |
           set -euo pipefail
-          work="$(mktemp -d)"
-          cat $(printf 'release/luckybean-v0.6.0.zip.b64.part%03d ' $(seq 1 16)) | base64 --decode > "$work/luckybean.zip"
-          unzip -q "$work/luckybean.zip" -d "$work/unpacked"
-          test -f "$work/unpacked/luckybean-v0.6.0/index.html"
-          test -f "$work/unpacked/luckybean-v0.6.0/src/app.js"
-          test -f "$work/unpacked/luckybean-v0.6.0/.github/workflows/pages.yml"
+          mkdir -p "$RUNNER_TEMP/luckybean-package"
+          cat release/luckybean-v0.6.0.zip.b64.part* > "$RUNNER_TEMP/luckybean-package/luckybean.zip.b64"
+          test "$(wc -c < "$RUNNER_TEMP/luckybean-package/luckybean.zip.b64")" -eq 154576
+          base64 --decode "$RUNNER_TEMP/luckybean-package/luckybean.zip.b64" > "$RUNNER_TEMP/luckybean-package/luckybean.zip"
+          echo 'cef94f064e6baf0adbb33c91a0ed331f7bc5e3b5e0651d9c37530a1369230284  '"$RUNNER_TEMP/luckybean-package/luckybean.zip" | sha256sum -c -
+          unzip -t "$RUNNER_TEMP/luckybean-package/luckybean.zip"
 
-          find . -mindepth 1 -maxdepth 1 \
-            ! -name '.git' \
-            ! -name '.gitignore' \
-            ! -name 'LICENSE' \
-            -exec rm -rf {} +
-          cp -a "$work/unpacked/luckybean-v0.6.0/." .
+      - name: Expand source package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/luckybean-package/unpacked"
+          unzip -q "$RUNNER_TEMP/luckybean-package/luckybean.zip" -d "$RUNNER_TEMP/luckybean-package/unpacked"
+          source_dir="$RUNNER_TEMP/luckybean-package/unpacked/luckybean-v0.6.0"
+          test -f "$source_dir/index.html"
+          test -f "$source_dir/src/app.js"
+          test -f "$source_dir/.github/workflows/pages.yml"
+          rsync -a --delete \
+            --exclude='.git/' \
+            --exclude='LICENSE' \
+            "$source_dir/" ./
 
       - name: Verify expanded project
-        if: steps.parts.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -81,7 +91,6 @@ jobs:
           sha256sum -c checksums.sha256
 
       - name: Commit expanded source
-        if: steps.parts.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
