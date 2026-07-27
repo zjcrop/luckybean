@@ -32,7 +32,7 @@ jobs:
         run: |
           set -euo pipefail
           missing=0
-          for part in $(seq 1 16); do
+          for part in $(seq 1 8); do
             file="$(printf 'release/luckybean-v0.6.0.zip.b64.part%03d' "$part")"
             if [[ ! -s "$file" ]]; then
               echo "Waiting for $file"
@@ -51,7 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           work="$(mktemp -d)"
-          cat $(printf 'release/luckybean-v0.6.0.zip.b64.part%03d ' $(seq 1 16)) | base64 --decode > "$work/luckybean.zip"
+          cat $(printf 'release/luckybean-v0.6.0.zip.b64.part%03d ' $(seq 1 8)) | base64 --decode > "$work/luckybean.zip"
           unzip -q "$work/luckybean.zip" -d "$work/unpacked"
           test -f "$work/unpacked/luckybean-v0.6.0/index.html"
           test -f "$work/unpacked/luckybean-v0.6.0/src/app.js"
