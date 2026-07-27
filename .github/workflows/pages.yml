@@ -65,6 +65,8 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -72,3 +74,77 @@ jobs:
       - name: Deploy GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  report:
+    if: always()
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      BUILD_RESULT: ${{ needs.build.result }}
+      DEPLOY_RESULT: ${{ needs.deploy.result }}
+      PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+      SOURCE_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Verify deployed site and write report
+        shell: bash
+        run: |
+          set -u
+          mkdir -p docs
+          http_code='000'
+          title_found='false'
+          site_ok='false'
+          checked_url="${PAGE_URL:-https://zjcrop.github.io/luckybean/}"
+
+          if [[ "$DEPLOY_RESULT" == 'success' ]]; then
+            for attempt in 1 2 3 4 5 6; do
+              http_code="$(curl -L --silent --show-error --output /tmp/luckybean-page.html --write-out '%{http_code}' --max-time 20 "$checked_url" || printf '000')"
+              if [[ "$http_code" == '200' ]] && grep -q '富贵盒子' /tmp/luckybean-page.html; then
+                title_found='true'
+                site_ok='true'
+                break
+              fi
+              sleep 10
+            done
+          fi
+
+          export http_code title_found site_ok checked_url
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+
+          report = {
+              'checked_at': datetime.now(timezone.utc).isoformat(),
+              'source_sha': os.environ['SOURCE_SHA'],
+              'build_result': os.environ['BUILD_RESULT'],
+              'deploy_result': os.environ['DEPLOY_RESULT'],
+              'page_url': os.environ.get('checked_url') or 'https://zjcrop.github.io/luckybean/',
+              'http_status': os.environ.get('http_code', '000'),
+              'title_found': os.environ.get('title_found') == 'true',
+              'site_verified': os.environ.get('site_ok') == 'true',
+          }
+          with open('docs/deployment-status.json', 'w', encoding='utf-8') as fh:
+              json.dump(report, fh, ensure_ascii=False, indent=2)
+              fh.write('\n')
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Commit deployment report
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/deployment-status.json
+          if git diff --cached --quiet; then
+            echo 'Deployment report unchanged.'
+            exit 0
+          fi
+          git commit -m 'chore: record Pages deployment status [skip ci]'
+          git push origin HEAD:main
