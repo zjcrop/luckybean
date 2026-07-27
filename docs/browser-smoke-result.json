@@ -1,0 +1,75 @@
+{
+  "results": {
+    "title": "富贵盒子",
+    "login_visible": true,
+    "cards": 7,
+    "first_demo_weight": "138.0g",
+    "nav": [
+      "藏",
+      "烹",
+      "鉴",
+      "器"
+    ],
+    "headings": [
+      "豆藏",
+      "手作",
+      "品鉴",
+      "器设"
+    ],
+    "fab_visible": true,
+    "detail_buttons": {
+      "weight": true,
+      "cold": true,
+      "archive": true,
+      "share": true
+    },
+    "share": {
+      "link_panel": true,
+      "copy": true,
+      "html_save": true,
+      "local_note": true
+    },
+    "search_fields": true,
+    "filter_flavor_count": 127,
+    "recommended_sort": true,
+    "form": {
+      "country": "CO-EA",
+      "process": "PR-NA",
+      "variety": "VA-EH",
+      "weight": "150",
+      "remaining_input": 0,
+      "recommended_fields": 3,
+      "required_fields": 7
+    },
+    "fab_hidden_brew": true,
+    "plan": {
+      "stages": 5,
+      "stage_indexes": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "details_open": 2,
+      "source_text": "fallback-0.6.0 · pourover-flatbed-fastflow-2026.07 · 本地回退",
+      "button_text": "重新生成方案"
+    },
+    "pause_works": true,
+    "consume_modal": true,
+    "sensory_progress": 9,
+    "sensory_options": 7,
+    "sensory_empty_blocked": true,
+    "sensory_advances_after_choice": true,
+    "evaluation_returns_detail": true,
+    "inventory_consumed": true,
+    "settings": {
+      "codebook": true,
+      "api": true,
+      "identity": true,
+      "version": "版本 0.6.0"
+    }
+  },
+  "page_errors": [],
+  "console": []
+}
