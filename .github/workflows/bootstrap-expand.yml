@@ -32,8 +32,8 @@ jobs:
         run: |
           set -euo pipefail
           missing=0
-          for part in $(seq -w 1 16); do
-            file="release/luckybean-v0.6.0.zip.b64.part${part}"
+          for part in $(seq 1 16); do
+            file="$(printf 'release/luckybean-v0.6.0.zip.b64.part%03d' "$part")"
             if [[ ! -s "$file" ]]; then
               echo "Waiting for $file"
               missing=1
