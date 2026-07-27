@@ -47,8 +47,8 @@ tasks.register('syncLuckyBeanWebAssets') {
         }
         original = original.replace(serviceWorkerTarget, serviceWorkerReplacement)
 
-        String shareTarget = 'const payload = sharePayload(bean); const encoded = encodeShare(payload); const link = `${location.origin}${location.pathname}#share=${encoded}`; const tooLong = encoded.length > 6000;'
-        String shareReplacement = "const payload = sharePayload(bean); const encoded = encodeShare(payload); const shareBase = globalThis.__LUCKYBEAN_ANDROID__ ? 'https://zjcrop.github.io/luckybean/' : `${location.origin}${location.pathname}`; const link = `${shareBase}#share=${encoded}`; const tooLong = encoded.length > 6000;"
+        String shareTarget = '''const payload = sharePayload(bean); const encoded = encodeShare(payload); const link = `${location.origin}${location.pathname}#share=${encoded}`; const tooLong = encoded.length > 6000;'''
+        String shareReplacement = '''const payload = sharePayload(bean); const encoded = encodeShare(payload); const shareBase = globalThis.__LUCKYBEAN_ANDROID__ ? 'https://zjcrop.github.io/luckybean/' : `${location.origin}${location.pathname}`; const link = `${shareBase}#share=${encoded}`; const tooLong = encoded.length > 6000;'''
         if (!original.contains(shareTarget)) {
             throw new GradleException('未找到分享链接生成语句，Android 资产同步中止。')
         }
