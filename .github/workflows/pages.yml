@@ -28,6 +28,11 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      validate: ${{ steps.validate.outcome }}
+      configure: ${{ steps.configure.outcome }}
+      prepare: ${{ steps.prepare.outcome }}
+      upload: ${{ steps.upload.outcome }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
@@ -38,14 +43,22 @@ jobs:
           node-version: '22'
 
       - name: Validate web source
+        id: validate
+        continue-on-error: true
         run: |
           npm test
           npm run check
 
       - name: Configure GitHub Pages
+        id: configure
+        if: steps.validate.outcome == 'success'
+        continue-on-error: true
         uses: actions/configure-pages@v5
 
       - name: Prepare static site
+        id: prepare
+        if: steps.validate.outcome == 'success'
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -58,9 +71,22 @@ jobs:
           test -s _site/public/fallback-codebook.json
 
       - name: Upload GitHub Pages artifact
+        id: upload
+        if: steps.configure.outcome == 'success' && steps.prepare.outcome == 'success'
+        continue-on-error: true
         uses: actions/upload-pages-artifact@v4
         with:
           path: _site
+
+      - name: Enforce successful build
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test '${{ steps.validate.outcome }}' = 'success'
+          test '${{ steps.configure.outcome }}' = 'success'
+          test '${{ steps.prepare.outcome }}' = 'success'
+          test '${{ steps.upload.outcome }}' = 'success'
 
   deploy:
     needs: build
@@ -83,6 +109,10 @@ jobs:
       contents: write
     env:
       BUILD_RESULT: ${{ needs.build.result }}
+      VALIDATE_RESULT: ${{ needs.build.outputs.validate }}
+      CONFIGURE_RESULT: ${{ needs.build.outputs.configure }}
+      PREPARE_RESULT: ${{ needs.build.outputs.prepare }}
+      UPLOAD_RESULT: ${{ needs.build.outputs.upload }}
       DEPLOY_RESULT: ${{ needs.deploy.result }}
       PAGE_URL: ${{ needs.deploy.outputs.page_url }}
       SOURCE_SHA: ${{ github.sha }}
@@ -123,6 +153,12 @@ jobs:
               'checked_at': datetime.now(timezone.utc).isoformat(),
               'source_sha': os.environ['SOURCE_SHA'],
               'build_result': os.environ['BUILD_RESULT'],
+              'steps': {
+                  'validate': os.environ.get('VALIDATE_RESULT', ''),
+                  'configure_pages': os.environ.get('CONFIGURE_RESULT', ''),
+                  'prepare_site': os.environ.get('PREPARE_RESULT', ''),
+                  'upload_artifact': os.environ.get('UPLOAD_RESULT', ''),
+              },
               'deploy_result': os.environ['DEPLOY_RESULT'],
               'page_url': os.environ.get('checked_url') or 'https://zjcrop.github.io/luckybean/',
               'http_status': os.environ.get('http_code', '000'),
