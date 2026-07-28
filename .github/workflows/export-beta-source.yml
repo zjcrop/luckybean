@@ -1,16 +1,10 @@
 name: Export Lucky Bean Beta Source
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.apply-v090-gate'
-      - 'release/v090/**'
   pull_request:
     types: [opened, reopened, synchronize]
     paths:
-      - '.apply-v090-gate'
-      - 'release/v090/**'
+      - '.apply-v090-trigger-2'
 
 permissions:
   contents: write
@@ -21,16 +15,13 @@ concurrency:
 
 jobs:
   export-source:
-    if: >-
-      github.event_name == 'push' ||
-      (github.event.pull_request.title == 'chore(beta): gate Lucky Bean v0.9.0-beta.1' &&
-      github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: Checkout gate payload
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.ref }}
           path: _gate
           fetch-depth: 1
 
