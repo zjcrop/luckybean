@@ -2,6 +2,18 @@
 
 本地优先的咖啡豆管理、冲煮辅助与品鉴记录工具。
 
+## 在线稳定版
+
+当前测试阶段只维护 Web 版本：
+
+```text
+https://zjcrop.github.io/BrewIon/luckybean/
+```
+
+该地址由 `zjcrop/BrewIon` 的既有 GitHub Pages 提供。发布前会重新执行单元测试和静态工程检查，并验证主页、主模块与回退编码表均可在线加载。
+
+Android APK 暂停自动生成；待 Web 端完成真机和日常使用测试后，再执行手动打包。
+
 ## 页面命名
 
 | 导航 | 页面题注 | 功能 |
@@ -36,9 +48,12 @@ npm run check
 npm run browser:smoke
 ```
 
-## 部署
+## 发布方式
 
-仓库包含 `.github/workflows/pages.yml`。推送到 `main` 后，测试通过才会部署 GitHub Pages。
+- 源码仓库：`zjcrop/luckybean`；
+- 在线发布目录：`zjcrop/BrewIon/luckybean/`；
+- 发布工作流：`zjcrop/BrewIon/.github/workflows/publish-luckybean-web.yml`；
+- APK 工作流仅允许手动触发，不参与当前测试阶段发布。
 
 ## 当前外部依赖
 
