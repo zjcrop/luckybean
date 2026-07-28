@@ -1,0 +1,68 @@
+name: Apply Lucky Bean Beta v0.8.0
+
+on:
+  push:
+    branches: [beta/v0.8.0]
+    paths:
+      - '.github/workflows/apply-beta-v080.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-beta-v080-apply
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: beta/v0.8.0
+          fetch-depth: 0
+
+      - name: Reassemble and verify patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find release/v080 -name 'part*.b64' | wc -l)" -eq 8
+          cat release/v080/part*.b64 | tr -d '\n\r' | base64 -d > /tmp/beta.patch.xz
+          echo 'ea2eb4c306b7e438d95a183ef848cf5226247abde523431ae05fa6848bd142c7  /tmp/beta.patch.xz' | sha256sum -c -
+          xz -dc /tmp/beta.patch.xz > /tmp/beta.patch
+          echo '05ce3c86ce6136ae79e5a05b1c11fbf77ef5f9ceb2ae95fb6803ac60bf112e35  /tmp/beta.patch' | sha256sum -c -
+
+      - name: Apply patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          patch --dry-run -p1 < /tmp/beta.patch
+          patch -p1 < /tmp/beta.patch
+
+      - name: Validate Beta
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test
+          npm run check
+          node -e "const p=require('./package.json'); if(p.version!=='0.8.0-beta.1') process.exit(1)"
+          test -s src/water-profiles.js
+          test -s src/preference-model.js
+          test -s src/share-codec.js
+          test -s docs/SHARE_CODE_FORMAT_v0.8-beta.md
+          grep -q '拾味' index.html
+          grep -q '田字' docs/v0.8.0-beta-release-note.md
+
+      - name: Commit atomic Beta update
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf release/v080
+          rm -f .github/workflows/apply-beta-v080.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'feat(beta): implement Lucky Bean v0.8.0-beta.1'
+          git push origin HEAD:beta/v0.8.0
