@@ -1,45 +1,55 @@
-name: Apply Lucky Bean Beta v0.9 PR Gate
+name: Apply Lucky Bean Beta v0.9 Gate
 
 on:
   pull_request:
     types: [opened, reopened, synchronize]
     paths:
-      - '.apply-v090-trigger'
-      - 'release/v090/**'
+      - '.apply-v090-gate'
+      - 'release/luckybean-v090.patch.xz.b64'
 
 permissions:
   contents: write
 
 concurrency:
-  group: luckybean-beta-v090-pr-apply
+  group: luckybean-beta-v090-gate
   cancel-in-progress: false
 
 jobs:
   apply:
-    if: github.event.pull_request.title == 'chore(beta): apply Lucky Bean v0.9.0-beta.1' && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event.pull_request.title == 'chore(beta): gate Lucky Bean v0.9.0-beta.1' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout gate payload
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref }}
+          path: _gate
+          fetch-depth: 1
+
+      - name: Checkout exact v0.8 Beta baseline
+        uses: actions/checkout@v4
+        with:
+          ref: beta/v0.9.0
+          path: _src
           fetch-depth: 0
           token: ${{ github.token }}
 
-      - name: Verify v0.8 baseline and staged patch
+      - name: Reconstruct and verify v0.9 patch
         shell: bash
         run: |
           set -euo pipefail
-          node -e "const p=require('./package.json'); if(p.version!=='0.8.0-beta.1') process.exit(1)"
-          test "$(find release/v090 -name 'part*.b64' | wc -l)" -eq 6
-          cat release/v090/part*.b64 | tr -d '\n\r' | base64 -d > /tmp/luckybean-v090.patch.xz
+          node -e "const p=require('./_src/package.json'); if(p.version!=='0.8.0-beta.1') process.exit(1)"
+          tr -d '\n\r' < _gate/release/luckybean-v090.patch.xz.b64 | base64 -d > /tmp/luckybean-v090.patch.xz
           echo 'e738e1498ddfd2e40cdc52959a589760a6310ca6f022c5e3cd7b48b122a1df7f  /tmp/luckybean-v090.patch.xz' | sha256sum -c -
           xz -dc /tmp/luckybean-v090.patch.xz > /tmp/luckybean-v090.patch
           echo 'a7f4303defc686cdf9aa0421d4b973ec42bd4e4fe91655723a85bfa130baf3e6  /tmp/luckybean-v090.patch' | sha256sum -c -
+          cd _src
           git apply --check /tmp/luckybean-v090.patch
           git apply /tmp/luckybean-v090.patch
 
       - name: Validate reconstructed v0.9 source
+        working-directory: _src
         shell: bash
         run: |
           set -euo pipefail
@@ -53,15 +63,13 @@ jobs:
           grep -q '"page_errors": \[\]' docs/browser-smoke-result.json
 
       - name: Commit atomic v0.9 Beta source
+        working-directory: _src
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf release/v090
-          rm -f .apply-v090-trigger
-          rm -f .github/workflows/apply-beta-v090.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git diff --cached --check
           git commit -m 'feat(beta): implement Lucky Bean v0.9.0-beta.1'
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git push origin HEAD:beta/v0.9.0
