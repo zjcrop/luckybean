@@ -1,10 +1,8 @@
 name: Export Beta Source Snapshot
 
 on:
-  push:
-    branches: [beta/v0.8.0]
-    paths:
-      - '.github/workflows/export-beta-source.yml'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
