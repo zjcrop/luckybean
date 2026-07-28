@@ -86,7 +86,7 @@ public final class MainActivity extends Activity {
             String path = uri.getPath();
             if (path == null || path.equals("/")) path = "/index.html";
             path = path.replace("..", "");
-            String assetPath = "www" + path;
+            String assetPath = path.startsWith("/") ? path.substring(1) : path;
             try {
                 InputStream input = getAssets().open(assetPath);
                 Map<String, String> headers = new HashMap<>();
