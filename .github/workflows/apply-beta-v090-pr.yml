@@ -5,7 +5,7 @@ on:
     types: [opened, reopened, synchronize]
     paths:
       - '.apply-v090-gate'
-      - 'release/luckybean-v090.patch.xz.b64'
+      - 'release/v090/**'
 
 permissions:
   contents: write
@@ -40,7 +40,8 @@ jobs:
         run: |
           set -euo pipefail
           node -e "const p=require('./_src/package.json'); if(p.version!=='0.8.0-beta.1') process.exit(1)"
-          tr -d '\n\r' < _gate/release/luckybean-v090.patch.xz.b64 | base64 -d > /tmp/luckybean-v090.patch.xz
+          test "$(find _gate/release/v090 -name 'part*.b64' | wc -l)" -eq 6
+          cat _gate/release/v090/part*.b64 | tr -d '\n\r' | base64 -d > /tmp/luckybean-v090.patch.xz
           echo 'e738e1498ddfd2e40cdc52959a589760a6310ca6f022c5e3cd7b48b122a1df7f  /tmp/luckybean-v090.patch.xz' | sha256sum -c -
           xz -dc /tmp/luckybean-v090.patch.xz > /tmp/luckybean-v090.patch
           echo 'a7f4303defc686cdf9aa0421d4b973ec42bd4e4fe91655723a85bfa130baf3e6  /tmp/luckybean-v090.patch' | sha256sum -c -
