@@ -1,0 +1,184 @@
+name: Apply verified Lucky Bean v0.7.0 patch
+
+on:
+  push:
+    branches: [feat/v0.7.0-seal-ui]
+    paths:
+      - '.github/workflows/apply-v070.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-luckybean-v070
+  cancel-in-progress: false
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/v0.7.0-seal-ui
+          fetch-depth: 0
+
+      - name: Assemble and authenticate patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat release/v0.7.0.patch.gz.b64.part{000,001,002,003,004,005,006} > /tmp/luckybean-v0.7.0.patch.gz.b64
+          base64 --decode /tmp/luckybean-v0.7.0.patch.gz.b64 > /tmp/luckybean-v0.7.0.patch.gz
+          echo '0510ee3d1423e85149be7e94b391d19352a63f516b9875542795e3c7ab2d74a6  /tmp/luckybean-v0.7.0.patch.gz' | sha256sum -c -
+          gzip -dc /tmp/luckybean-v0.7.0.patch.gz > /tmp/luckybean-v0.7.0.patch
+          git apply --check /tmp/luckybean-v0.7.0.patch
+
+      - name: Apply verified web changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply /tmp/luckybean-v0.7.0.patch
+
+      - name: Fix dormant Android asset-path defect
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('android/app/src/main/java/com/luckybean/app/MainActivity.java')
+          text = path.read_text(encoding='utf-8')
+          old = 'String assetPath = "www" + path;'
+          new = 'String assetPath = path.startsWith("/") ? path.substring(1) : path;'
+          if old not in text:
+              raise SystemExit('Expected Android asset-path statement was not found; refusing an unsafe edit.')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
+      - name: Update project documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > README.md <<'EOF'
+          # 富贵盒子 Lucky Bean
+
+          本地优先的咖啡豆管理、拾味冲煮辅助与品鉴记录工具。
+
+          ## 在线稳定版
+
+          <https://zjcrop.github.io/BrewIon/luckybean/>
+
+          当前稳定版本：**0.7.0**。
+
+          ## 页面命名
+
+          | 导航 | 页面题注 | 功能 |
+          |---|---|---|
+          | 藏 | 豆藏 | 豆卡、库存、赏味期和诹吉归档 |
+          | 拾 | 拾味 | 冲煮方案、萃取轨迹、计时和制作记录 |
+          | 鉴 | 品鉴 | 九节点感官评价、往昔记录和历史筛选 |
+          | 器 | 器设 | 账户、私器、数藏和本物 |
+
+          ## 数据架构
+
+          - BrewIon：公开编码数据和二维码协议；
+          - Lucky Bean：公开前端、本地数据和完整离线回退；
+          - brew-profiles：私有冲煮算法，通过服务端 API 调用。
+
+          浏览器不会直接读取私有仓库，也不会保存 GitHub Token。未配置服务端 API 时，拾味页面使用版本化本地模型，仍提供自动分段、首段降温、萃取轨迹、风味拟合和全屏计时。
+
+          ## 本地运行
+
+          ```bash
+          python3 -m http.server 8080
+          ```
+
+          打开 `http://localhost:8080/`。不要直接使用 `file://`，否则浏览器可能阻止 ES Modules 和数据文件加载。
+
+          ## 校验
+
+          ```bash
+          npm test
+          npm run check
+          npm run browser:smoke
+          ```
+
+          浏览器冒烟测试需要 Python Playwright 和 Chromium。
+
+          ## 发布
+
+          Lucky Bean 源码维护在本仓库；稳定网页由 BrewIon 仓库的受控发布工作流复制到 `BrewIon/luckybean/`。每次发布前均重新执行单元测试和静态检查。
+
+          Android 工程暂时保留，但 APK 工作流仅允许手动触发。Web 版本完成实际使用验收前，不发布新的 APK。
+
+          ## 当前外部依赖
+
+          - BrewIon 公共编码数据远程地址；
+          - jsQR 1.4.0，用于二维码图片和摄像头扫描；
+          - qrcodejs 1.0.0，用于生成分享二维码；
+          - 可选的私有冲煮 API。
+
+          ## 已知边界
+
+          - 真实邮箱/微信注册、跨设备同步和跨用户留言需要独立后端；
+          - 私有 `brew-profiles` 不能由浏览器直接调用，必须部署服务端适配接口；
+          - 首次使用二维码识别库且浏览器尚无缓存时需要联网；
+          - Android 旧测试包的空白页问题已定位为 WebView 资产路径不一致，源码已修复，仍需在 Web 版本验收完成后重新构建验证。
+          EOF
+
+          cat > docs/逐条校验报告_v0.7.0.md <<'EOF'
+          # 富贵盒子 v0.7.0 逐条校验报告
+
+          ## 自动检查
+
+          - Node 单元测试：13/13 通过；
+          - 静态工程检查：35个文件通过；
+          - JavaScript / JSON / HTML 结构检查：通过；
+          - 浏览器页面异常：0；
+          - 浏览器控制台错误：0。
+
+          ## 浏览器交互检查
+
+          - 页面导航为“藏、拾、鉴、器”，题注为“豆藏、拾味、品鉴、器设”；
+          - 顶部编码状态、身份圆标、单字题注和可见版本号已移除；
+          - 红色印章题注、无框表单、文字按钮和黑色连续背景已生效；
+          - 搜索采用底部弹层，筛选选项仅从现有豆卡汇总；
+          - 豆卡名称按“国家 · 豆种”自动生成；
+          - 烘焙色值可自动推导烘焙度，产区选项联动；
+          - 远程 BrewIon 数据与内置回退表合并，风味标签不再因远程缺项消失；
+          - 品鉴“往昔……”折叠、最近5条、更多记录和5–200条设置可用；
+          - 器设按账户、私器、数藏、本物分组，技术信息只在本物显示；
+          - 拾味本地模型提供自动分段、首段降温、萃取轨迹、风味拟合和全屏计时；
+          - 计时暂停、前后段切换与剩余时间显示可用。
+
+          ## 外部边界
+
+          `brew-profiles` 为私有仓库，浏览器不能直接读取。正式调用仍需部署 HTTPS 服务端 API；未配置时使用完整本地回退模型。
+
+          Android 旧测试包空白页的源码根因已修复，但本次不生成或发布 APK。
+          EOF
+
+      - name: Validate updated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test
+          npm run check
+          grep -q '拾味' index.html
+          grep -q "fallback-0.7.0" src/brew-engine.js
+          grep -q 'v0.7.0' sw.js
+          grep -q 'path.substring(1)' android/app/src/main/java/com/luckybean/app/MainActivity.java
+
+      - name: Remove temporary transfer material and commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm -r release
+          git rm .github/workflows/apply-v070.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'feat: implement Lucky Bean v0.7.0 seal UI'
+          git push origin HEAD:feat/v0.7.0-seal-ui
