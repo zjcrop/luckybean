@@ -5,7 +5,7 @@
 ## 在线版本
 
 - 稳定版 v0.7.0：<https://zjcrop.github.io/BrewIon/luckybean/>
-- Beta v0.8.0-beta.1：<https://zjcrop.github.io/BrewIon/luckybean-beta/>
+- Beta v0.9.0-beta.1：<https://zjcrop.github.io/BrewIon/luckybean-beta/>
 
 Beta 使用独立目录和独立缓存，不替换稳定版。
 
@@ -65,10 +65,10 @@ Android 工程暂时保留，但 APK 工作流仅允许手动触发。Web 版本
 - Android 旧测试包的空白页问题已定位为 WebView 资产路径不一致，源码已修复，仍需在 Web 版本验收完成后重新构建验证。
 
 
-## Beta v0.8 数据与分享
+## Beta v0.9 数据、冲煮模型与分享
 
 - 豆卡超过6只时，先显示国家分组卡；进入分组后以“收”返回；
 - 冲煮记录保存完整方案，可直接复刻；低于自动分且识别到酸、苦、甜或干涩问题时生成修正方案；
 - 自动得分、主观得分和分差用于本地个人偏好模型；
-- 分享使用 `LB8` 压缩格式，字段说明见 `docs/SHARE_CODE_FORMAT_v0.8-beta.md`；
+- 分享继续使用向后兼容的 `LB8` 压缩格式，字段说明见 `docs/SHARE_CODE_FORMAT_v0.8-beta.md`；
 - 分享最多携带最近5条冲煮和5条品鉴，避免链接无限增长。

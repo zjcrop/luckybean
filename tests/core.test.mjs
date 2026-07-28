@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { validateCodebook, makeIndex, parseNaturalLanguage, mergeCodebooks } from '../src/codebook.js';
+import { validateCodebook, makeIndex, parseNaturalLanguage, mergeCodebooks, displayName } from '../src/codebook.js';
 import { computeFallbackPlan, validatePlan, buildCorrectedPlan, listBrewProfiles } from '../src/brew-engine.js';
 import { calculateWaterRecipe, inferWaterProfile, listWaterProfiles } from '../src/water-profiles.js';
 import { computeAutomaticScore, sensoryPreferenceTags, buildPreferenceModel, recommendedBeanIds } from '../src/preference-model.js';
 import { buildCompactSharePayload, encodeSharePayload, decodeSharePayload } from '../src/share-codec.js';
 import { decodeBrewIonBytes } from '../src/qr.js';
+import { freshnessProfile } from '../src/utils.js';
 
 const root = new URL('../', import.meta.url);
 async function text(path) { return readFile(new URL(path, root), 'utf8'); }
@@ -45,7 +46,12 @@ test('Beta 冲煮引擎输出完整协议、守恒和专业模型', async () => 
   assert.equal(plan.stages.reduce((sum, stage) => sum + stage.stageWaterG, 0), plan.totals.waterG);
   assert.ok(plan.stages.every(stage => /^\d{2}$/.test(stage.methodCode)));
   assert.ok(plan.stages.every(stage => stage.temperatureC >= 80 && stage.temperatureC <= 97));
-  assert.ok(plan.engineVersion.includes('0.8.0-beta'));
+  assert.ok(plan.engineVersion.includes('0.9.0-beta'));
+  assert.ok(plan.trajectoryModel?.points?.length >= 40);
+  assert.ok(plan.trajectoryModel?.windows?.length >= 4);
+  assert.ok(plan.extractionModel?.targetEY >= 18);
+  assert.ok(plan.temperature?.model?.sensitivityText);
+  assert.ok(plan.stages.every(stage => stage.advanceSpeech && stage.notice));
   assert.ok(plan.profile?.id);
   assert.ok(plan.recommendation?.candidates?.length >= 3);
   assert.ok(plan.trajectory.length === plan.stages.length);
@@ -140,7 +146,8 @@ test('HTML 不含重复 ID 或内联事件处理器', async () => {
 test('应用代码保持单一初始化和主渲染函数', async () => {
   const app = await text('src/app.js');
   for (const fn of ['init','renderBeans','detailBean','renderBrew','saveEvaluation']) assert.equal((app.match(new RegExp(`function ${fn}\\s*\\(`,'g'))||[]).length,1,fn);
-  assert.ok(app.includes('Math.floor(Math.random() * 6) + 4'));
+  assert.ok(app.includes('setTimeout(resolve, 667)'));
+  assert.ok(app.includes("state.groupAnimationMode = automatic ? 'auto' : 'manual'"));
   assert.equal(app.includes('id="beanRemainingWeight"'), false);
 });
 
@@ -197,6 +204,41 @@ test('远程编码表与内置表合并时保留缺失风味', async () => {
   const merged=mergeCodebooks(primary,fallback);assert.equal(merged.flavors.length,fallback.flavors.length);assert.equal(new Set(merged.flavors.map(row=>row[0])).size,merged.flavors.length);
 });
 
+
+
+test('编码表产区与庄园使用正确中文列且不生成空标签', async () => {
+  const book = JSON.parse(await text('public/fallback-codebook.json'));
+  const index = makeIndex(book);
+  assert.equal(displayName(index, 'regions', book.regions[0][0]), book.regions[0][2]);
+  assert.equal(displayName(index, 'entities', book.entities[0][0]), book.entities[0][3]);
+  assert.notEqual(displayName(index, 'regions', book.regions[0][0]), book.regions[0][1]);
+  assert.ok(book.flavors.every(row => String(row[1] || '').trim().length > 0));
+});
+
+test('十阶段赏味进度从20%起步并在赏味期后一周达到100%', () => {
+  const bean = { roastCode: 'RL-L1', roastDate: '2026-07-29', varietyCode: 'VA-GE', processCode: 'PR-WA' };
+  const start = freshnessProfile(bean, new Date('2026-07-29T12:00:00Z'));
+  assert.equal(start.stage, 0);
+  assert.equal(start.progress, 0.2);
+  const full = freshnessProfile(bean, new Date(new Date('2026-07-29T00:00:00Z').getTime() + (start.fullDay + 1) * 86400000));
+  assert.equal(full.progress, 1);
+  assert.ok(full.stage >= 8);
+});
+
+test('负面缺陷扣分显著高于正面风味叠加', () => {
+  const positive = computeAutomaticScore({ floral:{0:['茉莉','橙花']}, fruit:{0:['莓果','桃子']}, sweet:{0:['蜂蜜'],1:['高']}, negative:{0:['无']} });
+  const defective = computeAutomaticScore({ floral:{0:['茉莉','橙花']}, fruit:{0:['莓果']}, bitter:{0:['焦苦']}, mouthfeel:{0:['干涩']}, negative:{0:['霉味','药感','橡胶']} });
+  assert.ok(positive - defective >= 30, `${positive} vs ${defective}`);
+});
+
+test('v0.9 交互与器具库存标记完整', async () => {
+  const [app, css, html] = await Promise.all([text('src/app.js'), text('styles.css'), text('index.html')]);
+  for (const marker of ['brewHeadingBean','openCustomWaterDialog','openFlavorTargetDialog','openBrewTuneDialog','openCoolingDialog','trajectoryDefaultToggle','advanceSpeech','bean-freshness-progress','gear-low-star','data-filter-item']) assert.ok(app.includes(marker) || css.includes(marker) || html.includes(marker), marker);
+  assert.equal(html.includes('filterSummaryBtn'), false);
+  assert.ok(css.includes('animation: group-open-manual .5s'));
+  assert.ok(css.includes('animation: group-open-auto .2s'));
+  assert.ok(app.includes('filter.quantity = Math.max(0, Number(filter.quantity||0)-1)'));
+});
 test('计时、消耗、品鉴札记、复刻与方案导出功能已落地', async () => {
   const app=await text('src/app.js');
   for(const marker of ['timerPrevBtn','>退<','timerPauseBtn','>驻<','timerNextBtn','>进<','timerEndBtn','>终<','扣除克重进入品鉴','不记录则返回拾味','sensoryNaturalNote','主观得分','自动得分','buildCorrectedPlan','data-replay-session','exportCurrentPlan','JSON脚本']) assert.ok(app.includes(marker),marker);

@@ -15,7 +15,7 @@ FAKE_IDB=r'''
 
 def bundle():
     parts=[]
-    order=['utils.js','db.js','codebook.js','qr.js','water-profiles.js','preference-model.js','share-codec.js','brew-engine.js','app.js']
+    order=['utils.js','db.js','codebook.js','qr.js','water-profiles.js','preference-model.js','share-codec.js','brew-model-v09.js','brew-engine.js','app.js']
     for name in order:
         text=(ROOT/'src'/name).read_text()
         text=re.sub(r'^import\s+.*?;\s*$', '', text, flags=re.M)
@@ -98,7 +98,25 @@ async def main():
       'pick':await page.locator('.compact-pick').first.inner_text(),
       'height':(await page.locator('.bean-card').first.bounding_box())['height']
     }
+    results['freshness_progress']={
+      'solid':await page.locator('.bean-freshness-solid').count(),
+      'dashed':await page.locator('.bean-freshness-dashed').count(),
+      'width':await page.locator('.bean-freshness-solid').first.get_attribute('style')
+    }
     await page.locator('[data-collapse-group]').click(); results['group_collapsed']=await page.locator('.group-card').count()>0
+    await page.locator('.group-card').first.click(); await page.wait_for_selector('[data-active-group-panel]')
+    await page.locator('[data-active-group-panel]').evaluate("e=>e.dispatchEvent(new MouseEvent('click',{bubbles:true}))")
+    await page.wait_for_timeout(550); results['group_blank_closed']=await page.locator('.group-card').count()>0
+    await page.evaluate("openBeanForm({}, {type:'manual'})")
+    await page.select_option('#beanCountry','CO-AU')
+    region_texts=await page.locator('#beanRegion option').all_text_contents()
+    results['bean_form']={'region_zh':any('阿瑟顿高原' in t for t in region_texts),'region_code_leak':any('CO-AU' in t for t in region_texts)}
+    await page.locator('#editFlavorsBtn').click(); await page.wait_for_selector('[data-overlay="flavors"]')
+    flavor_texts=await page.locator('[data-flavor-code]').all_text_contents()
+    results['bean_form']['flavor_count']=len(flavor_texts); results['bean_form']['empty_flavors']=sum(1 for t in flavor_texts if not t.strip())
+    await page.locator('#backFlavorsBtn').click(); await page.wait_for_selector('#beanForm')
+    results['bean_form']['flavor_back_to_form']=await page.locator('#beanForm').count()==1
+    await page.evaluate("closeOverlay()")
     await page.screenshot(path=str(ROOT/'docs/smoke-beta-beans.png'),full_page=True)
 
     # Search is a bottom sheet, no X, backdrop closes it.
@@ -106,14 +124,30 @@ async def main():
     results['search']={'close_buttons':await page.locator('[data-overlay="bean-search"] [data-close-overlay]').count(),'flavors':await page.locator('[data-filter-flavor]').count(),'countries':await page.locator('#searchCountry option').count()}
     await click_backdrop(page,'bean-search'); results['search']['closed_by_blank']=await page.locator('[data-overlay="bean-search"]').count()==0
 
-    # Open a bean and route to brew.
-    await page.locator('.group-card').first.click(); await page.locator('.bean-card').first.click(); await page.wait_for_selector('[data-overlay="bean-detail"]')
+    # Recommendation directly expands the matching group and marks its target card.
+    await page.locator('#fabRecommendBtn').click(); await page.locator('[data-recommend-mode="freshness"]').click()
+    await page.wait_for_selector('.bean-card.recommended')
+    results['recommend_focus']={'expanded':await page.locator('[data-active-group-panel]').count()==1,'marked':await page.locator('.bean-card.recommended').count()==1}
+
+    # Bean detail retains the freshness curve/current point and blank backdrop closes it.
+    await page.locator('.bean-card').first.click(); await page.wait_for_selector('[data-overlay="bean-detail"]')
+    results['bean_detail']={'curve':await page.locator('.freshness-curve').count()==1,'today':await page.locator('.freshness-current-point').count()==1,'trend':('风味上升' in await page.locator('[data-overlay="bean-detail"]').inner_text()) or ('风味下降' in await page.locator('[data-overlay="bean-detail"]').inner_text())}
+    await click_backdrop(page,'bean-detail'); results['bean_detail']['closed_by_blank']=await page.locator('[data-overlay="bean-detail"]').count()==0
+
+    # Open again and route to brew. Use a known filter so consumption can verify -1 stock.
+    if await page.locator('.bean-card').count()==0: await page.locator('.group-card').first.click()
+    await page.locator('.bean-card').first.click(); await page.wait_for_selector('[data-overlay="bean-detail"]')
     await page.locator('#brewThisBeanBtn').click(); await page.wait_for_selector('#generatePlanBtn')
-    results['brew']={'direct_sensory':await page.locator('#directSensoryBtn').is_visible(),'professional_closed':not await page.locator('.professional-config').get_attribute('open')}
+    await page.evaluate("state.settings.gear={filters:[{id:'filter_test',brand:'Cafec',type:'T-90',quantity:5,price:58}],drippers:[{id:'d1',name:'B75',type:'平底滤杯'}],grinders:'C40'}; state.settings.brew.filterPaperId='filter_test'; renderBrew();")
+    await page.wait_for_selector('#brewFilterPaper')
+    results['brew']={'direct_sensory':await page.locator('#directSensoryBtn').is_visible(),'rows':await page.locator('.brew-row').count(),'bean_heading':await page.locator('#brewHeadingBean select').count(),'filter_select':await page.locator('#brewFilterPaper').count(),'cooling_gold':'model-recommended' in (await page.locator('#firstCoolingMode').get_attribute('class') or '')}
     await page.locator('#generatePlanBtn').click(); await page.wait_for_selector('#generatedPlan')
     results['plan']={
       'stages':await page.locator('.plan-stage').count(),
-      'trajectory':await page.locator('.trajectory-chart').count(),
+      'trajectory':await page.locator('.trajectory-chart.detailed').count(),
+      'trajectory_paths':await page.locator('.trajectory-series').count(),
+      'trajectory_windows':await page.locator('.trajectory-window').count(),
+      'trajectory_toggle':await page.locator('#trajectoryDefaultToggle').is_checked(),
       'professional_hidden':not await page.locator('.professional-result .details-content').is_visible(),
       'export':await page.locator('#exportPlanBtn').count(),
       'method_codes':await page.locator('.plan-stage small').count(),
@@ -129,6 +163,7 @@ async def main():
     await page.locator('#timerEndBtn').click(); await page.wait_for_selector('#recordConsumptionBtn')
     results['consume']={'title':await page.locator('.consume-confirm h2').inner_text(),'dose':await page.locator('.consume-dose').inner_text(),'record':await page.locator('#recordConsumptionBtn').inner_text(),'skip':await page.locator('#skipConsumptionBtn').inner_text()}
     await page.locator('#recordConsumptionBtn').click(); await page.wait_for_selector('#nextSensoryNodeBtn')
+    results['consume']['filter_after']=await page.evaluate("state.settings.gear.filters.find(item=>item.id==='filter_test').quantity")
 
     # Full sensory path, score comparison, natural-language note, correction plan.
     sensory_nodes=await complete_sensory(page); await page.wait_for_selector('[data-overlay="bean-detail"]')
@@ -162,23 +197,32 @@ async def main():
     results['history']={'not_full':await page.locator('[data-overlay="history"].full').count()==0,'bottom':bool(box and box['y']+box['height']>=830),'return':await page.locator('.bottom-return').inner_text()}
     await page.locator('.bottom-return').click()
 
+    # Low-stock filter paper marks the bottom nav and auto-opens the private gear section.
+    await page.evaluate("updateLowStockIndicator(); switchPage('settings')")
+    await page.wait_for_selector('#privateGearCategory[open]')
+    results['gear']={'star':await page.locator('.nav-button [aria-label="滤纸库存低"]').count(),'low':await page.locator('[data-filter-item="filter_test"].low-stock').count(),'open':await page.locator('#privateGearCategory').get_attribute('open') is not None}
+    await page.locator('.settings-category').first.locator('summary').click(); await page.wait_for_timeout(80)
+    results['gear']['single_open']=await page.locator('#privateGearCategory').get_attribute('open') is None
+
     await browser.close()
 
   checks={
     'nav':results.get('nav')==['藏','拾','鉴','器'],
     'headings':results.get('headings')==['豆藏','拾味','品鉴','器设'],
     'action_grid':results.get('actions')==['寻','添','撷','择'],
-    'groups':results.get('group_cards',0)>0 and results.get('cards_before_group_open')==0 and results.get('group_open_cards',0)>0 and results.get('group_collapsed'),
-    'compact_card':results.get('compact_card',{}).get('pick')=='拾' and results.get('compact_card',{}).get('height',999)<100,
+    'groups':results.get('group_cards',0)>0 and results.get('cards_before_group_open')==0 and results.get('group_open_cards',0)>0 and results.get('group_collapsed') and results.get('group_blank_closed'),
+    'compact_card':results.get('compact_card',{}).get('pick')=='拾' and results.get('compact_card',{}).get('height',999)<110 and results.get('freshness_progress',{}).get('solid',0)>0 and results.get('freshness_progress',{}).get('dashed',0)>0 and results.get('bean_detail',{}).get('curve') and results.get('bean_detail',{}).get('today') and results.get('bean_detail',{}).get('trend') and results.get('bean_detail',{}).get('closed_by_blank'),
+    'bean_form':results.get('bean_form',{}).get('region_zh') and not results.get('bean_form',{}).get('region_code_leak') and results.get('bean_form',{}).get('flavor_count',0)>100 and results.get('bean_form',{}).get('empty_flavors')==0 and results.get('bean_form',{}).get('flavor_back_to_form'),
     'search':results.get('search',{}).get('close_buttons')==0 and results.get('search',{}).get('closed_by_blank') and results.get('search',{}).get('flavors',0)>0,
-    'brew':results.get('brew',{}).get('direct_sensory') and results.get('brew',{}).get('professional_closed'),
-    'plan':results.get('plan',{}).get('stages',0)>=4 and results.get('plan',{}).get('trajectory')==1 and results.get('plan',{}).get('professional_hidden') and results.get('plan',{}).get('export')==1 and results.get('plan',{}).get('method_codes',0)>=4,
+    'brew':results.get('brew',{}).get('direct_sensory') and results.get('brew',{}).get('rows')==4 and results.get('brew',{}).get('bean_heading')==1 and results.get('brew',{}).get('filter_select')==1 and results.get('brew',{}).get('cooling_gold'),
+    'plan':results.get('plan',{}).get('stages',0)>=4 and results.get('plan',{}).get('trajectory')==1 and results.get('plan',{}).get('trajectory_paths',0)>=7 and results.get('plan',{}).get('trajectory_windows',0)>=4 and results.get('plan',{}).get('trajectory_toggle') and results.get('plan',{}).get('professional_hidden') and results.get('plan',{}).get('export')==1 and results.get('plan',{}).get('method_codes',0)>=4,
     'timer':results.get('timer_labels')==['退','驻','进','终'] and results.get('timer_pause'),
-    'consume':results.get('consume',{}).get('record')=='扣除克重进入品鉴' and results.get('consume',{}).get('skip')=='不记录则返回拾味',
+    'consume':results.get('consume',{}).get('record')=='扣除克重进入品鉴' and results.get('consume',{}).get('skip')=='不记录则返回拾味' and results.get('consume',{}).get('filter_after')==4,
     'sensory':any('总分' in node for node in results.get('sensory',{}).get('nodes',[])) and any('札记' in node for node in results.get('sensory',{}).get('nodes',[])) and results.get('sensory',{}).get('correction') and results.get('sensory',{}).get('note'),
-    'recommend':results.get('recommended_badges',0)>0 and results.get('leaderboard',0)>0,
+    'recommend':results.get('recommended_badges',0)>0 and results.get('leaderboard',0)>0 and results.get('recommend_focus',{}).get('expanded') and results.get('recommend_focus',{}).get('marked'),
     'replay':results.get('replay_corrected') and results.get('replay_loaded'),
     'share':results.get('share',{}).get('compact') and results.get('share',{}).get('records'),
+    'gear':results.get('gear',{}).get('star')==1 and results.get('gear',{}).get('low')==1 and results.get('gear',{}).get('open') and results.get('gear',{}).get('single_open'),
     'history':results.get('history',{}).get('not_full') and results.get('history',{}).get('bottom') and results.get('history',{}).get('return')=='退'
   }
   output={'results':results,'checks':checks,'page_errors':errors,'console':logs}
