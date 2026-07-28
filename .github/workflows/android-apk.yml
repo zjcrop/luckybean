@@ -1,21 +1,7 @@
 name: Build Lucky Bean Android APK
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'android/**'
-      - 'index.html'
-      - 'styles.css'
-      - 'manifest.webmanifest'
-      - 'sw.js'
-      - 'src/**'
-      - 'public/**'
-      - '.github/workflows/android-apk.yml'
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*'
 
 permissions:
   contents: read
