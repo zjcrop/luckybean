@@ -6,17 +6,45 @@
     "first_demo_weight": "138.0g",
     "nav": [
       "藏",
-      "烹",
+      "拾",
       "鉴",
       "器"
     ],
     "headings": [
       "豆藏",
-      "手作",
+      "拾味",
       "品鉴",
       "器设"
     ],
-    "fab_visible": true,
+    "header_removed": true,
+    "profile_removed": true,
+    "page_kicker_removed": true,
+    "seal": {
+      "background": "rgb(166, 40, 35)",
+      "font": "FangSong, STFangsong, FangSong_GB2312, serif",
+      "text": "豆藏"
+    },
+    "search": {
+      "bottom_sheet": true,
+      "country_options": 8,
+      "variety_options": 7,
+      "process_options": 5,
+      "flavor_count": 17,
+      "full_overlay": 0
+    },
+    "form": {
+      "bean_name_removed": true,
+      "country": "CO-EA",
+      "region_options": 25,
+      "process": "PR-NA",
+      "variety": "VA-EH",
+      "weight": "150",
+      "roast_color": "88",
+      "roast_auto": "RL-L1",
+      "roast_disabled": true,
+      "flavor_summary": 3,
+      "control_radius": "0px"
+    },
     "detail_buttons": {
       "weight": true,
       "cold": true,
@@ -25,50 +53,60 @@
     },
     "share": {
       "link_panel": true,
-      "copy": true,
-      "html_save": true,
-      "local_note": true
+      "version_visible": false
     },
-    "search_fields": true,
-    "filter_flavor_count": 127,
-    "recommended_sort": true,
-    "form": {
-      "country": "CO-EA",
-      "process": "PR-NA",
-      "variety": "VA-EH",
-      "weight": "150",
-      "remaining_input": 0,
-      "recommended_fields": 3,
-      "required_fields": 7
-    },
+    "brew_heading": "拾味",
     "fab_hidden_brew": true,
     "plan": {
       "stages": 5,
-      "stage_indexes": [
-        "1",
-        "2",
-        "3",
-        "4",
-        "5"
-      ],
-      "details_open": 2,
-      "source_text": "fallback-0.6.0 · pourover-flatbed-fastflow-2026.07 · 本地回退",
-      "button_text": "重新生成方案"
+      "trajectory": 1,
+      "flavor_rows": 4,
+      "low_temp_note": true,
+      "auto_segment": true,
+      "button_text": "重新生成"
     },
-    "pause_works": true,
-    "consume_modal": true,
-    "sensory_progress": 9,
-    "sensory_options": 7,
-    "sensory_empty_blocked": true,
-    "sensory_advances_after_choice": true,
-    "evaluation_returns_detail": true,
-    "inventory_consumed": true,
+    "timer": {
+      "pause_works": true,
+      "stage_after_next": "2/5",
+      "total_remaining": "01:31"
+    },
+    "sensory": {
+      "collapsed_records": 0,
+      "history_label": "往昔……",
+      "expanded_max5": true,
+      "more_visible": true,
+      "settings_char": "设"
+    },
     "settings": {
-      "codebook": true,
-      "api": true,
-      "identity": true,
-      "version": "版本 0.6.0"
+      "categories": [
+        "账户",
+        "私器",
+        "数藏",
+        "本物"
+      ],
+      "version_before_open": false,
+      "version_after_open": true,
+      "wechat": true,
+      "xiaohongshu": true,
+      "api_hidden": true,
+      "api_revealed": true
     }
+  },
+  "checks": {
+    "cards": true,
+    "nav": true,
+    "headings": true,
+    "header_removed": true,
+    "seal": true,
+    "search_sheet": true,
+    "search_dynamic": true,
+    "flavors": true,
+    "form": true,
+    "share_version_hidden": true,
+    "brew": true,
+    "timer": true,
+    "sensory": true,
+    "settings": true
   },
   "page_errors": [],
   "console": []

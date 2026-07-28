@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { validateCodebook, makeIndex, parseNaturalLanguage } from '../src/codebook.js';
+import { validateCodebook, makeIndex, parseNaturalLanguage, mergeCodebooks } from '../src/codebook.js';
 import { computeFallbackPlan, validatePlan } from '../src/brew-engine.js';
 import { decodeBrewIonBytes } from '../src/qr.js';
 
@@ -48,8 +48,8 @@ test('本地回退冲煮引擎输出满足协议与守恒', async () => {
 
 test('导航与双字题注严格对应', async () => {
   const html = await text('index.html');
-  for (const term of ['>藏<', '>烹<', '>鉴<', '>器<', '>豆藏<', '>手作<', '>品鉴<', '>器设<']) assert.ok(html.includes(term), `缺少 ${term}`);
-  for (const label of ['豆藏：咖啡豆管理', '手作：冲煮制作', '品鉴：感官评价', '器设：设备与系统设置']) assert.ok(html.includes(label));
+  for (const term of ['>藏<', '>拾<', '>鉴<', '>器<', '>豆藏<', '>拾味<', '>品鉴<', '>器设<']) assert.ok(html.includes(term), `缺少 ${term}`);
+  for (const label of ['豆藏：咖啡豆管理', '拾味：冲煮制作', '品鉴：感官评价', '器设：设备与系统设置']) assert.ok(html.includes(label));
 });
 
 test('HTML 不含重复 ID 或内联事件处理器', async () => {
@@ -126,9 +126,57 @@ test('搜索多选、品鉴完整性、分享文档和原子缓存修复已落�
   assert.ok(app.includes("['recommended','推荐']"));
   assert.ok(app.includes('请完成“${node.label}”节点'));
   assert.ok(app.includes('<body><h1>'));
-  assert.ok(app.includes("button.textContent = state.currentPlan ? '重新生成方案' : '生成方案'"));
+  assert.ok(app.includes("button.textContent = state.currentPlan ? '重新生成' : '生成方案'"));
   assert.equal(app.includes("150, 188"), false);
   assert.ok(db.includes('migration.legacy.backup.v1'));
   assert.ok(db.includes('export async function activateCodebook'));
   assert.ok(codebook.includes('await activateCodebook(candidate)'));
+});
+
+
+test('视觉与信息架构改造已落地', async () => {
+  const [html, css, app] = await Promise.all([text('index.html'), text('styles.css'), text('src/app.js')]);
+  assert.equal(html.includes('id="syncStatus"'), false);
+  assert.equal(html.includes('id="profileBtn"'), false);
+  assert.equal(html.includes('page-kicker'), false);
+  assert.ok(html.includes('class="page-seal"'));
+  assert.ok(html.includes('>拾<'));
+  assert.ok(html.includes('>拾味<'));
+  assert.ok(html.includes('>诹吉<'));
+  assert.ok(html.includes('>添<'));
+  assert.ok(css.includes('.page-seal'));
+  assert.ok(css.includes('font-family: FangSong'));
+  assert.ok(css.includes('border-bottom-style: dashed'));
+  assert.ok(css.includes('.overlay[data-overlay="bean-search"]'));
+  assert.ok(app.includes('<summary><span>账户</span>'));
+  assert.ok(app.includes('<summary><span>私器</span>'));
+  assert.ok(app.includes('<summary><span>数藏</span>'));
+  assert.ok(app.includes('<summary><span>本物</span>'));
+  assert.ok(app.includes('zj_crop'));
+  assert.ok(app.includes('端茶倒水的秦始皇🐻'));
+});
+
+test('豆卡名称、烘焙色值和现有数据筛选逻辑正确', async () => {
+  const app = await text('src/app.js');
+  assert.equal(app.includes('id="beanName"'), false);
+  assert.ok(app.includes('id="beanRoastColor"'));
+  assert.ok(app.includes('填写色值自动生成'));
+  assert.ok(app.includes("name: `${codeName('countries'"));
+  assert.ok(app.includes("uniqueRowsFromBeans('countries'"));
+  assert.ok(app.includes("uniqueRowsFromBeans('varieties'"));
+  assert.ok(app.includes('availableFlavorRows(activeBeans)'));
+});
+
+test('远程编码表与内置表合并时保留缺失风味', async () => {
+  const fallback = JSON.parse(await text('public/fallback-codebook.json'));
+  const primary = structuredClone(fallback);
+  primary.flavors = primary.flavors.slice(0, 3);
+  const merged = mergeCodebooks(primary, fallback);
+  assert.equal(merged.flavors.length, fallback.flavors.length);
+  assert.equal(new Set(merged.flavors.map(row => row[0])).size, merged.flavors.length);
+});
+
+test('拾味包含自动推荐、低温首段、轨迹与全屏计时', async () => {
+  const app = await text('src/app.js');
+  for (const marker of ['模型自动推荐', '第一段低温注水', 'trajectorySvg(plan)', '萃取轨迹', '风味拟合', 'timerTotalRemaining', 'timerPrevBtn', 'timerNextBtn']) assert.ok(app.includes(marker), marker);
 });
