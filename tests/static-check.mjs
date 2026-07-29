@@ -34,6 +34,15 @@ const app = await readFile(path.join(root, 'src/app.js'), 'utf8');
 const requiredFeatures = ['scanQrFile','CameraScanner','parseNaturalLanguage','requestPrivatePlan','computeFallbackPlan','inventoryEvents','SENSORY_NODES','openShareDialog','checkCodebookUpdate'];
 for (const feature of requiredFeatures) if (!app.includes(feature)) failures.push(`app.js 缺少 ${feature}`);
 
+const utils = await readFile(path.join(root, 'src/utils.js'), 'utf8');
+const schemaMatch = utils.match(/SCHEMA_VERSION\s*=\s*(\d+)/);
+if (!schemaMatch || Number(schemaMatch[1]) < 6) failures.push('IndexedDB SCHEMA_VERSION 不得低于 6，避免回滚触发 VersionError');
+
+const dbSource = await readFile(path.join(root, 'src/db.js'), 'utf8');
+for (const feature of ['openDatabase()', 'current.version >= SCHEMA_VERSION', 'Math.max(SCHEMA_VERSION', 'dbPromise = undefined']) {
+  if (!dbSource.includes(feature)) failures.push(`db.js 缺少回滚兼容逻辑：${feature}`);
+}
+
 const codebookStats = await stat(path.join(root, 'public/fallback-codebook.json'));
 if (codebookStats.size < 50000) failures.push('回退编码表体积异常');
 
@@ -48,4 +57,4 @@ if (failures.length) {
   failures.forEach(failure => console.error(`- ${failure}`));
   process.exit(1);
 }
-console.log(`静态校验通过：${files.length} 个文件；JS 语法、JSON、必要入口、敏感信息均通过。`);
+console.log(`静态校验通过：${files.length} 个文件；JS 语法、JSON、必要入口、数据库回滚兼容、敏感信息均通过。`);
