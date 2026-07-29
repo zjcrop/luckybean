@@ -19,20 +19,19 @@ jobs:
           ref: release-0.9.1
           fetch-depth: 0
 
-      - name: Upgrade version and harden IndexedDB
+      - name: Upgrade version and database compatibility
         shell: bash
         run: |
           set -euo pipefail
+          git fetch origin beta/v0.8.0 --depth=1
+          git show FETCH_HEAD:src/db.js > src/db.js
           python - <<'PY'
           from pathlib import Path
-
-          root = Path('.')
-          skip_dirs = {'.git', 'node_modules'}
-          text_suffixes = {'.js','.mjs','.json','.md','.html','.css','.yml','.yaml','.webmanifest','.txt'}
-          for path in root.rglob('*'):
-              if not path.is_file() or any(part in skip_dirs for part in path.parts):
+          allowed = {'.js','.mjs','.json','.md','.html','.css','.yml','.yaml','.webmanifest','.txt'}
+          for path in Path('.').rglob('*'):
+              if not path.is_file() or '.git' in path.parts or 'node_modules' in path.parts:
                   continue
-              if path.suffix.lower() not in text_suffixes and path.name not in {'LICENSE','CHANGELOG.md','README.md'}:
+              if path.suffix.lower() not in allowed and path.name not in {'LICENSE'}:
                   continue
               try:
                   text = path.read_text(encoding='utf-8')
@@ -42,89 +41,11 @@ jobs:
               text = text.replace('luckybean-beta/', 'luckybean/')
               path.write_text(text, encoding='utf-8')
 
-          db_path = Path('src/db.js')
-          db = db_path.read_text(encoding='utf-8')
-          old = '''export function openDb() {
-            if (dbPromise) return dbPromise;
-            dbPromise = new Promise((resolve, reject) => {
-              if (!globalThis.indexedDB) return reject(new Error('当前浏览器不支持 IndexedDB'));
-              const request = indexedDB.open(DB_NAME, SCHEMA_VERSION);
-              request.onupgradeneeded = () => {
-                const db = request.result;
-                for (const name of STORES) {
-                  if (!db.objectStoreNames.contains(name)) {
-                    const keyPath = ['settings', 'codebookCache', 'syncMetadata'].includes(name) ? 'id' : (name === 'customCodes' ? 'code' : 'id');
-                    db.createObjectStore(name, { keyPath });
-                  }
-                }
-              };
-              request.onsuccess = () => resolve(request.result);
-              request.onerror = () => reject(request.error || new Error('数据库打开失败'));
-            });
-            return dbPromise;
-          }'''
-          new = '''function keyPathForStore(name) {
-            if (['settings', 'codebookCache', 'syncMetadata'].includes(name)) return 'id';
-            if (name === 'customCodes') return 'code';
-            return 'id';
-          }
-
-          function createMissingStores(db) {
-            for (const name of STORES) {
-              if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: keyPathForStore(name) });
-            }
-          }
-
-          function missingStores(db) {
-            return STORES.filter(name => !db.objectStoreNames.contains(name));
-          }
-
-          function attachVersionChangeHandler(db) {
-            db.onversionchange = () => db.close();
-            return db;
-          }
-
-          function openDatabase(version) {
-            return new Promise((resolve, reject) => {
-              const request = version == null ? indexedDB.open(DB_NAME) : indexedDB.open(DB_NAME, version);
-              request.onupgradeneeded = () => createMissingStores(request.result);
-              request.onsuccess = () => resolve(attachVersionChangeHandler(request.result));
-              request.onerror = () => reject(request.error || new Error('数据库打开失败'));
-              request.onblocked = () => reject(new Error('数据库升级被其他页面占用，请关闭其他富贵盒子页面后重试'));
-            });
-          }
-
-          export function openDb() {
-            if (dbPromise) return dbPromise;
-            dbPromise = (async () => {
-              if (!globalThis.indexedDB) throw new Error('当前浏览器不支持 IndexedDB');
-              const current = await openDatabase();
-              const missing = missingStores(current);
-              if (current.version >= SCHEMA_VERSION && missing.length === 0) return current;
-              const targetVersion = Math.max(SCHEMA_VERSION, current.version + (missing.length ? 1 : 0));
-              current.close();
-              return openDatabase(targetVersion);
-            })().catch(error => {
-              dbPromise = undefined;
-              throw error;
-            });
-            return dbPromise;
-          }'''
-          if old not in db:
-              raise SystemExit('未找到预期的旧 openDb 实现')
-          db_path.write_text(db.replace(old, new), encoding='utf-8')
-
-          sw = Path('sw.js').read_text(encoding='utf-8')
-          sw = sw.replace("const CACHE_NAME = 'luckybean-v0.9.1';", "const CACHE_NAME = 'luckybean-v0.9.1';")
-          sw = sw.replace("event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => { if (response.ok) { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(request, copy)); } return response; })));", "event.respondWith(fetch(request).then(response => { if (response.ok) { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(request, copy)); } return response; }).catch(() => caches.match(request)));" )
-          Path('sw.js').write_text(sw, encoding='utf-8')
-
-          readme = Path('README.md')
-          if readme.exists():
-              text = readme.read_text(encoding='utf-8')
-              text = text.replace('Beta v0.9.1', '当前版本 v0.9.1')
-              text = text.replace('独立在线 Beta', '在线正式版本')
-              readme.write_text(text, encoding='utf-8')
+          sw_path = Path('sw.js')
+          sw = sw_path.read_text(encoding='utf-8')
+          old = "event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => { if (response.ok) { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(request, copy)); } return response; })));"
+          new = "event.respondWith(fetch(request).then(response => { if (response.ok) { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(request, copy)); } return response; }).catch(() => caches.match(request)));"
+          sw_path.write_text(sw.replace(old, new), encoding='utf-8')
           PY
 
       - name: Validate release
