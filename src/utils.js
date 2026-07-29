@@ -28,24 +28,23 @@ export function todayISO() {
 
 export function formatDate(value) {
   if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString('zh-CN');
 }
 
-export function freshness(bean, now = new Date()) {
-  const roasted = new Date(bean.roastDate || now);
-  const days = Math.floor((now - roasted) / 86400000);
-  const level = Number(String(bean.roastCode || 'RL-L2').replace(/\D/g, '')) || 2;
-  const refrigerated = Boolean(bean.refrigerated);
-  const rest = Math.max(4, 6 + (2 - Math.min(level, 2)) * 2);
-  const peakStart = refrigerated ? rest + 8 : rest;
-  const peakEnd = refrigerated ? 65 : Math.max(22, 38 - level * 4);
-  const goodEnd = refrigerated ? 110 : peakEnd + 24;
-  if (days < peakStart) return { key: 'resting', label: '养豆期', days, remaining: peakStart - days };
-  if (days <= peakEnd) return { key: 'peak', label: '最佳赏味', days, remaining: peakEnd - days };
-  if (days <= goodEnd) return { key: 'good', label: '仍适饮', days, remaining: goodEnd - days };
-  return { key: days > goodEnd + 45 ? 'urgent' : 'decline', label: days > goodEnd + 45 ? '建议尽快使用' : '风味衰减', days, remaining: goodEnd - days };
+export function daysBetween(a, b = new Date()) {
+  const da = new Date(a);
+  const db = new Date(b);
+  if (Number.isNaN(da.getTime()) || Number.isNaN(db.getTime())) return 0;
+  return Math.floor((db - da) / 86400000);
+}
+
+export function debounce(fn, wait = 160) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), wait);
+  };
 }
 
 export function downloadBlob(filename, content, type = 'application/octet-stream') {
@@ -57,54 +56,68 @@ export function downloadBlob(filename, content, type = 'application/octet-stream
   document.body.append(anchor);
   anchor.click();
   anchor.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+export function parseNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+export async function sha256Hex(value) {
+  const bytes = typeof value === 'string' ? new TextEncoder().encode(value) : value;
+  if (!crypto?.subtle) return '';
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map(v => v.toString(16).padStart(2, '0')).join('');
 }
 
 export function safeJsonParse(text, fallback = null) {
   try { return JSON.parse(text); } catch { return fallback; }
 }
 
-export function assertPlainObject(value, name = '数据') {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${name}必须是普通对象`);
-  const prototype = Object.getPrototypeOf(value);
-  if (prototype !== Object.prototype && prototype !== null) throw new Error(`${name}对象原型无效`);
+
+export function assertSafeJson(value, path = 'root', depth = 0) {
+  if (depth > 20) throw new Error(`${path} 嵌套层级过深`);
+  if (value === null || ['string', 'number', 'boolean'].includes(typeof value)) return value;
+  if (Array.isArray(value)) {
+    if (value.length > 100000) throw new Error(`${path} 数组过大`);
+    value.forEach((item, index) => assertSafeJson(item, `${path}[${index}]`, depth + 1));
+    return value;
+  }
+  if (typeof value !== 'object') throw new Error(`${path} 包含不支持的数据类型`);
+  for (const [key, item] of Object.entries(value)) {
+    if (['__proto__', 'prototype', 'constructor'].includes(key)) throw new Error(`${path} 包含危险字段 ${key}`);
+    assertSafeJson(item, `${path}.${key}`, depth + 1);
+  }
   return value;
 }
 
-export function assertSafeJson(value, { maxDepth = 16, maxKeys = 20000 } = {}) {
-  let keys = 0;
-  const visit = (node, depth) => {
-    if (depth > maxDepth) throw new Error('导入数据嵌套过深');
-    if (!node || typeof node !== 'object') return;
-    if (Array.isArray(node)) {
-      if (node.length > maxKeys) throw new Error('导入数组过长');
-      node.forEach(item => visit(item, depth + 1));
-      return;
-    }
-    assertPlainObject(node, '导入数据');
-    for (const [key, child] of Object.entries(node)) {
-      if (['__proto__', 'prototype', 'constructor'].includes(key)) throw new Error('导入数据包含危险键');
-      keys += 1;
-      if (keys > maxKeys) throw new Error('导入字段过多');
-      visit(child, depth + 1);
-    }
-  };
-  visit(value, 0);
+export function assertPlainObject(value, label = '对象') {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label}格式无效`);
+  for (const key of Object.keys(value)) {
+    if (['__proto__', 'prototype', 'constructor'].includes(key)) throw new Error(`${label}包含危险字段`);
+  }
   return value;
-}
-
-export async function sha256Hex(value) {
-  const bytes = value instanceof Uint8Array ? value : new TextEncoder().encode(String(value));
-  if (!globalThis.crypto?.subtle) throw new Error('当前环境不支持 SHA-256');
-  const digest = await crypto.subtle.digest('SHA-256', bytes);
-  return [...new Uint8Array(digest)].map(value => value.toString(16).padStart(2, '0')).join('');
 }
 
 export function browserTitle(pageTitle) {
   document.title = `${pageTitle} · 富贵盒子`;
 }
 
-export function parseNumber(value, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+export function freshness(bean) {
+  const age = daysBetween(bean.roastDate);
+  const roast = bean.roastCode || 'RL-L2';
+  const frozen = Boolean(bean.refrigerated);
+  const offset = frozen ? Math.max(0, daysBetween(bean.freezeDate || bean.roastDate)) * 0.78 : 0;
+  const effectiveAge = Math.max(0, age - offset);
+  const ranges = {
+    'RL-L0': [10, 35, 65], 'RL-L1': [8, 30, 55], 'RL-L2': [7, 25, 45],
+    'RL-L3': [5, 20, 35], 'RL-L4': [4, 16, 28], 'RL-L5': [3, 12, 22], 'RL-L6': [2, 9, 16]
+  };
+  const [start, peakEnd, end] = ranges[roast] || ranges['RL-L2'];
+  if (effectiveAge < start) return { key: 'resting', label: '养豆中', rank: 5, remaining: start - effectiveAge };
+  if (effectiveAge <= peakEnd) return { key: 'peak', label: '高峰', rank: 4, remaining: peakEnd - effectiveAge };
+  if (effectiveAge <= end) return { key: 'good', label: '适饮', rank: 3, remaining: end - effectiveAge };
+  if (effectiveAge <= end + 20) return { key: 'decline', label: '衰减', rank: 2, remaining: end - effectiveAge };
+  return { key: 'urgent', label: '尽快处理', rank: 1, remaining: end - effectiveAge };
 }
