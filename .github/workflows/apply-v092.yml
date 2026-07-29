@@ -1,4 +1,4 @@
-name: Apply Lucky Bean 0.9.2 retry
+name: Apply Lucky Bean 0.9.2 split payload
 
 on:
   push:
@@ -20,29 +20,36 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Apply, validate and record result
+      - name: Reassemble, apply, validate and record result
         shell: bash
         run: |
           set +e
-          base64 -d release/v092/apply_v092.py.gz.b64 | gzip -d > /tmp/apply_v092.py 2>/tmp/decode.err
-          decode_status=$?
+          cat release/v092/part001.txt release/v092/part002.txt > /tmp/apply_v092.py.gz.b64
+          payload_hash="$(sha256sum /tmp/apply_v092.py.gz.b64 | awk '{print $1}')"
+          hash_status=1
+          if [ "$payload_hash" = "4b451813f3d546813190ae5ac2911beb0777210f011bca6389fd6e14b21a9c8d" ]; then hash_status=0; fi
+
+          decode_status=99
           apply_status=99
           test_status=99
           check_status=99
           gate_status=99
-
+          if [ "$hash_status" -eq 0 ]; then
+            base64 -d /tmp/apply_v092.py.gz.b64 | gzip -d > /tmp/apply_v092.py 2>/tmp/decode.err
+            decode_status=$?
+          fi
           if [ "$decode_status" -eq 0 ]; then
-            python /tmp/apply_v092.py >/tmp/apply.log 2>&1
-            apply_status=$?
+            script_hash="$(sha256sum /tmp/apply_v092.py | awk '{print $1}')"
+            if [ "$script_hash" != "8e64292dae9c5236f2b592cc990955625d0b1c9431f49d11e3742da733ce3919" ]; then
+              echo "script SHA mismatch: $script_hash" >/tmp/apply.log
+              apply_status=98
+            else
+              python /tmp/apply_v092.py >/tmp/apply.log 2>&1
+              apply_status=$?
+            fi
           fi
-          if [ "$apply_status" -eq 0 ]; then
-            npm test >/tmp/test.log 2>&1
-            test_status=$?
-          fi
-          if [ "$test_status" -eq 0 ]; then
-            npm run check >/tmp/check.log 2>&1
-            check_status=$?
-          fi
+          if [ "$apply_status" -eq 0 ]; then npm test >/tmp/test.log 2>&1; test_status=$?; fi
+          if [ "$test_status" -eq 0 ]; then npm run check >/tmp/check.log 2>&1; check_status=$?; fi
           if [ "$check_status" -eq 0 ]; then
             node -e "const p=require('./package.json'); if(p.version!=='0.9.2') process.exit(1)" >/tmp/gate.log 2>&1 \
               && grep -q "APP_VERSION = '0.9.2'" src/utils.js \
@@ -53,7 +60,7 @@ jobs:
             gate_status=$?
           fi
 
-          if [ "$decode_status" -eq 0 ] && [ "$apply_status" -eq 0 ] && [ "$test_status" -eq 0 ] && [ "$check_status" -eq 0 ] && [ "$gate_status" -eq 0 ]; then
+          if [ "$hash_status" -eq 0 ] && [ "$decode_status" -eq 0 ] && [ "$apply_status" -eq 0 ] && [ "$test_status" -eq 0 ] && [ "$check_status" -eq 0 ] && [ "$gate_status" -eq 0 ]; then
             rm -rf release/v092
             rm -f .github/workflows/apply-v092.yml
             git config user.name 'github-actions[bot]'
@@ -67,30 +74,24 @@ jobs:
           git reset --hard HEAD
           mkdir -p release/v092
           {
+            echo "hash_status=$hash_status"
+            echo "payload_hash=$payload_hash"
             echo "decode_status=$decode_status"
             echo "apply_status=$apply_status"
             echo "test_status=$test_status"
             echo "check_status=$check_status"
             echo "gate_status=$gate_status"
             echo
-            echo '=== decode ==='
-            cat /tmp/decode.err 2>/dev/null || true
-            echo
-            echo '=== apply ==='
-            cat /tmp/apply.log 2>/dev/null || true
-            echo
-            echo '=== test ==='
-            cat /tmp/test.log 2>/dev/null || true
-            echo
-            echo '=== check ==='
-            cat /tmp/check.log 2>/dev/null || true
-            echo
-            echo '=== gate ==='
-            cat /tmp/gate.log 2>/dev/null || true
+            echo '=== decode ==='; cat /tmp/decode.err 2>/dev/null || true
+            echo '=== apply ==='; cat /tmp/apply.log 2>/dev/null || true
+            echo '=== test ==='; cat /tmp/test.log 2>/dev/null || true
+            echo '=== check ==='; cat /tmp/check.log 2>/dev/null || true
+            echo '=== gate ==='; cat /tmp/gate.log 2>/dev/null || true
           } > release/v092/status.txt
           git config user.name 'github-actions[bot]'
+          git config user.email '418982or noreply'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add release/v092/status.txt
-          git commit -m 'chore: record Lucky Bean 0.9.2 apply diagnostics'
+          git commit -m 'chore: record Lucky Bean 0.9.2 split-payload diagnostics'
           git push origin HEAD:main
           exit 1
