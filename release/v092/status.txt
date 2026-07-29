@@ -1,0 +1,202 @@
+decode_status=0
+apply_status=0
+test_status=1
+check_status=99
+gate_status=99
+
+=== decode ===
+
+=== apply ===
+Applied Lucky Bean 0.9.2 changes
+
+=== test ===
+
+> luckybean@0.9.2 test
+> node --test tests/*.test.mjs
+
+TAP version 13
+# Subtest: BrewIon 回退编码表结构完整且编码唯一
+ok 1 - BrewIon 回退编码表结构完整且编码唯一
+  ---
+  duration_ms: 21.433065
+  type: 'test'
+  ...
+# Subtest: Beta 冲煮引擎输出完整协议、守恒和专业模型
+ok 2 - Beta 冲煮引擎输出完整协议、守恒和专业模型
+  ---
+  duration_ms: 9.271772
+  type: 'test'
+  ...
+# Subtest: 冲煮方案库覆盖旧版主要方案类型
+ok 3 - 冲煮方案库覆盖旧版主要方案类型
+  ---
+  duration_ms: 0.275766
+  type: 'test'
+  ...
+# Subtest: 调水模块对标 Brew-Water-Calibrato 咖啡参数
+ok 4 - 调水模块对标 Brew-Water-Calibrato 咖啡参数
+  ---
+  duration_ms: 0.498503
+  type: 'test'
+  ...
+# Subtest: 低分品鉴可生成问题定向修正方案
+ok 5 - 低分品鉴可生成问题定向修正方案
+  ---
+  duration_ms: 3.228973
+  type: 'test'
+  ...
+# Subtest: 自动得分、主观分差和偏好标签可累计
+ok 6 - 自动得分、主观分差和偏好标签可累计
+  ---
+  duration_ms: 1.712445
+  type: 'test'
+  ...
+# Subtest: 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
+ok 7 - 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
+  ---
+  duration_ms: 81.216724
+  type: 'test'
+  ...
+# Subtest: 导航、田字快捷区和双字题注严格对应
+ok 8 - 导航、田字快捷区和双字题注严格对应
+  ---
+  duration_ms: 2.202732
+  type: 'test'
+  ...
+# Subtest: HTML 不含重复 ID 或内联事件处理器
+ok 9 - HTML 不含重复 ID 或内联事件处理器
+  ---
+  duration_ms: 2.265199
+  type: 'test'
+  ...
+# Subtest: 应用代码保持单一初始化和主渲染函数
+not ok 10 - 应用代码保持单一初始化和主渲染函数
+  ---
+  duration_ms: 30.771949
+  type: 'test'
+  location: '/home/runner/work/luckybean/luckybean/tests/core.test.mjs:146:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(app.includes('setTimeout(resolve, 667)'))
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/core.test.mjs:149:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 私有仓库凭据和私有 GitHub API 不进入前端
+ok 11 - 私有仓库凭据和私有 GitHub API 不进入前端
+  ---
+  duration_ms: 6.50309
+  type: 'test'
+  ...
+# Subtest: 自然语言识别回填确定性字段和 BrewIon 代码
+ok 12 - 自然语言识别回填确定性字段和 BrewIon 代码
+  ---
+  duration_ms: 20.818829
+  type: 'test'
+  ...
+# Subtest: BrewIon 固定字段二维码执行 CRC 和行索引解码
+ok 13 - BrewIon 固定字段二维码执行 CRC 和行索引解码
+  ---
+  duration_ms: 10.709032
+  type: 'test'
+  ...
+# Subtest: 视觉、卡片、分组、搜索和撷页交互标记已落地
+ok 14 - 视觉、卡片、分组、搜索和撷页交互标记已落地
+  ---
+  duration_ms: 2.255562
+  type: 'test'
+  ...
+# Subtest: 豆卡名称、烘焙色值和现有数据筛选逻辑正确
+ok 15 - 豆卡名称、烘焙色值和现有数据筛选逻辑正确
+  ---
+  duration_ms: 1.747921
+  type: 'test'
+  ...
+# Subtest: 远程编码表与内置表合并时保留缺失风味
+ok 16 - 远程编码表与内置表合并时保留缺失风味
+  ---
+  duration_ms: 4.783282
+  type: 'test'
+  ...
+# Subtest: 编码表产区与庄园使用正确中文列且不生成空标签
+ok 17 - 编码表产区与庄园使用正确中文列且不生成空标签
+  ---
+  duration_ms: 12.029774
+  type: 'test'
+  ...
+# Subtest: 十阶段赏味进度从20%起步并在赏味期后一周达到100%
+ok 18 - 十阶段赏味进度从20%起步并在赏味期后一周达到100%
+  ---
+  duration_ms: 1.573775
+  type: 'test'
+  ...
+# Subtest: 负面缺陷扣分显著高于正面风味叠加
+ok 19 - 负面缺陷扣分显著高于正面风味叠加
+  ---
+  duration_ms: 0.425987
+  type: 'test'
+  ...
+# Subtest: v0.9 交互与器具库存标记完整
+ok 20 - v0.9 交互与器具库存标记完整
+  ---
+  duration_ms: 4.754798
+  type: 'test'
+  ...
+# Subtest: 计时、消耗、品鉴札记、复刻与方案导出功能已落地
+not ok 21 - 计时、消耗、品鉴札记、复刻与方案导出功能已落地
+  ---
+  duration_ms: 4.046623
+  type: 'test'
+  location: '/home/runner/work/luckybean/luckybean/tests/core.test.mjs:242:1'
+  failureType: 'testCodeFailure'
+  error: '扣除克重进入品鉴'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/core.test.mjs:244:246)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 0.9.2 version, page headings and menu labels
+ok 22 - 0.9.2 version, page headings and menu labels
+  ---
+  duration_ms: 10.078001
+  type: 'test'
+  ...
+# Subtest: recommendation animation and prompt libraries are complete
+ok 23 - recommendation animation and prompt libraries are complete
+  ---
+  duration_ms: 2.953097
+  type: 'test'
+  ...
+# Subtest: timer, inventory, delta wheel and trajectory requirements
+ok 24 - timer, inventory, delta wheel and trajectory requirements
+  ---
+  duration_ms: 4.200812
+  type: 'test'
+  ...
+1..24
+# tests 24
+# suites 0
+# pass 22
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 309.472106
+
+=== check ===
+
+=== gate ===
