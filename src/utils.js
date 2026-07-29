@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.9.0-beta.1';
+export const APP_VERSION = '0.9.1';
 export const SCHEMA_VERSION = 6;
 
 export const $ = (selector, root = document) => root.querySelector(selector);
@@ -74,7 +74,6 @@ export async function sha256Hex(value) {
 export function safeJsonParse(text, fallback = null) {
   try { return JSON.parse(text); } catch { return fallback; }
 }
-
 
 export function assertSafeJson(value, path = 'root', depth = 0) {
   if (depth > 20) throw new Error(`${path} 嵌套层级过深`);
