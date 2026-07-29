@@ -1,0 +1,91 @@
+name: Verify Lucky Bean 0.9.2 browser flow
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/browser-v092.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Update browser smoke contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('tests/browser-smoke.py')
+          text=p.read_text(encoding='utf-8')
+          text=text.replace("browser=await p.chromium.launch(headless=True, executable_path='/usr/bin/chromium', args=['--no-sandbox','--disable-dev-shm-usage'])", "browser=await p.chromium.launch(headless=True, args=['--no-sandbox','--disable-dev-shm-usage'])")
+          old="""        if '总分' in heading:
+            auto=float(await page.locator('#sensoryAutoScore').inner_text())
+            subjective=max(50,auto-10)
+            await page.fill('#sensoryScore',str(subjective))
+            await page.locator('#nextSensoryNodeBtn').click()
+            continue"""
+          new="""        if '总分' in heading:
+            await page.locator('#sensoryDeltaWheel').evaluate(\"(e)=>{e.value='-6';e.dispatchEvent(new Event('input',{bubbles:true}))}\")
+            await page.locator('#nextSensoryNodeBtn').click()
+            continue"""
+          if old not in text: raise SystemExit('score smoke block not found')
+          text=text.replace(old,new)
+          old="""    # Recommendation directly expands the matching group and marks its target card.
+    await page.locator('#fabRecommendBtn').click(); await page.locator('[data-recommend-mode=\"freshness\"]').click()
+    await page.wait_for_selector('.bean-card.recommended')
+    results['recommend_focus']={'expanded':await page.locator('[data-active-group-panel]').count()==1,'marked':await page.locator('.bean-card.recommended').count()==1}"""
+          new="""    # Recommendation expands every group vertically, scrolls and marks the selected card.
+    await page.locator('#fabRecommendBtn').click()
+    results['recommend_modes']=await page.locator('[data-recommend-mode]').all_text_contents()
+    await page.locator('[data-recommend-mode=\"freshness\"]').click()
+    await page.wait_for_selector('.bean-card.recommended')
+    results['recommend_focus']={'expanded':await page.locator('[data-all-groups]').count()==1,'groups':await page.locator('.recommendation-group').count(),'marked':await page.locator('.bean-card.recommended').count()==1}"""
+          if old not in text: raise SystemExit('recommendation smoke block not found')
+          text=text.replace(old,new)
+          text=text.replace("'trajectory_windows':await page.locator('.trajectory-window').count(),", "'trajectory_windows':await page.locator('.trajectory-window').count(),\n      'trajectory_peaks':await page.locator('.trajectory-peak').count(),")
+          text=text.replace("results['consume']={'title':await page.locator('.consume-confirm h2').inner_text(),'dose':await page.locator('.consume-dose').inner_text(),'record':await page.locator('#recordConsumptionBtn').inner_text(),'skip':await page.locator('#skipConsumptionBtn').inner_text()}", "results['consume']={'title':await page.locator('.consume-confirm h2').inner_text(),'dose':await page.locator('.consume-dose').inner_text(),'filter':await page.locator('.consume-filter').inner_text(),'record':await page.locator('#recordConsumptionBtn').inner_text(),'skip':await page.locator('#skipConsumptionBtn').inner_text()}")
+          text=text.replace("results['leaderboard']=await page.locator('[data-open-recommend-board]').count()", "results['leaderboard']=await page.locator('[data-open-recommend-board]').count()\n    results['leaderboard_ranks']=await page.locator('.preference-board-top3 small').all_text_contents()")
+          text=text.replace("results['gear']={'star':await page.locator('.nav-button [aria-label=\"滤纸库存低\"]').count(),'low':await page.locator('[data-filter-item=\"filter_test\"].low-stock').count(),'open':await page.locator('#privateGearCategory').get_attribute('open') is not None}", "results['gear']={'star':await page.locator('.nav-button [aria-label=\"滤纸库存低\"]').count(),'low':await page.locator('[data-filter-item=\"filter_test\"].low-stock').count(),'open':await page.locator('#privateGearCategory').get_attribute('open') is not None}\n    results['settings_titles']=await page.locator('.settings-category > summary > span').all_text_contents()\n    results['settings_subtitles']=await page.locator('.settings-category > summary > small').all_text_contents()\n    results['settings_centered']=await page.locator('.settings-category > summary').evaluate_all(\"els=>els.every(e=>getComputedStyle(e).textAlign==='center')\")")
+          text=text.replace("'plan':results.get('plan',{}).get('stages',0)>=4 and results.get('plan',{}).get('trajectory')==1 and results.get('plan',{}).get('trajectory_paths',0)>=7 and results.get('plan',{}).get('trajectory_windows',0)>=4 and results.get('plan',{}).get('trajectory_toggle')", "'plan':results.get('plan',{}).get('stages',0)>=4 and results.get('plan',{}).get('trajectory')==1 and results.get('plan',{}).get('trajectory_paths',0)>=7 and results.get('plan',{}).get('trajectory_windows',0)>=4 and results.get('plan',{}).get('trajectory_peaks',0)>=6 and results.get('plan',{}).get('trajectory_toggle')")
+          text=text.replace("'consume':results.get('consume',{}).get('record')=='扣除克重进入品鉴' and results.get('consume',{}).get('skip')=='不记录则返回拾味' and results.get('consume',{}).get('filter_after')==4,", "'consume':results.get('consume',{}).get('record')=='扣除咖啡豆与滤纸，进入品鉴' and '同时扣除滤纸' in results.get('consume',{}).get('filter','') and results.get('consume',{}).get('skip')=='不记录则返回拾味' and results.get('consume',{}).get('filter_after')==4,")
+          text=text.replace("'recommend':results.get('recommended_badges',0)>0 and results.get('leaderboard',0)>0 and results.get('recommend_focus',{}).get('expanded') and results.get('recommend_focus',{}).get('marked'),", "'recommend':results.get('recommended_badges',0)>0 and results.get('leaderboard',0)>0 and results.get('leaderboard_ranks')==['魁首','榜眼','探花'] and results.get('recommend_modes')==['榜魁','味盛','价冠','拾余','拈签'] and results.get('recommend_focus',{}).get('expanded') and results.get('recommend_focus',{}).get('groups',0)>1 and results.get('recommend_focus',{}).get('marked'),")
+          text=text.replace("'gear':results.get('gear',{}).get('star')==1 and results.get('gear',{}).get('low')==1 and results.get('gear',{}).get('open') and results.get('gear',{}).get('single_open'),", "'gear':results.get('gear',{}).get('star')==1 and results.get('gear',{}).get('low')==1 and results.get('gear',{}).get('open') and results.get('gear',{}).get('single_open') and results.get('settings_titles')==['账户','私器*','数藏','本物'] and results.get('settings_subtitles')==['个人信息，账户 ID，其他平台绑定','滤纸，滤杯，磨豆机设定','数据的导入导出及备份，数据接口','关于本工具和开发小哥的一切'] and results.get('settings_centered'),")
+          p.write_text(text,encoding='utf-8')
+          PY
+
+      - name: Install browser test runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Run complete validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test
+          npm run check
+          python tests/browser-smoke.py
+
+      - name: Commit browser-verified 0.9.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/browser-v092.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tests/browser-smoke.py docs/browser-smoke-result.json docs/smoke-beta-beans.png docs/smoke-beta-brew.png .github/workflows/browser-v092.yml
+          git commit -m 'test: verify Lucky Bean 0.9.2 browser flow'
+          git push origin HEAD:main
