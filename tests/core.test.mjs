@@ -146,7 +146,7 @@ test('HTML 不含重复 ID 或内联事件处理器', async () => {
 test('应用代码保持单一初始化和主渲染函数', async () => {
   const app = await text('src/app.js');
   for (const fn of ['init','renderBeans','detailBean','renderBrew','saveEvaluation']) assert.equal((app.match(new RegExp(`function ${fn}\\s*\\(`,'g'))||[]).length,1,fn);
-  assert.ok(app.includes('setTimeout(resolve, 667)'));
+  assert.ok(app.includes('duration: 800'));
   assert.ok(app.includes("state.groupAnimationMode = automatic ? 'auto' : 'manual'"));
   assert.equal(app.includes('id="beanRemainingWeight"'), false);
 });
@@ -241,5 +241,5 @@ test('v0.9 交互与器具库存标记完整', async () => {
 });
 test('计时、消耗、品鉴札记、复刻与方案导出功能已落地', async () => {
   const app=await text('src/app.js');
-  for(const marker of ['timerPrevBtn','>退<','timerPauseBtn','>驻<','timerNextBtn','>进<','timerEndBtn','>终<','扣除克重进入品鉴','不记录则返回拾味','sensoryNaturalNote','主观得分','自动得分','buildCorrectedPlan','data-replay-session','exportCurrentPlan','JSON脚本']) assert.ok(app.includes(marker),marker);
+  for(const marker of ['timerPrevBtn','>退<','timerPauseBtn','>驻<','timerNextBtn','>进<','timerEndBtn','>终<','扣除咖啡豆与滤纸，进入品鉴','不记录则返回拾味','sensoryNaturalNote','主观分差','自动得分','buildCorrectedPlan','data-replay-session','exportCurrentPlan','JSON脚本']) assert.ok(app.includes(marker),marker);
 });
