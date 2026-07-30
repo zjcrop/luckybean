@@ -22,34 +22,45 @@ jobs:
           ref: release-0.9.3
           fetch-depth: 0
 
-      - name: Wait for complete archive
+      - name: Wait for complete payload
         id: ready
         shell: bash
         run: |
-          if [ -f release/v093-clean/complete.txt ]; then
+          if [ -f release/v093-final/complete.txt ]; then
             echo 'ready=true' >> "$GITHUB_OUTPUT"
           else
             echo 'ready=false' >> "$GITHUB_OUTPUT"
-            echo '0.9.3 archive upload is not complete yet.'
+            echo '0.9.3 final payload is not complete yet.'
           fi
 
-      - name: Reconstruct and verify archive
+      - name: Reconstruct and verify payload
         if: steps.ready.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          cat release/v093-clean/part* | base64 --decode > /tmp/luckybean-v093-clean.tar.gz
-          echo 'e06bf16c6334f5f5ea5a52b70eff2888694fdebf8299b1ff1d6e7aa49c084518  /tmp/luckybean-v093-clean.tar.gz' | sha256sum -c -
-          tar -tzf /tmp/luckybean-v093-clean.tar.gz >/tmp/v093-file-list.txt
-          cat /tmp/v093-file-list.txt
+          cat release/v093-final/patch.part* | base64 --decode > /tmp/v093.patch.gz
+          base64 --decode release/v093-final/logo.b64 > /tmp/app-logo.jpg
+          cat release/v093-final/splash.part* | base64 --decode > /tmp/splash.jpg
+          base64 --decode release/v093-final/action-grid.b64 | gzip -d > /tmp/action-grid.svg
+          echo '89b7f137274b122ff3d77ed97a3d4252cb59d897063814d929fd450375e490f4  /tmp/v093.patch.gz' | sha256sum -c -
+          echo '0ac9c3828046fbf442715eb4d760173d4912c8d3b710f1b1d0ac890b34dd7703  /tmp/app-logo.jpg' | sha256sum -c -
+          echo '2709478db3a637d76e92287c75e1d16f8d106c97f3057c24c155830b059bf0b4  /tmp/splash.jpg' | sha256sum -c -
+          echo 'da98e7997a04b55aa729d3a9f64e8a28d0e72359a786f48a83713ac3b9e248d2  /tmp/action-grid.svg' | sha256sum -c -
+          gzip -d -c /tmp/v093.patch.gz > /tmp/v093.patch
+          git apply --check /tmp/v093.patch
 
-      - name: Apply clean archive
+      - name: Apply patch and assets
         if: steps.ready.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          tar -xzf /tmp/luckybean-v093-clean.tar.gz -C .
-          rm -rf release/v093 release/v093-clean
+          git apply /tmp/v093.patch
+          mkdir -p public android/app/src/main/res/drawable
+          cp /tmp/app-logo.jpg public/app-logo.jpg
+          cp /tmp/app-logo.jpg android/app/src/main/res/drawable/app_logo.jpg
+          cp /tmp/splash.jpg public/splash.jpg
+          cp /tmp/action-grid.svg public/action-grid.svg
+          rm -rf release/v093 release/v093-clean release/v093-final
 
       - name: Synchronize BrewIon codebook
         if: steps.ready.outputs.ready == 'true'
