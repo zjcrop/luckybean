@@ -40,7 +40,7 @@ jobs:
           set -euo pipefail
           base64 --decode release/v093-final/script.b64 > /tmp/apply-v093.py.gz
           base64 --decode release/v093-final/logo.b64 > /tmp/app-logo.webp
-          base64 --decode release/v093-final/splash.b64 > /tmp/splash.webp
+          cat release/v093-final/splash.part*.b64 | base64 --decode > /tmp/splash.webp
           base64 --decode release/v093-final/action.b64 > /tmp/action-grid.webp
           echo 'a7574b6ab58eb661be484886e1e2710997692f28c02cc351c8f078774c9f1116  /tmp/apply-v093.py.gz' | sha256sum -c -
           echo '7c63ac92306292e22d37bd0cbb148e58eadfff5f6c398a5904ab4d3e2c8466e5  /tmp/app-logo.webp' | sha256sum -c -
