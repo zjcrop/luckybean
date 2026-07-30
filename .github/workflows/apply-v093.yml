@@ -38,23 +38,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat release/v093-final/patch.part* | base64 --decode > /tmp/v093.patch.gz
+          base64 --decode release/v093-final/script.b64 > /tmp/apply-v093.py.gz
           base64 --decode release/v093-final/logo.b64 > /tmp/app-logo.webp
           base64 --decode release/v093-final/splash.b64 > /tmp/splash.webp
           base64 --decode release/v093-final/action.b64 > /tmp/action-grid.webp
-          echo 'fc0ab4493aa5d17c0fdc50fabfb98798d426e64a3528a7f3386547adc091ed67  /tmp/v093.patch.gz' | sha256sum -c -
+          echo 'a7574b6ab58eb661be484886e1e2710997692f28c02cc351c8f078774c9f1116  /tmp/apply-v093.py.gz' | sha256sum -c -
           echo '7c63ac92306292e22d37bd0cbb148e58eadfff5f6c398a5904ab4d3e2c8466e5  /tmp/app-logo.webp' | sha256sum -c -
           echo '654b42e28080bd1a592fa42f421824344e3b36453d084d86b0ebe5ece2e28218  /tmp/splash.webp' | sha256sum -c -
           echo 'ca5e6569e79e1e81e4db31984a9dd0b12984bfd268966f6476cf0f464a684dcf  /tmp/action-grid.webp' | sha256sum -c -
-          gzip -d -c /tmp/v093.patch.gz > /tmp/v093.patch
-          git apply --check /tmp/v093.patch
+          gzip -d -c /tmp/apply-v093.py.gz > /tmp/apply-v093.py
+          python -m py_compile /tmp/apply-v093.py
 
-      - name: Apply patch and assets
+      - name: Apply script and assets
         if: steps.ready.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          git apply /tmp/v093.patch
+          python /tmp/apply-v093.py
           mkdir -p public android/app/src/main/res/drawable
           cp /tmp/app-logo.webp public/app-logo.webp
           cp /tmp/app-logo.webp android/app/src/main/res/drawable/app_logo.webp
@@ -107,7 +107,7 @@ jobs:
           grep -q 'id="splashScreen"' index.html
           grep -q '点击进入' index.html
           grep -q 'public/action-grid.webp' styles.css
-          grep -q 'sensoryIntensity' src/app.js
+          grep -q 'intensity: true' src/app.js
           grep -q 'dripperPrice' src/app.js
           grep -q 'frozen-weight' styles.css
           grep -q '取消</button><button id="prevSensoryNodeBtn"' src/app.js
