@@ -27,13 +27,17 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/v093/code /tmp/v093/assets
-          cat release/v093/safe.part00 release/v093/tail.part00 release/v093/tail.part01 > /tmp/v093/code.b64
-          base64 --decode --ignore-garbage /tmp/v093/code.b64 > /tmp/v093/code.tar.gz
+          : > /tmp/v093/code.tar.gz
+          for part in release/v093/safe.part00 release/v093/tail.part00 release/v093/tail.part01; do
+            base64 --decode --ignore-garbage "$part" >> /tmp/v093/code.tar.gz
+          done
           gzip -t /tmp/v093/code.tar.gz
           tar -xzf /tmp/v093/code.tar.gz -C /tmp/v093/code
 
-          cat release/v093/assets.part00 release/v093/assets.part01 release/v093/assets.part02 > /tmp/v093/assets.b64
-          base64 --decode --ignore-garbage /tmp/v093/assets.b64 > /tmp/v093/assets.tar.gz
+          : > /tmp/v093/assets.tar.gz
+          for part in release/v093/assets.part00 release/v093/assets.part01 release/v093/assets.part02; do
+            base64 --decode --ignore-garbage "$part" >> /tmp/v093/assets.tar.gz
+          done
           gzip -t /tmp/v093/assets.tar.gz
           tar -xzf /tmp/v093/assets.tar.gz -C /tmp/v093/assets
 
