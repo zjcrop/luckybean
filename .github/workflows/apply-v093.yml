@@ -27,18 +27,69 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/v093/code /tmp/v093/assets
-          : > /tmp/v093/code.tar.gz
-          for part in release/v093/safe.part00 release/v093/tail.part00 release/v093/tail.part01; do
-            base64 --decode --ignore-garbage "$part" >> /tmp/v093/code.tar.gz
-          done
-          gzip -t /tmp/v093/code.tar.gz
-          tar -xzf /tmp/v093/code.tar.gz -C /tmp/v093/code
+          python - <<'PY'
+          from pathlib import Path
+          import base64, gzip, io, re, tarfile
 
-          : > /tmp/v093/assets.tar.gz
-          for part in release/v093/assets.part00 release/v093/assets.part01 release/v093/assets.part02; do
-            base64 --decode --ignore-garbage "$part" >> /tmp/v093/assets.tar.gz
-          done
-          gzip -t /tmp/v093/assets.tar.gz
+          def clean(path):
+              raw = Path(path).read_text(encoding='utf-8')
+              return ''.join(re.findall(r'[A-Za-z0-9+/=]', raw))
+
+          def padded(value):
+              return value + '=' * ((4 - len(value) % 4) % 4)
+
+          def valid_archive(data):
+              if not data.startswith(b'\x1f\x8b'):
+                  return False
+              try:
+                  expanded = gzip.decompress(data)
+                  with tarfile.open(fileobj=io.BytesIO(expanded), mode='r:') as tf:
+                      return bool(tf.getmembers())
+              except Exception:
+                  return False
+
+          def reconstruct(parts, destination):
+              strings = [clean(p) for p in parts]
+              candidates = []
+
+              # Each binary chunk may have been encoded separately.
+              try:
+                  candidates.append(b''.join(base64.b64decode(padded(s), validate=False) for s in strings))
+              except Exception:
+                  pass
+
+              # Or a single base64 stream may have been split with padding retained.
+              try:
+                  joined = ''.join(s.rstrip('=') for s in strings)
+                  candidates.append(base64.b64decode(padded(joined), validate=False))
+              except Exception:
+                  pass
+
+              # Also try the literal cleaned concatenation.
+              try:
+                  candidates.append(base64.b64decode(padded(''.join(strings)), validate=False))
+              except Exception:
+                  pass
+
+              for index, data in enumerate(candidates):
+                  if valid_archive(data):
+                      Path(destination).write_bytes(data)
+                      print(f'{destination}: strategy {index}, {len(data)} bytes')
+                      return
+              raise SystemExit(f'No valid gzip/tar reconstruction for {parts}; lengths={[len(s) for s in strings]}')
+
+          reconstruct([
+              'release/v093/safe.part00',
+              'release/v093/tail.part00',
+              'release/v093/tail.part01',
+          ], '/tmp/v093/code.tar.gz')
+          reconstruct([
+              'release/v093/assets.part00',
+              'release/v093/assets.part01',
+              'release/v093/assets.part02',
+          ], '/tmp/v093/assets.tar.gz')
+          PY
+          tar -xzf /tmp/v093/code.tar.gz -C /tmp/v093/code
           tar -xzf /tmp/v093/assets.tar.gz -C /tmp/v093/assets
 
           {
