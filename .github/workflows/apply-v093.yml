@@ -29,74 +29,92 @@ jobs:
           mkdir -p /tmp/v093/code /tmp/v093/assets
           python - <<'PY'
           from pathlib import Path
-          import base64, gzip, io, re, tarfile
+          import base64, gzip, io, itertools, re, tarfile
 
-          def clean(path):
-              raw = Path(path).read_text(encoding='utf-8')
-              return ''.join(re.findall(r'[A-Za-z0-9+/=]', raw))
+          files = {
+              p.name: ''.join(re.findall(r'[A-Za-z0-9+/=]', p.read_text(encoding='utf-8')))
+              for p in Path('release/v093').glob('*.part*')
+          }
+          print('payload lengths:', {k: len(v) for k, v in sorted(files.items())})
 
           def padded(value):
               return value + '=' * ((4 - len(value) % 4) % 4)
 
-          def valid_archive(data):
+          def archive_members(data):
               if not data.startswith(b'\x1f\x8b'):
-                  return False
+                  return None
               try:
                   expanded = gzip.decompress(data)
                   with tarfile.open(fileobj=io.BytesIO(expanded), mode='r:') as tf:
-                      return bool(tf.getmembers())
+                      names = [m.name for m in tf.getmembers() if m.isfile()]
+                  return names or None
               except Exception:
-                  return False
+                  return None
 
-          def reconstruct(parts, destination):
-              strings = [clean(p) for p in parts]
-              candidates = []
-
-              # Each binary chunk may have been encoded separately.
+          def decode_sequence(names):
+              strings = [files[n] for n in names]
+              variants = []
               try:
-                  candidates.append(b''.join(base64.b64decode(padded(s), validate=False) for s in strings))
+                  variants.append(('pieces', b''.join(base64.b64decode(padded(s), validate=False) for s in strings)))
               except Exception:
                   pass
+              for label, joined in [
+                  ('joined', ''.join(strings)),
+                  ('stripped', ''.join(s.rstrip('=') for s in strings)),
+              ]:
+                  try:
+                      variants.append((label, base64.b64decode(padded(joined), validate=False)))
+                  except Exception:
+                      pass
+              for label, data in variants:
+                  members = archive_members(data)
+                  if members:
+                      return label, data, members
+              return None
 
-              # Or a single base64 stream may have been split with padding retained.
-              try:
-                  joined = ''.join(s.rstrip('=') for s in strings)
-                  candidates.append(base64.b64decode(padded(joined), validate=False))
-              except Exception:
-                  pass
+          preferred = [
+              ('assets.part00','assets.part01','assets.part02'),
+              ('safe.part00','tail.part00','tail.part01'),
+              ('assets.part00','tail.part00','tail.part01'),
+              ('safe.part00','assets.part01','assets.part02'),
+          ]
+          result = None
+          used = None
+          for names in preferred:
+              if all(n in files for n in names):
+                  found = decode_sequence(names)
+                  if found:
+                      used, result = names, found
+                      break
 
-              # Also try the literal cleaned concatenation.
-              try:
-                  candidates.append(base64.b64decode(padded(''.join(strings)), validate=False))
-              except Exception:
-                  pass
+          if result is None:
+              starts = [name for name, value in files.items() if value.startswith('H4sI')]
+              rest = [name for name in files if name not in starts]
+              for start in starts:
+                  for count in range(1, min(5, len(rest)) + 1):
+                      for tail in itertools.permutations(rest, count):
+                          names = (start, *tail)
+                          found = decode_sequence(names)
+                          if found:
+                              used, result = names, found
+                              break
+                      if result: break
+                  if result: break
 
-              for index, data in enumerate(candidates):
-                  if valid_archive(data):
-                      Path(destination).write_bytes(data)
-                      print(f'{destination}: strategy {index}, {len(data)} bytes')
-                      return
-              raise SystemExit(f'No valid gzip/tar reconstruction for {parts}; lengths={[len(s) for s in strings]}')
+          if result is None:
+              raise SystemExit('No valid redundant payload archive found')
 
-          reconstruct([
-              'release/v093/safe.part00',
-              'release/v093/tail.part00',
-              'release/v093/tail.part01',
-          ], '/tmp/v093/code.tar.gz')
-          reconstruct([
-              'release/v093/assets.part00',
-              'release/v093/assets.part01',
-              'release/v093/assets.part02',
-          ], '/tmp/v093/assets.tar.gz')
+          strategy, data, members = result
+          print('selected:', used, strategy, len(data), 'bytes')
+          print('members:', members)
+          Path('/tmp/v093/payload.tar.gz').write_bytes(data)
           PY
-          tar -xzf /tmp/v093/code.tar.gz -C /tmp/v093/code
-          tar -xzf /tmp/v093/assets.tar.gz -C /tmp/v093/assets
+          tar -xzf /tmp/v093/payload.tar.gz -C /tmp/v093/code
+          cp -a /tmp/v093/code/. /tmp/v093/assets/
 
           {
-            echo '=== code payload ==='
-            find /tmp/v093/code -maxdepth 4 -type f -printf '%P\n' | sort
-            echo '=== asset payload ==='
-            find /tmp/v093/assets -maxdepth 4 -type f -printf '%P\n' | sort
+            echo '=== selected payload ==='
+            find /tmp/v093/code -maxdepth 5 -type f -printf '%P\n' | sort
           } > /tmp/v093/payload-list.txt
           cat /tmp/v093/payload-list.txt
 
