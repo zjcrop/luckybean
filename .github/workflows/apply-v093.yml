@@ -39,13 +39,13 @@ jobs:
         run: |
           set -euo pipefail
           cat release/v093-final/patch.part* | base64 --decode > /tmp/v093.patch.gz
-          base64 --decode release/v093-final/logo.b64 > /tmp/app-logo.jpg
-          cat release/v093-final/splash.part* | base64 --decode > /tmp/splash.jpg
-          base64 --decode release/v093-final/action-grid.b64 | gzip -d > /tmp/action-grid.svg
-          echo '89b7f137274b122ff3d77ed97a3d4252cb59d897063814d929fd450375e490f4  /tmp/v093.patch.gz' | sha256sum -c -
-          echo '0ac9c3828046fbf442715eb4d760173d4912c8d3b710f1b1d0ac890b34dd7703  /tmp/app-logo.jpg' | sha256sum -c -
-          echo '2709478db3a637d76e92287c75e1d16f8d106c97f3057c24c155830b059bf0b4  /tmp/splash.jpg' | sha256sum -c -
-          echo 'da98e7997a04b55aa729d3a9f64e8a28d0e72359a786f48a83713ac3b9e248d2  /tmp/action-grid.svg' | sha256sum -c -
+          base64 --decode release/v093-final/logo.b64 > /tmp/app-logo.webp
+          base64 --decode release/v093-final/splash.b64 > /tmp/splash.webp
+          base64 --decode release/v093-final/action.b64 > /tmp/action-grid.webp
+          echo 'fc0ab4493aa5d17c0fdc50fabfb98798d426e64a3528a7f3386547adc091ed67  /tmp/v093.patch.gz' | sha256sum -c -
+          echo '7c63ac92306292e22d37bd0cbb148e58eadfff5f6c398a5904ab4d3e2c8466e5  /tmp/app-logo.webp' | sha256sum -c -
+          echo '654b42e28080bd1a592fa42f421824344e3b36453d084d86b0ebe5ece2e28218  /tmp/splash.webp' | sha256sum -c -
+          echo 'ca5e6569e79e1e81e4db31984a9dd0b12984bfd268966f6476cf0f464a684dcf  /tmp/action-grid.webp' | sha256sum -c -
           gzip -d -c /tmp/v093.patch.gz > /tmp/v093.patch
           git apply --check /tmp/v093.patch
 
@@ -56,10 +56,10 @@ jobs:
           set -euo pipefail
           git apply /tmp/v093.patch
           mkdir -p public android/app/src/main/res/drawable
-          cp /tmp/app-logo.jpg public/app-logo.jpg
-          cp /tmp/app-logo.jpg android/app/src/main/res/drawable/app_logo.jpg
-          cp /tmp/splash.jpg public/splash.jpg
-          cp /tmp/action-grid.svg public/action-grid.svg
+          cp /tmp/app-logo.webp public/app-logo.webp
+          cp /tmp/app-logo.webp android/app/src/main/res/drawable/app_logo.webp
+          cp /tmp/splash.webp public/splash.webp
+          cp /tmp/action-grid.webp public/action-grid.webp
           rm -rf release/v093 release/v093-clean release/v093-final
 
       - name: Synchronize BrewIon codebook
@@ -106,7 +106,7 @@ jobs:
           grep -q "luckybean-v0.9.3" sw.js
           grep -q 'id="splashScreen"' index.html
           grep -q '点击进入' index.html
-          grep -q 'public/action-grid.svg' styles.css
+          grep -q 'public/action-grid.webp' styles.css
           grep -q 'sensoryIntensity' src/app.js
           grep -q 'dripperPrice' src/app.js
           grep -q 'frozen-weight' styles.css
