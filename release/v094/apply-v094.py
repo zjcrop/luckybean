@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import base64
 import gzip
+import io
 import json
 import re
+import tarfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,22 +19,39 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
     return text.replace(old, new, 1)
 
 
-def write_asset(prefix: str, output: Path) -> None:
-    parts = sorted((RELEASE / 'assets').glob(f'{prefix}-*.b64'))
+def write_asset_bundle() -> None:
+    parts = sorted((RELEASE / 'assets').glob('bundle-*.b64'))
     if not parts:
-        raise RuntimeError(f'missing asset chunks for {prefix}')
+        raise RuntimeError('missing asset bundle chunks')
     payload = ''.join(part.read_text(encoding='ascii').strip() for part in parts)
     raw = gzip.decompress(base64.b64decode(payload))
-    text = raw.decode('utf-8')
-    if '<svg' not in text or 'viewBox=' not in text:
-        raise RuntimeError(f'{prefix} is not a valid SVG')
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(text, encoding='utf-8')
+    expected = {
+        'splash-red.svg': ROOT / 'public' / 'splash-red.svg',
+        'splash-alt.svg': ROOT / 'public' / 'splash-alt.svg',
+        'action-grid.svg': ROOT / 'public' / 'action-grid.svg',
+    }
+    found = set()
+    with tarfile.open(fileobj=io.BytesIO(raw), mode='r:') as archive:
+        for member in archive.getmembers():
+            name = Path(member.name).name
+            if name not in expected or not member.isfile():
+                continue
+            source = archive.extractfile(member)
+            if source is None:
+                raise RuntimeError(f'cannot read {name} from asset bundle')
+            text = source.read().decode('utf-8')
+            if '<svg' not in text or 'viewBox=' not in text:
+                raise RuntimeError(f'{name} is not a valid SVG')
+            output = expected[name]
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text(text, encoding='utf-8')
+            found.add(name)
+    missing = set(expected) - found
+    if missing:
+        raise RuntimeError('asset bundle missing: ' + ', '.join(sorted(missing)))
 
 
-write_asset('red', ROOT / 'public' / 'splash-red.svg')
-write_asset('alt', ROOT / 'public' / 'splash-alt.svg')
-write_asset('icon', ROOT / 'public' / 'action-grid.svg')
+write_asset_bundle()
 
 package_path = ROOT / 'package.json'
 package = json.loads(package_path.read_text(encoding='utf-8'))
