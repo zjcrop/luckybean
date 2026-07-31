@@ -267,7 +267,7 @@ function buildNativeAnswerMap(data) {
 async function clickOption(groupIndex, value) {
   for (let attempt=0; attempt<3; attempt++) {
     const button=qa('.sensory-option').find(item=>Number(item.dataset.groupIndex)===groupIndex && item.dataset.sensoryOption===value);
-    if (button) { button.click(); await sleep(35); return true; }
+    if (button) { if (!button.classList.contains('selected')) { button.click(); await sleep(35); } return true; }
     await sleep(35);
   }
   return false;
