@@ -14,7 +14,7 @@ jobs:
   apply:
     if: github.event_name == 'workflow_dispatch' || github.head_ref == 'release-0.9.3'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout release branch
         uses: actions/checkout@v4
@@ -22,44 +22,25 @@ jobs:
           ref: release-0.9.3
           fetch-depth: 0
 
-      - name: Wait for complete payload
+      - name: Detect complete overlay
         id: ready
         shell: bash
         run: |
-          if [ -f release/v093-final/complete.txt ]; then
+          if [ -s release/v093-final/overlay.tar.gz ]; then
             echo 'ready=true' >> "$GITHUB_OUTPUT"
           else
             echo 'ready=false' >> "$GITHUB_OUTPUT"
-            echo '0.9.3 final payload is not complete yet.'
+            echo 'No complete 0.9.3 overlay; nothing to apply.'
           fi
 
-      - name: Reconstruct and verify payload
+      - name: Verify and apply overlay
         if: steps.ready.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          base64 --decode release/v093-final/script.b64 > /tmp/apply-v093.py.gz
-          base64 --decode release/v093-final/logo.b64 > /tmp/app-logo.webp
-          cat release/v093-final/splash.part*.b64 | base64 --decode > /tmp/splash.webp
-          base64 --decode release/v093-final/action.b64 > /tmp/action-grid.webp
-          echo 'a7574b6ab58eb661be484886e1e2710997692f28c02cc351c8f078774c9f1116  /tmp/apply-v093.py.gz' | sha256sum -c -
-          echo '7c63ac92306292e22d37bd0cbb148e58eadfff5f6c398a5904ab4d3e2c8466e5  /tmp/app-logo.webp' | sha256sum -c -
-          echo '654b42e28080bd1a592fa42f421824344e3b36453d084d86b0ebe5ece2e28218  /tmp/splash.webp' | sha256sum -c -
-          echo 'ca5e6569e79e1e81e4db31984a9dd0b12984bfd268966f6476cf0f464a684dcf  /tmp/action-grid.webp' | sha256sum -c -
-          gzip -d -c /tmp/apply-v093.py.gz > /tmp/apply-v093.py
-          python -m py_compile /tmp/apply-v093.py
-
-      - name: Apply script and assets
-        if: steps.ready.outputs.ready == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          python /tmp/apply-v093.py
-          mkdir -p public android/app/src/main/res/drawable
-          cp /tmp/app-logo.webp public/app-logo.webp
-          cp /tmp/app-logo.webp android/app/src/main/res/drawable/app_logo.webp
-          cp /tmp/splash.webp public/splash.webp
-          cp /tmp/action-grid.webp public/action-grid.webp
+          echo '70a11440879ac9ced6e8bae48ddce0e9a4537fab1754f65f605957b460434c5b  release/v093-final/overlay.tar.gz' | sha256sum -c -
+          tar -tzf release/v093-final/overlay.tar.gz >/tmp/v093-files.txt
+          tar -xzf release/v093-final/overlay.tar.gz -C .
           rm -rf release/v093 release/v093-clean release/v093-final
 
       - name: Synchronize BrewIon codebook
@@ -70,7 +51,14 @@ jobs:
           curl -L --fail --retry 3 --retry-delay 2 \
             https://raw.githubusercontent.com/zjcrop/BrewIon/main/coffee-qr-codebook/coffee_qr_codebook_v6.json \
             -o public/fallback-codebook.json
-          node -e "const fs=require('fs');const b=JSON.parse(fs.readFileSync('public/fallback-codebook.json','utf8'));if(!Array.isArray(b.flavors)||b.flavors.length<20)throw new Error('BrewIon flavors invalid');console.log('flavors',b.flavors.length)"
+          node - <<'NODE'
+          const fs=require('fs');
+          const b=JSON.parse(fs.readFileSync('public/fallback-codebook.json','utf8'));
+          const cols=b?._columns?.flavors || [];
+          if (!Array.isArray(b.flavors) || b.flavors.length < 100) throw new Error('BrewIon flavor table invalid');
+          if (cols[0] !== 'code' || !cols.includes('nameZh')) throw new Error('BrewIon flavor columns invalid');
+          console.log(`BrewIon flavors: ${b.flavors.length}`);
+          NODE
 
       - name: Refresh checksums
         if: steps.ready.outputs.ready == 'true'
@@ -98,7 +86,7 @@ jobs:
           set -euo pipefail
           node --check src/app.js
           node --check src/codebook.js
-          node --check src/preference-model.js
+          node --check src/utils.js
           npm test
           npm run check
           node -e "const p=require('./package.json');if(p.version!=='0.9.3')process.exit(1)"
@@ -106,17 +94,24 @@ jobs:
           grep -q "luckybean-v0.9.3" sw.js
           grep -q 'id="splashScreen"' index.html
           grep -q '点击进入' index.html
-          grep -q 'public/action-grid.webp' styles.css
-          grep -q 'intensity: true' src/app.js
+          grep -q 'public/action-grid.svg' styles.css
+          grep -q 'sensoryIntensity' src/app.js
           grep -q 'dripperPrice' src/app.js
           grep -q 'frozen-weight' styles.css
-          grep -q '取消</button><button id="prevSensoryNodeBtn"' src/app.js
+          grep -q 'flavorDisplayName' src/codebook.js
+          test -s public/app-logo.jpg
+          test -s public/app-icon-192.png
+          test -s public/app-icon-512.png
+          test -s public/splash.jpg
+          test -s public/action-grid.svg
 
       - name: Commit verified release
         if: steps.ready.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p docs
+          cp /tmp/v093-files.txt docs/v093-payload-list.txt
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
