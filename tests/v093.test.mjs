@@ -4,10 +4,10 @@ import { readFile, stat } from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
 const text = async path => readFile(new URL(path, root), 'utf8');
 
-test('0.9.3 version and visual assets', async () => {
+test('0.9.4 version and visual assets', async () => {
   const [pkg, html, css, sw, manifest] = await Promise.all([text('package.json'),text('index.html'),text('styles.css'),text('sw.js'),text('manifest.webmanifest')]);
-  assert.equal(JSON.parse(pkg).version,'0.9.3');
-  assert.match(html,/id="splashScreen"/); assert.match(html,/点击进入/); assert.match(css,/public\/action-grid\.webp/); assert.match(sw,/luckybean-v0\.9\.3/);
+  assert.equal(JSON.parse(pkg).version,'0.9.4');
+  assert.match(html,/id="splashScreen"/); assert.match(html,/点击进入/); assert.match(css,/public\/action-grid\.webp/); assert.match(sw,/luckybean-v0\.9\.4/);
   assert.equal(JSON.parse(manifest).icons.length,1);
   for (const path of ['public/app-logo.webp','public/splash.webp','public/action-grid.webp']) assert.ok((await stat(new URL(path,root))).size>500);
 });

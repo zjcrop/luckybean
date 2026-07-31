@@ -1,0 +1,5 @@
+Lucky Bean 0.9.4 release candidate
+Default splash: red vector
+Created: 2026-08-01
+Verification trigger: 2026-08-01T02:46:00+08:00
+Release trigger: 2026-08-01T02:53:00+08:00

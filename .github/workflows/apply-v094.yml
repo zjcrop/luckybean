@@ -1,0 +1,80 @@
+name: Apply Lucky Bean 0.9.4
+
+on:
+  push:
+    branches: [release-0.9.4]
+    paths:
+      - release/v094/ready.txt
+      - .github/workflows/apply-v094.yml
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v4
+        with:
+          ref: release-0.9.4
+          fetch-depth: 0
+
+      - name: Configure Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Apply release patch and generate SVG assets
+        run: python release/v094/apply-v094.py
+
+      - name: Update release tests
+        run: python release/v094/update-tests.py
+
+      - name: Validate JavaScript syntax
+        run: |
+          node --check src/app.js
+          node --check src/v094-ui.js
+          node --check src/utils.js
+          node --check tests/v094.test.mjs
+
+      - name: Run project tests
+        run: npm test
+
+      - name: Run static validation
+        run: npm run check
+
+      - name: Validate release files
+        run: |
+          grep -q "APP_VERSION = '0.9.4'" src/utils.js
+          grep -q 'splash-red.svg?v=094' index.html
+          grep -q 'themeToggleBtn' index.html
+          grep -q 'styles-v094.css' index.html
+          grep -q 'v094-ui.js' index.html
+          grep -q "luckybean-v0.9.4" sw.js
+          test -s public/splash-red.svg
+          test -s public/splash-alt.svg
+          test -s public/action-grid.svg
+          python - <<'PY'
+          from pathlib import Path
+          for path in ['public/splash-red.svg','public/splash-alt.svg','public/action-grid.svg']:
+              text=Path(path).read_text(encoding='utf-8')
+              assert '<svg' in text and 'viewBox=' in text, path
+          print('SVG validation passed')
+          PY
+
+      - name: Commit verified 0.9.4 release
+        if: github.event_name != 'pull_request'
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add index.html package.json sw.js styles-v094.css src/app.js src/utils.js src/v094-ui.js public/splash-red.svg public/splash-alt.svg public/action-grid.svg tests/core.test.mjs tests/v092.test.mjs tests/v093.test.mjs tests/v094.test.mjs
+          if git diff --cached --quiet; then
+            echo 'No release changes to commit.'
+          else
+            git commit -m 'release: Lucky Bean 0.9.4 interface and sensory workflow'
+            git push origin HEAD:release-0.9.4
+          fi

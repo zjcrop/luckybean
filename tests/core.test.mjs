@@ -130,8 +130,8 @@ test('压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录', async ()
 
 test('导航、田字快捷区和双字题注严格对应', async () => {
   const html = await text('index.html');
-  for (const term of ['>藏<','>拾<','>鉴<','>器<','>豆藏<','>拾味<','>品鉴<','>器设<','>寻<','>添<','>撷<','>择<']) assert.ok(html.includes(term), `缺少 ${term}`);
-  for (const label of ['豆藏：咖啡豆管理','拾味：冲煮制作','品鉴：感官评价','器设：设备与系统设置']) assert.ok(html.includes(label));
+  for (const term of ['>藏<','>酌<','>鉴<','>器<','>豆藏<','>小酌<','>品鉴<','>器设<','>搜索<','>添丁<','>溯旧<','>选择<']) assert.ok(html.includes(term), `缺少 ${term}`);
+  for (const label of ['豆藏：咖啡豆管理','小酌：冲煮制作','品鉴：感官评价','器设：设备与系统设置']) assert.ok(html.includes(label));
   assert.ok(html.includes('action-grid'));
 });
 
@@ -241,5 +241,5 @@ test('v0.9 交互与器具库存标记完整', async () => {
 });
 test('计时、消耗、品鉴札记、复刻与方案导出功能已落地', async () => {
   const app=await text('src/app.js');
-  for(const marker of ['timerPrevBtn','>退<','timerPauseBtn','>驻<','timerNextBtn','>进<','timerEndBtn','>终<','扣除咖啡豆与滤纸，进入品鉴','不记录则返回拾味','sensoryNaturalNote','主观分差','自动得分','buildCorrectedPlan','data-replay-session','exportCurrentPlan','JSON脚本']) assert.ok(app.includes(marker),marker);
+  for(const marker of ['timerPrevBtn','>退<','timerPauseBtn','>驻<','timerNextBtn','>进<','timerEndBtn','>终<','扣除咖啡豆与滤纸，进入品鉴','不记录则返回小酌','sensoryNaturalNote','主观分差','自动得分','buildCorrectedPlan','data-replay-session','exportCurrentPlan','JSON脚本']) assert.ok(app.includes(marker),marker);
 });
