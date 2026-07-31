@@ -1,2 +1,0 @@
-Final verification of committed Lucky Bean 0.9.4 release files.
-Triggered: 2026-08-01T02:56:00+08:00
