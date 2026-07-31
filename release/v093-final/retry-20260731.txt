@@ -1,1 +1,1 @@
-Retrigger Apply Lucky Bean 0.9.3 using the corrected verified-payload workflow.
+Retrigger Apply Lucky Bean 0.9.3 using structural payload validation.
