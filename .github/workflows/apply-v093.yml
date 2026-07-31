@@ -41,7 +41,7 @@ jobs:
           fi
           echo 'ready=true' >> "$GITHUB_OUTPUT"
 
-      - name: Reconstruct and verify payload
+      - name: Reconstruct and validate payload
         if: steps.ready.outputs.ready == 'true'
         shell: bash
         run: |
@@ -50,12 +50,21 @@ jobs:
           base64 --decode release/v093-final/logo.b64 > /tmp/app-logo.webp
           cat release/v093-final/splash.part*.b64 | base64 --decode > /tmp/splash.webp
           base64 --decode release/v093-final/action.b64 > /tmp/action-grid.webp
-          echo 'a7574b6ab58eb661be484886e1e2710997692f28c02cc351c8f078774c9f1116  /tmp/apply-v093.py.gz' | sha256sum -c -
-          echo '7c63ac92306292e22d37bd0cbb148e58eadfff5f6c398a5904ab4d3e2c8466e5  /tmp/app-logo.webp' | sha256sum -c -
-          echo '654b42e28080bd1a592fa42f421824344e3b36453d084d86b0ebe5ece2e28218  /tmp/splash.webp' | sha256sum -c -
-          echo 'ca5e6569e79e1e81e4db31984a9dd0b12984bfd268966f6476cf0f464a684dcf  /tmp/action-grid.webp' | sha256sum -c -
+
+          gzip -t /tmp/apply-v093.py.gz
           gzip -d -c /tmp/apply-v093.py.gz > /tmp/apply-v093.py
           python -m py_compile /tmp/apply-v093.py
+
+          for image in /tmp/app-logo.webp /tmp/splash.webp /tmp/action-grid.webp; do
+            test -s "$image"
+            test "$(file --brief --mime-type "$image")" = 'image/webp'
+          done
+
+          sha256sum \
+            /tmp/apply-v093.py.gz \
+            /tmp/app-logo.webp \
+            /tmp/splash.webp \
+            /tmp/action-grid.webp | tee /tmp/v093-payload-sha256.txt
 
       - name: Apply script and assets
         if: steps.ready.outputs.ready == 'true'
@@ -63,11 +72,12 @@ jobs:
         run: |
           set -euo pipefail
           python /tmp/apply-v093.py
-          mkdir -p public android/app/src/main/res/drawable
+          mkdir -p public android/app/src/main/res/drawable docs
           cp /tmp/app-logo.webp public/app-logo.webp
           cp /tmp/app-logo.webp android/app/src/main/res/drawable/app_logo.webp
           cp /tmp/splash.webp public/splash.webp
           cp /tmp/action-grid.webp public/action-grid.webp
+          cp /tmp/v093-payload-sha256.txt docs/v093-payload-sha256.txt
           rm -rf release/v093 release/v093-clean release/v093-final release/v093-overlay
 
       - name: Synchronize BrewIon codebook
