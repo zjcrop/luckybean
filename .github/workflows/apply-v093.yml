@@ -22,30 +22,52 @@ jobs:
           ref: release-0.9.3
           fetch-depth: 0
 
-      - name: Detect complete overlay
+      - name: Detect complete verified payload
         id: ready
         shell: bash
         run: |
-          required=(release/v093-overlay/overlay.part00 release/v093-overlay/overlay.part01 release/v093-overlay/overlay.part02 release/v093-overlay/overlay.part03 release/v093-overlay/overlay.part04 release/v093-overlay/overlay.part05 release/v093-overlay/complete.txt)
+          required=(release/v093-final/complete.txt release/v093-final/script.b64 release/v093-final/logo.b64 release/v093-final/action.b64)
           for file in "${required[@]}"; do
             if [ ! -s "$file" ]; then
               echo 'ready=false' >> "$GITHUB_OUTPUT"
-              echo "Waiting for $file"
+              echo "Missing $file"
               exit 0
             fi
           done
+          if ! compgen -G 'release/v093-final/splash.part*.b64' >/dev/null; then
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo 'Missing splash parts'
+            exit 0
+          fi
           echo 'ready=true' >> "$GITHUB_OUTPUT"
 
-      - name: Reconstruct, verify and apply overlay
+      - name: Reconstruct and verify payload
         if: steps.ready.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          cat release/v093-overlay/overlay.part0{0,1,2,3,4,5} > /tmp/v093-overlay.b64
-          base64 --decode /tmp/v093-overlay.b64 > /tmp/v093-overlay.tar.gz
-          echo '70a11440879ac9ced6e8bae48ddce0e9a4537fab1754f65f605957b460434c5b  /tmp/v093-overlay.tar.gz' | sha256sum -c -
-          tar -tzf /tmp/v093-overlay.tar.gz >/tmp/v093-files.txt
-          tar -xzf /tmp/v093-overlay.tar.gz -C .
+          base64 --decode release/v093-final/script.b64 > /tmp/apply-v093.py.gz
+          base64 --decode release/v093-final/logo.b64 > /tmp/app-logo.webp
+          cat release/v093-final/splash.part*.b64 | base64 --decode > /tmp/splash.webp
+          base64 --decode release/v093-final/action.b64 > /tmp/action-grid.webp
+          echo 'a7574b6ab58eb661be484886e1e2710997692f28c02cc351c8f078774c9f1116  /tmp/apply-v093.py.gz' | sha256sum -c -
+          echo '7c63ac92306292e22d37bd0cbb148e58eadfff5f6c398a5904ab4d3e2c8466e5  /tmp/app-logo.webp' | sha256sum -c -
+          echo '654b42e28080bd1a592fa42f421824344e3b36453d084d86b0ebe5ece2e28218  /tmp/splash.webp' | sha256sum -c -
+          echo 'ca5e6569e79e1e81e4db31984a9dd0b12984bfd268966f6476cf0f464a684dcf  /tmp/action-grid.webp' | sha256sum -c -
+          gzip -d -c /tmp/apply-v093.py.gz > /tmp/apply-v093.py
+          python -m py_compile /tmp/apply-v093.py
+
+      - name: Apply script and assets
+        if: steps.ready.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python /tmp/apply-v093.py
+          mkdir -p public android/app/src/main/res/drawable
+          cp /tmp/app-logo.webp public/app-logo.webp
+          cp /tmp/app-logo.webp android/app/src/main/res/drawable/app_logo.webp
+          cp /tmp/splash.webp public/splash.webp
+          cp /tmp/action-grid.webp public/action-grid.webp
           rm -rf release/v093 release/v093-clean release/v093-final release/v093-overlay
 
       - name: Synchronize BrewIon codebook
@@ -91,7 +113,7 @@ jobs:
           set -euo pipefail
           node --check src/app.js
           node --check src/codebook.js
-          node --check src/utils.js
+          node --check src/preference-model.js
           npm test
           npm run check
           node -e "const p=require('./package.json');if(p.version!=='0.9.3')process.exit(1)"
@@ -99,24 +121,20 @@ jobs:
           grep -q "luckybean-v0.9.3" sw.js
           grep -q 'id="splashScreen"' index.html
           grep -q '点击进入' index.html
-          grep -q 'public/action-grid.svg' styles.css
-          grep -q 'sensoryIntensity' src/app.js
+          grep -q 'public/action-grid.webp' styles.css
+          grep -q 'intensity: true' src/app.js
           grep -q 'dripperPrice' src/app.js
           grep -q 'frozen-weight' styles.css
           grep -q 'flavorDisplayName' src/codebook.js
-          test -s public/app-logo.jpg
-          test -s public/app-icon-192.png
-          test -s public/app-icon-512.png
-          test -s public/splash.jpg
-          test -s public/action-grid.svg
+          test -s public/app-logo.webp
+          test -s public/splash.webp
+          test -s public/action-grid.webp
 
       - name: Commit verified release
         if: steps.ready.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p docs
-          cp /tmp/v093-files.txt docs/v093-payload-list.txt
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
