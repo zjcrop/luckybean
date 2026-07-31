@@ -1,1 +1,0 @@
-retry=independent-base64-decode
