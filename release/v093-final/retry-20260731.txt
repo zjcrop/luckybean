@@ -1,1 +1,1 @@
-Retrigger Apply Lucky Bean 0.9.3 after recovery-script syntax fix.
+Retrigger strict verified Lucky Bean 0.9.3 release workflow.
