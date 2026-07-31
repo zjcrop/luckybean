@@ -1,0 +1,249 @@
+name: Finalize Lucky Bean 0.9.4 repository
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cleanup-v094.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-finalize-v094
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Remove release-transfer debris
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf \
+            release/v093 \
+            release/v093-clean \
+            release/v093-final \
+            release/v093-overlay \
+            release/v094
+          rmdir release 2>/dev/null || true
+          rm -f \
+            .github/workflows/apply-v093.yml \
+            .github/workflows/export-source-v093.yml \
+            .github/workflows/apply-v094.yml \
+            docs/v093-payload-sha256.txt
+
+      - name: Update README and changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          readme = '''# 富贵盒子 Lucky Bean
+
+**当前正式版本：0.9.4**  
+**在线使用：<https://zjcrop.github.io/BrewIon/luckybean/>**
+
+富贵盒子是一个本地优先（Local-first）的咖啡豆档案、冲煮方案与感官品鉴工具。正式源码只维护在本仓库 `main`；网页运行入口为根目录 `index.html`，不存在需要执行的历史补丁或发布分支。
+
+## 版本与部署状态
+
+- 应用版本：`0.9.4`
+- 数据结构版本：`6`
+- Service Worker 缓存：`luckybean-v0.9.4`
+- 源码入口：`main/index.html`
+- 稳定网页：<https://zjcrop.github.io/BrewIon/luckybean/>
+- 发布方式：BrewIon 仓库从本仓库 `main` 拉取、测试并复制运行文件
+
+线上发布只有在单元测试、静态检查、版本号、源提交 SHA 和核心资源 HTTP 状态全部通过后才标记为成功。
+
+## 0.9.4 主要更新
+
+- 启动页改用 SVG，默认使用红色版本，并提供第二套素色版本；
+- 增加日间/夜间主题切换和本地持久化；
+- “拾味”调整为“小酌”，底部导航调整为“酌”；
+- 豆藏快捷操作调整为“搜索 / 添丁 / 溯旧 / 选择”；
+- 冲煮页重排粉量、粉水比、滤杯、滤纸与冲煮法，次要变量归入“细节设定”；
+- 品鉴增加分温区流程、可跳过节点、强度记录和可拖拽雷达图；
+- 版本测试、静态检查、PWA 缓存清单和线上资源验收同步更新。
+
+## 页面结构
+
+| 导航 | 页面 | 主要功能 |
+|---|---|---|
+| 藏 | 豆藏 | 豆卡、库存、赏味期、分组与归档 |
+| 酌 | 小酌 | 冲煮参数、方案、萃取轨迹、计时与复刻 |
+| 鉴 | 品鉴 | 分温区感官记录、评分、札记与修正方案 |
+| 器 | 器设 | 账户、器具、数据、主题和启动页设置 |
+
+## 数据与隐私
+
+- 豆卡、冲煮和品鉴数据默认保存在当前设备的 IndexedDB；
+- BrewIon 提供公开编码数据与二维码协议；
+- 浏览器不会读取私有 GitHub 仓库，也不会保存 GitHub Token；
+- 未配置后端时，邮箱/微信仅能作为本机身份，不能伪装为真实跨设备账号；
+- 私有冲煮算法必须通过服务端 API 使用，前端保留完整公开回退模型。
+
+## 根目录结构
+
+```text
+index.html              网页入口
+styles.css              基础样式
+styles-v094.css         0.9.4 界面与主题扩展
+manifest.webmanifest    PWA 清单
+sw.js                   离线缓存与更新策略
+src/                    应用、数据库、二维码和冲煮模型
+public/                 编码表、Logo、SVG/WebP 运行资源
+tests/                  单元测试、静态检查和浏览器冒烟测试
+android/                暂停发布的 Android 工程
+```
+
+`release/`、Base64 分块、触发文本和一次性应用脚本不属于正式源码，已从 `main` 清除。
+
+## 本地运行
+
+```bash
+python3 -m http.server 8080
+```
+
+打开 <http://localhost:8080/>。不要直接使用 `file://`，否则浏览器可能阻止 ES Modules、Service Worker 和数据文件加载。
+
+## 校验
+
+```bash
+npm test
+npm run check
+npm run browser:smoke
+```
+
+浏览器冒烟测试需要 Python Playwright 与 Chromium。提交发布前至少必须通过 `npm test` 和 `npm run check`。
+
+## 发布规则
+
+1. 所有正式修改直接落入或合并到 `main`；
+2. 根目录必须保留可运行的 `index.html`；
+3. 版本号需同时更新 `package.json`、`src/utils.js` 和 `sw.js`；
+4. 新增运行资源必须加入 Service Worker 缓存清单；
+5. 发布流程从 `main` 拉取并重新执行测试；
+6. 线上 `release.json` 的版本和源 SHA 必须与 `main` 一致；
+7. 历史发布分支、传输包和迁移工作流不得长期留在仓库。
+
+## 当前边界
+
+- 真实邮箱/微信注册、跨设备同步和跨用户留言需要独立后端；
+- 首次载入二维码识别依赖时可能需要联网；
+- Android 工程保留，但 0.9.4 未发布新的 APK；
+- Web 版本是当前唯一正式交付物。
+
+## 许可证
+
+许可证及品牌声明以仓库中的 `LICENSE` 与 `LICENSE-NOTICE.md` 为准。
+'''
+          Path('README.md').write_text(readme, encoding='utf-8')
+
+          changelog_path = Path('CHANGELOG.md')
+          old = changelog_path.read_text(encoding='utf-8')
+          entry = '''## 0.9.4 — 2026-08-01
+
+- 将 0.9.4 正式运行文件固定在 `main` 根目录，网页入口保持为 `index.html`；
+- 增加双 SVG 启动页、日夜主题、快捷操作新命名和“小酌”页面命名；
+- 重排冲煮输入，增加细节折叠区、分温区品鉴流程和可拖拽雷达图；
+- 更新 PWA 缓存、单元测试、静态检查与稳定网页验收；
+- 清除 0.9.3/0.9.4 一次性发布工作流、Base64 分块、触发文件、补丁脚本和旧发布分支；
+- README、校验和与发布维护规则同步更新。
+
+'''
+          if '## 0.9.4 — 2026-08-01' not in old:
+              old = old.replace('# Changelog\n\n', '# Changelog\n\n' + entry, 1)
+          changelog_path.write_text(old, encoding='utf-8')
+          PY
+
+      - name: Remove this one-time workflow
+        run: rm -f .github/workflows/cleanup-v094.yml
+
+      - name: Regenerate repository checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+
+          root = Path('.')
+          excluded_dirs = {'.git', 'node_modules', '__pycache__'}
+          excluded_files = {'checksums.sha256', 'docs/smoke-beta-beans.png', 'docs/smoke-beta-brew.png'}
+          rows = []
+          for path in sorted(root.rglob('*'), key=lambda item: item.as_posix()):
+              if not path.is_file():
+                  continue
+              rel = path.as_posix()
+              if any(part in excluded_dirs for part in path.parts) or rel in excluded_files:
+                  continue
+              rows.append(f'{hashlib.sha256(path.read_bytes()).hexdigest()}  ./{rel}')
+          Path('checksums.sha256').write_text('\n'.join(rows) + '\n', encoding='utf-8')
+          PY
+
+      - name: Validate clean 0.9.4 main tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check src/app.js
+          node --check src/v094-ui.js
+          node --check src/utils.js
+          npm test
+          npm run check
+          node -e "const p=require('./package.json');if(p.version!=='0.9.4')process.exit(1)"
+          grep -q "APP_VERSION = '0.9.4'" src/utils.js
+          grep -q "luckybean-v0.9.4" sw.js
+          grep -q 'splash-red.svg?v=094' index.html
+          grep -q 'styles-v094.css?v=094' index.html
+          grep -q 'v094-ui.js?v=094' index.html
+          grep -q '当前正式版本：0.9.4' README.md
+          test -s index.html
+          test -s styles.css
+          test -s styles-v094.css
+          test -s src/app.js
+          test -s src/v094-ui.js
+          test -s public/splash-red.svg
+          test -s public/splash-alt.svg
+          test -s public/action-grid.svg
+          test ! -e release
+          test ! -e .github/workflows/apply-v093.yml
+          test ! -e .github/workflows/export-source-v093.yml
+          test ! -e .github/workflows/apply-v094.yml
+          test ! -e docs/v093-payload-sha256.txt
+
+      - name: Commit clean main tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'chore: finalize clean Lucky Bean 0.9.4 main tree'
+          git push origin HEAD:main
+
+      - name: Delete obsolete release branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          for branch in release-0.9.3 release-0.9.4; do
+            if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+              git push origin --delete "$branch"
+            fi
+          done
+          for branch in release-0.9.3 release-0.9.4; do
+            if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+              echo "Branch still exists: $branch" >&2
+              exit 1
+            fi
+          done
