@@ -5,6 +5,9 @@ on:
     branches: [release-0.9.4]
     paths:
       - release/v094/ready.txt
+      - .github/workflows/apply-v094.yml
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -60,6 +63,7 @@ jobs:
           PY
 
       - name: Commit verified 0.9.4 release
+        if: github.event_name != 'pull_request'
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
