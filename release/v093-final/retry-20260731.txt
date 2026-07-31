@@ -1,1 +1,1 @@
-Retrigger Apply Lucky Bean 0.9.3 using structural payload validation.
+Retrigger Apply Lucky Bean 0.9.3 with damaged-gzip recovery enabled.
