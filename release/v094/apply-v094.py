@@ -67,6 +67,16 @@ app = app.replace('返回拾味', '返回小酌')
 app = app.replace('点击“添”录入，或从“寻”调整条件。', '点击“添丁”录入，或从“搜索”调整条件。')
 app_path.write_text(app, encoding='utf-8')
 
+extension_path = ROOT / 'src' / 'v094-ui.js'
+extension = extension_path.read_text(encoding='utf-8')
+extension = replace_once(
+    extension,
+    "if (button) { button.click(); await sleep(35); return true; }",
+    "if (button) { if (!button.classList.contains('selected')) { button.click(); await sleep(35); } return true; }",
+    'sensory default-selection guard',
+)
+extension_path.write_text(extension, encoding='utf-8')
+
 sw_path = ROOT / 'sw.js'
 sw = sw_path.read_text(encoding='utf-8')
 sw = re.sub(r"const CACHE_NAME = 'luckybean-v[^']+';", "const CACHE_NAME = 'luckybean-v0.9.4';", sw, count=1)
@@ -81,6 +91,7 @@ checks = {
     'four action labels': all(label in index for label in ['搜索</button>', '添丁</button>', '溯旧</button>', '选择</button>']),
     'extension import': 'v094-ui.js?v=094' in index,
     'brew title': '小酌' in index and "nav: '酌'" in app,
+    'sensory default guard': "classList.contains('selected')" in extension,
     'cache': 'luckybean-v0.9.4' in sw,
 }
 failed = [name for name, ok in checks.items() if not ok]
