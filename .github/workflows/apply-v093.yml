@@ -26,22 +26,27 @@ jobs:
         id: ready
         shell: bash
         run: |
-          if [ -s release/v093-final/overlay.tar.gz ]; then
-            echo 'ready=true' >> "$GITHUB_OUTPUT"
-          else
-            echo 'ready=false' >> "$GITHUB_OUTPUT"
-            echo 'No complete 0.9.3 overlay; nothing to apply.'
-          fi
+          required=(release/v093-overlay/overlay.part00 release/v093-overlay/overlay.part01 release/v093-overlay/overlay.part02 release/v093-overlay/overlay.part03 release/v093-overlay/overlay.part04 release/v093-overlay/overlay.part05 release/v093-overlay/complete.txt)
+          for file in "${required[@]}"; do
+            if [ ! -s "$file" ]; then
+              echo 'ready=false' >> "$GITHUB_OUTPUT"
+              echo "Waiting for $file"
+              exit 0
+            fi
+          done
+          echo 'ready=true' >> "$GITHUB_OUTPUT"
 
-      - name: Verify and apply overlay
+      - name: Reconstruct, verify and apply overlay
         if: steps.ready.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          echo '70a11440879ac9ced6e8bae48ddce0e9a4537fab1754f65f605957b460434c5b  release/v093-final/overlay.tar.gz' | sha256sum -c -
-          tar -tzf release/v093-final/overlay.tar.gz >/tmp/v093-files.txt
-          tar -xzf release/v093-final/overlay.tar.gz -C .
-          rm -rf release/v093 release/v093-clean release/v093-final
+          cat release/v093-overlay/overlay.part0{0,1,2,3,4,5} > /tmp/v093-overlay.b64
+          base64 --decode /tmp/v093-overlay.b64 > /tmp/v093-overlay.tar.gz
+          echo '70a11440879ac9ced6e8bae48ddce0e9a4537fab1754f65f605957b460434c5b  /tmp/v093-overlay.tar.gz' | sha256sum -c -
+          tar -tzf /tmp/v093-overlay.tar.gz >/tmp/v093-files.txt
+          tar -xzf /tmp/v093-overlay.tar.gz -C .
+          rm -rf release/v093 release/v093-clean release/v093-final release/v093-overlay
 
       - name: Synchronize BrewIon codebook
         if: steps.ready.outputs.ready == 'true'
