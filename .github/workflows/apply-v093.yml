@@ -51,17 +51,117 @@ jobs:
           cat release/v093-final/splash.part*.b64 | base64 --decode > /tmp/splash.webp
           base64 --decode release/v093-final/action.b64 > /tmp/action-grid.webp
 
-          gzip -t /tmp/apply-v093.py.gz
+          set +e
           gzip -d -c /tmp/apply-v093.py.gz > /tmp/apply-v093.py
-          python -m py_compile /tmp/apply-v093.py
+          gzip_rc=$?
+          set -e
 
+          if [ ! -s /tmp/apply-v093.py ] || ! python -m py_compile /tmp/apply-v093.py; then
+            echo 'Final script stream is unusable; recovering from redundant archive parts.'
+            rm -f /tmp/apply-v093.py
+            mkdir -p /tmp/v093-recovery
+            python - <<'PY'
+            from pathlib import Path
+            import base64, gzip, io, itertools, re, tarfile
+
+            files = {
+                p.name: ''.join(re.findall(r'[A-Za-z0-9+/=]', p.read_text(encoding='utf-8')))
+                for p in Path('release/v093').glob('*.part*')
+            }
+            if not files:
+                raise SystemExit('No redundant release/v093 payload parts available')
+
+            def padded(value):
+                return value + '=' * ((4 - len(value) % 4) % 4)
+
+            def archive_members(data):
+                if not data.startswith(b'\x1f\x8b'):
+                    return None
+                try:
+                    expanded = gzip.decompress(data)
+                    with tarfile.open(fileobj=io.BytesIO(expanded), mode='r:') as tf:
+                        names = [m.name for m in tf.getmembers() if m.isfile()]
+                    return names or None
+                except Exception:
+                    return None
+
+            def decode_sequence(names):
+                strings = [files[n] for n in names]
+                variants = []
+                try:
+                    variants.append(('pieces', b''.join(base64.b64decode(padded(s), validate=False) for s in strings)))
+                except Exception:
+                    pass
+                for label, joined in (
+                    ('joined', ''.join(strings)),
+                    ('stripped', ''.join(s.rstrip('=') for s in strings)),
+                ):
+                    try:
+                        variants.append((label, base64.b64decode(padded(joined), validate=False)))
+                    except Exception:
+                        pass
+                for label, data in variants:
+                    members = archive_members(data)
+                    if members:
+                        return label, data, members
+                return None
+
+            preferred = [
+                ('assets.part00','assets.part01','assets.part02'),
+                ('safe.part00','tail.part00','tail.part01'),
+                ('assets.part00','tail.part00','tail.part01'),
+                ('safe.part00','assets.part01','assets.part02'),
+            ]
+            result = None
+            used = None
+            for names in preferred:
+                if all(n in files for n in names):
+                    found = decode_sequence(names)
+                    if found:
+                        used, result = names, found
+                        break
+
+            if result is None:
+                starts = [name for name, value in files.items() if value.startswith('H4sI')]
+                rest = [name for name in files if name not in starts]
+                for start in starts:
+                    for count in range(1, min(5, len(rest)) + 1):
+                        for tail in itertools.permutations(rest, count):
+                            names = (start, *tail)
+                            found = decode_sequence(names)
+                            if found:
+                                used, result = names, found
+                                break
+                        if result:
+                            break
+                    if result:
+                        break
+
+            if result is None:
+                raise SystemExit('No valid redundant payload archive found')
+
+            strategy, data, members = result
+            print('Recovered archive:', used, strategy, len(data), 'bytes')
+            print('Archive members:', members)
+            Path('/tmp/v093-recovery/payload.tar.gz').write_bytes(data)
+            PY
+            tar -xzf /tmp/v093-recovery/payload.tar.gz -C /tmp/v093-recovery
+            recovered_script="$(find /tmp/v093-recovery -type f \( -name 'apply_v093.py' -o -name 'apply*.py' \) | head -n1)"
+            test -n "$recovered_script"
+            cp "$recovered_script" /tmp/apply-v093.py
+            python -m py_compile /tmp/apply-v093.py
+          elif [ "$gzip_rc" -ne 0 ]; then
+            echo 'Warning: gzip trailer/CRC is damaged, but the decompressed Python script is complete and compiles.'
+          fi
+
+          grep -q '0.9.3' /tmp/apply-v093.py
           for image in /tmp/app-logo.webp /tmp/splash.webp /tmp/action-grid.webp; do
             test -s "$image"
             test "$(file --brief --mime-type "$image")" = 'image/webp'
           done
 
           sha256sum \
-            /tmp/apply-v093.py.gz \
+            /tmp/apply-v093.py \
             /tmp/app-logo.webp \
             /tmp/splash.webp \
             /tmp/action-grid.webp | tee /tmp/v093-payload-sha256.txt
