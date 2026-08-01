@@ -22,7 +22,7 @@ test('runtime entry and PWA cache include theme patch assets', async () => {
   const [html, sw] = await Promise.all([read('index.html'), read('sw.js')]);
   assert.match(html, /styles-theme-light\.css\?v=095b/);
   assert.match(html, /src\/theme-bridge\.js\?v=095b/);
-  assert.match(sw, /luckybean-v0\.9\.5-refine4/);
+  assert.match(sw, /luckybean-v0\.9\.5-refine3-guard/);
   assert.match(sw, /styles-theme-light\.css/);
   assert.match(sw, /src\/theme-bridge\.js/);
 });
