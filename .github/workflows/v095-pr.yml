@@ -34,13 +34,18 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import base64
+          import string
+
+          allowed = set(string.ascii_letters + string.digits + '+/=')
           for source, target in [
               ('release/v095/v095-ui.js.b64', 'src/v095-ui.js'),
               ('release/v095/styles-v095.css.b64', 'styles-v095.css'),
           ]:
-              raw = ''.join(Path(source).read_text(encoding='utf-8').split())
-              raw += '=' * (-len(raw) % 4)
-              Path(target).write_bytes(base64.b64decode(raw, validate=True))
+              raw = Path(source).read_text(encoding='utf-8')
+              raw = raw.replace('\\n', '').replace('\\r', '')
+              encoded = ''.join(ch for ch in raw if ch in allowed).rstrip('=')
+              encoded += '=' * (-len(encoded) % 4)
+              Path(target).write_bytes(base64.b64decode(encoded, validate=False))
           PY
           node --check src/v095-ui.js
           test -s styles-v095.css
