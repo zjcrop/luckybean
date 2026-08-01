@@ -1,4 +1,4 @@
-const CACHE_NAME = 'luckybean-v0.9.5-refine4';
+const CACHE_NAME = 'luckybean-v0.9.5-refine3-guard';
 const CORE = [
   './', './index.html', './styles.css', './styles-v095.css', './styles-action-grid.css', './styles-theme-light.css', './styles-v095-refine.css', './manifest.webmanifest',
   './src/app.js', './src/v095-ui.js', './src/theme-bridge.js', './src/v095-layout-gear.js', './src/v095-sensory-pro.js', './src/v095-sensory-flow-guard.js', './src/utils.js', './src/brew-model-v09.js', './src/db.js', './src/codebook.js', './src/qr.js', './src/water-profiles.js', './src/preference-model.js', './src/share-codec.js', './src/brew-engine.js',
