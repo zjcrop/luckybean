@@ -69,8 +69,14 @@ jobs:
           PY
 
       - name: Apply v0.9.5 source and interaction corrections
+        shell: bash
         run: |
-          python release/v095/postfix.py
+          set -euo pipefail
+          if grep -q 'async function advanceNativeToScore' src/v095-ui.js; then
+            python release/v095/postfix.py
+          else
+            echo 'Interaction payload already corrected; postfix not required.'
+          fi
           python release/v095/apply.py
 
       - name: Remove one-time build files
