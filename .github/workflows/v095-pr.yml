@@ -74,7 +74,7 @@ jobs:
           npm test
           npm run check
           node -e "const p=require('./package.json');if(p.version!=='0.9.5')process.exit(1)"
-          node -e "const p=require('./manifest.webmanifest');if(p.name!=='富贵盒子 0.9.5')process.exit(1)"
+          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('manifest.webmanifest','utf8'));if(p.name!=='富贵盒子 0.9.5')process.exit(1)"
           grep -q "APP_VERSION = '0.9.5'" src/utils.js
           grep -q 'luckybean-v0.9.5' sw.js
           grep -q 'styles-v095.css?v=095' index.html
