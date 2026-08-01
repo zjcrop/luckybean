@@ -6,7 +6,7 @@ const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 test('refinement runtime files are loaded and cached', async () => {
   const [html, sw] = await Promise.all([read('index.html'), read('sw.js')]);
   for (const marker of ['styles-v095-refine.css?v=095c','src/v095-layout-gear.js?v=095c','src/v095-sensory-pro.js?v=095c','src/v095-sensory-flow-guard.js?v=095c']) assert.ok(html.includes(marker), marker);
-  assert.match(sw, /luckybean-v0\.9\.5-refine4/);
+  assert.match(sw, /luckybean-v0\.9\.5-refine3-guard/);
   for (const marker of ['./styles-v095-refine.css','./src/v095-layout-gear.js','./src/v095-sensory-pro.js','./src/v095-sensory-flow-guard.js']) assert.ok(sw.includes(marker), marker);
 });
 
