@@ -1,0 +1,112 @@
+name: Build and verify Lucky Bean v0.9.5
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-v095-pr
+  cancel-in-progress: true
+
+jobs:
+  build-test-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release-0.9.5
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Decode interface payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p src
+          python - <<'PY'
+          from pathlib import Path
+          import base64
+          for source, target in [
+              ('release/v095/v095-ui.js.b64', 'src/v095-ui.js'),
+              ('release/v095/styles-v095.css.b64', 'styles-v095.css'),
+          ]:
+              raw = ''.join(Path(source).read_text(encoding='utf-8').split())
+              raw += '=' * (-len(raw) % 4)
+              Path(target).write_bytes(base64.b64decode(raw, validate=True))
+          PY
+          node --check src/v095-ui.js
+          test -s styles-v095.css
+
+      - name: Validate directly uploaded artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          red = Path('public/splash-red.jpg').read_bytes()
+          white = Path('public/splash-white.jpg').read_bytes()
+          mascot = Path('public/settings-mascot.png').read_bytes()
+          assert red[:2] == b'\xff\xd8' and red[-2:] == b'\xff\xd9', 'red JPEG invalid'
+          assert white[:2] == b'\xff\xd8' and white[-2:] == b'\xff\xd9', 'white JPEG invalid'
+          assert mascot[:8] == b'\x89PNG\r\n\x1a\n', 'mascot PNG invalid'
+          assert len(red) > 100_000, len(red)
+          assert len(white) > 100_000, len(white)
+          assert len(mascot) > 100_000, len(mascot)
+          print(len(red), len(white), len(mascot))
+          PY
+
+      - name: Apply v0.9.5 source and interaction corrections
+        run: |
+          python release/v095/postfix.py
+          python release/v095/apply.py
+
+      - name: Remove one-time build files
+        run: |
+          rm -rf release/v095
+          rm -f .github/workflows/v095-pr.yml .github/workflows/apply-v095.yml
+          rmdir release 2>/dev/null || true
+
+      - name: Validate clean v0.9.5 tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check src/app.js
+          node --check src/v095-ui.js
+          node --check src/utils.js
+          npm test
+          npm run check
+          node -e "const p=require('./package.json');if(p.version!=='0.9.5')process.exit(1)"
+          node -e "const p=require('./manifest.webmanifest');if(p.name!=='富贵盒子 0.9.5')process.exit(1)"
+          grep -q "APP_VERSION = '0.9.5'" src/utils.js
+          grep -q 'luckybean-v0.9.5' sw.js
+          grep -q 'styles-v095.css?v=095' index.html
+          grep -q 'src/v095-ui.js?v=095' index.html
+          grep -q 'splash-red.jpg?v=095' index.html
+          grep -q '当前内部测试版本：v0.9.5' README.md
+          test -s public/splash-red.jpg
+          test -s public/splash-white.jpg
+          test -s public/settings-mascot.png
+          test ! -e src/v094-ui.js
+          test ! -e styles-v094.css
+          test ! -e public/splash-red.svg
+          test ! -e public/splash-alt.svg
+          test ! -e public/splash.webp
+          test ! -e release
+
+      - name: Commit verified v0.9.5 runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'release: Lucky Bean v0.9.5 internal test mainline'
+          git push origin HEAD:release-0.9.5
