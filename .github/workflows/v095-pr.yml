@@ -26,29 +26,16 @@ jobs:
         with:
           node-version: 22
 
-      - name: Decode interface payload
+      - name: Validate direct interface sources
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p src
-          python - <<'PY'
-          from pathlib import Path
-          import base64
-          import string
-
-          allowed = set(string.ascii_letters + string.digits + '+/=')
-          for source, target in [
-              ('release/v095/v095-ui.js.b64', 'src/v095-ui.js'),
-              ('release/v095/styles-v095.css.b64', 'styles-v095.css'),
-          ]:
-              raw = Path(source).read_text(encoding='utf-8')
-              raw = raw.replace('\\n', '').replace('\\r', '')
-              encoded = ''.join(ch for ch in raw if ch in allowed).rstrip('=')
-              encoded += '=' * (-len(encoded) % 4)
-              Path(target).write_bytes(base64.b64decode(encoded, validate=False))
-          PY
           node --check src/v095-ui.js
           test -s styles-v095.css
+          grep -q '雷达图 / 互动品鉴 / 札记' src/v095-ui.js
+          grep -q 'async function skipNativeToNote' src/v095-ui.js
+          grep -q 'function attachNativeSummary' src/v095-ui.js
+          grep -q 'function bindRadarDragging' src/v095-ui.js
 
       - name: Validate directly uploaded artwork
         shell: bash
@@ -68,16 +55,8 @@ jobs:
           print(len(red), len(white), len(mascot))
           PY
 
-      - name: Apply v0.9.5 source and interaction corrections
-        shell: bash
-        run: |
-          set -euo pipefail
-          if grep -q 'async function advanceNativeToScore' src/v095-ui.js; then
-            python release/v095/postfix.py
-          else
-            echo 'Interaction payload already corrected; postfix not required.'
-          fi
-          python release/v095/apply.py
+      - name: Apply v0.9.5 source changes
+        run: python release/v095/apply.py
 
       - name: Remove one-time build files
         run: |
