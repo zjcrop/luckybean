@@ -42,3 +42,14 @@ test('v0.9.5 layout and theme selectors exist', async () => {
     assert.ok(css.includes(marker), marker);
   }
 });
+
+
+test('header controls remain horizontal and theme binding is stable', async () => {
+  const [css, ui] = await Promise.all([read('styles-v095.css'), read('src/v095-ui.js')]);
+  for (const marker of ['flex-flow: row nowrap !important', 'width: auto !important', 'gap: 2ch !important']) {
+    assert.ok(css.includes(marker), marker);
+  }
+  assert.match(ui, /button\.onclick = event =>/);
+  assert.match(ui, /button\.dataset\.v095ThemeIcon !== ui\.theme/);
+  assert.match(ui, /界面偏好无法写入本地存储/);
+});
