@@ -5,17 +5,17 @@ import { readFile } from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
 const text = async path => readFile(new URL(path, root), 'utf8');
 
-test('0.9.4 keeps 0.9.2 interaction baseline', async () => {
+test('0.9.5 keeps 0.9.2 interaction baseline', async () => {
   const [pkg, html, app, css, sw] = await Promise.all([
     text('package.json'), text('index.html'), text('src/app.js'), text('styles.css'), text('sw.js')
   ]);
-  assert.equal(JSON.parse(pkg).version, '0.9.4');
+  assert.equal(JSON.parse(pkg).version, '0.9.5');
   assert.match(html, /centered-page-heading beans-page-heading/);
   assert.match(html, /centered-page-heading brew-page-heading/);
   assert.doesNotMatch(html, /id="filterBtn"/);
   for (const label of ['榜魁','味盛','价冠','拾余','拈签']) assert.match(app, new RegExp(label));
   assert.match(css, /preference-board-top3/);
-  assert.match(sw, /luckybean-v0\.9\.4/);
+  assert.match(sw, /luckybean-v0\.9\.5/);
 });
 
 test('recommendation animation and prompt libraries are complete', async () => {
