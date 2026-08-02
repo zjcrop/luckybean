@@ -10,7 +10,7 @@ test('refinement runtime files are loaded in deterministic order and cached', as
   assert.ok(bootstrapIndex >= 0, 'sensory bootstrap missing');
   assert.ok(legacyUiIndex > bootstrapIndex, 'sensory bootstrap must load before legacy UI');
   assert.ok(!html.includes('src/v095-sensory-pro.js?v=095c'), 'old direct sensory module entry must be removed');
-  assert.match(sw, /luckybean-v0\.9\.6-ui-fix-g/);
+  assert.match(sw, /luckybean-v0\.9\.6-ui-fix-i/);
   for (const marker of ['./styles-v095-refine.css','./src/v095-sensory-bootstrap.js','./src/v095-sensory-pro.js','./src/v095-sensory-flow-guard.js']) assert.ok(sw.includes(marker), marker);
   for (const marker of ['loading-professional-v2','专业品鉴','玩家互动品鉴','札记','sensoryModesReady','safe-null-root']) assert.ok(bootstrap.includes(marker), marker);
 });
