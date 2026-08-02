@@ -1,9 +1,9 @@
 {
-  "checked_at": "2026-08-02T08:59:50.461211+00:00",
-  "source_sha": "7832b77cfa0690399680801893ee47e22af0aad7",
+  "checked_at": "2026-08-02T10:04:49.064730+00:00",
+  "source_sha": "36c2ec7a3f69ef3728419aebeccd65fdf1f47b74",
   "static_tests": "success",
   "browser_runtime": "success",
-  "real_web_ocr_smoke": "success",
+  "real_web_ocr_smoke": "failure",
   "qr_text_first_regression": "success",
-  "verified": true
+  "verified": false
 }

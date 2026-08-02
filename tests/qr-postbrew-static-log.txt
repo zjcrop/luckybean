@@ -6,295 +6,295 @@ TAP version 13
 # Subtest: BrewIon 回退编码表结构完整且编码唯一
 ok 1 - BrewIon 回退编码表结构完整且编码唯一
   ---
-  duration_ms: 28.388583
+  duration_ms: 25.45698
   type: 'test'
   ...
 # Subtest: Beta 冲煮引擎输出完整协议、守恒和专业模型
 ok 2 - Beta 冲煮引擎输出完整协议、守恒和专业模型
   ---
-  duration_ms: 9.618212
+  duration_ms: 10.993212
   type: 'test'
   ...
 # Subtest: 冲煮方案库覆盖旧版主要方案类型
 ok 3 - 冲煮方案库覆盖旧版主要方案类型
   ---
-  duration_ms: 0.405648
+  duration_ms: 0.459639
   type: 'test'
   ...
 # Subtest: 调水模块对标 Brew-Water-Calibrato 咖啡参数
 ok 4 - 调水模块对标 Brew-Water-Calibrato 咖啡参数
   ---
-  duration_ms: 0.46025
+  duration_ms: 0.665273
   type: 'test'
   ...
 # Subtest: 低分品鉴可生成问题定向修正方案
 ok 5 - 低分品鉴可生成问题定向修正方案
   ---
-  duration_ms: 4.795159
+  duration_ms: 4.820948
   type: 'test'
   ...
 # Subtest: 自动得分、主观分差和偏好标签可累计
 ok 6 - 自动得分、主观分差和偏好标签可累计
   ---
-  duration_ms: 3.159964
+  duration_ms: 2.400525
   type: 'test'
   ...
 # Subtest: 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
 ok 7 - 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
   ---
-  duration_ms: 71.720971
+  duration_ms: 51.66312
   type: 'test'
   ...
 # Subtest: 导航、田字快捷区和双字题注严格对应
 ok 8 - 导航、田字快捷区和双字题注严格对应
   ---
-  duration_ms: 3.359917
+  duration_ms: 2.57942
   type: 'test'
   ...
 # Subtest: HTML 不含重复 ID 或内联事件处理器
 ok 9 - HTML 不含重复 ID 或内联事件处理器
   ---
-  duration_ms: 5.988599
+  duration_ms: 4.640822
   type: 'test'
   ...
 # Subtest: 应用代码保持单一初始化和主渲染函数
 ok 10 - 应用代码保持单一初始化和主渲染函数
   ---
-  duration_ms: 4.767296
+  duration_ms: 4.108567
   type: 'test'
   ...
 # Subtest: 私有仓库凭据和私有 GitHub API 不进入前端
 ok 11 - 私有仓库凭据和私有 GitHub API 不进入前端
   ---
-  duration_ms: 5.8774
+  duration_ms: 5.170472
   type: 'test'
   ...
 # Subtest: 自然语言识别回填确定性字段和 BrewIon 代码
 ok 12 - 自然语言识别回填确定性字段和 BrewIon 代码
   ---
-  duration_ms: 26.671788
+  duration_ms: 24.63809
   type: 'test'
   ...
 # Subtest: BrewIon 固定字段二维码执行 CRC 和行索引解码
 ok 13 - BrewIon 固定字段二维码执行 CRC 和行索引解码
   ---
-  duration_ms: 7.589779
+  duration_ms: 6.591397
   type: 'test'
   ...
 # Subtest: 视觉、卡片、分组、搜索和撷页交互标记已落地
 ok 14 - 视觉、卡片、分组、搜索和撷页交互标记已落地
   ---
-  duration_ms: 4.163318
+  duration_ms: 3.388652
   type: 'test'
   ...
 # Subtest: 豆卡名称、烘焙色值和现有数据筛选逻辑正确
 ok 15 - 豆卡名称、烘焙色值和现有数据筛选逻辑正确
   ---
-  duration_ms: 2.755227
+  duration_ms: 2.338369
   type: 'test'
   ...
 # Subtest: 远程编码表与内置表合并时保留缺失风味
 ok 16 - 远程编码表与内置表合并时保留缺失风味
   ---
-  duration_ms: 23.073546
+  duration_ms: 23.196756
   type: 'test'
   ...
 # Subtest: 编码表产区与庄园使用正确中文列且不生成空标签
 ok 17 - 编码表产区与庄园使用正确中文列且不生成空标签
   ---
-  duration_ms: 46.433745
+  duration_ms: 47.286852
   type: 'test'
   ...
 # Subtest: 十阶段赏味进度从20%起步并在赏味期后一周达到100%
 ok 18 - 十阶段赏味进度从20%起步并在赏味期后一周达到100%
   ---
-  duration_ms: 1.700787
+  duration_ms: 3.916137
   type: 'test'
   ...
 # Subtest: 负面缺陷扣分显著高于正面风味叠加
 ok 19 - 负面缺陷扣分显著高于正面风味叠加
   ---
-  duration_ms: 0.419033
+  duration_ms: 0.471171
   type: 'test'
   ...
 # Subtest: v0.9 交互与器具库存标记完整
 ok 20 - v0.9 交互与器具库存标记完整
   ---
-  duration_ms: 5.738401
+  duration_ms: 11.132132
   type: 'test'
   ...
 # Subtest: 计时、消耗、品鉴札记、复刻与方案导出功能已落地
 ok 21 - 计时、消耗、品鉴札记、复刻与方案导出功能已落地
   ---
-  duration_ms: 5.242697
+  duration_ms: 7.843968
   type: 'test'
   ...
 # Subtest: header controls are forced into one horizontal row
 ok 22 - header controls are forced into one horizontal row
   ---
-  duration_ms: 5.879825
+  duration_ms: 7.882871
   type: 'test'
   ...
 # Subtest: theme bridge intercepts dynamic buttons and delegates to native state
 ok 23 - theme bridge intercepts dynamic buttons and delegates to native state
   ---
-  duration_ms: 1.65426
+  duration_ms: 1.808279
   type: 'test'
   ...
 # Subtest: light theme covers main pages, overlays, forms, navigation and tasting wizard
 ok 24 - light theme covers main pages, overlays, forms, navigation and tasting wizard
   ---
-  duration_ms: 1.291854
+  duration_ms: 1.603918
   type: 'test'
   ...
 # Subtest: runtime entry and PWA cache include theme patch assets
 ok 25 - runtime entry and PWA cache include theme patch assets
   ---
-  duration_ms: 2.297943
+  duration_ms: 3.228503
   type: 'test'
   ...
 # Subtest: 0.9.6 keeps 0.9.2 interaction baseline
 ok 26 - 0.9.6 keeps 0.9.2 interaction baseline
   ---
-  duration_ms: 11.23793
+  duration_ms: 10.308553
   type: 'test'
   ...
 # Subtest: recommendation animation and prompt libraries are complete
 ok 27 - recommendation animation and prompt libraries are complete
   ---
-  duration_ms: 2.621318
+  duration_ms: 2.942418
   type: 'test'
   ...
 # Subtest: timer, inventory, delta wheel and trajectory requirements
 ok 28 - timer, inventory, delta wheel and trajectory requirements
   ---
-  duration_ms: 4.159328
+  duration_ms: 4.467327
   type: 'test'
   ...
 # Subtest: 0.9.6 version and visual assets
 ok 29 - 0.9.6 version and visual assets
   ---
-  duration_ms: 15.697686
+  duration_ms: 14.337381
   type: 'test'
   ...
 # Subtest: 0.9.3 sensory, cold storage and gear requirements remain available
 ok 30 - 0.9.3 sensory, cold storage and gear requirements remain available
   ---
-  duration_ms: 5.723022
+  duration_ms: 6.667289
   type: 'test'
   ...
 # Subtest: refinement runtime files are loaded in deterministic order and cached
 ok 31 - refinement runtime files are loaded in deterministic order and cached
   ---
-  duration_ms: 8.374635
+  duration_ms: 10.209097
   type: 'test'
   ...
 # Subtest: light mode covers seals, groups, leaderboard and collapse row
 ok 32 - light mode covers seals, groups, leaderboard and collapse row
   ---
-  duration_ms: 1.51488
+  duration_ms: 1.763936
   type: 'test'
   ...
 # Subtest: remaining recommendation, manage menu and structured grinder range are implemented
 ok 33 - remaining recommendation, manage menu and structured grinder range are implemented
   ---
-  duration_ms: 2.897032
+  duration_ms: 3.26988
   type: 'test'
   ...
 # Subtest: settings mascot uses fixed one-third size
 ok 34 - settings mascot uses fixed one-third size
   ---
-  duration_ms: 1.390187
+  duration_ms: 1.328582
   type: 'test'
   ...
 # Subtest: three sensory modes have distinct non-duplicated workflows
 ok 35 - three sensory modes have distinct non-duplicated workflows
   ---
-  duration_ms: 1.721315
+  duration_ms: 1.260786
   type: 'test'
   ...
 # Subtest: professional sensory uses CATA tags, ordering, conditional radar slider and final affective score
 ok 36 - professional sensory uses CATA tags, ordering, conditional radar slider and final affective score
   ---
-  duration_ms: 1.752665
+  duration_ms: 1.407751
   type: 'test'
   ...
 # Subtest: simple note mode reveals score before note
 ok 37 - simple note mode reveals score before note
   ---
-  duration_ms: 2.740941
+  duration_ms: 2.823637
   type: 'test'
   ...
 # Subtest: current v0.9.6 release retains v0.9.5 runtime entry
 ok 38 - current v0.9.6 release retains v0.9.5 runtime entry
   ---
-  duration_ms: 10.320291
+  duration_ms: 19.073358
   type: 'test'
   ...
 # Subtest: v0.9.5 requested modes, labels and artwork exist
 ok 39 - v0.9.5 requested modes, labels and artwork exist
   ---
-  duration_ms: 1.949822
+  duration_ms: 2.777199
   type: 'test'
   ...
 # Subtest: sensory modes preserve interaction and only note mode skips nodes
 ok 40 - sensory modes preserve interaction and only note mode skips nodes
   ---
-  duration_ms: 3.227259
+  duration_ms: 2.991601
   type: 'test'
   ...
 # Subtest: v0.9.5 layout and theme selectors exist
 ok 41 - v0.9.5 layout and theme selectors exist
   ---
-  duration_ms: 1.808299
+  duration_ms: 2.113229
   type: 'test'
   ...
 # Subtest: header controls remain horizontal and theme binding is stable
 ok 42 - header controls remain horizontal and theme binding is stable
   ---
-  duration_ms: 2.452131
+  duration_ms: 2.307211
   type: 'test'
   ...
 # Subtest: JSON QR text is parsed before misleading raw bytes
 ok 43 - JSON QR text is parsed before misleading raw bytes
   ---
-  duration_ms: 1.509961
+  duration_ms: 1.739491
   type: 'test'
   ...
 # Subtest: invalid binary QR no longer exposes a raw CRC16 error
 ok 44 - invalid binary QR no longer exposes a raw CRC16 error
   ---
-  duration_ms: 1.273279
+  duration_ms: 1.393464
   type: 'test'
   ...
 # Subtest: built-in web OCR runtime is loaded before package capture and cached
 ok 45 - built-in web OCR runtime is loaded before package capture and cached
   ---
-  duration_ms: 14.193389
+  duration_ms: 26.919924
   type: 'test'
   ...
 # Subtest: Lucky Bean share URL QR is expanded to a bean record
 ok 46 - Lucky Bean share URL QR is expanded to a bean record
   ---
-  duration_ms: 59.403487
+  duration_ms: 38.536261
   type: 'test'
   ...
 # Subtest: QR wrapper preserves pinned scanner core and parses text first
 ok 47 - QR wrapper preserves pinned scanner core and parses text first
   ---
-  duration_ms: 2.997049
+  duration_ms: 2.463593
   type: 'test'
   ...
 # Subtest: post-brew flow cancels automatic evaluation and restores mode selection
 ok 48 - post-brew flow cancels automatic evaluation and restores mode selection
   ---
-  duration_ms: 2.18403
+  duration_ms: 1.276195
   type: 'test'
   ...
 # Subtest: QR capture UI and OCR runtime files are loaded and cached
 ok 49 - QR capture UI and OCR runtime files are loaded and cached
   ---
-  duration_ms: 2.587665
+  duration_ms: 2.148474
   type: 'test'
   ...
 1..49
@@ -305,9 +305,9 @@ ok 49 - QR capture UI and OCR runtime files are loaded and cached
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 404.048153
+# duration_ms 424.291547
 
 > luckybean@0.9.6 check
 > node tests/static-check.mjs
 
-静态校验通过：104 个文件；JS 语法、JSON、必要入口、版本、离线资源、敏感信息均通过。
+静态校验通过：105 个文件；JS 语法、JSON、必要入口、版本、离线资源、敏感信息均通过。
