@@ -1,14 +1,14 @@
 {
-  "checked_at": "2026-08-02T13:39:37.816053+00:00",
-  "source_sha": "d5dbc1440b67d9e8aac1ce670d4340a616e42d2b",
-  "static_tests": "success",
+  "checked_at": "2026-08-02T14:47:35.878512+00:00",
+  "source_sha": "5ce33a60fc3b610b89e7f72c2aa5043cf8011ebd",
+  "static_tests": "failure",
   "browser_runtime": "success",
   "integrity_browser_smoke": "success",
-  "brew_profile_integrity": "success",
-  "variable_trajectory": "success",
+  "brew_profile_integrity": "failure",
+  "variable_trajectory": "failure",
   "sensory_encrypted_storage": "success",
   "sensory_rich_history": "success",
   "minimal_identity_screen": "success",
   "direct_sensory_choice": "success",
-  "verified": true
+  "verified": false
 }
