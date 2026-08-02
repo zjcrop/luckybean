@@ -1,12 +1,12 @@
 {
-  "checked_at": "2026-08-02T14:59:22.794241+00:00",
-  "source_sha": "518be4a37acf602c84930887f8238eba52422d6a",
-  "static_tests": "failure",
+  "checked_at": "2026-08-02T15:02:26.228907+00:00",
+  "source_sha": "6636c7e3a146df8dcdf0d6b6bdade602126ef304",
+  "static_tests": "success",
   "browser_runtime": "success",
   "real_web_ocr_smoke": "success",
-  "qr_text_first_regression": "failure",
+  "qr_text_first_regression": "success",
   "chinese_mixed_ocr": "success",
-  "direct_camera_static": "failure",
-  "field_autofill_static": "failure",
-  "verified": false
+  "direct_camera_static": "success",
+  "field_autofill_static": "success",
+  "verified": true
 }
