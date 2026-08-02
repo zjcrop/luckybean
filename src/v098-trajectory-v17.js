@@ -38,7 +38,28 @@ function planStages() {
   });
 }
 
-function sourceWindows(svg, totalTime, tx, tyTemp, curveTempAt, minTemp, maxTemp) {
+function windowType(label, risk = false) {
+  const text = String(label || '').toLocaleLowerCase('zh-CN');
+  if (/涩|astring/.test(text)) return 'astringency';
+  if (/苦|木质|bitter|woody/.test(text)) return 'bitter';
+  if (/酸|acid/.test(text)) return 'acidity';
+  if (/花|香气|floral|aroma/.test(text)) return 'floral';
+  if (/果|fruit/.test(text)) return 'fruit';
+  if (/甜|sweet/.test(text)) return 'sweetness';
+  return risk ? 'bitter' : 'floral';
+}
+
+function sourceWindowGeometry(group, sourceLeft, sourceRight, totalTime, risk = false) {
+  const rect = $('rect', group);
+  const x = Number(rect?.getAttribute('x') || sourceLeft);
+  const width = Number(rect?.getAttribute('width') || 40);
+  const fromN = clamp((x - sourceLeft) / (sourceRight - sourceLeft), 0, 1);
+  const toN = clamp((x + width - sourceLeft) / (sourceRight - sourceLeft), fromN, 1);
+  const label = $('text', group)?.textContent.trim() || (risk ? '风险窗口' : '风味窗口');
+  return { label, risk, from: fromN * totalTime, to: toN * totalTime };
+}
+
+function sourceWindows(svg, totalTime, tx, tyTemp, curveTempAt, minTemp, maxTemp, phase) {
   const viewBox = (svg.getAttribute('viewBox') || '0 0 720 330').split(/\s+/).map(Number);
   const sourceWidth = viewBox[2] || 720;
   const sourceLeft = 42;
@@ -51,27 +72,45 @@ function sourceWindows(svg, totalTime, tx, tyTemp, curveTempAt, minTemp, maxTemp
     bitter: ['rgba(255,92,92,.14)', 'rgba(255,92,92,.72)'],
     astringency: ['rgba(180,138,100,.13)', 'rgba(180,138,100,.66)']
   };
-  const windows = $$('.trajectory-peak', svg).map(group => {
-    const rect = $('rect', group);
+
+  let windows = $$('.trajectory-peak', svg).map(group => {
     const classes = [...group.classList];
-    const type = classes.find(name => colors[name]) || 'floral';
-    const x = Number(rect?.getAttribute('x') || sourceLeft);
-    const width = Number(rect?.getAttribute('width') || 40);
-    const fromN = clamp((x - sourceLeft) / (sourceRight - sourceLeft), 0, 1);
-    const toN = clamp((x + width - sourceLeft) / (sourceRight - sourceLeft), fromN, 1);
-    const from = fromN * totalTime;
-    const to = toN * totalTime;
-    const risk = type === 'bitter' || type === 'astringency';
-    return {
-      type,
-      risk,
-      label: $('text', group)?.textContent.trim() || (risk ? '风险窗口' : '风味窗口'),
-      from,
-      to,
-      fill: colors[type][0],
-      stroke: colors[type][1]
-    };
+    const geometry = sourceWindowGeometry(group, sourceLeft, sourceRight, totalTime, classes.includes('bitter') || classes.includes('astringency'));
+    const type = classes.find(name => colors[name]) || windowType(geometry.label, geometry.risk);
+    return { ...geometry, type, risk: type === 'bitter' || type === 'astringency' };
   });
+
+  if (!windows.length) {
+    windows = $$('.trajectory-window', svg).map(group => {
+      const risk = group.classList.contains('risk');
+      const geometry = sourceWindowGeometry(group, sourceLeft, sourceRight, totalTime, risk);
+      return { ...geometry, type: windowType(geometry.label, risk), risk };
+    });
+  }
+
+  if (!windows.some(window => !window.risk)) {
+    const { bloomEnd, acidEnd, aromaEnd } = phase;
+    windows.push(
+      { type: 'acidity', risk: false, label: '明亮酸质', from: Math.max(0, bloomEnd * .55), to: acidEnd },
+      { type: 'floral', risk: false, label: '花香释放', from: Math.max(0, bloomEnd * .72), to: acidEnd + (aromaEnd - acidEnd) * .45 },
+      { type: 'sweetness', risk: false, label: '甜感与口感', from: acidEnd, to: aromaEnd }
+    );
+  }
+  if (!windows.some(window => window.risk)) {
+    const { aromaEnd } = phase;
+    windows.push(
+      { type: 'astringency', risk: true, label: '木质/干涩', from: aromaEnd, to: aromaEnd + (totalTime - aromaEnd) * .58 },
+      { type: 'bitter', risk: true, label: '苦涩风险', from: aromaEnd + (totalTime - aromaEnd) * .38, to: totalTime }
+    );
+  }
+
+  windows = windows.map(window => ({
+    ...window,
+    from: clamp(window.from, 0, totalTime),
+    to: clamp(Math.max(window.from + totalTime * .035, window.to), 0, totalTime),
+    fill: colors[window.type]?.[0] || colors.floral[0],
+    stroke: colors[window.type]?.[1] || colors.floral[1]
+  }));
 
   const rendered = windows.map(window => {
     const x = tx(window.from);
@@ -88,7 +127,7 @@ function sourceWindows(svg, totalTime, tx, tyTemp, curveTempAt, minTemp, maxTemp
     const guide = window.risk
       ? `<line x1="${midX}" y1="${tyTemp(curveTemp)}" x2="${midX}" y2="${y}" stroke="rgba(255,92,92,.30)" stroke-width="1" stroke-dasharray="2 2"></line>`
       : `<circle cx="${midX}" cy="${tyTemp(curveTemp)}" r="2.8" fill="${window.stroke}" opacity=".88"></circle>`;
-    return `${guide}<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="8" fill="${window.fill}" stroke="${window.stroke}" stroke-width="1"${window.risk ? ' stroke-dasharray="4 3"' : ''}></rect><text x="${midX}" y="${y + 14}" text-anchor="middle">${esc(window.label)}</text>${window.risk ? `<text class="v098-risk-avoid" x="${midX}" y="${tyTemp(curveTemp) + 15}" text-anchor="middle">轨迹下压避开</text>` : ''}`;
+    return `<g class="v098-flavor-window ${window.type}${window.risk ? ' risk' : ' positive'}">${guide}<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="8" fill="${window.fill}" stroke="${window.stroke}" stroke-width="1"${window.risk ? ' stroke-dasharray="4 3"' : ''}></rect><text x="${midX}" y="${y + 14}" text-anchor="middle">${esc(window.label)}</text>${window.risk ? `<text class="v098-risk-avoid" x="${midX}" y="${tyTemp(curveTemp) + 15}" text-anchor="middle">轨迹下压避开</text>` : ''}</g>`;
   }).join('');
 
   const coverage = windows.filter(window => !window.risk).map(window => {
@@ -146,7 +185,8 @@ function renderTrajectory(svg) {
   const afterBloom = Math.max(0, totalTime - bloomEnd);
   const acidEnd = bloomEnd + afterBloom * .25;
   const aromaEnd = acidEnd + afterBloom * .38;
-  const flavor = sourceWindows(original, totalTime, tx, tyTemp, curveTempAt, minTemp, maxTemp);
+  const phase = { bloomEnd, acidEnd, aromaEnd };
+  const flavor = sourceWindows(original, totalTime, tx, tyTemp, curveTempAt, minTemp, maxTemp, phase);
   const phaseRects = [
     [0, bloomEnd, 'rgba(126,219,255,.06)', '闷蒸'],
     [bloomEnd, acidEnd, 'rgba(255,164,74,.07)', '前段·酸'],
