@@ -37,11 +37,14 @@ async def main():
         errors = []
         console_errors = []
         async with async_playwright() as playwright:
-            browser = await playwright.chromium.launch(
-                headless=True,
-                executable_path="/usr/bin/chromium",
-                args=["--no-sandbox", "--disable-dev-shm-usage"],
-            )
+            system_chromium = Path("/usr/bin/chromium")
+            launch_options = {
+                "headless": True,
+                "args": ["--no-sandbox", "--disable-dev-shm-usage"],
+            }
+            if system_chromium.exists():
+                launch_options["executable_path"] = str(system_chromium)
+            browser = await playwright.chromium.launch(**launch_options)
             context = await browser.new_context(
                 viewport={"width": 390, "height": 844},
                 locale="zh-CN",
