@@ -722,11 +722,25 @@ function simulateCandidate(input, plan, models, controls) {
     0, 100
   );
 
-  return {
-    version: TRAJECTORY_MODEL_VERSION,
-    model: 'inverse-target-window-fit',
-    points,
-    windows: models.windows.all,
+  const phases = stages.map(stage => ({
+  index: Number(stage.index || 1),
+  label: stage.name || `第${stage.index || 1}段`,
+  start: round(Number(stage.startSec || 0) / totalTime, 4),
+  end: round((Number(stage.startSec || 0) + Number(stage.durationSec || 0)) / totalTime, 4)
+}));
+
+return {
+  version: TRAJECTORY_MODEL_VERSION,
+  model: 'inverse-target-window-fit',
+  axes: {
+    timeSec: round(totalTime), waterG: totalWater,
+    temperatureC: [76, 98], flowGPerSec: [0, round(models.device.maxFlow, 1)],
+    extractionEY: round(targetEY, 2)
+  },
+  water: { ca: models.water.ca, mg: models.water.mg, hco3: models.water.hco3, tds: models.water.tds },
+  phases,
+  points,
+  windows: models.windows.all,
     positiveCoverage: round(positiveCoverage, 4),
     coverageByFamily: Object.fromEntries(Object.entries(coverages).map(([key, value]) => [key, round(value, 4)])),
     riskExposure: round(riskExposure, 4),
