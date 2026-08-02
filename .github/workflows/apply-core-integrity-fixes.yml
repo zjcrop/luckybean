@@ -1,0 +1,72 @@
+name: Apply core sensory navigation fixes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.core-integrity-fix-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch core navigation and professional note handling
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          app = Path('src/app.js')
+          text = app.read_text(encoding='utf-8')
+          replacements = [
+              (
+                  "$('#directSensoryBtn')?.addEventListener('click', () => { if (!state.selectedBeanId) return; startEvaluation(state.selectedBeanId, { direct: true }); switchPage('sensory'); });",
+                  "$('#directSensoryBtn')?.addEventListener('click', () => { if (!state.selectedBeanId) return; state.evaluation = null; switchPage('sensory'); });"
+              ),
+              (
+                  "$('#planToSensoryBtn')?.addEventListener('click', () => { if (!state.selectedBeanId) return; startEvaluation(state.selectedBeanId, { direct: true }); switchPage('sensory'); });",
+                  "$('#planToSensoryBtn')?.addEventListener('click', () => { if (!state.selectedBeanId) return; state.evaluation = null; switchPage('sensory'); });"
+              ),
+              (
+                  "closeOverlay(); startEvaluation(bean.id, { brewSessionId: state.currentPlan?.id || '' }); switchPage('sensory', { preserveOverlay: true }); renderSensory();",
+                  "closeOverlay(); state.evaluation = null; state.selectedBeanId = bean.id; switchPage('sensory'); renderSensory();"
+              ),
+          ]
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'missing app pattern: {old}')
+              text = text.replace(old, new, 1)
+          app.write_text(text, encoding='utf-8')
+
+          sensory = Path('src/v095-sensory-pro.js')
+          text = sensory.read_text(encoding='utf-8')
+          old = """    if (!note.value.trim()) {
+      note.value = `${summary}\\n\\n札记：`;
+      note.dispatchEvent(new Event('input', { bubbles: true }));
+      note.focus();
+      note.setSelectionRange(note.value.length, note.value.length);
+    }
+"""
+          new = """    note.maxLength = 300;
+    note.placeholder = '仅记录自然语言札记，最多300字；专业标签、雷达与评分已结构化保存。';
+    if (note.value.length > 300) note.value = note.value.slice(0, 300);
+    note.focus();
+"""
+          if old not in text:
+              raise SystemExit('missing professional note pattern')
+          sensory.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+      - name: Verify syntax and commit
+        run: |
+          node --check src/app.js
+          node --check src/v095-sensory-pro.js
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/app.js src/v095-sensory-pro.js
+          git commit -m 'fix: make tasting selection and structured notes native'
+          git push origin HEAD:main
