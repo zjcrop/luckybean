@@ -19,6 +19,26 @@
 
 识别架构详见 `docs/recognition-architecture.md`。
 
+### 冲煮完成后的品鉴入口
+
+- 完成冲煮并记录咖啡豆、滤纸消耗后，仅跳转到“品鉴”主页；
+- 保留当前豆卡为默认选择，但不自动启动任何品鉴模式；
+- 用户仍需在“专业品鉴 / 玩家互动品鉴 / 札记”三个模式中主动选择；
+- 页面切换过程中隐藏短暂生成的原生品鉴节点，避免闪屏和误触；
+- Chromium 回归测试会完整执行“生成方案 → 计时结束 → 记录消耗 → 三模式选择页”流程。
+
+### 二维码自动捕捉与兼容解码
+
+- 摄像头扫描改为连续自动捕捉，不需要按快门；
+- 取景页显示方形扫描框、动态扫描线、“自动捕捉中”和操作提示；
+- 主引擎使用固定版本的 ZXing Browser 0.2.0；
+- 支持时使用浏览器原生 `BarcodeDetector` 加速，兼容环境回退至 jsQR 1.4.0；
+- 图片识别增加多阈值二值化与中心区域裁切，提高低对比、偏暗或占画面较小二维码的识别率；
+- 支持 BrewIon 二进制二维码、HEX 二维码、JSON 豆卡二维码；
+- 支持富贵盒子自身生成的 `#share=LB8…` 分享二维码，并解压回豆卡确认页；
+- 识别到不受支持的普通二维码时不退出相机，页面会提示更换二维码；
+- 手动选择图片仍作为自动捕捉困难时的兜底方式。
+
 ## v0.9.5
 
 ### 界面与主题
@@ -62,7 +82,11 @@ styles-theme-light.css           完整白色主题
 styles-action-grid.css           右下角快捷四格组件
 styles-v095-refine.css           子页、器具与专业品鉴补充样式
 styles-v096-recognition.css      多视角豆袋采集界面
+styles-qr-scan.css               二维码自动捕捉取景界面
 src/app.js                       核心业务与数据保存
+src/qr.js                        ZXing/BarcodeDetector/jsQR 解码与格式兼容
+src/v095-qr-ui.js                二维码自动捕捉提示与取景框
+src/v095-postbrew-sensory.js     冲煮结束后恢复品鉴模式选择
 src/v096-package-capture.js      拍袋录入与多图工作流
 src/image-quality.js             照片清晰度、反光和曝光检查
 src/recognition-bridge.js        Web/原生统一 OCR 桥接
@@ -83,6 +107,8 @@ python3 -m http.server 8080
 npm test
 npm run check
 npm run browser:smoke
+python tests/sensory-modes-smoke.py
+python tests/postbrew-qr-smoke.py
 ```
 
 不要通过 `file://` 打开。每次发布必须同步检查 `package.json`、`src/utils.js`、`sw.js`、`manifest.webmanifest` 和 README，并由 BrewIon 发布流程核验线上版本、源 SHA 与资源 HTTP 状态。
