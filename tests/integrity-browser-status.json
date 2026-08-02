@@ -1,17 +1,17 @@
 {
-  "checked_at": "2026-08-02T15:33:52.534857+00:00",
-  "source_sha": "4bdf46df12e4dbaed18349c54683114f5bf54cea",
-  "static_tests": "success",
+  "checked_at": "2026-08-02T16:22:48.190069+00:00",
+  "source_sha": "3efbd564a1f7d0f4c4cef14e7a434ec07567b41e",
+  "static_tests": "failure",
   "browser_runtime": "success",
   "integrity_browser_smoke": "success",
-  "brew_profile_integrity": "success",
-  "manual_segment_constraint": "success",
-  "legacy_trajectory_rendering": "success",
-  "variable_trajectory": "success",
+  "brew_profile_integrity": "failure",
+  "manual_segment_constraint": "failure",
+  "legacy_trajectory_rendering": "failure",
+  "variable_trajectory": "failure",
   "sensory_encrypted_storage": "success",
   "sensory_rich_history": "success",
   "compact_brew_history": "success",
   "minimal_identity_screen": "success",
   "direct_sensory_choice": "success",
-  "verified": true
+  "verified": false
 }
