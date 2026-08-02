@@ -1,9 +1,12 @@
 import { SCHEMA_VERSION, assertPlainObject } from './utils.js';
+import { SENSORY_STORAGE_FORMAT, sealSensoryRecord, openSensoryRecord } from './sensory-codec-v096.js';
 
 const DB_NAME = 'luckybean';
 const LEGACY_DB_NAME = 'coffee_cellar_local_mvp_v1';
 const STORES = ['beans', 'brewSessions', 'sensoryRecords', 'inventoryEvents', 'settings', 'customCodes', 'codebookCache', 'syncMetadata', 'shareDrafts'];
+const SENSORY_KEY_ID = 'local.sensory.key.v1';
 let dbPromise;
+let sensorySecretPromise;
 
 function requestToPromise(request) {
   return new Promise((resolve, reject) => {
@@ -47,12 +50,9 @@ export function openDb() {
   if (dbPromise) return dbPromise;
   dbPromise = (async () => {
     if (!globalThis.indexedDB) throw new Error('当前浏览器不支持 IndexedDB');
-
     const current = await openDatabase();
     const missing = missingStores(current);
-
     if (current.version >= SCHEMA_VERSION && missing.length === 0) return current;
-
     const targetVersion = Math.max(SCHEMA_VERSION, current.version + (missing.length ? 1 : 0));
     current.close();
     return openDatabase(targetVersion);
@@ -69,22 +69,97 @@ async function store(name, mode = 'readonly') {
   return db.transaction(name, mode).objectStore(name);
 }
 
-export async function all(name) { return requestToPromise((await store(name)).getAll()); }
-export async function get(name, key) { return requestToPromise((await store(name)).get(key)); }
+function bytesToBase64(bytes) {
+  let binary = '';
+  for (const value of bytes) binary += String.fromCharCode(value);
+  return btoa(binary);
+}
+
+function base64ToBytes(value) {
+  return Uint8Array.from(atob(String(value || '')), char => char.charCodeAt(0));
+}
+
+async function ensureSensorySecret() {
+  if (sensorySecretPromise) return sensorySecretPromise;
+  sensorySecretPromise = (async () => {
+    if (!crypto?.getRandomValues) return null;
+    const objectStore = await store('syncMetadata', 'readwrite');
+    const existing = await requestToPromise(objectStore.get(SENSORY_KEY_ID));
+    if (existing?.secret) return base64ToBytes(existing.secret);
+    const secret = crypto.getRandomValues(new Uint8Array(32));
+    await requestToPromise(objectStore.put({
+      id: SENSORY_KEY_ID,
+      secret: bytesToBase64(secret),
+      algorithm: 'AES-GCM-256',
+      scope: 'local-device',
+      createdAt: new Date().toISOString()
+    }));
+    return secret;
+  })().catch(error => {
+    sensorySecretPromise = undefined;
+    console.warn('品鉴记录本地密钥初始化失败，回退为仅压缩存储', error);
+    return null;
+  });
+  return sensorySecretPromise;
+}
+
+async function transformForWrite(name, value) {
+  if (name !== 'sensoryRecords' || value?.storageFormat === SENSORY_STORAGE_FORMAT) return structuredClone(value);
+  const secret = await ensureSensorySecret();
+  return sealSensoryRecord(value, secret);
+}
+
+async function transformForRead(name, value) {
+  if (name !== 'sensoryRecords' || !value || value.storageFormat !== SENSORY_STORAGE_FORMAT) return value;
+  try {
+    return await openSensoryRecord(value, await ensureSensorySecret());
+  } catch (error) {
+    console.error('品鉴记录解密失败', error);
+    return {
+      id: value.id,
+      beanId: value.beanId,
+      brewSessionId: value.brewSessionId || '',
+      createdAt: value.createdAt || '',
+      updatedAt: value.updatedAt || value.createdAt || '',
+      answers: {},
+      summary: ['记录解密失败'],
+      naturalNote: '',
+      autoScore: 0,
+      subjectiveScore: 0,
+      score: 0,
+      scoreDelta: 0,
+      storageError: error.message
+    };
+  }
+}
+
+export async function all(name) {
+  const values = await requestToPromise((await store(name)).getAll());
+  if (name !== 'sensoryRecords') return values;
+  return Promise.all(values.map(value => transformForRead(name, value)));
+}
+
+export async function get(name, key) {
+  return transformForRead(name, await requestToPromise((await store(name)).get(key)));
+}
+
 export async function put(name, value) {
   assertPlainObject(value, name);
-  return requestToPromise((await store(name, 'readwrite')).put(structuredClone(value)));
+  const prepared = await transformForWrite(name, value);
+  return requestToPromise((await store(name, 'readwrite')).put(prepared));
 }
+
 export async function remove(name, key) { return requestToPromise((await store(name, 'readwrite')).delete(key)); }
 export async function clear(name) { return requestToPromise((await store(name, 'readwrite')).clear()); }
 
 export async function bulkPut(name, values) {
   if (!Array.isArray(values)) throw new Error('批量写入数据必须是数组');
+  const prepared = await Promise.all(values.map(value => transformForWrite(name, value)));
   const db = await openDb();
   await new Promise((resolve, reject) => {
     const tx = db.transaction(name, 'readwrite');
     const objectStore = tx.objectStore(name);
-    values.forEach(v => objectStore.put(structuredClone(v)));
+    prepared.forEach(value => objectStore.put(structuredClone(value)));
     tx.oncomplete = resolve;
     tx.onerror = () => reject(tx.error || new Error('批量写入失败'));
     tx.onabort = () => reject(tx.error || new Error('批量写入中止'));
@@ -119,6 +194,7 @@ export async function clearAll() {
     request.onsuccess = resolve;
     request.onerror = () => reject(request.error);
   })));
+  sensorySecretPromise = undefined;
 }
 
 export async function migrateLegacy() {
@@ -169,7 +245,7 @@ export async function migrateLegacy() {
     updatedAt: bean.updatedAt || new Date().toISOString()
   }));
   if (migratedBeans.length) await bulkPut('beans', migratedBeans);
-  if (records.length) await bulkPut('sensoryRecords', records.map(r => ({ ...r, id: r.id, migratedFrom: 'records' })));
+  if (records.length) await bulkPut('sensoryRecords', records.map(record => ({ ...record, id: record.id, migratedFrom: 'records' })));
   if (customCodes.length) await bulkPut('customCodes', customCodes);
   for (const item of settings) if (item?.id) await put('settings', item);
   await setSetting('migration.legacy.v1', true);
