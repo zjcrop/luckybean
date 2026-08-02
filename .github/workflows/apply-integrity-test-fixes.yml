@@ -1,4 +1,4 @@
-name: Apply integrity test baseline fixes
+name: Apply integrity core fixes
 
 on:
   push:
@@ -16,31 +16,64 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Patch exact verified assertions
+
+      - name: Patch native sensory navigation and note handling
         run: |
           python - <<'PY'
           from pathlib import Path
 
-          replacements = {
-              Path('tests/v096-integrity.test.mjs'): [
-                  ("assert.match(encoded, /^LB8E\\.[RJ]\\./);", "assert.match(encoded, /^LB8[JR]\\.E\\./);")
-              ],
-              Path('tests/integrity-browser-smoke.py'): [
-                  ("assert 'LB-' not in raw_settings, raw_settings", "assert '\"publicId\": \"LB-' not in raw_settings, raw_settings")
-              ],
-          }
-          for path, pairs in replacements.items():
-              text = path.read_text(encoding='utf-8')
-              for old, new in pairs:
-                  if old not in text:
-                      raise SystemExit(f'missing expected assertion in {path}: {old}')
+          app = Path('src/app.js')
+          text = app.read_text(encoding='utf-8')
+          pairs = [
+              (
+                  "$('#directSensoryBtn')?.addEventListener('click', () => { if (!state.selectedBeanId) return; startEvaluation(state.selectedBeanId, { direct: true }); switchPage('sensory'); });",
+                  "$('#directSensoryBtn')?.addEventListener('click', () => { if (!state.selectedBeanId) return; state.evaluation = null; switchPage('sensory'); });"
+              ),
+              (
+                  "$('#planToSensoryBtn')?.addEventListener('click', () => { if (!state.selectedBeanId) return; startEvaluation(state.selectedBeanId, { direct: true }); switchPage('sensory'); });",
+                  "$('#planToSensoryBtn')?.addEventListener('click', () => { if (!state.selectedBeanId) return; state.evaluation = null; switchPage('sensory'); });"
+              ),
+              (
+                  "closeOverlay(); startEvaluation(bean.id, { brewSessionId: state.currentPlan?.id || '' }); switchPage('sensory', { preserveOverlay: true }); renderSensory();",
+                  "closeOverlay(); state.evaluation = null; state.selectedBeanId = bean.id; switchPage('sensory'); renderSensory();"
+              ),
+          ]
+          for old, new in pairs:
+              if old in text:
                   text = text.replace(old, new, 1)
-              path.write_text(text, encoding='utf-8')
+              elif new not in text:
+                  raise SystemExit(f'missing app source and destination: {old}')
+          app.write_text(text, encoding='utf-8')
+
+          sensory = Path('src/v095-sensory-pro.js')
+          text = sensory.read_text(encoding='utf-8')
+          old = """    if (!note.value.trim()) {
+      note.value = `${summary}\\n\\n札记：`;
+      note.dispatchEvent(new Event('input', { bubbles: true }));
+      note.focus();
+      note.setSelectionRange(note.value.length, note.value.length);
+    }
+"""
+          new = """    note.maxLength = 300;
+    note.placeholder = '仅记录自然语言札记，最多300字；专业标签、雷达与评分已结构化保存。';
+    if (note.value.length > 300) note.value = note.value.slice(0, 300);
+    note.focus();
+"""
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif new not in text:
+              raise SystemExit('missing professional note source and destination')
+          sensory.write_text(text, encoding='utf-8')
           PY
-      - name: Commit patch
+
+      - name: Verify and commit
         run: |
+          node --check src/app.js
+          node --check src/v095-sensory-pro.js
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add tests/v096-integrity.test.mjs tests/integrity-browser-smoke.py
-          git commit -m 'test: align encrypted share and identity assertions'
-          git push origin HEAD:main
+          git add src/app.js src/v095-sensory-pro.js
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix: make tasting selection and structured notes native'
+            git push origin HEAD:main
+          fi
