@@ -1,9 +1,23 @@
 # 富贵盒子 Lucky Bean
 
-**当前内部测试版本：v0.9.5**  
+**当前内部测试版本：v0.9.6**  
 **稳定网址：<https://zjcrop.github.io/BrewIon/luckybean/>**
 
 富贵盒子是本地优先的咖啡豆档案、冲煮方案和感官品鉴工具。1.0 之前均属于内部测试版本，允许直接在 `main` 修改和部署；仓库根目录 `index.html` 是唯一网页入口，不维护独立 Beta 页面或长期发布支线。
+
+## v0.9.6
+
+### 多视角豆袋采集基础
+
+- 将原“拍照识别”从二维码图片入口中拆分，正式命名为“拍袋录入”；
+- 支持正面主体、背面参数、侧面补充和日期标签四类照片，最多保留四张；
+- 拍摄后自动压缩到适合移动端处理的尺寸，并检查分辨率、模糊、反光、曝光和低对比度；
+- 根据已有视角提示继续补拍背面或日期标签，不再假设一张照片包含全部信息；
+- 识别文字保留人工修正入口，再交给现有 BrewIon 编码表和文字解析器填充豆卡；
+- 新增统一识别桥接，兼容未来 Android、iOS、HarmonyOS 原生 PP-OCRv5 + ncnn 插件和网页 PaddleOCR.js；
+- 当前阶段完成采集、质量评估、桥接和业务交接，PP-OCR 模型文件及原生插件将在后续阶段接入。
+
+识别架构详见 `docs/recognition-architecture.md`。
 
 ## v0.9.5
 
@@ -41,20 +55,25 @@
 ## 目录
 
 ```text
-index.html                 main 根目录网页入口
-styles.css                 基础及历史兼容样式
-styles-v095.css            v0.9.5 基础响应式界面
-styles-theme-light.css     完整白色主题
-styles-action-grid.css     右下角快捷四格组件
-styles-v095-refine.css     子页、器具与专业品鉴补充样式
-src/app.js                 核心业务与数据保存
-src/v095-ui.js             v0.9.5 基础界面扩展
-src/theme-bridge.js        稳定主题切换
-src/v095-layout-gear.js    文案、滤杯与磨豆机管理
-src/v095-sensory-pro.js    三种品鉴流程
-public/                    正式运行图片和编码表
-tests/                     单元、静态及浏览器测试
-android/                   暂停发布的 Android 工程
+index.html                       main 根目录网页入口
+styles.css                       基础及历史兼容样式
+styles-v095.css                  v0.9.5 基础响应式界面
+styles-theme-light.css           完整白色主题
+styles-action-grid.css           右下角快捷四格组件
+styles-v095-refine.css           子页、器具与专业品鉴补充样式
+styles-v096-recognition.css      多视角豆袋采集界面
+src/app.js                       核心业务与数据保存
+src/v096-package-capture.js      拍袋录入与多图工作流
+src/image-quality.js             照片清晰度、反光和曝光检查
+src/recognition-bridge.js        Web/原生统一 OCR 桥接
+src/v095-ui.js                   v0.9.5 基础界面扩展
+src/theme-bridge.js              稳定主题切换
+src/v095-layout-gear.js          文案、滤杯与磨豆机管理
+src/v095-sensory-pro.js          三种品鉴流程
+docs/recognition-architecture.md 豆袋识别架构与桥接约定
+public/                          正式运行图片和编码表
+tests/                           单元、静态及浏览器测试
+android/                         暂停发布的 Android 工程
 ```
 
 ## 本地运行与检查
