@@ -6,71 +6,55 @@ TAP version 13
 # Subtest: BrewIon 回退编码表结构完整且编码唯一
 ok 1 - BrewIon 回退编码表结构完整且编码唯一
   ---
-  duration_ms: 36.555887
+  duration_ms: 33.982426
   type: 'test'
   ...
 # Subtest: Beta 冲煮引擎输出完整协议、守恒和专业模型
-not ok 2 - Beta 冲煮引擎输出完整协议、守恒和专业模型
+ok 2 - Beta 冲煮引擎输出完整协议、守恒和专业模型
   ---
-  duration_ms: 34.780196
+  duration_ms: 15.133271
   type: 'test'
-  location: '/home/runner/work/luckybean/luckybean/tests/core.test.mjs:40:1'
-  failureType: 'testCodeFailure'
-  error: |-
-    The expression evaluated to a falsy value:
-    
-      assert.ok(plan.trajectory.length === plan.stages.length)
-    
-  code: 'ERR_ASSERTION'
-  name: 'AssertionError'
-  expected: true
-  actual: false
-  operator: '=='
-  stack: |-
-    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/core.test.mjs:57:10)
-    async Test.run (node:internal/test_runner/test:1054:7)
-    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
   ...
 # Subtest: 冲煮方案库覆盖旧版主要方案类型
 ok 3 - 冲煮方案库覆盖旧版主要方案类型
   ---
-  duration_ms: 0.992894
+  duration_ms: 0.413684
   type: 'test'
   ...
 # Subtest: 调水模块对标 Brew-Water-Calibrato 咖啡参数
 ok 4 - 调水模块对标 Brew-Water-Calibrato 咖啡参数
   ---
-  duration_ms: 0.579092
+  duration_ms: 0.683419
   type: 'test'
   ...
 # Subtest: 低分品鉴可生成问题定向修正方案
 ok 5 - 低分品鉴可生成问题定向修正方案
   ---
-  duration_ms: 9.822862
+  duration_ms: 11.208156
   type: 'test'
   ...
 # Subtest: 自动得分、主观分差和偏好标签可累计
 ok 6 - 自动得分、主观分差和偏好标签可累计
   ---
-  duration_ms: 2.653202
+  duration_ms: 2.446128
   type: 'test'
   ...
 # Subtest: 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
 not ok 7 - 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
   ---
-  duration_ms: 106.719479
+  duration_ms: 137.600971
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/core.test.mjs:116:1'
   failureType: 'testCodeFailure'
   error: |-
     The input did not match the regular expression /^LB8[RDGJ]\./. Input:
     
-    'LB8E.R.J85zEtiGVvnjfHKmD03MgvJ23ceiqTvB8ca-2VcyeyQ.J3pbHO3uEcI39Ox5.GGehRGRZ_-hgZLQZKSy36nfbWX9mXmlHyc-Dd5ywiEmiWr-ikINt9L-tsyI9c2vX45NnqtzU7NjY_gGaLWnxDl2v1bAv-RKcKReyRv5ITHITYbjO3HSZIK9Uol18H9_i9YGt-iINRsmYwso7i1z25hFsGafBo7qSjqab63N5yKlTNH0rg132KPQMYufDQtrFqSolsgTMrCCDTL3qrZ67vyLK5n1Ej8CkWn_k4UXnVUCU1iH6S842DKu9OjSsqrSytbWvEtbWs1HtMprVBtIfOP5QSFnwc-svNLlA49p4VV8WDlQPY7oMvviS7O_tKfnwCIa-CjBE4nNFrgUGReZ7VYxnD_9fLKCU7oWFTCv6zkYPROXaozsiTC-ti7NY3Fvg9gNLU2T0y8oirwOs2iPkkYnv3PPn8LubI0GAaBWSQ-IiIXHT9-1Um7X52kxWZ89aPdE_HUcmk0JKN_-3ROYHyPT-ioQRozIqKochdsxFtnPP6SRQpdV25QaGAdDYrm6_RIB2ojG-Z5kltH61ozdL9ND9FDI-g4XNT3vlZ7F7OT5WH_Mk7PKG3Z5DBbbEwrLzZcDmRh7EyLvC5iYNXFyD'
+    'LB8E.R.I4yapWcNiFHEKF4_qBp9mfZvu2kLQBlK_cp-pr3THFc.SAI2vMBVApz_STBl.N7wAIApCyvWalFrBV2d5Ot6oMfQ-ZMEWCfW91SeHZOJ4IdYfztvtKFD1TNlOoqBon-7O4oMeH_wqK3Te59bllGylwo_DtREF51ZDU3QMnP_RAbN73FHye34rNn5M3J9RUgL3Eb4XE585cnYr2bxT7iEzTpUYE-lLKjt1nYtI-zjtouGPsq8_eQ4_Y0nUPwmaOaNmAwWOb0TxK1wjObXoCqqfyIFySgYqrjRy4gUY36FvfJCm2SKHnhLHsa8DPB6bp72YyyMZqJQHAjc-Wd6GmNHNtH1hvTHy6hbU77sYxul03rSmKcKFHITnKyFMKV7HFiN0mHmTCOneP4wGtIkMk5ksCWnIyYFTuuivmAInjSCKGVYf-43JcE12ZNT2Zf6p6mjVRUpVeiSP6bT0JTdrg4B4DPlokgpK6Sq9gRQdrSOYOcYdEpbQeAWR_GJNjxjiR12zN6V72Vn47Gs8_OpcgIa_w1SxWd5b9FG3BkUZIePFw9RFGMTJC3Hc8IxK_NhlaN9jT4wSOonUTfalkSd0dJ4hrzC2N-Eq-tlxg15uzEsUieP0GDprcQQWYDzwox4kGxAgQ66xF2YtPzblRwmJ'
     
   code: 'ERR_ASSERTION'
   name: 'AssertionError'
   expected:
-  actual: 'LB8E.R.J85zEtiGVvnjfHKmD03MgvJ23ceiqTvB8ca-2VcyeyQ.J3pbHO3uEcI39Ox5.GGehRGRZ_-hgZLQZKSy36nfbWX9mXmlHyc-Dd5ywiEmiWr-ikINt9L-tsyI9c2vX45NnqtzU7NjY_gGaLWnxDl2v1bAv-RKcKReyRv5ITHITYbjO3HSZIK9Uol18H9_i9YGt-iINRsmYwso7i1z25hFsGafBo7qSjqab63N5yKlTNH0rg132KPQMYufDQtrFqSolsgTMrCCDTL3qrZ67vyLK5n1Ej8CkWn_k4UXnVUCU1iH6S842DKu9OjSsqrSytbWvEtbWs1HtMprVBtIfOP5QSFnwc-svNLlA49p4VV8WDlQPY7oMvviS7O_tKfnwCIa-CjBE4nNFrgUGReZ7VYxnD_9fLKCU7oWFTCv6zkYPROXaozsiTC-ti7NY3Fvg9gNLU2T0y8oirwOs2iPkkYnv3PPn8LubI0GAaBWSQ-IiIXHT9-1Um7X52kxWZ89aPdE_HUcmk0JKN_-3ROYHyPT-ioQRozIqKochdsxFtnPP6SRQpdV25QaGAdDYrm6_RIB2ojG-Z5kltH61ozdL9ND9FDI-g4XNT3vlZ7F7OT5WH_Mk7PKG3Z5DBbbEwrLzZcDmRh7EyLvC5iYNXFyD'
+  actual: 'LB8E.R.I4yapWcNiFHEKF4_qBp9mfZvu2kLQBlK_cp-pr3THFc.SAI2vMBVApz_STBl.N7wAIApCyvWalFrBV2d5Ot6oMfQ-ZMEWCfW91SeHZOJ4IdYfztvtKFD1TNlOoqBon-7O4oMeH_wqK3Te59bllGylwo_DtREF51ZDU3QMnP_RAbN73FHye34rNn5M3J9RUgL3Eb4XE585cnYr2bxT7iEzTpUYE-lLKjt1nYtI-zjtouGPsq8_eQ4_Y0nUPwmaOaNmAwWOb0TxK1wjObXoCqqfyIFySgYqrjRy4gUY36FvfJCm2SKHnhLHsa8DPB6bp72YyyMZqJQHAjc-Wd6GmNHNtH1hvTHy6hbU77sYxul03rSmKcKFHITnKyFMKV7HFiN0mHmTCOneP4wGtIkMk5ksCWnIyYFTuuivmAInjSCKGVYf-43JcE12ZNT2Zf6p6mjVRUpVeiSP6bT0JTdrg4B4DPlokgpK6Sq9gRQdrSOYOcYdEpbQeAWR_GJNjxjiR12zN6V72Vn47Gs8_OpcgIa_w1SxWd5b9FG3BkUZIePFw9RFGMTJC3Hc8IxK_NhlaN9jT4wSOonUTfalkSd0dJ4hrzC2N-Eq-tlxg15uzEsUieP0GDprcQQWYDzwox4kGxAgQ66xF2YtPzblRwmJ'
   operator: 'match'
   stack: |-
     TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/core.test.mjs:121:10)
@@ -80,109 +64,109 @@ not ok 7 - 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
 # Subtest: 导航、田字快捷区和双字题注严格对应
 ok 8 - 导航、田字快捷区和双字题注严格对应
   ---
-  duration_ms: 2.672069
+  duration_ms: 3.942458
   type: 'test'
   ...
 # Subtest: HTML 不含重复 ID 或内联事件处理器
 ok 9 - HTML 不含重复 ID 或内联事件处理器
   ---
-  duration_ms: 5.537581
+  duration_ms: 3.714913
   type: 'test'
   ...
 # Subtest: 应用代码保持单一初始化和主渲染函数
 ok 10 - 应用代码保持单一初始化和主渲染函数
   ---
-  duration_ms: 4.047994
+  duration_ms: 3.103107
   type: 'test'
   ...
 # Subtest: 私有仓库凭据和私有 GitHub API 不进入前端
 ok 11 - 私有仓库凭据和私有 GitHub API 不进入前端
   ---
-  duration_ms: 8.394784
+  duration_ms: 5.889382
   type: 'test'
   ...
 # Subtest: 自然语言识别回填确定性字段和 BrewIon 代码
 ok 12 - 自然语言识别回填确定性字段和 BrewIon 代码
   ---
-  duration_ms: 45.05862
+  duration_ms: 46.64719
   type: 'test'
   ...
 # Subtest: BrewIon 固定字段二维码执行 CRC 和行索引解码
 ok 13 - BrewIon 固定字段二维码执行 CRC 和行索引解码
   ---
-  duration_ms: 20.861602
+  duration_ms: 21.489361
   type: 'test'
   ...
 # Subtest: 视觉、卡片、分组、搜索和撷页交互标记已落地
 ok 14 - 视觉、卡片、分组、搜索和撷页交互标记已落地
   ---
-  duration_ms: 10.047469
+  duration_ms: 9.752853
   type: 'test'
   ...
 # Subtest: 豆卡名称、烘焙色值和现有数据筛选逻辑正确
 ok 15 - 豆卡名称、烘焙色值和现有数据筛选逻辑正确
   ---
-  duration_ms: 2.598302
+  duration_ms: 13.45428
   type: 'test'
   ...
 # Subtest: 远程编码表与内置表合并时保留缺失风味
 ok 16 - 远程编码表与内置表合并时保留缺失风味
   ---
-  duration_ms: 17.217706
+  duration_ms: 23.771698
   type: 'test'
   ...
 # Subtest: 编码表产区与庄园使用正确中文列且不生成空标签
 ok 17 - 编码表产区与庄园使用正确中文列且不生成空标签
   ---
-  duration_ms: 34.318903
+  duration_ms: 35.760007
   type: 'test'
   ...
 # Subtest: 十阶段赏味进度从20%起步并在赏味期后一周达到100%
 ok 18 - 十阶段赏味进度从20%起步并在赏味期后一周达到100%
   ---
-  duration_ms: 0.846844
+  duration_ms: 4.045642
   type: 'test'
   ...
 # Subtest: 负面缺陷扣分显著高于正面风味叠加
 ok 19 - 负面缺陷扣分显著高于正面风味叠加
   ---
-  duration_ms: 3.049696
+  duration_ms: 0.403355
   type: 'test'
   ...
 # Subtest: v0.9 交互与器具库存标记完整
 ok 20 - v0.9 交互与器具库存标记完整
   ---
-  duration_ms: 9.255949
+  duration_ms: 11.879633
   type: 'test'
   ...
 # Subtest: 计时、消耗、品鉴札记、复刻与方案导出功能已落地
 ok 21 - 计时、消耗、品鉴札记、复刻与方案导出功能已落地
   ---
-  duration_ms: 6.114571
+  duration_ms: 3.331615
   type: 'test'
   ...
 # Subtest: header controls are forced into one horizontal row
 ok 22 - header controls are forced into one horizontal row
   ---
-  duration_ms: 9.562084
+  duration_ms: 12.5835
   type: 'test'
   ...
 # Subtest: theme bridge intercepts dynamic buttons and delegates to native state
 ok 23 - theme bridge intercepts dynamic buttons and delegates to native state
   ---
-  duration_ms: 3.412749
+  duration_ms: 2.838993
   type: 'test'
   ...
 # Subtest: light theme covers main pages, overlays, forms, navigation and tasting wizard
 ok 24 - light theme covers main pages, overlays, forms, navigation and tasting wizard
   ---
-  duration_ms: 1.47244
+  duration_ms: 1.784851
   type: 'test'
   ...
 # Subtest: runtime entry and PWA cache include theme patch assets
 not ok 25 - runtime entry and PWA cache include theme patch assets
   ---
-  duration_ms: 5.690885
+  duration_ms: 6.066924
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/theme-light.test.mjs:21:1'
   failureType: 'testCodeFailure'
@@ -236,37 +220,37 @@ not ok 25 - runtime entry and PWA cache include theme patch assets
 # Subtest: 0.9.6 keeps 0.9.2 interaction baseline
 ok 26 - 0.9.6 keeps 0.9.2 interaction baseline
   ---
-  duration_ms: 14.926009
+  duration_ms: 14.143657
   type: 'test'
   ...
 # Subtest: recommendation animation and prompt libraries are complete
 ok 27 - recommendation animation and prompt libraries are complete
   ---
-  duration_ms: 3.139042
+  duration_ms: 2.849452
   type: 'test'
   ...
 # Subtest: timer, inventory, delta wheel and trajectory requirements
 ok 28 - timer, inventory, delta wheel and trajectory requirements
   ---
-  duration_ms: 6.291004
+  duration_ms: 4.295819
   type: 'test'
   ...
 # Subtest: 0.9.6 version and visual assets
 ok 29 - 0.9.6 version and visual assets
   ---
-  duration_ms: 7.674759
+  duration_ms: 9.834495
   type: 'test'
   ...
 # Subtest: 0.9.3 sensory, cold storage and gear requirements remain available
 ok 30 - 0.9.3 sensory, cold storage and gear requirements remain available
   ---
-  duration_ms: 5.361407
+  duration_ms: 4.10365
   type: 'test'
   ...
 # Subtest: refinement runtime files are loaded in deterministic order and cached
 not ok 31 - refinement runtime files are loaded in deterministic order and cached
   ---
-  duration_ms: 9.754454
+  duration_ms: 14.508472
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v095-refine.test.mjs:6:1'
   failureType: 'testCodeFailure'
@@ -320,91 +304,91 @@ not ok 31 - refinement runtime files are loaded in deterministic order and cache
 # Subtest: light mode covers seals, groups, leaderboard and collapse row
 ok 32 - light mode covers seals, groups, leaderboard and collapse row
   ---
-  duration_ms: 3.576034
+  duration_ms: 2.998001
   type: 'test'
   ...
 # Subtest: remaining recommendation, manage menu and structured grinder range are implemented
 ok 33 - remaining recommendation, manage menu and structured grinder range are implemented
   ---
-  duration_ms: 2.534735
+  duration_ms: 3.345993
   type: 'test'
   ...
 # Subtest: settings mascot uses fixed one-third size
 ok 34 - settings mascot uses fixed one-third size
   ---
-  duration_ms: 4.161925
+  duration_ms: 1.551714
   type: 'test'
   ...
 # Subtest: three sensory modes have distinct non-duplicated workflows
 ok 35 - three sensory modes have distinct non-duplicated workflows
   ---
-  duration_ms: 1.385761
+  duration_ms: 1.386345
   type: 'test'
   ...
 # Subtest: professional sensory uses CATA tags, ordering, conditional radar slider and final affective score
 ok 36 - professional sensory uses CATA tags, ordering, conditional radar slider and final affective score
   ---
-  duration_ms: 1.343078
+  duration_ms: 1.494176
   type: 'test'
   ...
 # Subtest: simple note mode reveals score before note
 ok 37 - simple note mode reveals score before note
   ---
-  duration_ms: 2.718786
+  duration_ms: 2.841308
   type: 'test'
   ...
 # Subtest: current v0.9.6 release retains v0.9.5 runtime entry
 ok 38 - current v0.9.6 release retains v0.9.5 runtime entry
   ---
-  duration_ms: 7.531908
+  duration_ms: 9.462319
   type: 'test'
   ...
 # Subtest: v0.9.5 requested modes, labels and artwork exist
 ok 39 - v0.9.5 requested modes, labels and artwork exist
   ---
-  duration_ms: 1.673147
+  duration_ms: 2.359366
   type: 'test'
   ...
 # Subtest: sensory modes preserve interaction and only note mode skips nodes
 ok 40 - sensory modes preserve interaction and only note mode skips nodes
   ---
-  duration_ms: 2.03691
+  duration_ms: 3.47268
   type: 'test'
   ...
 # Subtest: v0.9.5 layout and theme selectors exist
 ok 41 - v0.9.5 layout and theme selectors exist
   ---
-  duration_ms: 1.103396
+  duration_ms: 1.761306
   type: 'test'
   ...
 # Subtest: header controls remain horizontal and theme binding is stable
 ok 42 - header controls remain horizontal and theme binding is stable
   ---
-  duration_ms: 3.386683
+  duration_ms: 2.476916
   type: 'test'
   ...
 # Subtest: explicit one-pour remains bloom plus one pour before and after correction
 ok 43 - explicit one-pour remains bloom plus one pour before and after correction
   ---
-  duration_ms: 24.778516
+  duration_ms: 29.808518
   type: 'test'
   ...
 # Subtest: trajectory is calculated from temperature grind water and profile variables
 ok 44 - trajectory is calculated from temperature grind water and profile variables
   ---
-  duration_ms: 6.754137
+  duration_ms: 6.026389
   type: 'test'
   ...
 # Subtest: sensory records are coded compressed encrypted and note-limited
 ok 45 - sensory records are coded compressed encrypted and note-limited
   ---
-  duration_ms: 51.138734
+  duration_ms: 68.671883
   type: 'test'
   ...
 # Subtest: encrypted share omits plaintext public identity and remains decodable
 not ok 46 - encrypted share omits plaintext public identity and remains decodable
   ---
-  duration_ms: 7.012501
+  duration_ms: 11.23147
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v096-integrity.test.mjs:116:1'
   failureType: 'testCodeFailure'
@@ -421,43 +405,43 @@ not ok 46 - encrypted share omits plaintext public identity and remains decodabl
 # Subtest: OCR evidence candidates support per-field fuzzy correction
 ok 47 - OCR evidence candidates support per-field fuzzy correction
   ---
-  duration_ms: 3.29791
+  duration_ms: 2.707718
   type: 'test'
   ...
 # Subtest: runtime provides minimal identity screen rich history and selection-only tasting navigation
 ok 48 - runtime provides minimal identity screen rich history and selection-only tasting navigation
   ---
-  duration_ms: 7.464897
+  duration_ms: 12.19876
   type: 'test'
   ...
 # Subtest: JSON QR text is parsed before misleading raw bytes
 ok 49 - JSON QR text is parsed before misleading raw bytes
   ---
-  duration_ms: 1.388007
+  duration_ms: 4.713281
   type: 'test'
   ...
 # Subtest: official codebook codes from OCR text are parsed directly
 ok 50 - official codebook codes from OCR text are parsed directly
   ---
-  duration_ms: 11.094538
+  duration_ms: 4.061551
   type: 'test'
   ...
 # Subtest: codebook text QR is decoded without CRC branch
 ok 51 - codebook text QR is decoded without CRC branch
   ---
-  duration_ms: 0.51858
+  duration_ms: 0.610903
   type: 'test'
   ...
 # Subtest: invalid binary QR no longer exposes a raw CRC16 error
 ok 52 - invalid binary QR no longer exposes a raw CRC16 error
   ---
-  duration_ms: 1.441478
+  duration_ms: 1.552075
   type: 'test'
   ...
 # Subtest: Chinese-first OCR runtime and direct camera are loaded and cached
 not ok 53 - Chinese-first OCR runtime and direct camera are loaded and cached
   ---
-  duration_ms: 27.97849
+  duration_ms: 18.025827
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v096-ocr-qr-regression.test.mjs:53:1'
   failureType: 'testCodeFailure'
@@ -511,7 +495,7 @@ not ok 53 - Chinese-first OCR runtime and direct camera are loaded and cached
 # Subtest: Lucky Bean share URL QR is expanded to a bean record
 not ok 54 - Lucky Bean share URL QR is expanded to a bean record
   ---
-  duration_ms: 60.879078
+  duration_ms: 57.866911
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v096-qr-postbrew.test.mjs:9:1'
   failureType: 'testCodeFailure'
@@ -530,7 +514,7 @@ not ok 54 - Lucky Bean share URL QR is expanded to a bean record
 # Subtest: QR wrapper preserves pinned scanner core and parses text first
 not ok 55 - QR wrapper preserves pinned scanner core and parses text first
   ---
-  duration_ms: 3.713378
+  duration_ms: 4.099292
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v096-qr-postbrew.test.mjs:39:1'
   failureType: 'testCodeFailure'
@@ -548,13 +532,13 @@ not ok 55 - QR wrapper preserves pinned scanner core and parses text first
 # Subtest: post-brew flow cancels automatic evaluation and restores mode selection
 ok 56 - post-brew flow cancels automatic evaluation and restores mode selection
   ---
-  duration_ms: 7.458395
+  duration_ms: 2.031623
   type: 'test'
   ...
 # Subtest: QR capture UI and Chinese OCR camera runtime files are loaded and cached
 not ok 57 - QR capture UI and Chinese OCR camera runtime files are loaded and cached
   ---
-  duration_ms: 4.438445
+  duration_ms: 12.56217
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v096-qr-postbrew.test.mjs:72:1'
   failureType: 'testCodeFailure'
@@ -608,9 +592,9 @@ not ok 57 - QR capture UI and Chinese OCR camera runtime files are loaded and ca
 1..57
 # tests 57
 # suites 0
-# pass 48
-# fail 9
+# pass 49
+# fail 8
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 525.070062
+# duration_ms 572.978452
