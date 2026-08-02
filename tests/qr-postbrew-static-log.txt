@@ -6,308 +6,599 @@ TAP version 13
 # Subtest: BrewIon 回退编码表结构完整且编码唯一
 ok 1 - BrewIon 回退编码表结构完整且编码唯一
   ---
-  duration_ms: 25.45698
+  duration_ms: 19.965954
   type: 'test'
   ...
 # Subtest: Beta 冲煮引擎输出完整协议、守恒和专业模型
 ok 2 - Beta 冲煮引擎输出完整协议、守恒和专业模型
   ---
-  duration_ms: 10.993212
+  duration_ms: 10.491186
   type: 'test'
   ...
 # Subtest: 冲煮方案库覆盖旧版主要方案类型
 ok 3 - 冲煮方案库覆盖旧版主要方案类型
   ---
-  duration_ms: 0.459639
+  duration_ms: 0.323601
   type: 'test'
   ...
 # Subtest: 调水模块对标 Brew-Water-Calibrato 咖啡参数
 ok 4 - 调水模块对标 Brew-Water-Calibrato 咖啡参数
   ---
-  duration_ms: 0.665273
+  duration_ms: 0.607342
   type: 'test'
   ...
 # Subtest: 低分品鉴可生成问题定向修正方案
 ok 5 - 低分品鉴可生成问题定向修正方案
   ---
-  duration_ms: 4.820948
+  duration_ms: 6.98422
   type: 'test'
   ...
 # Subtest: 自动得分、主观分差和偏好标签可累计
 ok 6 - 自动得分、主观分差和偏好标签可累计
   ---
-  duration_ms: 2.400525
+  duration_ms: 1.903757
   type: 'test'
   ...
 # Subtest: 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
 ok 7 - 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
   ---
-  duration_ms: 51.66312
+  duration_ms: 37.635015
   type: 'test'
   ...
 # Subtest: 导航、田字快捷区和双字题注严格对应
 ok 8 - 导航、田字快捷区和双字题注严格对应
   ---
-  duration_ms: 2.57942
+  duration_ms: 3.565123
   type: 'test'
   ...
 # Subtest: HTML 不含重复 ID 或内联事件处理器
 ok 9 - HTML 不含重复 ID 或内联事件处理器
   ---
-  duration_ms: 4.640822
+  duration_ms: 4.207651
   type: 'test'
   ...
 # Subtest: 应用代码保持单一初始化和主渲染函数
 ok 10 - 应用代码保持单一初始化和主渲染函数
   ---
-  duration_ms: 4.108567
+  duration_ms: 2.964384
   type: 'test'
   ...
 # Subtest: 私有仓库凭据和私有 GitHub API 不进入前端
 ok 11 - 私有仓库凭据和私有 GitHub API 不进入前端
   ---
-  duration_ms: 5.170472
+  duration_ms: 4.834244
   type: 'test'
   ...
 # Subtest: 自然语言识别回填确定性字段和 BrewIon 代码
 ok 12 - 自然语言识别回填确定性字段和 BrewIon 代码
   ---
-  duration_ms: 24.63809
+  duration_ms: 18.235072
   type: 'test'
   ...
 # Subtest: BrewIon 固定字段二维码执行 CRC 和行索引解码
 ok 13 - BrewIon 固定字段二维码执行 CRC 和行索引解码
   ---
-  duration_ms: 6.591397
+  duration_ms: 5.605206
   type: 'test'
   ...
 # Subtest: 视觉、卡片、分组、搜索和撷页交互标记已落地
 ok 14 - 视觉、卡片、分组、搜索和撷页交互标记已落地
   ---
-  duration_ms: 3.388652
+  duration_ms: 2.906235
   type: 'test'
   ...
 # Subtest: 豆卡名称、烘焙色值和现有数据筛选逻辑正确
 ok 15 - 豆卡名称、烘焙色值和现有数据筛选逻辑正确
   ---
-  duration_ms: 2.338369
+  duration_ms: 7.361393
   type: 'test'
   ...
 # Subtest: 远程编码表与内置表合并时保留缺失风味
 ok 16 - 远程编码表与内置表合并时保留缺失风味
   ---
-  duration_ms: 23.196756
+  duration_ms: 30.615572
   type: 'test'
   ...
 # Subtest: 编码表产区与庄园使用正确中文列且不生成空标签
 ok 17 - 编码表产区与庄园使用正确中文列且不生成空标签
   ---
-  duration_ms: 47.286852
+  duration_ms: 21.234953
   type: 'test'
   ...
 # Subtest: 十阶段赏味进度从20%起步并在赏味期后一周达到100%
 ok 18 - 十阶段赏味进度从20%起步并在赏味期后一周达到100%
   ---
-  duration_ms: 3.916137
+  duration_ms: 1.618606
   type: 'test'
   ...
 # Subtest: 负面缺陷扣分显著高于正面风味叠加
 ok 19 - 负面缺陷扣分显著高于正面风味叠加
   ---
-  duration_ms: 0.471171
+  duration_ms: 0.323383
   type: 'test'
   ...
 # Subtest: v0.9 交互与器具库存标记完整
 ok 20 - v0.9 交互与器具库存标记完整
   ---
-  duration_ms: 11.132132
+  duration_ms: 6.615406
   type: 'test'
   ...
 # Subtest: 计时、消耗、品鉴札记、复刻与方案导出功能已落地
 ok 21 - 计时、消耗、品鉴札记、复刻与方案导出功能已落地
   ---
-  duration_ms: 7.843968
+  duration_ms: 4.955976
   type: 'test'
   ...
 # Subtest: header controls are forced into one horizontal row
 ok 22 - header controls are forced into one horizontal row
   ---
-  duration_ms: 7.882871
+  duration_ms: 5.896904
   type: 'test'
   ...
 # Subtest: theme bridge intercepts dynamic buttons and delegates to native state
 ok 23 - theme bridge intercepts dynamic buttons and delegates to native state
   ---
-  duration_ms: 1.808279
+  duration_ms: 1.577776
   type: 'test'
   ...
 # Subtest: light theme covers main pages, overlays, forms, navigation and tasting wizard
 ok 24 - light theme covers main pages, overlays, forms, navigation and tasting wizard
   ---
-  duration_ms: 1.603918
+  duration_ms: 1.231554
   type: 'test'
   ...
 # Subtest: runtime entry and PWA cache include theme patch assets
 ok 25 - runtime entry and PWA cache include theme patch assets
   ---
-  duration_ms: 3.228503
+  duration_ms: 3.020403
   type: 'test'
   ...
 # Subtest: 0.9.6 keeps 0.9.2 interaction baseline
 ok 26 - 0.9.6 keeps 0.9.2 interaction baseline
   ---
-  duration_ms: 10.308553
+  duration_ms: 7.730607
   type: 'test'
   ...
 # Subtest: recommendation animation and prompt libraries are complete
 ok 27 - recommendation animation and prompt libraries are complete
   ---
-  duration_ms: 2.942418
+  duration_ms: 2.381495
   type: 'test'
   ...
 # Subtest: timer, inventory, delta wheel and trajectory requirements
 ok 28 - timer, inventory, delta wheel and trajectory requirements
   ---
-  duration_ms: 4.467327
+  duration_ms: 3.594724
   type: 'test'
   ...
 # Subtest: 0.9.6 version and visual assets
 ok 29 - 0.9.6 version and visual assets
   ---
-  duration_ms: 14.337381
+  duration_ms: 7.443302
   type: 'test'
   ...
 # Subtest: 0.9.3 sensory, cold storage and gear requirements remain available
 ok 30 - 0.9.3 sensory, cold storage and gear requirements remain available
   ---
-  duration_ms: 6.667289
+  duration_ms: 4.289219
   type: 'test'
   ...
 # Subtest: refinement runtime files are loaded in deterministic order and cached
 ok 31 - refinement runtime files are loaded in deterministic order and cached
   ---
-  duration_ms: 10.209097
+  duration_ms: 6.710845
   type: 'test'
   ...
 # Subtest: light mode covers seals, groups, leaderboard and collapse row
 ok 32 - light mode covers seals, groups, leaderboard and collapse row
   ---
-  duration_ms: 1.763936
+  duration_ms: 3.191537
   type: 'test'
   ...
 # Subtest: remaining recommendation, manage menu and structured grinder range are implemented
 ok 33 - remaining recommendation, manage menu and structured grinder range are implemented
   ---
-  duration_ms: 3.26988
+  duration_ms: 2.280822
   type: 'test'
   ...
 # Subtest: settings mascot uses fixed one-third size
 ok 34 - settings mascot uses fixed one-third size
   ---
-  duration_ms: 1.328582
+  duration_ms: 0.998534
   type: 'test'
   ...
 # Subtest: three sensory modes have distinct non-duplicated workflows
 ok 35 - three sensory modes have distinct non-duplicated workflows
   ---
-  duration_ms: 1.260786
+  duration_ms: 1.043941
   type: 'test'
   ...
 # Subtest: professional sensory uses CATA tags, ordering, conditional radar slider and final affective score
 ok 36 - professional sensory uses CATA tags, ordering, conditional radar slider and final affective score
   ---
-  duration_ms: 1.407751
+  duration_ms: 1.166573
   type: 'test'
   ...
 # Subtest: simple note mode reveals score before note
 ok 37 - simple note mode reveals score before note
   ---
-  duration_ms: 2.823637
+  duration_ms: 1.318575
   type: 'test'
   ...
 # Subtest: current v0.9.6 release retains v0.9.5 runtime entry
 ok 38 - current v0.9.6 release retains v0.9.5 runtime entry
   ---
-  duration_ms: 19.073358
+  duration_ms: 8.248314
   type: 'test'
   ...
 # Subtest: v0.9.5 requested modes, labels and artwork exist
 ok 39 - v0.9.5 requested modes, labels and artwork exist
   ---
-  duration_ms: 2.777199
+  duration_ms: 1.652402
   type: 'test'
   ...
 # Subtest: sensory modes preserve interaction and only note mode skips nodes
 ok 40 - sensory modes preserve interaction and only note mode skips nodes
   ---
-  duration_ms: 2.991601
+  duration_ms: 2.577824
   type: 'test'
   ...
 # Subtest: v0.9.5 layout and theme selectors exist
 ok 41 - v0.9.5 layout and theme selectors exist
   ---
-  duration_ms: 2.113229
+  duration_ms: 1.413444
   type: 'test'
   ...
 # Subtest: header controls remain horizontal and theme binding is stable
 ok 42 - header controls remain horizontal and theme binding is stable
   ---
-  duration_ms: 2.307211
+  duration_ms: 1.35332
   type: 'test'
   ...
 # Subtest: JSON QR text is parsed before misleading raw bytes
 ok 43 - JSON QR text is parsed before misleading raw bytes
   ---
-  duration_ms: 1.739491
+  duration_ms: 1.016821
   type: 'test'
   ...
 # Subtest: invalid binary QR no longer exposes a raw CRC16 error
-ok 44 - invalid binary QR no longer exposes a raw CRC16 error
+not ok 44 - invalid binary QR no longer exposes a raw CRC16 error
   ---
-  duration_ms: 1.393464
+  duration_ms: 1.706504
   type: 'test'
+  location: '/home/runner/work/luckybean/luckybean/tests/v096-ocr-qr-regression.test.mjs:18:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /不是有效的 BrewIon 编码/. Input:
+    
+    'Error: 二维码已识别，但内容不是有效的 BrewIon 固定字段编码；请确认二维码来自豆仓/富贵盒子并保持图像清晰'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+  error: '二维码已识别，但内容不是有效的 BrewIon 固定字段编码；请确认二维码来自豆仓/富贵盒子并保持图像清晰'
+  stack: |-
+    decodeJsQrResult (file:///home/runner/work/luckybean/luckybean/src/qr.js:115:11)
+    file:///home/runner/work/luckybean/luckybean/tests/v096-ocr-qr-regression.test.mjs:20:11
+    getActual (node:assert:609:5)
+    Function.throws (node:assert:757:24)
+    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/v096-ocr-qr-regression.test.mjs:19:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/v096-ocr-qr-regression.test.mjs:19:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
   ...
 # Subtest: built-in web OCR runtime is loaded before package capture and cached
-ok 45 - built-in web OCR runtime is loaded before package capture and cached
+not ok 45 - built-in web OCR runtime is loaded before package capture and cached
   ---
-  duration_ms: 26.919924
+  duration_ms: 10.32272
   type: 'test'
+  location: '/home/runner/work/luckybean/luckybean/tests/v096-ocr-qr-regression.test.mjs:25:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /Parse the meaningful text first/. Input:
+    
+    "import * as core from './qr-core.js';\n" +
+      '\n' +
+      "export * from './qr-core.js';\n" +
+      '\n' +
+      'const CORE_LEN = 32;\n' +
+      'const CRC_LEN = 2;\n' +
+      '\n' +
+      'function structuredText(text) {\n' +
+      "  const value = String(text || '').trim();\n" +
+      '  if (!value) return false;\n' +
+      '  if (/^HEX\\s*:/i.test(value)) return true;\n' +
+      '  if (/^[\\[{]/.test(value)) return true;\n' +
+      '  if (/(?:^|[^A-Z0-9])(?:CT|RG|EN|VR|PROC|FL|RL)-[A-Z0-9-]+/i.test(value)) return true;\n' +
+      '  return Boolean(core.extractShareEncoded(value));\n' +
+      '}\n' +
+      '\n' +
+      'function sanitizeStructuredResult(result) {\n' +
+      '  if (!result || !structuredText(result.data)) return result;\n' +
+      '  return { ...result, binaryData: null, rawBytes: null };\n' +
+      '}\n' +
+      '\n' +
+      'export async function scanQrFile(file) {\n' +
+      '  return sanitizeStructuredResult(await core.scanQrFile(file));\n' +
+      '}\n' +
+      '\n' +
+      'export class CameraScanner extends core.CameraScanner {\n' +
+      '  constructor(video, onResult, onStatus = () => {}) {\n' +
+      '    super(video, result => onResult(sanitizeStructuredResult(result)), onStatus);\n' +
+      '  }\n' +
+      '}\n' +
+      '\n' +
+      'function normalizeCodeText(value) {\n' +
+      "  return String(value || '').normalize('NFKC').toUpperCase()\n" +
+      "    .replace(/[‐‑‒–—―−﹣－]/g, '-')\n" +
+      "    .replace(/\\s*-\\s*/g, '-');\n" +
+      '}\n' +
+      '\n' +
+      'function decodeCodebookText(text, codebook) {\n' +
+      '  const source = normalizeCodeText(text);\n' +
+      '  const tableFields = {\n' +
+      "    countries: 'countryCode',\n" +
+      "    regions: 'regionCode',\n" +
+      "    entities: 'entityCode',\n" +
+      "    varieties: 'varietyCode',\n" +
+      "    processes: 'processCode'\n" +
+      '  };\n' +
+      "  const result = { source: 'codebook-text-qr' };\n" +
+      '  let matches = 0;\n' +
+      '  for (const [table, field] of Object.entries(tableFields)) {\n' +
+      '    for (const row of codebook?.[table] || []) {\n' +
+      '      const code = normalizeCodeText(row?.[0]);\n' +
+      '      if (!code) continue;\n' +
+      '      const index = source.indexOf(code);\n' +
+      '      if (index < 0) continue;\n' +
+      "      const before = source[index - 1] || '';\n" +
+      "      const after = source[index + code.length] || '';\n" +
+      '      if (/[A-Z0-9]/.test(before) || /[A-Z0-9]/.test(after)) continue;\n' +
+      '      result[field] = row[0];\n' +
+      '      matches += 1;\n' +
+      '      break;\n' +
+      '    }\n' +
+      '  }\n' +
+      '  const roast = source.match(/(?:^|[^A-Z0-9])(RL-L[0-6])(?:$|[^A-Z0-9])/);\n' +
+      '  if (roast) { result.roastCode = roast[1]; matches += 1; }\n' +
+      '  if (matches >= 2 || (matches >= 1 && /豆仓编码|BREWION|LUCKY\\s*BEAN/i.test(text))) return result;\n' +
+      '  return null;\n' +
+      '}\n' +
+      '\n' +
+      'function latin1Bytes(text) {\n' +
+      '  if (!text || text.length < CORE_LEN + CRC_LEN) return null;\n' +
+      '  const bytes = new Uint8Array(text.length);\n' +
+      '  for (let index = 0; index < text.length; index += 1) {\n' +
+      '    const code = text.charCodeAt(index);\n' +
+      '    if (code > 255) return null;\n' +
+      '    bytes[index] = code;\n' +
+      '  }\n' +
+      '  return bytes;\n' +
+      '}\n' +
+      '\n' +
+      'function tryBrewIonBytes(bytes, codebook) {\n' +
+      '  if (!bytes || bytes.length < CORE_LEN + CRC_LEN) return null;\n' +
+      '  try { return core.decodeBrewIonBytes(Uint8Array.from(bytes), codebook); }\n' +
+      '  catch { return null; }\n' +
+      '}\n' +
+      '\n' +
+      'export function decodeJsQrResult(result, codebook) {\n' +
+      "  if (!result) throw new Error('二维码结果为空');\n" +
+      "  const text = String(result.data || '').trim();\n" +
+      '\n' +
+      '  // Text formats are authoritative. Raw bytes are considered only after JSON,\n' +
+      '  // Lucky Bean share codes and explicit codebook text have been ruled out.\n' +
+      '  if (/^HEX\\s*:/i.test(text)) return core.decodeBrewIonBytes(text, codebook);\n' +
+      '  try {\n' +
+      '    const object = JSON.parse(text);\n' +
+      "    if (object && typeof object === 'object') return { ...object, source: object.source || 'json-qr' };\n" +
+      '  } catch { /* not JSON */ }\n' +
+      '\n' +
+      '  const codebookResult = decodeCodebookText(text, codebook);\n' +
+      '  if (codebookResult) return codebookResult;\n' +
+      '\n' +
+      '  if (core.extractShareEncoded(text)) {\n' +
+      "    throw new Error('分享二维码未完成解压，请重新扫描或改用原图');\n" +
+      '  }\n' +
+      '\n' +
+      '  const explicitBytes = result.binaryData || result.rawBytes || null;\n' +
+      '  const decodedExplicit = tryBrewIonBytes(explicitBytes, codebook);\n' +
+      '  if (decodedExplicit) return decodedExplicit;\n' +
+      '\n' +
+      '  // Some mobile decoders expose a byte-mode QR only as an ISO-8859-1 string.\n' +
+      '  // Recover those bytes before declaring the BrewIon packet invalid.\n' +
+      '  const decodedLatin1 = tryBrewIonBytes(latin1Bytes(text), codebook);\n' +
+      '  if (decodedLatin1) return decodedLatin1;\n' +
+      '\n' +
+      '  if (explicitBytes?.length >= CORE_LEN + CRC_LEN || text.length >= CORE_LEN + CRC_LEN) {\n' +
+      "    throw new Error('二维码已识别，但内容不是有效的 BrewIon 固定字段编码；请确认二维码来自豆仓/富贵盒子并保持图像清晰');\n" +
+      '  }\n' +
+      "  throw new Error('二维码不是受支持的 BrewIon、Lucky Bean、JSON 或编码表文本');\n" +
+      '}\n'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    import * as core from './qr-core.js';
+    
+    export * from './qr-core.js';
+    
+    const CORE_LEN = 32;
+    const CRC_LEN = 2;
+    
+    function structuredText(text) {
+      const value = String(text || '').trim();
+      if (!value) return false;
+      if (/^HEX\s*:/i.test(value)) return true;
+      if (/^[\[{]/.test(value)) return true;
+      if (/(?:^|[^A-Z0-9])(?:CT|RG|EN|VR|PROC|FL|RL)-[A-Z0-9-]+/i.test(value)) return true;
+      return Boolean(core.extractShareEncoded(value));
+    }
+    
+    function sanitizeStructuredResult(result) {
+      if (!result || !structuredText(result.data)) return result;
+      return { ...result, binaryData: null, rawBytes: null };
+    }
+    
+    export async function scanQrFile(file) {
+      return sanitizeStructuredResult(await core.scanQrFile(file));
+    }
+    
+    export class CameraScanner extends core.CameraScanner {
+      constructor(video, onResult, onStatus = () => {}) {
+        super(video, result => onResult(sanitizeStructuredResult(result)), onStatus);
+      }
+    }
+    
+    function normalizeCodeText(value) {
+      return String(value || '').normalize('NFKC').toUpperCase()
+        .replace(/[‐‑‒–—―−﹣－]/g, '-')
+        .replace(/\s*-\s*/g, '-');
+    }
+    
+    function decodeCodebookText(text, codebook) {
+      const source = normalizeCodeText(text);
+      const tableFields = {
+        countries: 'countryCode',
+        regions: 'regionCode',
+        entities: 'entityCode',
+        varieties: 'varietyCode',
+        processes: 'processCode'
+      };
+      const result = { source: 'codebook-text-qr' };
+      let matches = 0;
+      for (const [table, field] of Object.entries(tableFields)) {
+        for (const row of codebook?.[table] || []) {
+          const code = normalizeCodeText(row?.[0]);
+          if (!code) continue;
+          const index = source.indexOf(code);
+          if (index < 0) continue;
+          const before = source[index - 1] || '';
+          const after = source[index + code.length] || '';
+          if (/[A-Z0-9]/.test(before) || /[A-Z0-9]/.test(after)) continue;
+          result[field] = row[0];
+          matches += 1;
+          break;
+        }
+      }
+      const roast = source.match(/(?:^|[^A-Z0-9])(RL-L[0-6])(?:$|[^A-Z0-9])/);
+      if (roast) { result.roastCode = roast[1]; matches += 1; }
+      if (matches >= 2 || (matches >= 1 && /豆仓编码|BREWION|LUCKY\s*BEAN/i.test(text))) return result;
+      return null;
+    }
+    
+    function latin1Bytes(text) {
+      if (!text || text.length < CORE_LEN + CRC_LEN) return null;
+      const bytes = new Uint8Array(text.length);
+      for (let index = 0; index < text.length; index += 1) {
+        const code = text.charCodeAt(index);
+        if (code > 255) return null;
+        bytes[index] = code;
+      }
+      return bytes;
+    }
+    
+    function tryBrewIonBytes(bytes, codebook) {
+      if (!bytes || bytes.length < CORE_LEN + CRC_LEN) return null;
+      try { return core.decodeBrewIonBytes(Uint8Array.from(bytes), codebook); }
+      catch { return null; }
+    }
+    
+    export function decodeJsQrResult(result, codebook) {
+      if (!result) throw new Error('二维码结果为空');
+      const text = String(result.data || '').trim();
+    
+      // Text formats are authoritative. Raw bytes are considered only after JSON,
+      // Lucky Bean share codes and explicit codebook text have been ruled out.
+      if (/^HEX\s*:/i.test(text)) return core.decodeBrewIonBytes(text, codebook);
+      try {
+        const object = JSON.parse(text);
+        if (object && typeof object === 'object') return { ...object, source: object.source || 'json-qr' };
+      } catch { /* not JSON */ }
+    
+      const codebookResult = decodeCodebookText(text, codebook);
+      if (codebookResult) return codebookResult;
+    
+      if (core.extractShareEncoded(text)) {
+        throw new Error('分享二维码未完成解压，请重新扫描或改用原图');
+      }
+    
+      const explicitBytes = result.binaryData || result.rawBytes || null;
+      const decodedExplicit = tryBrewIonBytes(explicitBytes, codebook);
+      if (decodedExplicit) return decodedExplicit;
+    
+      // Some mobile decoders expose a byte-mode QR only as an ISO-8859-1 string.
+      // Recover those bytes before declaring the BrewIon packet invalid.
+      const decodedLatin1 = tryBrewIonBytes(latin1Bytes(text), codebook);
+      if (decodedLatin1) return decodedLatin1;
+    
+      if (explicitBytes?.length >= CORE_LEN + CRC_LEN || text.length >= CORE_LEN + CRC_LEN) {
+        throw new Error('二维码已识别，但内容不是有效的 BrewIon 固定字段编码；请确认二维码来自豆仓/富贵盒子并保持图像清晰');
+      }
+      throw new Error('二维码不是受支持的 BrewIon、Lucky Bean、JSON 或编码表文本');
+    }
+    
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/v096-ocr-qr-regression.test.mjs:41:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
   ...
 # Subtest: Lucky Bean share URL QR is expanded to a bean record
 ok 46 - Lucky Bean share URL QR is expanded to a bean record
   ---
-  duration_ms: 38.536261
+  duration_ms: 39.57387
   type: 'test'
   ...
 # Subtest: QR wrapper preserves pinned scanner core and parses text first
-ok 47 - QR wrapper preserves pinned scanner core and parses text first
+not ok 47 - QR wrapper preserves pinned scanner core and parses text first
   ---
-  duration_ms: 2.463593
+  duration_ms: 2.611415
   type: 'test'
+  location: '/home/runner/work/luckybean/luckybean/tests/v096-qr-postbrew.test.mjs:39:1'
+  failureType: 'testCodeFailure'
+  error: 'Parse the meaningful text first'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/v096-qr-postbrew.test.mjs:56:13)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
   ...
 # Subtest: post-brew flow cancels automatic evaluation and restores mode selection
 ok 48 - post-brew flow cancels automatic evaluation and restores mode selection
   ---
-  duration_ms: 1.276195
+  duration_ms: 1.79497
   type: 'test'
   ...
 # Subtest: QR capture UI and OCR runtime files are loaded and cached
 ok 49 - QR capture UI and OCR runtime files are loaded and cached
   ---
-  duration_ms: 2.148474
+  duration_ms: 1.571973
   type: 'test'
   ...
 1..49
 # tests 49
 # suites 0
-# pass 49
-# fail 0
+# pass 46
+# fail 3
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 424.291547
-
-> luckybean@0.9.6 check
-> node tests/static-check.mjs
-
-静态校验通过：105 个文件；JS 语法、JSON、必要入口、版本、离线资源、敏感信息均通过。
+# duration_ms 325.464141
