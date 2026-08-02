@@ -1,0 +1,53 @@
+Traceback (most recent call last):
+  File "/home/runner/work/luckybean/luckybean/tests/sensory-modes-smoke.py", line 120, in <module>
+    asyncio.run(main())
+  File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/home/runner/work/luckybean/luckybean/tests/sensory-modes-smoke.py", line 66, in main
+    await page.locator("#testBtn").click()
+  File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/playwright/async_api/_generated.py", line 17894, in click
+    await self._impl_obj.click(
+  File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/playwright/_impl/_locator.py", line 165, in click
+    return await self._frame._click(self._selector, strict=True, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/playwright/_impl/_frame.py", line 593, in _click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
+  File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/playwright/_impl/_connection.py", line 76, in send
+    return await self._connection.wrap_api_call(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/playwright/_impl/_connection.py", line 632, in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+playwright._impl._errors.TimeoutError: Locator.click: Timeout 12000ms exceeded.
+Call log:
+  - waiting for locator("#testBtn")
+    - locator resolved to <button id="testBtn" type="button" class="button subtle">测试</button>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is visible, enabled and stable
+      - scrolling into view if needed
+      - done scrolling
+      - <img id="splashImage" alt="富贵盒子红色启动画面" src="./public/splash-red.jpg?v=095"/> from <section tabindex="0" role="button" id="splashScreen" class="splash-screen" aria-label="点击进入富贵盒子">…</section> subtree intercepts pointer events
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is visible, enabled and stable
+      - scrolling into view if needed
+      - done scrolling
+      - <img id="splashImage" alt="富贵盒子红色启动画面" src="./public/splash-red.jpg?v=095"/> from <section tabindex="0" role="button" id="splashScreen" class="splash-screen" aria-label="点击进入富贵盒子">…</section> subtree intercepts pointer events
+    - retrying click action
+      - waiting 100ms
+    22 × waiting for element to be visible, enabled and stable
+       - element is visible, enabled and stable
+       - scrolling into view if needed
+       - done scrolling
+       - <img id="splashImage" alt="富贵盒子红色启动画面" src="./public/splash-red.jpg?v=095"/> from <section tabindex="0" role="button" id="splashScreen" class="splash-screen" aria-label="点击进入富贵盒子">…</section> subtree intercepts pointer events
+     - retrying click action
+       - waiting 500ms
+
