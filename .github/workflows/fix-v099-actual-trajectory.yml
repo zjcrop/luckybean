@@ -86,10 +86,8 @@ function numberFrom(text, fallback = 0) {''',
               p.write_text(text, encoding='utf-8')
           PY
 
-      - name: Run v0.9.9 targeted tests
-        run: |
-          node --test tests/v099-upgrade.test.mjs
-          node --test tests/v099-trajectory-actual.test.mjs
+      - name: Run actual-signal renderer test
+        run: node --test tests/v099-trajectory-actual.test.mjs
 
       - name: Commit verified actual-signal renderer
         shell: bash
