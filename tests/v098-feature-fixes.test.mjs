@@ -73,7 +73,8 @@ test('v098 runtime and styles contain grouping, selected-card, radar, archive an
   ]) assert.ok(css.includes(marker), marker);
   for (const marker of [
     'v17-stage-time-window', 'v098-temp-band', 'v098-flow-band',
-    'v098-cumulative-line', 'v098-flavor-window', '轨迹下压避开'
+    'v098-cumulative-line', 'v098-flavor-window', '轨迹下压避开',
+    "$$('.trajectory-window', svg)", '明亮酸质', '苦涩风险'
   ]) assert.ok(trajectory.includes(marker), marker);
   for (const marker of ['.v098-temp-band', '.v098-flow-band', '.v098-cumulative-line', '.v098-risk-avoid']) {
     assert.ok(trajectoryCss.includes(marker), marker);
@@ -85,7 +86,7 @@ test('v098 runtime and styles contain grouping, selected-card, radar, archive an
 
   assert.match(html, /styles-v098-fixes\.css\?v=098a/);
   assert.match(html, /styles-v098-trajectory-v17\.css\?v=098b/);
-  assert.match(html, /src\/v098-trajectory-v17\.js\?v=098b/);
+  assert.match(html, /src\/v098-trajectory-v17\.js\?v=098c/);
   assert.match(html, /src\/v098-selection-bridge\.js\?v=098b/);
   assert.match(html, /src\/v098-feature-fixes\.js\?v=098a/);
   assert.match(html, /src\/v098-group-menu-guard\.js\?v=098b/);
