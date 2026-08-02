@@ -20,76 +20,77 @@ jobs:
           fetch-depth: 0
 
       - name: Apply protocol and closed-loop compatibility fixes
+        id: patch
+        continue-on-error: true
         shell: bash
         run: |
-          python - <<'PY'
+          python - <<'PY' > tests/v097-patch-log.txt 2>&1
           from pathlib import Path
           p=Path('src/brew-optimizer-v097.js')
           s=p.read_text(encoding='utf-8')
 
-          old="const ratioLocked = input.brew?.ratioLocked === true || input.brew?.ratioMode === 'manual';"
-          new="""const hasExplicitRatio = Number.isFinite(Number(input.brew?.ratio));
+          def replace_once(old,new,label):
+              global s
+              if old in s:
+                  s=s.replace(old,new,1)
+                  print(label,'patched')
+              elif new in s:
+                  print(label,'already present')
+              else:
+                  raise SystemExit(f'{label} anchor not found')
+
+          replace_once(
+              "  const ratioLocked = input.brew?.ratioLocked === true || input.brew?.ratioMode === 'manual';",
+              """  const hasExplicitRatio = Number.isFinite(Number(input.brew?.ratio));
           const ratioLocked = input.brew?.ratioLocked === true
             || input.brew?.ratioMode === 'manual'
-            || (hasExplicitRatio && input.brew?.ratioMode !== 'auto' && input.brew?.allowRatioOptimization !== true);"""
-          if old in s:
-              s=s.replace(old,new,1)
-          elif 'const hasExplicitRatio =' not in s:
-              raise SystemExit('ratio constraint anchor not found')
+            || (hasExplicitRatio && input.brew?.ratioMode !== 'auto' && input.brew?.allowRatioOptimization !== true);""",
+              'explicit ratio constraint'
+          )
 
-          if "model: 'inverse-target-window-fit'," in s:
-              s=s.replace("model: 'inverse-target-window-fit',","model: 'time-stepped-variable-release',\n  optimizerModel: 'inverse-target-window-fit',",1)
-          elif "optimizerModel: 'inverse-target-window-fit'" not in s:
-              raise SystemExit('trajectory model anchor not found')
+          replace_once(
+              "  model: 'inverse-target-window-fit',",
+              "  model: 'time-stepped-variable-release',\n  optimizerModel: 'inverse-target-window-fit',",
+              'legacy trajectory model contract'
+          )
 
-          old_controls="""  const controls = {
-            tempOffset: 0, flowOffset: 0, grindDelta: 0, ratioDelta: 0, tailDrop: 3, bloomFactor: 1,
-            midWeight: 0, tailPenalty: 0, aromaWeight: 0
-          };"""
-          new_controls="""  const previousControls = previousPlan?.optimizer?.controls || {};
+          replace_once(
+              "  const controls = {\n    tempOffset: 0, flowOffset: 0, grindDelta: 0, ratioDelta: 0, tailDrop: 3, bloomFactor: 1,",
+              """  const previousControls = previousPlan?.optimizer?.controls || {};
           const controls = {
             tempOffset: Number(previousControls.tempOffset || 0),
             flowOffset: Number(previousControls.flowOffset || 0),
             grindDelta: Number(previousControls.grindDelta || 0),
             ratioDelta: Number(previousControls.ratioDelta || 0),
             tailDrop: Number(previousControls.tailDrop || 3),
-            bloomFactor: Number(previousControls.bloomFactor || 1),
-            midWeight: 0, tailPenalty: 0, aromaWeight: 0
-          };"""
-          if old_controls in s:
-              s=s.replace(old_controls,new_controls,1)
-          elif 'const previousControls = previousPlan?.optimizer?.controls || {};' not in s:
-              raise SystemExit('feedback control anchor not found')
+            bloomFactor: Number(previousControls.bloomFactor || 1),""",
+              'sensory feedback baseline'
+          )
 
-          s=s.replace("controls.tailDrop = round(clamp(controls.tailDrop, 1, 6), 2);","controls.tailDrop = round(clamp(controls.tailDrop, 1, 9), 2);",1)
+          replace_once(
+              "  controls.tailDrop = round(clamp(controls.tailDrop, 1, 6), 2);",
+              "  controls.tailDrop = round(clamp(controls.tailDrop, 1, 9), 2);",
+              'tail correction range'
+          )
 
-          old_dims="""  const dimensions = [
-            ['tempOffset', [-1.5,-0.75,0,0.75,1.5], -3, 3],
-            ['flowOffset', [-0.6,-0.3,0,0.3,0.6], -1.2, 1.2],
-            ['grindDelta', [-1.2,-0.6,0,0.6,1.2], -2.5, 2.5],
-            ['ratioDelta', [-0.5,-0.25,0,0.25,0.5], -1.2, 1.2],
-            ['tailDrop', [-1.5,-0.75,0,0.75,1.5], 0.5, 7],
-            ['bloomFactor', [-0.18,-0.09,0,0.09,0.18], 0.72, 1.35]
-          ];"""
-          new_dims="""  const tailFloor = feedback?.flags?.overExtracted ? Math.min(9, Number(prior.tailDrop || 3)) : 0.5;
-          const dimensions = [
-            ['tempOffset', [-1.5,-0.75,0,0.75,1.5], -3, 3],
-            ['flowOffset', [-0.6,-0.3,0,0.3,0.6], -1.2, 1.2],
-            ['grindDelta', [-1.2,-0.6,0,0.6,1.2], -2.5, 2.5],
-            ['ratioDelta', [-0.5,-0.25,0,0.25,0.5], -1.2, 1.2],
-            ['tailDrop', [-1.5,-0.75,0,0.75,1.5], tailFloor, 9],
-            ['bloomFactor', [-0.18,-0.09,0,0.09,0.18], 0.72, 1.35]
-          ];"""
-          if old_dims in s:
-              s=s.replace(old_dims,new_dims,1)
-          elif 'const tailFloor = feedback?.flags?.overExtracted' not in s:
-              raise SystemExit('optimizer dimensions anchor not found')
+          replace_once(
+              "  const dimensions = [",
+              "  const tailFloor = feedback?.flags?.overExtracted ? Math.min(9, Number(prior.tailDrop || 3)) : 0.5;\n  const dimensions = [",
+              'feedback tail floor'
+          )
+
+          replace_once(
+              "    ['tailDrop', [-1.5,-0.75,0,0.75,1.5], 0.5, 7],",
+              "    ['tailDrop', [-1.5,-0.75,0,0.75,1.5], tailFloor, 9],",
+              'tail search bound'
+          )
 
           p.write_text(s,encoding='utf-8')
           PY
 
       - name: Run complete test gates
         id: tests
+        if: steps.patch.outcome == 'success'
         continue-on-error: true
         shell: bash
         run: |
@@ -104,29 +105,33 @@ jobs:
         if: always()
         shell: bash
         env:
+          PATCH_OUTCOME: ${{ steps.patch.outcome }}
           TEST_OUTCOME: ${{ steps.tests.outcome }}
         run: |
           python - <<'PY'
           import json, os, subprocess
           from datetime import datetime, timezone
           source=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          passed=os.environ.get('PATCH_OUTCOME')=='success' and os.environ.get('TEST_OUTCOME')=='success'
           report={
             'checked_at':datetime.now(timezone.utc).isoformat(),
             'source_sha':source,
+            'patch':'success' if os.environ.get('PATCH_OUTCOME')=='success' else 'failure',
             'syntax_and_full_tests':'success' if os.environ.get('TEST_OUTCOME')=='success' else 'failure',
             'optimizer_version':'lucky-brew-optimizer-0.9.7.1',
             'inverse_target_fit':True,
             'equipment_constraints':True,
             'sensory_closed_loop':True,
-            'verified':os.environ.get('TEST_OUTCOME')=='success'
+            'verified':passed
           }
           open('tests/v097-optimizer-status.json','w',encoding='utf-8').write(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/brew-optimizer-v097.js tests/v097-optimizer-status.json tests/v097-optimizer-log.txt
+          git add src/brew-optimizer-v097.js tests/v097-optimizer-status.json tests/v097-optimizer-log.txt tests/v097-patch-log.txt
           if ! git diff --cached --quiet; then
             git commit -m 'chore: record inverse optimizer verification [skip ci]'
             git push origin HEAD:algorithm/inverse-trajectory-v097
           fi
+          test "$PATCH_OUTCOME" = success
           test "$TEST_OUTCOME" = success
