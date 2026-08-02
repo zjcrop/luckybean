@@ -1,18 +1,1 @@
-Traceback (most recent call last):
-  File "/home/runner/work/luckybean/luckybean/tests/integrity-browser-smoke.py", line 127, in <module>
-    assert '复刻' in compact_text, compact_text
-           ^^^^^^^^^^^^^^^^^^^^^^
-AssertionError: 一刀流
-2026-08-02
-86.0
-茉莉
-强
-柑橘
-蜂蜜
-高
-圆润
-茶感
-
-完整札记：前段茉莉与柑橘清晰，中段蜂蜜甜感增强，低温仍有茶感和圆润口感；下一次保持一刀流，只微调研磨和尾段温度。
-
-哥伦比亚 · 哥伦比亚种
+{"entry_labels": ["登录", "注册", "本地使用", "测试"], "compact_brew_history": "2026-08-02\n一刀流\n86.0\n复刻", "compact_brew_history_height": 44, "direct_modes": ["专业品鉴", "玩家互动品鉴", "札记"], "raw_sensory_encryption": "AES-GCM-256", "raw_identity_encryption": "AES-GCM-256", "history_has_full_note": true, "history_has_radar": true}

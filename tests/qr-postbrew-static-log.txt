@@ -6,422 +6,557 @@ TAP version 13
 # Subtest: BrewIon 回退编码表结构完整且编码唯一
 ok 1 - BrewIon 回退编码表结构完整且编码唯一
   ---
-  duration_ms: 37.331806
+  duration_ms: 44.748966
   type: 'test'
   ...
 # Subtest: Beta 冲煮引擎输出完整协议、守恒和专业模型
 ok 2 - Beta 冲煮引擎输出完整协议、守恒和专业模型
   ---
-  duration_ms: 631.562363
+  duration_ms: 793.520019
   type: 'test'
   ...
 # Subtest: 冲煮方案库覆盖旧版主要方案类型
 ok 3 - 冲煮方案库覆盖旧版主要方案类型
   ---
-  duration_ms: 0.330753
+  duration_ms: 1.508243
   type: 'test'
   ...
 # Subtest: 调水模块对标 Brew-Water-Calibrato 咖啡参数
 ok 4 - 调水模块对标 Brew-Water-Calibrato 咖啡参数
   ---
-  duration_ms: 0.709889
+  duration_ms: 0.822109
   type: 'test'
   ...
 # Subtest: 低分品鉴可生成问题定向修正方案
 ok 5 - 低分品鉴可生成问题定向修正方案
   ---
-  duration_ms: 384.601377
+  duration_ms: 365.539248
   type: 'test'
   ...
 # Subtest: 自动得分、主观分差和偏好标签可累计
 ok 6 - 自动得分、主观分差和偏好标签可累计
   ---
-  duration_ms: 2.275326
+  duration_ms: 1.683
   type: 'test'
   ...
 # Subtest: 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
 ok 7 - 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
   ---
-  duration_ms: 281.714256
+  duration_ms: 271.361217
   type: 'test'
   ...
 # Subtest: 导航、田字快捷区和双字题注严格对应
 ok 8 - 导航、田字快捷区和双字题注严格对应
   ---
-  duration_ms: 2.296707
+  duration_ms: 1.726141
   type: 'test'
   ...
 # Subtest: HTML 不含重复 ID 或内联事件处理器
 ok 9 - HTML 不含重复 ID 或内联事件处理器
   ---
-  duration_ms: 2.039664
+  duration_ms: 1.81672
   type: 'test'
   ...
 # Subtest: 应用代码保持单一初始化和主渲染函数
 ok 10 - 应用代码保持单一初始化和主渲染函数
   ---
-  duration_ms: 3.311452
+  duration_ms: 2.662303
   type: 'test'
   ...
 # Subtest: 私有仓库凭据和私有 GitHub API 不进入前端
 ok 11 - 私有仓库凭据和私有 GitHub API 不进入前端
   ---
-  duration_ms: 3.705179
+  duration_ms: 3.650726
   type: 'test'
   ...
 # Subtest: 自然语言识别回填确定性字段和 BrewIon 代码
 ok 12 - 自然语言识别回填确定性字段和 BrewIon 代码
   ---
-  duration_ms: 15.388835
+  duration_ms: 12.079838
   type: 'test'
   ...
 # Subtest: BrewIon 固定字段二维码执行 CRC 和行索引解码
 ok 13 - BrewIon 固定字段二维码执行 CRC 和行索引解码
   ---
-  duration_ms: 8.785501
+  duration_ms: 8.596215
   type: 'test'
   ...
 # Subtest: 视觉、卡片、分组、搜索和撷页交互标记已落地
 ok 14 - 视觉、卡片、分组、搜索和撷页交互标记已落地
   ---
-  duration_ms: 2.098571
+  duration_ms: 4.640405
   type: 'test'
   ...
 # Subtest: 豆卡名称、烘焙色值和现有数据筛选逻辑正确
 ok 15 - 豆卡名称、烘焙色值和现有数据筛选逻辑正确
   ---
-  duration_ms: 3.767462
+  duration_ms: 2.510208
   type: 'test'
   ...
 # Subtest: 远程编码表与内置表合并时保留缺失风味
 ok 16 - 远程编码表与内置表合并时保留缺失风味
   ---
-  duration_ms: 14.980605
+  duration_ms: 12.87148
   type: 'test'
   ...
 # Subtest: 编码表产区与庄园使用正确中文列且不生成空标签
 ok 17 - 编码表产区与庄园使用正确中文列且不生成空标签
   ---
-  duration_ms: 10.871734
+  duration_ms: 10.190652
   type: 'test'
   ...
 # Subtest: 十阶段赏味进度从20%起步并在赏味期后一周达到100%
 ok 18 - 十阶段赏味进度从20%起步并在赏味期后一周达到100%
   ---
-  duration_ms: 0.592344
+  duration_ms: 0.622144
   type: 'test'
   ...
 # Subtest: 负面缺陷扣分显著高于正面风味叠加
 ok 19 - 负面缺陷扣分显著高于正面风味叠加
   ---
-  duration_ms: 0.346116
+  duration_ms: 0.308387
   type: 'test'
   ...
 # Subtest: v0.9 交互与器具库存标记完整
 ok 20 - v0.9 交互与器具库存标记完整
   ---
-  duration_ms: 8.182771
+  duration_ms: 6.132788
   type: 'test'
   ...
 # Subtest: 计时、消耗、品鉴札记、复刻与方案导出功能已落地
 ok 21 - 计时、消耗、品鉴札记、复刻与方案导出功能已落地
   ---
-  duration_ms: 2.014306
+  duration_ms: 2.383571
   type: 'test'
   ...
 # Subtest: header controls are forced into one horizontal row
 ok 22 - header controls are forced into one horizontal row
   ---
-  duration_ms: 5.664883
+  duration_ms: 9.590259
   type: 'test'
   ...
 # Subtest: theme bridge intercepts dynamic buttons and delegates to native state
 ok 23 - theme bridge intercepts dynamic buttons and delegates to native state
   ---
-  duration_ms: 1.560148
+  duration_ms: 2.433184
   type: 'test'
   ...
 # Subtest: light theme covers main pages, overlays, forms, navigation and tasting wizard
 ok 24 - light theme covers main pages, overlays, forms, navigation and tasting wizard
   ---
-  duration_ms: 1.195544
+  duration_ms: 1.982901
   type: 'test'
   ...
 # Subtest: runtime entry and PWA cache include theme patch assets
 ok 25 - runtime entry and PWA cache include theme patch assets
   ---
-  duration_ms: 2.266081
+  duration_ms: 3.787508
   type: 'test'
   ...
 # Subtest: 0.9.6 keeps 0.9.2 interaction baseline
 ok 26 - 0.9.6 keeps 0.9.2 interaction baseline
   ---
-  duration_ms: 9.073129
+  duration_ms: 13.126077
   type: 'test'
   ...
 # Subtest: recommendation animation and prompt libraries are complete
 ok 27 - recommendation animation and prompt libraries are complete
   ---
-  duration_ms: 2.71397
+  duration_ms: 3.027636
   type: 'test'
   ...
 # Subtest: timer, inventory, delta wheel and trajectory requirements
 ok 28 - timer, inventory, delta wheel and trajectory requirements
   ---
-  duration_ms: 4.46336
+  duration_ms: 5.219589
   type: 'test'
   ...
 # Subtest: 0.9.6 version and visual assets
 ok 29 - 0.9.6 version and visual assets
   ---
-  duration_ms: 10.627389
+  duration_ms: 11.388755
   type: 'test'
   ...
 # Subtest: 0.9.3 sensory, cold storage and gear requirements remain available
 ok 30 - 0.9.3 sensory, cold storage and gear requirements remain available
   ---
-  duration_ms: 5.735719
+  duration_ms: 6.783476
   type: 'test'
   ...
 # Subtest: refinement runtime files are loaded in deterministic order and cached
 ok 31 - refinement runtime files are loaded in deterministic order and cached
   ---
-  duration_ms: 11.01096
+  duration_ms: 11.016788
   type: 'test'
   ...
 # Subtest: light mode covers seals, groups, leaderboard and collapse row
 ok 32 - light mode covers seals, groups, leaderboard and collapse row
   ---
-  duration_ms: 1.6287
+  duration_ms: 1.582331
   type: 'test'
   ...
 # Subtest: remaining recommendation, manage menu and structured grinder range are implemented
 ok 33 - remaining recommendation, manage menu and structured grinder range are implemented
   ---
-  duration_ms: 2.993997
+  duration_ms: 3.877978
   type: 'test'
   ...
 # Subtest: settings mascot uses fixed one-third size
 ok 34 - settings mascot uses fixed one-third size
   ---
-  duration_ms: 1.328242
+  duration_ms: 1.709399
   type: 'test'
   ...
 # Subtest: three sensory modes have distinct non-duplicated workflows
 ok 35 - three sensory modes have distinct non-duplicated workflows
   ---
-  duration_ms: 1.6419
+  duration_ms: 1.12202
   type: 'test'
   ...
 # Subtest: professional sensory uses CATA tags, ordering, conditional radar slider and final affective score
 ok 36 - professional sensory uses CATA tags, ordering, conditional radar slider and final affective score
   ---
-  duration_ms: 1.701889
+  duration_ms: 2.899586
   type: 'test'
   ...
 # Subtest: simple note mode reveals score before note
 ok 37 - simple note mode reveals score before note
   ---
-  duration_ms: 2.732227
+  duration_ms: 1.871393
   type: 'test'
   ...
 # Subtest: current v0.9.6 release retains v0.9.5 runtime entry
 ok 38 - current v0.9.6 release retains v0.9.5 runtime entry
   ---
-  duration_ms: 11.601764
+  duration_ms: 11.712851
   type: 'test'
   ...
 # Subtest: v0.9.5 requested modes, labels and artwork exist
 ok 39 - v0.9.5 requested modes, labels and artwork exist
   ---
-  duration_ms: 2.378259
+  duration_ms: 2.525056
   type: 'test'
   ...
 # Subtest: sensory modes preserve interaction and only note mode skips nodes
 ok 40 - sensory modes preserve interaction and only note mode skips nodes
   ---
-  duration_ms: 3.131754
+  duration_ms: 4.179602
   type: 'test'
   ...
 # Subtest: v0.9.5 layout and theme selectors exist
 ok 41 - v0.9.5 layout and theme selectors exist
   ---
-  duration_ms: 1.75532
+  duration_ms: 1.789419
   type: 'test'
   ...
 # Subtest: header controls remain horizontal and theme binding is stable
 ok 42 - header controls remain horizontal and theme binding is stable
   ---
-  duration_ms: 2.042388
+  duration_ms: 2.186913
   type: 'test'
   ...
 # Subtest: explicit one-pour remains bloom plus one pour before and after correction
 ok 43 - explicit one-pour remains bloom plus one pour before and after correction
   ---
-  duration_ms: 215.947727
+  duration_ms: 272.226863
   type: 'test'
   ...
 # Subtest: trajectory is calculated from temperature grind water and profile variables
 ok 44 - trajectory is calculated from temperature grind water and profile variables
   ---
-  duration_ms: 168.32538
+  duration_ms: 203.254982
   type: 'test'
   ...
 # Subtest: sensory records are coded compressed encrypted and note-limited
 ok 45 - sensory records are coded compressed encrypted and note-limited
   ---
-  duration_ms: 62.519329
+  duration_ms: 63.596101
   type: 'test'
   ...
 # Subtest: encrypted share omits plaintext public identity and remains decodable
 ok 46 - encrypted share omits plaintext public identity and remains decodable
   ---
-  duration_ms: 5.868117
+  duration_ms: 15.091644
   type: 'test'
   ...
 # Subtest: OCR evidence candidates support per-field fuzzy correction
 ok 47 - OCR evidence candidates support per-field fuzzy correction
   ---
-  duration_ms: 1.840406
+  duration_ms: 4.972777
   type: 'test'
   ...
 # Subtest: runtime provides minimal identity screen rich history and selection-only tasting navigation
 ok 48 - runtime provides minimal identity screen rich history and selection-only tasting navigation
   ---
-  duration_ms: 4.876116
+  duration_ms: 8.077958
   type: 'test'
   ...
 # Subtest: JSON QR text is parsed before misleading raw bytes
 ok 49 - JSON QR text is parsed before misleading raw bytes
   ---
-  duration_ms: 1.42082
+  duration_ms: 1.594084
   type: 'test'
   ...
 # Subtest: official codebook codes from OCR text are parsed directly
 ok 50 - official codebook codes from OCR text are parsed directly
   ---
-  duration_ms: 2.427924
+  duration_ms: 2.65529
   type: 'test'
   ...
 # Subtest: codebook text QR is decoded without CRC branch
 ok 51 - codebook text QR is decoded without CRC branch
   ---
-  duration_ms: 0.557151
+  duration_ms: 0.595194
   type: 'test'
   ...
 # Subtest: invalid binary QR no longer exposes a raw CRC16 error
 ok 52 - invalid binary QR no longer exposes a raw CRC16 error
   ---
-  duration_ms: 1.752806
+  duration_ms: 3.318368
   type: 'test'
   ...
 # Subtest: Chinese-first OCR runtime and direct camera are loaded and cached
 ok 53 - Chinese-first OCR runtime and direct camera are loaded and cached
   ---
-  duration_ms: 12.967347
+  duration_ms: 9.585837
   type: 'test'
   ...
 # Subtest: Lucky Bean encrypted share URL QR is expanded to a bean record
 ok 54 - Lucky Bean encrypted share URL QR is expanded to a bean record
   ---
-  duration_ms: 170.526303
+  duration_ms: 111.575355
   type: 'test'
   ...
 # Subtest: QR wrapper preserves pinned scanner core and parses text before bytes
 ok 55 - QR wrapper preserves pinned scanner core and parses text before bytes
   ---
-  duration_ms: 14.924262
+  duration_ms: 7.061516
   type: 'test'
   ...
 # Subtest: post-brew flow cancels automatic evaluation and restores mode selection
 ok 56 - post-brew flow cancels automatic evaluation and restores mode selection
   ---
-  duration_ms: 4.721366
+  duration_ms: 3.987001
   type: 'test'
   ...
 # Subtest: QR capture UI and integrity runtime files are loaded and cached
 ok 57 - QR capture UI and integrity runtime files are loaded and cached
   ---
-  duration_ms: 11.366002
+  duration_ms: 5.401639
   type: 'test'
   ...
 # Subtest: v17 chemistry priors are migrated into the inverse optimizer
 ok 58 - v17 chemistry priors are migrated into the inverse optimizer
   ---
-  duration_ms: 4.902717
+  duration_ms: 5.142535
   type: 'test'
   ...
 # Subtest: dripper and paper library values alter the hydraulic envelope
 ok 59 - dripper and paper library values alter the hydraulic envelope
   ---
-  duration_ms: 1.169946
+  duration_ms: 1.20779
   type: 'test'
   ...
 # Subtest: target and risk windows are bean preference water and device linked
 ok 60 - target and risk windows are bean preference water and device linked
   ---
-  duration_ms: 1.240571
+  duration_ms: 1.37319
   type: 'test'
   ...
 # Subtest: recommended plan is selected by trajectory objective and retains full protocol
 ok 61 - recommended plan is selected by trajectory objective and retains full protocol
   ---
-  duration_ms: 511.074599
+  duration_ms: 590.546387
   type: 'test'
   ...
 # Subtest: explicit brew method is a hard constraint while its parameters are inverse fitted
 ok 62 - explicit brew method is a hard constraint while its parameters are inverse fitted
   ---
-  duration_ms: 25.387847
+  duration_ms: 30.407989
   type: 'test'
   ...
 # Subtest: gear constraints and bean chemistry change optimized trajectory and controls
 ok 63 - gear constraints and bean chemistry change optimized trajectory and controls
   ---
-  duration_ms: 53.054233
+  duration_ms: 88.412529
   type: 'test'
   ...
 # Subtest: sensory feedback becomes a closed-loop parameter correction
 ok 64 - sensory feedback becomes a closed-loop parameter correction
   ---
-  duration_ms: 55.688695
+  duration_ms: 59.603865
   type: 'test'
   ...
 # Subtest: flat-only profile is not considered for cone equipment but is considered for flat equipment
 ok 65 - flat-only profile is not considered for cone equipment but is considered for flat equipment
   ---
-  duration_ms: 0.325906
+  duration_ms: 0.289142
   type: 'test'
   ...
 # Subtest: explicit segment selector constrains the optimizer while legacy count alone does not
 ok 66 - explicit segment selector constrains the optimizer while legacy count alone does not
   ---
-  duration_ms: 156.326188
+  duration_ms: 190.863473
   type: 'test'
   ...
 # Subtest: v097 runtime restores old trajectory semantics and requested interactions
 ok 67 - v097 runtime restores old trajectory semantics and requested interactions
   ---
-  duration_ms: 15.917604
+  duration_ms: 8.828072
   type: 'test'
   ...
 # Subtest: brew history abbreviation follows five-character rule
-ok 68 - brew history abbreviation follows five-character rule
+not ok 68 - brew history abbreviation follows five-character rule
   ---
-  duration_ms: 1.917431
+  duration_ms: 4.206022
   type: 'test'
+  location: '/home/runner/work/luckybean/luckybean/tests/v097-ui-fixes.test.mjs:96:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /chars\.length > maximum/. Input:
+    
+    "import { all } from './db.js';\n" +
+      "import { loadCodebook } from './codebook.js';\n" +
+      "import { fieldCandidates } from './recognition-candidates.js';\n" +
+      '\n' +
+      'const $ = (selector, root = document) => root.querySelector(selector);\n' +
+      'const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];\n' +
+      `const esc = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));\n` +
+      "const PROFILE_TO_SEGMENT = Object.freeze({ 'one-pour': '1', 'two-pulse': '2', 'three-pulse': '3', 'five-pulse': '5' });\n" +
+      "const SEGMENT_TO_PROFILE = Object.freeze({ '1': 'one-pour', '2': 'two-pulse', '3': 'three-pulse', '5': 'five-pulse' });\n" +
+      "const FIELD_CONTROLS = Object.freeze({ countryCode:'beanCountry',regionCode:'beanRegion',entityCode:'beanEntity',varietyCode:'beanVariety',processCode:'beanProcess',roastCode:'beanRoast',roastColor:'beanRoastColor',roastDate:'beanRoastDate',altitude:'beanAltitude',initialWeight:'beanInitialWeight',price:'beanPrice' });\n" +
+      'const FIELD_PATTERNS = Object.freeze({\n' +
+      '  countryCode: /(?:国家|产国|原产国|产地国家|COUNTRY|ORIGIN(?:\\s+COUNTRY)?|COUNTRY\\s+OF\\s+ORIGIN)\\s*[:：\\-]?\\s*([^\\n|；;，,。]+)/i,\n' +
+      '  regionCode: /(?:产区|地区|区域|REGION|AREA|PROVINCE|DISTRICT)\\s*[:：\\-]?\\s*([^\\n|；;，,。]+)/i,\n' +
+      '  entityCode: /(?:庄园|农场|合作社|处理站|水洗站|工厂|ESTATE|FARM|FINCA|COOPERATIVE|CO-OP|WASHING\\s+STATION|STATION|MILL|PRODUCER)\\s*[:：\\-]?\\s*([^\\n|；;，,。]+)/i,\n' +
+      '  varietyCode: /(?:豆种|品种|树种|VARIETY|VARIETAL|CULTIVAR|BOTANICAL\\s+VARIETY)\\s*[:：\\-]?\\s*([^\\n|；;，,。]+)/i,\n' +
+      '  processCode: /(?:处理法|处理方式|PROCESS(?:ING)?(?:\\s+METHOD)?|METHOD)\\s*[:：\\-]?\\s*([^\\n|；;，,。]+)/i,\n' +
+      '  roastColor: /(?:烘焙色值|色值|AGTRON|ROAST\\s+COLOU?R)\\s*[:：\\-]?\\s*([^\\n|；;，,。]+)/i,\n' +
+      '  roastDate: /(?:烘焙日期|烘焙日|生产日期|ROAST(?:ED)?\\s+(?:ON|DATE)|ROASTED)\\s*[:：\\-]?\\s*([^\\n|；;，,。]+)/i,\n' +
+      '  altitude: /(?:海拔|种植海拔|ALTITUDE|ELEVATION)\\s*[:：\\-]?\\s*([^\\n|；;，,。]+)/i,\n' +
+      '  initialWeight: /(?:初始克重|净重|重量|规格|NET\\s+WEIGHT|WEIGHT)\\s*[:：\\-]?\\s*([^\\n|；;，,。]+)/i,\n' +
+      '  price: /(?:购买价格|价格|PRICE|COST)\\s*[:：\\-]?\\s*([^\\n|；;，,。]+)/i\n' +
+      '});\n' +
+      "function fieldEvidence(field, text) { const normalized=String(text||'').normalize('NFKC'); const match=normalized.match(FIELD_PATTERNS[field]); return match?.[1] ? `${match[1].trim()}\\n${normalized}` : normalized; }\n" +
+      'function bestCandidateDecision(candidates,{minimum=.9,margin=.07}={}){const sorted=[...(candidates||[])].sort((a,b)=>Number(b.score||0)-Number(a.score||0));const best=sorted[0];if(!best||Number(best.score||0)<minimum)return null;const second=sorted[1];if(second&&Number(best.score||0)-Number(second.score||0)<margin&&Number(best.score||0)<.985)return null;return best;}\n' +
+      "const AUTO_FIELD_ORDER=Object.freeze(['countryCode','regionCode','entityCode','varietyCode','processCode','roastCode','roastColor','roastDate','altitude','initialWeight','price']);\n" +
+      "let codebookPromise,syncQueued=false,historyBusy=false,lastAutofillSignature='',fabDrag=null,suppressFabClick=false;\n" +
+      'function codebook(){if(!codebookPromise)codebookPromise=loadCodebook().then(result=>result.data);return codebookPromise;}\n' +
+      'const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));\n' +
+      "function profileLabel(session){return session?.profile?.label||session?.recommendation?.selected?.profile?.label||String(session?.profileVersion||'').split('@')[0]||'冲煮方案';}\n" +
+      "export function abbreviateBrewMethod(label,maximum=5){const chars=[...String(label||'冲煮方案').trim()];return chars.length>maximum?`${chars.slice(0,maximum).join('')}……`:chars.join('');}\n" +
+      "function formattedDate(value){const raw=String(value||'');const iso=raw.match(/\\d{4}-\\d{2}-\\d{2}/)?.[0];if(iso)return iso;const date=new Date(value);return Number.isNaN(date.getTime())?'日期未记':date.toISOString().slice(0,10);}\n" +
+      'function sensoryForSession(session,recordsById,recordsBySession){return recordsById.get(session.sensoryRecordId)||recordsBySession.get(session.id)||null;}\n' +
+      'async function compactBrewHistory(){\n' +
+      "  if(historyBusy)return;const buttons=$$('[data-replay-session]');if(!buttons.length)return;historyBusy=true;\n" +
+      '  try{\n' +
+      "    const [sessions,records]=await Promise.all([all('brewSessions'),all('sensoryRecords')]);\n" +
+      '    const sessionsById=new Map(sessions.map(item=>[item.id,item]));const recordsById=new Map(records.map(item=>[item.id,item]));const recordsBySession=new Map(records.filter(item=>item.brewSessionId).map(item=>[item.brewSessionId,item]));\n' +
+      '    for(const button of buttons){\n' +
+      '      const session=sessionsById.get(button.dataset.replaySession);if(!session)continue;\n' +
+      "      const sensory=sensoryForSession(session,recordsById,recordsBySession);const score=Number(sensory?.subjectiveScore??session.subjectiveScore);const method=abbreviateBrewMethod(profileLabel(session),5);const signature=`${formattedDate(session.createdAt)}|${method}|${Number.isFinite(score)?score.toFixed(1):'—'}`;\n" +
+      "      if(button.dataset.v097History===signature&&button.classList.contains('brew-history-compact-v097')&&button.querySelector('.brew-replay-label')&&button.children.length===4)continue;\n" +
+      "      button.dataset.v097History=signature;button.classList.remove('brew-history-rich');button.classList.add('brew-history-compact-v097');\n" +
+      '      button.innerHTML=`<time>${esc(formattedDate(session.createdAt))}</time><span class="brew-method-short" title="${esc(profileLabel(session))}">${esc(method)}</span><strong>${Number.isFinite(score)&&score>0?score.toFixed(1):\'—\'}</strong><span class="brew-replay-label">复刻</span>`;\n' +
+      '    }\n' +
+      '  }finally{historyBusy=false;}\n' +
+      '}\n' +
+      "function synchronizeBrewControls(event){const profile=$('#brewProfile'),segments=$('#brewSegments');if(!profile||!segments)return;if(event?.target===profile){const mapped=PROFILE_TO_SEGMENT[profile.value];if(mapped&&segments.value!==mapped){segments.value=mapped;segments.dispatchEvent(new Event('change',{bubbles:true}));}return;}if(event?.target===segments){const mapped=SEGMENT_TO_PROFILE[segments.value];if(mapped&&(profile.value==='recommended'||PROFILE_TO_SEGMENT[profile.value]))profile.value=mapped;return;}const mapped=PROFILE_TO_SEGMENT[profile.value];if(mapped&&segments.value!==mapped)segments.value=mapped;}\n" +
+      "function pathCenter(rect){return{x:Number(rect.getAttribute('x')||0)+Number(rect.getAttribute('width')||0)/2,y:Number(rect.getAttribute('y')||0)+Number(rect.getAttribute('height')||0)/2};}\n" +
+      "function smoothCoveragePath(points){if(!points.length)return'';if(points.length===1)return`M${points[0].x},${points[0].y}`;const sorted=[...points].sort((a,b)=>a.x-b.x);let d=`M${sorted[0].x.toFixed(1)},${sorted[0].y.toFixed(1)}`;for(let i=1;i<sorted.length;i++){const previous=sorted[i-1],current=sorted[i],mid=(previous.x+current.x)/2;d+=` C${mid.toFixed(1)},${previous.y.toFixed(1)} ${mid.toFixed(1)},${current.y.toFixed(1)} ${current.x.toFixed(1)},${current.y.toFixed(1)}`;}return d;}\n" +
+      `function restoreLegacyTrajectory(svg){if(!svg||svg.dataset.v097Trajectory==='1')return;const positiveGroups=['.trajectory-peak.acidity','.trajectory-peak.floral','.trajectory-peak.fruit','.trajectory-peak.sweetness'].map(selector=>$(selector,svg)).filter(Boolean);if(!positiveGroups.length)return;svg.dataset.v097Trajectory='1';svg.setAttribute('aria-label','温度、流量、累计注水、目标风味物质窗口与负面风险区拟合图');$$('.trajectory-series.floral,.trajectory-series.acidity,.trajectory-series.sweetness,.trajectory-series.risk',svg).forEach(node=>node.remove());$$('.trajectory-window.positive',svg).forEach(node=>node.remove());$$('.trajectory-window.risk',svg).forEach(node=>node.classList.add('v097-tail-risk'));const points=positiveGroups.map(group=>$('rect',group)).filter(Boolean).map(pathCenter).sort((a,b)=>a.x-b.x);if(points.length){const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('class','v097-flavor-coverage');path.setAttribute('d',smoothCoveragePath(points));path.setAttribute('aria-label','风味覆盖轨迹');positiveGroups[0].parentNode.insertBefore(path,positiveGroups[0]);}[[ '.trajectory-peak.astringency text','木质 / 涩感风险'],['.trajectory-peak.bitter text','苦味风险']].forEach(([selector,label])=>{const node=$(selector,svg);if(node)node.textContent=label;});const legend=svg.parentElement?.querySelector('.trajectory-legend');if(legend)legend.innerHTML='<span class="temperature">温度曲线</span><span class="flow">流量曲线</span><span class="water">累计注水</span><span class="coverage">风味覆盖轨迹</span><span class="target-window">目标风味物质窗口</span><span class="risk-window">木质 / 涩感 / 苦味风险</span>';}\n` +
+      "function currentEvidenceContext(){return{countryCode:$('#beanCountry')?.value||'',regionCode:$('#beanRegion')?.value||''};}\n" +
+      "function controlIsEmpty(control){if(!control)return true;const value=String(control.value||'').trim();const label=control instanceof HTMLSelectElement?control.selectedOptions?.[0]?.textContent?.trim()||'':value;return!value||/请选择|未选择|未定|自动生成/.test(label);}\n" +
+      "function localRoastCandidate(text){const value=String(text||'').toLocaleLowerCase('zh-CN');const rows=[[/极浅|ultra\\s*light|lightest/,'RL-L0','极浅烘'],[/浅中|medium\\s*light/,'RL-L2','浅中烘'],[/浅烘|浅度|\\blight\\b/,'RL-L1','浅烘'],[/中深|medium\\s*dark/,'RL-L4','中深烘'],[/中烘|中度|\\bmedium\\b/,'RL-L3','中烘'],[/极深|very\\s*dark|french/,'RL-L6','极深烘'],[/深烘|深度|\\bdark\\b/,'RL-L5','深烘']];const match=rows.find(([regex])=>regex.test(value));return match?{field:'roastCode',value:match[1],code:match[1],label:match[2],score:.97}:null;}\n" +
+      "async function applyFieldCandidate(field,candidate){const control=$(`#${FIELD_CONTROLS[field]}`);if(!control||!candidate)return false;const next=String(candidate.code??candidate.value??'');if(!next)return false;const veryCertain=Number(candidate.score||0)>=.97;if(!controlIsEmpty(control)&&!veryCertain&&!control.dataset.v097AutoFilled)return false;if(control instanceof HTMLSelectElement&&![...control.options].some(option=>option.value===next))control.add(new Option(candidate.label||next,next));if(control.value===next)return false;control.value=next;control.dataset.v097AutoFilled='1';control.dispatchEvent(new Event('input',{bubbles:true}));control.dispatchEvent(new Event('change',{bubbles:true}));await delay(field==='countryCode'||field==='regionCode'?120:30);return true;}\n" +
+      'async function autoFillRecognition(text){const normal'... 4832 more characters
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    import { all } from './db.js';
+    import { loadCodebook } from './codebook.js';
+    import { fieldCandidates } from './recognition-candidates.js';
+    
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+    const esc = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+    const PROFILE_TO_SEGMENT = Object.freeze({ 'one-pour': '1', 'two-pulse': '2', 'three-pulse': '3', 'five-pulse': '5' });
+    const SEGMENT_TO_PROFILE = Object.freeze({ '1': 'one-pour', '2': 'two-pulse', '3': 'three-pulse', '5': 'five-pulse' });
+    const FIELD_CONTROLS = Object.freeze({ countryCode:'beanCountry',regionCode:'beanRegion',entityCode:'beanEntity',varietyCode:'beanVariety',processCode:'beanProcess',roastCode:'beanRoast',roastColor:'beanRoastColor',roastDate:'beanRoastDate',altitude:'beanAltitude',initialWeight:'beanInitialWeight',price:'beanPrice' });
+    const FIELD_PATTERNS = Object.freeze({
+      countryCode: /(?:国家|产国|原产国|产地国家|COUNTRY|ORIGIN(?:\s+COUNTRY)?|COUNTRY\s+OF\s+ORIGIN)\s*[:：\-]?\s*([^\n|；;，,。]+)/i,
+      regionCode: /(?:产区|地区|区域|REGION|AREA|PROVINCE|DISTRICT)\s*[:：\-]?\s*([^\n|；;，,。]+)/i,
+      entityCode: /(?:庄园|农场|合作社|处理站|水洗站|工厂|ESTATE|FARM|FINCA|COOPERATIVE|CO-OP|WASHING\s+STATION|STATION|MILL|PRODUCER)\s*[:：\-]?\s*([^\n|；;，,。]+)/i,
+      varietyCode: /(?:豆种|品种|树种|VARIETY|VARIETAL|CULTIVAR|BOTANICAL\s+VARIETY)\s*[:：\-]?\s*([^\n|；;，,。]+)/i,
+      processCode: /(?:处理法|处理方式|PROCESS(?:ING)?(?:\s+METHOD)?|METHOD)\s*[:：\-]?\s*([^\n|；;，,。]+)/i,
+      roastColor: /(?:烘焙色值|色值|AGTRON|ROAST\s+COLOU?R)\s*[:：\-]?\s*([^\n|；;，,。]+)/i,
+      roastDate: /(?:烘焙日期|烘焙日|生产日期|ROAST(?:ED)?\s+(?:ON|DATE)|ROASTED)\s*[:：\-]?\s*([^\n|；;，,。]+)/i,
+      altitude: /(?:海拔|种植海拔|ALTITUDE|ELEVATION)\s*[:：\-]?\s*([^\n|；;，,。]+)/i,
+      initialWeight: /(?:初始克重|净重|重量|规格|NET\s+WEIGHT|WEIGHT)\s*[:：\-]?\s*([^\n|；;，,。]+)/i,
+      price: /(?:购买价格|价格|PRICE|COST)\s*[:：\-]?\s*([^\n|；;，,。]+)/i
+    });
+    function fieldEvidence(field, text) { const normalized=String(text||'').normalize('NFKC'); const match=normalized.match(FIELD_PATTERNS[field]); return match?.[1] ? `${match[1].trim()}\n${normalized}` : normalized; }
+    function bestCandidateDecision(candidates,{minimum=.9,margin=.07}={}){const sorted=[...(candidates||[])].sort((a,b)=>Number(b.score||0)-Number(a.score||0));const best=sorted[0];if(!best||Number(best.score||0)<minimum)return null;const second=sorted[1];if(second&&Number(best.score||0)-Number(second.score||0)<margin&&Number(best.score||0)<.985)return null;return best;}
+    const AUTO_FIELD_ORDER=Object.freeze(['countryCode','regionCode','entityCode','varietyCode','processCode','roastCode','roastColor','roastDate','altitude','initialWeight','price']);
+    let codebookPromise,syncQueued=false,historyBusy=false,lastAutofillSignature='',fabDrag=null,suppressFabClick=false;
+    function codebook(){if(!codebookPromise)codebookPromise=loadCodebook().then(result=>result.data);return codebookPromise;}
+    const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    function profileLabel(session){return session?.profile?.label||session?.recommendation?.selected?.profile?.label||String(session?.profileVersion||'').split('@')[0]||'冲煮方案';}
+    export function abbreviateBrewMethod(label,maximum=5){const chars=[...String(label||'冲煮方案').trim()];return chars.length>maximum?`${chars.slice(0,maximum).join('')}……`:chars.join('');}
+    function formattedDate(value){const raw=String(value||'');const iso=raw.match(/\d{4}-\d{2}-\d{2}/)?.[0];if(iso)return iso;const date=new Date(value);return Number.isNaN(date.getTime())?'日期未记':date.toISOString().slice(0,10);}
+    function sensoryForSession(session,recordsById,recordsBySession){return recordsById.get(session.sensoryRecordId)||recordsBySession.get(session.id)||null;}
+    async function compactBrewHistory(){
+      if(historyBusy)return;const buttons=$$('[data-replay-session]');if(!buttons.length)return;historyBusy=true;
+      try{
+        const [sessions,records]=await Promise.all([all('brewSessions'),all('sensoryRecords')]);
+        const sessionsById=new Map(sessions.map(item=>[item.id,item]));const recordsById=new Map(records.map(item=>[item.id,item]));const recordsBySession=new Map(records.filter(item=>item.brewSessionId).map(item=>[item.brewSessionId,item]));
+        for(const button of buttons){
+          const session=sessionsById.get(button.dataset.replaySession);if(!session)continue;
+          const sensory=sensoryForSession(session,recordsById,recordsBySession);const score=Number(sensory?.subjectiveScore??session.subjectiveScore);const method=abbreviateBrewMethod(profileLabel(session),5);const signature=`${formattedDate(session.createdAt)}|${method}|${Number.isFinite(score)?score.toFixed(1):'—'}`;
+          if(button.dataset.v097History===signature&&button.classList.contains('brew-history-compact-v097')&&button.querySelector('.brew-replay-label')&&button.children.length===4)continue;
+          button.dataset.v097History=signature;button.classList.remove('brew-history-rich');button.classList.add('brew-history-compact-v097');
+          button.innerHTML=`<time>${esc(formattedDate(session.createdAt))}</time><span class="brew-method-short" title="${esc(profileLabel(session))}">${esc(method)}</span><strong>${Number.isFinite(score)&&score>0?score.toFixed(1):'—'}</strong><span class="brew-replay-label">复刻</span>`;
+        }
+      }finally{historyBusy=false;}
+    }
+    function synchronizeBrewControls(event){const profile=$('#brewProfile'),segments=$('#brewSegments');if(!profile||!segments)return;if(event?.target===profile){const mapped=PROFILE_TO_SEGMENT[profile.value];if(mapped&&segments.value!==mapped){segments.value=mapped;segments.dispatchEvent(new Event('change',{bubbles:true}));}return;}if(event?.target===segments){const mapped=SEGMENT_TO_PROFILE[segments.value];if(mapped&&(profile.value==='recommended'||PROFILE_TO_SEGMENT[profile.value]))profile.value=mapped;return;}const mapped=PROFILE_TO_SEGMENT[profile.value];if(mapped&&segments.value!==mapped)segments.value=mapped;}
+    function pathCenter(rect){return{x:Number(rect.getAttribute('x')||0)+Number(rect.getAttribute('width')||0)/2,y:Number(rect.getAttribute('y')||0)+Number(rect.getAttribute('height')||0)/2};}
+    function smoothCoveragePath(points){if(!points.length)return'';if(points.length===1)return`M${points[0].x},${points[0].y}`;const sorted=[...points].sort((a,b)=>a.x-b.x);let d=`M${sorted[0].x.toFixed(1)},${sorted[0].y.toFixed(1)}`;for(let i=1;i<sorted.length;i++){const previous=sorted[i-1],current=sorted[i],mid=(previous.x+current.x)/2;d+=` C${mid.toFixed(1)},${previous.y.toFixed(1)} ${mid.toFixed(1)},${current.y.toFixed(1)} ${current.x.toFixed(1)},${current.y.toFixed(1)}`;}return d;}
+    function restoreLegacyTrajectory(svg){if(!svg||svg.dataset.v097Trajectory==='1')return;const positiveGroups=['.trajectory-peak.acidity','.trajectory-peak.floral','.trajectory-peak.fruit','.trajectory-peak.sweetness'].map(selector=>$(selector,svg)).filter(Boolean);if(!positiveGroups.length)return;svg.dataset.v097Trajectory='1';svg.setAttribute('aria-label','温度、流量、累计注水、目标风味物质窗口与负面风险区拟合图');$$('.trajectory-series.floral,.trajectory-series.acidity,.trajectory-series.sweetness,.trajectory-series.risk',svg).forEach(node=>node.remove());$$('.trajectory-window.positive',svg).forEach(node=>node.remove());$$('.trajectory-window.risk',svg).forEach(node=>node.classList.add('v097-tail-risk'));const points=positiveGroups.map(group=>$('rect',group)).filter(Boolean).map(pathCenter).sort((a,b)=>a.x-b.x);if(points.length){const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('class','v097-flavor-coverage');path.setAttribute('d',smoothCoveragePath(points));path.setAttribute('aria-label','风味覆盖轨迹');positiveGroups[0].parentNode.insertBefore(path,positiveGroups[0]);}[[ '.trajectory-peak.astringency text','木质 / 涩感风险'],['.trajectory-peak.bitter text','苦味风险']].forEach(([selector,label])=>{const node=$(selector,svg);if(node)node.textContent=label;});const legend=svg.parentElement?.querySelector('.trajectory-legend');if(legend)legend.innerHTML='<span class="temperature">温度曲线</span><span class="flow">流量曲线</span><span class="water">累计注水</span><span class="coverage">风味覆盖轨迹</span><span class="target-window">目标风味物质窗口</span><span class="risk-window">木质 / 涩感 / 苦味风险</span>';}
+    function currentEvidenceContext(){return{countryCode:$('#beanCountry')?.value||'',regionCode:$('#beanRegion')?.value||''};}
+    function controlIsEmpty(control){if(!control)return true;const value=String(control.value||'').trim();const label=control instanceof HTMLSelectElement?control.selectedOptions?.[0]?.textContent?.trim()||'':value;return!value||/请选择|未选择|未定|自动生成/.test(label);}
+    function localRoastCandidate(text){const value=String(text||'').toLocaleLowerCase('zh-CN');const rows=[[/极浅|ultra\s*light|lightest/,'RL-L0','极浅烘'],[/浅中|medium\s*light/,'RL-L2','浅中烘'],[/浅烘|浅度|\blight\b/,'RL-L1','浅烘'],[/中深|medium\s*dark/,'RL-L4','中深烘'],[/中烘|中度|\bmedium\b/,'RL-L3','中烘'],[/极深|very\s*dark|french/,'RL-L6','极深烘'],[/深烘|深度|\bdark\b/,'RL-L5','深烘']];const match=rows.find(([regex])=>regex.test(value));return match?{field:'roastCode',value:match[1],code:match[1],label:match[2],score:.97}:null;}
+    async function applyFieldCandidate(field,candidate){const control=$(`#${FIELD_CONTROLS[field]}`);if(!control||!candidate)return false;const next=String(candidate.code??candidate.value??'');if(!next)return false;const veryCertain=Number(candidate.score||0)>=.97;if(!controlIsEmpty(control)&&!veryCertain&&!control.dataset.v097AutoFilled)return false;if(control instanceof HTMLSelectElement&&![...control.options].some(option=>option.value===next))control.add(new Option(candidate.label||next,next));if(control.value===next)return false;control.value=next;control.dataset.v097AutoFilled='1';control.dispatchEvent(new Event('input',{bubbles:true}));control.dispatchEvent(new Event('change',{bubbles:true}));await delay(field==='countryCode'||field==='regionCode'?120:30);return true;}
+    async function autoFillRecognition(text){const normalized=String(text||'').trim();if(!normalized)return;const signature=normalized.slice(0,1000);if(signature===lastAutofillSignature)return;lastAutofillSignature=signature;const book=await codebook();for(const field of AUTO_FIELD_ORDER){let candidates;if(field==='roastCode'){const candidate=localRoastCandidate(normalized);candidates=candidate?[candidate]:[];}else candidates=fieldCandidates(field,fieldEvidence(field,normalized),book,currentEvidenceContext(),6);const minimum={countryCode:.89,regionCode:.91,entityCode:.94,varietyCode:.89,processCode:.88,roastCode:.94,roastColor:.94,roastDate:.92,altitude:.94,initialWeight:.96,price:.94}[field]||.92;await applyFieldCandidate(field,bestCandidateDecision(candidates,{minimum,margin:field==='entityCode'?.1:.07}));}globalThis.LuckyBeanIntegrityUI?.refresh?.();}
+    function interceptRecognitionParse(event){if(!event.target.closest?.('#parseTextBtn'))return;const text=$('#recognitionText')?.value||'';setTimeout(()=>autoFillRecognition(text).catch(console.error),180);}
+    function fabBounds(width,height){const margin=10,navTop=$('#bottomNav')?.getBoundingClientRect().top||innerHeight;return{minX:margin,maxX:Math.max(margin,innerWidth-width-margin),minY:margin,maxY:Math.max(margin,navTop-height-margin)};}
+    function clampFabPosition(x,y,node){const rect=node.getBoundingClientRect(),bounds=fabBounds(rect.width,rect.height);return{x:Math.min(bounds.maxX,Math.max(bounds.minX,x)),y:Math.min(bounds.maxY,Math.max(bounds.minY,y))};}
+    function applyFabPosition(position,node=$('#fabWrap')){if(!node||!position)return;const next=clampFabPosition(Number(position.x),Number(position.y),node);node.style.left=`${next.x}px`;node.style.top=`${next.y}px`;node.style.right='auto';node.style.bottom='auto';node.dataset.v097Floating='1';}
+    function restoreFabPosition(){const node=$('#fabWrap');if(!node||node.dataset.v097DragBound==='1')return;node.dataset.v097DragBound='1';try{const saved=JSON.parse(localStorage.getItem('luckybean.fab.position.v1')||'null');if(saved)requestAnimationFrame(()=>applyFabPosition(saved,node));}catch{}node.addEventListener('pointerdown',event=>{if(event.button!==undefined&&event.button!==0)return;const rect=node.getBoundingClientRect();fabDrag={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,originX:rect.left,originY:rect.top,moved:false};node.setPointerCapture?.(event.pointerId);node.classList.add('is-dragging');});node.addEventListener('pointermove',event=>{if(!fabDrag||event.pointerId!==fabDrag.pointerId)return;const dx=event.clientX-fabDrag.startX,dy=event.clientY-fabDrag.startY;if(!fabDrag.moved&&Math.hypot(dx,dy)<6)return;fabDrag.moved=true;event.preventDefault();applyFabPosition({x:fabDrag.originX+dx,y:fabDrag.originY+dy},node);});const finish=event=>{if(!fabDrag||event.pointerId!==fabDrag.pointerId)return;const moved=fabDrag.moved;fabDrag=null;node.classList.remove('is-dragging');node.releasePointerCapture?.(event.pointerId);if(moved){suppressFabClick=true;const rect=node.getBoundingClientRect();localStorage.setItem('luckybean.fab.position.v1',JSON.stringify({x:rect.left,y:rect.top}));setTimeout(()=>{suppressFabClick=false;},0);}};node.addEventListener('pointerup',finish);node.addEventListener('pointercancel',finish);node.addEventListener('click',event=>{if(suppressFabClick){event.preventDefault();event.stopImmediatePropagation();}},true);}
+    function blankGroupCollapse(event){const panel=event.target.closest?.('.active-group-panel');if(!panel||event.target.closest('button,a,input,select,textarea,label,.bean-card,[role="button"]'))return;($('.group-collapse',panel)||$('.group-collapse',panel.parentElement))?.click();}
+    function enhanceCollapseTarget(){$$('.group-collapse').forEach(button=>{if(button.dataset.v097Collapse!=='1'){button.dataset.v097Collapse='1';button.parentElement?.classList.add('group-collapse-zone-v097');}});}
+    function sync(){synchronizeBrewControls();compactBrewHistory().catch(console.error);$$('.trajectory-chart.detailed').forEach(restoreLegacyTrajectory);restoreFabPosition();enhanceCollapseTarget();}
+    function queueSync(){if(syncQueued)return;syncQueued=true;queueMicrotask(()=>{syncQueued=false;sync();});}
+    document.addEventListener('change',event=>{if(event.target.matches?.('#brewProfile,#brewSegments'))synchronizeBrewControls(event);},true);
+    document.addEventListener('click',interceptRecognitionParse,true);document.addEventListener('click',blankGroupCollapse,true);
+    window.addEventListener('resize',()=>{const node=$('#fabWrap');if(node?.dataset.v097Floating==='1'){const rect=node.getBoundingClientRect();applyFabPosition({x:rect.left,y:rect.top},node);}});
+    new MutationObserver(queueSync).observe(document.body,{childList:true,subtree:true});queueSync();
+    globalThis.LuckyBeanV097Fixes={abbreviateBrewMethod,autoFillRecognition,restoreLegacyTrajectory,synchronizeBrewControls};
+    
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/v097-ui-fixes.test.mjs:98:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
   ...
 1..68
 # tests 68
 # suites 0
-# pass 68
-# fail 0
+# pass 67
+# fail 1
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 1537.873628
-
-> luckybean@0.9.6 check
-> node tests/static-check.mjs
-
-静态校验通过：123 个文件；JS 语法、JSON、必要入口、版本、离线资源、敏感信息均通过。
+# duration_ms 1667.262509
