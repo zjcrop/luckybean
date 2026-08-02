@@ -118,12 +118,27 @@ with local_server() as base_url, sync_playwright() as playwright:
     assert page.locator('#loginScreen:not(.hidden)').count() == 0
 
     page.click('[data-page-target="brew"]')
+    compact = page.locator('[data-replay-session="brew-integrity-browser"].brew-history-compact-v097')
+    compact.wait_for()
+    compact_text = compact.inner_text()
+    assert '2026-08-02' in compact_text, compact_text
+    assert '一刀流' in compact_text, compact_text
+    assert '86.0' in compact_text, compact_text
+    assert '复刻' in compact_text, compact_text
+    assert '完整札记' not in compact_text, compact_text
+    assert compact.locator(':scope > *').count() == 4
+    compact_box = compact.bounding_box()
+    assert compact_box and compact_box['height'] <= 50, compact_box
+
     page.wait_for_selector('#directSensoryBtn')
     page.click('#directSensoryBtn')
     page.wait_for_selector('#pageSensory.active .v095-sensory-modes-v2')
     modes = page.locator('#pageSensory.active [data-v095-mode] strong').all_inner_texts()
     assert modes == ['专业品鉴', '玩家互动品鉴', '札记'], modes
     assert page.locator('#pageSensory.active .sensory-evaluation').count() == 0
+    for button in page.locator('#pageSensory.active [data-v095-mode]').all():
+        alignment = button.evaluate("node => getComputedStyle(node).textAlign")
+        assert alignment == 'center', alignment
 
     page.click('#sensoryHistoryToggle')
     page.wait_for_selector('.sensory-history .sensory-record-card')
@@ -137,6 +152,8 @@ with local_server() as base_url, sync_playwright() as playwright:
     assert not errors, errors
     print(json.dumps({
         'entry_labels': visible_entry_labels,
+        'compact_brew_history': compact_text,
+        'compact_brew_history_height': compact_box['height'],
         'direct_modes': modes,
         'raw_sensory_encryption': seeded['raw']['sensory'].get('encryption'),
         'raw_identity_encryption': seeded['raw']['settings'].get('privateIdentity', {}).get('encryption'),
