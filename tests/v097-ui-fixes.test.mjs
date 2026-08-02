@@ -67,10 +67,11 @@ test('v097 runtime preserves the original time-series trajectory and requested i
   ]) assert.ok(css.includes(marker), marker);
 
   assert.ok(fabGesture.includes('drag-or-tap'));
-  assert.match(html, /styles-v097-fixes\.css\?v=097c/);
-  assert.match(html, /src\/v097-ui-fixes\.js\?v=097c/);
-  assert.match(html, /src\/v097-fab-gesture\.js\?v=097c/);
-  assert.match(sw, /luckybean-v0\.9\.6-ui-fix-h/);
+  assert.ok(fabGesture.includes('v097-fab-drag-handle'));
+  assert.match(html, /styles-v097-fixes\.css\?v=097d/);
+  assert.match(html, /src\/v097-ui-fixes\.js\?v=097d/);
+  assert.match(html, /src\/v097-fab-gesture\.js\?v=097d/);
+  assert.match(sw, /luckybean-v0\.9\.6-ui-fix-i/);
   assert.match(sw, /styles-v097-fixes\.css/);
   assert.match(sw, /src\/v097-ui-fixes\.js/);
 });
@@ -87,6 +88,9 @@ test('recognition field splitter covers labeled Chinese and English package fiel
   for (const marker of ['COUNTRY', 'REGION', 'VARIETY', 'PROCESS', 'ROASTER', 'AGTRON', 'NET', 'WEIGHT', '烘焙日期', '初始克重']) {
     assert.ok(runtime.includes(marker), marker);
   }
+  assert.ok(runtime.includes('LINE_LABEL_INSERTION'));
+  assert.ok(runtime.includes('INLINE_LABEL_INSERTION'));
+  assert.ok(runtime.includes('ROAST(?!ER|ERY|ED)'));
   assert.ok(runtime.includes('updateRecognitionWarning'));
   assert.ok(runtime.includes("date.value = ''"));
 });
