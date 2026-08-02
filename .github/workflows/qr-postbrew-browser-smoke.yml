@@ -9,6 +9,7 @@ on:
       - 'styles-qr-scan.css'
       - 'styles-v096-recognition.css'
       - 'styles-v096-integrity.css'
+      - 'styles-v097-fixes.css'
       - 'src/qr.js'
       - 'src/qr-core.js'
       - 'src/codebook.js'
@@ -18,11 +19,13 @@ on:
       - 'src/v096-package-capture.js'
       - 'src/v096-direct-camera.js'
       - 'src/v096-integrity-ui.js'
+      - 'src/v097-ui-fixes.js'
       - 'src/v095-qr-ui.js'
       - 'src/v095-postbrew-sensory.js'
       - 'src/brew-engine.js'
       - 'src/brew-engine-core.js'
       - 'src/brew-trajectory-v096.js'
+      - 'src/brew-optimizer-v097.js'
       - 'src/db.js'
       - 'src/db-storage-core.js'
       - 'src/sensory-codec-v096.js'
@@ -37,6 +40,8 @@ on:
       - 'tests/v096-qr-postbrew.test.mjs'
       - 'tests/v096-ocr-qr-regression.test.mjs'
       - 'tests/v096-integrity.test.mjs'
+      - 'tests/v097-optimizer.test.mjs'
+      - 'tests/v097-ui-fixes.test.mjs'
       - 'tests/postbrew-qr-smoke.py'
       - 'tests/ocr-qr-regression-smoke.py'
       - 'tests/integrity-browser-smoke.py'
@@ -76,8 +81,8 @@ jobs:
             npm run check
             for file in \
               src/qr.js src/qr-core.js src/codebook.js src/recognition-candidates.js \
-              src/v096-web-ocr.js src/v096-package-capture.js src/v096-direct-camera.js src/v096-integrity-ui.js \
-              src/brew-engine.js src/brew-engine-core.js src/brew-trajectory-v096.js \
+              src/v096-web-ocr.js src/v096-package-capture.js src/v096-direct-camera.js src/v096-integrity-ui.js src/v097-ui-fixes.js \
+              src/brew-engine.js src/brew-engine-core.js src/brew-trajectory-v096.js src/brew-optimizer-v097.js \
               src/db.js src/db-storage-core.js src/sensory-codec-v096.js src/privacy-codec-v096.js \
               src/share-codec.js src/share-codec-core.js src/v095-qr-ui.js src/v095-postbrew-sensory.js; do
               node --check "$file"
@@ -105,7 +110,7 @@ jobs:
         if: steps.install.outcome == 'success'
         run: python tests/ocr-qr-regression-smoke.py > tests/ocr-qr-regression-log.txt 2>&1
 
-      - name: Verify encrypted records rich history and tasting selection
+      - name: Verify encrypted records compact history and tasting selection
         id: integrity
         continue-on-error: true
         if: steps.install.outcome == 'success'
@@ -148,6 +153,7 @@ jobs:
               'qr_text_first_regression': static,
               'chinese_mixed_ocr': ocr,
               'direct_camera_static': static,
+              'field_autofill_static': static,
               'verified': static == install == ocr == 'success',
           }
           integrity_result = {
@@ -157,9 +163,12 @@ jobs:
               'browser_runtime': install,
               'integrity_browser_smoke': integrity,
               'brew_profile_integrity': static,
+              'manual_segment_constraint': static,
+              'legacy_trajectory_rendering': static,
               'variable_trajectory': static,
               'sensory_encrypted_storage': integrity,
               'sensory_rich_history': integrity,
+              'compact_brew_history': integrity,
               'minimal_identity_screen': integrity,
               'direct_sensory_choice': integrity,
               'verified': static == install == integrity == 'success',
