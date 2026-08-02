@@ -1,11 +1,32 @@
 const EXPECTED_MODE_VERSION = 'professional-v2';
-const BOOTSTRAP_VERSION = 'sensory-bootstrap-20260802';
+const BOOTSTRAP_VERSION = 'sensory-bootstrap-20260802b';
 let importPromise = null;
 let syncQueued = false;
 let failureTimer = null;
 
+function sensoryContent() {
+  return document.querySelector('#sensoryContent');
+}
+
+function ensureSafeSentinel() {
+  const content = sensoryContent();
+  if (!content) return;
+  const realStart = content.querySelector('.sensory-start-panel:not([data-sensory-sentinel])');
+  if (realStart) {
+    content.querySelectorAll('[data-sensory-sentinel]').forEach(node => node.remove());
+    return;
+  }
+  if (!content.querySelector('[data-sensory-sentinel]')) {
+    const sentinel = document.createElement('div');
+    sentinel.className = 'sensory-start-panel';
+    sentinel.hidden = true;
+    sentinel.dataset.sensorySentinel = 'safe-null-root';
+    content.append(sentinel);
+  }
+}
+
 function startPanel() {
-  return document.querySelector('#sensoryContent .sensory-start-panel');
+  return document.querySelector('#sensoryContent .sensory-start-panel:not([data-sensory-sentinel])');
 }
 
 function expectedPanel(panel = startPanel()) {
@@ -38,7 +59,7 @@ async function loadProfessionalModes() {
   const panel = reserveModeSlot();
   if (!panel || expectedPanel(panel)) return;
 
-  if (!importPromise) importPromise = import('./v095-sensory-pro.js?v=095e');
+  if (!importPromise) importPromise = import('./v095-sensory-pro.js?v=095f');
   try {
     await importPromise;
   } catch (error) {
@@ -81,6 +102,7 @@ function verifyFinalPanel() {
 }
 
 function sync() {
+  ensureSafeSentinel();
   const panel = startPanel();
   if (!panel) return;
   if (verifyFinalPanel()) return;
@@ -88,6 +110,7 @@ function sync() {
 }
 
 function queueSync() {
+  ensureSafeSentinel();
   if (syncQueued) return;
   syncQueued = true;
   requestAnimationFrame(() => {
