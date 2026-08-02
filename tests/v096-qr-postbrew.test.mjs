@@ -50,9 +50,11 @@ test('QR wrapper preserves pinned scanner core and parses text first', async () 
   ]) assert.ok(core.includes(marker), marker);
   for (const marker of [
     "import * as core from './qr-core.js'",
-    'Parse the meaningful text first',
+    'Text formats are authoritative',
     'sanitizeStructuredResult',
-    '不是有效的 BrewIon 编码'
+    'decodeCodebookText',
+    'latin1Bytes',
+    '不是有效的 BrewIon 固定字段编码'
   ]) assert.ok(wrapper.includes(marker), marker);
 });
 
@@ -67,7 +69,7 @@ test('post-brew flow cancels automatic evaluation and restores mode selection', 
   ]) assert.ok(module.includes(marker), marker);
 });
 
-test('QR capture UI and OCR runtime files are loaded and cached', async () => {
+test('QR capture UI and Chinese OCR camera runtime files are loaded and cached', async () => {
   const [html, sw, css, ui] = await Promise.all([
     read('index.html'),
     read('sw.js'),
@@ -78,10 +80,11 @@ test('QR capture UI and OCR runtime files are loaded and cached', async () => {
     'styles-qr-scan.css?v=096b',
     'src/v095-postbrew-sensory.js?v=096b',
     'src/v095-qr-ui.js?v=096b',
-    'src/v096-web-ocr.js?v=096d'
+    'src/v096-web-ocr.js?v=096e',
+    'src/v096-direct-camera.js?v=096e'
   ]) assert.ok(html.includes(marker), marker);
-  assert.match(sw, /luckybean-v0\.9\.6-ocr-qr-d/);
-  for (const marker of ['./styles-qr-scan.css', './src/v095-postbrew-sensory.js', './src/v095-qr-ui.js', './src/v096-web-ocr.js', './src/qr-core.js']) assert.ok(sw.includes(marker), marker);
+  assert.match(sw, /luckybean-v0\.9\.6-cn-ocr-camera-e/);
+  for (const marker of ['./styles-qr-scan.css', './src/v095-postbrew-sensory.js', './src/v095-qr-ui.js', './src/v096-web-ocr.js', './src/v096-direct-camera.js', './src/qr-core.js']) assert.ok(sw.includes(marker), marker);
   assert.match(css, /自动捕捉|v095-qr-frame/);
   assert.match(ui, /无需按快门/);
 });
