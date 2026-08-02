@@ -607,7 +607,7 @@ function simulateCandidate(input, plan, models, controls) {
       - (models.bean.chemistry.density - 6.5) * 0.12,
     17.1, 22.2
   );
-  const samples = 101;
+  const samples = 81;
   const dt = totalTime / (samples - 1);
   const points = [];
   let extraction = 0;
