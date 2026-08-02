@@ -1,4 +1,4 @@
-name: Verify sensory modes in browser
+name: Verify sensory modes and OCR QR regressions
 
 on:
   push:
@@ -9,7 +9,13 @@ on:
       - 'styles-v095*.css'
       - 'src/v095-sensory-*.js'
       - 'src/v095-ui.js'
+      - 'src/qr.js'
+      - 'src/v096-web-ocr.js'
+      - 'src/v096-package-capture.js'
+      - 'tools/apply-v096-ocr-qr-fix.py'
       - 'tests/sensory-modes-smoke.py'
+      - 'tests/ocr-qr-regression-smoke.py'
+      - 'tests/v096-ocr-qr-regression.test.mjs'
       - 'tests/theme-light.test.mjs'
       - 'tests/v092.test.mjs'
       - 'tests/v093.test.mjs'
@@ -21,10 +27,14 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: luckybean-browser-verification
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,12 +46,18 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Apply deterministic OCR and QR patch
+        run: python tools/apply-v096-ocr-qr-fix.py
+
       - name: Run static and unit tests
         id: static
         continue-on-error: true
         run: |
           npm test
           npm run check
+          node --check src/qr.js
+          node --check src/v096-web-ocr.js
+          node --check src/v096-package-capture.js
 
       - name: Install browser test runtime
         id: install
@@ -51,10 +67,31 @@ jobs:
           python -m playwright install --with-deps chromium
 
       - name: Verify three sensory modes in Chromium
-        id: browser
+        id: sensory
         continue-on-error: true
         if: steps.install.outcome == 'success'
         run: python tests/sensory-modes-smoke.py
+
+      - name: Verify real browser OCR and text-first QR decoding
+        id: ocr
+        continue-on-error: true
+        if: steps.install.outcome == 'success'
+        run: python tests/ocr-qr-regression-smoke.py
+
+      - name: Commit verified runtime patch
+        id: runtime
+        if: steps.static.outcome == 'success' && steps.install.outcome == 'success' && steps.sensory.outcome == 'success' && steps.ocr.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html sw.js README.md src/qr.js src/v096-package-capture.js src/v096-web-ocr.js tests/static-check.mjs tests/v096-ocr-qr-regression.test.mjs tests/ocr-qr-regression-smoke.py
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix: enable browser OCR and prevent false QR CRC errors'
+            git push origin HEAD:main
+          fi
+          echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Write verification status
         if: always()
@@ -62,23 +99,43 @@ jobs:
         env:
           STATIC_OUTCOME: ${{ steps.static.outcome }}
           INSTALL_OUTCOME: ${{ steps.install.outcome }}
-          BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+          SENSORY_OUTCOME: ${{ steps.sensory.outcome }}
+          OCR_OUTCOME: ${{ steps.ocr.outcome }}
+          RUNTIME_SHA: ${{ steps.runtime.outputs.source_sha }}
         run: |
           python - <<'PY'
           import json, os
           from datetime import datetime, timezone
-          result = {
+          source_sha = os.environ.get('RUNTIME_SHA') or os.environ['GITHUB_SHA']
+          static = os.environ.get('STATIC_OUTCOME', 'skipped')
+          install = os.environ.get('INSTALL_OUTCOME', 'skipped')
+          sensory = os.environ.get('SENSORY_OUTCOME', 'skipped')
+          ocr = os.environ.get('OCR_OUTCOME', 'skipped')
+          sensory_status = {
               'checked_at': datetime.now(timezone.utc).isoformat(),
-              'source_sha': os.environ['GITHUB_SHA'],
-              'static_tests': os.environ.get('STATIC_OUTCOME', 'skipped'),
-              'browser_runtime': os.environ.get('INSTALL_OUTCOME', 'skipped'),
-              'sensory_browser_smoke': os.environ.get('BROWSER_OUTCOME', 'skipped'),
+              'source_sha': source_sha,
+              'static_tests': static,
+              'browser_runtime': install,
+              'sensory_browser_smoke': sensory,
+              'verified': static == install == sensory == 'success',
           }
-          result['verified'] = all(result[key] == 'success' for key in ('static_tests', 'browser_runtime', 'sensory_browser_smoke'))
-          with open('tests/sensory-browser-status.json', 'w', encoding='utf-8') as handle:
-              json.dump(result, handle, ensure_ascii=False, indent=2)
-              handle.write('\n')
-          print(json.dumps(result, ensure_ascii=False, indent=2))
+          ocr_status = {
+              'checked_at': datetime.now(timezone.utc).isoformat(),
+              'source_sha': source_sha,
+              'static_tests': static,
+              'browser_runtime': install,
+              'real_web_ocr_smoke': ocr,
+              'qr_text_first_regression': static,
+              'verified': static == install == ocr == 'success',
+          }
+          for path, value in (
+              ('tests/sensory-browser-status.json', sensory_status),
+              ('tests/ocr-qr-regression-status.json', ocr_status),
+          ):
+              with open(path, 'w', encoding='utf-8') as handle:
+                  json.dump(value, handle, ensure_ascii=False, indent=2)
+                  handle.write('\n')
+          print(json.dumps({'sensory': sensory_status, 'ocr_qr': ocr_status}, ensure_ascii=False, indent=2))
           PY
 
       - name: Commit verification status
@@ -88,9 +145,10 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add tests/sensory-browser-status.json
+          git pull --rebase origin main
+          git add tests/sensory-browser-status.json tests/ocr-qr-regression-status.json
           if ! git diff --cached --quiet; then
-            git commit -m 'chore: record sensory browser verification [skip ci]'
+            git commit -m 'chore: record sensory OCR and QR browser verification [skip ci]'
             git push origin HEAD:main
           fi
 
@@ -100,8 +158,10 @@ jobs:
         env:
           STATIC_OUTCOME: ${{ steps.static.outcome }}
           INSTALL_OUTCOME: ${{ steps.install.outcome }}
-          BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+          SENSORY_OUTCOME: ${{ steps.sensory.outcome }}
+          OCR_OUTCOME: ${{ steps.ocr.outcome }}
         run: |
           test "$STATIC_OUTCOME" = success
           test "$INSTALL_OUTCOME" = success
-          test "$BROWSER_OUTCOME" = success
+          test "$SENSORY_OUTCOME" = success
+          test "$OCR_OUTCOME" = success
