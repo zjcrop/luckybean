@@ -95,11 +95,14 @@ async function decodeEncryptedShare(encoded) {
   }
   const bytes = await decompress(plain, compression);
   const compact = JSON.parse(decoder.decode(bytes));
+  const envelopeVersion = Number(compact.v || 1);
+  compact.v = 1;
   compact.u = [];
   const expanded = core.expandCompactSharePayload(compact);
   expanded.user = { publicId: '', nickname: '匿名' };
   expanded.encrypted = true;
   expanded.encryption = SHARE_ENCRYPTION;
+  expanded.shareFormatVersion = envelopeVersion;
   return expanded;
 }
 
