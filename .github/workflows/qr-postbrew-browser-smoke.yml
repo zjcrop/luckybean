@@ -36,12 +36,16 @@ jobs:
       - name: Run static and unit tests
         id: static
         continue-on-error: true
+        shell: bash
         run: |
-          npm test
-          npm run check
-          node --check src/qr.js
-          node --check src/v095-qr-ui.js
-          node --check src/v095-postbrew-sensory.js
+          set -o pipefail
+          {
+            npm test
+            npm run check
+            node --check src/qr.js
+            node --check src/v095-qr-ui.js
+            node --check src/v095-postbrew-sensory.js
+          } > tests/qr-postbrew-static-log.txt 2>&1
 
       - name: Install browser test runtime
         id: install
@@ -81,7 +85,7 @@ jobs:
           print(json.dumps(result, ensure_ascii=False, indent=2))
           PY
 
-      - name: Commit verification status and failure log
+      - name: Commit verification status and diagnostics
         if: always()
         shell: bash
         run: |
@@ -89,7 +93,9 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add tests/qr-postbrew-browser-status.json
-          if [[ -f tests/qr-postbrew-browser-log.txt ]]; then git add tests/qr-postbrew-browser-log.txt; fi
+          for file in tests/qr-postbrew-static-log.txt tests/qr-postbrew-browser-log.txt; do
+            if [[ -f "$file" ]]; then git add "$file"; fi
+          done
           if ! git diff --cached --quiet; then
             git commit -m 'chore: record QR and post-brew browser verification [skip ci]'
             git push origin HEAD:main
