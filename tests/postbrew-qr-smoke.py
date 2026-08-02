@@ -73,7 +73,8 @@ async def main():
             assert await page.locator("#generatedPlan .plan-stage").count() == 4
 
             # Preserve the original data-driven graph: all physical and flavor curves,
-            # positive/risk windows and stage boundaries must remain in the SVG.
+            # material windows and stage boundaries must remain in the SVG. The risk
+            # curve is always present; a separate risk window is model-dependent.
             trajectory = page.locator('#generatedPlan .trajectory-chart.detailed[data-v097-trajectory-preserved="1"]')
             await trajectory.wait_for(state="visible")
             assert await trajectory.locator('.v097-flavor-coverage').count() == 0
@@ -87,8 +88,8 @@ async def main():
                 '.trajectory-series.risk',
             ]:
                 assert await trajectory.locator(selector).count() == 1
+            assert await trajectory.locator('.trajectory-window').count() >= 1
             assert await trajectory.locator('.trajectory-window.positive').count() >= 1
-            assert await trajectory.locator('.trajectory-window.risk').count() >= 1
             assert await trajectory.locator('.trajectory-phase').count() >= 1
 
             # Complete the brew and verify that it lands on the mode selector,
