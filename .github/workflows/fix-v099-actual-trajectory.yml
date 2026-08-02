@@ -25,61 +25,61 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          def replace(path, old, new, count=1):
-              p = Path(path)
-              text = p.read_text(encoding='utf-8')
+          def replace_once(text, old, new, label):
               if old not in text:
-                  raise SystemExit(f'missing marker in {path}: {old[:100]}')
-              p.write_text(text.replace(old, new, count), encoding='utf-8')
+                  raise SystemExit(f'missing marker: {label}')
+              return text.replace(old, new, 1)
 
-          # The original model SVG now exposes the optimized actual extraction signal.
-          replace(
-              'src/app.js',
-              '<path class="trajectory-series water" d="${line(\'cumulativeN\')}"></path>',
-              '<path class="trajectory-series water" d="${line(\'cumulativeN\')}"></path>\n    <path class="trajectory-series extraction" d="${line(\'actualSignal\')}"></path>'
-          )
-          replace('src/app.js', '<summary>专业内容……</summary>', '<summary>深入解读</summary>')
+          app = Path('src/app.js')
+          text = app.read_text(encoding='utf-8')
+          if 'trajectory-series extraction' not in text:
+              text = replace_once(
+                  text,
+                  '<path class="trajectory-series water" d="${line(\'cumulativeN\')}"></path>',
+                  '<path class="trajectory-series water" d="${line(\'cumulativeN\')}"></path>\n    <path class="trajectory-series extraction" d="${line(\'actualSignal\')}"></path>',
+                  'app extraction path'
+              )
+          text = text.replace('<summary>专业内容……</summary>', '<summary>深入解读</summary>')
+          app.write_text(text, encoding='utf-8')
 
-          p = Path('src/v098-trajectory-v17.js')
-          text = p.read_text(encoding='utf-8')
-          marker = '''function numberFrom(text, fallback = 0) {'''
-          helper = '''function sourcePathPoints(path) {
-            const values = String(path?.getAttribute('d') || '').match(/-?\\d+(?:\\.\\d+)?/g)?.map(Number) || [];
-            const points = [];
-            for (let index = 0; index + 1 < values.length; index += 2) points.push({ x: values[index], y: values[index + 1] });
-            return points;
-          }
+          renderer = Path('src/v098-trajectory-v17.js')
+          text = renderer.read_text(encoding='utf-8')
+          if 'function sourcePathPoints(path)' not in text:
+              text = replace_once(
+                  text,
+                  'function numberFrom(text, fallback = 0) {',
+                  '''function sourcePathPoints(path) {
+  const values = String(path?.getAttribute('d') || '').match(/-?\\d+(?:\\.\\d+)?/g)?.map(Number) || [];
+  const points = [];
+  for (let index = 0; index + 1 < values.length; index += 2) points.push({ x: values[index], y: values[index + 1] });
+  return points;
+}
 
-          function numberFrom(text, fallback = 0) {'''.replace('          ', '')
-          if marker not in text:
-              raise SystemExit('numberFrom marker missing')
-          text = text.replace(marker, helper, 1)
-          old = '''  const original = svg.cloneNode(true);
-            const W = 800, H = 190, left = 38, right = 14, top = 16, bottom = 32;'''.replace('            ', '')
-          new = '''  const original = svg.cloneNode(true);
-            const sourceExtraction = sourcePathPoints(original.querySelector('.trajectory-series.extraction'));
-            const W = 800, H = 190, left = 38, right = 14, top = 16, bottom = 32;'''.replace('            ', '')
-          if old not in text:
-              raise SystemExit('original clone marker missing')
-          text = text.replace(old, new, 1)
-          old = '''  const cumulative = points.map(point => `${tx(point.t)},${tyCumulative(point.cumulative)}`).join(' ');
-            const ticks ='''.replace('            ', '')
-          new = '''  const cumulative = points.map(point => `${tx(point.t)},${tyCumulative(point.cumulative)}`).join(' ');
-            const extraction = sourceExtraction.length
-              ? sourceExtraction.map(point => {
-                  const sourceX = clamp((point.x - 42) / 660, 0, 1);
-                  const sourceY = clamp(1 - (point.y - 24) / 268, 0, 1);
-                  return `${(left + sourceX * innerW).toFixed(1)},${(top + innerH - sourceY * innerH * .88).toFixed(1)}`;
-                }).join(' ')
-              : flavor.coverage;
-            const ticks ='''.replace('            ', '')
-          if old not in text:
-              raise SystemExit('cumulative marker missing')
-          text = text.replace(old, new, 1)
-          text = text.replace("${flavor.coverage ? `<polyline class=\"v098-flavor-line\" points=\"${flavor.coverage}\"></polyline>` : ''}", "${extraction ? `<polyline class=\"v098-flavor-line\" points=\"${extraction}\"></polyline>` : ''}", 1)
-          p.write_text(text, encoding='utf-8')
+function numberFrom(text, fallback = 0) {''',
+                  'path parser'
+              )
+          if 'const sourceExtraction =' not in text:
+              text = replace_once(
+                  text,
+                  "  const original = svg.cloneNode(true);\n  const W = 800, H = 190, left = 38, right = 14, top = 16, bottom = 32;",
+                  "  const original = svg.cloneNode(true);\n  const sourceExtraction = sourcePathPoints(original.querySelector('.trajectory-series.extraction'));\n  const W = 800, H = 190, left = 38, right = 14, top = 16, bottom = 32;",
+                  'source extraction'
+              )
+          if 'const extraction = sourceExtraction.length' not in text:
+              text = replace_once(
+                  text,
+                  "  const cumulative = points.map(point => `${tx(point.t)},${tyCumulative(point.cumulative)}`).join(' ');\n  const ticks =",
+                  "  const cumulative = points.map(point => `${tx(point.t)},${tyCumulative(point.cumulative)}`).join(' ');\n  const extraction = sourceExtraction.length\n    ? sourceExtraction.map(point => {\n        const sourceX = clamp((point.x - 42) / 660, 0, 1);\n        const sourceY = clamp(1 - (point.y - 24) / 268, 0, 1);\n        return `${(left + sourceX * innerW).toFixed(1)},${(top + innerH - sourceY * innerH * .88).toFixed(1)}`;\n      }).join(' ')\n    : flavor.coverage;\n  const ticks =",
+                  'mapped extraction'
+              )
+          old_polyline = '${flavor.coverage ? `<polyline class="v098-flavor-line" points="${flavor.coverage}"></polyline>` : \'\'}'
+          new_polyline = '${extraction ? `<polyline class="v098-flavor-line" points="${extraction}"></polyline>` : \'\'}'
+          if old_polyline in text:
+              text = text.replace(old_polyline, new_polyline, 1)
+          if 'points="${extraction}"' not in text:
+              raise SystemExit('highlighted extraction polyline was not installed')
+          renderer.write_text(text, encoding='utf-8')
 
-          # Force one more cache boundary for the semantic chart correction.
           for path in ['index.html', 'manifest.webmanifest', 'sw.js']:
               p = Path(path)
               text = p.read_text(encoding='utf-8').replace('099a', '099b')
