@@ -7,15 +7,16 @@
 
 ## v0.9.6
 
-### 多视角豆袋采集基础
+### 多视角豆袋采集与网页 OCR
 
 - 将原“拍照识别”从二维码图片入口中拆分，正式命名为“拍袋录入”；
 - 支持正面主体、背面参数、侧面补充和日期标签四类照片，最多保留四张；
 - 拍摄后自动压缩到适合移动端处理的尺寸，并检查分辨率、模糊、反光、曝光和低对比度；
 - 根据已有视角提示继续补拍背面或日期标签，不再假设一张照片包含全部信息；
-- 识别文字保留人工修正入口，再交给现有 BrewIon 编码表和文字解析器填充豆卡；
-- 新增统一识别桥接，兼容未来 Android、iOS、HarmonyOS 原生 PP-OCRv5 + ncnn 插件和网页 PaddleOCR.js；
-- 当前阶段完成采集、质量评估、桥接和业务交接，PP-OCR 模型文件及原生插件将在后续阶段接入。
+- 网页版内置 Tesseract.js 6.0.1 OCR，默认识别英文与简体中文；
+- 第一次识别需要联网下载 WebAssembly 核心和语言模型，后续由浏览器缓存复用；
+- OCR 结果先进入可编辑文字区，再交给现有 BrewIon 编码表和自然语言解析器填充豆卡；
+- 统一识别桥接仍兼容未来 Android、iOS、HarmonyOS 原生 PP-OCRv5 + ncnn 插件，原生引擎优先于网页引擎。
 
 识别架构详见 `docs/recognition-architecture.md`。
 
@@ -36,7 +37,7 @@
 - 图片识别增加多阈值二值化与中心区域裁切，提高低对比、偏暗或占画面较小二维码的识别率；
 - 支持 BrewIon 二进制二维码、HEX 二维码、JSON 豆卡二维码；
 - 支持富贵盒子自身生成的 `#share=LB8…` 分享二维码，并解压回豆卡确认页；
-- 识别到不受支持的普通二维码时不退出相机，页面会提示更换二维码；
+- 解码顺序为“结构化文本与分享编码优先、合法 BrewIon 二进制其次”，普通网址或 JSON 二维码不再被误判为 CRC16 错误；
 - 手动选择图片仍作为自动捕捉困难时的兜底方式。
 
 ## v0.9.5
@@ -84,9 +85,11 @@ styles-v095-refine.css           子页、器具与专业品鉴补充样式
 styles-v096-recognition.css      多视角豆袋采集界面
 styles-qr-scan.css               二维码自动捕捉取景界面
 src/app.js                       核心业务与数据保存
-src/qr.js                        ZXing/BarcodeDetector/jsQR 解码与格式兼容
+src/qr.js                        文本优先的二维码兼容包装层
+src/qr-core.js                   ZXing/BarcodeDetector/jsQR 扫描与 BrewIon 核心解码
 src/v095-qr-ui.js                二维码自动捕捉提示与取景框
 src/v095-postbrew-sensory.js     冲煮结束后恢复品鉴模式选择
+src/v096-web-ocr.js              Tesseract.js 网页 OCR 运行层
 src/v096-package-capture.js      拍袋录入与多图工作流
 src/image-quality.js             照片清晰度、反光和曝光检查
 src/recognition-bridge.js        Web/原生统一 OCR 桥接
@@ -109,6 +112,7 @@ npm run check
 npm run browser:smoke
 python tests/sensory-modes-smoke.py
 python tests/postbrew-qr-smoke.py
+python tests/ocr-qr-regression-smoke.py
 ```
 
 不要通过 `file://` 打开。每次发布必须同步检查 `package.json`、`src/utils.js`、`sw.js`、`manifest.webmanifest` 和 README，并由 BrewIon 发布流程核验线上版本、源 SHA 与资源 HTTP 状态。
