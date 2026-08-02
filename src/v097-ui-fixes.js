@@ -12,7 +12,10 @@ const PROFILE_TO_SEGMENT = Object.freeze({
   'one-pour': '1',
   'two-pulse': '2',
   'three-pulse': '3',
-  'five-pulse': '5'
+  'four-six-v17': '4',
+  'flat46-clean': '4',
+  'five-pulse': '5',
+  'pulse-30x15': '5'
 });
 const SEGMENT_TO_PROFILE = Object.freeze({
   '1': 'one-pour',
@@ -44,7 +47,7 @@ const LABEL_DEFINITIONS = Object.freeze([
   ['varietyCode', /^(?:豆种|品种|树种|VARIETY|VARIETAL|CULTIVAR|BOTANICAL\s+VARIETY)$/i],
   ['processCode', /^(?:处理法|处理方式|处理工艺|PROCESS(?:ING)?(?:\s+METHOD)?|METHOD)$/i],
   ['roastColor', /^(?:烘焙色值|色值|AGTRON|ROAST\s+COLOU?R)$/i],
-  ['roastCode', /^(?:烘焙度|烘焙程度|焙度|ROAST(?:\s+LEVEL)?|ROASTING\s+LEVEL)$/i],
+  ['roastCode', /^(?:烘焙度|烘焙程度|焙度|ROAST(?!ER|ERY|ED)(?:\s+LEVEL)?|ROASTING\s+LEVEL)$/i],
   ['roastDate', /^(?:烘焙日期|烘焙日|生产日期|ROAST(?:ED)?\s+(?:ON|DATE)|ROASTED)$/i],
   ['altitude', /^(?:海拔|种植海拔|ALTITUDE|ELEVATION)$/i],
   ['initialWeight', /^(?:初始克重|净重|重量|规格|NET\s+WEIGHT|WEIGHT)$/i],
@@ -59,14 +62,15 @@ const LABEL_SOURCE = [
   '豆种','品种','树种','VARIETY','VARIETAL','CULTIVAR','BOTANICAL\\s+VARIETY',
   '处理法','处理方式','处理工艺','PROCESS(?:ING)?(?:\\s+METHOD)?','METHOD',
   '烘焙色值','色值','AGTRON','ROAST\\s+COLOU?R',
-  '烘焙度','烘焙程度','焙度','ROAST(?:\\s+LEVEL)?','ROASTING\\s+LEVEL',
+  '烘焙度','烘焙程度','焙度','ROAST(?!ER|ERY|ED)(?:\\s+LEVEL)?','ROASTING\\s+LEVEL',
   '烘焙日期','烘焙日','生产日期','ROAST(?:ED)?\\s+(?:ON|DATE)','ROASTED',
   '海拔','种植海拔','ALTITUDE','ELEVATION',
   '初始克重','净重','重量','规格','NET\\s+WEIGHT','WEIGHT',
   '购买价格','价格','售价','PRICE','COST',
   '烘焙商','烘焙厂','烘焙品牌','品牌','ROASTER','ROASTERY','BRAND'
 ].sort((left, right) => right.length - left.length).join('|');
-const LABEL_INSERTION = new RegExp(`(${LABEL_SOURCE})\\s*[:：=\\-]?`, 'gi');
+const LINE_LABEL_INSERTION = new RegExp(`(^|[\\n|；;,，])\\s*(${LABEL_SOURCE})\\s*[:：=\\-]?`, 'gim');
+const INLINE_LABEL_INSERTION = new RegExp(`([^\\n|；;,，])\\s+(${LABEL_SOURCE})\\s*[:：=]`, 'gi');
 
 const AUTO_FIELD_ORDER = Object.freeze([
   'countryCode', 'regionCode', 'entityCode', 'varietyCode', 'processCode',
@@ -234,7 +238,8 @@ function enforceBrewSelection() {
 
   requestedProfileId = explicit;
   profile.value = explicit;
-  segments.value = PROFILE_TO_SEGMENT[explicit];
+  const mappedSegment = PROFILE_TO_SEGMENT[explicit];
+  if (mappedSegment) segments.value = mappedSegment;
   profile.dataset.v097ExplicitProfile = explicit;
   segments.dataset.v097ExplicitProfile = explicit;
 }
@@ -270,7 +275,8 @@ function recognitionFragments(text) {
     .replace(/[‐‑‒–—―−﹣－]/g, '-')
     .replace(/\r/g, '\n')
     .replace(/[|；;]/g, '\n')
-    .replace(LABEL_INSERTION, '\n$1:');
+    .replace(LINE_LABEL_INSERTION, '\n$2:')
+    .replace(INLINE_LABEL_INSERTION, '$1\n$2:');
 
   const fields = Object.create(null);
   const free = [];
@@ -416,12 +422,12 @@ function candidateThreshold(field, labeled) {
   }[field] || 0.92;
 }
 
-function updateRecognitionWarning(recognizedFields = new Set()) {
+function updateRecognitionWarning(recognizedFields = new Set(), { clearUnrecognizedDate = true } = {}) {
   const form = $('#beanForm');
   if (!form) return;
   form.querySelector('.v097-recognition-warning')?.remove();
 
-  if (!recognizedFields.has('roastDate')) {
+  if (clearUnrecognizedDate && !recognizedFields.has('roastDate')) {
     const date = $('#beanRoastDate');
     if (date?.dataset.v097AutoFilled !== '1') date.value = '';
   }
@@ -476,7 +482,7 @@ export async function autoFillRecognition(text, { overwrite = true } = {}) {
     }
   }
 
-  updateRecognitionWarning(recognizedFields);
+  updateRecognitionWarning(recognizedFields, { clearUnrecognizedDate: overwrite });
   globalThis.LuckyBeanIntegrityUI?.refresh?.();
 }
 
