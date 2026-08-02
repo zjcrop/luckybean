@@ -1,0 +1,14 @@
+{
+  "checked_at": "2026-08-02T11:31:50.410416+00:00",
+  "source_sha": "753e375809c87e3173d7c7965779371a0afb31ae",
+  "static_tests": "failure",
+  "browser_runtime": "success",
+  "integrity_browser_smoke": "failure",
+  "brew_profile_integrity": "failure",
+  "variable_trajectory": "failure",
+  "sensory_encrypted_storage": "failure",
+  "sensory_rich_history": "failure",
+  "minimal_identity_screen": "failure",
+  "direct_sensory_choice": "failure",
+  "verified": false
+}
