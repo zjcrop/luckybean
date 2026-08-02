@@ -1,0 +1,108 @@
+name: Verify QR and post-brew sensory flow
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'sw.js'
+      - 'styles-qr-scan.css'
+      - 'src/qr.js'
+      - 'src/v095-qr-ui.js'
+      - 'src/v095-postbrew-sensory.js'
+      - 'tests/v096-qr-postbrew.test.mjs'
+      - 'tests/postbrew-qr-smoke.py'
+      - '.github/workflows/qr-postbrew-browser-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run static and unit tests
+        id: static
+        continue-on-error: true
+        run: |
+          npm test
+          npm run check
+          node --check src/qr.js
+          node --check src/v095-qr-ui.js
+          node --check src/v095-postbrew-sensory.js
+
+      - name: Install browser test runtime
+        id: install
+        continue-on-error: true
+        run: |
+          python -m pip install --disable-pip-version-check playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Verify post-brew and QR UI in Chromium
+        id: browser
+        continue-on-error: true
+        if: steps.install.outcome == 'success'
+        run: python tests/postbrew-qr-smoke.py > tests/qr-postbrew-browser-log.txt 2>&1
+
+      - name: Write verification status
+        if: always()
+        shell: bash
+        env:
+          STATIC_OUTCOME: ${{ steps.static.outcome }}
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          result = {
+              'checked_at': datetime.now(timezone.utc).isoformat(),
+              'source_sha': os.environ['GITHUB_SHA'],
+              'static_tests': os.environ.get('STATIC_OUTCOME', 'skipped'),
+              'browser_runtime': os.environ.get('INSTALL_OUTCOME', 'skipped'),
+              'postbrew_qr_browser_smoke': os.environ.get('BROWSER_OUTCOME', 'skipped'),
+          }
+          result['verified'] = all(result[key] == 'success' for key in ('static_tests', 'browser_runtime', 'postbrew_qr_browser_smoke'))
+          with open('tests/qr-postbrew-browser-status.json', 'w', encoding='utf-8') as handle:
+              json.dump(result, handle, ensure_ascii=False, indent=2)
+              handle.write('\n')
+          print(json.dumps(result, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Commit verification status and failure log
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tests/qr-postbrew-browser-status.json
+          if [[ -f tests/qr-postbrew-browser-log.txt ]]; then git add tests/qr-postbrew-browser-log.txt; fi
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: record QR and post-brew browser verification [skip ci]'
+            git push origin HEAD:main
+          fi
+
+      - name: Enforce verification result
+        if: always()
+        shell: bash
+        env:
+          STATIC_OUTCOME: ${{ steps.static.outcome }}
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+        run: |
+          test "$STATIC_OUTCOME" = success
+          test "$INSTALL_OUTCOME" = success
+          test "$BROWSER_OUTCOME" = success
