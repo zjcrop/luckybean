@@ -6,167 +6,151 @@ TAP version 13
 # Subtest: BrewIon 回退编码表结构完整且编码唯一
 ok 1 - BrewIon 回退编码表结构完整且编码唯一
   ---
-  duration_ms: 37.788991
+  duration_ms: 33.817851
   type: 'test'
   ...
 # Subtest: Beta 冲煮引擎输出完整协议、守恒和专业模型
-not ok 2 - Beta 冲煮引擎输出完整协议、守恒和专业模型
+ok 2 - Beta 冲煮引擎输出完整协议、守恒和专业模型
   ---
-  duration_ms: 137.475301
+  duration_ms: 799.478719
   type: 'test'
-  location: '/home/runner/work/luckybean/luckybean/tests/core.test.mjs:40:1'
-  failureType: 'testCodeFailure'
-  error: |-
-    The expression evaluated to a falsy value:
-    
-      assert.ok(plan.recommendation?.candidates?.length >= 3)
-    
-  code: 'ERR_ASSERTION'
-  name: 'AssertionError'
-  expected: true
-  actual: false
-  operator: '=='
-  stack: |-
-    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/core.test.mjs:56:10)
-    async Test.run (node:internal/test_runner/test:1054:7)
-    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
   ...
 # Subtest: 冲煮方案库覆盖旧版主要方案类型
 ok 3 - 冲煮方案库覆盖旧版主要方案类型
   ---
-  duration_ms: 1.089175
+  duration_ms: 0.49381
   type: 'test'
   ...
 # Subtest: 调水模块对标 Brew-Water-Calibrato 咖啡参数
 ok 4 - 调水模块对标 Brew-Water-Calibrato 咖啡参数
   ---
-  duration_ms: 0.77963
+  duration_ms: 1.541994
   type: 'test'
   ...
 # Subtest: 低分品鉴可生成问题定向修正方案
 ok 5 - 低分品鉴可生成问题定向修正方案
   ---
-  duration_ms: 228.354556
+  duration_ms: 432.271913
   type: 'test'
   ...
 # Subtest: 自动得分、主观分差和偏好标签可累计
 ok 6 - 自动得分、主观分差和偏好标签可累计
   ---
-  duration_ms: 2.46779
+  duration_ms: 2.546907
   type: 'test'
   ...
 # Subtest: 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
 ok 7 - 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
   ---
-  duration_ms: 102.748962
+  duration_ms: 295.62551
   type: 'test'
   ...
 # Subtest: 导航、田字快捷区和双字题注严格对应
 ok 8 - 导航、田字快捷区和双字题注严格对应
   ---
-  duration_ms: 3.612739
+  duration_ms: 1.756104
   type: 'test'
   ...
 # Subtest: HTML 不含重复 ID 或内联事件处理器
 ok 9 - HTML 不含重复 ID 或内联事件处理器
   ---
-  duration_ms: 2.644769
+  duration_ms: 1.812438
   type: 'test'
   ...
 # Subtest: 应用代码保持单一初始化和主渲染函数
 ok 10 - 应用代码保持单一初始化和主渲染函数
   ---
-  duration_ms: 4.302573
+  duration_ms: 2.787777
   type: 'test'
   ...
 # Subtest: 私有仓库凭据和私有 GitHub API 不进入前端
 ok 11 - 私有仓库凭据和私有 GitHub API 不进入前端
   ---
-  duration_ms: 6.505009
+  duration_ms: 5.099666
   type: 'test'
   ...
 # Subtest: 自然语言识别回填确定性字段和 BrewIon 代码
 ok 12 - 自然语言识别回填确定性字段和 BrewIon 代码
   ---
-  duration_ms: 37.206852
+  duration_ms: 15.859723
   type: 'test'
   ...
 # Subtest: BrewIon 固定字段二维码执行 CRC 和行索引解码
 ok 13 - BrewIon 固定字段二维码执行 CRC 和行索引解码
   ---
-  duration_ms: 20.523572
+  duration_ms: 7.341666
   type: 'test'
   ...
 # Subtest: 视觉、卡片、分组、搜索和撷页交互标记已落地
 ok 14 - 视觉、卡片、分组、搜索和撷页交互标记已落地
   ---
-  duration_ms: 11.035225
+  duration_ms: 2.629181
   type: 'test'
   ...
 # Subtest: 豆卡名称、烘焙色值和现有数据筛选逻辑正确
 ok 15 - 豆卡名称、烘焙色值和现有数据筛选逻辑正确
   ---
-  duration_ms: 2.766275
+  duration_ms: 2.998478
   type: 'test'
   ...
 # Subtest: 远程编码表与内置表合并时保留缺失风味
 ok 16 - 远程编码表与内置表合并时保留缺失风味
   ---
-  duration_ms: 36.779938
+  duration_ms: 10.737114
   type: 'test'
   ...
 # Subtest: 编码表产区与庄园使用正确中文列且不生成空标签
 ok 17 - 编码表产区与庄园使用正确中文列且不生成空标签
   ---
-  duration_ms: 37.577381
+  duration_ms: 18.042522
   type: 'test'
   ...
 # Subtest: 十阶段赏味进度从20%起步并在赏味期后一周达到100%
 ok 18 - 十阶段赏味进度从20%起步并在赏味期后一周达到100%
   ---
-  duration_ms: 4.097371
+  duration_ms: 0.851818
   type: 'test'
   ...
 # Subtest: 负面缺陷扣分显著高于正面风味叠加
 ok 19 - 负面缺陷扣分显著高于正面风味叠加
   ---
-  duration_ms: 0.448484
+  duration_ms: 0.399795
   type: 'test'
   ...
 # Subtest: v0.9 交互与器具库存标记完整
 ok 20 - v0.9 交互与器具库存标记完整
   ---
-  duration_ms: 8.931783
+  duration_ms: 5.198982
   type: 'test'
   ...
 # Subtest: 计时、消耗、品鉴札记、复刻与方案导出功能已落地
 ok 21 - 计时、消耗、品鉴札记、复刻与方案导出功能已落地
   ---
-  duration_ms: 6.887841
+  duration_ms: 2.491715
   type: 'test'
   ...
 # Subtest: header controls are forced into one horizontal row
 ok 22 - header controls are forced into one horizontal row
   ---
-  duration_ms: 10.874576
+  duration_ms: 6.298912
   type: 'test'
   ...
 # Subtest: theme bridge intercepts dynamic buttons and delegates to native state
 ok 23 - theme bridge intercepts dynamic buttons and delegates to native state
   ---
-  duration_ms: 2.37119
+  duration_ms: 1.731457
   type: 'test'
   ...
 # Subtest: light theme covers main pages, overlays, forms, navigation and tasting wizard
 ok 24 - light theme covers main pages, overlays, forms, navigation and tasting wizard
   ---
-  duration_ms: 2.494279
+  duration_ms: 1.295696
   type: 'test'
   ...
 # Subtest: runtime entry and PWA cache include theme patch assets
 not ok 25 - runtime entry and PWA cache include theme patch assets
   ---
-  duration_ms: 6.453373
+  duration_ms: 4.030871
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/theme-light.test.mjs:21:1'
   failureType: 'testCodeFailure'
@@ -220,37 +204,37 @@ not ok 25 - runtime entry and PWA cache include theme patch assets
 # Subtest: 0.9.6 keeps 0.9.2 interaction baseline
 ok 26 - 0.9.6 keeps 0.9.2 interaction baseline
   ---
-  duration_ms: 12.87965
+  duration_ms: 11.30986
   type: 'test'
   ...
 # Subtest: recommendation animation and prompt libraries are complete
 ok 27 - recommendation animation and prompt libraries are complete
   ---
-  duration_ms: 4.01089
+  duration_ms: 1.899331
   type: 'test'
   ...
 # Subtest: timer, inventory, delta wheel and trajectory requirements
 ok 28 - timer, inventory, delta wheel and trajectory requirements
   ---
-  duration_ms: 5.987356
+  duration_ms: 3.520121
   type: 'test'
   ...
 # Subtest: 0.9.6 version and visual assets
 ok 29 - 0.9.6 version and visual assets
   ---
-  duration_ms: 10.218005
+  duration_ms: 10.138639
   type: 'test'
   ...
 # Subtest: 0.9.3 sensory, cold storage and gear requirements remain available
 ok 30 - 0.9.3 sensory, cold storage and gear requirements remain available
   ---
-  duration_ms: 5.190103
+  duration_ms: 5.982471
   type: 'test'
   ...
 # Subtest: refinement runtime files are loaded in deterministic order and cached
 not ok 31 - refinement runtime files are loaded in deterministic order and cached
   ---
-  duration_ms: 7.922525
+  duration_ms: 13.631157
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v095-refine.test.mjs:6:1'
   failureType: 'testCodeFailure'
@@ -304,103 +288,103 @@ not ok 31 - refinement runtime files are loaded in deterministic order and cache
 # Subtest: light mode covers seals, groups, leaderboard and collapse row
 ok 32 - light mode covers seals, groups, leaderboard and collapse row
   ---
-  duration_ms: 2.709941
+  duration_ms: 5.728849
   type: 'test'
   ...
 # Subtest: remaining recommendation, manage menu and structured grinder range are implemented
 ok 33 - remaining recommendation, manage menu and structured grinder range are implemented
   ---
-  duration_ms: 3.106137
+  duration_ms: 2.183941
   type: 'test'
   ...
 # Subtest: settings mascot uses fixed one-third size
 ok 34 - settings mascot uses fixed one-third size
   ---
-  duration_ms: 1.324052
+  duration_ms: 1.925179
   type: 'test'
   ...
 # Subtest: three sensory modes have distinct non-duplicated workflows
 ok 35 - three sensory modes have distinct non-duplicated workflows
   ---
-  duration_ms: 1.361042
+  duration_ms: 1.804814
   type: 'test'
   ...
 # Subtest: professional sensory uses CATA tags, ordering, conditional radar slider and final affective score
 ok 36 - professional sensory uses CATA tags, ordering, conditional radar slider and final affective score
   ---
-  duration_ms: 1.195203
+  duration_ms: 1.559356
   type: 'test'
   ...
 # Subtest: simple note mode reveals score before note
 ok 37 - simple note mode reveals score before note
   ---
-  duration_ms: 1.683281
+  duration_ms: 2.177539
   type: 'test'
   ...
 # Subtest: current v0.9.6 release retains v0.9.5 runtime entry
 ok 38 - current v0.9.6 release retains v0.9.5 runtime entry
   ---
-  duration_ms: 12.588026
+  duration_ms: 10.404243
   type: 'test'
   ...
 # Subtest: v0.9.5 requested modes, labels and artwork exist
 ok 39 - v0.9.5 requested modes, labels and artwork exist
   ---
-  duration_ms: 7.140611
+  duration_ms: 2.531579
   type: 'test'
   ...
 # Subtest: sensory modes preserve interaction and only note mode skips nodes
 ok 40 - sensory modes preserve interaction and only note mode skips nodes
   ---
-  duration_ms: 5.299145
+  duration_ms: 3.878099
   type: 'test'
   ...
 # Subtest: v0.9.5 layout and theme selectors exist
 ok 41 - v0.9.5 layout and theme selectors exist
   ---
-  duration_ms: 2.695243
+  duration_ms: 2.026317
   type: 'test'
   ...
 # Subtest: header controls remain horizontal and theme binding is stable
 ok 42 - header controls remain horizontal and theme binding is stable
   ---
-  duration_ms: 2.551847
+  duration_ms: 3.9109
   type: 'test'
   ...
 # Subtest: explicit one-pour remains bloom plus one pour before and after correction
 ok 43 - explicit one-pour remains bloom plus one pour before and after correction
   ---
-  duration_ms: 234.705688
+  duration_ms: 263.351943
   type: 'test'
   ...
 # Subtest: trajectory is calculated from temperature grind water and profile variables
 ok 44 - trajectory is calculated from temperature grind water and profile variables
   ---
-  duration_ms: 213.446104
+  duration_ms: 188.257551
   type: 'test'
   ...
 # Subtest: sensory records are coded compressed encrypted and note-limited
 ok 45 - sensory records are coded compressed encrypted and note-limited
   ---
-  duration_ms: 94.958503
+  duration_ms: 104.006742
   type: 'test'
   ...
 # Subtest: encrypted share omits plaintext public identity and remains decodable
 ok 46 - encrypted share omits plaintext public identity and remains decodable
   ---
-  duration_ms: 9.739194
+  duration_ms: 6.440495
   type: 'test'
   ...
 # Subtest: OCR evidence candidates support per-field fuzzy correction
 ok 47 - OCR evidence candidates support per-field fuzzy correction
   ---
-  duration_ms: 5.372693
+  duration_ms: 1.953672
   type: 'test'
   ...
 # Subtest: runtime provides minimal identity screen rich history and selection-only tasting navigation
 not ok 48 - runtime provides minimal identity screen rich history and selection-only tasting navigation
   ---
-  duration_ms: 10.013843
+  duration_ms: 7.941463
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v096-integrity.test.mjs:149:1'
   failureType: 'testCodeFailure'
@@ -454,31 +438,31 @@ not ok 48 - runtime provides minimal identity screen rich history and selection-
 # Subtest: JSON QR text is parsed before misleading raw bytes
 ok 49 - JSON QR text is parsed before misleading raw bytes
   ---
-  duration_ms: 1.60809
+  duration_ms: 1.839348
   type: 'test'
   ...
 # Subtest: official codebook codes from OCR text are parsed directly
 ok 50 - official codebook codes from OCR text are parsed directly
   ---
-  duration_ms: 2.712876
+  duration_ms: 2.962312
   type: 'test'
   ...
 # Subtest: codebook text QR is decoded without CRC branch
 ok 51 - codebook text QR is decoded without CRC branch
   ---
-  duration_ms: 0.598573
+  duration_ms: 0.717928
   type: 'test'
   ...
 # Subtest: invalid binary QR no longer exposes a raw CRC16 error
 ok 52 - invalid binary QR no longer exposes a raw CRC16 error
   ---
-  duration_ms: 1.860471
+  duration_ms: 2.169284
   type: 'test'
   ...
 # Subtest: Chinese-first OCR runtime and direct camera are loaded and cached
 not ok 53 - Chinese-first OCR runtime and direct camera are loaded and cached
   ---
-  duration_ms: 16.319113
+  duration_ms: 15.904349
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v096-ocr-qr-regression.test.mjs:53:1'
   failureType: 'testCodeFailure'
@@ -532,25 +516,25 @@ not ok 53 - Chinese-first OCR runtime and direct camera are loaded and cached
 # Subtest: Lucky Bean encrypted share URL QR is expanded to a bean record
 ok 54 - Lucky Bean encrypted share URL QR is expanded to a bean record
   ---
-  duration_ms: 84.823445
+  duration_ms: 158.213285
   type: 'test'
   ...
 # Subtest: QR wrapper preserves pinned scanner core and parses text before bytes
 ok 55 - QR wrapper preserves pinned scanner core and parses text before bytes
   ---
-  duration_ms: 12.48976
+  duration_ms: 9.12001
   type: 'test'
   ...
 # Subtest: post-brew flow cancels automatic evaluation and restores mode selection
 ok 56 - post-brew flow cancels automatic evaluation and restores mode selection
   ---
-  duration_ms: 3.695764
+  duration_ms: 4.655257
   type: 'test'
   ...
 # Subtest: QR capture UI and integrity runtime files are loaded and cached
 not ok 57 - QR capture UI and integrity runtime files are loaded and cached
   ---
-  duration_ms: 10.453392
+  duration_ms: 6.935457
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v096-qr-postbrew.test.mjs:75:1'
   failureType: 'testCodeFailure'
@@ -604,75 +588,75 @@ not ok 57 - QR capture UI and integrity runtime files are loaded and cached
 # Subtest: v17 chemistry priors are migrated into the inverse optimizer
 ok 58 - v17 chemistry priors are migrated into the inverse optimizer
   ---
-  duration_ms: 5.550153
+  duration_ms: 6.011435
   type: 'test'
   ...
 # Subtest: dripper and paper library values alter the hydraulic envelope
 ok 59 - dripper and paper library values alter the hydraulic envelope
   ---
-  duration_ms: 1.301931
+  duration_ms: 1.309892
   type: 'test'
   ...
 # Subtest: target and risk windows are bean preference water and device linked
 ok 60 - target and risk windows are bean preference water and device linked
   ---
-  duration_ms: 1.37632
+  duration_ms: 1.561611
   type: 'test'
   ...
 # Subtest: recommended plan is selected by trajectory objective and retains full protocol
-not ok 61 - recommended plan is selected by trajectory objective and retains full protocol
+ok 61 - recommended plan is selected by trajectory objective and retains full protocol
   ---
-  duration_ms: 189.347862
+  duration_ms: 714.40014
   type: 'test'
-  location: '/home/runner/work/luckybean/luckybean/tests/v097-optimizer.test.mjs:90:1'
-  failureType: 'testCodeFailure'
-  error: |-
-    Expected values to be strictly equal:
-    + actual - expected
-    
-    + 'user-profile-constraint'
-    - 'inverse-trajectory-objective'
-    
-  code: 'ERR_ASSERTION'
-  name: 'AssertionError'
-  expected: 'inverse-trajectory-objective'
-  actual: 'user-profile-constraint'
-  operator: 'strictEqual'
-  stack: |-
-    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/v097-optimizer.test.mjs:95:10)
-    async Test.run (node:internal/test_runner/test:1054:7)
-    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
   ...
 # Subtest: explicit brew method is a hard constraint while its parameters are inverse fitted
 ok 62 - explicit brew method is a hard constraint while its parameters are inverse fitted
   ---
-  duration_ms: 64.781809
+  duration_ms: 34.048392
   type: 'test'
   ...
 # Subtest: gear constraints and bean chemistry change optimized trajectory and controls
 ok 63 - gear constraints and bean chemistry change optimized trajectory and controls
   ---
-  duration_ms: 86.330168
+  duration_ms: 64.411997
   type: 'test'
   ...
 # Subtest: sensory feedback becomes a closed-loop parameter correction
 ok 64 - sensory feedback becomes a closed-loop parameter correction
   ---
-  duration_ms: 75.266911
+  duration_ms: 60.233749
   type: 'test'
   ...
 # Subtest: flat-only profile is not considered for cone equipment but is considered for flat equipment
 ok 65 - flat-only profile is not considered for cone equipment but is considered for flat equipment
   ---
-  duration_ms: 0.345422
+  duration_ms: 0.311651
   type: 'test'
   ...
-1..65
-# tests 65
+# Subtest: explicit segment selector constrains the optimizer while legacy count alone does not
+ok 66 - explicit segment selector constrains the optimizer while legacy count alone does not
+  ---
+  duration_ms: 199.151934
+  type: 'test'
+  ...
+# Subtest: v097 runtime restores old trajectory semantics and requested interactions
+ok 67 - v097 runtime restores old trajectory semantics and requested interactions
+  ---
+  duration_ms: 9.128937
+  type: 'test'
+  ...
+# Subtest: brew history abbreviation follows five-character rule
+ok 68 - brew history abbreviation follows five-character rule
+  ---
+  duration_ms: 6.146607
+  type: 'test'
+  ...
+1..68
+# tests 68
 # suites 0
-# pass 58
-# fail 7
+# pass 63
+# fail 5
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 1085.469731
+# duration_ms 1759.640001

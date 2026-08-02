@@ -1,11 +1,12 @@
 {
-  "checked_at": "2026-08-02T14:47:35.878512+00:00",
-  "source_sha": "5ce33a60fc3b610b89e7f72c2aa5043cf8011ebd",
+  "checked_at": "2026-08-02T14:52:03.178639+00:00",
+  "source_sha": "567bc33b9d3eb96e2948c6e99c94331d4f1043cc",
   "static_tests": "failure",
   "browser_runtime": "success",
   "real_web_ocr_smoke": "success",
   "qr_text_first_regression": "failure",
   "chinese_mixed_ocr": "success",
   "direct_camera_static": "failure",
+  "field_autofill_static": "failure",
   "verified": false
 }
