@@ -81,11 +81,12 @@ async def main():
             assert await page.get_by_text("雷达图 / 互动品鉴 / 札记", exact=True).count() == 0
 
             await mode_panel.locator('[data-v095-mode="professional"]').click()
-            await page.wait_for_selector("#v095ProfessionalWizard")
-            professional_text = await page.locator("#v095ProfessionalWizard").inner_text()
+            professional_overlay = page.locator(".v095-professional-overlay")
+            await professional_overlay.wait_for(state="visible")
+            professional_text = await professional_overlay.inner_text()
             assert "干香 / 湿香" in professional_text
             assert "排序靠前的标签代表强度更高" in professional_text
-            assert await page.locator("[data-cata-tag]").count() > 10
+            assert await professional_overlay.locator("[data-cata-tag]").count() > 10
             await page.locator("[data-pro-cancel]").click()
             await page.wait_for_selector('.v095-sensory-modes[data-mode-version="professional-v2"]')
 
