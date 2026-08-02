@@ -1,0 +1,505 @@
+
+> luckybean@0.9.6 test
+> node --test tests/*.test.mjs
+
+TAP version 13
+# Subtest: BrewIon 回退编码表结构完整且编码唯一
+ok 1 - BrewIon 回退编码表结构完整且编码唯一
+  ---
+  duration_ms: 30.057547
+  type: 'test'
+  ...
+# Subtest: Beta 冲煮引擎输出完整协议、守恒和专业模型
+ok 2 - Beta 冲煮引擎输出完整协议、守恒和专业模型
+  ---
+  duration_ms: 14.295613
+  type: 'test'
+  ...
+# Subtest: 冲煮方案库覆盖旧版主要方案类型
+ok 3 - 冲煮方案库覆盖旧版主要方案类型
+  ---
+  duration_ms: 0.460104
+  type: 'test'
+  ...
+# Subtest: 调水模块对标 Brew-Water-Calibrato 咖啡参数
+ok 4 - 调水模块对标 Brew-Water-Calibrato 咖啡参数
+  ---
+  duration_ms: 0.631499
+  type: 'test'
+  ...
+# Subtest: 低分品鉴可生成问题定向修正方案
+ok 5 - 低分品鉴可生成问题定向修正方案
+  ---
+  duration_ms: 8.084044
+  type: 'test'
+  ...
+# Subtest: 自动得分、主观分差和偏好标签可累计
+ok 6 - 自动得分、主观分差和偏好标签可累计
+  ---
+  duration_ms: 3.280569
+  type: 'test'
+  ...
+# Subtest: 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
+ok 7 - 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
+  ---
+  duration_ms: 56.85833
+  type: 'test'
+  ...
+# Subtest: 导航、田字快捷区和双字题注严格对应
+ok 8 - 导航、田字快捷区和双字题注严格对应
+  ---
+  duration_ms: 3.001505
+  type: 'test'
+  ...
+# Subtest: HTML 不含重复 ID 或内联事件处理器
+ok 9 - HTML 不含重复 ID 或内联事件处理器
+  ---
+  duration_ms: 5.659046
+  type: 'test'
+  ...
+# Subtest: 应用代码保持单一初始化和主渲染函数
+ok 10 - 应用代码保持单一初始化和主渲染函数
+  ---
+  duration_ms: 3.335551
+  type: 'test'
+  ...
+# Subtest: 私有仓库凭据和私有 GitHub API 不进入前端
+ok 11 - 私有仓库凭据和私有 GitHub API 不进入前端
+  ---
+  duration_ms: 4.018597
+  type: 'test'
+  ...
+# Subtest: 自然语言识别回填确定性字段和 BrewIon 代码
+ok 12 - 自然语言识别回填确定性字段和 BrewIon 代码
+  ---
+  duration_ms: 28.318069
+  type: 'test'
+  ...
+# Subtest: BrewIon 固定字段二维码执行 CRC 和行索引解码
+ok 13 - BrewIon 固定字段二维码执行 CRC 和行索引解码
+  ---
+  duration_ms: 7.201531
+  type: 'test'
+  ...
+# Subtest: 视觉、卡片、分组、搜索和撷页交互标记已落地
+ok 14 - 视觉、卡片、分组、搜索和撷页交互标记已落地
+  ---
+  duration_ms: 3.050978
+  type: 'test'
+  ...
+# Subtest: 豆卡名称、烘焙色值和现有数据筛选逻辑正确
+ok 15 - 豆卡名称、烘焙色值和现有数据筛选逻辑正确
+  ---
+  duration_ms: 1.94255
+  type: 'test'
+  ...
+# Subtest: 远程编码表与内置表合并时保留缺失风味
+ok 16 - 远程编码表与内置表合并时保留缺失风味
+  ---
+  duration_ms: 25.31254
+  type: 'test'
+  ...
+# Subtest: 编码表产区与庄园使用正确中文列且不生成空标签
+ok 17 - 编码表产区与庄园使用正确中文列且不生成空标签
+  ---
+  duration_ms: 37.245798
+  type: 'test'
+  ...
+# Subtest: 十阶段赏味进度从20%起步并在赏味期后一周达到100%
+ok 18 - 十阶段赏味进度从20%起步并在赏味期后一周达到100%
+  ---
+  duration_ms: 1.006177
+  type: 'test'
+  ...
+# Subtest: 负面缺陷扣分显著高于正面风味叠加
+ok 19 - 负面缺陷扣分显著高于正面风味叠加
+  ---
+  duration_ms: 1.131804
+  type: 'test'
+  ...
+# Subtest: v0.9 交互与器具库存标记完整
+ok 20 - v0.9 交互与器具库存标记完整
+  ---
+  duration_ms: 9.529664
+  type: 'test'
+  ...
+# Subtest: 计时、消耗、品鉴札记、复刻与方案导出功能已落地
+ok 21 - 计时、消耗、品鉴札记、复刻与方案导出功能已落地
+  ---
+  duration_ms: 4.407676
+  type: 'test'
+  ...
+# Subtest: header controls are forced into one horizontal row
+ok 22 - header controls are forced into one horizontal row
+  ---
+  duration_ms: 10.289664
+  type: 'test'
+  ...
+# Subtest: theme bridge intercepts dynamic buttons and delegates to native state
+ok 23 - theme bridge intercepts dynamic buttons and delegates to native state
+  ---
+  duration_ms: 1.955729
+  type: 'test'
+  ...
+# Subtest: light theme covers main pages, overlays, forms, navigation and tasting wizard
+ok 24 - light theme covers main pages, overlays, forms, navigation and tasting wizard
+  ---
+  duration_ms: 1.475024
+  type: 'test'
+  ...
+# Subtest: runtime entry and PWA cache include theme patch assets
+not ok 25 - runtime entry and PWA cache include theme patch assets
+  ---
+  duration_ms: 5.834538
+  type: 'test'
+  location: '/home/runner/work/luckybean/luckybean/tests/theme-light.test.mjs:21:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /luckybean-v0\.9\.6-qr-b/. Input:
+    
+    "const CACHE_NAME = 'luckybean-v0.9.6-ocr-qr-d';\n" +
+      'const CORE = [\n' +
+      "  './', './index.html', './styles.css', './styles-v095.css', './styles-action-grid.css', './styles-theme-light.css', './styles-v095-refine.css', './styles-v096-recognition.css', './styles-qr-scan.css', './manifest.webmanifest',\n" +
+      "  './src/app.js', './src/v096-web-ocr.js', './src/v096-package-capture.js', './src/image-quality.js', './src/recognition-bridge.js', './src/v095-sensory-bootstrap.js', './src/v095-ui.js', './src/theme-bridge.js', './src/v095-layout-gear.js', './src/v095-sensory-pro.js', './src/v095-sensory-flow-guard.js', './src/v095-postbrew-sensory.js', './src/v095-qr-ui.js', './src/utils.js', './src/brew-model-v09.js', './src/db.js', './src/codebook.js', './src/qr.js', './src/qr-core.js', './src/water-profiles.js', './src/preference-model.js', './src/share-codec.js', './src/brew-engine.js',\n" +
+      "  './public/fallback-codebook.json', './public/legacy-flavor-map.json', './public/app-logo.webp', './public/splash-red.jpg', './public/splash-white.jpg', './public/settings-mascot.png', './public/action-grid.svg'\n" +
+      '];\n' +
+      "self.addEventListener('install', event => { event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting())); });\n" +
+      "self.addEventListener('activate', event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim())); });\n" +
+      "self.addEventListener('fetch', event => {\n" +
+      '  const request = event.request;\n' +
+      "  if (request.method !== 'GET') return;\n" +
+      '  const url = new URL(request.url);\n' +
+      "  if (request.mode === 'navigate') { event.respondWith(fetch(request).then(response => { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy)); return response; }).catch(() => caches.match('./index.html'))); return; }\n" +
+      '  if (url.origin === self.location.origin) { event.respondWith(fetch(request).then(response => { if (response.ok) { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(request, copy)); } return response; }).catch(() => caches.match(request))); return; }\n' +
+      "  if (url.hostname === 'cdn.jsdelivr.net') event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(request, copy)); return response; })));\n" +
+      '});'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    const CACHE_NAME = 'luckybean-v0.9.6-ocr-qr-d';
+    const CORE = [
+      './', './index.html', './styles.css', './styles-v095.css', './styles-action-grid.css', './styles-theme-light.css', './styles-v095-refine.css', './styles-v096-recognition.css', './styles-qr-scan.css', './manifest.webmanifest',
+      './src/app.js', './src/v096-web-ocr.js', './src/v096-package-capture.js', './src/image-quality.js', './src/recognition-bridge.js', './src/v095-sensory-bootstrap.js', './src/v095-ui.js', './src/theme-bridge.js', './src/v095-layout-gear.js', './src/v095-sensory-pro.js', './src/v095-sensory-flow-guard.js', './src/v095-postbrew-sensory.js', './src/v095-qr-ui.js', './src/utils.js', './src/brew-model-v09.js', './src/db.js', './src/codebook.js', './src/qr.js', './src/qr-core.js', './src/water-profiles.js', './src/preference-model.js', './src/share-codec.js', './src/brew-engine.js',
+      './public/fallback-codebook.json', './public/legacy-flavor-map.json', './public/app-logo.webp', './public/splash-red.jpg', './public/splash-white.jpg', './public/settings-mascot.png', './public/action-grid.svg'
+    ];
+    self.addEventListener('install', event => { event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting())); });
+    self.addEventListener('activate', event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim())); });
+    self.addEventListener('fetch', event => {
+      const request = event.request;
+      if (request.method !== 'GET') return;
+      const url = new URL(request.url);
+      if (request.mode === 'navigate') { event.respondWith(fetch(request).then(response => { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy)); return response; }).catch(() => caches.match('./index.html'))); return; }
+      if (url.origin === self.location.origin) { event.respondWith(fetch(request).then(response => { if (response.ok) { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(request, copy)); } return response; }).catch(() => caches.match(request))); return; }
+      if (url.hostname === 'cdn.jsdelivr.net') event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(request, copy)); return response; })));
+    });
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/theme-light.test.mjs:25:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 0.9.6 keeps 0.9.2 interaction baseline
+ok 26 - 0.9.6 keeps 0.9.2 interaction baseline
+  ---
+  duration_ms: 8.424019
+  type: 'test'
+  ...
+# Subtest: recommendation animation and prompt libraries are complete
+ok 27 - recommendation animation and prompt libraries are complete
+  ---
+  duration_ms: 1.941237
+  type: 'test'
+  ...
+# Subtest: timer, inventory, delta wheel and trajectory requirements
+ok 28 - timer, inventory, delta wheel and trajectory requirements
+  ---
+  duration_ms: 3.554567
+  type: 'test'
+  ...
+# Subtest: 0.9.6 version and visual assets
+ok 29 - 0.9.6 version and visual assets
+  ---
+  duration_ms: 11.631861
+  type: 'test'
+  ...
+# Subtest: 0.9.3 sensory, cold storage and gear requirements remain available
+ok 30 - 0.9.3 sensory, cold storage and gear requirements remain available
+  ---
+  duration_ms: 4.635765
+  type: 'test'
+  ...
+# Subtest: refinement runtime files are loaded in deterministic order and cached
+not ok 31 - refinement runtime files are loaded in deterministic order and cached
+  ---
+  duration_ms: 10.169966
+  type: 'test'
+  location: '/home/runner/work/luckybean/luckybean/tests/v095-refine.test.mjs:6:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /luckybean-v0\.9\.6-qr-b/. Input:
+    
+    "const CACHE_NAME = 'luckybean-v0.9.6-ocr-qr-d';\n" +
+      'const CORE = [\n' +
+      "  './', './index.html', './styles.css', './styles-v095.css', './styles-action-grid.css', './styles-theme-light.css', './styles-v095-refine.css', './styles-v096-recognition.css', './styles-qr-scan.css', './manifest.webmanifest',\n" +
+      "  './src/app.js', './src/v096-web-ocr.js', './src/v096-package-capture.js', './src/image-quality.js', './src/recognition-bridge.js', './src/v095-sensory-bootstrap.js', './src/v095-ui.js', './src/theme-bridge.js', './src/v095-layout-gear.js', './src/v095-sensory-pro.js', './src/v095-sensory-flow-guard.js', './src/v095-postbrew-sensory.js', './src/v095-qr-ui.js', './src/utils.js', './src/brew-model-v09.js', './src/db.js', './src/codebook.js', './src/qr.js', './src/qr-core.js', './src/water-profiles.js', './src/preference-model.js', './src/share-codec.js', './src/brew-engine.js',\n" +
+      "  './public/fallback-codebook.json', './public/legacy-flavor-map.json', './public/app-logo.webp', './public/splash-red.jpg', './public/splash-white.jpg', './public/settings-mascot.png', './public/action-grid.svg'\n" +
+      '];\n' +
+      "self.addEventListener('install', event => { event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting())); });\n" +
+      "self.addEventListener('activate', event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim())); });\n" +
+      "self.addEventListener('fetch', event => {\n" +
+      '  const request = event.request;\n' +
+      "  if (request.method !== 'GET') return;\n" +
+      '  const url = new URL(request.url);\n' +
+      "  if (request.mode === 'navigate') { event.respondWith(fetch(request).then(response => { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy)); return response; }).catch(() => caches.match('./index.html'))); return; }\n" +
+      '  if (url.origin === self.location.origin) { event.respondWith(fetch(request).then(response => { if (response.ok) { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(request, copy)); } return response; }).catch(() => caches.match(request))); return; }\n' +
+      "  if (url.hostname === 'cdn.jsdelivr.net') event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(request, copy)); return response; })));\n" +
+      '});'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    const CACHE_NAME = 'luckybean-v0.9.6-ocr-qr-d';
+    const CORE = [
+      './', './index.html', './styles.css', './styles-v095.css', './styles-action-grid.css', './styles-theme-light.css', './styles-v095-refine.css', './styles-v096-recognition.css', './styles-qr-scan.css', './manifest.webmanifest',
+      './src/app.js', './src/v096-web-ocr.js', './src/v096-package-capture.js', './src/image-quality.js', './src/recognition-bridge.js', './src/v095-sensory-bootstrap.js', './src/v095-ui.js', './src/theme-bridge.js', './src/v095-layout-gear.js', './src/v095-sensory-pro.js', './src/v095-sensory-flow-guard.js', './src/v095-postbrew-sensory.js', './src/v095-qr-ui.js', './src/utils.js', './src/brew-model-v09.js', './src/db.js', './src/codebook.js', './src/qr.js', './src/qr-core.js', './src/water-profiles.js', './src/preference-model.js', './src/share-codec.js', './src/brew-engine.js',
+      './public/fallback-codebook.json', './public/legacy-flavor-map.json', './public/app-logo.webp', './public/splash-red.jpg', './public/splash-white.jpg', './public/settings-mascot.png', './public/action-grid.svg'
+    ];
+    self.addEventListener('install', event => { event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting())); });
+    self.addEventListener('activate', event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim())); });
+    self.addEventListener('fetch', event => {
+      const request = event.request;
+      if (request.method !== 'GET') return;
+      const url = new URL(request.url);
+      if (request.mode === 'navigate') { event.respondWith(fetch(request).then(response => { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy)); return response; }).catch(() => caches.match('./index.html'))); return; }
+      if (url.origin === self.location.origin) { event.respondWith(fetch(request).then(response => { if (response.ok) { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(request, copy)); } return response; }).catch(() => caches.match(request))); return; }
+      if (url.hostname === 'cdn.jsdelivr.net') event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(request, copy)); return response; })));
+    });
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/v095-refine.test.mjs:13:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: light mode covers seals, groups, leaderboard and collapse row
+ok 32 - light mode covers seals, groups, leaderboard and collapse row
+  ---
+  duration_ms: 3.87887
+  type: 'test'
+  ...
+# Subtest: remaining recommendation, manage menu and structured grinder range are implemented
+ok 33 - remaining recommendation, manage menu and structured grinder range are implemented
+  ---
+  duration_ms: 4.723566
+  type: 'test'
+  ...
+# Subtest: settings mascot uses fixed one-third size
+ok 34 - settings mascot uses fixed one-third size
+  ---
+  duration_ms: 1.439942
+  type: 'test'
+  ...
+# Subtest: three sensory modes have distinct non-duplicated workflows
+ok 35 - three sensory modes have distinct non-duplicated workflows
+  ---
+  duration_ms: 1.494733
+  type: 'test'
+  ...
+# Subtest: professional sensory uses CATA tags, ordering, conditional radar slider and final affective score
+ok 36 - professional sensory uses CATA tags, ordering, conditional radar slider and final affective score
+  ---
+  duration_ms: 2.048216
+  type: 'test'
+  ...
+# Subtest: simple note mode reveals score before note
+ok 37 - simple note mode reveals score before note
+  ---
+  duration_ms: 1.466512
+  type: 'test'
+  ...
+# Subtest: current v0.9.6 release retains v0.9.5 runtime entry
+ok 38 - current v0.9.6 release retains v0.9.5 runtime entry
+  ---
+  duration_ms: 10.316499
+  type: 'test'
+  ...
+# Subtest: v0.9.5 requested modes, labels and artwork exist
+ok 39 - v0.9.5 requested modes, labels and artwork exist
+  ---
+  duration_ms: 4.854771
+  type: 'test'
+  ...
+# Subtest: sensory modes preserve interaction and only note mode skips nodes
+ok 40 - sensory modes preserve interaction and only note mode skips nodes
+  ---
+  duration_ms: 3.335671
+  type: 'test'
+  ...
+# Subtest: v0.9.5 layout and theme selectors exist
+ok 41 - v0.9.5 layout and theme selectors exist
+  ---
+  duration_ms: 1.80205
+  type: 'test'
+  ...
+# Subtest: header controls remain horizontal and theme binding is stable
+ok 42 - header controls remain horizontal and theme binding is stable
+  ---
+  duration_ms: 1.702993
+  type: 'test'
+  ...
+# Subtest: JSON QR text is parsed before misleading raw bytes
+ok 43 - JSON QR text is parsed before misleading raw bytes
+  ---
+  duration_ms: 1.193184
+  type: 'test'
+  ...
+# Subtest: invalid binary QR no longer reports a generic CRC16 failure
+not ok 44 - invalid binary QR no longer reports a generic CRC16 failure
+  ---
+  duration_ms: 1.69429
+  type: 'test'
+  location: '/home/runner/work/luckybean/luckybean/tests/v096-ocr-qr-regression.test.mjs:18:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /不是有效的 BrewIon CRC16 编码/. Input:
+    
+    'Error: 二维码已识别，但原始字节不是有效的 BrewIon 编码；请确认二维码类型或改用清晰原图'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+  error: '二维码已识别，但原始字节不是有效的 BrewIon 编码；请确认二维码类型或改用清晰原图'
+  stack: |-
+    decodeJsQrResult (file:///home/runner/work/luckybean/luckybean/src/qr.js:55:15)
+    file:///home/runner/work/luckybean/luckybean/tests/v096-ocr-qr-regression.test.mjs:20:11
+    getActual (node:assert:609:5)
+    Function.throws (node:assert:757:24)
+    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/v096-ocr-qr-regression.test.mjs:19:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/v096-ocr-qr-regression.test.mjs:19:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: built-in web OCR runtime is loaded before package capture and cached
+not ok 45 - built-in web OCR runtime is loaded before package capture and cached
+  ---
+  duration_ms: 9.423361
+  type: 'test'
+  location: '/home/runner/work/luckybean/luckybean/tests/v096-ocr-qr-regression.test.mjs:25:1'
+  failureType: 'testCodeFailure'
+  error: 'web OCR entry missing'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/v096-ocr-qr-regression.test.mjs:31:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: Lucky Bean share URL QR is expanded to a bean record
+ok 46 - Lucky Bean share URL QR is expanded to a bean record
+  ---
+  duration_ms: 52.154333
+  type: 'test'
+  ...
+# Subtest: QR runtime uses pinned ZXing primary engine with native and jsQR fallback
+not ok 47 - QR runtime uses pinned ZXing primary engine with native and jsQR fallback
+  ---
+  duration_ms: 5.918798
+  type: 'test'
+  location: '/home/runner/work/luckybean/luckybean/tests/v096-qr-postbrew.test.mjs:39:1'
+  failureType: 'testCodeFailure'
+  error: '@zxing/browser@0.2.0/+esm'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/v096-qr-postbrew.test.mjs:50:13)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: post-brew flow cancels automatic evaluation and restores mode selection
+ok 48 - post-brew flow cancels automatic evaluation and restores mode selection
+  ---
+  duration_ms: 2.73609
+  type: 'test'
+  ...
+# Subtest: QR capture UI and new runtime files are loaded and cached
+not ok 49 - QR capture UI and new runtime files are loaded and cached
+  ---
+  duration_ms: 5.107917
+  type: 'test'
+  location: '/home/runner/work/luckybean/luckybean/tests/v096-qr-postbrew.test.mjs:64:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /luckybean-v0\.9\.6-qr-b/. Input:
+    
+    "const CACHE_NAME = 'luckybean-v0.9.6-ocr-qr-d';\n" +
+      'const CORE = [\n' +
+      "  './', './index.html', './styles.css', './styles-v095.css', './styles-action-grid.css', './styles-theme-light.css', './styles-v095-refine.css', './styles-v096-recognition.css', './styles-qr-scan.css', './manifest.webmanifest',\n" +
+      "  './src/app.js', './src/v096-web-ocr.js', './src/v096-package-capture.js', './src/image-quality.js', './src/recognition-bridge.js', './src/v095-sensory-bootstrap.js', './src/v095-ui.js', './src/theme-bridge.js', './src/v095-layout-gear.js', './src/v095-sensory-pro.js', './src/v095-sensory-flow-guard.js', './src/v095-postbrew-sensory.js', './src/v095-qr-ui.js', './src/utils.js', './src/brew-model-v09.js', './src/db.js', './src/codebook.js', './src/qr.js', './src/qr-core.js', './src/water-profiles.js', './src/preference-model.js', './src/share-codec.js', './src/brew-engine.js',\n" +
+      "  './public/fallback-codebook.json', './public/legacy-flavor-map.json', './public/app-logo.webp', './public/splash-red.jpg', './public/splash-white.jpg', './public/settings-mascot.png', './public/action-grid.svg'\n" +
+      '];\n' +
+      "self.addEventListener('install', event => { event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting())); });\n" +
+      "self.addEventListener('activate', event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim())); });\n" +
+      "self.addEventListener('fetch', event => {\n" +
+      '  const request = event.request;\n' +
+      "  if (request.method !== 'GET') return;\n" +
+      '  const url = new URL(request.url);\n' +
+      "  if (request.mode === 'navigate') { event.respondWith(fetch(request).then(response => { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy)); return response; }).catch(() => caches.match('./index.html'))); return; }\n" +
+      '  if (url.origin === self.location.origin) { event.respondWith(fetch(request).then(response => { if (response.ok) { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(request, copy)); } return response; }).catch(() => caches.match(request))); return; }\n' +
+      "  if (url.hostname === 'cdn.jsdelivr.net') event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(request, copy)); return response; })));\n" +
+      '});'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    const CACHE_NAME = 'luckybean-v0.9.6-ocr-qr-d';
+    const CORE = [
+      './', './index.html', './styles.css', './styles-v095.css', './styles-action-grid.css', './styles-theme-light.css', './styles-v095-refine.css', './styles-v096-recognition.css', './styles-qr-scan.css', './manifest.webmanifest',
+      './src/app.js', './src/v096-web-ocr.js', './src/v096-package-capture.js', './src/image-quality.js', './src/recognition-bridge.js', './src/v095-sensory-bootstrap.js', './src/v095-ui.js', './src/theme-bridge.js', './src/v095-layout-gear.js', './src/v095-sensory-pro.js', './src/v095-sensory-flow-guard.js', './src/v095-postbrew-sensory.js', './src/v095-qr-ui.js', './src/utils.js', './src/brew-model-v09.js', './src/db.js', './src/codebook.js', './src/qr.js', './src/qr-core.js', './src/water-profiles.js', './src/preference-model.js', './src/share-codec.js', './src/brew-engine.js',
+      './public/fallback-codebook.json', './public/legacy-flavor-map.json', './public/app-logo.webp', './public/splash-red.jpg', './public/splash-white.jpg', './public/settings-mascot.png', './public/action-grid.svg'
+    ];
+    self.addEventListener('install', event => { event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting())); });
+    self.addEventListener('activate', event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim())); });
+    self.addEventListener('fetch', event => {
+      const request = event.request;
+      if (request.method !== 'GET') return;
+      const url = new URL(request.url);
+      if (request.mode === 'navigate') { event.respondWith(fetch(request).then(response => { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy)); return response; }).catch(() => caches.match('./index.html'))); return; }
+      if (url.origin === self.location.origin) { event.respondWith(fetch(request).then(response => { if (response.ok) { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(request, copy)); } return response; }).catch(() => caches.match(request))); return; }
+      if (url.hostname === 'cdn.jsdelivr.net') event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(request, copy)); return response; })));
+    });
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/v096-qr-postbrew.test.mjs:76:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..49
+# tests 49
+# suites 0
+# pass 43
+# fail 6
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 395.935583
