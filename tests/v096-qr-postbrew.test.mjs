@@ -6,7 +6,7 @@ import { extractShareEncoded, normalizeQrResult, decodeJsQrResult } from '../src
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('Lucky Bean share URL QR is expanded to a bean record', async () => {
+test('Lucky Bean encrypted share URL QR is expanded to a bean record', async () => {
   const compact = buildCompactSharePayload({
     appVersion: '0.9.6',
     user: { publicId: 'tester', nickname: '测试者' },
@@ -24,6 +24,7 @@ test('Lucky Bean share URL QR is expanded to a bean record', async () => {
     names: { displayName: '测试豆' }
   });
   const encoded = await encodeSharePayload(compact);
+  assert.match(encoded, /^LB8[JR]\.E\./);
   const url = `https://zjcrop.github.io/BrewIon/luckybean/#share=${encoded}`;
   assert.equal(extractShareEncoded(url), encoded);
 
@@ -36,8 +37,8 @@ test('Lucky Bean share URL QR is expanded to a bean record', async () => {
   assert.match(bean.notes, /二维码分享/);
 });
 
-test('QR wrapper preserves pinned scanner core and parses text first', async () => {
-  const [wrapper, core] = await Promise.all([read('src/qr.js'), read('src/qr-core.js')]);
+test('QR wrapper preserves pinned scanner core and parses text before bytes', async () => {
+  const [wrapper, core, share] = await Promise.all([read('src/qr.js'), read('src/qr-core.js'), read('src/share-codec.js')]);
   for (const marker of [
     '@zxing/browser@0.2.0/+esm',
     'BrowserQRCodeReader',
@@ -50,12 +51,14 @@ test('QR wrapper preserves pinned scanner core and parses text first', async () 
   ]) assert.ok(core.includes(marker), marker);
   for (const marker of [
     "import * as core from './qr-core.js'",
-    'Text formats are authoritative',
+    "import { decodeSharePayload } from './share-codec.js'",
     'sanitizeStructuredResult',
     'decodeCodebookText',
     'latin1Bytes',
     '不是有效的 BrewIon 固定字段编码'
   ]) assert.ok(wrapper.includes(marker), marker);
+  assert.match(share, /LB8\$\{packed\.code\}\.E\./);
+  assert.match(share, /AES-GCM-256/);
 });
 
 test('post-brew flow cancels automatic evaluation and restores mode selection', async () => {
@@ -69,7 +72,7 @@ test('post-brew flow cancels automatic evaluation and restores mode selection', 
   ]) assert.ok(module.includes(marker), marker);
 });
 
-test('QR capture UI and Chinese OCR camera runtime files are loaded and cached', async () => {
+test('QR capture UI and integrity runtime files are loaded and cached', async () => {
   const [html, sw, css, ui] = await Promise.all([
     read('index.html'),
     read('sw.js'),
@@ -81,10 +84,11 @@ test('QR capture UI and Chinese OCR camera runtime files are loaded and cached',
     'src/v095-postbrew-sensory.js?v=096b',
     'src/v095-qr-ui.js?v=096b',
     'src/v096-web-ocr.js?v=096e',
-    'src/v096-direct-camera.js?v=096e'
+    'src/v096-direct-camera.js?v=096e',
+    'src/v096-integrity-ui.js?v=096f'
   ]) assert.ok(html.includes(marker), marker);
-  assert.match(sw, /luckybean-v0\.9\.6-cn-ocr-camera-e/);
-  for (const marker of ['./styles-qr-scan.css', './src/v095-postbrew-sensory.js', './src/v095-qr-ui.js', './src/v096-web-ocr.js', './src/v096-direct-camera.js', './src/qr-core.js']) assert.ok(sw.includes(marker), marker);
+  assert.match(sw, /luckybean-v0\.9\.6-integrity-f/);
+  for (const marker of ['./styles-qr-scan.css', './src/v095-postbrew-sensory.js', './src/v095-qr-ui.js', './src/v096-web-ocr.js', './src/v096-direct-camera.js', './src/qr-core.js', './src/v096-integrity-ui.js']) assert.ok(sw.includes(marker), marker);
   assert.match(css, /自动捕捉|v095-qr-frame/);
   assert.match(ui, /无需按快门/);
 });
