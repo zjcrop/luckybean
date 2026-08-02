@@ -3,7 +3,7 @@ import * as core from './share-codec-core.js';
 export * from './share-codec-core.js';
 
 export const SHARE_FORMAT_VERSION = 2;
-export const SHARE_PREFIX = 'LB8E';
+export const SHARE_PREFIX = 'LB8';
 export const SHARE_ENCRYPTION = 'AES-GCM-256';
 
 const encoder = new TextEncoder();
@@ -63,18 +63,26 @@ export function buildCompactSharePayload(args = {}) {
 export async function encodeSharePayload(payload) {
   const safe = stripIdentity(payload);
   const packed = await compress(encoder.encode(JSON.stringify(safe)));
-  if (!crypto?.subtle || !crypto?.getRandomValues) {
-    throw new Error('当前浏览器不支持安全分享加密');
-  }
+  if (!crypto?.subtle || !crypto?.getRandomValues) throw new Error('当前浏览器不支持安全分享加密');
   const rawKey = crypto.getRandomValues(new Uint8Array(32));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await importKey(rawKey, ['encrypt']);
   const cipher = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, packed.bytes));
-  return `${SHARE_PREFIX}.${packed.code}.${base64UrlEncode(rawKey)}.${base64UrlEncode(iv)}.${base64UrlEncode(cipher)}`;
+  // Keep the established LB8R/LB8J outer prefix so old scanners accept the QR.
+  // The E marker identifies the encrypted v2 payload inside that envelope.
+  return `LB8${packed.code}.E.${base64UrlEncode(rawKey)}.${base64UrlEncode(iv)}.${base64UrlEncode(cipher)}`;
+}
+
+function encryptedParts(encoded) {
+  const text = String(encoded || '');
+  const compatible = text.match(/^LB8([RJ])\.E\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/);
+  if (compatible) return compatible;
+  const transitional = text.match(/^LB8E\.([RJ])\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/);
+  return transitional;
 }
 
 async function decodeEncryptedShare(encoded) {
-  const match = String(encoded || '').match(/^LB8E\.([RJ])\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/);
+  const match = encryptedParts(encoded);
   if (!match) throw new Error('不是 Lucky Bean 加密分享编码');
   if (!crypto?.subtle) throw new Error('当前浏览器不支持分享解密');
   const [, compression, keyText, ivText, cipherText] = match;
@@ -97,7 +105,7 @@ async function decodeEncryptedShare(encoded) {
 
 export async function decodeSharePayload(encoded) {
   const text = String(encoded || '');
-  if (text.startsWith('LB8E.')) return decodeEncryptedShare(text);
+  if (encryptedParts(text)) return decodeEncryptedShare(text);
   const expanded = await core.decodeSharePayload(text);
   expanded.user = { publicId: '', nickname: expanded.user?.nickname || '匿名' };
   expanded.legacyEncryption = false;
