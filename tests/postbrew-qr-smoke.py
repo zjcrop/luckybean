@@ -72,16 +72,24 @@ async def main():
             assert await page.locator("#generatedPlan .plan-profile-label").inner_text() == "三段式"
             assert await page.locator("#generatedPlan .plan-stage").count() == 4
 
-            # Old v17 graph semantics: variable curves, local material windows,
-            # risk zones and one white flavor-coverage path.
-            trajectory = page.locator('#generatedPlan .trajectory-chart.detailed[data-v097-trajectory="1"]')
+            # Preserve the original data-driven graph: all physical and flavor curves,
+            # positive/risk windows and stage boundaries must remain in the SVG.
+            trajectory = page.locator('#generatedPlan .trajectory-chart.detailed[data-v097-trajectory-preserved="1"]')
             await trajectory.wait_for(state="visible")
-            assert await trajectory.locator('.v097-flavor-coverage').count() == 1
-            assert await trajectory.locator('.trajectory-series.temperature').count() == 1
-            assert await trajectory.locator('.trajectory-series.flow').count() == 1
-            assert await trajectory.locator('.trajectory-series.floral').count() == 0
-            assert await trajectory.locator('.trajectory-peak.floral').count() == 1
-            assert await trajectory.locator('.trajectory-peak.bitter').count() == 1
+            assert await trajectory.locator('.v097-flavor-coverage').count() == 0
+            for selector in [
+                '.trajectory-series.temperature',
+                '.trajectory-series.flow',
+                '.trajectory-series.water',
+                '.trajectory-series.floral',
+                '.trajectory-series.acidity',
+                '.trajectory-series.sweetness',
+                '.trajectory-series.risk',
+            ]:
+                assert await trajectory.locator(selector).count() == 1
+            assert await trajectory.locator('.trajectory-window.positive').count() >= 1
+            assert await trajectory.locator('.trajectory-window.risk').count() >= 1
+            assert await trajectory.locator('.trajectory-phase').count() >= 1
 
             # Complete the brew and verify that it lands on the mode selector,
             # not inside any sensory workflow.
@@ -113,7 +121,7 @@ async def main():
 
         if page_errors:
             raise AssertionError(f"page errors: {page_errors}")
-        print("manual three-pulse, old-style trajectory, post-brew choice and QR auto-capture smoke passed")
+        print("manual three-pulse, full trajectory, post-brew choice and QR auto-capture smoke passed")
     finally:
         server.terminate()
         with contextlib.suppress(subprocess.TimeoutExpired):
