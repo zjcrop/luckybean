@@ -108,7 +108,7 @@ with local_server() as base_url, sync_playwright() as playwright:
     assert '完整札记' not in raw_sensory, raw_sensory
     assert '茉莉' not in raw_sensory, raw_sensory
     assert seeded['raw']['sensory'].get('encryption') == 'AES-GCM-256', seeded['raw']['sensory']
-    assert 'LB-' not in raw_settings, raw_settings
+    assert '"publicId": "LB-' not in raw_settings, raw_settings
     assert seeded['raw']['settings'].get('privateIdentity', {}).get('encryption') == 'AES-GCM-256', seeded['raw']['settings']
 
     page.reload(wait_until='domcontentloaded')

@@ -124,7 +124,7 @@ test('encrypted share omits plaintext public identity and remains decodable', as
   assert.ok(!JSON.stringify(payload).includes('LB-SECRET-ID'));
   assert.ok(!JSON.stringify(payload).includes('真实昵称'));
   const encoded = await encodeSharePayload(payload);
-  assert.match(encoded, /^LB8E\.[RJ]\./);
+  assert.match(encoded, /^LB8[JR]\.E\./);
   assert.ok(!encoded.includes('LB-SECRET-ID'));
   const decoded = await decodeSharePayload(encoded);
   assert.equal(decoded.bean.countryCode, 'CO-EA');
