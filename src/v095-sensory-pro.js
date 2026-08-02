@@ -349,11 +349,12 @@ function updateRadarValue(key, index, value) {
   }
 }
 
-function pointerRadarValue(event, svg, index) {
+function pointerRadarValue(event, svg, key, index) {
   const rect = svg.getBoundingClientRect();
   const x = (event.clientX - rect.left) * 240 / rect.width - 120;
   const y = (event.clientY - rect.top) * 240 / rect.height - 120;
-  const angle = -Math.PI / 2 + index * Math.PI * 2 / 5;
+  const count = Math.max(1, wizard.radar[key]?.length || radarLabels(key).length);
+  const angle = -Math.PI / 2 + index * Math.PI * 2 / count;
   return ((x * Math.cos(angle) + y * Math.sin(angle)) / 88) * 10;
 }
 
@@ -371,7 +372,7 @@ function bindRadarStep() {
     const svg = handle.ownerSVGElement;
     handle.setPointerCapture(event.pointerId);
     handle.classList.add('dragging', 'selected');
-    const move = moveEvent => updateRadarValue(key, index, pointerRadarValue(moveEvent, svg, index));
+    const move = moveEvent => updateRadarValue(key, index, pointerRadarValue(moveEvent, svg, key, index));
     const end = () => {
       handle.removeEventListener('pointermove', move);
       handle.removeEventListener('pointerup', end);
@@ -381,7 +382,7 @@ function bindRadarStep() {
     handle.addEventListener('pointermove', move);
     handle.addEventListener('pointerup', end);
     handle.addEventListener('pointercancel', end);
-    updateRadarValue(key, index, pointerRadarValue(event, svg, index));
+    updateRadarValue(key, index, pointerRadarValue(event, svg, key, index));
   }));
   $('[data-radar-slider]')?.addEventListener('input', event => {
     const [key, index] = event.target.dataset.radarSlider.split(':');
