@@ -1,9 +1,39 @@
 # 富贵盒子 Lucky Bean
 
-**当前内部测试版本：v0.9.6**  
+**当前内部测试版本：v0.9.8**  
 **稳定网址：<https://zjcrop.github.io/BrewIon/luckybean/>**
 
-富贵盒子是本地优先的咖啡豆档案、冲煮方案和感官品鉴工具。1.0 之前均属于内部测试版本，允许直接在 `main` 修改和部署；仓库根目录 `index.html` 是唯一网页入口，不维护独立 Beta 页面或长期发布支线。
+富贵盒子是本地优先的咖啡豆档案、冲煮方案和感官品鉴工具。1.0 之前均属于内部测试版本，允许直接在 `main` 修改和部署；仓库根目录 `index.html` 是唯一源码入口，正式网页由 `BrewIon/main/luckybean/` 同步发布，不维护独立 Beta 页面或长期发布支线。
+
+## v0.9.8
+
+### 豆卡、分组与归档
+
+- 选中的豆卡在黑色模式显示深灰底、白色模式显示浅灰底，选择状态更明确；
+- 默认按烘焙度分组；新增按赏味状态分组，顺序为衰减在前、最新鲜在后；
+- 新增按剩余克重分组，以 50 g 为一个区间；
+- 已归档豆卡增加“复购 / 分享 / 删除”操作；复购时必须重新填写烘焙日期与克重；删除豆卡时同步清理关联记录。
+
+### 冲煮方案与 v17 轨迹
+
+- 冲煮阶段数量统一包含闷蒸：两段式为“闷蒸 + 1 次主体注水”，三段式为“闷蒸 + 2 次主体注水”，依此类推；
+- 明确选择固定阶段冲煮法时隐藏重复的阶段数量选择器；
+- 新增改良 4:6「33666」方案，240 g 总水量时固定为 30 / 30 / 60 / 60 / 60 g，前两段使用闷蒸温度；
+- 冲煮优化器完成计算后再次锁定阶段结构，避免优化过程改变用户选定的注水方式；
+- 轨迹图重构为 v17 相位—时间模型，显示温度带、流量带、累计注水、阶段背景、风味窗口及风险规避区间。
+
+### 品鉴流程与显示
+
+- 专业品鉴五项偏好雷达图统一为 1–9 分；红色多边形使用 50% 透明度；
+- 跳过后续重复的质量评分步骤，避免同一评分重复录入；
+- 从札记返回时继续停留在专业品鉴流程；
+- 风味温区摘要统一使用 `H/W/C`，缺失温区用 `-`，不再显示“强度”文字或数值范围。
+
+### 四象限快捷菜单
+
+- 右下角四象限快捷菜单继续支持拖拽移动；
+- 中央拖拽圆点由 26 px 扩大为 42 px，并增加外圈互动热区，提升手机触控和单手拖动成功率；
+- 四个文字功能按钮仍保持独立点击，不会被拖拽手势误触。
 
 ## v0.9.6
 
@@ -86,8 +116,15 @@
 ```text
 index.html                       main 根目录网页入口
 styles-v096-integrity.css        极简入口、证据候选和富历史样式
+styles-v098-fixes.css            v0.9.8 豆卡、分组、归档与品鉴补丁样式
+styles-v098-trajectory-v17.css   v17 轨迹图样式
 src/app.js                       核心业务与页面渲染
-src/brew-engine.js               方案完整性与变量轨迹兼容层
+src/brew-engine.js               方案完整性、33666 与阶段结构锁定
+src/v098-trajectory-v17.js       v17 相位—时间冲煮轨迹
+src/v098-feature-fixes.js        v0.9.8 交互与业务功能补丁
+src/v098-selection-bridge.js     选中豆卡状态持久化
+src/v098-group-menu-guard.js     分组选项作用域保护
+src/v097-fab-gesture.js          四象限菜单拖拽热区
 src/brew-engine-core.js          原冲煮引擎核心
 src/brew-trajectory-v096.js      变量响应的逐时间步轨迹模型
 src/recognition-candidates.js    OCR 分字段候选与错码猜测
@@ -119,7 +156,7 @@ python tests/ocr-qr-regression-smoke.py
 python tests/integrity-browser-smoke.py
 ```
 
-不要通过 `file://` 打开。每次发布必须同步检查 `package.json`、`src/utils.js`、`sw.js`、`manifest.webmanifest` 和 README，并由 BrewIon 发布流程核验线上版本、源 SHA 与资源 HTTP 状态。
+不要通过 `file://` 打开。每次发布必须同步检查 `package.json`、`src/utils.js`、`sw.js`、`manifest.webmanifest` 和 README，并将 `luckybean/main` 同步到 `BrewIon/main/luckybean/`，再核验线上版本、源 SHA 与资源 HTTP 状态。
 
 ## 数据与安全边界
 
