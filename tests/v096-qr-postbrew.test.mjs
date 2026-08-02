@@ -48,9 +48,9 @@ test('QR capture UI and integrity runtime files are loaded and cached', async ()
   for (const marker of [
     'styles-qr-scan.css?v=096b','src/v095-postbrew-sensory.js?v=096b','src/v095-qr-ui.js?v=096b',
     'src/v096-web-ocr.js?v=096e','src/v096-direct-camera.js?v=096e','src/v096-integrity-ui.js?v=096f',
-    'src/v097-ui-fixes.js?v=097b'
+    'src/v097-ui-fixes.js?v=097d'
   ]) assert.ok(html.includes(marker), marker);
-  assert.match(sw, /luckybean-v0\.9\.6-ui-fix-g/);
+  assert.match(sw, /luckybean-v0\.9\.6-ui-fix-i/);
   for (const marker of ['./styles-qr-scan.css','./src/v095-postbrew-sensory.js','./src/v095-qr-ui.js','./src/v096-web-ocr.js','./src/v096-direct-camera.js','./src/qr-core.js','./src/v096-integrity-ui.js','./src/v097-ui-fixes.js']) assert.ok(sw.includes(marker), marker);
   assert.match(css, /自动捕捉|v095-qr-frame/);
   assert.match(ui, /无需按快门/);
