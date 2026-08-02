@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-08-02T15:21:14.790099+00:00",
-  "source_sha": "af526f79dae121642fa3654ceac79de61e087700",
+  "checked_at": "2026-08-02T15:27:23.837946+00:00",
+  "source_sha": "4bff74353aaea92391bd04c759f2cedc05106149",
   "static_tests": "failure",
   "browser_runtime": "success",
   "real_web_ocr_smoke": "success",
