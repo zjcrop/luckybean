@@ -19,38 +19,73 @@ jobs:
           ref: algorithm/inverse-trajectory-v097
           fetch-depth: 0
 
-      - name: Patch trajectory compatibility fields
+      - name: Apply protocol and closed-loop compatibility fixes
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
           p=Path('src/brew-optimizer-v097.js')
           s=p.read_text(encoding='utf-8')
-          if 'const phases = stages.map(stage =>' not in s:
-              old="  return {\n    version: TRAJECTORY_MODEL_VERSION,\n    model: 'inverse-target-window-fit',\n    points,\n    windows: models.windows.all,\n"
-              new="""  const phases = stages.map(stage => ({
-            index: Number(stage.index || 1),
-            label: stage.name || `第${stage.index || 1}段`,
-            start: round(Number(stage.startSec || 0) / totalTime, 4),
-            end: round((Number(stage.startSec || 0) + Number(stage.durationSec || 0)) / totalTime, 4)
-          }));
 
-          return {
-            version: TRAJECTORY_MODEL_VERSION,
-            model: 'inverse-target-window-fit',
-            axes: {
-              timeSec: round(totalTime), waterG: totalWater,
-              temperatureC: [76, 98], flowGPerSec: [0, round(models.device.maxFlow, 1)],
-              extractionEY: round(targetEY, 2)
-            },
-            water: { ca: models.water.ca, mg: models.water.mg, hco3: models.water.hco3, tds: models.water.tds },
-            phases,
-            points,
-            windows: models.windows.all,
-          """
-              if old not in s:
-                  raise SystemExit('optimizer return anchor not found')
-              p.write_text(s.replace(old,new,1),encoding='utf-8')
+          old="const ratioLocked = input.brew?.ratioLocked === true || input.brew?.ratioMode === 'manual';"
+          new="""const hasExplicitRatio = Number.isFinite(Number(input.brew?.ratio));
+          const ratioLocked = input.brew?.ratioLocked === true
+            || input.brew?.ratioMode === 'manual'
+            || (hasExplicitRatio && input.brew?.ratioMode !== 'auto' && input.brew?.allowRatioOptimization !== true);"""
+          if old in s:
+              s=s.replace(old,new,1)
+          elif 'const hasExplicitRatio =' not in s:
+              raise SystemExit('ratio constraint anchor not found')
+
+          if "model: 'inverse-target-window-fit'," in s:
+              s=s.replace("model: 'inverse-target-window-fit',","model: 'time-stepped-variable-release',\n  optimizerModel: 'inverse-target-window-fit',",1)
+          elif "optimizerModel: 'inverse-target-window-fit'" not in s:
+              raise SystemExit('trajectory model anchor not found')
+
+          old_controls="""  const controls = {
+            tempOffset: 0, flowOffset: 0, grindDelta: 0, ratioDelta: 0, tailDrop: 3, bloomFactor: 1,
+            midWeight: 0, tailPenalty: 0, aromaWeight: 0
+          };"""
+          new_controls="""  const previousControls = previousPlan?.optimizer?.controls || {};
+          const controls = {
+            tempOffset: Number(previousControls.tempOffset || 0),
+            flowOffset: Number(previousControls.flowOffset || 0),
+            grindDelta: Number(previousControls.grindDelta || 0),
+            ratioDelta: Number(previousControls.ratioDelta || 0),
+            tailDrop: Number(previousControls.tailDrop || 3),
+            bloomFactor: Number(previousControls.bloomFactor || 1),
+            midWeight: 0, tailPenalty: 0, aromaWeight: 0
+          };"""
+          if old_controls in s:
+              s=s.replace(old_controls,new_controls,1)
+          elif 'const previousControls = previousPlan?.optimizer?.controls || {};' not in s:
+              raise SystemExit('feedback control anchor not found')
+
+          s=s.replace("controls.tailDrop = round(clamp(controls.tailDrop, 1, 6), 2);","controls.tailDrop = round(clamp(controls.tailDrop, 1, 9), 2);",1)
+
+          old_dims="""  const dimensions = [
+            ['tempOffset', [-1.5,-0.75,0,0.75,1.5], -3, 3],
+            ['flowOffset', [-0.6,-0.3,0,0.3,0.6], -1.2, 1.2],
+            ['grindDelta', [-1.2,-0.6,0,0.6,1.2], -2.5, 2.5],
+            ['ratioDelta', [-0.5,-0.25,0,0.25,0.5], -1.2, 1.2],
+            ['tailDrop', [-1.5,-0.75,0,0.75,1.5], 0.5, 7],
+            ['bloomFactor', [-0.18,-0.09,0,0.09,0.18], 0.72, 1.35]
+          ];"""
+          new_dims="""  const tailFloor = feedback?.flags?.overExtracted ? Math.min(9, Number(prior.tailDrop || 3)) : 0.5;
+          const dimensions = [
+            ['tempOffset', [-1.5,-0.75,0,0.75,1.5], -3, 3],
+            ['flowOffset', [-0.6,-0.3,0,0.3,0.6], -1.2, 1.2],
+            ['grindDelta', [-1.2,-0.6,0,0.6,1.2], -2.5, 2.5],
+            ['ratioDelta', [-0.5,-0.25,0,0.25,0.5], -1.2, 1.2],
+            ['tailDrop', [-1.5,-0.75,0,0.75,1.5], tailFloor, 9],
+            ['bloomFactor', [-0.18,-0.09,0,0.09,0.18], 0.72, 1.35]
+          ];"""
+          if old_dims in s:
+              s=s.replace(old_dims,new_dims,1)
+          elif 'const tailFloor = feedback?.flags?.overExtracted' not in s:
+              raise SystemExit('optimizer dimensions anchor not found')
+
+          p.write_text(s,encoding='utf-8')
           PY
 
       - name: Run complete test gates
