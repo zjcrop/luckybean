@@ -63,7 +63,7 @@ test('Chinese-first OCR runtime and direct camera are loaded and cached', async 
   assert.ok(cameraIndex > captureIndex, 'direct camera must intercept after package capture');
   assert.match(html, /worker-src 'self' blob: https:\/\/cdn\.jsdelivr\.net/);
   assert.match(html, /'wasm-unsafe-eval'/);
-  assert.match(sw, /luckybean-v0\.9\.6-cn-ocr-camera-e/);
+  assert.match(sw, /luckybean-v0\.9\.6-integrity-f/);
   assert.match(sw, /src\/v096-web-ocr\.js/);
   assert.match(sw, /src\/v096-direct-camera\.js/);
   assert.match(sw, /src\/qr-core\.js/);
@@ -81,5 +81,3 @@ test('Chinese-first OCR runtime and direct camera are loaded and cached', async 
   assert.match(qr, /decodeCodebookText/);
   assert.match(qr, /latin1Bytes/);
 });
-
-// Workflow retrigger: 2026-08-02 Chinese OCR and direct camera gate.
