@@ -14,7 +14,7 @@ function brewInput(overrides = {}) {
     bean: { countryCode: 'CO-EA', regionCode: '', entityCode: '', varietyCode: 'VA-GE', processCode: 'PR-WA', roastCode: 'RL-L1', roastColor: 88, roastDate: '2026-07-20', altitude: 1950 },
     brew: {
       mode: 'professional', method: 'pourover', doseG: 15, ratio: 15.5,
-      profileId: 'one-pour', segmentMode: '1', segments: 1,
+      profileId: 'one-pour', segmentMode: '2', segments: 2,
       dripperCode: '平底滤杯', filterPaper: '', filterPaperId: '', grinder: '',
       firstCoolingMode: 'auto', firstTemperatureC: 87,
       tailCoolingMode: 'auto', tailTemperatureC: 86,
@@ -40,6 +40,7 @@ test('explicit one-pour remains bloom plus one pour before and after correction'
   assert.equal(plan.stages.length, 2);
   assert.equal(plan.profileIntegrity.preserved, true);
   assert.equal(plan.profileIntegrity.stageCountValid, true);
+  assert.equal(plan.profileIntegrity.countIncludesBloom, true);
   const record = {
     id: 'sensory-test', brewSessionId: 'brew-test', autoScore: 82, subjectiveScore: 72, score: 72, scoreDelta: -10,
     answers: {
@@ -65,7 +66,7 @@ test('trajectory is calculated from temperature grind water and profile variable
   assert.equal(base.trajectoryModel.version, TRAJECTORY_MODEL_VERSION);
   assert.equal(base.trajectoryModel.model, 'time-stepped-variable-release');
   assert.equal(base.trajectoryModel.points.length, 81);
-  assert.equal(changed.stages.length, 4);
+  assert.equal(changed.stages.length, 3);
   assert.notDeepEqual(base.trajectoryModel.drivers, changed.trajectoryModel.drivers);
   const baseSignature = base.trajectoryModel.points.map(point => [point.temperatureC, point.flowGPerSec, point.extractionEY, point.floral, point.acidity, point.bitterRisk]);
   const changedSignature = changed.trajectoryModel.points.map(point => [point.temperatureC, point.flowGPerSec, point.extractionEY, point.floral, point.acidity, point.bitterRisk]);
@@ -149,5 +150,5 @@ test('runtime provides minimal identity screen rich history and selection-only t
   assert.match(css, /\.evidence-row-v2/);
   assert.match(db, /delete value\.sensoryNote/);
   assert.match(db, /sealPrivateJson\(identity/);
-  assert.match(sw, /luckybean-v0\.9\.6-ui-fix-i/);
+  assert.match(sw, /luckybean-v0\.9\.8-feature-fix-a/);
 });
