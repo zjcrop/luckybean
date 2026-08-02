@@ -38,18 +38,19 @@ function normalizeExplicitInput(input = {}, profileId = explicitProfileId(input)
 }
 
 function attachVariableTrajectory(input, plan) {
+  const legacyTrajectory = Array.isArray(plan.trajectory) ? plan.trajectory : [];
   const trajectoryModel = buildVariableTrajectory(input, plan);
-  const points = trajectoryModel.points || [];
   plan.trajectoryModel = trajectoryModel;
-  plan.trajectory = points.map(point => ({
-    x: point.x,
-    y: point.extractionN,
-    stage: point.stage,
-    label: `阶段 ${point.stage}`,
-    cumulativeWaterG: point.cumulativeWaterG,
-    extractionEY: point.extractionEY,
-    model: trajectoryModel.model
-  }));
+  // Keep the original stage-level contract for exports and older clients.
+  // The detailed 81-point curve lives only in trajectoryModel.points.
+  plan.trajectory = legacyTrajectory.length === plan.stages?.length
+    ? legacyTrajectory
+    : (plan.stages || []).map(stage => ({
+        x: Number(stage.index || 1) / Math.max(1, plan.stages.length),
+        y: Number(stage.cumulativeWaterG || 0) / Math.max(1, plan.totals?.waterG || 1),
+        stage: stage.index,
+        label: stage.name
+      }));
   plan.professional ||= {};
   plan.professional.trajectoryModel = trajectoryModel;
   plan.professional.calculationModelVersion = `${plan.professional.calculationModelVersion || plan.engineVersion || 'brew'}+${TRAJECTORY_MODEL_VERSION}`;
