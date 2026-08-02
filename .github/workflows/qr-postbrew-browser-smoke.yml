@@ -7,11 +7,14 @@ on:
       - 'index.html'
       - 'sw.js'
       - 'styles-qr-scan.css'
+      - 'styles-v096-recognition.css'
       - 'src/qr.js'
       - 'src/qr-core.js'
+      - 'src/codebook.js'
       - 'src/v096-web-ocr.js'
       - 'src/recognition-bridge.js'
       - 'src/v096-package-capture.js'
+      - 'src/v096-direct-camera.js'
       - 'src/v095-qr-ui.js'
       - 'src/v095-postbrew-sensory.js'
       - 'tests/theme-light.test.mjs'
@@ -36,7 +39,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with:
@@ -59,16 +62,20 @@ jobs:
             npm run check
             node --check src/qr.js
             node --check src/qr-core.js
+            node --check src/codebook.js
             node --check src/v096-web-ocr.js
             node --check src/v096-package-capture.js
+            node --check src/v096-direct-camera.js
             node --check src/v095-qr-ui.js
             node --check src/v095-postbrew-sensory.js
           } > tests/qr-postbrew-static-log.txt 2>&1
 
-      - name: Install browser test runtime
+      - name: Install browser test runtime and Chinese fonts
         id: install
         continue-on-error: true
         run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
           python -m pip install --disable-pip-version-check playwright
           python -m playwright install --with-deps chromium
 
@@ -78,7 +85,7 @@ jobs:
         if: steps.install.outcome == 'success'
         run: python tests/postbrew-qr-smoke.py > tests/qr-postbrew-browser-log.txt 2>&1
 
-      - name: Verify real browser OCR and text-first QR decoding
+      - name: Verify real Chinese-English OCR and text-first QR decoding
         id: ocr
         continue-on-error: true
         if: steps.install.outcome == 'success'
@@ -117,6 +124,8 @@ jobs:
               'browser_runtime': install,
               'real_web_ocr_smoke': ocr,
               'qr_text_first_regression': static,
+              'chinese_mixed_ocr': ocr,
+              'direct_camera_static': static,
               'verified': static == install == ocr == 'success',
           }
           for path, result in (
@@ -141,7 +150,7 @@ jobs:
             if [[ -f "$file" ]]; then git add "$file"; fi
           done
           if ! git diff --cached --quiet; then
-            git commit -m 'chore: record QR OCR and post-brew browser verification [skip ci]'
+            git commit -m 'chore: record Chinese OCR camera QR verification [skip ci]'
             git push origin HEAD:main
           fi
 
