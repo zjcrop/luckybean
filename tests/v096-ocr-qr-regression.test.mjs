@@ -81,3 +81,5 @@ test('Chinese-first OCR runtime and direct camera are loaded and cached', async 
   assert.match(qr, /decodeCodebookText/);
   assert.match(qr, /latin1Bytes/);
 });
+
+// Workflow retrigger: 2026-08-02 Chinese OCR and direct camera gate.
