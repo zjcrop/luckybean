@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-08-02T08:35:34.767250+00:00",
-  "source_sha": "1e5edd441929733825171a9c5509b58c87ad3828",
+  "checked_at": "2026-08-02T08:42:31.678536+00:00",
+  "source_sha": "db324af1e354d71f815d8e32e54085b5cd41fb3e",
   "static_tests": "failure",
   "browser_runtime": "success",
   "postbrew_qr_browser_smoke": "success",
