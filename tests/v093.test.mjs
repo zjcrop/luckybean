@@ -4,15 +4,15 @@ import { readFile, stat } from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
 const text = async path => readFile(new URL(path, root), 'utf8');
 
-test('0.9.5 version and visual assets', async () => {
+test('0.9.6 version and visual assets', async () => {
   const [pkg, html, css, sw, manifest, ui] = await Promise.all([
     text('package.json'), text('index.html'), text('styles-v095.css'), text('sw.js'), text('manifest.webmanifest'), text('src/v095-ui.js')
   ]);
-  assert.equal(JSON.parse(pkg).version, '0.9.5');
+  assert.equal(JSON.parse(pkg).version, '0.9.6');
   assert.match(html, /id="splashScreen"/);
   assert.match(html, /splash-red\.jpg\?v=095/);
   assert.match(css, /v095-settings-mascot/);
-  assert.match(sw, /luckybean-v0\.9\.5/);
+  assert.match(sw, /luckybean-v0\.9\.6/);
   assert.match(ui, /splash-white\.jpg/);
   assert.equal(JSON.parse(manifest).icons.length, 1);
   for (const path of ['public/app-logo.webp', 'public/splash-red.jpg', 'public/splash-white.jpg', 'public/settings-mascot.png']) {
