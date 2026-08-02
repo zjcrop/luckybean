@@ -56,17 +56,35 @@ async def main():
                 service_workers="block",
             )
             page = await context.new_page()
-            page.set_default_timeout(15000)
+            page.set_default_timeout(30000)
             page.on("pageerror", lambda error: page_errors.append(str(error)))
 
             await enter_test_app(page)
 
-            # Complete a brew and verify that it lands on the mode selector,
-            # not inside any sensory workflow.
+            # A manual three-pulse selection must be a hard UI-to-engine constraint.
             await page.locator('[data-page-target="brew"]').click()
             await page.wait_for_selector("#generatePlanBtn")
+            await page.locator("#brewProfile").select_option("recommended")
+            await page.locator("#brewSegments").select_option("3")
+            await page.wait_for_function("document.querySelector('#brewProfile')?.value === 'three-pulse'")
             await page.locator("#generatePlanBtn").click()
             await page.wait_for_selector("#generatedPlan")
+            assert await page.locator("#generatedPlan .plan-profile-label").inner_text() == "三段式"
+            assert await page.locator("#generatedPlan .plan-stage").count() == 4
+
+            # Old v17 graph semantics: variable curves, local material windows,
+            # risk zones and one white flavor-coverage path.
+            trajectory = page.locator('#generatedPlan .trajectory-chart.detailed[data-v097-trajectory="1"]')
+            await trajectory.wait_for(state="visible")
+            assert await trajectory.locator('.v097-flavor-coverage').count() == 1
+            assert await trajectory.locator('.trajectory-series.temperature').count() == 1
+            assert await trajectory.locator('.trajectory-series.flow').count() == 1
+            assert await trajectory.locator('.trajectory-series.floral').count() == 0
+            assert await trajectory.locator('.trajectory-peak.floral').count() == 1
+            assert await trajectory.locator('.trajectory-peak.bitter').count() == 1
+
+            # Complete the brew and verify that it lands on the mode selector,
+            # not inside any sensory workflow.
             await page.locator("#startBrewBtn").click()
             await page.wait_for_selector("#timerEndBtn")
             await page.locator("#timerEndBtn").click()
@@ -79,7 +97,7 @@ async def main():
             assert await page.locator("#sensoryContent .sensory-evaluation").count() == 0
             assert await mode_panel.locator("button > strong").all_text_contents() == ["专业品鉴", "玩家互动品鉴", "札记"]
 
-            # Open the QR camera UI and verify that automatic capture is explicit.
+            # Open the QR camera UI and verify both FAB taps and automatic capture.
             await page.locator('[data-page-target="beans"]').click()
             await page.locator("#fabAddBtn").click()
             await page.locator('[data-add-mode="qr"]').click()
@@ -95,7 +113,7 @@ async def main():
 
         if page_errors:
             raise AssertionError(f"page errors: {page_errors}")
-        print("post-brew sensory choice and QR auto-capture UI smoke passed")
+        print("manual three-pulse, old-style trajectory, post-brew choice and QR auto-capture smoke passed")
     finally:
         server.terminate()
         with contextlib.suppress(subprocess.TimeoutExpired):
