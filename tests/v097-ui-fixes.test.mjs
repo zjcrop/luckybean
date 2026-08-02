@@ -13,17 +13,22 @@ const baseInput = {
   targets: { floral: 3, acidity: 2.4, sweetness: 2.4, body: 1.2, bitterness: 3 }
 };
 
-test('explicit segment selector constrains the optimizer while legacy count alone does not', async () => {
+test('explicit segment selector constrains the optimizer and counts bloom as stage one', async () => {
+  assert.equal(resolveRequestedProfileId({ brew: { profileId: 'recommended', segmentMode: '2', segments: 2 } }), 'two-pulse');
   assert.equal(resolveRequestedProfileId({ brew: { profileId: 'recommended', segmentMode: '3', segments: 3 } }), 'three-pulse');
   assert.equal(resolveRequestedProfileId({ brew: { profileId: 'recommended', segments: 3 } }), '');
   assert.equal(resolveRequestedProfileId({ brew: { profileId: 'recommended', brewStyle: '三段式' } }), 'three-pulse');
-  const plan = await computeFallbackPlan({ ...baseInput, brew: { ...baseInput.brew, profileId: 'recommended', segmentMode: '3', segments: 3 } });
-  assert.equal(plan.profile.id, 'three-pulse');
-  assert.equal(plan.stages.length, 4);
-  assert.equal(plan.profileIntegrity.requestedProfileId, 'three-pulse');
-  assert.equal(plan.profileIntegrity.preserved, true);
-  assert.equal(plan.optimizer.selectedBy, 'user-profile-constraint');
-  assert.equal(plan.optimizer.candidateProfiles.length, 1);
+  const two = await computeFallbackPlan({ ...baseInput, brew: { ...baseInput.brew, profileId: 'recommended', segmentMode: '2', segments: 2 } });
+  assert.equal(two.profile.id, 'two-pulse');
+  assert.equal(two.stages.length, 2);
+  const three = await computeFallbackPlan({ ...baseInput, brew: { ...baseInput.brew, profileId: 'recommended', segmentMode: '3', segments: 3 } });
+  assert.equal(three.profile.id, 'three-pulse');
+  assert.equal(three.stages.length, 3);
+  assert.equal(three.profileIntegrity.requestedProfileId, 'three-pulse');
+  assert.equal(three.profileIntegrity.preserved, true);
+  assert.equal(three.profileIntegrity.countIncludesBloom, true);
+  assert.equal(three.optimizer.selectedBy, 'user-profile-constraint');
+  assert.equal(three.optimizer.candidateProfiles.length, 1);
 });
 
 test('v097 runtime preserves the original time-series trajectory and requested interactions', async () => {
@@ -71,7 +76,7 @@ test('v097 runtime preserves the original time-series trajectory and requested i
   assert.match(html, /styles-v097-fixes\.css\?v=097d/);
   assert.match(html, /src\/v097-ui-fixes\.js\?v=097d/);
   assert.match(html, /src\/v097-fab-gesture\.js\?v=097d/);
-  assert.match(sw, /luckybean-v0\.9\.6-ui-fix-i/);
+  assert.match(sw, /luckybean-v0\.9\.8-feature-fix-a/);
   assert.match(sw, /styles-v097-fixes\.css/);
   assert.match(sw, /src\/v097-ui-fixes\.js/);
 });
