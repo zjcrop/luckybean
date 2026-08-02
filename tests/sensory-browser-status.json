@@ -1,0 +1,8 @@
+{
+  "checked_at": "2026-08-02T04:14:02.746850+00:00",
+  "source_sha": "dc9d596c8bbc1f5f20f5c5238473d0402738518c",
+  "static_tests": "success",
+  "browser_runtime": "success",
+  "sensory_browser_smoke": "failure",
+  "verified": false
+}
