@@ -13,6 +13,7 @@ on:
       - 'tests/theme-light.test.mjs'
       - 'tests/v092.test.mjs'
       - 'tests/v093.test.mjs'
+      - 'tests/v095.test.mjs'
       - 'tests/v095-refine.test.mjs'
       - 'tests/v096-qr-postbrew.test.mjs'
       - 'tests/postbrew-qr-smoke.py'
