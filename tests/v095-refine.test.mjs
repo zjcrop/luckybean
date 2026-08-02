@@ -5,14 +5,14 @@ const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
 test('refinement runtime files are loaded in deterministic order and cached', async () => {
   const [html, sw, bootstrap] = await Promise.all([read('index.html'), read('sw.js'), read('src/v095-sensory-bootstrap.js')]);
-  const bootstrapIndex = html.indexOf('src/v095-sensory-bootstrap.js?v=095e');
+  const bootstrapIndex = html.indexOf('src/v095-sensory-bootstrap.js?v=095f');
   const legacyUiIndex = html.indexOf('src/v095-ui.js?v=095e');
   assert.ok(bootstrapIndex >= 0, 'sensory bootstrap missing');
   assert.ok(legacyUiIndex > bootstrapIndex, 'sensory bootstrap must load before legacy UI');
   assert.ok(!html.includes('src/v095-sensory-pro.js?v=095c'), 'old direct sensory module entry must be removed');
   assert.match(sw, /luckybean-v0\.9\.5-sensory-fix5/);
   for (const marker of ['./styles-v095-refine.css','./src/v095-sensory-bootstrap.js','./src/v095-sensory-pro.js','./src/v095-sensory-flow-guard.js']) assert.ok(sw.includes(marker), marker);
-  for (const marker of ['loading-professional-v2','专业品鉴','玩家互动品鉴','札记','sensoryModesReady']) assert.ok(bootstrap.includes(marker), marker);
+  for (const marker of ['loading-professional-v2','专业品鉴','玩家互动品鉴','札记','sensoryModesReady','safe-null-root']) assert.ok(bootstrap.includes(marker), marker);
 });
 
 test('light mode covers seals, groups, leaderboard and collapse row', async () => {
