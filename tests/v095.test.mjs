@@ -4,17 +4,17 @@ import { readFile } from 'node:fs/promises';
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('v0.9.5 runtime entry and version align', async () => {
+test('current v0.9.6 release retains v0.9.5 runtime entry', async () => {
   const [html, pkg, utils, sw, manifest] = await Promise.all([
     read('index.html'), read('package.json'), read('src/utils.js'), read('sw.js'), read('manifest.webmanifest')
   ]);
   assert.match(html, /styles-v095\.css\?v=095/);
   assert.match(html, /src\/v095-ui\.js\?v=095/);
   assert.match(html, /splash-red\.jpg\?v=095/);
-  assert.equal(JSON.parse(pkg).version, '0.9.5');
-  assert.match(utils, /APP_VERSION = '0\.9\.5'/);
-  assert.match(sw, /luckybean-v0\.9\.5/);
-  assert.equal(JSON.parse(manifest).name, '富贵盒子 0.9.5');
+  assert.equal(JSON.parse(pkg).version, '0.9.6');
+  assert.match(utils, /APP_VERSION = '0\.9\.6'/);
+  assert.match(sw, /luckybean-v0\.9\.6/);
+  assert.equal(JSON.parse(manifest).name, '富贵盒子 0.9.6');
 });
 
 test('v0.9.5 requested modes, labels and artwork exist', async () => {
@@ -42,7 +42,6 @@ test('v0.9.5 layout and theme selectors exist', async () => {
     assert.ok(css.includes(marker), marker);
   }
 });
-
 
 test('header controls remain horizontal and theme binding is stable', async () => {
   const [css, ui] = await Promise.all([read('styles-v095.css'), read('src/v095-ui.js')]);
