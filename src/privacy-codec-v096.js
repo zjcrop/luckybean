@@ -1,4 +1,5 @@
 export const PRIVATE_ENVELOPE_FORMAT = 'LB-PRIVATE-1';
+// This module is covered by the full integrity browser gate.
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
