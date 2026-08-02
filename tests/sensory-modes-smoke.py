@@ -63,6 +63,7 @@ async def main():
             await page.goto(f"{BASE}?sensory-smoke={int(time.time())}", wait_until="domcontentloaded")
             if await page.locator("#splashScreen:not(.hidden)").count():
                 await page.locator("#splashScreen").click()
+                await page.wait_for_selector("#splashScreen.hidden", state="attached")
             await page.locator("#testBtn").click()
             await page.wait_for_selector("#appShell:not(.hidden)")
             await page.locator('[data-page-target="sensory"]').click()
