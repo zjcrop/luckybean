@@ -1,3 +1,4 @@
+// Release marker: luckybean-v0.9.8-feature-fix-a
 const CACHE_NAME = 'luckybean-v0.9.6-ui-fix-i';
 const CORE = [
   './', './index.html', './styles.css', './styles-v095.css', './styles-action-grid.css', './styles-theme-light.css', './styles-v095-refine.css', './styles-v096-recognition.css', './styles-qr-scan.css', './styles-v096-integrity.css', './styles-v097-fixes.css', './styles-v098-fixes.css', './manifest.webmanifest',
