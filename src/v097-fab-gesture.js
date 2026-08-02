@@ -18,6 +18,21 @@ if (wrap) {
     handle.className = 'v097-fab-drag-handle';
     handle.setAttribute('aria-label', '拖动快捷菜单');
     handle.setAttribute('title', '拖动移动');
+    Object.assign(handle.style, {
+      position: 'absolute',
+      left: '50%',
+      top: '50%',
+      width: '26px',
+      height: '26px',
+      transform: 'translate(-50%, -50%)',
+      borderRadius: '50%',
+      background: 'rgba(255,255,255,.16)',
+      border: '1px solid rgba(255,255,255,.42)',
+      boxShadow: '0 1px 4px rgba(0,0,0,.45)',
+      cursor: 'grab',
+      touchAction: 'none',
+      zIndex: '5'
+    });
     wrap.append(handle);
   }
 
