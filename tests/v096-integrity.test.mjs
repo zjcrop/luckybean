@@ -11,10 +11,7 @@ const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 function brewInput(overrides = {}) {
   const base = {
     schemaVersion: 2,
-    bean: {
-      countryCode: 'CO-EA', regionCode: '', entityCode: '', varietyCode: 'VA-GE',
-      processCode: 'PR-WA', roastCode: 'RL-L1', roastColor: 88, roastDate: '2026-07-20', altitude: 1950
-    },
+    bean: { countryCode: 'CO-EA', regionCode: '', entityCode: '', varietyCode: 'VA-GE', processCode: 'PR-WA', roastCode: 'RL-L1', roastColor: 88, roastDate: '2026-07-20', altitude: 1950 },
     brew: {
       mode: 'professional', method: 'pourover', doseG: 15, ratio: 15.5,
       profileId: 'one-pour', segmentMode: '1', segments: 1,
@@ -28,8 +25,7 @@ function brewInput(overrides = {}) {
     targets: { floral: 2.5, acidity: 2, sweetness: 2, body: 1.2, bitterness: 2 }
   };
   return {
-    ...base,
-    ...overrides,
+    ...base, ...overrides,
     bean: { ...base.bean, ...(overrides.bean || {}) },
     brew: { ...base.brew, ...(overrides.brew || {}) },
     water: { ...base.water, ...(overrides.water || {}) },
@@ -44,14 +40,11 @@ test('explicit one-pour remains bloom plus one pour before and after correction'
   assert.equal(plan.stages.length, 2);
   assert.equal(plan.profileIntegrity.preserved, true);
   assert.equal(plan.profileIntegrity.stageCountValid, true);
-
   const record = {
-    id: 'sensory-test', brewSessionId: 'brew-test',
-    autoScore: 82, subjectiveScore: 72, score: 72, scoreDelta: -10,
+    id: 'sensory-test', brewSessionId: 'brew-test', autoScore: 82, subjectiveScore: 72, score: 72, scoreDelta: -10,
     answers: {
       floral: { 0: ['无'], 1: ['无'] }, fruit: { 0: ['无'], 1: ['无'] }, other: { 0: ['无'], 1: ['无'], 2: ['无'], 3: ['无'] },
-      sweet: { 0: ['蜂蜜'], 1: ['低'] }, acid: { 0: ['柑橘'], 1: ['圆润舒适'] },
-      bitter: { 0: ['无'] }, mouthfeel: { 0: ['干涩'] }, negative: { 0: ['无'] }
+      sweet: { 0: ['蜂蜜'], 1: ['低'] }, acid: { 0: ['柑橘'], 1: ['圆润舒适'] }, bitter: { 0: ['无'] }, mouthfeel: { 0: ['干涩'] }, negative: { 0: ['无'] }
     },
     naturalNote: '甜感不足且略干涩'
   };
@@ -83,16 +76,11 @@ test('trajectory is calculated from temperature grind water and profile variable
 test('sensory records are coded compressed encrypted and note-limited', async () => {
   const note = '札'.repeat(360);
   const record = {
-    id: 's1', beanId: 'b1', brewSessionId: 'p1', createdAt: '2026-08-02T10:00:00Z',
-    autoScore: 82, subjectiveScore: 78.5, scoreDelta: -3.5,
-    answers: { floral: { 0: ['茉莉'], 1: ['强'] }, sweet: { 0: ['蜂蜜'], 1: ['适中'] } },
-    naturalNote: note,
+    id: 's1', beanId: 'b1', brewSessionId: 'p1', createdAt: '2026-08-02T10:00:00Z', autoScore: 82, subjectiveScore: 78.5, scoreDelta: -3.5,
+    answers: { floral: { 0: ['茉莉'], 1: ['强'] }, sweet: { 0: ['蜂蜜'], 1: ['适中'] } }, naturalNote: note,
     professional: {
-      mode: 'professional',
-      selections: { dry: ['茉莉', '柑橘'], high: ['蜂蜜'] },
-      intensities: { dry: 10.5, high: 8 },
-      radar: { aroma: [8, 7, 4, 2, 3], style: [8, 7, 7, 8, 5] },
-      affective: { 香气: 8, 风味: 7 }, mappedScore: 86
+      mode: 'professional', selections: { dry: ['茉莉', '柑橘'], high: ['蜂蜜'] }, intensities: { dry: 10.5, high: 8 },
+      radar: { aroma: [8, 7, 4, 2, 3], style: [8, 7, 7, 8, 5] }, affective: { 香气: 8, 风味: 7 }, mappedScore: 86
     }
   };
   const compact = compactSensoryRecord(record);
@@ -101,7 +89,6 @@ test('sensory records are coded compressed encrypted and note-limited', async ()
   const expanded = expandSensoryRecord(compact);
   assert.equal(expanded.naturalNote.length, 300);
   assert.deepEqual(expanded.professional.radar.aroma, [8, 7, 4, 2, 3]);
-
   const secret = crypto.getRandomValues(new Uint8Array(32));
   const sealed = await sealSensoryRecord(record, secret);
   assert.equal(sealed.storageFormat, SENSORY_STORAGE_FORMAT);
@@ -115,8 +102,7 @@ test('sensory records are coded compressed encrypted and note-limited', async ()
 
 test('encrypted share omits plaintext public identity and remains decodable', async () => {
   const payload = buildCompactSharePayload({
-    appVersion: '0.9.6',
-    user: { publicId: 'LB-SECRET-ID', nickname: '真实昵称' },
+    appVersion: '0.9.6', user: { publicId: 'LB-SECRET-ID', nickname: '真实昵称' },
     bean: { countryCode: 'CO-EA', varietyCode: 'VA-GE', processCode: 'PR-WA', flavorCodes: ['FL-JASMINE'] },
     brewSessions: [], sensoryRecords: [], names: { displayName: '测试豆' }
   });
@@ -136,9 +122,8 @@ test('encrypted share omits plaintext public identity and remains decodable', as
 test('OCR evidence candidates support per-field fuzzy correction', () => {
   const book = {
     countries: [['CT-ET', '埃塞俄比亚', 'Ethiopia']],
-    regions: [['RG-GUJI', 'CT-ET', '古吉', 'Guji']],
-    entities: [], varieties: [['VR-001', '瑰夏', 'Gesha']],
-    processes: [['PROC-WASHED', '水洗', 'Washed']], flavors: []
+    regions: [['RG-GUJI', 'CT-ET', '古吉', 'Guji']], entities: [],
+    varieties: [['VR-001', '瑰夏', 'Gesha']], processes: [['PROC-WASHED', '水洗', 'Washed']], flavors: []
   };
   const country = fieldCandidates('countryCode', '埃秦俄比亚', book, {}, 3);
   assert.equal(country[0].code, 'CT-ET');
@@ -164,5 +149,5 @@ test('runtime provides minimal identity screen rich history and selection-only t
   assert.match(css, /\.evidence-row-v2/);
   assert.match(db, /delete value\.sensoryNote/);
   assert.match(db, /sealPrivateJson\(identity/);
-  assert.match(sw, /luckybean-v0\.9\.6-integrity-f/);
+  assert.match(sw, /luckybean-v0\.9\.6-ui-fix-g/);
 });
