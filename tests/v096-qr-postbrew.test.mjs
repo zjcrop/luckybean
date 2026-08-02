@@ -36,8 +36,8 @@ test('Lucky Bean share URL QR is expanded to a bean record', async () => {
   assert.match(bean.notes, /二维码分享/);
 });
 
-test('QR runtime uses pinned ZXing primary engine with native and jsQR fallback', async () => {
-  const qr = await read('src/qr.js');
+test('QR wrapper preserves pinned scanner core and parses text first', async () => {
+  const [wrapper, core] = await Promise.all([read('src/qr.js'), read('src/qr-core.js')]);
   for (const marker of [
     '@zxing/browser@0.2.0/+esm',
     'BrowserQRCodeReader',
@@ -47,7 +47,13 @@ test('QR runtime uses pinned ZXing primary engine with native and jsQR fallback'
     '自动捕捉已开启',
     'extractShareEncoded',
     'decodeSharePayload'
-  ]) assert.ok(qr.includes(marker), marker);
+  ]) assert.ok(core.includes(marker), marker);
+  for (const marker of [
+    "import * as core from './qr-core.js'",
+    'Parse the meaningful text first',
+    'sanitizeStructuredResult',
+    '不是有效的 BrewIon 编码'
+  ]) assert.ok(wrapper.includes(marker), marker);
 });
 
 test('post-brew flow cancels automatic evaluation and restores mode selection', async () => {
@@ -61,7 +67,7 @@ test('post-brew flow cancels automatic evaluation and restores mode selection', 
   ]) assert.ok(module.includes(marker), marker);
 });
 
-test('QR capture UI and new runtime files are loaded and cached', async () => {
+test('QR capture UI and OCR runtime files are loaded and cached', async () => {
   const [html, sw, css, ui] = await Promise.all([
     read('index.html'),
     read('sw.js'),
@@ -71,10 +77,11 @@ test('QR capture UI and new runtime files are loaded and cached', async () => {
   for (const marker of [
     'styles-qr-scan.css?v=096b',
     'src/v095-postbrew-sensory.js?v=096b',
-    'src/v095-qr-ui.js?v=096b'
+    'src/v095-qr-ui.js?v=096b',
+    'src/v096-web-ocr.js?v=096d'
   ]) assert.ok(html.includes(marker), marker);
-  assert.match(sw, /luckybean-v0\.9\.6-qr-b/);
-  for (const marker of ['./styles-qr-scan.css', './src/v095-postbrew-sensory.js', './src/v095-qr-ui.js']) assert.ok(sw.includes(marker), marker);
+  assert.match(sw, /luckybean-v0\.9\.6-ocr-qr-d/);
+  for (const marker of ['./styles-qr-scan.css', './src/v095-postbrew-sensory.js', './src/v095-qr-ui.js', './src/v096-web-ocr.js', './src/qr-core.js']) assert.ok(sw.includes(marker), marker);
   assert.match(css, /自动捕捉|v095-qr-frame/);
   assert.match(ui, /无需按快门/);
 });
