@@ -1,4 +1,4 @@
-name: Verify QR and post-brew sensory flow
+name: Verify QR, OCR and post-brew sensory flow
 
 on:
   push:
@@ -8,6 +8,10 @@ on:
       - 'sw.js'
       - 'styles-qr-scan.css'
       - 'src/qr.js'
+      - 'src/qr-core.js'
+      - 'src/v096-web-ocr.js'
+      - 'src/recognition-bridge.js'
+      - 'src/v096-package-capture.js'
       - 'src/v095-qr-ui.js'
       - 'src/v095-postbrew-sensory.js'
       - 'tests/theme-light.test.mjs'
@@ -16,17 +20,23 @@ on:
       - 'tests/v095.test.mjs'
       - 'tests/v095-refine.test.mjs'
       - 'tests/v096-qr-postbrew.test.mjs'
+      - 'tests/v096-ocr-qr-regression.test.mjs'
       - 'tests/postbrew-qr-smoke.py'
+      - 'tests/ocr-qr-regression-smoke.py'
       - '.github/workflows/qr-postbrew-browser-smoke.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: luckybean-qr-ocr-postbrew-verification
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -48,6 +58,9 @@ jobs:
             npm test
             npm run check
             node --check src/qr.js
+            node --check src/qr-core.js
+            node --check src/v096-web-ocr.js
+            node --check src/v096-package-capture.js
             node --check src/v095-qr-ui.js
             node --check src/v095-postbrew-sensory.js
           } > tests/qr-postbrew-static-log.txt 2>&1
@@ -65,6 +78,12 @@ jobs:
         if: steps.install.outcome == 'success'
         run: python tests/postbrew-qr-smoke.py > tests/qr-postbrew-browser-log.txt 2>&1
 
+      - name: Verify real browser OCR and text-first QR decoding
+        id: ocr
+        continue-on-error: true
+        if: steps.install.outcome == 'success'
+        run: python tests/ocr-qr-regression-smoke.py > tests/ocr-qr-regression-log.txt 2>&1
+
       - name: Write verification status
         if: always()
         shell: bash
@@ -72,22 +91,42 @@ jobs:
           STATIC_OUTCOME: ${{ steps.static.outcome }}
           INSTALL_OUTCOME: ${{ steps.install.outcome }}
           BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+          OCR_OUTCOME: ${{ steps.ocr.outcome }}
         run: |
           python - <<'PY'
           import json, os
           from datetime import datetime, timezone
-          result = {
-              'checked_at': datetime.now(timezone.utc).isoformat(),
-              'source_sha': os.environ['GITHUB_SHA'],
-              'static_tests': os.environ.get('STATIC_OUTCOME', 'skipped'),
-              'browser_runtime': os.environ.get('INSTALL_OUTCOME', 'skipped'),
-              'postbrew_qr_browser_smoke': os.environ.get('BROWSER_OUTCOME', 'skipped'),
+          static = os.environ.get('STATIC_OUTCOME', 'skipped')
+          install = os.environ.get('INSTALL_OUTCOME', 'skipped')
+          browser = os.environ.get('BROWSER_OUTCOME', 'skipped')
+          ocr = os.environ.get('OCR_OUTCOME', 'skipped')
+          checked_at = datetime.now(timezone.utc).isoformat()
+          source_sha = os.environ['GITHUB_SHA']
+          qr_result = {
+              'checked_at': checked_at,
+              'source_sha': source_sha,
+              'static_tests': static,
+              'browser_runtime': install,
+              'postbrew_qr_browser_smoke': browser,
+              'verified': static == install == browser == 'success',
           }
-          result['verified'] = all(result[key] == 'success' for key in ('static_tests', 'browser_runtime', 'postbrew_qr_browser_smoke'))
-          with open('tests/qr-postbrew-browser-status.json', 'w', encoding='utf-8') as handle:
-              json.dump(result, handle, ensure_ascii=False, indent=2)
-              handle.write('\n')
-          print(json.dumps(result, ensure_ascii=False, indent=2))
+          ocr_result = {
+              'checked_at': checked_at,
+              'source_sha': source_sha,
+              'static_tests': static,
+              'browser_runtime': install,
+              'real_web_ocr_smoke': ocr,
+              'qr_text_first_regression': static,
+              'verified': static == install == ocr == 'success',
+          }
+          for path, result in (
+              ('tests/qr-postbrew-browser-status.json', qr_result),
+              ('tests/ocr-qr-regression-status.json', ocr_result),
+          ):
+              with open(path, 'w', encoding='utf-8') as handle:
+                  json.dump(result, handle, ensure_ascii=False, indent=2)
+                  handle.write('\n')
+          print(json.dumps({'qr_postbrew': qr_result, 'ocr_qr': ocr_result}, ensure_ascii=False, indent=2))
           PY
 
       - name: Commit verification status and diagnostics
@@ -97,12 +136,12 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add tests/qr-postbrew-browser-status.json
-          for file in tests/qr-postbrew-static-log.txt tests/qr-postbrew-browser-log.txt; do
+          git add tests/qr-postbrew-browser-status.json tests/ocr-qr-regression-status.json
+          for file in tests/qr-postbrew-static-log.txt tests/qr-postbrew-browser-log.txt tests/ocr-qr-regression-log.txt; do
             if [[ -f "$file" ]]; then git add "$file"; fi
           done
           if ! git diff --cached --quiet; then
-            git commit -m 'chore: record QR and post-brew browser verification [skip ci]'
+            git commit -m 'chore: record QR OCR and post-brew browser verification [skip ci]'
             git push origin HEAD:main
           fi
 
@@ -113,7 +152,9 @@ jobs:
           STATIC_OUTCOME: ${{ steps.static.outcome }}
           INSTALL_OUTCOME: ${{ steps.install.outcome }}
           BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+          OCR_OUTCOME: ${{ steps.ocr.outcome }}
         run: |
           test "$STATIC_OUTCOME" = success
           test "$INSTALL_OUTCOME" = success
           test "$BROWSER_OUTCOME" = success
+          test "$OCR_OUTCOME" = success
