@@ -149,5 +149,5 @@ test('runtime provides minimal identity screen rich history and selection-only t
   assert.match(css, /\.evidence-row-v2/);
   assert.match(db, /delete value\.sensoryNote/);
   assert.match(db, /sealPrivateJson\(identity/);
-  assert.match(sw, /luckybean-v0\.9\.6-ui-fix-g/);
+  assert.match(sw, /luckybean-v0\.9\.6-ui-fix-i/);
 });
