@@ -1,0 +1,1 @@
+{"qr": {"countryCode": "CT-ET", "varietyCode": "VR-001", "source": "json-qr"}, "ocr": {"engine": "tesseract.js-6.0.1", "text": "【正面主体】\nETHIOPIA 2026"}}

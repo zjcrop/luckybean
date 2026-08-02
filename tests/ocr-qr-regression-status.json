@@ -3,6 +3,7 @@
   "source_sha": "5ad09f45bcfdc7f6837f4e89beca813fe135f42b",
   "static_tests": "success",
   "browser_runtime": "success",
-  "postbrew_qr_browser_smoke": "success",
+  "real_web_ocr_smoke": "success",
+  "qr_text_first_regression": "success",
   "verified": true
 }
