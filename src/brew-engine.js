@@ -60,10 +60,10 @@ export function resolveRequestedProfileId(input = {}) {
     const segmentProfile = SEGMENT_PROFILE_MAP[segmentMode];
     if (segmentProfile) return segmentProfile;
   }
-  if (profileIsRecommended && Number.isFinite(Number(brew.segments))) {
-    const count = String(Math.trunc(Number(brew.segments)));
-    if (SEGMENT_PROFILE_MAP[count] && segmentMode !== 'auto') return SEGMENT_PROFILE_MAP[count];
-  }
+
+  // A bare numeric `segments` field is not authoritative: historical records
+  // contain it even when the UI remained on model recommendation. Only the
+  // explicit segmentMode control may constrain the profile.
   return '';
 }
 
