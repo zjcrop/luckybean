@@ -10,6 +10,10 @@ on:
       - 'src/v095-sensory-*.js'
       - 'src/v095-ui.js'
       - 'tests/sensory-modes-smoke.py'
+      - 'tests/theme-light.test.mjs'
+      - 'tests/v092.test.mjs'
+      - 'tests/v093.test.mjs'
+      - 'tests/v095.test.mjs'
       - 'tests/v095-refine.test.mjs'
       - '.github/workflows/sensory-browser-smoke.yml'
   workflow_dispatch:
@@ -50,10 +54,7 @@ jobs:
         id: browser
         continue-on-error: true
         if: steps.install.outcome == 'success'
-        shell: bash
-        run: |
-          set -o pipefail
-          python tests/sensory-modes-smoke.py 2>&1 | tee tests/sensory-browser-log.txt
+        run: python tests/sensory-modes-smoke.py
 
       - name: Write verification status
         if: always()
@@ -80,7 +81,7 @@ jobs:
           print(json.dumps(result, ensure_ascii=False, indent=2))
           PY
 
-      - name: Commit verification status and log
+      - name: Commit verification status
         if: always()
         shell: bash
         run: |
@@ -88,7 +89,6 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add tests/sensory-browser-status.json
-          test -f tests/sensory-browser-log.txt && git add tests/sensory-browser-log.txt || true
           if ! git diff --cached --quiet; then
             git commit -m 'chore: record sensory browser verification [skip ci]'
             git push origin HEAD:main
