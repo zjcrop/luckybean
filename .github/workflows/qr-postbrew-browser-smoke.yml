@@ -1,4 +1,4 @@
-name: Verify QR, OCR and post-brew sensory flow
+name: Verify QR OCR brew integrity and sensory privacy
 
 on:
   push:
@@ -8,15 +8,27 @@ on:
       - 'sw.js'
       - 'styles-qr-scan.css'
       - 'styles-v096-recognition.css'
+      - 'styles-v096-integrity.css'
       - 'src/qr.js'
       - 'src/qr-core.js'
       - 'src/codebook.js'
+      - 'src/recognition-candidates.js'
       - 'src/v096-web-ocr.js'
       - 'src/recognition-bridge.js'
       - 'src/v096-package-capture.js'
       - 'src/v096-direct-camera.js'
+      - 'src/v096-integrity-ui.js'
       - 'src/v095-qr-ui.js'
       - 'src/v095-postbrew-sensory.js'
+      - 'src/brew-engine.js'
+      - 'src/brew-engine-core.js'
+      - 'src/brew-trajectory-v096.js'
+      - 'src/db.js'
+      - 'src/db-storage-core.js'
+      - 'src/sensory-codec-v096.js'
+      - 'src/privacy-codec-v096.js'
+      - 'src/share-codec.js'
+      - 'src/share-codec-core.js'
       - 'tests/theme-light.test.mjs'
       - 'tests/v092.test.mjs'
       - 'tests/v093.test.mjs'
@@ -24,8 +36,10 @@ on:
       - 'tests/v095-refine.test.mjs'
       - 'tests/v096-qr-postbrew.test.mjs'
       - 'tests/v096-ocr-qr-regression.test.mjs'
+      - 'tests/v096-integrity.test.mjs'
       - 'tests/postbrew-qr-smoke.py'
       - 'tests/ocr-qr-regression-smoke.py'
+      - 'tests/integrity-browser-smoke.py'
       - '.github/workflows/qr-postbrew-browser-smoke.yml'
   workflow_dispatch:
 
@@ -33,13 +47,13 @@ permissions:
   contents: write
 
 concurrency:
-  group: luckybean-qr-ocr-postbrew-verification
+  group: luckybean-integrity-verification
   cancel-in-progress: true
 
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
@@ -60,14 +74,14 @@ jobs:
           {
             npm test
             npm run check
-            node --check src/qr.js
-            node --check src/qr-core.js
-            node --check src/codebook.js
-            node --check src/v096-web-ocr.js
-            node --check src/v096-package-capture.js
-            node --check src/v096-direct-camera.js
-            node --check src/v095-qr-ui.js
-            node --check src/v095-postbrew-sensory.js
+            for file in \
+              src/qr.js src/qr-core.js src/codebook.js src/recognition-candidates.js \
+              src/v096-web-ocr.js src/v096-package-capture.js src/v096-direct-camera.js src/v096-integrity-ui.js \
+              src/brew-engine.js src/brew-engine-core.js src/brew-trajectory-v096.js \
+              src/db.js src/db-storage-core.js src/sensory-codec-v096.js src/privacy-codec-v096.js \
+              src/share-codec.js src/share-codec-core.js src/v095-qr-ui.js src/v095-postbrew-sensory.js; do
+              node --check "$file"
+            done
           } > tests/qr-postbrew-static-log.txt 2>&1
 
       - name: Install browser test runtime and Chinese fonts
@@ -91,6 +105,12 @@ jobs:
         if: steps.install.outcome == 'success'
         run: python tests/ocr-qr-regression-smoke.py > tests/ocr-qr-regression-log.txt 2>&1
 
+      - name: Verify encrypted records rich history and tasting selection
+        id: integrity
+        continue-on-error: true
+        if: steps.install.outcome == 'success'
+        run: python tests/integrity-browser-smoke.py > tests/integrity-browser-log.txt 2>&1
+
       - name: Write verification status
         if: always()
         shell: bash
@@ -99,6 +119,7 @@ jobs:
           INSTALL_OUTCOME: ${{ steps.install.outcome }}
           BROWSER_OUTCOME: ${{ steps.browser.outcome }}
           OCR_OUTCOME: ${{ steps.ocr.outcome }}
+          INTEGRITY_OUTCOME: ${{ steps.integrity.outcome }}
         run: |
           python - <<'PY'
           import json, os
@@ -107,6 +128,7 @@ jobs:
           install = os.environ.get('INSTALL_OUTCOME', 'skipped')
           browser = os.environ.get('BROWSER_OUTCOME', 'skipped')
           ocr = os.environ.get('OCR_OUTCOME', 'skipped')
+          integrity = os.environ.get('INTEGRITY_OUTCOME', 'skipped')
           checked_at = datetime.now(timezone.utc).isoformat()
           source_sha = os.environ['GITHUB_SHA']
           qr_result = {
@@ -128,14 +150,29 @@ jobs:
               'direct_camera_static': static,
               'verified': static == install == ocr == 'success',
           }
+          integrity_result = {
+              'checked_at': checked_at,
+              'source_sha': source_sha,
+              'static_tests': static,
+              'browser_runtime': install,
+              'integrity_browser_smoke': integrity,
+              'brew_profile_integrity': static,
+              'variable_trajectory': static,
+              'sensory_encrypted_storage': integrity,
+              'sensory_rich_history': integrity,
+              'minimal_identity_screen': integrity,
+              'direct_sensory_choice': integrity,
+              'verified': static == install == integrity == 'success',
+          }
           for path, result in (
               ('tests/qr-postbrew-browser-status.json', qr_result),
               ('tests/ocr-qr-regression-status.json', ocr_result),
+              ('tests/integrity-browser-status.json', integrity_result),
           ):
               with open(path, 'w', encoding='utf-8') as handle:
                   json.dump(result, handle, ensure_ascii=False, indent=2)
                   handle.write('\n')
-          print(json.dumps({'qr_postbrew': qr_result, 'ocr_qr': ocr_result}, ensure_ascii=False, indent=2))
+          print(json.dumps({'qr_postbrew': qr_result, 'ocr_qr': ocr_result, 'integrity': integrity_result}, ensure_ascii=False, indent=2))
           PY
 
       - name: Commit verification status and diagnostics
@@ -145,12 +182,12 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add tests/qr-postbrew-browser-status.json tests/ocr-qr-regression-status.json
-          for file in tests/qr-postbrew-static-log.txt tests/qr-postbrew-browser-log.txt tests/ocr-qr-regression-log.txt; do
+          git add tests/qr-postbrew-browser-status.json tests/ocr-qr-regression-status.json tests/integrity-browser-status.json
+          for file in tests/qr-postbrew-static-log.txt tests/qr-postbrew-browser-log.txt tests/ocr-qr-regression-log.txt tests/integrity-browser-log.txt; do
             if [[ -f "$file" ]]; then git add "$file"; fi
           done
           if ! git diff --cached --quiet; then
-            git commit -m 'chore: record Chinese OCR camera QR verification [skip ci]'
+            git commit -m 'chore: record Lucky Bean integrity verification [skip ci]'
             git push origin HEAD:main
           fi
 
@@ -162,8 +199,10 @@ jobs:
           INSTALL_OUTCOME: ${{ steps.install.outcome }}
           BROWSER_OUTCOME: ${{ steps.browser.outcome }}
           OCR_OUTCOME: ${{ steps.ocr.outcome }}
+          INTEGRITY_OUTCOME: ${{ steps.integrity.outcome }}
         run: |
           test "$STATIC_OUTCOME" = success
           test "$INSTALL_OUTCOME" = success
           test "$BROWSER_OUTCOME" = success
           test "$OCR_OUTCOME" = success
+          test "$INTEGRITY_OUTCOME" = success
