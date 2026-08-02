@@ -1,0 +1,41 @@
+name: Verify sensory modes in browser
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'sw.js'
+      - 'styles-v095*.css'
+      - 'src/v095-sensory-*.js'
+      - 'src/v095-ui.js'
+      - 'tests/sensory-modes-smoke.py'
+      - 'tests/v095-refine.test.mjs'
+      - '.github/workflows/sensory-browser-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run static and unit tests
+        run: |
+          npm test
+          npm run check
+      - name: Install browser test runtime
+        run: |
+          python -m pip install --disable-pip-version-check playwright
+          python -m playwright install --with-deps chromium
+      - name: Verify three sensory modes in Chromium
+        run: python tests/sensory-modes-smoke.py
