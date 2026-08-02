@@ -61,7 +61,7 @@ async def main():
 
             await enter_test_app(page)
 
-            # A manual three-pulse selection must be a hard UI-to-engine constraint.
+            # “三段式” means three total stages, with bloom as stage one.
             await page.locator('[data-page-target="brew"]').click()
             await page.wait_for_selector("#generatePlanBtn")
             await page.locator("#brewProfile").select_option("recommended")
@@ -70,27 +70,18 @@ async def main():
             await page.locator("#generatePlanBtn").click()
             await page.wait_for_selector("#generatedPlan")
             assert await page.locator("#generatedPlan .plan-profile-label").inner_text() == "三段式"
-            assert await page.locator("#generatedPlan .plan-stage").count() == 4
+            assert await page.locator("#generatedPlan .plan-stage").count() == 3
 
-            # Preserve the original data-driven graph: all physical and flavor curves,
-            # material windows and stage boundaries must remain in the SVG. The risk
-            # curve is always present; a separate risk window is model-dependent.
-            trajectory = page.locator('#generatedPlan .trajectory-chart.detailed[data-v097-trajectory-preserved="1"]')
+            # v17-style graph is based on stage time and keeps physical curves,
+            # flavor coverage and flavor windows as separate visual layers.
+            trajectory = page.locator('#generatedPlan .trajectory-chart.detailed[data-v098-trajectory="1"]')
             await trajectory.wait_for(state="visible")
-            assert await trajectory.locator('.v097-flavor-coverage').count() == 0
-            for selector in [
-                '.trajectory-series.temperature',
-                '.trajectory-series.flow',
-                '.trajectory-series.water',
-                '.trajectory-series.floral',
-                '.trajectory-series.acidity',
-                '.trajectory-series.sweetness',
-                '.trajectory-series.risk',
-            ]:
-                assert await trajectory.locator(selector).count() == 1
-            assert await trajectory.locator('.trajectory-window').count() >= 1
-            assert await trajectory.locator('.trajectory-window.positive').count() >= 1
-            assert await trajectory.locator('.trajectory-phase').count() >= 1
+            assert await trajectory.locator('.v098-temp-line').count() == 1
+            assert await trajectory.locator('.v098-flow-line').count() == 1
+            assert await trajectory.locator('.v098-flavor-line').count() <= 1
+            assert await trajectory.locator('.v098-flavor-window').count() >= 1
+            assert await trajectory.locator('.v098-stage-marker').count() == 3
+            assert await page.locator('#generatedPlan .v098-phase-bar .phase-seg').count() == 3
 
             # Complete the brew and verify that it lands on the mode selector,
             # not inside any sensory workflow.
@@ -122,7 +113,7 @@ async def main():
 
         if page_errors:
             raise AssertionError(f"page errors: {page_errors}")
-        print("manual three-pulse, full trajectory, post-brew choice and QR auto-capture smoke passed")
+        print("bloom-inclusive three-stage, v17 trajectory, post-brew choice and QR auto-capture smoke passed")
     finally:
         server.terminate()
         with contextlib.suppress(subprocess.TimeoutExpired):
