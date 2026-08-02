@@ -287,7 +287,10 @@ async function computeOptimizedPlan(input, { feedback = null, forceProfile = '' 
     const coreInput = coreId === id ? requestedInput : candidateInput(input, coreId);
     let base = await core.computeFallbackPlan(coreInput);
     base = normalizeStageSemantics(base, id);
-    const plan = optimizeBrewPlan(requestedInput, base, { feedback });
+    let plan = optimizeBrewPlan(requestedInput, base, { feedback });
+    // The inverse optimizer may redistribute stage water. Re-apply the chosen
+    // method's structural invariant afterwards, especially exact 33666.
+    plan = normalizeStageSemantics(plan, id);
     plan.profile = { ...profileDefinition(id) };
     plan.professional ||= {};
     plan.professional.profile = { ...profileDefinition(id) };
@@ -366,7 +369,8 @@ export async function requestPrivatePlan(endpoint, input, timeoutMs = 9000) {
   const normalized = normalizeExplicitInput(input);
   const privatePlan = await core.requestPrivatePlan(endpoint, normalized, timeoutMs);
   const semanticPlan = normalizeStageSemantics(privatePlan, selected);
-  const optimized = optimizeBrewPlan(normalized, semanticPlan);
+  let optimized = optimizeBrewPlan(normalized, semanticPlan);
+  optimized = normalizeStageSemantics(optimized, selected);
   assertProfileIntegrity(normalized, optimized);
   return attachLegacyTrajectory(optimized);
 }
