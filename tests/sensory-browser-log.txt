@@ -1,5 +1,5 @@
 Traceback (most recent call last):
-  File "/home/runner/work/luckybean/luckybean/tests/sensory-modes-smoke.py", line 121, in <module>
+  File "/home/runner/work/luckybean/luckybean/tests/sensory-modes-smoke.py", line 122, in <module>
     asyncio.run(main())
   File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/asyncio/runners.py", line 195, in run
     return runner.run(main)
@@ -10,8 +10,8 @@ Traceback (most recent call last):
   File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
     return future.result()
            ^^^^^^^^^^^^^^^
-  File "/home/runner/work/luckybean/luckybean/tests/sensory-modes-smoke.py", line 84, in main
-    await page.wait_for_selector("#v095ProfessionalWizard")
+  File "/home/runner/work/luckybean/luckybean/tests/sensory-modes-smoke.py", line 66, in main
+    await page.wait_for_selector("#splashScreen.hidden", state="attached")
   File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/playwright/async_api/_generated.py", line 9053, in wait_for_selector
     await self._impl_obj.wait_for_selector(
   File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/playwright/_impl/_page.py", line 427, in wait_for_selector
@@ -26,6 +26,5 @@ Traceback (most recent call last):
     raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
 playwright._impl._errors.TimeoutError: Page.wait_for_selector: Timeout 12000ms exceeded.
 Call log:
-  - waiting for locator("#v095ProfessionalWizard") to be visible
-    27 × locator resolved to hidden <div id="v095ProfessionalWizard">…</div>
+  - waiting for locator("#splashScreen.hidden")
 
