@@ -3,7 +3,6 @@ import http.server
 import json
 import socketserver
 import threading
-import time
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -32,6 +31,7 @@ def local_server():
 with local_server() as base_url, sync_playwright() as playwright:
     browser = playwright.chromium.launch(headless=True)
     page = browser.new_page()
+    page.set_default_timeout(360_000)
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
     page.goto(base_url, wait_until='domcontentloaded', timeout=60_000)
@@ -63,7 +63,7 @@ with local_server() as base_url, sync_playwright() as playwright:
         { id: 'ocr-smoke', role: 'front', roleLabel: '正面主体', blob }
       ], { languages: ['eng'] });
       return { engine: result.engine, text: result.fullText };
-    }""", timeout=360_000)
+    }""")
 
     normalized = ''.join(str(ocr_result['text']).upper().split())
     assert 'ETHIOPIA' in normalized, ocr_result
