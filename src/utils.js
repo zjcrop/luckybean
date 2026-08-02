@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.9.6';
+export const APP_VERSION = '0.9.8';
 export const SCHEMA_VERSION = 6;
 
 export const $ = (selector, root = document) => root.querySelector(selector);
@@ -59,96 +59,36 @@ export function downloadBlob(filename, content, type = 'application/octet-stream
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-export function parseNumber(value, fallback = 0) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-export async function sha256Hex(value) {
-  const bytes = typeof value === 'string' ? new TextEncoder().encode(value) : value;
-  if (!crypto?.subtle) return '';
-  const digest = await crypto.subtle.digest('SHA-256', bytes);
-  return [...new Uint8Array(digest)].map(v => v.toString(16).padStart(2, '0')).join('');
-}
-
 export function safeJsonParse(text, fallback = null) {
   try { return JSON.parse(text); } catch { return fallback; }
 }
 
-export function assertSafeJson(value, path = 'root', depth = 0) {
-  if (depth > 20) throw new Error(`${path} 嵌套层级过深`);
-  if (value === null || ['string', 'number', 'boolean'].includes(typeof value)) return value;
-  if (Array.isArray(value)) {
-    if (value.length > 100000) throw new Error(`${path} 数组过大`);
-    value.forEach((item, index) => assertSafeJson(item, `${path}[${index}]`, depth + 1));
-    return value;
-  }
-  if (typeof value !== 'object') throw new Error(`${path} 包含不支持的数据类型`);
-  for (const [key, item] of Object.entries(value)) {
-    if (['__proto__', 'prototype', 'constructor'].includes(key)) throw new Error(`${path} 包含危险字段 ${key}`);
-    assertSafeJson(item, `${path}.${key}`, depth + 1);
-  }
-  return value;
-}
-
 export function assertPlainObject(value, label = '对象') {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label}格式无效`);
-  for (const key of Object.keys(value)) {
-    if (['__proto__', 'prototype', 'constructor'].includes(key)) throw new Error(`${label}包含危险字段`);
-  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label}格式错误`);
   return value;
 }
 
-export function browserTitle(pageTitle) {
-  document.title = `${pageTitle} · 富贵盒子`;
+export function assertSafeJson(value, { maxDepth = 20, maxKeys = 20000, maxString = 2_000_000 } = {}) {
+  let keys = 0;
+  const seen = new Set();
+  const visit = (node, depth) => {
+    if (depth > maxDepth) throw new Error('数据嵌套过深');
+    if (typeof node === 'string' && node.length > maxString) throw new Error('文本字段过大');
+    if (!node || typeof node !== 'object') return;
+    if (seen.has(node)) throw new Error('数据包含循环引用');
+    seen.add(node);
+    for (const [key, child] of Object.entries(node)) {
+      keys += 1;
+      if (keys > maxKeys) throw new Error('数据字段过多');
+      if (['__proto__', 'prototype', 'constructor'].includes(key)) throw new Error('数据包含不安全字段');
+      visit(child, depth + 1);
+    }
+    seen.delete(node);
+  };
+  visit(value, 0);
+  return value;
 }
 
-export function freshnessProfile(bean, now = new Date()) {
-  const rawAge = Math.max(0, daysBetween(bean.roastDate, now));
-  const roast = bean.roastCode || 'RL-L2';
-  const frozen = Boolean(bean.refrigerated);
-  const frozenDays = frozen ? Math.max(0, daysBetween(bean.freezeDate || bean.roastDate, now)) : 0;
-  const effectiveAge = Math.max(0, rawAge - frozenDays * 0.78);
-  const ranges = {
-    'RL-L0': [10, 35, 65], 'RL-L1': [8, 30, 55], 'RL-L2': [7, 25, 45],
-    'RL-L3': [5, 20, 35], 'RL-L4': [4, 16, 28], 'RL-L5': [3, 12, 22], 'RL-L6': [2, 9, 16]
-  };
-  let [start, peakEnd, end] = ranges[roast] || ranges['RL-L2'];
-  const variety = String(bean.varietyCode || '').toUpperCase();
-  const process = String(bean.processCode || '').toUpperCase();
-  if (/GE|GESHA|JA58|JA10|JA12|SL28|SL34|PB|SID/.test(variety)) { start += 3; peakEnd += 7; end += 8; }
-  if (/NA|ANA|CM|FERM|DF|TS/.test(process)) { peakEnd += 3; end += 5; }
-  const peakDay = start + (peakEnd - start) * 0.58;
-  const fullDay = end + 7;
-  const progress = clamp(0.2 + 0.8 * effectiveAge / Math.max(1, fullDay), 0.2, 1);
-  let stage;
-  if (effectiveAge < start * .33) stage = 0;
-  else if (effectiveAge < start * .67) stage = 1;
-  else if (effectiveAge < start) stage = 2;
-  else if (effectiveAge < peakDay - 4) stage = 3;
-  else if (effectiveAge < peakDay - 1) stage = 4;
-  else if (effectiveAge <= peakDay + 2) stage = 5;
-  else if (effectiveAge <= peakEnd) stage = 6;
-  else if (effectiveAge <= end) stage = 7;
-  else if (effectiveAge <= end + 7) stage = 8;
-  else stage = 9;
-  const colors = ['#ff8a24','#f69a24','#e8b72d','#d5d83b','#8dc75b','#3fa56a','#74a566','#8b9383','#747474','#595959'];
-  const labels = ['养豆初期','养豆中','养豆末期','风味上升','接近高峰','赏味高峰','高峰后段','风味衰减','赏味期后','尽快处理'];
-  const sigma = Math.max(5, (end - start) / 2.2);
-  let flavorScore = 100 * Math.exp(-((effectiveAge - peakDay) ** 2) / (2 * sigma ** 2));
-  if (effectiveAge > end) flavorScore *= Math.exp(-(effectiveAge - end) / 22);
-  flavorScore = clamp(flavorScore, 0, 100);
-  const rising = effectiveAge < peakDay;
-  return {
-    age: rawAge, effectiveAge, start, peakDay, peakEnd, end, fullDay,
-    stage, color: colors[stage], label: labels[stage], progress,
-    flavorScore: Math.round(flavorScore), trend: rising ? '上升' : '下降', rising,
-    remaining: end - effectiveAge,
-    key: stage <= 2 ? 'resting' : stage <= 6 ? 'peak' : stage === 7 ? 'good' : stage === 8 ? 'decline' : 'urgent',
-    rank: 10 - stage
-  };
-}
-
-export function freshness(bean) {
-  return freshnessProfile(bean);
+export function browserTitle(section = '') {
+  document.title = section ? `${section} · 富贵盒子` : '富贵盒子';
 }
