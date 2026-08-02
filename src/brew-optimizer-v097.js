@@ -307,8 +307,14 @@ export function deriveSensoryFeedback(record = {}, previousPlan = null) {
   const score = Number(record.subjectiveScore ?? record.score ?? 0);
   const auto = Number(record.autoScore || 0);
   const lowScore = score > 0 && score < 80;
-  const controls = {
-    tempOffset: 0, flowOffset: 0, grindDelta: 0, ratioDelta: 0, tailDrop: 3, bloomFactor: 1,
+  const previousControls = previousPlan?.optimizer?.controls || {};
+const controls = {
+  tempOffset: Number(previousControls.tempOffset || 0),
+  flowOffset: Number(previousControls.flowOffset || 0),
+  grindDelta: Number(previousControls.grindDelta || 0),
+  ratioDelta: Number(previousControls.ratioDelta || 0),
+  tailDrop: Number(previousControls.tailDrop || 3),
+  bloomFactor: Number(previousControls.bloomFactor || 1),
     midWeight: 0, tailPenalty: 0, aromaWeight: 0
   };
   if (feedback.underExtracted) { controls.tempOffset += 0.8; controls.grindDelta -= 0.75; controls.ratioDelta += 0.25; controls.flowOffset -= 0.15; }
@@ -323,7 +329,7 @@ export function deriveSensoryFeedback(record = {}, previousPlan = null) {
   controls.flowOffset = round(clamp(controls.flowOffset, -0.8, 0.8), 2);
   controls.grindDelta = round(clamp(controls.grindDelta, -1.8, 1.8), 2);
   controls.ratioDelta = round(clamp(controls.ratioDelta, -0.8, 0.8), 2);
-  controls.tailDrop = round(clamp(controls.tailDrop, 1, 6), 2);
+  controls.tailDrop = round(clamp(controls.tailDrop, 1, 9), 2);
   return {
     version: 1,
     sourceRecordId: record.id || '',
@@ -518,7 +524,10 @@ function rebuildCandidate(input, basePlan, models, controls) {
   const plan = clone(basePlan);
   const dose = Number(input.brew?.doseG || plan.totals?.doseG || 15);
   const baseRatio = Number(input.brew?.ratio || plan.totals?.ratio || 15.5);
-  const ratioLocked = input.brew?.ratioLocked === true || input.brew?.ratioMode === 'manual';
+  const hasExplicitRatio = Number.isFinite(Number(input.brew?.ratio));
+const ratioLocked = input.brew?.ratioLocked === true
+  || input.brew?.ratioMode === 'manual'
+  || (hasExplicitRatio && input.brew?.ratioMode !== 'auto' && input.brew?.allowRatioOptimization !== true);
   const ratio = clamp(baseRatio + (ratioLocked ? 0 : controls.ratioDelta), 12.5, 19);
   const totalWater = Math.max(1, Math.round(dose * ratio));
   const waters = profileWaterAllocation(plan, totalWater, dose, models.windows, models.bean);
@@ -731,7 +740,8 @@ function simulateCandidate(input, plan, models, controls) {
 
 return {
   version: TRAJECTORY_MODEL_VERSION,
-  model: 'inverse-target-window-fit',
+  model: 'time-stepped-variable-release',
+  optimizerModel: 'inverse-target-window-fit',
   axes: {
     timeSec: round(totalTime), waterG: totalWater,
     temperatureC: [76, 98], flowGPerSec: [0, round(models.device.maxFlow, 1)],
@@ -777,12 +787,13 @@ function optimizeControls(input, basePlan, models, feedback) {
   let bestPlan = rebuildCandidate(input, basePlan, models, controls);
   let bestTrajectory = simulateCandidate(input, bestPlan, models, controls);
 
+  const tailFloor = feedback?.flags?.overExtracted ? Math.min(9, Number(prior.tailDrop || 3)) : 0.5;
   const dimensions = [
     ['tempOffset', [-1.5,-0.75,0,0.75,1.5], -3, 3],
     ['flowOffset', [-0.6,-0.3,0,0.3,0.6], -1.2, 1.2],
     ['grindDelta', [-1.2,-0.6,0,0.6,1.2], -2.5, 2.5],
     ['ratioDelta', [-0.5,-0.25,0,0.25,0.5], -1.2, 1.2],
-    ['tailDrop', [-1.5,-0.75,0,0.75,1.5], 0.5, 7],
+    ['tailDrop', [-1.5,-0.75,0,0.75,1.5], tailFloor, 9],
     ['bloomFactor', [-0.18,-0.09,0,0.09,0.18], 0.72, 1.35]
   ];
 
