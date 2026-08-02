@@ -72,16 +72,19 @@ async def main():
             assert await page.locator("#generatedPlan .plan-profile-label").inner_text() == "三段式"
             assert await page.locator("#generatedPlan .plan-stage").count() == 3
 
-            # v17-style graph is based on stage time and keeps physical curves,
-            # flavor coverage and flavor windows as separate visual layers.
-            trajectory = page.locator('#generatedPlan .trajectory-chart.detailed[data-v098-trajectory="1"]')
+            # Exact v17 visual grammar: four phase backgrounds, executable
+            # temperature/flow bands, cumulative water, flavor windows and risk guides.
+            trajectory = page.locator('#generatedPlan .trajectory-chart.detailed[data-v098-trajectory-model="v17-stage-time-window"]')
             await trajectory.wait_for(state="visible")
             assert await trajectory.locator('.v098-temp-line').count() == 1
             assert await trajectory.locator('.v098-flow-line').count() == 1
+            assert await trajectory.locator('.v098-temp-band').count() == 1
+            assert await trajectory.locator('.v098-flow-band').count() == 1
+            assert await trajectory.locator('.v098-cumulative-line').count() == 1
             assert await trajectory.locator('.v098-flavor-line').count() <= 1
             assert await trajectory.locator('.v098-flavor-window').count() >= 1
-            assert await trajectory.locator('.v098-stage-marker').count() == 3
-            assert await page.locator('#generatedPlan .v098-phase-bar .phase-seg').count() == 3
+            assert await trajectory.locator('.v098-phase-line').count() == 3
+            assert await page.locator('#generatedPlan .v098-phase-bar .phase-seg').count() == 4
 
             # Complete the brew and verify that it lands on the mode selector,
             # not inside any sensory workflow.
@@ -113,7 +116,7 @@ async def main():
 
         if page_errors:
             raise AssertionError(f"page errors: {page_errors}")
-        print("bloom-inclusive three-stage, v17 trajectory, post-brew choice and QR auto-capture smoke passed")
+        print("bloom-inclusive three-stage, exact v17 trajectory, post-brew choice and QR auto-capture smoke passed")
     finally:
         server.terminate()
         with contextlib.suppress(subprocess.TimeoutExpired):
