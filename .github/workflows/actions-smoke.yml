@@ -1,4 +1,4 @@
-name: Finalize Lucky Bean v1.0.0-alpha
+name: Build and publish Lucky Bean v1.0.0-alpha
 
 on:
   push:
@@ -10,85 +10,137 @@ permissions:
   contents: write
 
 concurrency:
-  group: luckybean-v1-alpha-finalize-proven
+  group: luckybean-v1-alpha-build
   cancel-in-progress: false
 
 jobs:
-  finalize:
+  build-release:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Finalize source and run current release checks
-        id: finalize
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build, verify and publish Alpha APK
+        id: build
         continue-on-error: true
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          node --version
-          npm --version
-          python --version
-          python tools/finalize-v1-alpha.py
-          python tools/finalize-v1-alpha-cleanup.py
-          python -m py_compile tools/finalize-v1-alpha.py tools/finalize-v1-alpha-cleanup.py
           npm run check
           find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
-          python - <<'PY'
-          from pathlib import Path
-          import json, re
 
-          html = Path('index.html').read_text(encoding='utf-8')
-          sw = Path('sw.js').read_text(encoding='utf-8')
-          manifest = json.loads(Path('manifest.webmanifest').read_text(encoding='utf-8'))
-          assert 'application-version" content="1.0.0-alpha' in html
-          assert 'release-revision" content="1.0.0-alpha' in html
-          assert 'data-release="1.0.0-alpha"' in html
-          assert "const CACHE_NAME = 'luckybean-v1.0.0-alpha'" in sw
-          assert "const RELEASE = '1.0.0-alpha'" in sw
-          assert manifest['start_url'] == './?v=1.0.0-alpha'
-          assert manifest['name'] == '富贵盒子 1.0.0-alpha'
-          assert 'data-manage-action="history"' not in Path('src/app.js').read_text(encoding='utf-8')
-          assert "document.querySelector('#parseTextBtn')?.click();" in Path('src/v096-package-capture.js').read_text(encoding='utf-8')
-          assert not Path('src/v099u-menu-ocr-flow.js').exists()
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" 'platforms;android-35' 'build-tools;35.0.0'
+          export PATH="$ANDROID_HOME/build-tools/35.0.0:$PATH"
 
-          refs = re.findall(r'(?:src|href)="(\./[^"#?]+)', html)
-          missing = [ref for ref in refs if not Path(ref[2:]).exists()]
-          if missing:
-              raise SystemExit(f'Missing HTML resources: {missing}')
-          print(f'Validated {len(refs)} HTML resources.')
-          PY
-          grep -Fq "versionName '1.0.0-alpha'" android/app/build.gradle
-          grep -Fq 'versionCode 100001' android/app/build.gradle
-          grep -Fq 'LuckyBeanAndroid/1.0.0-alpha' android/app/src/main/java/com/luckybean/app/MainActivity.java
+          gradle -p android --no-daemon :app:assembleAlpha
+          APK='android/app/build/outputs/apk/alpha/app-alpha.apk'
+          test -s "$APK"
+          apksigner verify --verbose "$APK"
 
-      - name: Commit source and status
+          mkdir -p dist
+          cp "$APK" dist/LuckyBean-v1.0.0-alpha-Android.apk
+          sha256sum dist/LuckyBean-v1.0.0-alpha-Android.apk > dist/LuckyBean-v1.0.0-alpha-Android.apk.sha256
+          aapt dump badging dist/LuckyBean-v1.0.0-alpha-Android.apk > dist/LuckyBean-v1.0.0-alpha-apk-badging.txt
+          stat --printf='%s\n' dist/LuckyBean-v1.0.0-alpha-Android.apk > dist/LuckyBean-v1.0.0-alpha-Android.apk.bytes
+
+          cat > dist/release-notes.md <<'EOF'
+          # 富贵盒子 v1.0.0-alpha
+
+          首个统一定版的 Alpha 网页与 Android 应用。
+
+          - 本地优先保存咖啡豆、冲煮、品鉴与器具数据；
+          - 支持豆袋拍摄、PP-OCR识别、一次文字纠错后自动填写豆卡；
+          - 支持赏味期与余量分组、个人风味侧写和咖啡世界；
+          - Android APK内置网页资源，可离线打开主界面；需要网络的识别、登录和云端同步功能仍需联网；
+          - 本APK使用Alpha测试签名，仅用于侧载验证，不应作为应用商店正式签名版本。
+          EOF
+
+          SOURCE_SHA="$(git log -1 --format=%H -- package.json)"
+          if gh release view v1.0.0-alpha >/dev/null 2>&1; then
+            gh release upload v1.0.0-alpha \
+              dist/LuckyBean-v1.0.0-alpha-Android.apk \
+              dist/LuckyBean-v1.0.0-alpha-Android.apk.sha256 \
+              dist/LuckyBean-v1.0.0-alpha-apk-badging.txt \
+              --clobber
+            gh release edit v1.0.0-alpha --title '富贵盒子 v1.0.0-alpha' --notes-file dist/release-notes.md --prerelease
+          else
+            gh release create v1.0.0-alpha \
+              --target "$SOURCE_SHA" \
+              --title '富贵盒子 v1.0.0-alpha' \
+              --notes-file dist/release-notes.md \
+              --prerelease \
+              dist/LuckyBean-v1.0.0-alpha-Android.apk \
+              dist/LuckyBean-v1.0.0-alpha-Android.apk.sha256 \
+              dist/LuckyBean-v1.0.0-alpha-apk-badging.txt
+          fi
+
+      - name: Upload Actions artifact
+        if: steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuckyBean-v1.0.0-alpha-Android
+          path: |
+            dist/LuckyBean-v1.0.0-alpha-Android.apk
+            dist/LuckyBean-v1.0.0-alpha-Android.apk.sha256
+            dist/LuckyBean-v1.0.0-alpha-apk-badging.txt
+            dist/release-notes.md
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Record build status
         if: always()
         shell: bash
         env:
-          FINALIZE_OUTCOME: ${{ steps.finalize.outcome }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
         run: |
           set -euo pipefail
+          git pull --rebase origin main
           mkdir -p .release
-          cat > .release/v1.0.0-alpha-finalize-status.json <<EOF
+          APK_SHA=''
+          APK_BYTES='0'
+          PACKAGE_LINE=''
+          if [[ -f dist/LuckyBean-v1.0.0-alpha-Android.apk.sha256 ]]; then
+            APK_SHA="$(cut -d' ' -f1 dist/LuckyBean-v1.0.0-alpha-Android.apk.sha256)"
+          fi
+          if [[ -f dist/LuckyBean-v1.0.0-alpha-Android.apk.bytes ]]; then
+            APK_BYTES="$(cat dist/LuckyBean-v1.0.0-alpha-Android.apk.bytes)"
+          fi
+          if [[ -f dist/LuckyBean-v1.0.0-alpha-apk-badging.txt ]]; then
+            PACKAGE_LINE="$(head -n 1 dist/LuckyBean-v1.0.0-alpha-apk-badging.txt | sed 's/"/\\"/g')"
+          fi
+          cat > .release/v1.0.0-alpha-build-status.json <<EOF
           {
-            "status": "${FINALIZE_OUTCOME}",
+            "status": "${BUILD_OUTCOME}",
             "run_id": "${GITHUB_RUN_ID}",
             "trigger_sha": "${GITHUB_SHA}",
+            "apk_sha256": "${APK_SHA}",
+            "apk_bytes": ${APK_BYTES},
+            "package": "${PACKAGE_LINE}",
             "recorded_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           }
           EOF
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          if [[ "$FINALIZE_OUTCOME" == 'success' ]]; then
-            git add -A package.json index.html manifest.webmanifest sw.js README.md src android docs tools/finalize-v1-alpha.py tools/finalize-v1-alpha-cleanup.py
-          fi
-          git add .release/v1.0.0-alpha-finalize-status.json
-          git commit -m "release: finalize Lucky Bean v1.0.0-alpha (${FINALIZE_OUTCOME})"
+          git add .release/v1.0.0-alpha-build-status.json
+          git commit -m "release: record v1.0.0-alpha Android build ${BUILD_OUTCOME}" || true
           git push origin HEAD:main
 
-      - name: Fail when finalization failed
-        if: steps.finalize.outcome != 'success'
+      - name: Fail when build or release failed
+        if: steps.build.outcome != 'success'
         run: exit 1
