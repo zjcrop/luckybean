@@ -120,9 +120,12 @@ if (!globalThis.__LuckyBeanV099gAccountStabilizerLoaded) {
       } finally {
         const active = authSession();
         buttons.forEach(button => { button.disabled = false; });
-        $('[data-v099g-unlock]', panel).disabled = !active;
-        $('[data-v099g-sync-now]', panel).disabled = !active;
-        $('[data-v099g-download]', panel).disabled = !active;
+        const unlock = $('[data-v099g-unlock]', panel);
+        const sync = $('[data-v099g-sync-now]', panel);
+        const download = $('[data-v099g-download]', panel);
+        if (unlock) unlock.disabled = !active;
+        if (sync) sync.disabled = !active;
+        if (download) download.disabled = !active;
       }
     };
 
