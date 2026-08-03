@@ -1,3 +1,6 @@
+import './v099e-cloud-sync.js';
+import './v099e-account-bridge.js';
+
 const RADAR_TARGET = '[data-radar-axis], .v095-radar-handle, [data-radar-slider]';
 let pending = null;
 let restoreTimer = 0;
