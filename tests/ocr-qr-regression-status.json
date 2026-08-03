@@ -1,11 +1,11 @@
 {
-  "checked_at": "2026-08-02T17:08:34.650600+00:00",
-  "source_sha": "f518a30dba364fb8432c803dd5392c327dbabd71",
+  "checked_at": "2026-08-03T04:14:33.119442+00:00",
+  "source_sha": "c6480c577c0cafc6046b65ceb66cfaca3a031037",
   "static_tests": "failure",
   "browser_runtime": "success",
-  "real_web_ocr_smoke": "success",
+  "real_web_ocr_smoke": "failure",
   "qr_text_first_regression": "failure",
-  "chinese_mixed_ocr": "success",
+  "chinese_mixed_ocr": "failure",
   "direct_camera_static": "failure",
   "field_autofill_static": "failure",
   "verified": false
