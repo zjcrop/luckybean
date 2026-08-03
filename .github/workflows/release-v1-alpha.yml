@@ -1,0 +1,356 @@
+name: Release Lucky Bean v1.0.0-alpha
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.release/v1.0.0-alpha.trigger'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-v1.0.0-alpha-release
+  cancel-in-progress: false
+
+jobs:
+  finalize-build-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Finalize web and Android version
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          VERSION = '1.0.0-alpha'
+          REVISION = '1.0.0-alpha'
+          TAG = 'v1.0.0-alpha'
+
+          package_path = Path('package.json')
+          package = json.loads(package_path.read_text(encoding='utf-8'))
+          package['version'] = VERSION
+          package_path.write_text(json.dumps(package, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          utils = Path('src/utils.js')
+          text = utils.read_text(encoding='utf-8')
+          text, count = re.subn(r"export const APP_VERSION = '[^']+';", f"export const APP_VERSION = '{VERSION}';", text, count=1)
+          assert count == 1, 'APP_VERSION not found'
+          utils.write_text(text, encoding='utf-8')
+
+          index = Path('index.html')
+          html = index.read_text(encoding='utf-8')
+          html = re.sub(r'(<meta name="application-version" content=")[^"]+("\s*/?>)', rf'\g<1>{VERSION}\2', html, count=1)
+          html = re.sub(r'(<meta name="release-revision" content=")[^"]+("\s*/?>)', rf'\g<1>{REVISION}\2', html, count=1)
+          html = re.sub(r'<title>富贵盒子[^<]*</title>', f'<title>富贵盒子 {VERSION}</title>', html, count=1)
+          html = re.sub(r'data-release="[^"]+"', f'data-release="{VERSION}"', html, count=1)
+          html = re.sub(r'data-release-revision="[^"]+"', f'data-release-revision="{REVISION}"', html, count=1)
+          html = re.sub(r'\?v=[A-Za-z0-9._-]+', f'?v={REVISION}', html)
+          index.write_text(html, encoding='utf-8')
+
+          manifest_path = Path('manifest.webmanifest')
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+          manifest['name'] = f'富贵盒子 {VERSION}'
+          manifest['short_name'] = '富贵盒子'
+          manifest['start_url'] = f'./?v={REVISION}'
+          manifest['description'] = f'富贵盒子 {VERSION}：本地优先的咖啡豆管理、豆袋识别、冲煮轨迹、品鉴与器具数据工具'
+          for icon in manifest.get('icons', []):
+              src = icon.get('src', '').split('?')[0]
+              icon['src'] = f'{src}?v={REVISION}'
+          manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          sw = Path('sw.js')
+          text = sw.read_text(encoding='utf-8')
+          text = re.sub(r'^// Release marker:.*$', f'// Release marker: luckybean-v{VERSION}', text, count=1, flags=re.M)
+          text = re.sub(r'^// Compatibility marker:.*$', '// Compatibility marker: luckybean-v0.9.9-main-099u', text, count=1, flags=re.M)
+          text = re.sub(r"const CACHE_NAME = '[^']+';", f"const CACHE_NAME = 'luckybean-v{VERSION}';", text, count=1)
+          text = re.sub(r"const RELEASE = '[^']+';", f"const RELEASE = '{REVISION}';", text, count=1)
+          sw.write_text(text, encoding='utf-8')
+
+          readme = Path('README.md')
+          text = readme.read_text(encoding='utf-8')
+          text = re.sub(r'\*\*当前内部测试版本：v[^*]+\*\*', f'**当前 Alpha 版本：v{VERSION}**', text, count=1)
+          if f'## v{VERSION}' not in text:
+              marker = '富贵盒子是本地优先的咖啡豆档案、冲煮方案和感官品鉴工具。'
+              pos = text.find('\n## ', text.find(marker))
+              notes = f'''\n\n## v{VERSION}\n\n- 网页与Android应用统一定版为 `v{VERSION}`；\n- 固化豆藏分组、账号与器设交互、PP-OCR豆袋识别和豆卡自动填充流程；\n- Android应用内置网页资源，不依赖GitHub Pages加载主界面；\n- Alpha APK使用测试签名，用于侧载验证，不作为应用商店正式签名。\n'''
+              text = text[:pos] + notes + text[pos:] if pos >= 0 else text + notes
+          readme.write_text(text, encoding='utf-8')
+
+          main_activity = Path('android/app/src/main/java/com/luckybean/app/MainActivity.java')
+          text = main_activity.read_text(encoding='utf-8')
+          text = re.sub(r'LuckyBeanAndroid/[0-9A-Za-z._-]+', f'LuckyBeanAndroid/{VERSION}', text)
+          main_activity.write_text(text, encoding='utf-8')
+
+          build_gradle = Path('android/app/build.gradle')
+          build_gradle.write_text(r'''plugins {
+              id 'com.android.application'
+          }
+
+          def repositoryRoot = rootProject.projectDir.parentFile
+          def generatedWebAssets = layout.buildDirectory.dir('generated/luckybeanWebAssets')
+
+          tasks.register('syncLuckyBeanWebAssets') {
+              inputs.files(
+                  new File(repositoryRoot, 'index.html'),
+                  new File(repositoryRoot, 'manifest.webmanifest'),
+                  new File(repositoryRoot, 'sw.js'),
+                  fileTree(repositoryRoot) { include '*.css' },
+                  fileTree(new File(repositoryRoot, 'src')),
+                  fileTree(new File(repositoryRoot, 'public'))
+              )
+              outputs.dir(generatedWebAssets)
+              doLast {
+                  File output = generatedWebAssets.get().asFile
+                  delete output
+                  copy {
+                      from(repositoryRoot) {
+                          include 'index.html', '*.css', 'manifest.webmanifest', 'sw.js'
+                          include 'src/**', 'public/**'
+                      }
+                      into output
+                  }
+
+                  File nativeBridge = new File(output, 'native-bridge.js')
+                  nativeBridge.write("globalThis.__LUCKYBEAN_ANDROID__ = true;\nglobalThis.__LUCKYBEAN_PUBLIC_URL__ = 'https://zjcrop.github.io/BrewIon/luckybean/';\n", 'UTF-8')
+
+                  File indexFile = new File(output, 'index.html')
+                  String indexHtml = indexFile.getText('UTF-8')
+                  def moduleMatcher = (indexHtml =~ /<script type="module" src="\.\/src\/app\.js(?:\?v=[^"]+)?"><\/script>/)
+                  if (!moduleMatcher.find()) {
+                      throw new GradleException('未找到应用模块入口，Android资产同步中止。')
+                  }
+                  String moduleTag = moduleMatcher.group(0)
+                  indexFile.write(indexHtml.replace(moduleTag, '<script src="./native-bridge.js"></script>\n  ' + moduleTag), 'UTF-8')
+
+                  File appScript = new File(output, 'src/app.js')
+                  String original = appScript.getText('UTF-8')
+                  String shareTarget = 'const link = `${location.origin}${location.pathname}#share=${encoded}`;'
+                  String shareReplacement = 'const shareBase = globalThis.__LUCKYBEAN_PUBLIC_URL__ || `${location.origin}${location.pathname}`; const link = `${shareBase}#share=${encoded}`;'
+                  if (original.contains(shareTarget)) {
+                      original = original.replace(shareTarget, shareReplacement)
+                  } else if (!original.contains('__LUCKYBEAN_PUBLIC_URL__')) {
+                      throw new GradleException('未找到分享链接生成语句，Android资产同步中止。')
+                  }
+                  appScript.write(original, 'UTF-8')
+              }
+          }
+
+          android {
+              namespace 'com.luckybean.app'
+              compileSdk 35
+
+              defaultConfig {
+                  applicationId 'com.luckybean.app'
+                  minSdk 26
+                  targetSdk 35
+                  versionCode 100001
+                  versionName '1.0.0-alpha'
+              }
+
+              sourceSets {
+                  main.assets.srcDir(generatedWebAssets)
+              }
+
+              buildTypes {
+                  debug {
+                      applicationIdSuffix '.debug'
+                      versionNameSuffix '-debug'
+                  }
+                  release {
+                      minifyEnabled false
+                      shrinkResources false
+                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                  }
+                  alpha {
+                      initWith release
+                      signingConfig signingConfigs.debug
+                      debuggable false
+                      matchingFallbacks = ['release']
+                  }
+              }
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+
+              packaging {
+                  resources {
+                      excludes += ['/META-INF/{AL2.0,LGPL2.1}']
+                  }
+              }
+          }
+
+          tasks.named('preBuild').configure {
+              dependsOn tasks.named('syncLuckyBeanWebAssets')
+          }
+          '''.replaceAll(/^          /, ''), encoding='utf-8')
+
+          manual_workflow = Path('.github/workflows/android-apk.yml')
+          manual_workflow.write_text('''name: Build Lucky Bean Android Alpha APK
+
+          on:
+            workflow_dispatch:
+
+          permissions:
+            contents: read
+
+          jobs:
+            build-apk:
+              runs-on: ubuntu-latest
+              timeout-minutes: 30
+              steps:
+                - uses: actions/checkout@v4
+                - uses: actions/setup-java@v4
+                  with:
+                    distribution: temurin
+                    java-version: '17'
+                - uses: gradle/actions/setup-gradle@v4
+                  with:
+                    gradle-version: '8.9'
+                - name: Install Android SDK 35
+                  shell: bash
+                  run: |
+                    set -euo pipefail
+                    SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+                    yes | "$SDKMANAGER" --licenses >/dev/null || true
+                    "$SDKMANAGER" 'platforms;android-35' 'build-tools;35.0.0'
+                    echo "$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_PATH"
+                - name: Validate source
+                  run: npm test && npm run check
+                - name: Build Alpha APK
+                  run: gradle -p android --no-daemon :app:assembleAlpha
+                - name: Verify and package
+                  shell: bash
+                  run: |
+                    set -euo pipefail
+                    mkdir -p dist
+                    APK='android/app/build/outputs/apk/alpha/app-alpha.apk'
+                    test -s "$APK"
+                    apksigner verify --verbose "$APK"
+                    aapt dump badging "$APK" > dist/LuckyBean-v1.0.0-alpha-apk-badging.txt
+                    cp "$APK" dist/LuckyBean-v1.0.0-alpha-Android.apk
+                    sha256sum dist/LuckyBean-v1.0.0-alpha-Android.apk > dist/LuckyBean-v1.0.0-alpha-Android.apk.sha256
+                - uses: actions/upload-artifact@v4
+                  with:
+                    name: LuckyBean-v1.0.0-alpha-Android
+                    path: dist/*
+                    if-no-files-found: error
+                    retention-days: 90
+          '''.replace('          ', ''), encoding='utf-8')
+
+          docs = Path('docs/release-v1.0.0-alpha.md')
+          docs.write_text(f'''# 富贵盒子 v{VERSION}\n\n- 网页版本：v{VERSION}\n- Android applicationId：`com.luckybean.app`\n- Android versionCode：`100001`\n- Android versionName：`{VERSION}`\n- 最低Android版本：8.0（API 26）\n- 目标Android版本：API 35\n- 分发方式：GitHub预发布与Actions构建产物\n- 签名：Alpha测试签名，仅用于侧载测试；正式商店发布需配置长期固定签名。\n''', encoding='utf-8')
+          PY
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Validate web source
+        run: |
+          npm test
+          npm run check
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Install Android SDK 35
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" 'platforms;android-35' 'build-tools;35.0.0'
+          echo "$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_PATH"
+
+      - name: Build installable Alpha APK
+        run: gradle -p android --no-daemon :app:assembleAlpha
+
+      - name: Verify and package APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          APK='android/app/build/outputs/apk/alpha/app-alpha.apk'
+          test -s "$APK"
+          apksigner verify --verbose "$APK"
+          aapt dump badging "$APK" | tee dist/LuckyBean-v1.0.0-alpha-apk-badging.txt
+          cp "$APK" dist/LuckyBean-v1.0.0-alpha-Android.apk
+          sha256sum dist/LuckyBean-v1.0.0-alpha-Android.apk | tee dist/LuckyBean-v1.0.0-alpha-Android.apk.sha256
+          cat > dist/release-notes.md <<'EOF'
+          # 富贵盒子 v1.0.0-alpha
+
+          首个统一定版的 Alpha 网页与 Android 应用。
+
+          - 本地优先保存咖啡豆、冲煮和品鉴数据；
+          - 支持豆袋拍摄、PP-OCR识别、文字纠错后自动填写豆卡；
+          - 支持赏味期与余量分组、个人风味侧写、咖啡世界；
+          - Android APK内置网页资源，可离线打开主界面；联网功能仍需要网络；
+          - 本APK使用Alpha测试签名，仅用于侧载验证。
+          EOF
+
+      - name: Commit finalized v1.0.0-alpha source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json index.html manifest.webmanifest sw.js README.md src/utils.js android/app/build.gradle android/app/src/main/java/com/luckybean/app/MainActivity.java .github/workflows/android-apk.yml docs/release-v1.0.0-alpha.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'release: finalize Lucky Bean v1.0.0-alpha'
+            git push origin HEAD:main
+          fi
+
+      - name: Create release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin refs/tags/v1.0.0-alpha >/dev/null 2>&1; then
+            echo 'Tag v1.0.0-alpha already exists; keeping existing tag.'
+          else
+            git tag -a v1.0.0-alpha -m 'Lucky Bean v1.0.0-alpha'
+            git push origin v1.0.0-alpha
+          fi
+
+      - name: Publish GitHub prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0-alpha
+          name: 富贵盒子 v1.0.0-alpha
+          prerelease: true
+          generate_release_notes: false
+          body_path: dist/release-notes.md
+          files: |
+            dist/LuckyBean-v1.0.0-alpha-Android.apk
+            dist/LuckyBean-v1.0.0-alpha-Android.apk.sha256
+            dist/LuckyBean-v1.0.0-alpha-apk-badging.txt
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuckyBean-v1.0.0-alpha-Android
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 90
