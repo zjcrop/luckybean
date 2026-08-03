@@ -22,10 +22,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
+      - name: Verify runner tools
+        run: |
+          node --version
+          npm --version
+          python --version
 
       - name: Finalize source and run checks
         id: finalize
