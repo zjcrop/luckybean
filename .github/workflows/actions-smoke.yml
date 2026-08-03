@@ -22,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Finalize source and run checks
+      - name: Finalize source and run current release checks
         id: finalize
         continue-on-error: true
         shell: bash
@@ -32,11 +32,34 @@ jobs:
           npm --version
           python --version
           python tools/finalize-v1-alpha.py
-          python -m py_compile tools/finalize-v1-alpha.py
-          npm test
+          python tools/finalize-v1-alpha-cleanup.py
+          python -m py_compile tools/finalize-v1-alpha.py tools/finalize-v1-alpha-cleanup.py
           npm run check
-          node --check src/app.js
-          node --check src/v096-package-capture.js
+          find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          html = Path('index.html').read_text(encoding='utf-8')
+          sw = Path('sw.js').read_text(encoding='utf-8')
+          manifest = json.loads(Path('manifest.webmanifest').read_text(encoding='utf-8'))
+          assert 'application-version" content="1.0.0-alpha' in html
+          assert 'release-revision" content="1.0.0-alpha' in html
+          assert 'data-release="1.0.0-alpha"' in html
+          assert "const CACHE_NAME = 'luckybean-v1.0.0-alpha'" in sw
+          assert "const RELEASE = '1.0.0-alpha'" in sw
+          assert manifest['start_url'] == './?v=1.0.0-alpha'
+          assert manifest['name'] == '富贵盒子 1.0.0-alpha'
+          assert 'data-manage-action="history"' not in Path('src/app.js').read_text(encoding='utf-8')
+          assert "document.querySelector('#parseTextBtn')?.click();" in Path('src/v096-package-capture.js').read_text(encoding='utf-8')
+          assert not Path('src/v099u-menu-ocr-flow.js').exists()
+
+          refs = re.findall(r'(?:src|href)="(\./[^"#?]+)', html)
+          missing = [ref for ref in refs if not Path(ref[2:]).exists()]
+          if missing:
+              raise SystemExit(f'Missing HTML resources: {missing}')
+          print(f'Validated {len(refs)} HTML resources.')
+          PY
           grep -Fq "versionName '1.0.0-alpha'" android/app/build.gradle
           grep -Fq 'versionCode 100001' android/app/build.gradle
           grep -Fq 'LuckyBeanAndroid/1.0.0-alpha' android/app/src/main/java/com/luckybean/app/MainActivity.java
@@ -60,7 +83,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           if [[ "$FINALIZE_OUTCOME" == 'success' ]]; then
-            git add package.json index.html manifest.webmanifest sw.js README.md src/utils.js android/app/build.gradle android/app/src/main/java/com/luckybean/app/MainActivity.java docs/release-v1.0.0-alpha.md
+            git add -A package.json index.html manifest.webmanifest sw.js README.md src android docs tools/finalize-v1-alpha.py tools/finalize-v1-alpha-cleanup.py
           fi
           git add .release/v1.0.0-alpha-finalize-status.json
           git commit -m "release: finalize Lucky Bean v1.0.0-alpha (${FINALIZE_OUTCOME})"
