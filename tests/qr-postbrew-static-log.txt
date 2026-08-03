@@ -6,13 +6,13 @@ TAP version 13
 # Subtest: BrewIon 回退编码表结构完整且编码唯一
 ok 1 - BrewIon 回退编码表结构完整且编码唯一
   ---
-  duration_ms: 38.523637
+  duration_ms: 33.091633
   type: 'test'
   ...
 # Subtest: Beta 冲煮引擎输出完整协议、守恒和专业模型
 not ok 2 - Beta 冲煮引擎输出完整协议、守恒和专业模型
   ---
-  duration_ms: 1438.590109
+  duration_ms: 1538.4178
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/core.test.mjs:40:1'
   failureType: 'testCodeFailure'
@@ -34,139 +34,139 @@ not ok 2 - Beta 冲煮引擎输出完整协议、守恒和专业模型
 # Subtest: 冲煮方案库覆盖旧版主要方案类型
 ok 3 - 冲煮方案库覆盖旧版主要方案类型
   ---
-  duration_ms: 4.11606
+  duration_ms: 4.22553
   type: 'test'
   ...
 # Subtest: 调水模块对标 Brew-Water-Calibrato 咖啡参数
 ok 4 - 调水模块对标 Brew-Water-Calibrato 咖啡参数
   ---
-  duration_ms: 0.617956
+  duration_ms: 0.677139
   type: 'test'
   ...
 # Subtest: 低分品鉴可生成问题定向修正方案
 ok 5 - 低分品鉴可生成问题定向修正方案
   ---
-  duration_ms: 774.37903
+  duration_ms: 800.966717
   type: 'test'
   ...
 # Subtest: 自动得分、主观分差和偏好标签可累计
 ok 6 - 自动得分、主观分差和偏好标签可累计
   ---
-  duration_ms: 3.007867
+  duration_ms: 2.183795
   type: 'test'
   ...
 # Subtest: 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
 ok 7 - 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
   ---
-  duration_ms: 564.804094
+  duration_ms: 573.703373
   type: 'test'
   ...
 # Subtest: 导航、田字快捷区和双字题注严格对应
 ok 8 - 导航、田字快捷区和双字题注严格对应
   ---
-  duration_ms: 1.272651
+  duration_ms: 1.451352
   type: 'test'
   ...
 # Subtest: HTML 不含重复 ID 或内联事件处理器
 ok 9 - HTML 不含重复 ID 或内联事件处理器
   ---
-  duration_ms: 2.932886
+  duration_ms: 3.051767
   type: 'test'
   ...
 # Subtest: 应用代码保持单一初始化和主渲染函数
 ok 10 - 应用代码保持单一初始化和主渲染函数
   ---
-  duration_ms: 3.003989
+  duration_ms: 2.970966
   type: 'test'
   ...
 # Subtest: 私有仓库凭据和私有 GitHub API 不进入前端
 ok 11 - 私有仓库凭据和私有 GitHub API 不进入前端
   ---
-  duration_ms: 3.397726
+  duration_ms: 3.381364
   type: 'test'
   ...
 # Subtest: 自然语言识别回填确定性字段和 BrewIon 代码
 ok 12 - 自然语言识别回填确定性字段和 BrewIon 代码
   ---
-  duration_ms: 14.155331
+  duration_ms: 12.849984
   type: 'test'
   ...
 # Subtest: BrewIon 固定字段二维码执行 CRC 和行索引解码
 ok 13 - BrewIon 固定字段二维码执行 CRC 和行索引解码
   ---
-  duration_ms: 4.63465
+  duration_ms: 5.167755
   type: 'test'
   ...
 # Subtest: 视觉、卡片、分组、搜索和撷页交互标记已落地
 ok 14 - 视觉、卡片、分组、搜索和撷页交互标记已落地
   ---
-  duration_ms: 2.03704
+  duration_ms: 2.07471
   type: 'test'
   ...
 # Subtest: 豆卡名称、烘焙色值和现有数据筛选逻辑正确
 ok 15 - 豆卡名称、烘焙色值和现有数据筛选逻辑正确
   ---
-  duration_ms: 1.42163
+  duration_ms: 1.615853
   type: 'test'
   ...
 # Subtest: 远程编码表与内置表合并时保留缺失风味
 ok 16 - 远程编码表与内置表合并时保留缺失风味
   ---
-  duration_ms: 16.91409
+  duration_ms: 13.148773
   type: 'test'
   ...
 # Subtest: 编码表产区与庄园使用正确中文列且不生成空标签
 ok 17 - 编码表产区与庄园使用正确中文列且不生成空标签
   ---
-  duration_ms: 18.85953
+  duration_ms: 16.253888
   type: 'test'
   ...
 # Subtest: 十阶段赏味进度从20%起步并在赏味期后一周达到100%
 ok 18 - 十阶段赏味进度从20%起步并在赏味期后一周达到100%
   ---
-  duration_ms: 0.808111
+  duration_ms: 0.920812
   type: 'test'
   ...
 # Subtest: 负面缺陷扣分显著高于正面风味叠加
 ok 19 - 负面缺陷扣分显著高于正面风味叠加
   ---
-  duration_ms: 0.379009
+  duration_ms: 0.476772
   type: 'test'
   ...
 # Subtest: v0.9 交互与器具库存标记完整
 ok 20 - v0.9 交互与器具库存标记完整
   ---
-  duration_ms: 4.094841
+  duration_ms: 3.971939
   type: 'test'
   ...
 # Subtest: 计时、消耗、品鉴札记、复刻与方案导出功能已落地
 ok 21 - 计时、消耗、品鉴札记、复刻与方案导出功能已落地
   ---
-  duration_ms: 10.697301
+  duration_ms: 7.373341
   type: 'test'
   ...
 # Subtest: header controls are forced into one horizontal row
 ok 22 - header controls are forced into one horizontal row
   ---
-  duration_ms: 12.27911
+  duration_ms: 6.272541
   type: 'test'
   ...
 # Subtest: theme bridge intercepts dynamic buttons and delegates to native state
 ok 23 - theme bridge intercepts dynamic buttons and delegates to native state
   ---
-  duration_ms: 2.106591
+  duration_ms: 1.727571
   type: 'test'
   ...
 # Subtest: light theme covers main pages, overlays, forms, navigation and tasting wizard
 ok 24 - light theme covers main pages, overlays, forms, navigation and tasting wizard
   ---
-  duration_ms: 1.760774
+  duration_ms: 1.277329
   type: 'test'
   ...
 # Subtest: runtime entry and PWA cache include theme patch assets
 not ok 25 - runtime entry and PWA cache include theme patch assets
   ---
-  duration_ms: 6.006917
+  duration_ms: 4.087946
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/theme-light.test.mjs:21:1'
   failureType: 'testCodeFailure'
@@ -256,6 +256,7 @@ not ok 25 - runtime entry and PWA cache include theme patch assets
       '  <script type="module" src="./src/v099d-supabase-auth.js?v=099f"></script>\n' +
       '  <script type="module" src="./src/v099f-cloud-sync.js?v=099f"></script>\n' +
       '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099f"></script>\n' +
+      '  <script type="module" src="./src/v099f-runtime-hotfix.js?v=099f"></script>\n' +
       '</body>\n' +
       '</html>'
     
@@ -346,6 +347,7 @@ not ok 25 - runtime entry and PWA cache include theme patch assets
       <script type="module" src="./src/v099d-supabase-auth.js?v=099f"></script>
       <script type="module" src="./src/v099f-cloud-sync.js?v=099f"></script>
       <script type="module" src="./src/v099f-ui-upgrade.js?v=099f"></script>
+      <script type="module" src="./src/v099f-runtime-hotfix.js?v=099f"></script>
     </body>
     </html>
   operator: 'match'
@@ -357,7 +359,7 @@ not ok 25 - runtime entry and PWA cache include theme patch assets
 # Subtest: 0.9.6 keeps 0.9.2 interaction baseline
 not ok 26 - 0.9.6 keeps 0.9.2 interaction baseline
   ---
-  duration_ms: 16.081724
+  duration_ms: 10.483687
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v092.test.mjs:8:1'
   failureType: 'testCodeFailure'
@@ -379,19 +381,19 @@ not ok 26 - 0.9.6 keeps 0.9.2 interaction baseline
 # Subtest: recommendation animation and prompt libraries are complete
 ok 27 - recommendation animation and prompt libraries are complete
   ---
-  duration_ms: 5.496153
+  duration_ms: 6.664056
   type: 'test'
   ...
 # Subtest: timer, inventory, delta wheel and trajectory requirements
 ok 28 - timer, inventory, delta wheel and trajectory requirements
   ---
-  duration_ms: 3.248226
+  duration_ms: 2.676824
   type: 'test'
   ...
 # Subtest: 0.9.6 version and visual assets
 not ok 29 - 0.9.6 version and visual assets
   ---
-  duration_ms: 12.651176
+  duration_ms: 12.937085
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v093.test.mjs:7:1'
   failureType: 'testCodeFailure'
@@ -413,13 +415,13 @@ not ok 29 - 0.9.6 version and visual assets
 # Subtest: 0.9.3 sensory, cold storage and gear requirements remain available
 ok 30 - 0.9.3 sensory, cold storage and gear requirements remain available
   ---
-  duration_ms: 7.803738
+  duration_ms: 7.253656
   type: 'test'
   ...
 # Subtest: refinement runtime files are loaded in deterministic order and cached
 not ok 31 - refinement runtime files are loaded in deterministic order and cached
   ---
-  duration_ms: 10.683636
+  duration_ms: 11.562064
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v095-refine.test.mjs:6:1'
   failureType: 'testCodeFailure'
@@ -437,31 +439,31 @@ not ok 31 - refinement runtime files are loaded in deterministic order and cache
 # Subtest: light mode covers seals, groups, leaderboard and collapse row
 ok 32 - light mode covers seals, groups, leaderboard and collapse row
   ---
-  duration_ms: 2.944739
+  duration_ms: 2.652641
   type: 'test'
   ...
 # Subtest: remaining recommendation, manage menu and structured grinder range are implemented
 ok 33 - remaining recommendation, manage menu and structured grinder range are implemented
   ---
-  duration_ms: 3.186892
+  duration_ms: 2.9357
   type: 'test'
   ...
 # Subtest: settings mascot uses fixed one-third size
 ok 34 - settings mascot uses fixed one-third size
   ---
-  duration_ms: 1.830284
+  duration_ms: 2.071344
   type: 'test'
   ...
 # Subtest: three sensory modes have distinct non-duplicated workflows
 ok 35 - three sensory modes have distinct non-duplicated workflows
   ---
-  duration_ms: 1.598049
+  duration_ms: 1.509513
   type: 'test'
   ...
 # Subtest: professional sensory uses CATA tags, ordering, conditional radar slider and final affective score
 not ok 36 - professional sensory uses CATA tags, ordering, conditional radar slider and final affective score
   ---
-  duration_ms: 1.761655
+  duration_ms: 1.768097
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v095-refine.test.mjs:41:1'
   failureType: 'testCodeFailure'
@@ -479,13 +481,13 @@ not ok 36 - professional sensory uses CATA tags, ordering, conditional radar sli
 # Subtest: simple note mode reveals score before note
 ok 37 - simple note mode reveals score before note
   ---
-  duration_ms: 2.646581
+  duration_ms: 3.40676
   type: 'test'
   ...
 # Subtest: current v0.9.6 release retains v0.9.5 runtime entry
 not ok 38 - current v0.9.6 release retains v0.9.5 runtime entry
   ---
-  duration_ms: 18.037061
+  duration_ms: 13.652664
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v095.test.mjs:7:1'
   failureType: 'testCodeFailure'
@@ -575,6 +577,7 @@ not ok 38 - current v0.9.6 release retains v0.9.5 runtime entry
       '  <script type="module" src="./src/v099d-supabase-auth.js?v=099f"></script>\n' +
       '  <script type="module" src="./src/v099f-cloud-sync.js?v=099f"></script>\n' +
       '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099f"></script>\n' +
+      '  <script type="module" src="./src/v099f-runtime-hotfix.js?v=099f"></script>\n' +
       '</body>\n' +
       '</html>'
     
@@ -665,6 +668,7 @@ not ok 38 - current v0.9.6 release retains v0.9.5 runtime entry
       <script type="module" src="./src/v099d-supabase-auth.js?v=099f"></script>
       <script type="module" src="./src/v099f-cloud-sync.js?v=099f"></script>
       <script type="module" src="./src/v099f-ui-upgrade.js?v=099f"></script>
+      <script type="module" src="./src/v099f-runtime-hotfix.js?v=099f"></script>
     </body>
     </html>
   operator: 'match'
@@ -676,31 +680,31 @@ not ok 38 - current v0.9.6 release retains v0.9.5 runtime entry
 # Subtest: v0.9.5 requested modes, labels and artwork exist
 ok 39 - v0.9.5 requested modes, labels and artwork exist
   ---
-  duration_ms: 6.178598
+  duration_ms: 8.163578
   type: 'test'
   ...
 # Subtest: sensory modes preserve interaction and only note mode skips nodes
 ok 40 - sensory modes preserve interaction and only note mode skips nodes
   ---
-  duration_ms: 1.922496
+  duration_ms: 2.16016
   type: 'test'
   ...
 # Subtest: v0.9.5 layout and theme selectors exist
 ok 41 - v0.9.5 layout and theme selectors exist
   ---
-  duration_ms: 2.018315
+  duration_ms: 1.74838
   type: 'test'
   ...
 # Subtest: header controls remain horizontal and theme binding is stable
 ok 42 - header controls remain horizontal and theme binding is stable
   ---
-  duration_ms: 2.102563
+  duration_ms: 1.985112
   type: 'test'
   ...
 # Subtest: explicit one-pour remains bloom plus one pour before and after correction
 not ok 43 - explicit one-pour remains bloom plus one pour before and after correction
   ---
-  duration_ms: 202.934103
+  duration_ms: 157.81437
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v096-integrity.test.mjs:36:1'
   failureType: 'testCodeFailure'
@@ -722,31 +726,31 @@ not ok 43 - explicit one-pour remains bloom plus one pour before and after corre
 # Subtest: trajectory is calculated from temperature grind water and profile variables
 ok 44 - trajectory is calculated from temperature grind water and profile variables
   ---
-  duration_ms: 320.557661
+  duration_ms: 255.86604
   type: 'test'
   ...
 # Subtest: sensory records are coded compressed encrypted and note-limited
 ok 45 - sensory records are coded compressed encrypted and note-limited
   ---
-  duration_ms: 64.711572
+  duration_ms: 53.879167
   type: 'test'
   ...
 # Subtest: encrypted share omits plaintext public identity and remains decodable
 ok 46 - encrypted share omits plaintext public identity and remains decodable
   ---
-  duration_ms: 12.045224
+  duration_ms: 8.263955
   type: 'test'
   ...
 # Subtest: OCR evidence candidates support per-field fuzzy correction
 ok 47 - OCR evidence candidates support per-field fuzzy correction
   ---
-  duration_ms: 5.112253
+  duration_ms: 2.189175
   type: 'test'
   ...
 # Subtest: runtime provides minimal identity screen rich history and selection-only tasting navigation
 not ok 48 - runtime provides minimal identity screen rich history and selection-only tasting navigation
   ---
-  duration_ms: 8.052754
+  duration_ms: 6.926605
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v096-integrity.test.mjs:135:1'
   failureType: 'testCodeFailure'
@@ -836,6 +840,7 @@ not ok 48 - runtime provides minimal identity screen rich history and selection-
       '  <script type="module" src="./src/v099d-supabase-auth.js?v=099f"></script>\n' +
       '  <script type="module" src="./src/v099f-cloud-sync.js?v=099f"></script>\n' +
       '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099f"></script>\n' +
+      '  <script type="module" src="./src/v099f-runtime-hotfix.js?v=099f"></script>\n' +
       '</body>\n' +
       '</html>'
     
@@ -926,6 +931,7 @@ not ok 48 - runtime provides minimal identity screen rich history and selection-
       <script type="module" src="./src/v099d-supabase-auth.js?v=099f"></script>
       <script type="module" src="./src/v099f-cloud-sync.js?v=099f"></script>
       <script type="module" src="./src/v099f-ui-upgrade.js?v=099f"></script>
+      <script type="module" src="./src/v099f-runtime-hotfix.js?v=099f"></script>
     </body>
     </html>
   operator: 'match'
@@ -937,31 +943,31 @@ not ok 48 - runtime provides minimal identity screen rich history and selection-
 # Subtest: JSON QR text is parsed before misleading raw bytes
 ok 49 - JSON QR text is parsed before misleading raw bytes
   ---
-  duration_ms: 1.681196
+  duration_ms: 1.656808
   type: 'test'
   ...
 # Subtest: official codebook codes from OCR text are parsed directly
 ok 50 - official codebook codes from OCR text are parsed directly
   ---
-  duration_ms: 2.697215
+  duration_ms: 2.648343
   type: 'test'
   ...
 # Subtest: codebook text QR is decoded without CRC branch
 ok 51 - codebook text QR is decoded without CRC branch
   ---
-  duration_ms: 0.560158
+  duration_ms: 0.56192
   type: 'test'
   ...
 # Subtest: invalid binary QR no longer exposes a raw CRC16 error
 ok 52 - invalid binary QR no longer exposes a raw CRC16 error
   ---
-  duration_ms: 1.895756
+  duration_ms: 1.802581
   type: 'test'
   ...
 # Subtest: Chinese-first OCR runtime and direct camera are loaded and cached
 not ok 53 - Chinese-first OCR runtime and direct camera are loaded and cached
   ---
-  duration_ms: 15.183153
+  duration_ms: 15.149089
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v096-ocr-qr-regression.test.mjs:53:1'
   failureType: 'testCodeFailure'
@@ -979,25 +985,25 @@ not ok 53 - Chinese-first OCR runtime and direct camera are loaded and cached
 # Subtest: Lucky Bean encrypted share URL QR is expanded to a bean record
 ok 54 - Lucky Bean encrypted share URL QR is expanded to a bean record
   ---
-  duration_ms: 120.764801
+  duration_ms: 160.018552
   type: 'test'
   ...
 # Subtest: QR wrapper preserves pinned scanner core and parses text before bytes
 ok 55 - QR wrapper preserves pinned scanner core and parses text before bytes
   ---
-  duration_ms: 9.573368
+  duration_ms: 7.086173
   type: 'test'
   ...
 # Subtest: post-brew flow cancels automatic evaluation and restores mode selection
 ok 56 - post-brew flow cancels automatic evaluation and restores mode selection
   ---
-  duration_ms: 1.840143
+  duration_ms: 2.516286
   type: 'test'
   ...
 # Subtest: QR capture UI and integrity runtime files are loaded and cached
 not ok 57 - QR capture UI and integrity runtime files are loaded and cached
   ---
-  duration_ms: 5.90143
+  duration_ms: 3.558785
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v096-qr-postbrew.test.mjs:46:1'
   failureType: 'testCodeFailure'
@@ -1015,25 +1021,25 @@ not ok 57 - QR capture UI and integrity runtime files are loaded and cached
 # Subtest: v17 chemistry priors are migrated into the inverse optimizer
 ok 58 - v17 chemistry priors are migrated into the inverse optimizer
   ---
-  duration_ms: 5.027185
+  duration_ms: 6.5183
   type: 'test'
   ...
 # Subtest: dripper and paper library values alter the hydraulic envelope
 ok 59 - dripper and paper library values alter the hydraulic envelope
   ---
-  duration_ms: 1.225202
+  duration_ms: 1.507058
   type: 'test'
   ...
 # Subtest: target and risk windows are bean preference water and device linked
 ok 60 - target and risk windows are bean preference water and device linked
   ---
-  duration_ms: 1.364182
+  duration_ms: 1.304891
   type: 'test'
   ...
 # Subtest: recommended plan is selected by trajectory objective and retains full protocol
 not ok 61 - recommended plan is selected by trajectory objective and retains full protocol
   ---
-  duration_ms: 1230.116982
+  duration_ms: 1377.022907
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v097-optimizer.test.mjs:90:1'
   failureType: 'testCodeFailure'
@@ -1055,7 +1061,7 @@ not ok 61 - recommended plan is selected by trajectory objective and retains ful
 # Subtest: explicit brew method is a hard constraint while its parameters are inverse fitted
 not ok 62 - explicit brew method is a hard constraint while its parameters are inverse fitted
   ---
-  duration_ms: 36.453693
+  duration_ms: 50.215151
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v097-optimizer.test.mjs:113:1'
   failureType: 'testCodeFailure'
@@ -1077,31 +1083,31 @@ not ok 62 - explicit brew method is a hard constraint while its parameters are i
 # Subtest: gear constraints and bean chemistry change optimized trajectory and controls
 ok 63 - gear constraints and bean chemistry change optimized trajectory and controls
   ---
-  duration_ms: 84.718871
+  duration_ms: 109.696924
   type: 'test'
   ...
 # Subtest: sensory feedback becomes a closed-loop parameter correction
 ok 64 - sensory feedback becomes a closed-loop parameter correction
   ---
-  duration_ms: 103.795157
+  duration_ms: 101.384975
   type: 'test'
   ...
 # Subtest: flat-only profile is not considered for cone equipment but is considered for flat equipment
 ok 65 - flat-only profile is not considered for cone equipment but is considered for flat equipment
   ---
-  duration_ms: 0.42238
+  duration_ms: 0.392234
   type: 'test'
   ...
 # Subtest: explicit segment selector constrains the optimizer and counts bloom as stage one
 ok 66 - explicit segment selector constrains the optimizer and counts bloom as stage one
   ---
-  duration_ms: 265.44386
+  duration_ms: 367.007634
   type: 'test'
   ...
 # Subtest: v097 runtime preserves the original time-series trajectory and requested interactions
 not ok 67 - v097 runtime preserves the original time-series trajectory and requested interactions
   ---
-  duration_ms: 12.436104
+  duration_ms: 19.73547
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v097-ui-fixes.test.mjs:34:1'
   failureType: 'testCodeFailure'
@@ -1191,6 +1197,7 @@ not ok 67 - v097 runtime preserves the original time-series trajectory and reque
       '  <script type="module" src="./src/v099d-supabase-auth.js?v=099f"></script>\n' +
       '  <script type="module" src="./src/v099f-cloud-sync.js?v=099f"></script>\n' +
       '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099f"></script>\n' +
+      '  <script type="module" src="./src/v099f-runtime-hotfix.js?v=099f"></script>\n' +
       '</body>\n' +
       '</html>'
     
@@ -1281,6 +1288,7 @@ not ok 67 - v097 runtime preserves the original time-series trajectory and reque
       <script type="module" src="./src/v099d-supabase-auth.js?v=099f"></script>
       <script type="module" src="./src/v099f-cloud-sync.js?v=099f"></script>
       <script type="module" src="./src/v099f-ui-upgrade.js?v=099f"></script>
+      <script type="module" src="./src/v099f-runtime-hotfix.js?v=099f"></script>
     </body>
     </html>
   operator: 'match'
@@ -1292,31 +1300,31 @@ not ok 67 - v097 runtime preserves the original time-series trajectory and reque
 # Subtest: brew history abbreviation follows five-character rule
 ok 68 - brew history abbreviation follows five-character rule
   ---
-  duration_ms: 3.766376
+  duration_ms: 6.984473
   type: 'test'
   ...
 # Subtest: recognition field splitter covers labeled Chinese and English package fields
 ok 69 - recognition field splitter covers labeled Chinese and English package fields
   ---
-  duration_ms: 1.904182
+  duration_ms: 4.298629
   type: 'test'
   ...
 # Subtest: segment numbers mean total stages including bloom
 ok 70 - segment numbers mean total stages including bloom
   ---
-  duration_ms: 506.912576
+  duration_ms: 587.740152
   type: 'test'
   ...
 # Subtest: improved 4:6 profile uses exact scaled 33666 split and two bloom-temperature stages
 ok 71 - improved 4:6 profile uses exact scaled 33666 split and two bloom-temperature stages
   ---
-  duration_ms: 67.214978
+  duration_ms: 51.871901
   type: 'test'
   ...
 # Subtest: v098 runtime and styles contain grouping, selected-card, radar, archive and flavor-record fixes
 not ok 72 - v098 runtime and styles contain grouping, selected-card, radar, archive and flavor-record fixes
   ---
-  duration_ms: 5.792766
+  duration_ms: 4.829986
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v098-feature-fixes.test.mjs:51:1'
   failureType: 'testCodeFailure'
@@ -1334,7 +1342,7 @@ not ok 72 - v098 runtime and styles contain grouping, selected-card, radar, arch
 # Subtest: highlighted trajectory is driven by modeled positive signal minus risk
 not ok 73 - highlighted trajectory is driven by modeled positive signal minus risk
   ---
-  duration_ms: 11.19903
+  duration_ms: 10.189318
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v099-trajectory-actual.test.mjs:7:1'
   failureType: 'testCodeFailure'
@@ -1424,6 +1432,7 @@ not ok 73 - highlighted trajectory is driven by modeled positive signal minus ri
       '  <script type="module" src="./src/v099d-supabase-auth.js?v=099f"></script>\n' +
       '  <script type="module" src="./src/v099f-cloud-sync.js?v=099f"></script>\n' +
       '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099f"></script>\n' +
+      '  <script type="module" src="./src/v099f-runtime-hotfix.js?v=099f"></script>\n' +
       '</body>\n' +
       '</html>'
     
@@ -1514,6 +1523,7 @@ not ok 73 - highlighted trajectory is driven by modeled positive signal minus ri
       <script type="module" src="./src/v099d-supabase-auth.js?v=099f"></script>
       <script type="module" src="./src/v099f-cloud-sync.js?v=099f"></script>
       <script type="module" src="./src/v099f-ui-upgrade.js?v=099f"></script>
+      <script type="module" src="./src/v099f-runtime-hotfix.js?v=099f"></script>
     </body>
     </html>
   operator: 'match'
@@ -1525,31 +1535,31 @@ not ok 73 - highlighted trajectory is driven by modeled positive signal minus ri
 # Subtest: one-pour is one continuous stage and 33666 remains exact five stages
 ok 74 - one-pour is one continuous stage and 33666 remains exact five stages
   ---
-  duration_ms: 246.121142
+  duration_ms: 272.902346
   type: 'test'
   ...
 # Subtest: researched methods are persisted as selectable profiles
 ok 75 - researched methods are persisted as selectable profiles
   ---
-  duration_ms: 0.426347
+  duration_ms: 0.454009
   type: 'test'
   ...
 # Subtest: group guard is non-recursive and recommendation rendering yields to native state
 ok 76 - group guard is non-recursive and recommendation rendering yields to native state
   ---
-  duration_ms: 5.201661
+  duration_ms: 3.723504
   type: 'test'
   ...
 # Subtest: eight-axis radar uses dynamic pointer geometry and defect scoring
 ok 77 - eight-axis radar uses dynamic pointer geometry and defect scoring
   ---
-  duration_ms: 1.731348
+  duration_ms: 1.479046
   type: 'test'
   ...
 # Subtest: v0.9.9 presentation and inverse-trajectory emphasis are published
 not ok 78 - v0.9.9 presentation and inverse-trajectory emphasis are published
   ---
-  duration_ms: 4.768289
+  duration_ms: 4.660357
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v099-upgrade.test.mjs:68:1'
   failureType: 'testCodeFailure'
@@ -1639,6 +1649,7 @@ not ok 78 - v0.9.9 presentation and inverse-trajectory emphasis are published
       '  <script type="module" src="./src/v099d-supabase-auth.js?v=099f"></script>\n' +
       '  <script type="module" src="./src/v099f-cloud-sync.js?v=099f"></script>\n' +
       '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099f"></script>\n' +
+      '  <script type="module" src="./src/v099f-runtime-hotfix.js?v=099f"></script>\n' +
       '</body>\n' +
       '</html>'
     
@@ -1729,6 +1740,7 @@ not ok 78 - v0.9.9 presentation and inverse-trajectory emphasis are published
       <script type="module" src="./src/v099d-supabase-auth.js?v=099f"></script>
       <script type="module" src="./src/v099f-cloud-sync.js?v=099f"></script>
       <script type="module" src="./src/v099f-ui-upgrade.js?v=099f"></script>
+      <script type="module" src="./src/v099f-runtime-hotfix.js?v=099f"></script>
     </body>
     </html>
   operator: 'match'
@@ -1740,7 +1752,7 @@ not ok 78 - v0.9.9 presentation and inverse-trajectory emphasis are published
 # Subtest: radar scroll guard preserves dialog and page positions
 not ok 79 - radar scroll guard preserves dialog and page positions
   ---
-  duration_ms: 10.09772
+  duration_ms: 6.427862
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v099d-release.test.mjs:7:1'
   failureType: 'testCodeFailure'
@@ -1902,13 +1914,13 @@ not ok 79 - radar scroll guard preserves dialog and page positions
 # Subtest: Chinese OCR wrapper uses immutable base function and conditional multipass
 ok 80 - Chinese OCR wrapper uses immutable base function and conditional multipass
   ---
-  duration_ms: 3.405069
+  duration_ms: 2.245721
   type: 'test'
   ...
 # Subtest: Supabase auth reuses public Grind PSD project without privileged secret
 not ok 81 - Supabase auth reuses public Grind PSD project without privileged secret
   ---
-  duration_ms: 4.411903
+  duration_ms: 3.080341
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v099d-release.test.mjs:25:1'
   failureType: 'testCodeFailure'
@@ -2282,7 +2294,7 @@ not ok 81 - Supabase auth reuses public Grind PSD project without privileged sec
 # Subtest: 099d publication includes all runtime modules and cache boundary
 not ok 82 - 099d publication includes all runtime modules and cache boundary
   ---
-  duration_ms: 4.794109
+  duration_ms: 3.629248
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v099d-release.test.mjs:36:1'
   failureType: 'testCodeFailure'
@@ -2372,6 +2384,7 @@ not ok 82 - 099d publication includes all runtime modules and cache boundary
       '  <script type="module" src="./src/v099d-supabase-auth.js?v=099f"></script>\n' +
       '  <script type="module" src="./src/v099f-cloud-sync.js?v=099f"></script>\n' +
       '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099f"></script>\n' +
+      '  <script type="module" src="./src/v099f-runtime-hotfix.js?v=099f"></script>\n' +
       '</body>\n' +
       '</html>'
     
@@ -2462,6 +2475,7 @@ not ok 82 - 099d publication includes all runtime modules and cache boundary
       <script type="module" src="./src/v099d-supabase-auth.js?v=099f"></script>
       <script type="module" src="./src/v099f-cloud-sync.js?v=099f"></script>
       <script type="module" src="./src/v099f-ui-upgrade.js?v=099f"></script>
+      <script type="module" src="./src/v099f-runtime-hotfix.js?v=099f"></script>
     </body>
     </html>
   operator: 'match'
@@ -2478,4 +2492,4 @@ not ok 82 - 099d publication includes all runtime modules and cache boundary
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 3021.771341
+# duration_ms 3148.083623
