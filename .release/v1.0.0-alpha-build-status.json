@@ -1,0 +1,9 @@
+{
+  "status": "success",
+  "run_id": "30835727947",
+  "trigger_sha": "a5208acbf337ddeb8732c82279f96d0f6734c5f7",
+  "apk_sha256": "5cea321974f8c67a1d55fb4b921d05d386cb1c039cf34e4071babb31f92b55dc",
+  "apk_bytes": 590982,
+  "package": "package: name='com.luckybean.app' versionCode='100001' versionName='1.0.0-alpha' platformBuildVersionName='15' platformBuildVersionCode='35' compileSdkVersion='35' compileSdkVersionCodename='15'",
+  "recorded_at": "2026-08-03T17:14:24Z"
+}
