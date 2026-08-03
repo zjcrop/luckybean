@@ -1,4 +1,4 @@
-name: Lucky Bean Actions smoke test
+name: Finalize Lucky Bean v1.0.0-alpha
 
 on:
   push:
@@ -9,21 +9,63 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: luckybean-v1-alpha-finalize-proven
+  cancel-in-progress: false
+
 jobs:
-  smoke:
+  finalize:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Write execution status
+        with:
+          fetch-depth: 0
+
+      - name: Finalize source and run checks
+        id: finalize
+        continue-on-error: true
+        shell: bash
         run: |
+          set -euo pipefail
+          node --version
+          npm --version
+          python --version
+          python tools/finalize-v1-alpha.py
+          python -m py_compile tools/finalize-v1-alpha.py
+          npm test
+          npm run check
+          node --check src/app.js
+          node --check src/v096-package-capture.js
+          grep -Fq "versionName '1.0.0-alpha'" android/app/build.gradle
+          grep -Fq 'versionCode 100001' android/app/build.gradle
+          grep -Fq 'LuckyBeanAndroid/1.0.0-alpha' android/app/src/main/java/com/luckybean/app/MainActivity.java
+
+      - name: Commit source and status
+        if: always()
+        shell: bash
+        env:
+          FINALIZE_OUTCOME: ${{ steps.finalize.outcome }}
+        run: |
+          set -euo pipefail
           mkdir -p .release
-          cat > .release/actions-smoke-status.json <<EOF
-          {"status":"success","run_id":"${GITHUB_RUN_ID}","sha":"${GITHUB_SHA}"}
+          cat > .release/v1.0.0-alpha-finalize-status.json <<EOF
+          {
+            "status": "${FINALIZE_OUTCOME}",
+            "run_id": "${GITHUB_RUN_ID}",
+            "trigger_sha": "${GITHUB_SHA}",
+            "recorded_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
           EOF
-      - name: Commit status
-        run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .release/actions-smoke-status.json
-          git commit -m 'ci: record Actions smoke success'
-          git push
+          if [[ "$FINALIZE_OUTCOME" == 'success' ]]; then
+            git add package.json index.html manifest.webmanifest sw.js README.md src/utils.js android/app/build.gradle android/app/src/main/java/com/luckybean/app/MainActivity.java docs/release-v1.0.0-alpha.md
+          fi
+          git add .release/v1.0.0-alpha-finalize-status.json
+          git commit -m "release: finalize Lucky Bean v1.0.0-alpha (${FINALIZE_OUTCOME})"
+          git push origin HEAD:main
+
+      - name: Fail when finalization failed
+        if: steps.finalize.outcome != 'success'
+        run: exit 1
