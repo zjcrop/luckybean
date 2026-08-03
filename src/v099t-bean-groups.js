@@ -256,7 +256,7 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
   }
 
   async function handleClick(event) {
-    const mode = await getMode();
+    const mode = currentMode || MODE_NATIVE;
     const recommendation = event.target.closest?.('[data-recommend-mode]');
     if (recommendation && [MODE_FRESHNESS, MODE_REMAINING].includes(mode)) {
       event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
