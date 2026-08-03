@@ -1,9 +1,17 @@
 # 富贵盒子 Lucky Bean
 
-**当前内部测试版本：v0.9.9**  
+**当前 Alpha 版本：v1.0.0-alpha**  
 **稳定网址：<https://zjcrop.github.io/BrewIon/luckybean/>**
 
 富贵盒子是本地优先的咖啡豆档案、冲煮方案和感官品鉴工具。1.0 之前均属于内部测试版本，允许直接在 `main` 修改和部署；仓库根目录 `index.html` 是唯一源码入口，正式网页由 `BrewIon/main/luckybean/` 同步发布，不维护独立 Beta 页面或长期发布支线。
+
+
+## v1.0.0-alpha
+
+- 网页与 Android 应用统一定版为 `v1.0.0-alpha`；
+- 固化豆藏分组、账号与器设交互、PP-OCR 豆袋识别和豆卡自动填充流程；
+- Android 应用内置网页资源，不依赖 GitHub Pages 加载主界面；
+- Alpha APK 使用测试签名，用于侧载验证，不作为应用商店正式签名。
 
 ## v0.9.9
 

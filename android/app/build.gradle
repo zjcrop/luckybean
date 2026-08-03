@@ -8,9 +8,9 @@ def generatedWebAssets = layout.buildDirectory.dir('generated/luckybeanWebAssets
 tasks.register('syncLuckyBeanWebAssets') {
     inputs.files(
         new File(repositoryRoot, 'index.html'),
-        new File(repositoryRoot, 'styles.css'),
         new File(repositoryRoot, 'manifest.webmanifest'),
         new File(repositoryRoot, 'sw.js'),
+        fileTree(repositoryRoot) { include '*.css' },
         fileTree(new File(repositoryRoot, 'src')),
         fileTree(new File(repositoryRoot, 'public'))
     )
@@ -20,39 +20,34 @@ tasks.register('syncLuckyBeanWebAssets') {
         delete output
         copy {
             from(repositoryRoot) {
-                include 'index.html', 'styles.css', 'manifest.webmanifest', 'sw.js'
+                include 'index.html', '*.css', 'manifest.webmanifest', 'sw.js'
                 include 'src/**', 'public/**'
             }
             into output
         }
 
         File nativeBridge = new File(output, 'native-bridge.js')
-        nativeBridge.write("globalThis.__LUCKYBEAN_ANDROID__ = true;\n", 'UTF-8')
+        nativeBridge.write("globalThis.__LUCKYBEAN_ANDROID__ = true;\nglobalThis.__LUCKYBEAN_PUBLIC_URL__ = 'https://zjcrop.github.io/BrewIon/luckybean/';\n", 'UTF-8')
 
         File indexFile = new File(output, 'index.html')
         String indexHtml = indexFile.getText('UTF-8')
-        String moduleTag = '<script type="module" src="./src/app.js"></script>'
-        if (!indexHtml.contains(moduleTag)) {
-            throw new GradleException('未找到应用模块入口，Android 资产同步中止。')
+        def moduleMatcher = (indexHtml =~ /<script type="module" src="\.\/src\/app\.js(?:\?v=[^"]+)?"><\/script>/)
+        if (!moduleMatcher.find()) {
+            throw new GradleException('未找到应用模块入口，Android资产同步中止。')
         }
-        indexFile.write(indexHtml.replace(moduleTag,
-            '<script src="./native-bridge.js"></script>\n  ' + moduleTag), 'UTF-8')
+        String moduleTag = moduleMatcher.group(0)
+        indexFile.write(indexHtml.replace(moduleTag, '<script src="./native-bridge.js"></script>\n  ' + moduleTag), 'UTF-8')
 
         File appScript = new File(output, 'src/app.js')
         String original = appScript.getText('UTF-8')
-        String serviceWorkerTarget = "if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});"
-        String serviceWorkerReplacement = "if (!globalThis.__LUCKYBEAN_ANDROID__ && 'serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});"
-        if (!original.contains(serviceWorkerTarget)) {
-            throw new GradleException('未找到 Service Worker 注册语句，Android 资产同步中止。')
+        String shareTarget = 'const link = `${location.origin}${location.pathname}#share=${encoded}`;'
+        String shareReplacement = 'const shareBase = globalThis.__LUCKYBEAN_PUBLIC_URL__ || `${location.origin}${location.pathname}`; const link = `${shareBase}#share=${encoded}`;'
+        if (original.contains(shareTarget)) {
+            original = original.replace(shareTarget, shareReplacement)
+        } else if (!original.contains('__LUCKYBEAN_PUBLIC_URL__')) {
+            throw new GradleException('未找到分享链接生成语句，Android资产同步中止。')
         }
-        original = original.replace(serviceWorkerTarget, serviceWorkerReplacement)
-
-        String shareTarget = '''const payload = sharePayload(bean); const encoded = encodeShare(payload); const link = `${location.origin}${location.pathname}#share=${encoded}`; const tooLong = encoded.length > 6000;'''
-        String shareReplacement = '''const payload = sharePayload(bean); const encoded = encodeShare(payload); const shareBase = globalThis.__LUCKYBEAN_ANDROID__ ? 'https://zjcrop.github.io/luckybean/' : `${location.origin}${location.pathname}`; const link = `${shareBase}#share=${encoded}`; const tooLong = encoded.length > 6000;'''
-        if (!original.contains(shareTarget)) {
-            throw new GradleException('未找到分享链接生成语句，Android 资产同步中止。')
-        }
-        appScript.write(original.replace(shareTarget, shareReplacement), 'UTF-8')
+        appScript.write(original, 'UTF-8')
     }
 }
 
@@ -64,8 +59,8 @@ android {
         applicationId 'com.luckybean.app'
         minSdk 26
         targetSdk 35
-        versionCode 600
-        versionName '0.6.0'
+        versionCode 100001
+        versionName '1.0.0-alpha'
     }
 
     sourceSets {
@@ -81,6 +76,12 @@ android {
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        alpha {
+            initWith release
+            signingConfig signingConfigs.debug
+            debuggable false
+            matchingFallbacks = ['release']
         }
     }
 

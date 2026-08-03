@@ -1,6 +1,6 @@
 {
   "name": "luckybean",
-  "version": "0.9.9",
+  "version": "1.0.0-alpha",
   "private": true,
   "type": "module",
   "scripts": {
