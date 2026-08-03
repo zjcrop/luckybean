@@ -1,0 +1,29 @@
+name: Lucky Bean Actions smoke test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.release/actions-smoke.trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Write execution status
+        run: |
+          mkdir -p .release
+          cat > .release/actions-smoke-status.json <<EOF
+          {"status":"success","run_id":"${GITHUB_RUN_ID}","sha":"${GITHUB_SHA}"}
+          EOF
+      - name: Commit status
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .release/actions-smoke-status.json
+          git commit -m 'ci: record Actions smoke success'
+          git push
