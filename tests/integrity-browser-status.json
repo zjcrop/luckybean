@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-08-03T08:12:53.236103+00:00",
-  "source_sha": "c17e61e23193e80ba026b0e9b932b6ab3a830038",
+  "checked_at": "2026-08-03T08:30:15.656916+00:00",
+  "source_sha": "7c8ad6d77197536df5571c311d786734bed6cf0c",
   "static_tests": "failure",
   "browser_runtime": "success",
   "integrity_browser_smoke": "failure",
