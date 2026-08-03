@@ -6,13 +6,13 @@ TAP version 13
 # Subtest: BrewIon 回退编码表结构完整且编码唯一
 ok 1 - BrewIon 回退编码表结构完整且编码唯一
   ---
-  duration_ms: 37.69662
+  duration_ms: 29.386265
   type: 'test'
   ...
 # Subtest: Beta 冲煮引擎输出完整协议、守恒和专业模型
 not ok 2 - Beta 冲煮引擎输出完整协议、守恒和专业模型
   ---
-  duration_ms: 1425.803801
+  duration_ms: 1476.040285
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/core.test.mjs:40:1'
   failureType: 'testCodeFailure'
@@ -34,139 +34,139 @@ not ok 2 - Beta 冲煮引擎输出完整协议、守恒和专业模型
 # Subtest: 冲煮方案库覆盖旧版主要方案类型
 ok 3 - 冲煮方案库覆盖旧版主要方案类型
   ---
-  duration_ms: 3.678155
+  duration_ms: 1.1769
   type: 'test'
   ...
 # Subtest: 调水模块对标 Brew-Water-Calibrato 咖啡参数
 ok 4 - 调水模块对标 Brew-Water-Calibrato 咖啡参数
   ---
-  duration_ms: 0.629658
+  duration_ms: 0.628545
   type: 'test'
   ...
 # Subtest: 低分品鉴可生成问题定向修正方案
 ok 5 - 低分品鉴可生成问题定向修正方案
   ---
-  duration_ms: 801.404396
+  duration_ms: 811.312003
   type: 'test'
   ...
 # Subtest: 自动得分、主观分差和偏好标签可累计
 ok 6 - 自动得分、主观分差和偏好标签可累计
   ---
-  duration_ms: 1.960412
+  duration_ms: 2.738207
   type: 'test'
   ...
 # Subtest: 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
 ok 7 - 压缩分享包含 BrewIon 字段、冲煮记录与品鉴记录
   ---
-  duration_ms: 585.698616
+  duration_ms: 548.59289
   type: 'test'
   ...
 # Subtest: 导航、田字快捷区和双字题注严格对应
 ok 8 - 导航、田字快捷区和双字题注严格对应
   ---
-  duration_ms: 1.207396
+  duration_ms: 1.656406
   type: 'test'
   ...
 # Subtest: HTML 不含重复 ID 或内联事件处理器
 ok 9 - HTML 不含重复 ID 或内联事件处理器
   ---
-  duration_ms: 1.650574
+  duration_ms: 2.218817
   type: 'test'
   ...
 # Subtest: 应用代码保持单一初始化和主渲染函数
 ok 10 - 应用代码保持单一初始化和主渲染函数
   ---
-  duration_ms: 2.441381
+  duration_ms: 2.515913
   type: 'test'
   ...
 # Subtest: 私有仓库凭据和私有 GitHub API 不进入前端
 ok 11 - 私有仓库凭据和私有 GitHub API 不进入前端
   ---
-  duration_ms: 2.85268
+  duration_ms: 2.89951
   type: 'test'
   ...
 # Subtest: 自然语言识别回填确定性字段和 BrewIon 代码
 ok 12 - 自然语言识别回填确定性字段和 BrewIon 代码
   ---
-  duration_ms: 13.779185
+  duration_ms: 12.660964
   type: 'test'
   ...
 # Subtest: BrewIon 固定字段二维码执行 CRC 和行索引解码
 ok 13 - BrewIon 固定字段二维码执行 CRC 和行索引解码
   ---
-  duration_ms: 4.665998
+  duration_ms: 4.732695
   type: 'test'
   ...
 # Subtest: 视觉、卡片、分组、搜索和撷页交互标记已落地
 ok 14 - 视觉、卡片、分组、搜索和撷页交互标记已落地
   ---
-  duration_ms: 2.267476
+  duration_ms: 2.31625
   type: 'test'
   ...
 # Subtest: 豆卡名称、烘焙色值和现有数据筛选逻辑正确
 ok 15 - 豆卡名称、烘焙色值和现有数据筛选逻辑正确
   ---
-  duration_ms: 2.319947
+  duration_ms: 2.382894
   type: 'test'
   ...
 # Subtest: 远程编码表与内置表合并时保留缺失风味
 ok 16 - 远程编码表与内置表合并时保留缺失风味
   ---
-  duration_ms: 15.987731
+  duration_ms: 10.680573
   type: 'test'
   ...
 # Subtest: 编码表产区与庄园使用正确中文列且不生成空标签
 ok 17 - 编码表产区与庄园使用正确中文列且不生成空标签
   ---
-  duration_ms: 15.669166
+  duration_ms: 14.286753
   type: 'test'
   ...
 # Subtest: 十阶段赏味进度从20%起步并在赏味期后一周达到100%
 ok 18 - 十阶段赏味进度从20%起步并在赏味期后一周达到100%
   ---
-  duration_ms: 0.767324
+  duration_ms: 0.845421
   type: 'test'
   ...
 # Subtest: 负面缺陷扣分显著高于正面风味叠加
 ok 19 - 负面缺陷扣分显著高于正面风味叠加
   ---
-  duration_ms: 0.461462
+  duration_ms: 0.419995
   type: 'test'
   ...
 # Subtest: v0.9 交互与器具库存标记完整
 ok 20 - v0.9 交互与器具库存标记完整
   ---
-  duration_ms: 7.180826
+  duration_ms: 3.684667
   type: 'test'
   ...
 # Subtest: 计时、消耗、品鉴札记、复刻与方案导出功能已落地
 ok 21 - 计时、消耗、品鉴札记、复刻与方案导出功能已落地
   ---
-  duration_ms: 5.635339
+  duration_ms: 8.013636
   type: 'test'
   ...
 # Subtest: header controls are forced into one horizontal row
 ok 22 - header controls are forced into one horizontal row
   ---
-  duration_ms: 6.450442
+  duration_ms: 9.016442
   type: 'test'
   ...
 # Subtest: theme bridge intercepts dynamic buttons and delegates to native state
 ok 23 - theme bridge intercepts dynamic buttons and delegates to native state
   ---
-  duration_ms: 2.530141
+  duration_ms: 2.013944
   type: 'test'
   ...
 # Subtest: light theme covers main pages, overlays, forms, navigation and tasting wizard
 ok 24 - light theme covers main pages, overlays, forms, navigation and tasting wizard
   ---
-  duration_ms: 2.17658
+  duration_ms: 2.045733
   type: 'test'
   ...
 # Subtest: runtime entry and PWA cache include theme patch assets
 not ok 25 - runtime entry and PWA cache include theme patch assets
   ---
-  duration_ms: 10.059107
+  duration_ms: 5.668344
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/theme-light.test.mjs:21:1'
   failureType: 'testCodeFailure'
@@ -180,36 +180,37 @@ not ok 25 - runtime entry and PWA cache include theme patch assets
       '  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n' +
       '  <meta name="theme-color" content="#080909">\n' +
       '  <meta name="application-version" content="0.9.9">\n' +
-      '  <meta name="release-revision" content="099o">\n' +
+      '  <meta name="release-revision" content="099p">\n' +
       `  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">\n` +
       '  <title>富贵盒子 0.9.9</title>\n' +
-      '  <link rel="manifest" href="./manifest.webmanifest?v=099o">\n' +
-      '  <link rel="icon" href="./public/app-logo.webp?v=099o" type="image/webp">\n' +
-      '  <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v095.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-action-grid.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-theme-light.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v095-refine.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v096-recognition.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-qr-scan.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v096-integrity.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v097-fixes.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v098-fixes.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099d.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099f.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099g.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099h.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099i.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099j.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099l.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099m.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099o.css?v=099o">\n' +
+      '  <link rel="manifest" href="./manifest.webmanifest?v=099p">\n' +
+      '  <link rel="icon" href="./public/app-logo.webp?v=099p" type="image/webp">\n' +
+      '  <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v095.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-action-grid.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-theme-light.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v095-refine.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v096-recognition.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-qr-scan.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v096-integrity.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v097-fixes.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v098-fixes.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099d.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099f.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099g.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099h.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099i.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099j.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099l.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099m.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099o.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099p.css?v=099p">\n' +
       '</head>\n' +
-      '<body data-release="0.9.9" data-release-revision="099o">\n' +
+      '<body data-release="0.9.9" data-release-revision="099p">\n' +
       '  <section id="splashScreen" class="splash-screen" data-splash-variant="red" role="button" tabindex="0" aria-label="点击进入富贵盒子">\n' +
-      '    <img id="splashImage" src="./public/splash-art-red.webp?v=099o" alt="富贵盒子红色启动画面">\n' +
+      '    <img id="splashImage" src="./public/splash-art-red.webp?v=099p" alt="富贵盒子红色启动画面">\n' +
       '    <span>点击进入</span>\n' +
       '  </section>\n' +
       '  <section id="loginScreen" class="login-screen" aria-label="登录与本地使用">\n' +
@@ -225,42 +226,39 @@ not ok 25 - runtime entry and PWA cache include theme patch assets
       '    <div id="fabWrap" class="fab-wrap action-grid" aria-label="豆藏快捷操作"><button id="fabSearchBtn" class="fab text-fab" type="button" aria-label="搜索豆卡">搜索</button><button id="fabAddBtn" class="fab text-fab" type="button" aria-label="新增豆卡">添丁</button><button id="fabHistoryBtn" class="fab text-fab" type="button" aria-label="追溯往昔记录">溯旧</button><button id="fabRecommendBtn" class="fab text-fab" type="button" aria-label="选择推荐豆卡">选择</button></div>\n' +
       '    <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>\n' +
       '  </div>\n' +
+      '  <div id="v099fBeanModules" hidden aria-hidden="true"></div>\n' +
       '  <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept="application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>\n' +
-      '  <script type="module" src="./src/v099j-runtime-stability.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/app.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099h-splash-assets.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-migrations.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-voice-settings.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-web-ocr.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-paddle-ocr.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-ocr-quality.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-package-capture.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-direct-camera.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-sensory-bootstrap.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/theme-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-layout-gear.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-sensory-flow-guard.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-postbrew-sensory.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-qr-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-integrity-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v097-ui-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v097-fab-gesture.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-trajectory-space.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v098-selection-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v098-feature-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099-runtime.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-radar-scroll.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-supabase-auth.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-account-stabilizer.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099f-cloud-sync.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-freshness-group.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099m-group-controller.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-world-map.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099l-ui-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099n-settings-controller.js?v=099o"></script>\n' +
+      '  <script type="module" src="./src/v099j-runtime-stability.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/app.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099h-splash-assets.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-migrations.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-web-ocr.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099g-paddle-ocr.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-ocr-quality.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-package-capture.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-direct-camera.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-sensory-bootstrap.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/theme-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-sensory-flow-guard.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-postbrew-sensory.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-qr-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-integrity-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v097-ui-fixes.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v097-fab-gesture.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-trajectory-space.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v098-selection-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v098-feature-fixes.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099-runtime.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-radar-scroll.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-supabase-auth.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099f-cloud-sync.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-freshness-group.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099m-group-controller.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099g-world-map.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099p-settings-rebuild.js?v=099p"></script>\n' +
       '</body>\n' +
       '</html>'
     
@@ -275,36 +273,37 @@ not ok 25 - runtime entry and PWA cache include theme patch assets
       <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
       <meta name="theme-color" content="#080909">
       <meta name="application-version" content="0.9.9">
-      <meta name="release-revision" content="099o">
+      <meta name="release-revision" content="099p">
       <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
       <title>富贵盒子 0.9.9</title>
-      <link rel="manifest" href="./manifest.webmanifest?v=099o">
-      <link rel="icon" href="./public/app-logo.webp?v=099o" type="image/webp">
-      <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099o">
-      <link rel="stylesheet" href="./styles.css?v=099o">
-      <link rel="stylesheet" href="./styles-v095.css?v=099o">
-      <link rel="stylesheet" href="./styles-action-grid.css?v=099o">
-      <link rel="stylesheet" href="./styles-theme-light.css?v=099o">
-      <link rel="stylesheet" href="./styles-v095-refine.css?v=099o">
-      <link rel="stylesheet" href="./styles-v096-recognition.css?v=099o">
-      <link rel="stylesheet" href="./styles-qr-scan.css?v=099o">
-      <link rel="stylesheet" href="./styles-v096-integrity.css?v=099o">
-      <link rel="stylesheet" href="./styles-v097-fixes.css?v=099o">
-      <link rel="stylesheet" href="./styles-v098-fixes.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099d.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099f.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099g.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099h.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099i.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099j.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099l.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099m.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099o.css?v=099o">
+      <link rel="manifest" href="./manifest.webmanifest?v=099p">
+      <link rel="icon" href="./public/app-logo.webp?v=099p" type="image/webp">
+      <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099p">
+      <link rel="stylesheet" href="./styles.css?v=099p">
+      <link rel="stylesheet" href="./styles-v095.css?v=099p">
+      <link rel="stylesheet" href="./styles-action-grid.css?v=099p">
+      <link rel="stylesheet" href="./styles-theme-light.css?v=099p">
+      <link rel="stylesheet" href="./styles-v095-refine.css?v=099p">
+      <link rel="stylesheet" href="./styles-v096-recognition.css?v=099p">
+      <link rel="stylesheet" href="./styles-qr-scan.css?v=099p">
+      <link rel="stylesheet" href="./styles-v096-integrity.css?v=099p">
+      <link rel="stylesheet" href="./styles-v097-fixes.css?v=099p">
+      <link rel="stylesheet" href="./styles-v098-fixes.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099d.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099f.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099g.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099h.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099i.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099j.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099l.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099m.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099o.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099p.css?v=099p">
     </head>
-    <body data-release="0.9.9" data-release-revision="099o">
+    <body data-release="0.9.9" data-release-revision="099p">
       <section id="splashScreen" class="splash-screen" data-splash-variant="red" role="button" tabindex="0" aria-label="点击进入富贵盒子">
-        <img id="splashImage" src="./public/splash-art-red.webp?v=099o" alt="富贵盒子红色启动画面">
+        <img id="splashImage" src="./public/splash-art-red.webp?v=099p" alt="富贵盒子红色启动画面">
         <span>点击进入</span>
       </section>
       <section id="loginScreen" class="login-screen" aria-label="登录与本地使用">
@@ -320,42 +319,39 @@ not ok 25 - runtime entry and PWA cache include theme patch assets
         <div id="fabWrap" class="fab-wrap action-grid" aria-label="豆藏快捷操作"><button id="fabSearchBtn" class="fab text-fab" type="button" aria-label="搜索豆卡">搜索</button><button id="fabAddBtn" class="fab text-fab" type="button" aria-label="新增豆卡">添丁</button><button id="fabHistoryBtn" class="fab text-fab" type="button" aria-label="追溯往昔记录">溯旧</button><button id="fabRecommendBtn" class="fab text-fab" type="button" aria-label="选择推荐豆卡">选择</button></div>
         <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>
       </div>
+      <div id="v099fBeanModules" hidden aria-hidden="true"></div>
       <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept="application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
-      <script type="module" src="./src/v099j-runtime-stability.js?v=099o"></script>
-      <script type="module" src="./src/app.js?v=099o"></script>
-      <script type="module" src="./src/v099h-splash-assets.js?v=099o"></script>
-      <script type="module" src="./src/v099i-migrations.js?v=099o"></script>
-      <script type="module" src="./src/v099i-voice-settings.js?v=099o"></script>
-      <script type="module" src="./src/v096-web-ocr.js?v=099o"></script>
-      <script type="module" src="./src/v099g-paddle-ocr.js?v=099o"></script>
-      <script type="module" src="./src/v099d-ocr-quality.js?v=099o"></script>
-      <script type="module" src="./src/v096-package-capture.js?v=099o"></script>
-      <script type="module" src="./src/v096-direct-camera.js?v=099o"></script>
-      <script type="module" src="./src/v095-sensory-bootstrap.js?v=099o"></script>
-      <script type="module" src="./src/v095-ui.js?v=099o"></script>
-      <script type="module" src="./src/theme-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v095-layout-gear.js?v=099o"></script>
-      <script type="module" src="./src/v095-sensory-flow-guard.js?v=099o"></script>
-      <script type="module" src="./src/v095-postbrew-sensory.js?v=099o"></script>
-      <script type="module" src="./src/v095-qr-ui.js?v=099o"></script>
-      <script type="module" src="./src/v096-integrity-ui.js?v=099o"></script>
-      <script type="module" src="./src/v097-ui-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v097-fab-gesture.js?v=099o"></script>
-      <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v099i-trajectory-space.js?v=099o"></script>
-      <script type="module" src="./src/v098-selection-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v098-feature-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v099-runtime.js?v=099o"></script>
-      <script type="module" src="./src/v099d-radar-scroll.js?v=099o"></script>
-      <script type="module" src="./src/v099d-supabase-auth.js?v=099o"></script>
-      <script type="module" src="./src/v099g-account-stabilizer.js?v=099o"></script>
-      <script type="module" src="./src/v099f-cloud-sync.js?v=099o"></script>
-      <script type="module" src="./src/v099i-freshness-group.js?v=099o"></script>
-      <script type="module" src="./src/v099m-group-controller.js?v=099o"></script>
-      <script type="module" src="./src/v099f-ui-upgrade.js?v=099o"></script>
-      <script type="module" src="./src/v099g-world-map.js?v=099o"></script>
-      <script type="module" src="./src/v099l-ui-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v099n-settings-controller.js?v=099o"></script>
+      <script type="module" src="./src/v099j-runtime-stability.js?v=099p"></script>
+      <script type="module" src="./src/app.js?v=099p"></script>
+      <script type="module" src="./src/v099h-splash-assets.js?v=099p"></script>
+      <script type="module" src="./src/v099i-migrations.js?v=099p"></script>
+      <script type="module" src="./src/v096-web-ocr.js?v=099p"></script>
+      <script type="module" src="./src/v099g-paddle-ocr.js?v=099p"></script>
+      <script type="module" src="./src/v099d-ocr-quality.js?v=099p"></script>
+      <script type="module" src="./src/v096-package-capture.js?v=099p"></script>
+      <script type="module" src="./src/v096-direct-camera.js?v=099p"></script>
+      <script type="module" src="./src/v095-sensory-bootstrap.js?v=099p"></script>
+      <script type="module" src="./src/v095-ui.js?v=099p"></script>
+      <script type="module" src="./src/theme-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v095-sensory-flow-guard.js?v=099p"></script>
+      <script type="module" src="./src/v095-postbrew-sensory.js?v=099p"></script>
+      <script type="module" src="./src/v095-qr-ui.js?v=099p"></script>
+      <script type="module" src="./src/v096-integrity-ui.js?v=099p"></script>
+      <script type="module" src="./src/v097-ui-fixes.js?v=099p"></script>
+      <script type="module" src="./src/v097-fab-gesture.js?v=099p"></script>
+      <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v099i-trajectory-space.js?v=099p"></script>
+      <script type="module" src="./src/v098-selection-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v098-feature-fixes.js?v=099p"></script>
+      <script type="module" src="./src/v099-runtime.js?v=099p"></script>
+      <script type="module" src="./src/v099d-radar-scroll.js?v=099p"></script>
+      <script type="module" src="./src/v099d-supabase-auth.js?v=099p"></script>
+      <script type="module" src="./src/v099f-cloud-sync.js?v=099p"></script>
+      <script type="module" src="./src/v099i-freshness-group.js?v=099p"></script>
+      <script type="module" src="./src/v099m-group-controller.js?v=099p"></script>
+      <script type="module" src="./src/v099f-ui-upgrade.js?v=099p"></script>
+      <script type="module" src="./src/v099g-world-map.js?v=099p"></script>
+      <script type="module" src="./src/v099p-settings-rebuild.js?v=099p"></script>
     </body>
     </html>
   operator: 'match'
@@ -367,7 +363,7 @@ not ok 25 - runtime entry and PWA cache include theme patch assets
 # Subtest: 0.9.6 keeps 0.9.2 interaction baseline
 not ok 26 - 0.9.6 keeps 0.9.2 interaction baseline
   ---
-  duration_ms: 11.432784
+  duration_ms: 9.091813
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v092.test.mjs:8:1'
   failureType: 'testCodeFailure'
@@ -389,19 +385,19 @@ not ok 26 - 0.9.6 keeps 0.9.2 interaction baseline
 # Subtest: recommendation animation and prompt libraries are complete
 ok 27 - recommendation animation and prompt libraries are complete
   ---
-  duration_ms: 5.643052
+  duration_ms: 4.779774
   type: 'test'
   ...
 # Subtest: timer, inventory, delta wheel and trajectory requirements
 ok 28 - timer, inventory, delta wheel and trajectory requirements
   ---
-  duration_ms: 3.324617
+  duration_ms: 2.646567
   type: 'test'
   ...
 # Subtest: 0.9.6 version and visual assets
 not ok 29 - 0.9.6 version and visual assets
   ---
-  duration_ms: 11.148016
+  duration_ms: 10.071805
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v093.test.mjs:7:1'
   failureType: 'testCodeFailure'
@@ -423,13 +419,13 @@ not ok 29 - 0.9.6 version and visual assets
 # Subtest: 0.9.3 sensory, cold storage and gear requirements remain available
 ok 30 - 0.9.3 sensory, cold storage and gear requirements remain available
   ---
-  duration_ms: 7.437548
+  duration_ms: 6.591003
   type: 'test'
   ...
 # Subtest: refinement runtime files are loaded in deterministic order and cached
 not ok 31 - refinement runtime files are loaded in deterministic order and cached
   ---
-  duration_ms: 10.709456
+  duration_ms: 12.62136
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v095-refine.test.mjs:6:1'
   failureType: 'testCodeFailure'
@@ -447,31 +443,31 @@ not ok 31 - refinement runtime files are loaded in deterministic order and cache
 # Subtest: light mode covers seals, groups, leaderboard and collapse row
 ok 32 - light mode covers seals, groups, leaderboard and collapse row
   ---
-  duration_ms: 2.795437
+  duration_ms: 2.496486
   type: 'test'
   ...
 # Subtest: remaining recommendation, manage menu and structured grinder range are implemented
 ok 33 - remaining recommendation, manage menu and structured grinder range are implemented
   ---
-  duration_ms: 3.494565
+  duration_ms: 3.313333
   type: 'test'
   ...
 # Subtest: settings mascot uses fixed one-third size
 ok 34 - settings mascot uses fixed one-third size
   ---
-  duration_ms: 1.889172
+  duration_ms: 2.666685
   type: 'test'
   ...
 # Subtest: three sensory modes have distinct non-duplicated workflows
 ok 35 - three sensory modes have distinct non-duplicated workflows
   ---
-  duration_ms: 1.253033
+  duration_ms: 1.618368
   type: 'test'
   ...
 # Subtest: professional sensory uses CATA tags, ordering, conditional radar slider and final affective score
 not ok 36 - professional sensory uses CATA tags, ordering, conditional radar slider and final affective score
   ---
-  duration_ms: 1.489114
+  duration_ms: 1.35332
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v095-refine.test.mjs:41:1'
   failureType: 'testCodeFailure'
@@ -489,13 +485,13 @@ not ok 36 - professional sensory uses CATA tags, ordering, conditional radar sli
 # Subtest: simple note mode reveals score before note
 ok 37 - simple note mode reveals score before note
   ---
-  duration_ms: 2.788674
+  duration_ms: 4.35479
   type: 'test'
   ...
 # Subtest: current v0.9.6 release retains v0.9.5 runtime entry
 not ok 38 - current v0.9.6 release retains v0.9.5 runtime entry
   ---
-  duration_ms: 14.280804
+  duration_ms: 11.827907
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v095.test.mjs:7:1'
   failureType: 'testCodeFailure'
@@ -509,36 +505,37 @@ not ok 38 - current v0.9.6 release retains v0.9.5 runtime entry
       '  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n' +
       '  <meta name="theme-color" content="#080909">\n' +
       '  <meta name="application-version" content="0.9.9">\n' +
-      '  <meta name="release-revision" content="099o">\n' +
+      '  <meta name="release-revision" content="099p">\n' +
       `  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">\n` +
       '  <title>富贵盒子 0.9.9</title>\n' +
-      '  <link rel="manifest" href="./manifest.webmanifest?v=099o">\n' +
-      '  <link rel="icon" href="./public/app-logo.webp?v=099o" type="image/webp">\n' +
-      '  <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v095.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-action-grid.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-theme-light.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v095-refine.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v096-recognition.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-qr-scan.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v096-integrity.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v097-fixes.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v098-fixes.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099d.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099f.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099g.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099h.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099i.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099j.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099l.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099m.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099o.css?v=099o">\n' +
+      '  <link rel="manifest" href="./manifest.webmanifest?v=099p">\n' +
+      '  <link rel="icon" href="./public/app-logo.webp?v=099p" type="image/webp">\n' +
+      '  <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v095.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-action-grid.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-theme-light.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v095-refine.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v096-recognition.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-qr-scan.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v096-integrity.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v097-fixes.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v098-fixes.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099d.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099f.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099g.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099h.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099i.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099j.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099l.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099m.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099o.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099p.css?v=099p">\n' +
       '</head>\n' +
-      '<body data-release="0.9.9" data-release-revision="099o">\n' +
+      '<body data-release="0.9.9" data-release-revision="099p">\n' +
       '  <section id="splashScreen" class="splash-screen" data-splash-variant="red" role="button" tabindex="0" aria-label="点击进入富贵盒子">\n' +
-      '    <img id="splashImage" src="./public/splash-art-red.webp?v=099o" alt="富贵盒子红色启动画面">\n' +
+      '    <img id="splashImage" src="./public/splash-art-red.webp?v=099p" alt="富贵盒子红色启动画面">\n' +
       '    <span>点击进入</span>\n' +
       '  </section>\n' +
       '  <section id="loginScreen" class="login-screen" aria-label="登录与本地使用">\n' +
@@ -554,42 +551,39 @@ not ok 38 - current v0.9.6 release retains v0.9.5 runtime entry
       '    <div id="fabWrap" class="fab-wrap action-grid" aria-label="豆藏快捷操作"><button id="fabSearchBtn" class="fab text-fab" type="button" aria-label="搜索豆卡">搜索</button><button id="fabAddBtn" class="fab text-fab" type="button" aria-label="新增豆卡">添丁</button><button id="fabHistoryBtn" class="fab text-fab" type="button" aria-label="追溯往昔记录">溯旧</button><button id="fabRecommendBtn" class="fab text-fab" type="button" aria-label="选择推荐豆卡">选择</button></div>\n' +
       '    <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>\n' +
       '  </div>\n' +
+      '  <div id="v099fBeanModules" hidden aria-hidden="true"></div>\n' +
       '  <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept="application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>\n' +
-      '  <script type="module" src="./src/v099j-runtime-stability.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/app.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099h-splash-assets.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-migrations.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-voice-settings.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-web-ocr.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-paddle-ocr.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-ocr-quality.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-package-capture.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-direct-camera.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-sensory-bootstrap.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/theme-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-layout-gear.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-sensory-flow-guard.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-postbrew-sensory.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-qr-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-integrity-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v097-ui-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v097-fab-gesture.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-trajectory-space.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v098-selection-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v098-feature-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099-runtime.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-radar-scroll.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-supabase-auth.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-account-stabilizer.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099f-cloud-sync.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-freshness-group.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099m-group-controller.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-world-map.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099l-ui-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099n-settings-controller.js?v=099o"></script>\n' +
+      '  <script type="module" src="./src/v099j-runtime-stability.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/app.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099h-splash-assets.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-migrations.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-web-ocr.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099g-paddle-ocr.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-ocr-quality.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-package-capture.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-direct-camera.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-sensory-bootstrap.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/theme-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-sensory-flow-guard.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-postbrew-sensory.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-qr-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-integrity-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v097-ui-fixes.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v097-fab-gesture.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-trajectory-space.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v098-selection-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v098-feature-fixes.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099-runtime.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-radar-scroll.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-supabase-auth.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099f-cloud-sync.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-freshness-group.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099m-group-controller.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099g-world-map.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099p-settings-rebuild.js?v=099p"></script>\n' +
       '</body>\n' +
       '</html>'
     
@@ -604,36 +598,37 @@ not ok 38 - current v0.9.6 release retains v0.9.5 runtime entry
       <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
       <meta name="theme-color" content="#080909">
       <meta name="application-version" content="0.9.9">
-      <meta name="release-revision" content="099o">
+      <meta name="release-revision" content="099p">
       <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
       <title>富贵盒子 0.9.9</title>
-      <link rel="manifest" href="./manifest.webmanifest?v=099o">
-      <link rel="icon" href="./public/app-logo.webp?v=099o" type="image/webp">
-      <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099o">
-      <link rel="stylesheet" href="./styles.css?v=099o">
-      <link rel="stylesheet" href="./styles-v095.css?v=099o">
-      <link rel="stylesheet" href="./styles-action-grid.css?v=099o">
-      <link rel="stylesheet" href="./styles-theme-light.css?v=099o">
-      <link rel="stylesheet" href="./styles-v095-refine.css?v=099o">
-      <link rel="stylesheet" href="./styles-v096-recognition.css?v=099o">
-      <link rel="stylesheet" href="./styles-qr-scan.css?v=099o">
-      <link rel="stylesheet" href="./styles-v096-integrity.css?v=099o">
-      <link rel="stylesheet" href="./styles-v097-fixes.css?v=099o">
-      <link rel="stylesheet" href="./styles-v098-fixes.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099d.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099f.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099g.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099h.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099i.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099j.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099l.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099m.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099o.css?v=099o">
+      <link rel="manifest" href="./manifest.webmanifest?v=099p">
+      <link rel="icon" href="./public/app-logo.webp?v=099p" type="image/webp">
+      <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099p">
+      <link rel="stylesheet" href="./styles.css?v=099p">
+      <link rel="stylesheet" href="./styles-v095.css?v=099p">
+      <link rel="stylesheet" href="./styles-action-grid.css?v=099p">
+      <link rel="stylesheet" href="./styles-theme-light.css?v=099p">
+      <link rel="stylesheet" href="./styles-v095-refine.css?v=099p">
+      <link rel="stylesheet" href="./styles-v096-recognition.css?v=099p">
+      <link rel="stylesheet" href="./styles-qr-scan.css?v=099p">
+      <link rel="stylesheet" href="./styles-v096-integrity.css?v=099p">
+      <link rel="stylesheet" href="./styles-v097-fixes.css?v=099p">
+      <link rel="stylesheet" href="./styles-v098-fixes.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099d.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099f.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099g.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099h.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099i.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099j.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099l.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099m.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099o.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099p.css?v=099p">
     </head>
-    <body data-release="0.9.9" data-release-revision="099o">
+    <body data-release="0.9.9" data-release-revision="099p">
       <section id="splashScreen" class="splash-screen" data-splash-variant="red" role="button" tabindex="0" aria-label="点击进入富贵盒子">
-        <img id="splashImage" src="./public/splash-art-red.webp?v=099o" alt="富贵盒子红色启动画面">
+        <img id="splashImage" src="./public/splash-art-red.webp?v=099p" alt="富贵盒子红色启动画面">
         <span>点击进入</span>
       </section>
       <section id="loginScreen" class="login-screen" aria-label="登录与本地使用">
@@ -649,42 +644,39 @@ not ok 38 - current v0.9.6 release retains v0.9.5 runtime entry
         <div id="fabWrap" class="fab-wrap action-grid" aria-label="豆藏快捷操作"><button id="fabSearchBtn" class="fab text-fab" type="button" aria-label="搜索豆卡">搜索</button><button id="fabAddBtn" class="fab text-fab" type="button" aria-label="新增豆卡">添丁</button><button id="fabHistoryBtn" class="fab text-fab" type="button" aria-label="追溯往昔记录">溯旧</button><button id="fabRecommendBtn" class="fab text-fab" type="button" aria-label="选择推荐豆卡">选择</button></div>
         <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>
       </div>
+      <div id="v099fBeanModules" hidden aria-hidden="true"></div>
       <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept="application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
-      <script type="module" src="./src/v099j-runtime-stability.js?v=099o"></script>
-      <script type="module" src="./src/app.js?v=099o"></script>
-      <script type="module" src="./src/v099h-splash-assets.js?v=099o"></script>
-      <script type="module" src="./src/v099i-migrations.js?v=099o"></script>
-      <script type="module" src="./src/v099i-voice-settings.js?v=099o"></script>
-      <script type="module" src="./src/v096-web-ocr.js?v=099o"></script>
-      <script type="module" src="./src/v099g-paddle-ocr.js?v=099o"></script>
-      <script type="module" src="./src/v099d-ocr-quality.js?v=099o"></script>
-      <script type="module" src="./src/v096-package-capture.js?v=099o"></script>
-      <script type="module" src="./src/v096-direct-camera.js?v=099o"></script>
-      <script type="module" src="./src/v095-sensory-bootstrap.js?v=099o"></script>
-      <script type="module" src="./src/v095-ui.js?v=099o"></script>
-      <script type="module" src="./src/theme-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v095-layout-gear.js?v=099o"></script>
-      <script type="module" src="./src/v095-sensory-flow-guard.js?v=099o"></script>
-      <script type="module" src="./src/v095-postbrew-sensory.js?v=099o"></script>
-      <script type="module" src="./src/v095-qr-ui.js?v=099o"></script>
-      <script type="module" src="./src/v096-integrity-ui.js?v=099o"></script>
-      <script type="module" src="./src/v097-ui-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v097-fab-gesture.js?v=099o"></script>
-      <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v099i-trajectory-space.js?v=099o"></script>
-      <script type="module" src="./src/v098-selection-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v098-feature-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v099-runtime.js?v=099o"></script>
-      <script type="module" src="./src/v099d-radar-scroll.js?v=099o"></script>
-      <script type="module" src="./src/v099d-supabase-auth.js?v=099o"></script>
-      <script type="module" src="./src/v099g-account-stabilizer.js?v=099o"></script>
-      <script type="module" src="./src/v099f-cloud-sync.js?v=099o"></script>
-      <script type="module" src="./src/v099i-freshness-group.js?v=099o"></script>
-      <script type="module" src="./src/v099m-group-controller.js?v=099o"></script>
-      <script type="module" src="./src/v099f-ui-upgrade.js?v=099o"></script>
-      <script type="module" src="./src/v099g-world-map.js?v=099o"></script>
-      <script type="module" src="./src/v099l-ui-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v099n-settings-controller.js?v=099o"></script>
+      <script type="module" src="./src/v099j-runtime-stability.js?v=099p"></script>
+      <script type="module" src="./src/app.js?v=099p"></script>
+      <script type="module" src="./src/v099h-splash-assets.js?v=099p"></script>
+      <script type="module" src="./src/v099i-migrations.js?v=099p"></script>
+      <script type="module" src="./src/v096-web-ocr.js?v=099p"></script>
+      <script type="module" src="./src/v099g-paddle-ocr.js?v=099p"></script>
+      <script type="module" src="./src/v099d-ocr-quality.js?v=099p"></script>
+      <script type="module" src="./src/v096-package-capture.js?v=099p"></script>
+      <script type="module" src="./src/v096-direct-camera.js?v=099p"></script>
+      <script type="module" src="./src/v095-sensory-bootstrap.js?v=099p"></script>
+      <script type="module" src="./src/v095-ui.js?v=099p"></script>
+      <script type="module" src="./src/theme-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v095-sensory-flow-guard.js?v=099p"></script>
+      <script type="module" src="./src/v095-postbrew-sensory.js?v=099p"></script>
+      <script type="module" src="./src/v095-qr-ui.js?v=099p"></script>
+      <script type="module" src="./src/v096-integrity-ui.js?v=099p"></script>
+      <script type="module" src="./src/v097-ui-fixes.js?v=099p"></script>
+      <script type="module" src="./src/v097-fab-gesture.js?v=099p"></script>
+      <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v099i-trajectory-space.js?v=099p"></script>
+      <script type="module" src="./src/v098-selection-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v098-feature-fixes.js?v=099p"></script>
+      <script type="module" src="./src/v099-runtime.js?v=099p"></script>
+      <script type="module" src="./src/v099d-radar-scroll.js?v=099p"></script>
+      <script type="module" src="./src/v099d-supabase-auth.js?v=099p"></script>
+      <script type="module" src="./src/v099f-cloud-sync.js?v=099p"></script>
+      <script type="module" src="./src/v099i-freshness-group.js?v=099p"></script>
+      <script type="module" src="./src/v099m-group-controller.js?v=099p"></script>
+      <script type="module" src="./src/v099f-ui-upgrade.js?v=099p"></script>
+      <script type="module" src="./src/v099g-world-map.js?v=099p"></script>
+      <script type="module" src="./src/v099p-settings-rebuild.js?v=099p"></script>
     </body>
     </html>
   operator: 'match'
@@ -696,31 +688,31 @@ not ok 38 - current v0.9.6 release retains v0.9.5 runtime entry
 # Subtest: v0.9.5 requested modes, labels and artwork exist
 ok 39 - v0.9.5 requested modes, labels and artwork exist
   ---
-  duration_ms: 6.264966
+  duration_ms: 6.029069
   type: 'test'
   ...
 # Subtest: sensory modes preserve interaction and only note mode skips nodes
 ok 40 - sensory modes preserve interaction and only note mode skips nodes
   ---
-  duration_ms: 1.60988
+  duration_ms: 1.709666
   type: 'test'
   ...
 # Subtest: v0.9.5 layout and theme selectors exist
 ok 41 - v0.9.5 layout and theme selectors exist
   ---
-  duration_ms: 1.879224
+  duration_ms: 1.76548
   type: 'test'
   ...
 # Subtest: header controls remain horizontal and theme binding is stable
 ok 42 - header controls remain horizontal and theme binding is stable
   ---
-  duration_ms: 2.350575
+  duration_ms: 1.949604
   type: 'test'
   ...
 # Subtest: explicit one-pour remains bloom plus one pour before and after correction
 not ok 43 - explicit one-pour remains bloom plus one pour before and after correction
   ---
-  duration_ms: 182.485704
+  duration_ms: 216.635339
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v096-integrity.test.mjs:36:1'
   failureType: 'testCodeFailure'
@@ -742,31 +734,31 @@ not ok 43 - explicit one-pour remains bloom plus one pour before and after corre
 # Subtest: trajectory is calculated from temperature grind water and profile variables
 ok 44 - trajectory is calculated from temperature grind water and profile variables
   ---
-  duration_ms: 309.859125
+  duration_ms: 381.310016
   type: 'test'
   ...
 # Subtest: sensory records are coded compressed encrypted and note-limited
 ok 45 - sensory records are coded compressed encrypted and note-limited
   ---
-  duration_ms: 54.523895
+  duration_ms: 65.119103
   type: 'test'
   ...
 # Subtest: encrypted share omits plaintext public identity and remains decodable
 ok 46 - encrypted share omits plaintext public identity and remains decodable
   ---
-  duration_ms: 23.092671
+  duration_ms: 7.656791
   type: 'test'
   ...
 # Subtest: OCR evidence candidates support per-field fuzzy correction
 ok 47 - OCR evidence candidates support per-field fuzzy correction
   ---
-  duration_ms: 1.922595
+  duration_ms: 2.035164
   type: 'test'
   ...
 # Subtest: runtime provides minimal identity screen rich history and selection-only tasting navigation
 not ok 48 - runtime provides minimal identity screen rich history and selection-only tasting navigation
   ---
-  duration_ms: 6.082354
+  duration_ms: 7.690885
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v096-integrity.test.mjs:135:1'
   failureType: 'testCodeFailure'
@@ -780,36 +772,37 @@ not ok 48 - runtime provides minimal identity screen rich history and selection-
       '  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n' +
       '  <meta name="theme-color" content="#080909">\n' +
       '  <meta name="application-version" content="0.9.9">\n' +
-      '  <meta name="release-revision" content="099o">\n' +
+      '  <meta name="release-revision" content="099p">\n' +
       `  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">\n` +
       '  <title>富贵盒子 0.9.9</title>\n' +
-      '  <link rel="manifest" href="./manifest.webmanifest?v=099o">\n' +
-      '  <link rel="icon" href="./public/app-logo.webp?v=099o" type="image/webp">\n' +
-      '  <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v095.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-action-grid.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-theme-light.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v095-refine.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v096-recognition.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-qr-scan.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v096-integrity.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v097-fixes.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v098-fixes.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099d.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099f.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099g.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099h.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099i.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099j.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099l.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099m.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099o.css?v=099o">\n' +
+      '  <link rel="manifest" href="./manifest.webmanifest?v=099p">\n' +
+      '  <link rel="icon" href="./public/app-logo.webp?v=099p" type="image/webp">\n' +
+      '  <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v095.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-action-grid.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-theme-light.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v095-refine.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v096-recognition.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-qr-scan.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v096-integrity.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v097-fixes.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v098-fixes.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099d.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099f.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099g.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099h.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099i.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099j.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099l.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099m.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099o.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099p.css?v=099p">\n' +
       '</head>\n' +
-      '<body data-release="0.9.9" data-release-revision="099o">\n' +
+      '<body data-release="0.9.9" data-release-revision="099p">\n' +
       '  <section id="splashScreen" class="splash-screen" data-splash-variant="red" role="button" tabindex="0" aria-label="点击进入富贵盒子">\n' +
-      '    <img id="splashImage" src="./public/splash-art-red.webp?v=099o" alt="富贵盒子红色启动画面">\n' +
+      '    <img id="splashImage" src="./public/splash-art-red.webp?v=099p" alt="富贵盒子红色启动画面">\n' +
       '    <span>点击进入</span>\n' +
       '  </section>\n' +
       '  <section id="loginScreen" class="login-screen" aria-label="登录与本地使用">\n' +
@@ -825,42 +818,39 @@ not ok 48 - runtime provides minimal identity screen rich history and selection-
       '    <div id="fabWrap" class="fab-wrap action-grid" aria-label="豆藏快捷操作"><button id="fabSearchBtn" class="fab text-fab" type="button" aria-label="搜索豆卡">搜索</button><button id="fabAddBtn" class="fab text-fab" type="button" aria-label="新增豆卡">添丁</button><button id="fabHistoryBtn" class="fab text-fab" type="button" aria-label="追溯往昔记录">溯旧</button><button id="fabRecommendBtn" class="fab text-fab" type="button" aria-label="选择推荐豆卡">选择</button></div>\n' +
       '    <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>\n' +
       '  </div>\n' +
+      '  <div id="v099fBeanModules" hidden aria-hidden="true"></div>\n' +
       '  <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept="application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>\n' +
-      '  <script type="module" src="./src/v099j-runtime-stability.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/app.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099h-splash-assets.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-migrations.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-voice-settings.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-web-ocr.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-paddle-ocr.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-ocr-quality.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-package-capture.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-direct-camera.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-sensory-bootstrap.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/theme-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-layout-gear.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-sensory-flow-guard.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-postbrew-sensory.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-qr-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-integrity-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v097-ui-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v097-fab-gesture.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-trajectory-space.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v098-selection-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v098-feature-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099-runtime.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-radar-scroll.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-supabase-auth.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-account-stabilizer.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099f-cloud-sync.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-freshness-group.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099m-group-controller.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-world-map.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099l-ui-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099n-settings-controller.js?v=099o"></script>\n' +
+      '  <script type="module" src="./src/v099j-runtime-stability.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/app.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099h-splash-assets.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-migrations.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-web-ocr.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099g-paddle-ocr.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-ocr-quality.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-package-capture.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-direct-camera.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-sensory-bootstrap.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/theme-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-sensory-flow-guard.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-postbrew-sensory.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-qr-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-integrity-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v097-ui-fixes.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v097-fab-gesture.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-trajectory-space.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v098-selection-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v098-feature-fixes.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099-runtime.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-radar-scroll.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-supabase-auth.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099f-cloud-sync.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-freshness-group.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099m-group-controller.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099g-world-map.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099p-settings-rebuild.js?v=099p"></script>\n' +
       '</body>\n' +
       '</html>'
     
@@ -875,36 +865,37 @@ not ok 48 - runtime provides minimal identity screen rich history and selection-
       <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
       <meta name="theme-color" content="#080909">
       <meta name="application-version" content="0.9.9">
-      <meta name="release-revision" content="099o">
+      <meta name="release-revision" content="099p">
       <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
       <title>富贵盒子 0.9.9</title>
-      <link rel="manifest" href="./manifest.webmanifest?v=099o">
-      <link rel="icon" href="./public/app-logo.webp?v=099o" type="image/webp">
-      <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099o">
-      <link rel="stylesheet" href="./styles.css?v=099o">
-      <link rel="stylesheet" href="./styles-v095.css?v=099o">
-      <link rel="stylesheet" href="./styles-action-grid.css?v=099o">
-      <link rel="stylesheet" href="./styles-theme-light.css?v=099o">
-      <link rel="stylesheet" href="./styles-v095-refine.css?v=099o">
-      <link rel="stylesheet" href="./styles-v096-recognition.css?v=099o">
-      <link rel="stylesheet" href="./styles-qr-scan.css?v=099o">
-      <link rel="stylesheet" href="./styles-v096-integrity.css?v=099o">
-      <link rel="stylesheet" href="./styles-v097-fixes.css?v=099o">
-      <link rel="stylesheet" href="./styles-v098-fixes.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099d.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099f.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099g.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099h.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099i.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099j.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099l.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099m.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099o.css?v=099o">
+      <link rel="manifest" href="./manifest.webmanifest?v=099p">
+      <link rel="icon" href="./public/app-logo.webp?v=099p" type="image/webp">
+      <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099p">
+      <link rel="stylesheet" href="./styles.css?v=099p">
+      <link rel="stylesheet" href="./styles-v095.css?v=099p">
+      <link rel="stylesheet" href="./styles-action-grid.css?v=099p">
+      <link rel="stylesheet" href="./styles-theme-light.css?v=099p">
+      <link rel="stylesheet" href="./styles-v095-refine.css?v=099p">
+      <link rel="stylesheet" href="./styles-v096-recognition.css?v=099p">
+      <link rel="stylesheet" href="./styles-qr-scan.css?v=099p">
+      <link rel="stylesheet" href="./styles-v096-integrity.css?v=099p">
+      <link rel="stylesheet" href="./styles-v097-fixes.css?v=099p">
+      <link rel="stylesheet" href="./styles-v098-fixes.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099d.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099f.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099g.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099h.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099i.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099j.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099l.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099m.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099o.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099p.css?v=099p">
     </head>
-    <body data-release="0.9.9" data-release-revision="099o">
+    <body data-release="0.9.9" data-release-revision="099p">
       <section id="splashScreen" class="splash-screen" data-splash-variant="red" role="button" tabindex="0" aria-label="点击进入富贵盒子">
-        <img id="splashImage" src="./public/splash-art-red.webp?v=099o" alt="富贵盒子红色启动画面">
+        <img id="splashImage" src="./public/splash-art-red.webp?v=099p" alt="富贵盒子红色启动画面">
         <span>点击进入</span>
       </section>
       <section id="loginScreen" class="login-screen" aria-label="登录与本地使用">
@@ -920,42 +911,39 @@ not ok 48 - runtime provides minimal identity screen rich history and selection-
         <div id="fabWrap" class="fab-wrap action-grid" aria-label="豆藏快捷操作"><button id="fabSearchBtn" class="fab text-fab" type="button" aria-label="搜索豆卡">搜索</button><button id="fabAddBtn" class="fab text-fab" type="button" aria-label="新增豆卡">添丁</button><button id="fabHistoryBtn" class="fab text-fab" type="button" aria-label="追溯往昔记录">溯旧</button><button id="fabRecommendBtn" class="fab text-fab" type="button" aria-label="选择推荐豆卡">选择</button></div>
         <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>
       </div>
+      <div id="v099fBeanModules" hidden aria-hidden="true"></div>
       <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept="application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
-      <script type="module" src="./src/v099j-runtime-stability.js?v=099o"></script>
-      <script type="module" src="./src/app.js?v=099o"></script>
-      <script type="module" src="./src/v099h-splash-assets.js?v=099o"></script>
-      <script type="module" src="./src/v099i-migrations.js?v=099o"></script>
-      <script type="module" src="./src/v099i-voice-settings.js?v=099o"></script>
-      <script type="module" src="./src/v096-web-ocr.js?v=099o"></script>
-      <script type="module" src="./src/v099g-paddle-ocr.js?v=099o"></script>
-      <script type="module" src="./src/v099d-ocr-quality.js?v=099o"></script>
-      <script type="module" src="./src/v096-package-capture.js?v=099o"></script>
-      <script type="module" src="./src/v096-direct-camera.js?v=099o"></script>
-      <script type="module" src="./src/v095-sensory-bootstrap.js?v=099o"></script>
-      <script type="module" src="./src/v095-ui.js?v=099o"></script>
-      <script type="module" src="./src/theme-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v095-layout-gear.js?v=099o"></script>
-      <script type="module" src="./src/v095-sensory-flow-guard.js?v=099o"></script>
-      <script type="module" src="./src/v095-postbrew-sensory.js?v=099o"></script>
-      <script type="module" src="./src/v095-qr-ui.js?v=099o"></script>
-      <script type="module" src="./src/v096-integrity-ui.js?v=099o"></script>
-      <script type="module" src="./src/v097-ui-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v097-fab-gesture.js?v=099o"></script>
-      <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v099i-trajectory-space.js?v=099o"></script>
-      <script type="module" src="./src/v098-selection-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v098-feature-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v099-runtime.js?v=099o"></script>
-      <script type="module" src="./src/v099d-radar-scroll.js?v=099o"></script>
-      <script type="module" src="./src/v099d-supabase-auth.js?v=099o"></script>
-      <script type="module" src="./src/v099g-account-stabilizer.js?v=099o"></script>
-      <script type="module" src="./src/v099f-cloud-sync.js?v=099o"></script>
-      <script type="module" src="./src/v099i-freshness-group.js?v=099o"></script>
-      <script type="module" src="./src/v099m-group-controller.js?v=099o"></script>
-      <script type="module" src="./src/v099f-ui-upgrade.js?v=099o"></script>
-      <script type="module" src="./src/v099g-world-map.js?v=099o"></script>
-      <script type="module" src="./src/v099l-ui-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v099n-settings-controller.js?v=099o"></script>
+      <script type="module" src="./src/v099j-runtime-stability.js?v=099p"></script>
+      <script type="module" src="./src/app.js?v=099p"></script>
+      <script type="module" src="./src/v099h-splash-assets.js?v=099p"></script>
+      <script type="module" src="./src/v099i-migrations.js?v=099p"></script>
+      <script type="module" src="./src/v096-web-ocr.js?v=099p"></script>
+      <script type="module" src="./src/v099g-paddle-ocr.js?v=099p"></script>
+      <script type="module" src="./src/v099d-ocr-quality.js?v=099p"></script>
+      <script type="module" src="./src/v096-package-capture.js?v=099p"></script>
+      <script type="module" src="./src/v096-direct-camera.js?v=099p"></script>
+      <script type="module" src="./src/v095-sensory-bootstrap.js?v=099p"></script>
+      <script type="module" src="./src/v095-ui.js?v=099p"></script>
+      <script type="module" src="./src/theme-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v095-sensory-flow-guard.js?v=099p"></script>
+      <script type="module" src="./src/v095-postbrew-sensory.js?v=099p"></script>
+      <script type="module" src="./src/v095-qr-ui.js?v=099p"></script>
+      <script type="module" src="./src/v096-integrity-ui.js?v=099p"></script>
+      <script type="module" src="./src/v097-ui-fixes.js?v=099p"></script>
+      <script type="module" src="./src/v097-fab-gesture.js?v=099p"></script>
+      <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v099i-trajectory-space.js?v=099p"></script>
+      <script type="module" src="./src/v098-selection-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v098-feature-fixes.js?v=099p"></script>
+      <script type="module" src="./src/v099-runtime.js?v=099p"></script>
+      <script type="module" src="./src/v099d-radar-scroll.js?v=099p"></script>
+      <script type="module" src="./src/v099d-supabase-auth.js?v=099p"></script>
+      <script type="module" src="./src/v099f-cloud-sync.js?v=099p"></script>
+      <script type="module" src="./src/v099i-freshness-group.js?v=099p"></script>
+      <script type="module" src="./src/v099m-group-controller.js?v=099p"></script>
+      <script type="module" src="./src/v099f-ui-upgrade.js?v=099p"></script>
+      <script type="module" src="./src/v099g-world-map.js?v=099p"></script>
+      <script type="module" src="./src/v099p-settings-rebuild.js?v=099p"></script>
     </body>
     </html>
   operator: 'match'
@@ -967,31 +955,31 @@ not ok 48 - runtime provides minimal identity screen rich history and selection-
 # Subtest: JSON QR text is parsed before misleading raw bytes
 ok 49 - JSON QR text is parsed before misleading raw bytes
   ---
-  duration_ms: 1.704608
+  duration_ms: 1.498691
   type: 'test'
   ...
 # Subtest: official codebook codes from OCR text are parsed directly
 ok 50 - official codebook codes from OCR text are parsed directly
   ---
-  duration_ms: 2.541011
+  duration_ms: 2.588678
   type: 'test'
   ...
 # Subtest: codebook text QR is decoded without CRC branch
 ok 51 - codebook text QR is decoded without CRC branch
   ---
-  duration_ms: 0.594712
+  duration_ms: 0.576067
   type: 'test'
   ...
 # Subtest: invalid binary QR no longer exposes a raw CRC16 error
 ok 52 - invalid binary QR no longer exposes a raw CRC16 error
   ---
-  duration_ms: 1.80218
+  duration_ms: 4.647927
   type: 'test'
   ...
 # Subtest: Chinese-first OCR runtime and direct camera are loaded and cached
 not ok 53 - Chinese-first OCR runtime and direct camera are loaded and cached
   ---
-  duration_ms: 12.45479
+  duration_ms: 23.384527
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v096-ocr-qr-regression.test.mjs:53:1'
   failureType: 'testCodeFailure'
@@ -1009,25 +997,25 @@ not ok 53 - Chinese-first OCR runtime and direct camera are loaded and cached
 # Subtest: Lucky Bean encrypted share URL QR is expanded to a bean record
 ok 54 - Lucky Bean encrypted share URL QR is expanded to a bean record
   ---
-  duration_ms: 97.82568
+  duration_ms: 78.136861
   type: 'test'
   ...
 # Subtest: QR wrapper preserves pinned scanner core and parses text before bytes
 ok 55 - QR wrapper preserves pinned scanner core and parses text before bytes
   ---
-  duration_ms: 3.688547
+  duration_ms: 9.002016
   type: 'test'
   ...
 # Subtest: post-brew flow cancels automatic evaluation and restores mode selection
 ok 56 - post-brew flow cancels automatic evaluation and restores mode selection
   ---
-  duration_ms: 3.256149
+  duration_ms: 4.605207
   type: 'test'
   ...
 # Subtest: QR capture UI and integrity runtime files are loaded and cached
 not ok 57 - QR capture UI and integrity runtime files are loaded and cached
   ---
-  duration_ms: 5.816206
+  duration_ms: 7.13107
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v096-qr-postbrew.test.mjs:46:1'
   failureType: 'testCodeFailure'
@@ -1045,25 +1033,25 @@ not ok 57 - QR capture UI and integrity runtime files are loaded and cached
 # Subtest: v17 chemistry priors are migrated into the inverse optimizer
 ok 58 - v17 chemistry priors are migrated into the inverse optimizer
   ---
-  duration_ms: 4.549838
+  duration_ms: 4.379926
   type: 'test'
   ...
 # Subtest: dripper and paper library values alter the hydraulic envelope
 ok 59 - dripper and paper library values alter the hydraulic envelope
   ---
-  duration_ms: 1.202187
+  duration_ms: 1.285633
   type: 'test'
   ...
 # Subtest: target and risk windows are bean preference water and device linked
 ok 60 - target and risk windows are bean preference water and device linked
   ---
-  duration_ms: 1.340817
+  duration_ms: 1.529769
   type: 'test'
   ...
 # Subtest: recommended plan is selected by trajectory objective and retains full protocol
 not ok 61 - recommended plan is selected by trajectory objective and retains full protocol
   ---
-  duration_ms: 1304.591337
+  duration_ms: 1368.724083
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v097-optimizer.test.mjs:90:1'
   failureType: 'testCodeFailure'
@@ -1085,7 +1073,7 @@ not ok 61 - recommended plan is selected by trajectory objective and retains ful
 # Subtest: explicit brew method is a hard constraint while its parameters are inverse fitted
 not ok 62 - explicit brew method is a hard constraint while its parameters are inverse fitted
   ---
-  duration_ms: 44.475546
+  duration_ms: 26.726133
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v097-optimizer.test.mjs:113:1'
   failureType: 'testCodeFailure'
@@ -1107,31 +1095,31 @@ not ok 62 - explicit brew method is a hard constraint while its parameters are i
 # Subtest: gear constraints and bean chemistry change optimized trajectory and controls
 ok 63 - gear constraints and bean chemistry change optimized trajectory and controls
   ---
-  duration_ms: 81.425422
+  duration_ms: 98.278804
   type: 'test'
   ...
 # Subtest: sensory feedback becomes a closed-loop parameter correction
 ok 64 - sensory feedback becomes a closed-loop parameter correction
   ---
-  duration_ms: 96.401321
+  duration_ms: 66.420101
   type: 'test'
   ...
 # Subtest: flat-only profile is not considered for cone equipment but is considered for flat equipment
 ok 65 - flat-only profile is not considered for cone equipment but is considered for flat equipment
   ---
-  duration_ms: 0.391532
+  duration_ms: 0.285533
   type: 'test'
   ...
 # Subtest: explicit segment selector constrains the optimizer and counts bloom as stage one
 ok 66 - explicit segment selector constrains the optimizer and counts bloom as stage one
   ---
-  duration_ms: 271.937091
+  duration_ms: 396.109681
   type: 'test'
   ...
 # Subtest: v097 runtime preserves the original time-series trajectory and requested interactions
 not ok 67 - v097 runtime preserves the original time-series trajectory and requested interactions
   ---
-  duration_ms: 8.43359
+  duration_ms: 8.092926
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v097-ui-fixes.test.mjs:34:1'
   failureType: 'testCodeFailure'
@@ -1145,36 +1133,37 @@ not ok 67 - v097 runtime preserves the original time-series trajectory and reque
       '  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n' +
       '  <meta name="theme-color" content="#080909">\n' +
       '  <meta name="application-version" content="0.9.9">\n' +
-      '  <meta name="release-revision" content="099o">\n' +
+      '  <meta name="release-revision" content="099p">\n' +
       `  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">\n` +
       '  <title>富贵盒子 0.9.9</title>\n' +
-      '  <link rel="manifest" href="./manifest.webmanifest?v=099o">\n' +
-      '  <link rel="icon" href="./public/app-logo.webp?v=099o" type="image/webp">\n' +
-      '  <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v095.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-action-grid.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-theme-light.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v095-refine.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v096-recognition.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-qr-scan.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v096-integrity.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v097-fixes.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v098-fixes.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099d.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099f.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099g.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099h.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099i.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099j.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099l.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099m.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099o.css?v=099o">\n' +
+      '  <link rel="manifest" href="./manifest.webmanifest?v=099p">\n' +
+      '  <link rel="icon" href="./public/app-logo.webp?v=099p" type="image/webp">\n' +
+      '  <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v095.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-action-grid.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-theme-light.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v095-refine.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v096-recognition.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-qr-scan.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v096-integrity.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v097-fixes.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v098-fixes.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099d.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099f.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099g.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099h.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099i.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099j.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099l.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099m.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099o.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099p.css?v=099p">\n' +
       '</head>\n' +
-      '<body data-release="0.9.9" data-release-revision="099o">\n' +
+      '<body data-release="0.9.9" data-release-revision="099p">\n' +
       '  <section id="splashScreen" class="splash-screen" data-splash-variant="red" role="button" tabindex="0" aria-label="点击进入富贵盒子">\n' +
-      '    <img id="splashImage" src="./public/splash-art-red.webp?v=099o" alt="富贵盒子红色启动画面">\n' +
+      '    <img id="splashImage" src="./public/splash-art-red.webp?v=099p" alt="富贵盒子红色启动画面">\n' +
       '    <span>点击进入</span>\n' +
       '  </section>\n' +
       '  <section id="loginScreen" class="login-screen" aria-label="登录与本地使用">\n' +
@@ -1190,42 +1179,39 @@ not ok 67 - v097 runtime preserves the original time-series trajectory and reque
       '    <div id="fabWrap" class="fab-wrap action-grid" aria-label="豆藏快捷操作"><button id="fabSearchBtn" class="fab text-fab" type="button" aria-label="搜索豆卡">搜索</button><button id="fabAddBtn" class="fab text-fab" type="button" aria-label="新增豆卡">添丁</button><button id="fabHistoryBtn" class="fab text-fab" type="button" aria-label="追溯往昔记录">溯旧</button><button id="fabRecommendBtn" class="fab text-fab" type="button" aria-label="选择推荐豆卡">选择</button></div>\n' +
       '    <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>\n' +
       '  </div>\n' +
+      '  <div id="v099fBeanModules" hidden aria-hidden="true"></div>\n' +
       '  <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept="application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>\n' +
-      '  <script type="module" src="./src/v099j-runtime-stability.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/app.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099h-splash-assets.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-migrations.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-voice-settings.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-web-ocr.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-paddle-ocr.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-ocr-quality.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-package-capture.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-direct-camera.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-sensory-bootstrap.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/theme-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-layout-gear.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-sensory-flow-guard.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-postbrew-sensory.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-qr-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-integrity-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v097-ui-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v097-fab-gesture.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-trajectory-space.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v098-selection-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v098-feature-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099-runtime.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-radar-scroll.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-supabase-auth.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-account-stabilizer.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099f-cloud-sync.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-freshness-group.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099m-group-controller.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-world-map.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099l-ui-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099n-settings-controller.js?v=099o"></script>\n' +
+      '  <script type="module" src="./src/v099j-runtime-stability.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/app.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099h-splash-assets.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-migrations.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-web-ocr.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099g-paddle-ocr.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-ocr-quality.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-package-capture.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-direct-camera.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-sensory-bootstrap.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/theme-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-sensory-flow-guard.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-postbrew-sensory.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-qr-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-integrity-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v097-ui-fixes.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v097-fab-gesture.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-trajectory-space.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v098-selection-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v098-feature-fixes.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099-runtime.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-radar-scroll.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-supabase-auth.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099f-cloud-sync.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-freshness-group.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099m-group-controller.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099g-world-map.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099p-settings-rebuild.js?v=099p"></script>\n' +
       '</body>\n' +
       '</html>'
     
@@ -1240,36 +1226,37 @@ not ok 67 - v097 runtime preserves the original time-series trajectory and reque
       <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
       <meta name="theme-color" content="#080909">
       <meta name="application-version" content="0.9.9">
-      <meta name="release-revision" content="099o">
+      <meta name="release-revision" content="099p">
       <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
       <title>富贵盒子 0.9.9</title>
-      <link rel="manifest" href="./manifest.webmanifest?v=099o">
-      <link rel="icon" href="./public/app-logo.webp?v=099o" type="image/webp">
-      <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099o">
-      <link rel="stylesheet" href="./styles.css?v=099o">
-      <link rel="stylesheet" href="./styles-v095.css?v=099o">
-      <link rel="stylesheet" href="./styles-action-grid.css?v=099o">
-      <link rel="stylesheet" href="./styles-theme-light.css?v=099o">
-      <link rel="stylesheet" href="./styles-v095-refine.css?v=099o">
-      <link rel="stylesheet" href="./styles-v096-recognition.css?v=099o">
-      <link rel="stylesheet" href="./styles-qr-scan.css?v=099o">
-      <link rel="stylesheet" href="./styles-v096-integrity.css?v=099o">
-      <link rel="stylesheet" href="./styles-v097-fixes.css?v=099o">
-      <link rel="stylesheet" href="./styles-v098-fixes.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099d.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099f.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099g.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099h.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099i.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099j.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099l.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099m.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099o.css?v=099o">
+      <link rel="manifest" href="./manifest.webmanifest?v=099p">
+      <link rel="icon" href="./public/app-logo.webp?v=099p" type="image/webp">
+      <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099p">
+      <link rel="stylesheet" href="./styles.css?v=099p">
+      <link rel="stylesheet" href="./styles-v095.css?v=099p">
+      <link rel="stylesheet" href="./styles-action-grid.css?v=099p">
+      <link rel="stylesheet" href="./styles-theme-light.css?v=099p">
+      <link rel="stylesheet" href="./styles-v095-refine.css?v=099p">
+      <link rel="stylesheet" href="./styles-v096-recognition.css?v=099p">
+      <link rel="stylesheet" href="./styles-qr-scan.css?v=099p">
+      <link rel="stylesheet" href="./styles-v096-integrity.css?v=099p">
+      <link rel="stylesheet" href="./styles-v097-fixes.css?v=099p">
+      <link rel="stylesheet" href="./styles-v098-fixes.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099d.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099f.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099g.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099h.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099i.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099j.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099l.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099m.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099o.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099p.css?v=099p">
     </head>
-    <body data-release="0.9.9" data-release-revision="099o">
+    <body data-release="0.9.9" data-release-revision="099p">
       <section id="splashScreen" class="splash-screen" data-splash-variant="red" role="button" tabindex="0" aria-label="点击进入富贵盒子">
-        <img id="splashImage" src="./public/splash-art-red.webp?v=099o" alt="富贵盒子红色启动画面">
+        <img id="splashImage" src="./public/splash-art-red.webp?v=099p" alt="富贵盒子红色启动画面">
         <span>点击进入</span>
       </section>
       <section id="loginScreen" class="login-screen" aria-label="登录与本地使用">
@@ -1285,42 +1272,39 @@ not ok 67 - v097 runtime preserves the original time-series trajectory and reque
         <div id="fabWrap" class="fab-wrap action-grid" aria-label="豆藏快捷操作"><button id="fabSearchBtn" class="fab text-fab" type="button" aria-label="搜索豆卡">搜索</button><button id="fabAddBtn" class="fab text-fab" type="button" aria-label="新增豆卡">添丁</button><button id="fabHistoryBtn" class="fab text-fab" type="button" aria-label="追溯往昔记录">溯旧</button><button id="fabRecommendBtn" class="fab text-fab" type="button" aria-label="选择推荐豆卡">选择</button></div>
         <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>
       </div>
+      <div id="v099fBeanModules" hidden aria-hidden="true"></div>
       <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept="application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
-      <script type="module" src="./src/v099j-runtime-stability.js?v=099o"></script>
-      <script type="module" src="./src/app.js?v=099o"></script>
-      <script type="module" src="./src/v099h-splash-assets.js?v=099o"></script>
-      <script type="module" src="./src/v099i-migrations.js?v=099o"></script>
-      <script type="module" src="./src/v099i-voice-settings.js?v=099o"></script>
-      <script type="module" src="./src/v096-web-ocr.js?v=099o"></script>
-      <script type="module" src="./src/v099g-paddle-ocr.js?v=099o"></script>
-      <script type="module" src="./src/v099d-ocr-quality.js?v=099o"></script>
-      <script type="module" src="./src/v096-package-capture.js?v=099o"></script>
-      <script type="module" src="./src/v096-direct-camera.js?v=099o"></script>
-      <script type="module" src="./src/v095-sensory-bootstrap.js?v=099o"></script>
-      <script type="module" src="./src/v095-ui.js?v=099o"></script>
-      <script type="module" src="./src/theme-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v095-layout-gear.js?v=099o"></script>
-      <script type="module" src="./src/v095-sensory-flow-guard.js?v=099o"></script>
-      <script type="module" src="./src/v095-postbrew-sensory.js?v=099o"></script>
-      <script type="module" src="./src/v095-qr-ui.js?v=099o"></script>
-      <script type="module" src="./src/v096-integrity-ui.js?v=099o"></script>
-      <script type="module" src="./src/v097-ui-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v097-fab-gesture.js?v=099o"></script>
-      <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v099i-trajectory-space.js?v=099o"></script>
-      <script type="module" src="./src/v098-selection-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v098-feature-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v099-runtime.js?v=099o"></script>
-      <script type="module" src="./src/v099d-radar-scroll.js?v=099o"></script>
-      <script type="module" src="./src/v099d-supabase-auth.js?v=099o"></script>
-      <script type="module" src="./src/v099g-account-stabilizer.js?v=099o"></script>
-      <script type="module" src="./src/v099f-cloud-sync.js?v=099o"></script>
-      <script type="module" src="./src/v099i-freshness-group.js?v=099o"></script>
-      <script type="module" src="./src/v099m-group-controller.js?v=099o"></script>
-      <script type="module" src="./src/v099f-ui-upgrade.js?v=099o"></script>
-      <script type="module" src="./src/v099g-world-map.js?v=099o"></script>
-      <script type="module" src="./src/v099l-ui-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v099n-settings-controller.js?v=099o"></script>
+      <script type="module" src="./src/v099j-runtime-stability.js?v=099p"></script>
+      <script type="module" src="./src/app.js?v=099p"></script>
+      <script type="module" src="./src/v099h-splash-assets.js?v=099p"></script>
+      <script type="module" src="./src/v099i-migrations.js?v=099p"></script>
+      <script type="module" src="./src/v096-web-ocr.js?v=099p"></script>
+      <script type="module" src="./src/v099g-paddle-ocr.js?v=099p"></script>
+      <script type="module" src="./src/v099d-ocr-quality.js?v=099p"></script>
+      <script type="module" src="./src/v096-package-capture.js?v=099p"></script>
+      <script type="module" src="./src/v096-direct-camera.js?v=099p"></script>
+      <script type="module" src="./src/v095-sensory-bootstrap.js?v=099p"></script>
+      <script type="module" src="./src/v095-ui.js?v=099p"></script>
+      <script type="module" src="./src/theme-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v095-sensory-flow-guard.js?v=099p"></script>
+      <script type="module" src="./src/v095-postbrew-sensory.js?v=099p"></script>
+      <script type="module" src="./src/v095-qr-ui.js?v=099p"></script>
+      <script type="module" src="./src/v096-integrity-ui.js?v=099p"></script>
+      <script type="module" src="./src/v097-ui-fixes.js?v=099p"></script>
+      <script type="module" src="./src/v097-fab-gesture.js?v=099p"></script>
+      <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v099i-trajectory-space.js?v=099p"></script>
+      <script type="module" src="./src/v098-selection-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v098-feature-fixes.js?v=099p"></script>
+      <script type="module" src="./src/v099-runtime.js?v=099p"></script>
+      <script type="module" src="./src/v099d-radar-scroll.js?v=099p"></script>
+      <script type="module" src="./src/v099d-supabase-auth.js?v=099p"></script>
+      <script type="module" src="./src/v099f-cloud-sync.js?v=099p"></script>
+      <script type="module" src="./src/v099i-freshness-group.js?v=099p"></script>
+      <script type="module" src="./src/v099m-group-controller.js?v=099p"></script>
+      <script type="module" src="./src/v099f-ui-upgrade.js?v=099p"></script>
+      <script type="module" src="./src/v099g-world-map.js?v=099p"></script>
+      <script type="module" src="./src/v099p-settings-rebuild.js?v=099p"></script>
     </body>
     </html>
   operator: 'match'
@@ -1332,40 +1316,40 @@ not ok 67 - v097 runtime preserves the original time-series trajectory and reque
 # Subtest: brew history abbreviation follows five-character rule
 ok 68 - brew history abbreviation follows five-character rule
   ---
-  duration_ms: 3.903168
+  duration_ms: 3.541349
   type: 'test'
   ...
 # Subtest: recognition field splitter covers labeled Chinese and English package fields
 ok 69 - recognition field splitter covers labeled Chinese and English package fields
   ---
-  duration_ms: 1.852724
+  duration_ms: 1.934796
   type: 'test'
   ...
 # Subtest: segment numbers mean total stages including bloom
 ok 70 - segment numbers mean total stages including bloom
   ---
-  duration_ms: 531.187121
+  duration_ms: 487.313711
   type: 'test'
   ...
 # Subtest: improved 4:6 profile uses exact scaled 33666 split and two bloom-temperature stages
 ok 71 - improved 4:6 profile uses exact scaled 33666 split and two bloom-temperature stages
   ---
-  duration_ms: 38.912674
+  duration_ms: 65.377916
   type: 'test'
   ...
 # Subtest: v098 runtime and styles contain grouping, selected-card, radar, archive and flavor-record fixes
 not ok 72 - v098 runtime and styles contain grouping, selected-card, radar, archive and flavor-record fixes
   ---
-  duration_ms: 2.599709
+  duration_ms: 3.089735
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v098-feature-fixes.test.mjs:51:1'
   failureType: 'testCodeFailure'
-  error: "ENOENT: no such file or directory, open '/home/runner/work/luckybean/luckybean/styles-v098-trajectory-v17.css'"
+  error: "ENOENT: no such file or directory, open '/home/runner/work/luckybean/luckybean/src/v098-trajectory-v17.js'"
   code: 'ENOENT'
   stack: |-
     async open (node:internal/fs/promises:639:25)
     async readFile (node:internal/fs/promises:1252:14)
-    async Promise.all (index 3)
+    async Promise.all (index 2)
     async TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/tests/v098-feature-fixes.test.mjs:52:86)
     async Test.run (node:internal/test_runner/test:1054:7)
     async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
@@ -1373,7 +1357,7 @@ not ok 72 - v098 runtime and styles contain grouping, selected-card, radar, arch
 # Subtest: highlighted trajectory is driven by modeled positive signal minus risk
 not ok 73 - highlighted trajectory is driven by modeled positive signal minus risk
   ---
-  duration_ms: 6.650336
+  duration_ms: 9.374773
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v099-trajectory-actual.test.mjs:7:1'
   failureType: 'testCodeFailure'
@@ -1387,36 +1371,37 @@ not ok 73 - highlighted trajectory is driven by modeled positive signal minus ri
       '  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n' +
       '  <meta name="theme-color" content="#080909">\n' +
       '  <meta name="application-version" content="0.9.9">\n' +
-      '  <meta name="release-revision" content="099o">\n' +
+      '  <meta name="release-revision" content="099p">\n' +
       `  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">\n` +
       '  <title>富贵盒子 0.9.9</title>\n' +
-      '  <link rel="manifest" href="./manifest.webmanifest?v=099o">\n' +
-      '  <link rel="icon" href="./public/app-logo.webp?v=099o" type="image/webp">\n' +
-      '  <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v095.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-action-grid.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-theme-light.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v095-refine.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v096-recognition.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-qr-scan.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v096-integrity.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v097-fixes.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v098-fixes.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099d.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099f.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099g.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099h.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099i.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099j.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099l.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099m.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099o.css?v=099o">\n' +
+      '  <link rel="manifest" href="./manifest.webmanifest?v=099p">\n' +
+      '  <link rel="icon" href="./public/app-logo.webp?v=099p" type="image/webp">\n' +
+      '  <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v095.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-action-grid.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-theme-light.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v095-refine.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v096-recognition.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-qr-scan.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v096-integrity.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v097-fixes.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v098-fixes.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099d.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099f.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099g.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099h.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099i.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099j.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099l.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099m.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099o.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099p.css?v=099p">\n' +
       '</head>\n' +
-      '<body data-release="0.9.9" data-release-revision="099o">\n' +
+      '<body data-release="0.9.9" data-release-revision="099p">\n' +
       '  <section id="splashScreen" class="splash-screen" data-splash-variant="red" role="button" tabindex="0" aria-label="点击进入富贵盒子">\n' +
-      '    <img id="splashImage" src="./public/splash-art-red.webp?v=099o" alt="富贵盒子红色启动画面">\n' +
+      '    <img id="splashImage" src="./public/splash-art-red.webp?v=099p" alt="富贵盒子红色启动画面">\n' +
       '    <span>点击进入</span>\n' +
       '  </section>\n' +
       '  <section id="loginScreen" class="login-screen" aria-label="登录与本地使用">\n' +
@@ -1432,42 +1417,39 @@ not ok 73 - highlighted trajectory is driven by modeled positive signal minus ri
       '    <div id="fabWrap" class="fab-wrap action-grid" aria-label="豆藏快捷操作"><button id="fabSearchBtn" class="fab text-fab" type="button" aria-label="搜索豆卡">搜索</button><button id="fabAddBtn" class="fab text-fab" type="button" aria-label="新增豆卡">添丁</button><button id="fabHistoryBtn" class="fab text-fab" type="button" aria-label="追溯往昔记录">溯旧</button><button id="fabRecommendBtn" class="fab text-fab" type="button" aria-label="选择推荐豆卡">选择</button></div>\n' +
       '    <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>\n' +
       '  </div>\n' +
+      '  <div id="v099fBeanModules" hidden aria-hidden="true"></div>\n' +
       '  <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept="application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>\n' +
-      '  <script type="module" src="./src/v099j-runtime-stability.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/app.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099h-splash-assets.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-migrations.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-voice-settings.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-web-ocr.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-paddle-ocr.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-ocr-quality.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-package-capture.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-direct-camera.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-sensory-bootstrap.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/theme-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-layout-gear.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-sensory-flow-guard.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-postbrew-sensory.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-qr-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-integrity-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v097-ui-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v097-fab-gesture.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-trajectory-space.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v098-selection-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v098-feature-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099-runtime.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-radar-scroll.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-supabase-auth.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-account-stabilizer.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099f-cloud-sync.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-freshness-group.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099m-group-controller.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-world-map.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099l-ui-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099n-settings-controller.js?v=099o"></script>\n' +
+      '  <script type="module" src="./src/v099j-runtime-stability.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/app.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099h-splash-assets.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-migrations.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-web-ocr.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099g-paddle-ocr.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-ocr-quality.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-package-capture.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-direct-camera.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-sensory-bootstrap.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/theme-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-sensory-flow-guard.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-postbrew-sensory.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-qr-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-integrity-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v097-ui-fixes.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v097-fab-gesture.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-trajectory-space.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v098-selection-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v098-feature-fixes.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099-runtime.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-radar-scroll.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-supabase-auth.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099f-cloud-sync.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-freshness-group.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099m-group-controller.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099g-world-map.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099p-settings-rebuild.js?v=099p"></script>\n' +
       '</body>\n' +
       '</html>'
     
@@ -1482,36 +1464,37 @@ not ok 73 - highlighted trajectory is driven by modeled positive signal minus ri
       <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
       <meta name="theme-color" content="#080909">
       <meta name="application-version" content="0.9.9">
-      <meta name="release-revision" content="099o">
+      <meta name="release-revision" content="099p">
       <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
       <title>富贵盒子 0.9.9</title>
-      <link rel="manifest" href="./manifest.webmanifest?v=099o">
-      <link rel="icon" href="./public/app-logo.webp?v=099o" type="image/webp">
-      <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099o">
-      <link rel="stylesheet" href="./styles.css?v=099o">
-      <link rel="stylesheet" href="./styles-v095.css?v=099o">
-      <link rel="stylesheet" href="./styles-action-grid.css?v=099o">
-      <link rel="stylesheet" href="./styles-theme-light.css?v=099o">
-      <link rel="stylesheet" href="./styles-v095-refine.css?v=099o">
-      <link rel="stylesheet" href="./styles-v096-recognition.css?v=099o">
-      <link rel="stylesheet" href="./styles-qr-scan.css?v=099o">
-      <link rel="stylesheet" href="./styles-v096-integrity.css?v=099o">
-      <link rel="stylesheet" href="./styles-v097-fixes.css?v=099o">
-      <link rel="stylesheet" href="./styles-v098-fixes.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099d.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099f.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099g.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099h.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099i.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099j.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099l.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099m.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099o.css?v=099o">
+      <link rel="manifest" href="./manifest.webmanifest?v=099p">
+      <link rel="icon" href="./public/app-logo.webp?v=099p" type="image/webp">
+      <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099p">
+      <link rel="stylesheet" href="./styles.css?v=099p">
+      <link rel="stylesheet" href="./styles-v095.css?v=099p">
+      <link rel="stylesheet" href="./styles-action-grid.css?v=099p">
+      <link rel="stylesheet" href="./styles-theme-light.css?v=099p">
+      <link rel="stylesheet" href="./styles-v095-refine.css?v=099p">
+      <link rel="stylesheet" href="./styles-v096-recognition.css?v=099p">
+      <link rel="stylesheet" href="./styles-qr-scan.css?v=099p">
+      <link rel="stylesheet" href="./styles-v096-integrity.css?v=099p">
+      <link rel="stylesheet" href="./styles-v097-fixes.css?v=099p">
+      <link rel="stylesheet" href="./styles-v098-fixes.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099d.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099f.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099g.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099h.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099i.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099j.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099l.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099m.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099o.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099p.css?v=099p">
     </head>
-    <body data-release="0.9.9" data-release-revision="099o">
+    <body data-release="0.9.9" data-release-revision="099p">
       <section id="splashScreen" class="splash-screen" data-splash-variant="red" role="button" tabindex="0" aria-label="点击进入富贵盒子">
-        <img id="splashImage" src="./public/splash-art-red.webp?v=099o" alt="富贵盒子红色启动画面">
+        <img id="splashImage" src="./public/splash-art-red.webp?v=099p" alt="富贵盒子红色启动画面">
         <span>点击进入</span>
       </section>
       <section id="loginScreen" class="login-screen" aria-label="登录与本地使用">
@@ -1527,42 +1510,39 @@ not ok 73 - highlighted trajectory is driven by modeled positive signal minus ri
         <div id="fabWrap" class="fab-wrap action-grid" aria-label="豆藏快捷操作"><button id="fabSearchBtn" class="fab text-fab" type="button" aria-label="搜索豆卡">搜索</button><button id="fabAddBtn" class="fab text-fab" type="button" aria-label="新增豆卡">添丁</button><button id="fabHistoryBtn" class="fab text-fab" type="button" aria-label="追溯往昔记录">溯旧</button><button id="fabRecommendBtn" class="fab text-fab" type="button" aria-label="选择推荐豆卡">选择</button></div>
         <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>
       </div>
+      <div id="v099fBeanModules" hidden aria-hidden="true"></div>
       <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept="application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
-      <script type="module" src="./src/v099j-runtime-stability.js?v=099o"></script>
-      <script type="module" src="./src/app.js?v=099o"></script>
-      <script type="module" src="./src/v099h-splash-assets.js?v=099o"></script>
-      <script type="module" src="./src/v099i-migrations.js?v=099o"></script>
-      <script type="module" src="./src/v099i-voice-settings.js?v=099o"></script>
-      <script type="module" src="./src/v096-web-ocr.js?v=099o"></script>
-      <script type="module" src="./src/v099g-paddle-ocr.js?v=099o"></script>
-      <script type="module" src="./src/v099d-ocr-quality.js?v=099o"></script>
-      <script type="module" src="./src/v096-package-capture.js?v=099o"></script>
-      <script type="module" src="./src/v096-direct-camera.js?v=099o"></script>
-      <script type="module" src="./src/v095-sensory-bootstrap.js?v=099o"></script>
-      <script type="module" src="./src/v095-ui.js?v=099o"></script>
-      <script type="module" src="./src/theme-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v095-layout-gear.js?v=099o"></script>
-      <script type="module" src="./src/v095-sensory-flow-guard.js?v=099o"></script>
-      <script type="module" src="./src/v095-postbrew-sensory.js?v=099o"></script>
-      <script type="module" src="./src/v095-qr-ui.js?v=099o"></script>
-      <script type="module" src="./src/v096-integrity-ui.js?v=099o"></script>
-      <script type="module" src="./src/v097-ui-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v097-fab-gesture.js?v=099o"></script>
-      <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v099i-trajectory-space.js?v=099o"></script>
-      <script type="module" src="./src/v098-selection-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v098-feature-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v099-runtime.js?v=099o"></script>
-      <script type="module" src="./src/v099d-radar-scroll.js?v=099o"></script>
-      <script type="module" src="./src/v099d-supabase-auth.js?v=099o"></script>
-      <script type="module" src="./src/v099g-account-stabilizer.js?v=099o"></script>
-      <script type="module" src="./src/v099f-cloud-sync.js?v=099o"></script>
-      <script type="module" src="./src/v099i-freshness-group.js?v=099o"></script>
-      <script type="module" src="./src/v099m-group-controller.js?v=099o"></script>
-      <script type="module" src="./src/v099f-ui-upgrade.js?v=099o"></script>
-      <script type="module" src="./src/v099g-world-map.js?v=099o"></script>
-      <script type="module" src="./src/v099l-ui-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v099n-settings-controller.js?v=099o"></script>
+      <script type="module" src="./src/v099j-runtime-stability.js?v=099p"></script>
+      <script type="module" src="./src/app.js?v=099p"></script>
+      <script type="module" src="./src/v099h-splash-assets.js?v=099p"></script>
+      <script type="module" src="./src/v099i-migrations.js?v=099p"></script>
+      <script type="module" src="./src/v096-web-ocr.js?v=099p"></script>
+      <script type="module" src="./src/v099g-paddle-ocr.js?v=099p"></script>
+      <script type="module" src="./src/v099d-ocr-quality.js?v=099p"></script>
+      <script type="module" src="./src/v096-package-capture.js?v=099p"></script>
+      <script type="module" src="./src/v096-direct-camera.js?v=099p"></script>
+      <script type="module" src="./src/v095-sensory-bootstrap.js?v=099p"></script>
+      <script type="module" src="./src/v095-ui.js?v=099p"></script>
+      <script type="module" src="./src/theme-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v095-sensory-flow-guard.js?v=099p"></script>
+      <script type="module" src="./src/v095-postbrew-sensory.js?v=099p"></script>
+      <script type="module" src="./src/v095-qr-ui.js?v=099p"></script>
+      <script type="module" src="./src/v096-integrity-ui.js?v=099p"></script>
+      <script type="module" src="./src/v097-ui-fixes.js?v=099p"></script>
+      <script type="module" src="./src/v097-fab-gesture.js?v=099p"></script>
+      <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v099i-trajectory-space.js?v=099p"></script>
+      <script type="module" src="./src/v098-selection-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v098-feature-fixes.js?v=099p"></script>
+      <script type="module" src="./src/v099-runtime.js?v=099p"></script>
+      <script type="module" src="./src/v099d-radar-scroll.js?v=099p"></script>
+      <script type="module" src="./src/v099d-supabase-auth.js?v=099p"></script>
+      <script type="module" src="./src/v099f-cloud-sync.js?v=099p"></script>
+      <script type="module" src="./src/v099i-freshness-group.js?v=099p"></script>
+      <script type="module" src="./src/v099m-group-controller.js?v=099p"></script>
+      <script type="module" src="./src/v099f-ui-upgrade.js?v=099p"></script>
+      <script type="module" src="./src/v099g-world-map.js?v=099p"></script>
+      <script type="module" src="./src/v099p-settings-rebuild.js?v=099p"></script>
     </body>
     </html>
   operator: 'match'
@@ -1574,19 +1554,19 @@ not ok 73 - highlighted trajectory is driven by modeled positive signal minus ri
 # Subtest: one-pour is one continuous stage and 33666 remains exact five stages
 ok 74 - one-pour is one continuous stage and 33666 remains exact five stages
   ---
-  duration_ms: 233.049711
+  duration_ms: 188.188718
   type: 'test'
   ...
 # Subtest: researched methods are persisted as selectable profiles
 ok 75 - researched methods are persisted as selectable profiles
   ---
-  duration_ms: 0.4279
+  duration_ms: 0.458778
   type: 'test'
   ...
 # Subtest: group guard is non-recursive and recommendation rendering yields to native state
 not ok 76 - group guard is non-recursive and recommendation rendering yields to native state
   ---
-  duration_ms: 3.98414
+  duration_ms: 3.27983
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v099-upgrade.test.mjs:46:1'
   failureType: 'testCodeFailure'
@@ -1603,13 +1583,13 @@ not ok 76 - group guard is non-recursive and recommendation rendering yields to 
 # Subtest: eight-axis radar uses dynamic pointer geometry and defect scoring
 ok 77 - eight-axis radar uses dynamic pointer geometry and defect scoring
   ---
-  duration_ms: 3.643613
+  duration_ms: 3.978987
   type: 'test'
   ...
 # Subtest: v0.9.9 presentation and inverse-trajectory emphasis are published
 not ok 78 - v0.9.9 presentation and inverse-trajectory emphasis are published
   ---
-  duration_ms: 1.365483
+  duration_ms: 2.009185
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v099-upgrade.test.mjs:68:1'
   failureType: 'testCodeFailure'
@@ -1626,7 +1606,7 @@ not ok 78 - v0.9.9 presentation and inverse-trajectory emphasis are published
 # Subtest: radar scroll guard preserves dialog and page positions
 not ok 79 - radar scroll guard preserves dialog and page positions
   ---
-  duration_ms: 10.899851
+  duration_ms: 10.593981
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v099d-release.test.mjs:7:1'
   failureType: 'testCodeFailure'
@@ -1788,13 +1768,13 @@ not ok 79 - radar scroll guard preserves dialog and page positions
 # Subtest: Chinese OCR wrapper uses immutable base function and conditional multipass
 ok 80 - Chinese OCR wrapper uses immutable base function and conditional multipass
   ---
-  duration_ms: 3.311442
+  duration_ms: 3.083563
   type: 'test'
   ...
 # Subtest: Supabase auth reuses public Grind PSD project without privileged secret
 not ok 81 - Supabase auth reuses public Grind PSD project without privileged secret
   ---
-  duration_ms: 5.941951
+  duration_ms: 3.333551
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v099d-release.test.mjs:25:1'
   failureType: 'testCodeFailure'
@@ -2168,7 +2148,7 @@ not ok 81 - Supabase auth reuses public Grind PSD project without privileged sec
 # Subtest: 099d publication includes all runtime modules and cache boundary
 not ok 82 - 099d publication includes all runtime modules and cache boundary
   ---
-  duration_ms: 4.980746
+  duration_ms: 8.851123
   type: 'test'
   location: '/home/runner/work/luckybean/luckybean/tests/v099d-release.test.mjs:36:1'
   failureType: 'testCodeFailure'
@@ -2182,36 +2162,37 @@ not ok 82 - 099d publication includes all runtime modules and cache boundary
       '  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n' +
       '  <meta name="theme-color" content="#080909">\n' +
       '  <meta name="application-version" content="0.9.9">\n' +
-      '  <meta name="release-revision" content="099o">\n' +
+      '  <meta name="release-revision" content="099p">\n' +
       `  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">\n` +
       '  <title>富贵盒子 0.9.9</title>\n' +
-      '  <link rel="manifest" href="./manifest.webmanifest?v=099o">\n' +
-      '  <link rel="icon" href="./public/app-logo.webp?v=099o" type="image/webp">\n' +
-      '  <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v095.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-action-grid.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-theme-light.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v095-refine.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v096-recognition.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-qr-scan.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v096-integrity.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v097-fixes.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v098-fixes.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099d.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099f.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099g.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099h.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099i.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099j.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099l.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099m.css?v=099o">\n' +
-      '  <link rel="stylesheet" href="./styles-v099o.css?v=099o">\n' +
+      '  <link rel="manifest" href="./manifest.webmanifest?v=099p">\n' +
+      '  <link rel="icon" href="./public/app-logo.webp?v=099p" type="image/webp">\n' +
+      '  <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v095.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-action-grid.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-theme-light.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v095-refine.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v096-recognition.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-qr-scan.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v096-integrity.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v097-fixes.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v098-fixes.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099d.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099f.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099g.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099h.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099i.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099j.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099l.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099m.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099o.css?v=099p">\n' +
+      '  <link rel="stylesheet" href="./styles-v099p.css?v=099p">\n' +
       '</head>\n' +
-      '<body data-release="0.9.9" data-release-revision="099o">\n' +
+      '<body data-release="0.9.9" data-release-revision="099p">\n' +
       '  <section id="splashScreen" class="splash-screen" data-splash-variant="red" role="button" tabindex="0" aria-label="点击进入富贵盒子">\n' +
-      '    <img id="splashImage" src="./public/splash-art-red.webp?v=099o" alt="富贵盒子红色启动画面">\n' +
+      '    <img id="splashImage" src="./public/splash-art-red.webp?v=099p" alt="富贵盒子红色启动画面">\n' +
       '    <span>点击进入</span>\n' +
       '  </section>\n' +
       '  <section id="loginScreen" class="login-screen" aria-label="登录与本地使用">\n' +
@@ -2227,42 +2208,39 @@ not ok 82 - 099d publication includes all runtime modules and cache boundary
       '    <div id="fabWrap" class="fab-wrap action-grid" aria-label="豆藏快捷操作"><button id="fabSearchBtn" class="fab text-fab" type="button" aria-label="搜索豆卡">搜索</button><button id="fabAddBtn" class="fab text-fab" type="button" aria-label="新增豆卡">添丁</button><button id="fabHistoryBtn" class="fab text-fab" type="button" aria-label="追溯往昔记录">溯旧</button><button id="fabRecommendBtn" class="fab text-fab" type="button" aria-label="选择推荐豆卡">选择</button></div>\n' +
       '    <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>\n' +
       '  </div>\n' +
+      '  <div id="v099fBeanModules" hidden aria-hidden="true"></div>\n' +
       '  <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept="application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>\n' +
-      '  <script type="module" src="./src/v099j-runtime-stability.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/app.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099h-splash-assets.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-migrations.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-voice-settings.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-web-ocr.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-paddle-ocr.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-ocr-quality.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-package-capture.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-direct-camera.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-sensory-bootstrap.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/theme-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-layout-gear.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-sensory-flow-guard.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-postbrew-sensory.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v095-qr-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v096-integrity-ui.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v097-ui-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v097-fab-gesture.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-trajectory-space.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v098-selection-bridge.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v098-feature-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099-runtime.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-radar-scroll.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099d-supabase-auth.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-account-stabilizer.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099f-cloud-sync.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099i-freshness-group.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099m-group-controller.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099g-world-map.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099l-ui-fixes.js?v=099o"></script>\n' +
-      '  <script type="module" src="./src/v099n-settings-controller.js?v=099o"></script>\n' +
+      '  <script type="module" src="./src/v099j-runtime-stability.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/app.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099h-splash-assets.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-migrations.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-web-ocr.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099g-paddle-ocr.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-ocr-quality.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-package-capture.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-direct-camera.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-sensory-bootstrap.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/theme-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-sensory-flow-guard.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-postbrew-sensory.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v095-qr-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v096-integrity-ui.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v097-ui-fixes.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v097-fab-gesture.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-trajectory-space.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v098-selection-bridge.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v098-feature-fixes.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099-runtime.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-radar-scroll.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099d-supabase-auth.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099f-cloud-sync.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099i-freshness-group.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099m-group-controller.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099f-ui-upgrade.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099g-world-map.js?v=099p"></script>\n' +
+      '  <script type="module" src="./src/v099p-settings-rebuild.js?v=099p"></script>\n' +
       '</body>\n' +
       '</html>'
     
@@ -2277,36 +2255,37 @@ not ok 82 - 099d publication includes all runtime modules and cache boundary
       <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
       <meta name="theme-color" content="#080909">
       <meta name="application-version" content="0.9.9">
-      <meta name="release-revision" content="099o">
+      <meta name="release-revision" content="099p">
       <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
       <title>富贵盒子 0.9.9</title>
-      <link rel="manifest" href="./manifest.webmanifest?v=099o">
-      <link rel="icon" href="./public/app-logo.webp?v=099o" type="image/webp">
-      <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099o">
-      <link rel="stylesheet" href="./styles.css?v=099o">
-      <link rel="stylesheet" href="./styles-v095.css?v=099o">
-      <link rel="stylesheet" href="./styles-action-grid.css?v=099o">
-      <link rel="stylesheet" href="./styles-theme-light.css?v=099o">
-      <link rel="stylesheet" href="./styles-v095-refine.css?v=099o">
-      <link rel="stylesheet" href="./styles-v096-recognition.css?v=099o">
-      <link rel="stylesheet" href="./styles-qr-scan.css?v=099o">
-      <link rel="stylesheet" href="./styles-v096-integrity.css?v=099o">
-      <link rel="stylesheet" href="./styles-v097-fixes.css?v=099o">
-      <link rel="stylesheet" href="./styles-v098-fixes.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099d.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099f.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099g.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099h.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099i.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099j.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099l.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099m.css?v=099o">
-      <link rel="stylesheet" href="./styles-v099o.css?v=099o">
+      <link rel="manifest" href="./manifest.webmanifest?v=099p">
+      <link rel="icon" href="./public/app-logo.webp?v=099p" type="image/webp">
+      <link rel="apple-touch-icon" href="./public/app-logo.webp?v=099p">
+      <link rel="stylesheet" href="./styles.css?v=099p">
+      <link rel="stylesheet" href="./styles-v095.css?v=099p">
+      <link rel="stylesheet" href="./styles-action-grid.css?v=099p">
+      <link rel="stylesheet" href="./styles-theme-light.css?v=099p">
+      <link rel="stylesheet" href="./styles-v095-refine.css?v=099p">
+      <link rel="stylesheet" href="./styles-v096-recognition.css?v=099p">
+      <link rel="stylesheet" href="./styles-qr-scan.css?v=099p">
+      <link rel="stylesheet" href="./styles-v096-integrity.css?v=099p">
+      <link rel="stylesheet" href="./styles-v097-fixes.css?v=099p">
+      <link rel="stylesheet" href="./styles-v098-fixes.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099d.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099f.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099g.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099h.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099i.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099j.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099l.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099m.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099o.css?v=099p">
+      <link rel="stylesheet" href="./styles-v099p.css?v=099p">
     </head>
-    <body data-release="0.9.9" data-release-revision="099o">
+    <body data-release="0.9.9" data-release-revision="099p">
       <section id="splashScreen" class="splash-screen" data-splash-variant="red" role="button" tabindex="0" aria-label="点击进入富贵盒子">
-        <img id="splashImage" src="./public/splash-art-red.webp?v=099o" alt="富贵盒子红色启动画面">
+        <img id="splashImage" src="./public/splash-art-red.webp?v=099p" alt="富贵盒子红色启动画面">
         <span>点击进入</span>
       </section>
       <section id="loginScreen" class="login-screen" aria-label="登录与本地使用">
@@ -2322,42 +2301,39 @@ not ok 82 - 099d publication includes all runtime modules and cache boundary
         <div id="fabWrap" class="fab-wrap action-grid" aria-label="豆藏快捷操作"><button id="fabSearchBtn" class="fab text-fab" type="button" aria-label="搜索豆卡">搜索</button><button id="fabAddBtn" class="fab text-fab" type="button" aria-label="新增豆卡">添丁</button><button id="fabHistoryBtn" class="fab text-fab" type="button" aria-label="追溯往昔记录">溯旧</button><button id="fabRecommendBtn" class="fab text-fab" type="button" aria-label="选择推荐豆卡">选择</button></div>
         <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>
       </div>
+      <div id="v099fBeanModules" hidden aria-hidden="true"></div>
       <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept="application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
-      <script type="module" src="./src/v099j-runtime-stability.js?v=099o"></script>
-      <script type="module" src="./src/app.js?v=099o"></script>
-      <script type="module" src="./src/v099h-splash-assets.js?v=099o"></script>
-      <script type="module" src="./src/v099i-migrations.js?v=099o"></script>
-      <script type="module" src="./src/v099i-voice-settings.js?v=099o"></script>
-      <script type="module" src="./src/v096-web-ocr.js?v=099o"></script>
-      <script type="module" src="./src/v099g-paddle-ocr.js?v=099o"></script>
-      <script type="module" src="./src/v099d-ocr-quality.js?v=099o"></script>
-      <script type="module" src="./src/v096-package-capture.js?v=099o"></script>
-      <script type="module" src="./src/v096-direct-camera.js?v=099o"></script>
-      <script type="module" src="./src/v095-sensory-bootstrap.js?v=099o"></script>
-      <script type="module" src="./src/v095-ui.js?v=099o"></script>
-      <script type="module" src="./src/theme-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v095-layout-gear.js?v=099o"></script>
-      <script type="module" src="./src/v095-sensory-flow-guard.js?v=099o"></script>
-      <script type="module" src="./src/v095-postbrew-sensory.js?v=099o"></script>
-      <script type="module" src="./src/v095-qr-ui.js?v=099o"></script>
-      <script type="module" src="./src/v096-integrity-ui.js?v=099o"></script>
-      <script type="module" src="./src/v097-ui-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v097-fab-gesture.js?v=099o"></script>
-      <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v099i-trajectory-space.js?v=099o"></script>
-      <script type="module" src="./src/v098-selection-bridge.js?v=099o"></script>
-      <script type="module" src="./src/v098-feature-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v099-runtime.js?v=099o"></script>
-      <script type="module" src="./src/v099d-radar-scroll.js?v=099o"></script>
-      <script type="module" src="./src/v099d-supabase-auth.js?v=099o"></script>
-      <script type="module" src="./src/v099g-account-stabilizer.js?v=099o"></script>
-      <script type="module" src="./src/v099f-cloud-sync.js?v=099o"></script>
-      <script type="module" src="./src/v099i-freshness-group.js?v=099o"></script>
-      <script type="module" src="./src/v099m-group-controller.js?v=099o"></script>
-      <script type="module" src="./src/v099f-ui-upgrade.js?v=099o"></script>
-      <script type="module" src="./src/v099g-world-map.js?v=099o"></script>
-      <script type="module" src="./src/v099l-ui-fixes.js?v=099o"></script>
-      <script type="module" src="./src/v099n-settings-controller.js?v=099o"></script>
+      <script type="module" src="./src/v099j-runtime-stability.js?v=099p"></script>
+      <script type="module" src="./src/app.js?v=099p"></script>
+      <script type="module" src="./src/v099h-splash-assets.js?v=099p"></script>
+      <script type="module" src="./src/v099i-migrations.js?v=099p"></script>
+      <script type="module" src="./src/v096-web-ocr.js?v=099p"></script>
+      <script type="module" src="./src/v099g-paddle-ocr.js?v=099p"></script>
+      <script type="module" src="./src/v099d-ocr-quality.js?v=099p"></script>
+      <script type="module" src="./src/v096-package-capture.js?v=099p"></script>
+      <script type="module" src="./src/v096-direct-camera.js?v=099p"></script>
+      <script type="module" src="./src/v095-sensory-bootstrap.js?v=099p"></script>
+      <script type="module" src="./src/v095-ui.js?v=099p"></script>
+      <script type="module" src="./src/theme-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v095-sensory-flow-guard.js?v=099p"></script>
+      <script type="module" src="./src/v095-postbrew-sensory.js?v=099p"></script>
+      <script type="module" src="./src/v095-qr-ui.js?v=099p"></script>
+      <script type="module" src="./src/v096-integrity-ui.js?v=099p"></script>
+      <script type="module" src="./src/v097-ui-fixes.js?v=099p"></script>
+      <script type="module" src="./src/v097-fab-gesture.js?v=099p"></script>
+      <script type="module" src="./src/v099-trajectory-signal-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v099i-trajectory-space.js?v=099p"></script>
+      <script type="module" src="./src/v098-selection-bridge.js?v=099p"></script>
+      <script type="module" src="./src/v098-feature-fixes.js?v=099p"></script>
+      <script type="module" src="./src/v099-runtime.js?v=099p"></script>
+      <script type="module" src="./src/v099d-radar-scroll.js?v=099p"></script>
+      <script type="module" src="./src/v099d-supabase-auth.js?v=099p"></script>
+      <script type="module" src="./src/v099f-cloud-sync.js?v=099p"></script>
+      <script type="module" src="./src/v099i-freshness-group.js?v=099p"></script>
+      <script type="module" src="./src/v099m-group-controller.js?v=099p"></script>
+      <script type="module" src="./src/v099f-ui-upgrade.js?v=099p"></script>
+      <script type="module" src="./src/v099g-world-map.js?v=099p"></script>
+      <script type="module" src="./src/v099p-settings-rebuild.js?v=099p"></script>
     </body>
     </html>
   operator: 'match'
@@ -2374,4 +2350,4 @@ not ok 82 - 099d publication includes all runtime modules and cache boundary
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 3046.244266
+# duration_ms 3051.815034
