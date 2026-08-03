@@ -3,12 +3,13 @@ import { loadCodebook, makeIndex, displayName } from './codebook.js';
 import { freshnessProfile, clamp } from './utils.js';
 import { normalizeRecommendationScore } from './preference-model.js';
 
-if (!globalThis.__LuckyBeanV099jFreshnessGroupLoaded) {
-  globalThis.__LuckyBeanV099jFreshnessGroupLoaded = true;
+if (!globalThis.__LuckyBeanV099lFreshnessGroupLoaded) {
+  globalThis.__LuckyBeanV099lFreshnessGroupLoaded = true;
 
   const MODE_KEY = 'v099i.group.mode';
   const LEGACY_MODE_KEY = 'v099f.group.mode';
   const MODE_RATIO = 'freshness-ratio';
+  const SELECTED_KEY = 'luckybean.selected.bean.v098';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
@@ -18,6 +19,19 @@ if (!globalThis.__LuckyBeanV099jFreshnessGroupLoaded) {
   let rendering = false;
   let queued = false;
   let currentMode = '';
+  let recommendationBusy = false;
+  let selectedId = localStorage.getItem(SELECTED_KEY) || '';
+
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const nextFrames = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  function toast(message, kind = '') {
+    const node = $('#toast');
+    if (!node) return;
+    node.textContent = message;
+    node.className = `toast show ${kind}`;
+    setTimeout(() => { node.className = 'toast'; }, 2800);
+  }
 
   async function codebookContext() {
     if (!codebookPromise) codebookPromise = loadCodebook().then(result => ({ index: makeIndex(result.data) }));
@@ -51,17 +65,23 @@ if (!globalThis.__LuckyBeanV099jFreshnessGroupLoaded) {
     return '味将尽';
   }
 
+  function averageScore(beanId, sensoryRecords) {
+    const records = sensoryRecords.filter(record => record.beanId === beanId);
+    if (!records.length) return 0;
+    return records.reduce((sum, record) => sum + normalizeRecommendationScore(record), 0) / records.length;
+  }
+
   function compactBeanCard(bean, index, sensoryRecords) {
     const process = labelFor(index, 'processes', bean.processCode, '处理法未记');
     const country = labelFor(index, 'countries', bean.countryCode, '未定国家');
     const variety = labelFor(index, 'varieties', bean.varietyCode, '未定豆种');
     const profile = freshnessProfile(bean);
-    const records = sensoryRecords.filter(record => record.beanId === bean.id);
-    const score = records.length ? records.reduce((sum, record) => sum + normalizeRecommendationScore(record), 0) / records.length : 0;
+    const score = averageScore(bean.id, sensoryRecords);
     const ratio = ratioFor(bean);
     const progress = Math.round(ratio * 1000) / 10;
-    return `<article class="bean-card compact" data-bean-id="${esc(bean.id)}" tabindex="0">
-      <div class="compact-bean-copy"><h3>${esc(country)} · ${esc(variety)}</h3><small>${esc(process)}</small><div class="compact-bean-row"><strong>${Number(bean.remainingWeight || 0).toFixed(1)}g${bean.refrigerated ? '<small class="frozen-mark">❄️</small>' : ''}</strong><span class="compact-score">${score ? `${score.toFixed(1)}分` : '未评分'}</span></div></div>
+    const selected = bean.id === selectedId;
+    return `<article class="bean-card compact${selected ? ' recommended v099l-selected' : ''}" data-bean-id="${esc(bean.id)}" tabindex="0">
+      <div class="compact-bean-copy"><h3>${esc(country)} · ${esc(variety)}</h3><small>${esc(process)}</small><div class="compact-bean-row"><strong>${Number(bean.remainingWeight || 0).toFixed(1)}g${bean.refrigerated ? '<small class="frozen-mark">❄️</small>' : ''}</strong><span class="compact-score">${score ? `${score.toFixed(1)}分` : '未评分'}${selected ? '<em>选</em>' : ''}</span></div></div>
       <button class="cup-action compact-pick" type="button" data-brew-bean="${esc(bean.id)}" aria-label="用这只豆小酌">酌</button>
       <div class="bean-freshness-progress" aria-label="时间轴实际填充${progress}%"><span class="bean-freshness-solid" style="width:${progress}%;background:${profile.color}"></span><span class="bean-freshness-dashed" style="left:${progress}%"></span></div>
     </article>`;
@@ -75,39 +95,49 @@ if (!globalThis.__LuckyBeanV099jFreshnessGroupLoaded) {
     return currentMode;
   }
 
-  async function render() {
+  async function loadData() {
+    const [{ index }, beans, sensoryRecords] = await Promise.all([codebookContext(), all('beans'), all('sensoryRecords')]);
+    const active = beans
+      .filter(bean => !bean.archived && Number(bean.remainingWeight) > 0)
+      .sort((a, b) => String(b.roastDate || '').localeCompare(String(a.roastDate || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+    return { index, active, sensoryRecords };
+  }
+
+  async function render(force = false) {
     if (rendering || await mode() !== MODE_RATIO) return;
     const page = $('#pageBeans.active');
     const container = $('#beanGroups');
     if (!page || !container) return;
-    if (container.dataset.v099jFreshnessStage === activeStage && container.querySelector('[data-v099j-freshness-root]')) return;
+    if (!force && container.dataset.v099lFreshnessStage === activeStage && container.querySelector('[data-v099l-freshness-root]')) return;
     rendering = true;
     try {
-      const [{ index }, beans, sensoryRecords] = await Promise.all([codebookContext(), all('beans'), all('sensoryRecords')]);
-      const active = beans
-        .filter(bean => !bean.archived && Number(bean.remainingWeight) > 0)
-        .sort((a, b) => String(b.roastDate || '').localeCompare(String(a.roastDate || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+      const { index, active, sensoryRecords } = await loadData();
       const order = ['养豆中', '味正盛', '味将尽'];
       const groups = new Map(order.map(label => [label, []]));
       active.forEach(bean => groups.get(stageFor(bean)).push(bean));
-      container.dataset.v099jFreshnessStage = activeStage;
+      container.dataset.v099lFreshnessStage = activeStage;
       if (!active.length) {
-        container.innerHTML = '<div data-v099j-freshness-root class="empty-state"><strong>没有可分组的豆卡</strong></div>';
+        container.innerHTML = '<div data-v099l-freshness-root class="empty-state"><strong>没有可分组的豆卡</strong></div>';
         return;
       }
       if (!activeStage) {
-        container.innerHTML = `<section data-v099j-freshness-root><div class="v099f-freshness-note v099i-freshness-note">直接按豆卡时间轴已填充长度÷整行宽度分组：不足1/3为“养豆中”，达到1/3且不足2/3为“味正盛”，达到2/3为“味将尽”。组内按烘焙日期由新到旧。</div><div class="bean-grid compact-grid group-grid">${order.map(label => {
+        container.innerHTML = `<section data-v099l-freshness-root><div class="v099f-freshness-note v099i-freshness-note">按豆卡时间轴有色长度÷整行宽度分组：不足1/3为“养豆中”，达到1/3且不足2/3为“味正盛”，达到2/3为“味将尽”。组内按烘焙日期由新到旧。</div><div class="bean-grid compact-grid group-grid bean-grid-animated manual-motion">${order.map(label => {
           const items = groups.get(label);
           const total = items.reduce((sum, bean) => sum + Number(bean.remainingWeight || 0), 0);
-          return `<button class="group-card v099f-stage-card" type="button" data-v099j-open-stage="${label}"><span>${label}</span><small>${items.length}只 · ${total.toFixed(1)}g</small></button>`;
+          return `<button class="group-card v099f-stage-card" type="button" data-v099l-open-stage="${label}"><span>${label}</span><small>${items.length}只 · ${total.toFixed(1)}g</small></button>`;
         }).join('')}</div></section>`;
       } else {
         const items = groups.get(activeStage) || [];
-        container.innerHTML = `<section data-v099j-freshness-root class="active-group-panel"><div class="active-group-title"><span>${activeStage}</span><small>${items.length}只 · 烘焙日期由新到旧</small></div><div class="bean-grid compact-grid">${items.map(bean => compactBeanCard(bean, index, sensoryRecords)).join('') || '<p class="muted">该阶段没有豆卡</p>'}</div><div class="group-collapse-zone"><button class="group-collapse" type="button" data-v099j-stage-back>收</button></div></section>`;
+        container.innerHTML = `<section data-v099l-freshness-root class="active-group-panel auto-motion"><div class="active-group-title"><span>${activeStage}</span><small>${items.length}只 · 烘焙日期由新到旧</small></div><div class="bean-grid compact-grid bean-grid-animated auto-motion">${items.map(bean => compactBeanCard(bean, index, sensoryRecords)).join('') || '<p class="muted">该阶段没有豆卡</p>'}</div><div class="group-collapse-zone"><button class="group-collapse" type="button" data-v099l-stage-back>收</button></div></section>`;
       }
     } finally {
       rendering = false;
     }
+  }
+
+  function invalidate() {
+    const container = $('#beanGroups');
+    if (container) delete container.dataset.v099lFreshnessStage;
   }
 
   function queueRender() {
@@ -116,12 +146,79 @@ if (!globalThis.__LuckyBeanV099jFreshnessGroupLoaded) {
     requestAnimationFrame(() => {
       queued = false;
       const container = $('#beanGroups');
-      if (container && !container.querySelector('[data-v099j-freshness-root]')) delete container.dataset.v099jFreshnessStage;
+      if (container && !container.querySelector('[data-v099l-freshness-root]')) invalidate();
       render();
     });
   }
 
+  function pickBean(modeName, beans, records) {
+    if (modeName === 'leaderboard') return [...beans].sort((a, b) => averageScore(b.id, records) - averageScore(a.id, records))[0];
+    if (modeName === 'freshness') return [...beans].sort((a, b) => Number(freshnessProfile(b).flavorScore || 0) - Number(freshnessProfile(a).flavorScore || 0))[0];
+    if (modeName === 'price') return [...beans].sort((a, b) => Number(b.price || 0) - Number(a.price || 0))[0];
+    if (modeName === 'remaining') return [...beans].sort((a, b) => Number(a.remainingWeight || 0) - Number(b.remainingWeight || 0))[0];
+    return beans[Math.floor(Math.random() * beans.length)];
+  }
+
+  async function animateBean(bean, { persist = false, duration = 720 } = {}) {
+    if (!bean) return;
+    activeStage = stageFor(bean);
+    if (persist) {
+      selectedId = bean.id;
+      localStorage.setItem(SELECTED_KEY, selectedId);
+    }
+    invalidate();
+    await render(true);
+    await nextFrames();
+    const card = document.querySelector(`#beanGroups [data-bean-id="${CSS.escape(bean.id)}"]`);
+    if (!card) return wait(duration);
+    card.classList.remove('recommend-step');
+    void card.offsetWidth;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.classList.add('recommend-step');
+    await wait(duration);
+    card.classList.remove('recommend-step');
+    if (persist) card.classList.add('recommended', 'v099l-selected');
+  }
+
+  async function runRecommendation(modeName) {
+    if (recommendationBusy) return;
+    recommendationBusy = true;
+    $$('.recommend-menu,.popup-menu').forEach(node => node.remove());
+    try {
+      const { index, active, sensoryRecords } = await loadData();
+      if (!active.length) return toast('没有可推荐的豆卡');
+      selectedId = '';
+      let selected;
+      if (modeName === 'random') {
+        const rounds = Math.floor(Math.random() * 5) + 4;
+        let previous = '';
+        for (let step = 0; step < rounds; step += 1) {
+          const pool = active.length > 1 ? active.filter(bean => bean.id !== previous) : active;
+          selected = pool[Math.floor(Math.random() * pool.length)];
+          previous = selected.id;
+          await animateBean(selected, { persist: step === rounds - 1, duration: step === rounds - 1 ? 820 : 420 });
+        }
+      } else {
+        selected = pickBean(modeName, active, sensoryRecords);
+        await animateBean(selected, { persist: true, duration: 820 });
+      }
+      const name = `${labelFor(index, 'countries', selected.countryCode, '未定国家')} · ${labelFor(index, 'varieties', selected.varietyCode, '未定豆种')}`;
+      toast(`已选：${name}`, 'recommendation');
+    } finally {
+      recommendationBusy = false;
+    }
+  }
+
   async function handleClick(event) {
+    const recommendation = event.target.closest?.('[data-recommend-mode]');
+    if (recommendation && currentMode === MODE_RATIO) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      runRecommendation(recommendation.dataset.recommendMode).catch(error => toast(error.message, 'status-bad'));
+      return;
+    }
+
     const ratioButton = event.target.closest?.('[data-v099f-group-freshness],[data-v099i-group-freshness]');
     if (ratioButton) {
       event.preventDefault();
@@ -132,32 +229,29 @@ if (!globalThis.__LuckyBeanV099jFreshnessGroupLoaded) {
       activeStage = '';
       await Promise.all([setSetting(MODE_KEY, MODE_RATIO), setSetting(LEGACY_MODE_KEY, 'native')]);
       $$('.popup-menu').forEach(node => node.remove());
-      const container = $('#beanGroups');
-      if (container) delete container.dataset.v099jFreshnessStage;
-      render();
+      invalidate();
+      render(true);
       return;
     }
-    const open = event.target.closest?.('[data-v099j-open-stage]');
+    const open = event.target.closest?.('[data-v099l-open-stage]');
     if (open) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      activeStage = open.dataset.v099jOpenStage;
-      const container = $('#beanGroups');
-      if (container) delete container.dataset.v099jFreshnessStage;
-      render();
+      activeStage = open.dataset.v099lOpenStage;
+      invalidate();
+      render(true);
       return;
     }
-    const back = event.target.closest?.('[data-v099j-stage-back]');
+    const back = event.target.closest?.('[data-v099l-stage-back]');
     if (back) {
       event.preventDefault();
       event.stopImmediatePropagation();
       activeStage = '';
-      const container = $('#beanGroups');
-      if (container) delete container.dataset.v099jFreshnessStage;
-      render();
+      invalidate();
+      render(true);
       return;
     }
-    const native = event.target.closest?.('[data-group-method]');
+    const native = event.target.closest?.('[data-group-method],[data-v098-group-method]');
     if (native) {
       currentMode = 'native';
       activeStage = '';
@@ -169,12 +263,12 @@ if (!globalThis.__LuckyBeanV099jFreshnessGroupLoaded) {
   window.addEventListener('click', handleClick, true);
   const container = $('#beanGroups');
   if (container) new MutationObserver(() => {
-    if (!rendering && currentMode === MODE_RATIO && !container.querySelector('[data-v099j-freshness-root]')) queueRender();
+    if (!rendering && currentMode === MODE_RATIO && !container.querySelector('[data-v099l-freshness-root]')) queueRender();
   }).observe(container, { childList: true });
 
   (async () => {
     await mode();
     if (currentMode === MODE_RATIO) queueRender();
   })();
-  globalThis.LuckyBeanV099jFreshnessGroup = { render, captureRenderedRatios, ratioFor };
+  globalThis.LuckyBeanV099lFreshnessGroup = { render, captureRenderedRatios, ratioFor, runRecommendation };
 }
