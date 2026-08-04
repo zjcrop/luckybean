@@ -1,3 +1,5 @@
+import './qr-tools.js';
+
 (() => {
   if (globalThis.LuckyBeanNative?.invoke) return;
   const runtime = globalThis.browser?.runtime;
