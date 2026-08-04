@@ -174,10 +174,26 @@ jobs:
             android-errors.txt
           if-no-files-found: error
 
-      - name: Upload debug APK
+      - name: Upload arm64 phone APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: luckybean-core-v2-debug
-          path: android/app/build/outputs/apk/debug/*.apk
+          name: luckybean-core-v2-debug-arm64-v8a
+          path: android/app/build/outputs/apk/debug/*arm64-v8a*.apk
+          if-no-files-found: error
+
+      - name: Upload 32-bit ARM fallback APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-core-v2-debug-armeabi-v7a
+          path: android/app/build/outputs/apk/debug/*armeabi-v7a*.apk
+          if-no-files-found: error
+
+      - name: Upload x86_64 emulator APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-core-v2-debug-x86_64
+          path: android/app/build/outputs/apk/debug/*x86_64*.apk
           if-no-files-found: error
