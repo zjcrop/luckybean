@@ -3,6 +3,9 @@ name: LuckyBean v1.0.7 Bootstrap Validation
 on:
   schedule:
     - cron: '*/5 * * * *'
+  issues:
+    types:
+      - opened
   pull_request_target:
     branches:
       - main
@@ -25,7 +28,10 @@ jobs:
     if: >-
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
-      (github.event.pull_request.number == 25 &&
+      (github.event_name == 'issues' &&
+       github.event.issue.title == 'LB-V107-BOOTSTRAP-20260804') ||
+      (github.event_name == 'pull_request_target' &&
+       github.event.pull_request.number == 25 &&
        github.event.pull_request.head.repo.full_name == github.repository &&
        github.event.pull_request.head.ref == 'android/v1-source-consolidation')
     runs-on: ubuntu-latest
