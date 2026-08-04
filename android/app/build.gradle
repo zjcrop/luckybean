@@ -116,6 +116,18 @@ android {
         }
     }
 
+    // GeckoView contains large native libraries for several CPU architectures.
+    // Produce architecture-specific APKs so phones do not need to parse the
+    // 500+ MB universal package. Keep a universal APK only as a fallback.
+    splits {
+        abi {
+            enable true
+            reset()
+            include 'arm64-v8a', 'armeabi-v7a', 'x86_64'
+            universalApk true
+        }
+    }
+
     compileOptions {
         coreLibraryDesugaringEnabled true
         sourceCompatibility JavaVersion.VERSION_17
