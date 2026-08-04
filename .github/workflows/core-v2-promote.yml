@@ -1,22 +1,23 @@
-name: LuckyBean Core v2 Gated Promotion
+name: LuckyBean Core v2 Test Build
 
 on:
   push:
     branches:
       - refactor/core-v2-local-first
+  workflow_dispatch:
 
 permissions:
   contents: write
-  pull-requests: write
+  issues: write
   actions: read
 
 concurrency:
-  group: core-v2-promotion
+  group: core-v2-test-build
   cancel-in-progress: true
 
 env:
   LEGACY_BASELINE_SHA: 112c5b7f77ed8fbf788b80868ce58f42b3d73057
-  RELEASE_TAG: v2.0.0-alpha.1
+  TEST_VERSION: 2.0.0-alpha.1
 
 jobs:
   preflight:
@@ -81,7 +82,7 @@ jobs:
             if curl --fail --silent http://127.0.0.1:4173/core-v2/ >/dev/null; then break; fi
             sleep 1
           done
-          CORE_V2_BASE_URL=http://127.0.0.1:4173/core-v2/ npx playwright test tests/core-v2-browser.spec.mjs --project=chromium --reporter=line
+          CORE_V2_BASE_URL=http://127.0.0.1:4173/core-v2/ npx playwright test tests/core-v2-browser.spec.mjs --reporter=line
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -108,27 +109,34 @@ jobs:
           test -f android/app/schemas/com.luckybean.app.data.LuckyBeanDatabase/1.json
           git diff --exit-code -- android/app/schemas
 
-      - name: Verify APK contents and checksums
+      - name: Prepare APK and Web test package
         shell: bash
         run: |
-          mkdir -p promotion-artifacts
-          cp android/app/build/outputs/apk/alpha/*.apk promotion-artifacts/LuckyBean-Core-v2.0.0-alpha.1.apk
-          sha256sum promotion-artifacts/*.apk > promotion-artifacts/SHA256SUMS.txt
-          unzip -l promotion-artifacts/LuckyBean-Core-v2.0.0-alpha.1.apk > promotion-artifacts/apk-contents.txt
-          grep -q 'luckybean-extension/core-v2/index.html' promotion-artifacts/apk-contents.txt
-          grep -q 'luckybean-extension/core-v2/app.js' promotion-artifacts/apk-contents.txt
+          mkdir -p test-artifacts/web
+          cp android/app/build/outputs/apk/alpha/*.apk test-artifacts/LuckyBean-Core-v2.0.0-alpha.1-test.apk
+          cp -R core-v2 test-artifacts/web/
+          mkdir -p test-artifacts/web/src
+          cp -R src/core-v2 test-artifacts/web/src/
+          cp -R schemas test-artifacts/web/
+          cp README.md test-artifacts/web/README-repository.md
+          (cd test-artifacts/web && zip -qr ../LuckyBean-Core-v2-Web-Test.zip .)
+          sha256sum test-artifacts/LuckyBean-Core-v2.0.0-alpha.1-test.apk test-artifacts/LuckyBean-Core-v2-Web-Test.zip > test-artifacts/SHA256SUMS.txt
+          unzip -l test-artifacts/LuckyBean-Core-v2.0.0-alpha.1-test.apk > test-artifacts/apk-contents.txt
+          grep -q 'luckybean-extension/core-v2/index.html' test-artifacts/apk-contents.txt
+          grep -q 'luckybean-extension/core-v2/app.js' test-artifacts/apk-contents.txt
 
-      - name: Write promotion evidence
+      - name: Write test evidence
         shell: bash
         run: |
-          cat > promotion-artifacts/promotion.json <<JSON
+          cat > test-artifacts/test-build.json <<JSON
           {
             "candidateSha": "${GITHUB_SHA}",
             "baselineSha": "${LEGACY_BASELINE_SHA}",
-            "tag": "${RELEASE_TAG}",
-            "coreVersion": "2.0.0-alpha.1",
+            "coreVersion": "${TEST_VERSION}",
             "schemaVersion": 3,
             "syncProtocolVersion": 2,
+            "mainMerged": false,
+            "productionDeployed": false,
             "gates": {
               "coreTests": true,
               "securityTests": true,
@@ -141,82 +149,56 @@ jobs:
             }
           }
           JSON
-          cp legacy-promotion-report.json promotion-artifacts/
+          cp legacy-promotion-report.json test-artifacts/
 
-      - name: Upload promotion candidate
+      - name: Upload test candidate
         uses: actions/upload-artifact@v4
         with:
-          name: luckybean-core-v2-promoted-candidate
-          path: promotion-artifacts/
+          name: luckybean-core-v2-test-candidate
+          path: test-artifacts/
           if-no-files-found: error
 
-  promote:
+  publish-test-release:
     needs: preflight
     if: ${{ needs.preflight.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout candidate metadata
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download verified APK candidate
+      - name: Download verified test candidate
         uses: actions/download-artifact@v4
         with:
-          name: luckybean-core-v2-promoted-candidate
-          path: promoted
+          name: luckybean-core-v2-test-candidate
+          path: test-candidate
 
-      - name: Validate PR head and merge
+      - name: Publish branch-only prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          state=$(gh pr view 23 --repo "$GITHUB_REPOSITORY" --json state --jq .state)
-          head=$(gh pr view 23 --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)
-          test "$state" = "OPEN"
-          test "$head" = "$GITHUB_SHA"
-          gh pr ready 23 --repo "$GITHUB_REPOSITORY" || true
-          gh pr merge 23 --repo "$GITHUB_REPOSITORY" --squash --delete-branch=false
+          short_sha="${GITHUB_SHA::7}"
+          tag="v${TEST_VERSION}-test-${short_sha}"
+          cat > release-notes.md <<NOTES
+          ## LuckyBean Core v${TEST_VERSION} 测试包
 
-      - name: Wait for merged main and create prerelease
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          for attempt in $(seq 1 30); do
-            merge_sha=$(gh api "repos/$GITHUB_REPOSITORY/pulls/23" --jq .merge_commit_sha)
-            merged=$(gh api "repos/$GITHUB_REPOSITORY/pulls/23" --jq .merged)
-            if [ "$merged" = "true" ] && [ -n "$merge_sha" ] && [ "$merge_sha" != "null" ]; then break; fi
-            sleep 2
-          done
-          test "$merged" = "true"
-          cat > release-notes.md <<'NOTES'
-          ## LuckyBean Core v2.0.0-alpha.1
+          该版本来自 \`refactor/core-v2-local-first\`，仅供测试：
 
-          本次为本地优先架构 Alpha，不是 Stable 生产版。
+          - 未合并 \`main\`；
+          - 未替换正式 Web/PWA；
+          - APK 使用测试签名；
+          - 数据迁移遵循不清库、保留原始快照原则；
+          - 请重点测试离线保存、旧数据迁移、备份恢复、相机/OCR、二维码、冲煮计时、品鉴与复刻。
 
-          - Android 主入口改为随 APK 固定打包的 GeckoView + 干净 Core v2 页面。
-          - Android 结构化数据使用 Room，旧 WebView IndexedDB 采用快照、记录数和 SHA-256 校验后迁移。
-          - 迁移失败不清库，保留旧数据并进入兼容模式。
-          - 豆卡、库存、冲煮方案、计时、品鉴、历史、复刻、CSV、OCR、二维码和备份可离线运行。
-          - 相机使用 CameraX；OCR 和二维码模型随 APK 打包。
-          - `.luckybean` 支持数据库 JSONL、附件和校验和归档。
-          - 云端作为可选扩展，本地保存先于同步；服务器确认前不删除 outbox。
-          - Web/PWA 保留，同一 Core v2 页面使用 IndexedDB 和同源离线缓存。
-
-          ### 签名说明
-
-          本附件为 Alpha 验证包，使用测试签名。不得作为正式商店生产签名版本分发。
+          Candidate: \`${GITHUB_SHA}\`
           NOTES
-          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" promoted/LuckyBean-Core-v2.0.0-alpha.1.apk promoted/SHA256SUMS.txt promoted/promotion.json --repo "$GITHUB_REPOSITORY" --clobber
-          else
-            gh release create "$RELEASE_TAG" promoted/LuckyBean-Core-v2.0.0-alpha.1.apk promoted/SHA256SUMS.txt promoted/promotion.json --repo "$GITHUB_REPOSITORY" --target "$merge_sha" --title 'LuckyBean Core v2.0.0-alpha.1' --notes-file release-notes.md --prerelease
-          fi
-
-      - name: Record deployment expectation
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh issue comment 22 --repo "$GITHUB_REPOSITORY" --body "Core v2 全部门禁通过并已合并 main，Alpha Release 已发布。main 推送将触发现有 Web 同步/部署工作流；Web Core 入口为 \`core-v2/\`。"
+          gh release create "$tag" \
+            test-candidate/LuckyBean-Core-v2.0.0-alpha.1-test.apk \
+            test-candidate/LuckyBean-Core-v2-Web-Test.zip \
+            test-candidate/SHA256SUMS.txt \
+            test-candidate/test-build.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "LuckyBean Core v${TEST_VERSION} Test ${short_sha}" \
+            --notes-file release-notes.md \
+            --prerelease
+          release_url=$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json url --jq .url)
+          gh issue comment 22 --repo "$GITHUB_REPOSITORY" --body "Core v2 测试包已生成：${release_url}。该版本未合并 main、未部署正式 Web。"
