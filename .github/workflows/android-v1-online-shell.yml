@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - android/v1-online-shell
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
