@@ -18,7 +18,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 55
     steps:
       - name: Checkout test branch
         uses: actions/checkout@v4
@@ -49,13 +49,26 @@ jobs:
       - name: Package all public illustrations locally
         run: python3 tools/apply_online_shell_v105_assets.py
 
-      - name: Set internal test version
-        run: python3 tools/bump_online_shell_v105_version.py
+      - name: Apply private brew profile and backup lifecycle
+        run: python3 tools/apply_online_shell_v106_web.py
 
-      - name: Verify patched Web modules and labeled parser
+      - name: Apply startup watchdog and Android backup rules
+        run: python3 tools/apply_online_shell_v106_android.py
+
+      - name: Package v106 dependency modules
+        run: python3 tools/apply_online_shell_v106_asset_dependencies.py
+
+      - name: Set internal test version
+        run: python3 tools/bump_online_shell_v106_version.py
+
+      - name: Verify patched Web modules and fixtures
         run: |
           node --check src/app.js
           node --check src/codebook.js
+          node --check src/db.js
+          node --check src/brew-engine.js
+          node --check src/v106-native-backup.js
+          node --check src/v106-brew-profile-service.js
           node --check src/v095-sensory-pro.js
           node --check src/v095-sensory-bootstrap.js
           node --check src/v095-sensory-flow-guard.js
@@ -64,6 +77,13 @@ jobs:
           grep -q "beanHarvestYear" src/app.js
           grep -q "coded-custom-input" src/app.js
           grep -q "flavor-accordion" src/app.js
+          grep -q "restoreNativeBackupIfNeeded" src/app.js
+          grep -q "syncBrewProfilesBtn" src/app.js
+          grep -q "luckybean:data-changed" src/db.js
+          grep -q "requestSyncedBrewPlan" src/brew-engine.js
+          grep -q "brew-plan-v21" src/v106-brew-profile-service.js
+          grep -q "CACHE_MAX_AGE_MS" src/v106-brew-profile-service.js
+          grep -q "SNAPSHOT_FORMAT" src/v106-native-backup.js
           grep -q "烘焙时间" src/codebook.js
           grep -q "parseRoastDateValue" src/codebook.js
           grep -q "result\[customField\] = labeledValue" src/codebook.js
@@ -74,12 +94,21 @@ jobs:
           grep -q "verifyLoginPassword" src/v099f-cloud-sync.js
           grep -q "key_mode: 'login-password-v1'" src/v099f-cloud-sync.js
           grep -q "include 'public/\*\*'" android/app/build.gradle
+          grep -q "include 'src/v106-native-backup.js'" android/app/build.gradle
+          grep -q "include 'src/v106-brew-profile-service.js'" android/app/build.gradle
           grep -q "relative.startsWith(\"public/\")" android/app/src/main/java/com/luckybean/app/LocalWebAssetCache.java
-          grep -q "versionCode 100105" android/app/build.gradle
-          grep -q "versionName '1.0.5-online-test'" android/app/build.gradle
+          grep -q "scheduleLaunchOverlayWatchdog" android/app/src/main/java/com/luckybean/app/MainActivity.java
+          grep -q "shell=100106" android/app/src/main/java/com/luckybean/app/MainActivity.java
+          grep -q "saveBackupSnapshot" android/app/src/main/java/com/luckybean/app/MainActivity.java
+          grep -q "dataExtractionRules=\"@xml/data_extraction_rules\"" android/app/src/main/AndroidManifest.xml
+          grep -q "luckybean-backup/" android/app/src/main/res/xml/backup_rules.xml
+          grep -q "luckybean-backup/" android/app/src/main/res/xml/data_extraction_rules.xml
+          grep -q "versionCode 100106" android/app/build.gradle
+          grep -q "versionName '1.0.6-online-test'" android/app/build.gradle
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
           const { parseNaturalLanguage } = await import('./src/codebook.js');
+          const { listBrewProfiles, brewProfileSyncStatus } = await import('./src/brew-engine.js');
           const book = {
             countries: [['ET','埃塞俄比亚','Ethiopia']],
             regions: [['RG-SID','ET','西达摩','Sidama']],
@@ -100,7 +129,11 @@ jobs:
           assert.equal(result.roasterName, '山丘咖啡');
           assert.ok(result.flavorCodes.includes('FV-JAS'));
           assert.ok(result.customFlavorNames.includes('白玉兰'));
-          console.log('label-aware parser fixture passed', result);
+          const profiles = listBrewProfiles();
+          assert.ok(profiles.some(profile => profile.id === 'recommended'));
+          assert.ok(profiles.some(profile => profile.id === 'four-six-33666'));
+          assert.equal(brewProfileSyncStatus().authenticated, false);
+          console.log('v106 parser and profile fixtures passed');
           NODE
 
       - name: Set up Java 17
@@ -119,33 +152,44 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Restore stable online-shell test signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: luckybean-online-shell-debug-keystore-v1
+
       - name: Build online-shell debug APK
         run: gradle --no-daemon --stacktrace -p android clean assembleDebug
 
-      - name: Verify APK signature version and local assets
+      - name: Verify APK signature version backup and local assets
         shell: bash
         run: |
           apk=$(find android/app/build/outputs/apk/debug -name '*.apk' -type f | head -n 1)
           test -n "$apk"
-          "$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$apk"
-          "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "versionCode='100105'"
-          "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "versionName='1.0.5-online-test-debug'"
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk" | tee signing-cert.txt
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "versionCode='100106'"
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "versionName='1.0.6-online-test-debug'"
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump xmltree "$apk" AndroidManifest.xml | grep -q 'android:allowBackup'
           unzip -t "$apk" >/dev/null
           unzip -l "$apk" | grep -q 'assets/web-cache/src/app.js'
           unzip -l "$apk" | grep -q 'assets/web-cache/src/codebook.js'
+          unzip -l "$apk" | grep -q 'assets/web-cache/src/db.js'
+          unzip -l "$apk" | grep -q 'assets/web-cache/src/brew-engine.js'
+          unzip -l "$apk" | grep -q 'assets/web-cache/src/v106-native-backup.js'
+          unzip -l "$apk" | grep -q 'assets/web-cache/src/v106-brew-profile-service.js'
           unzip -l "$apk" | grep -q 'assets/web-cache/src/v095-sensory-pro.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/v095-sensory-bootstrap.js'
           unzip -l "$apk" | grep -q 'assets/web-cache/public/splash-art-red.webp'
           unzip -l "$apk" | grep -q 'assets/web-cache/public/settings-mascot.webp'
           public_count=$(unzip -l "$apk" | grep -c 'assets/web-cache/public/' || true)
           test "$public_count" -ge 5
           mkdir -p artifacts
-          cp "$apk" artifacts/LuckyBean-1.0.5-labeled-ocr-independent-sensory-test.apk
-          sha256sum artifacts/LuckyBean-1.0.5-labeled-ocr-independent-sensory-test.apk > artifacts/SHA256SUMS.txt
+          cp "$apk" artifacts/LuckyBean-1.0.6-startup-profiles-backup-test.apk
+          cp signing-cert.txt artifacts/SIGNING-CERTIFICATE.txt
+          sha256sum artifacts/LuckyBean-1.0.6-startup-profiles-backup-test.apk > artifacts/SHA256SUMS.txt
 
       - name: Upload test APK
         uses: actions/upload-artifact@v4
         with:
-          name: luckybean-v1-online-shell-v105-test
+          name: luckybean-v1-online-shell-v106-test
           path: artifacts/
           if-no-files-found: error
