@@ -1,7 +1,7 @@
-import * as core from './db-storage-core.js';
+import * as core from './storage-router.js';
 import { sealPrivateJson, openPrivateJson, PRIVATE_ENVELOPE_FORMAT } from './privacy-codec-v096.js';
 
-export * from './db-storage-core.js';
+export * from './storage-router.js';
 
 const PRIVACY_KEY_ID = 'local.privacy.key.v1';
 let privacySecretPromise;
@@ -119,7 +119,7 @@ export async function setSetting(id, value) {
   return put('settings', { id, value, updatedAt: new Date().toISOString() });
 }
 
-export async function clearAll() {
+export async function clearAll(options = {}) {
   privacySecretPromise = undefined;
-  return core.clearAll();
+  return core.clearAll(options);
 }
