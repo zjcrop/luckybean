@@ -34,6 +34,9 @@ jobs:
       - name: Apply legacy cloud password migration guard
         run: python3 tools/apply_online_shell_cloud_password_migration.py
 
+      - name: Prepare literal JavaScript patch replacements
+        run: python3 tools/prepare_online_shell_v105_patch_helpers.py
+
       - name: Apply label-aware parser form and flavor fixes
         run: python3 tools/apply_online_shell_v105_data_ui.py
 
