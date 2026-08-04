@@ -1,0 +1,64 @@
+name: LuckyBean Core v2 Browser Smoke
+
+on:
+  push:
+    branches:
+      - refactor/core-v2-local-first
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: core-v2-browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install project dependencies
+        run: npm install --ignore-scripts
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save @playwright/test
+          npx playwright install --with-deps chromium
+
+      - name: Start local HTTP server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > core-v2-http.log 2>&1 &
+          echo $! > core-v2-http.pid
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/core-v2/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat core-v2-http.log
+          exit 1
+
+      - name: Run Core v2 browser smoke
+        env:
+          CORE_V2_BASE_URL: http://127.0.0.1:4173/core-v2/
+        run: npx playwright test tests/core-v2-browser.spec.mjs --project=chromium --reporter=line
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-core-v2-browser-evidence
+          path: |
+            core-v2-http.log
+            test-results/
+            playwright-report/
+          if-no-files-found: warn
