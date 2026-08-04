@@ -22,7 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileReader;
+import java.io.InputStreamReader;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -223,7 +223,7 @@ public final class BackupArchiveService {
             int count = 0;
             List<MigrationRecord> batch = new ArrayList<>();
             if (file.isFile()) {
-                try (BufferedReader reader = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8))) {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         if (line.isBlank()) continue;
@@ -475,7 +475,7 @@ public final class BackupArchiveService {
 
     private static String readUtf8(File file) throws Exception {
         if (!file.isFile()) throw new IllegalArgumentException("备份缺少 manifest.json");
-        return Files.readString(file.toPath(), StandardCharsets.UTF_8);
+        return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
     }
 
     private static String sha256(File file) throws Exception {
