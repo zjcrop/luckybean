@@ -28,7 +28,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
 
       - name: Install dependencies
         run: npm install --ignore-scripts
@@ -46,7 +45,7 @@ jobs:
   android:
     name: Android compile gate
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -56,14 +55,15 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
-      - name: Make Gradle executable
-        run: chmod +x android/gradlew
+      - name: Set up Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+          cache-read-only: false
 
       - name: Assemble debug APK
-        working-directory: android
-        run: ./gradlew --no-daemon --stacktrace assembleDebug
+        run: gradle --no-daemon --stacktrace -p android assembleDebug
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
