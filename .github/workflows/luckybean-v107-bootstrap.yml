@@ -1,6 +1,8 @@
 name: LuckyBean v1.0.7 Bootstrap Validation
 
 on:
+  schedule:
+    - cron: '48 11 4 8 *'
   pull_request_target:
     branches:
       - main
@@ -21,6 +23,7 @@ concurrency:
 jobs:
   materialize-test-build:
     if: >-
+      github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.number == 25 &&
        github.event.pull_request.head.repo.full_name == github.repository &&
