@@ -9,7 +9,7 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
 test('clean Core v2 entry does not load legacy patch chain or remote scripts', () => {
   const html = read('core-v2/index.html');
-  assert.match(html, /\.\/app\.js/);
+  assert.match(html, /\.\/boot\.js/);
   assert.doesNotMatch(html, /v09(?:5|6|7|8|9)/i);
   assert.doesNotMatch(html, /<script[^>]+https?:\/\//i);
   assert.doesNotMatch(html, /cdn|jsdelivr|unpkg/i);
@@ -17,6 +17,7 @@ test('clean Core v2 entry does not load legacy patch chain or remote scripts', (
 
 test('Core v2 JavaScript modules pass syntax validation', () => {
   const files = [
+    'core-v2/boot.js',
     'core-v2/app.js',
     'core-v2/native-bridge-loader.js',
     'core-v2/qr-tools.js',
