@@ -39,6 +39,7 @@ public final class NativeCommandRouter {
     private final LuckyBeanDao dao;
     private final NativeActivityBroker activityBroker;
     private final NativeBackupBroker backupBroker;
+    private final QrCodeService qrCodeService = new QrCodeService();
     private final ExecutorService databaseExecutor = Executors.newSingleThreadExecutor();
 
     public NativeCommandRouter(Activity activity) {
@@ -80,6 +81,13 @@ public final class NativeCommandRouter {
                     return wrap(backupBroker.importArchive());
                 case "ocr.pickImage":
                     return wrap(activityBroker.pickImageForOcr());
+                case "qr.pickImage":
+                    return wrap(activityBroker.pickImageForQr());
+                case "qr.render":
+                    return GeckoResult.fromValue(ok(qrCodeService.render(
+                        payload.optString("text", ""),
+                        payload.optInt("size", 768)
+                    )));
                 case "camera.capture":
                     return wrap(activityBroker.captureImage());
                 case "share.text":
@@ -141,6 +149,9 @@ public final class NativeCommandRouter {
             .put("ocr", new JSONObject()
                 .put("bundled", true)
                 .put("scripts", new JSONArray().put("latin").put("chinese")))
+            .put("qr", new JSONObject()
+                .put("scanBundled", true)
+                .put("renderBundled", true))
             .put("backgroundSync", true)
             .put("offlineCore", true);
     }
