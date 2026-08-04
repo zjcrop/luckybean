@@ -90,6 +90,10 @@ android {
         }
     }
 
+    buildFeatures {
+        buildConfig true
+    }
+
     sourceSets {
         main.assets.srcDir(generatedWebAssets)
     }
