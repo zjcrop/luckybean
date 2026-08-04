@@ -9,6 +9,9 @@ import android.net.Uri;
 import android.provider.OpenableColumns;
 import android.util.Base64;
 
+import com.google.mlkit.vision.barcode.BarcodeScanner;
+import com.google.mlkit.vision.barcode.BarcodeScanning;
+import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
@@ -34,6 +37,7 @@ public final class NativeActivityBroker {
     private static final int REQUEST_OPEN_TEXT = 3202;
     private static final int REQUEST_OCR_IMAGE = 3203;
     private static final int REQUEST_CAMERA_CAPTURE = 3204;
+    private static final int REQUEST_QR_IMAGE = 3205;
     private static final int MAX_TEXT_BYTES = 25 * 1024 * 1024;
     private static final int CAMERA_PREVIEW_MAX_EDGE = 2048;
 
@@ -86,6 +90,17 @@ public final class NativeActivityBroker {
         return result;
     }
 
+    public GeckoResult<Object> pickImageForQr() {
+        if (pending.containsKey(REQUEST_QR_IMAGE)) return busy("已有二维码识别正在进行");
+        GeckoResult<Object> result = new GeckoResult<>();
+        pending.put(REQUEST_QR_IMAGE, result);
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("image/*");
+        activity.startActivityForResult(intent, REQUEST_QR_IMAGE);
+        return result;
+    }
+
     public GeckoResult<Object> captureImage() {
         if (pending.containsKey(REQUEST_CAMERA_CAPTURE)) return busy("相机正在使用");
         GeckoResult<Object> result = new GeckoResult<>();
@@ -111,6 +126,8 @@ public final class NativeActivityBroker {
             io.execute(() -> readText(uri, result));
         } else if (requestCode == REQUEST_OCR_IMAGE) {
             recognize(uri, result);
+        } else if (requestCode == REQUEST_QR_IMAGE) {
+            scanQr(uri, result);
         } else if (requestCode == REQUEST_CAMERA_CAPTURE) {
             String absolutePath = data.getStringExtra("absolutePath");
             String attachmentId = data.getStringExtra("attachmentId");
@@ -236,6 +253,36 @@ public final class NativeActivityBroker {
                     latin.close();
                     chinese.close();
                 });
+        } catch (Exception error) {
+            result.completeExceptionally(error);
+        }
+    }
+
+    private void scanQr(Uri uri, GeckoResult<Object> result) {
+        try {
+            InputImage image = InputImage.fromFilePath(activity, uri);
+            BarcodeScanner scanner = BarcodeScanning.getClient();
+            scanner.process(image)
+                .addOnSuccessListener(barcodes -> {
+                    try {
+                        if (barcodes == null || barcodes.isEmpty()) throw new IllegalStateException("图片中没有识别到二维码");
+                        Barcode barcode = barcodes.get(0);
+                        byte[] raw = barcode.getRawBytes();
+                        String text = raw != null && raw.length > 0
+                            ? new String(raw, StandardCharsets.ISO_8859_1)
+                            : String.valueOf(barcode.getRawValue() == null ? "" : barcode.getRawValue());
+                        if (text.isEmpty()) throw new IllegalStateException("二维码内容为空");
+                        result.complete(new JSONObject()
+                            .put("uri", uri.toString())
+                            .put("text", text)
+                            .put("format", barcode.getFormat())
+                            .put("engine", "mlkit-barcode-bundled"));
+                    } catch (Exception error) {
+                        result.completeExceptionally(error);
+                    }
+                })
+                .addOnFailureListener(result::completeExceptionally)
+                .addOnCompleteListener(task -> scanner.close());
         } catch (Exception error) {
             result.completeExceptionally(error);
         }
