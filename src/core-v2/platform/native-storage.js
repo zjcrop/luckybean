@@ -89,6 +89,14 @@ export async function nativeImportText({ mimeTypes = ['application/json', 'appli
   return invoke('files.openText', { mimeTypes });
 }
 
+export async function nativeExportBackup({ name = 'luckybean-backup.luckybean' } = {}) {
+  return invoke('backup.export', { name });
+}
+
+export async function nativeImportBackup() {
+  return invoke('backup.import');
+}
+
 export async function nativeRecognizeImage() {
   return invoke('ocr.pickImage');
 }
