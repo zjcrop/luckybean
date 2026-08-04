@@ -68,6 +68,9 @@ if existing.search(text):
 elif 'copyOnlineShellCriticalAssets' not in text:
     text = text.rstrip() + block + '\n'
 path.write_text(text, encoding='utf-8')
+
+styles = Path('styles.css')
+styles.write_text(styles.read_text(encoding='utf-8').rstrip() + '\n', encoding='utf-8')
 PY
 
 grep -F "tasks.register('copyOnlineShellCriticalAssets', Copy)" android/app/build.gradle
