@@ -1,0 +1,48 @@
+name: LuckyBean Core v2 One-shot Android Source Fix
+
+on:
+  push:
+    branches:
+      - refactor/core-v2-local-first
+    paths:
+      - '.github/workflows/temp-core-v2-android-source-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/core-v2-local-first
+          fetch-depth: 0
+
+      - name: Replace unsupported Files.readString call
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('android/app/src/main/java/com/luckybean/app/backup/BackupArchiveService.java')
+          text = path.read_text(encoding='utf-8')
+          old = 'return Files.readString(file.toPath(), StandardCharsets.UTF_8);'
+          new = '''try (InputStream input = new BufferedInputStream(new FileInputStream(file));
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = input.read(buffer)) >= 0) output.write(buffer, 0, read);
+            return output.toString(StandardCharsets.UTF_8.name());
+        }'''
+          if text.count(old) != 1:
+              raise SystemExit(f'Expected exactly one target, found {text.count(old)}')
+          path.write_text(text.replace(old, new), encoding='utf-8')
+
+      - name: Commit compatibility fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add android/app/src/main/java/com/luckybean/app/backup/BackupArchiveService.java
+          git commit -m "fix(android): read backup metadata with API 26 compatible streams"
+          git push origin HEAD:refactor/core-v2-local-first
