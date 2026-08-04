@@ -112,6 +112,7 @@ cp SIGNING-CERTIFICATE.txt APK-BADGING.txt APK-CONTENTS.txt APK-ZIP-TEST.txt art
 sha256sum artifacts/LuckyBean-1.0.7-consolidated-test.apk > artifacts/SHA256SUMS.txt
 cp index.html manifest.webmanifest sw.js styles.css web-preview/
 cp -R src public web-preview/
+touch web-preview/.nojekyll
 zip -qr artifacts/LuckyBean-1.0.7-web-preview.zip web-preview
 
 echo '== Commit validated consolidated source =='
@@ -127,3 +128,13 @@ git add -A
 git diff --cached --check
 git commit -m 'refactor: consolidate LuckyBean 1.0.7 source and record workflows'
 git push origin HEAD:android/v1-source-consolidation
+
+echo '== Publish isolated Web test branch =='
+git switch --orphan test-v107-web
+git rm -rf . || true
+cp -R web-preview/. .
+git add index.html manifest.webmanifest sw.js styles.css src public .nojekyll
+git commit -m 'test(web): publish LuckyBean 1.0.7 isolated preview'
+git push --force origin HEAD:test-v107-web
+
+echo 'APK artifact and Web test branch are ready.'
