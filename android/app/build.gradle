@@ -105,7 +105,7 @@ tasks.register('syncLuckyBeanWebAssets') {
 
 android {
     namespace 'com.luckybean.app'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId 'com.luckybean.app'
