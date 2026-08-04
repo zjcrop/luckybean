@@ -1,0 +1,92 @@
+name: LuckyBean v1.0.7 Final Test Package
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: luckybean-v107-final-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  package-and-publish:
+    if: github.event_name == 'workflow_dispatch' || github.event.issue.title == 'LB-V107-FINAL-PACKAGE-20260804'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Mark final package start
+        if: github.event_name == 'issues'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `Final package CI started: ${context.runId}`
+            });
+
+      - name: Checkout controller
+        uses: actions/checkout@v4
+        with:
+          repository: zjcrop/luckybean
+          ref: main
+          path: controller
+
+      - name: Checkout consolidation source
+        uses: actions/checkout@v4
+        with:
+          repository: zjcrop/luckybean
+          ref: android/v1-source-consolidation
+          path: source
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK 35
+        run: |
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Restore stable test signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: luckybean-online-shell-debug-keystore-v1
+
+      - name: Build APK and publish Web test branch
+        run: bash controller/tools/luckybean-v107-bootstrap.sh source
+
+      - name: Upload APK and Web preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-v107-final-test-package
+          path: source/artifacts/
+          if-no-files-found: error
+
+      - name: Mark final package success
+        if: success() && github.event_name == 'issues'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `Final package CI passed: ${context.runId}`
+            });
