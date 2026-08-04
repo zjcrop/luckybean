@@ -22,6 +22,10 @@ async function invoke(command, payload = {}) {
   return response?.value ?? response;
 }
 
+export async function nativeCapabilities() {
+  return invoke('capabilities');
+}
+
 export async function openNativeStorage() {
   return invoke('storage.open', { schemaVersion: 3 });
 }
@@ -65,8 +69,8 @@ export async function nativeBulkPut(name, values) {
   return invoke('storage.bulkPut', { store: name, records });
 }
 
-export async function nativeClearAll() {
-  return invoke('storage.clearAll');
+export async function nativeClearAll(confirmToken) {
+  return invoke('storage.clearAll', { confirmToken });
 }
 
 export async function nativeActivateCodebook(candidate) {
@@ -89,6 +93,14 @@ export async function nativeRecognizeImage() {
   return invoke('ocr.pickImage');
 }
 
+export async function nativeCaptureImage() {
+  return invoke('camera.capture');
+}
+
 export async function nativeShareText({ title = 'LuckyBean', text }) {
   return invoke('share.text', { title, text: String(text) });
+}
+
+export async function nativeEnqueueSync() {
+  return invoke('sync.enqueue');
 }
