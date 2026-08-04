@@ -106,6 +106,7 @@ public final class MainActivity extends Activity implements TextToSpeech.OnInitL
 
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
         webView.addJavascriptInterface(new NativeBridge(), "LuckyBeanAndroid");
+        webView.addJavascriptInterface(new NativeOcrBridge(this, webView), "LuckyBeanOcrAndroid");
         webView.setWebViewClient(new OnlineAppClient());
         webView.setWebChromeClient(new LuckyBeanChromeClient());
     }
@@ -503,6 +504,7 @@ public final class MainActivity extends Activity implements TextToSpeech.OnInitL
             webView.loadUrl("about:blank");
             webView.stopLoading();
             webView.removeJavascriptInterface("LuckyBeanAndroid");
+            webView.removeJavascriptInterface("LuckyBeanOcrAndroid");
             webView.setWebChromeClient(null);
             webView.setWebViewClient(null);
             webView.destroy();
@@ -518,6 +520,8 @@ public final class MainActivity extends Activity implements TextToSpeech.OnInitL
           window.__luckyBeanNativeBridgeInstalled = true;
           window.__LUCKYBEAN_ANDROID__ = true;
           const native = window.LuckyBeanAndroid;
+          const nativeOcr = window.LuckyBeanOcrAndroid;
+          const ocrPending = new Map();
           const detailEvent = (name, detail) => window.dispatchEvent(new CustomEvent(name, { detail }));
 
           window.LuckyBeanPlatform = Object.assign(window.LuckyBeanPlatform || {}, {
@@ -563,6 +567,36 @@ public final class MainActivity extends Activity implements TextToSpeech.OnInitL
               window.speechSynthesis.speak = nativeSynth.speak;
               window.speechSynthesis.cancel = nativeSynth.cancel;
             } catch (_) {}
+          }
+
+
+          window.__LuckyBeanNativeOcrResult = (requestId, ok, payload) => {
+            const pending = ocrPending.get(String(requestId || ''));
+            if (!pending) return;
+            ocrPending.delete(String(requestId || ''));
+            if (ok) pending.resolve(payload || { engine: 'android-mlkit-chinese', results: [] });
+            else pending.reject(new Error(String(payload || '原生 OCR 识别失败')));
+          };
+
+          if (nativeOcr && typeof nativeOcr.recognizeCoffeeBag === 'function') {
+            window.LuckyBeanRecognitionBridge = {
+              recognizeCoffeeBag(payload) {
+                const requestId = `ocr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+                return new Promise((resolve, reject) => {
+                  ocrPending.set(requestId, { resolve, reject });
+                  window.dispatchEvent(new CustomEvent('luckybean:ocr-progress', {
+                    detail: { status: '正在使用 Android 原生中文 OCR', progress: 12 }
+                  }));
+                  try {
+                    nativeOcr.recognizeCoffeeBag(requestId, JSON.stringify(payload || {}));
+                  } catch (error) {
+                    ocrPending.delete(requestId);
+                    reject(error);
+                  }
+                });
+              }
+            };
+            document.documentElement.dataset.webOcr = 'android-mlkit-chinese-16.0.1';
           }
 
           const enforceCloudOnly = () => {
