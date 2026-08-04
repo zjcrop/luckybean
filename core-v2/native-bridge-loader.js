@@ -1,4 +1,5 @@
 import './qr-tools.js';
+import './pwa.js';
 
 (() => {
   if (globalThis.LuckyBeanNative?.invoke) return;
