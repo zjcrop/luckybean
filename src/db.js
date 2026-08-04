@@ -1,5 +1,6 @@
 import * as core from './storage-router.js';
 import { sealPrivateJson, openPrivateJson, PRIVATE_ENVELOPE_FORMAT } from './privacy-codec-v096.js';
+import './core-v2/platform/platform-ui.js';
 
 export * from './storage-router.js';
 
