@@ -1,0 +1,56 @@
+name: LuckyBean v1.0.7 Web Test Page
+
+on:
+  push:
+    branches:
+      - test-v107-web
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  issues: write
+
+concurrency:
+  group: luckybean-v107-web-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout isolated Web preview
+        uses: actions/checkout@v4
+        with:
+          ref: test-v107-web
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Web test page
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy Web test page
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Report Web test URL
+        uses: actions/github-script@v7
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 40,
+              body: `Web test page deployed: ${process.env.PAGE_URL}`
+            });
