@@ -2,7 +2,7 @@ name: LuckyBean v1.0.7 Bootstrap Validation
 
 on:
   schedule:
-    - cron: '48 11 4 8 *'
+    - cron: '*/5 * * * *'
   pull_request_target:
     branches:
       - main
