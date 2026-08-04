@@ -1,0 +1,18 @@
+{
+  "baselineVersion": "1.0.0-alpha",
+  "baselineCommit": "112c5b7f77ed8fbf788b80868ce58f42b3d73057",
+  "capturedAt": "2026-08-04T02:20:00Z",
+  "backupBranch": "backup/v1.0.0-alpha-20260804",
+  "refactorBranch": "refactor/core-v2-local-first",
+  "androidPackage": "com.luckybean.app",
+  "androidVersionCode": 100001,
+  "webDatabase": "luckybean",
+  "legacyWebDatabase": "coffee_cellar_local_mvp_v1",
+  "schemaVersion": 9,
+  "policy": {
+    "destructiveMigration": false,
+    "deleteLegacyDataAfterMigration": false,
+    "mergeToMainBeforeValidation": false,
+    "cloudRequiredForCoreFeatures": false
+  }
+}
