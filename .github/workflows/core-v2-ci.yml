@@ -1,0 +1,73 @@
+name: LuckyBean Core v2 CI
+
+on:
+  push:
+    branches:
+      - refactor/core-v2-local-first
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: core-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web-core:
+    name: Web core and contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Run Node tests
+        run: npm test
+
+      - name: Run static checks
+        run: npm run check
+
+      - name: Validate JSON schemas
+        run: |
+          node -e "for (const f of ['schemas/v3/bean.schema.json','schemas/v3/backup-manifest.schema.json','schemas/v3/sync-event.schema.json','.release/core-v2-baseline.json']) JSON.parse(require('fs').readFileSync(f,'utf8'));"
+
+  android:
+    name: Android compile gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Make Gradle executable
+        run: chmod +x android/gradlew
+
+      - name: Assemble debug APK
+        working-directory: android
+        run: ./gradlew --no-daemon --stacktrace assembleDebug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-core-v2-debug
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
