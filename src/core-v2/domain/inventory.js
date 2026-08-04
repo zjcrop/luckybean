@@ -44,15 +44,38 @@ export function computeInventory(events, { beanId = '', floorAtZero = true } = {
 
   let total = 0;
   let minimum = 0;
+  let initialG = 0;
+  let purchasedG = 0;
+  let consumedG = 0;
+  let discardedG = 0;
+  let adjustmentG = 0;
+
   for (const event of normalized) {
     total = Math.round((total + event.deltaG) * 100) / 100;
     minimum = Math.min(minimum, total);
+
+    if (event.type === INVENTORY_EVENT_TYPES.INITIAL) {
+      initialG = Math.round((initialG + event.deltaG) * 100) / 100;
+    } else if (event.type === INVENTORY_EVENT_TYPES.PURCHASE) {
+      purchasedG = Math.round((purchasedG + event.deltaG) * 100) / 100;
+    } else if (event.type === INVENTORY_EVENT_TYPES.BREW) {
+      consumedG = Math.round((consumedG + Math.abs(Math.min(0, event.deltaG))) * 100) / 100;
+    } else if (event.type === INVENTORY_EVENT_TYPES.DISCARD) {
+      discardedG = Math.round((discardedG + Math.abs(Math.min(0, event.deltaG))) * 100) / 100;
+    } else if (event.type === INVENTORY_EVENT_TYPES.ADJUSTMENT) {
+      adjustmentG = Math.round((adjustmentG + event.deltaG) * 100) / 100;
+    }
   }
 
   return Object.freeze({
     beanId,
     remainingG: floorAtZero ? Math.max(0, total) : total,
     rawRemainingG: total,
+    initialG,
+    purchasedG,
+    consumedG,
+    discardedG,
+    adjustmentG,
     eventCount: normalized.length,
     wentNegative: minimum < 0,
     minimumG: minimum,
