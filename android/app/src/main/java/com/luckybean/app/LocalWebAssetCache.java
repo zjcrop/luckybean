@@ -7,8 +7,8 @@ import android.webkit.WebResourceResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -50,10 +50,10 @@ public final class LocalWebAssetCache {
             String encoding = mime.startsWith("text/") ? "UTF-8" : null;
             WebResourceResponse response = new WebResourceResponse(mime, encoding, input);
             response.setStatusCodeAndReasonPhrase(200, "OK");
-            response.setResponseHeaders(Map.of(
-                "Cache-Control", "no-store",
-                "X-LuckyBean-Asset", "apk-cache"
-            ));
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Cache-Control", "no-store");
+            headers.put("X-LuckyBean-Asset", "apk-cache");
+            response.setResponseHeaders(headers);
             return response;
         } catch (IOException error) {
             android.util.Log.w("LuckyBeanAssets", "Local asset unavailable: " + relative, error);
