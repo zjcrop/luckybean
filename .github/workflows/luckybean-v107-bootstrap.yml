@@ -80,6 +80,39 @@ jobs:
           gzip -t /tmp/codebook.js.gz
           gzip -dc /tmp/codebook.js.gz > src/codebook.js
           echo "afb2d3a8f70e1eff63100062496c0ec21f3dc74414374218adfd2ad27c939873  src/codebook.js" | sha256sum -c -
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          path = Path('android/app/build.gradle')
+          text = path.read_text(encoding='utf-8')
+          block = r'''
+
+def generatedOnlineShellAssets = layout.buildDirectory.dir('generated/onlineShellAssets')
+
+tasks.register('copyOnlineShellCriticalAssets', Copy) {
+    from(rootProject.projectDir.parentFile) {
+        include 'public/**'
+        include 'src/**'
+        include 'styles.css'
+    }
+    into(generatedOnlineShellAssets.map { it.dir('web-cache') })
+}
+
+android.sourceSets.main.assets.srcDir(generatedOnlineShellAssets)
+tasks.named('preBuild').configure { dependsOn tasks.named('copyOnlineShellCriticalAssets') }
+'''
+          existing = re.compile(
+              r"\n\ndef generatedOnlineShellAssets = .*?tasks\.named\('preBuild'\)\.configure \{ dependsOn tasks\.named\('copyOnlineShellCriticalAssets'\) \}\n?",
+              re.S,
+          )
+          if existing.search(text):
+              text = existing.sub(block, text)
+          elif "copyOnlineShellCriticalAssets" not in text:
+              text = text.rstrip() + block + "\n"
+          path.write_text(text, encoding='utf-8')
+          PY
+          grep -F "tasks.register('copyOnlineShellCriticalAssets', Copy)" android/app/build.gradle
+          grep -F "include 'src/**'" android/app/build.gradle
           sed -i 's#refactor/v1-consolidated#android/v1-source-consolidation#g' .github/workflows/android-v1-online-shell.yml
           rm -rf .consolidation
 
