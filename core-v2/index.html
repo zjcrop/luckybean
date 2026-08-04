@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0c0c">
+  <meta name="application-version" content="2.0.0-alpha.1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https://*.supabase.co; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>富贵盒子 Core v2</title>
+  <link rel="icon" href="../public/app-logo.webp" type="image/webp">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <strong>富贵盒子</strong>
+      <span id="platformBadge" class="badge">Core v2</span>
+    </div>
+    <div class="header-actions">
+      <span id="offlineBadge" class="badge">本地就绪</span>
+      <button id="themeButton" class="icon-button" type="button" aria-label="切换主题">◐</button>
+    </div>
+  </header>
+
+  <main id="app" class="app-main" aria-live="polite">
+    <section id="view-beans" class="view active" data-view="beans">
+      <div class="view-head">
+        <div><h1>豆藏</h1><p>本地豆卡、库存与快速检索</p></div>
+        <button class="primary" type="button" data-action="bean-new">新增豆卡</button>
+      </div>
+      <div class="toolbar">
+        <input id="beanSearch" type="search" placeholder="搜索名称、产地、豆种或处理法">
+        <select id="beanSort"><option value="updated">最近更新</option><option value="remaining">剩余量</option><option value="roastDate">烘焙日期</option><option value="name">名称</option></select>
+      </div>
+      <div id="beanList" class="card-list"></div>
+    </section>
+
+    <section id="view-brew" class="view" data-view="brew">
+      <div class="view-head"><div><h1>小酌</h1><p>离线生成方案、计时并保存记录</p></div></div>
+      <form id="brewForm" class="panel form-grid">
+        <label>咖啡豆<select id="brewBean" required></select></label>
+        <label>粉量 / g<input id="brewDose" type="number" min="5" max="40" step="0.1" value="15" required></label>
+        <label>粉水比<input id="brewRatio" type="number" min="8" max="25" step="0.1" value="15.5" required></label>
+        <label>注水结构<select id="brewProfile"></select></label>
+        <label>滤杯<input id="brewDripper" value="平底滤杯"></label>
+        <label>磨豆机<input id="brewGrinder" placeholder="例如 C40、ZP6、泰摩 C5"></label>
+        <label class="checkbox"><input id="brewLowTemp" type="checkbox" checked>首段低温</label>
+        <button class="primary span-2" type="submit">生成本地方案</button>
+      </form>
+      <div id="planPanel"></div>
+    </section>
+
+    <section id="view-sensory" class="view" data-view="sensory">
+      <div class="view-head"><div><h1>品鉴</h1><p>离线记录评分、风味与修正依据</p></div></div>
+      <form id="sensoryForm" class="panel form-grid">
+        <label>咖啡豆<select id="sensoryBean" required></select></label>
+        <label>总分<input id="sensoryScore" type="number" min="0" max="100" step="0.1" value="80"></label>
+        <label class="span-2">风味标签<input id="sensoryTags" placeholder="花香、柑橘、蜂蜜；用顿号或逗号分隔"></label>
+        <label class="span-2">札记<textarea id="sensoryNote" rows="5" placeholder="记录甜酸苦、质地、余韵与问题"></textarea></label>
+        <button class="primary span-2" type="submit">保存本地品鉴</button>
+      </form>
+      <div id="sensoryRecent" class="card-list"></div>
+    </section>
+
+    <section id="view-history" class="view" data-view="history">
+      <div class="view-head"><div><h1>历史</h1><p>冲煮、品鉴与复刻记录</p></div></div>
+      <div class="toolbar"><select id="historyType"><option value="all">全部</option><option value="brew">冲煮</option><option value="sensory">品鉴</option></select></div>
+      <div id="historyList" class="card-list"></div>
+    </section>
+
+    <section id="view-tools" class="view" data-view="tools">
+      <div class="view-head"><div><h1>本地工具</h1><p>备份、CSV、OCR、二维码与运行诊断</p></div></div>
+      <div class="panel action-grid">
+        <button type="button" data-action="backup-export">导出 .luckybean</button>
+        <button type="button" data-action="backup-import">恢复 .luckybean</button>
+        <button type="button" data-action="csv-export">导出 CSV</button>
+        <button type="button" data-action="ocr-open">本地 OCR 录入</button>
+        <button type="button" data-action="qr-scan">扫描二维码图片</button>
+        <button type="button" data-action="diagnostics">运行诊断</button>
+      </div>
+      <div class="panel">
+        <h2>运行边界</h2>
+        <dl id="capabilityList" class="definition-list"></dl>
+      </div>
+      <div class="panel cloud-panel">
+        <h2>在线扩展</h2>
+        <p>账号、云同步、在线分享、AI、高级 OCR、社区和地图为可选扩展。断网不会阻止本地保存。</p>
+        <a class="button-link" href="../index.html" target="_blank" rel="noopener">打开 Classic / Cloud 页面</a>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="主导航">
+    <button class="active" type="button" data-nav="beans"><span>藏</span><small>豆藏</small></button>
+    <button type="button" data-nav="brew"><span>酌</span><small>冲煮</small></button>
+    <button type="button" data-nav="sensory"><span>鉴</span><small>品鉴</small></button>
+    <button type="button" data-nav="history"><span>溯</span><small>历史</small></button>
+    <button type="button" data-nav="tools"><span>器</span><small>工具</small></button>
+  </nav>
+
+  <dialog id="modal"><div id="modalContent"></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
