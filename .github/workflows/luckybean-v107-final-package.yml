@@ -79,6 +79,7 @@ jobs:
         run: bash controller/tools/luckybean-v107-bootstrap.sh source
 
       - name: Upload APK and Web preview
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: luckybean-v107-final-test-package
