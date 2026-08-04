@@ -1,42 +1,56 @@
 package com.luckybean.app;
 
-import android.Manifest;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
-import android.content.ClipData;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
-import android.webkit.ConsoleMessage;
-import android.webkit.PermissionRequest;
-import android.webkit.ValueCallback;
-import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.luckybean.app.migration.MigrationCoordinator;
+import com.luckybean.app.nativebridge.NativeCommandRouter;
+
+import org.json.JSONObject;
+import org.mozilla.geckoview.AllowOrDeny;
+import org.mozilla.geckoview.GeckoResult;
+import org.mozilla.geckoview.GeckoRuntime;
+import org.mozilla.geckoview.GeckoSession;
+import org.mozilla.geckoview.GeckoView;
+import org.mozilla.geckoview.WebExtension;
+
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 
 public final class MainActivity extends Activity {
-    private static final String APP_ORIGIN = "https://app.luckybean.local/";
-    private static final int FILE_CHOOSER_REQUEST = 2101;
-    private static final int MEDIA_PERMISSION_REQUEST = 2102;
+    private static final String EXTENSION_LOCATION = "resource://android/assets/luckybean-extension/";
+    private static final String EXTENSION_ID = "core-v2@luckybean.local";
+    private static final String NATIVE_APP = "luckybean";
+    private static final String LEGACY_ORIGIN = "https://app.luckybean.local/";
 
-    private WebView webView;
-    private ValueCallback<Uri[]> filePathCallback;
-    private Uri cameraOutputUri;
-    private PermissionRequest pendingWebPermission;
+    private static GeckoRuntime runtime;
+
+    private FrameLayout root;
+    private MigrationCoordinator migrationCoordinator;
+    private GeckoView geckoView;
+    private GeckoSession geckoSession;
+    private NativeCommandRouter commandRouter;
+    private String trustedExtensionBase = "";
+    private boolean canGoBack;
+    private WebView legacyWebView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,60 +58,147 @@ public final class MainActivity extends Activity {
         getWindow().setStatusBarColor(Color.rgb(8, 9, 9));
         getWindow().setNavigationBarColor(Color.rgb(8, 9, 9));
 
-        webView = new WebView(this);
-        webView.setBackgroundColor(Color.rgb(8, 9, 9));
-        setContentView(webView);
+        root = new FrameLayout(this);
+        root.setBackgroundColor(Color.rgb(8, 9, 9));
+        setContentView(root);
 
-        configureWebView();
-        if (savedInstanceState == null) {
-            webView.loadUrl(APP_ORIGIN + "index.html");
-        } else {
-            webView.restoreState(savedInstanceState);
+        migrationCoordinator = new MigrationCoordinator(this, root, (verified, reportJson) -> {
+            if (verified) startGecko();
+            else {
+                Toast.makeText(this, "旧数据未能安全迁移，已进入兼容模式。原数据未删除。", Toast.LENGTH_LONG).show();
+                startLegacyFallback(reportJson);
+            }
+        });
+        migrationCoordinator.start();
+    }
+
+    private void startGecko() {
+        commandRouter = new NativeCommandRouter(this);
+        geckoView = new GeckoView(this);
+        root.addView(geckoView, new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ));
+
+        geckoSession = new GeckoSession();
+        geckoSession.setContentDelegate(new GeckoSession.ContentDelegate() {});
+        geckoSession.setNavigationDelegate(new AppNavigationDelegate());
+        if (runtime == null) runtime = GeckoRuntime.create(this);
+        geckoSession.open(runtime);
+        geckoView.setSession(geckoSession);
+
+        runtime.getWebExtensionController()
+            .ensureBuiltIn(EXTENSION_LOCATION, EXTENSION_ID)
+            .accept(this::attachTrustedExtension, error -> {
+                Toast.makeText(this, "固定内核资源初始化失败，进入兼容模式。", Toast.LENGTH_LONG).show();
+                stopGecko();
+                startLegacyFallback(error.getMessage());
+            });
+    }
+
+    private void attachTrustedExtension(WebExtension extension) {
+        trustedExtensionBase = extension.metaData.baseUrl;
+        extension.setMessageDelegate(new WebExtension.MessageDelegate() {
+            @Nullable
+            @Override
+            public GeckoResult<Object> onMessage(
+                @NonNull String nativeApp,
+                @NonNull Object message,
+                @NonNull WebExtension.MessageSender sender
+            ) {
+                if (!isTrustedMessage(nativeApp, sender) || !(message instanceof JSONObject)) {
+                    return GeckoResult.fromValue(errorResponse(
+                        "UNTRUSTED_NATIVE_MESSAGE",
+                        "原生消息来源未通过校验"
+                    ));
+                }
+                return commandRouter.handle((JSONObject) message);
+            }
+        }, NATIVE_APP);
+        geckoSession.loadUri(trustedExtensionBase + "index.html");
+    }
+
+    private boolean isTrustedMessage(String nativeApp, WebExtension.MessageSender sender) {
+        return NATIVE_APP.equals(nativeApp)
+            && sender.environmentType == WebExtension.MessageSender.ENV_TYPE_EXTENSION
+            && sender.isTopLevel()
+            && sender.webExtension != null
+            && EXTENSION_ID.equals(sender.webExtension.id)
+            && sender.url != null
+            && !trustedExtensionBase.isBlank()
+            && sender.url.startsWith(trustedExtensionBase);
+    }
+
+    private final class AppNavigationDelegate implements GeckoSession.NavigationDelegate {
+        @Override
+        public GeckoResult<AllowOrDeny> onLoadRequest(
+            @NonNull GeckoSession session,
+            @NonNull LoadRequest request
+        ) {
+            String uri = request.uri;
+            if (uri == null) return GeckoResult.deny();
+            if (!trustedExtensionBase.isBlank() && uri.startsWith(trustedExtensionBase)) {
+                return GeckoResult.allow();
+            }
+            if (uri.startsWith("about:blank")) return GeckoResult.allow();
+            if (uri.startsWith("http://") || uri.startsWith("https://")) {
+                if (request.hasUserGesture) openExternal(Uri.parse(uri));
+                return GeckoResult.deny();
+            }
+            return GeckoResult.deny();
+        }
+
+        @Override
+        public void onCanGoBack(@NonNull GeckoSession session, boolean value) {
+            canGoBack = value;
         }
     }
 
-    private void configureWebView() {
-        WebSettings settings = webView.getSettings();
+    private void startLegacyFallback(String reason) {
+        if (legacyWebView != null) return;
+        legacyWebView = new WebView(this);
+        root.addView(legacyWebView, new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ));
+        WebSettings settings = legacyWebView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
-        settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setAllowFileAccess(false);
-        settings.setAllowContentAccess(true);
+        settings.setAllowContentAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        settings.setBuiltInZoomControls(false);
-        settings.setDisplayZoomControls(false);
-        settings.setSupportZoom(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " LuckyBeanAndroid/1.0.0-alpha");
-
-        webView.setWebViewClient(new LocalAssetClient());
-        webView.setWebChromeClient(new LuckyBeanChromeClient());
-        webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) ->
-            Toast.makeText(this, "Android 版暂不直接保存 Blob 下载；请使用应用内复制或数据导出。", Toast.LENGTH_LONG).show()
+        settings.setMediaPlaybackRequiresUserGesture(false);
+        settings.setUserAgentString(settings.getUserAgentString() + " LuckyBeanAndroid/2.0-legacy-fallback");
+        legacyWebView.setWebViewClient(new LegacyAssetClient());
+        legacyWebView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) ->
+            Toast.makeText(this, "兼容模式不执行 Blob 下载，请先导出迁移备份。", Toast.LENGTH_LONG).show()
         );
+        legacyWebView.loadUrl(LEGACY_ORIGIN + "index.html");
+        android.util.Log.e("LuckyBeanMigration", "Legacy fallback: " + reason);
     }
 
-    private final class LocalAssetClient extends WebViewClient {
+    private final class LegacyAssetClient extends WebViewClient {
         @Override
         public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
             Uri uri = request.getUrl();
             if (!"app.luckybean.local".equals(uri.getHost())) return null;
-
             String path = uri.getPath();
             if (path == null || path.equals("/")) path = "/index.html";
-            path = path.replace("..", "");
-            String assetPath = path.startsWith("/") ? path.substring(1) : path;
+            if (path.contains("..")) return response(403, "Forbidden", "text/plain", "Forbidden");
+            if ("/native-bridge.js".equals(path)) {
+                return response(200, "OK", "text/javascript",
+                    "globalThis.__LUCKYBEAN_ANDROID__=true;globalThis.__LUCKYBEAN_NATIVE_ENGINE__='legacy-webview';");
+            }
+            String assetPath = "luckybean-extension" + path;
             try {
                 InputStream input = getAssets().open(assetPath);
-                Map<String, String> headers = new HashMap<>();
-                headers.put("Access-Control-Allow-Origin", APP_ORIGIN.substring(0, APP_ORIGIN.length() - 1));
-                headers.put("Cache-Control", "no-store");
-                headers.put("X-Content-Type-Options", "nosniff");
-                return new WebResourceResponse(mimeType(path), "UTF-8", 200, "OK", headers, input);
+                return new WebResourceResponse(
+                    mimeType(path), "UTF-8", 200, "OK",
+                    Collections.singletonMap("Cache-Control", "no-store"), input
+                );
             } catch (IOException error) {
-                return new WebResourceResponse("text/plain", "UTF-8", 404, "Not Found",
-                    Collections.singletonMap("Cache-Control", "no-store"),
-                    new java.io.ByteArrayInputStream("Not Found".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+                return response(404, "Not Found", "text/plain", "Not Found");
             }
         }
 
@@ -105,147 +206,79 @@ public final class MainActivity extends Activity {
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
             Uri uri = request.getUrl();
             if ("app.luckybean.local".equals(uri.getHost())) return false;
-            String scheme = uri.getScheme();
-            if ("http".equals(scheme) || "https".equals(scheme)) return false;
-            try {
-                startActivity(new Intent(Intent.ACTION_VIEW, uri));
-            } catch (ActivityNotFoundException ignored) {
-                Toast.makeText(MainActivity.this, "无法打开该链接", Toast.LENGTH_SHORT).show();
-            }
+            openExternal(uri);
             return true;
         }
     }
 
-    private final class LuckyBeanChromeClient extends WebChromeClient {
-        @Override
-        public void onPermissionRequest(PermissionRequest request) {
-            runOnUiThread(() -> {
-                boolean needsCamera = false;
-                boolean needsAudio = false;
-                for (String resource : request.getResources()) {
-                    if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) needsCamera = true;
-                    if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) needsAudio = true;
-                }
-                if (hasMediaPermissions(needsCamera, needsAudio)) {
-                    request.grant(request.getResources());
-                    return;
-                }
-                pendingWebPermission = request;
-                requestPermissions(requiredPermissions(needsCamera, needsAudio), MEDIA_PERMISSION_REQUEST);
-            });
-        }
-
-        @Override
-        public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> callback,
-                                         FileChooserParams params) {
-            if (filePathCallback != null) filePathCallback.onReceiveValue(null);
-            filePathCallback = callback;
-
-            Intent contentIntent;
-            try {
-                contentIntent = params.createIntent();
-            } catch (Exception error) {
-                contentIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                contentIntent.addCategory(Intent.CATEGORY_OPENABLE);
-                contentIntent.setType("*/*");
-            }
-
-            Intent chooser = Intent.createChooser(contentIntent, "选择文件或照片");
-            if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
-                Intent camera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                android.content.ContentValues values = new android.content.ContentValues();
-                values.put(MediaStore.Images.Media.DISPLAY_NAME, "luckybean-qr-" + System.currentTimeMillis() + ".jpg");
-                values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-                cameraOutputUri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
-                if (cameraOutputUri != null) {
-                    camera.putExtra(MediaStore.EXTRA_OUTPUT, cameraOutputUri);
-                    camera.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{camera});
-                }
-            }
-            startActivityForResult(chooser, FILE_CHOOSER_REQUEST);
-            return true;
-        }
-
-        @Override
-        public boolean onConsoleMessage(ConsoleMessage message) {
-            android.util.Log.d("LuckyBeanWeb", message.message() + " @" + message.lineNumber());
-            return true;
+    private void openExternal(Uri uri) {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, uri));
+        } catch (ActivityNotFoundException ignored) {
+            Toast.makeText(this, "无法打开外部链接", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private boolean hasMediaPermissions(boolean camera, boolean audio) {
-        return (!camera || checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
-            && (!audio || checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED);
-    }
-
-    private String[] requiredPermissions(boolean camera, boolean audio) {
-        java.util.ArrayList<String> result = new java.util.ArrayList<>();
-        if (camera && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            result.add(Manifest.permission.CAMERA);
+    private void stopGecko() {
+        if (geckoSession != null) {
+            geckoSession.close();
+            geckoSession = null;
         }
-        if (audio && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            result.add(Manifest.permission.RECORD_AUDIO);
+        if (geckoView != null) {
+            root.removeView(geckoView);
+            geckoView = null;
         }
-        return result.toArray(new String[0]);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode != MEDIA_PERMISSION_REQUEST || pendingWebPermission == null) return;
-        boolean granted = true;
-        for (int result : grantResults) granted &= result == PackageManager.PERMISSION_GRANTED;
-        if (granted) pendingWebPermission.grant(pendingWebPermission.getResources());
-        else pendingWebPermission.deny();
-        pendingWebPermission = null;
+        if (commandRouter != null) {
+            commandRouter.destroy();
+            commandRouter = null;
+        }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode != FILE_CHOOSER_REQUEST || filePathCallback == null) return;
-        Uri[] result = null;
-        if (resultCode == RESULT_OK) {
-            if (data == null || data.getData() == null) {
-                if (cameraOutputUri != null) result = new Uri[]{cameraOutputUri};
-            } else {
-                ClipData clip = data.getClipData();
-                if (clip != null) {
-                    result = new Uri[clip.getItemCount()];
-                    for (int i = 0; i < clip.getItemCount(); i++) result[i] = clip.getItemAt(i).getUri();
-                } else {
-                    result = new Uri[]{data.getData()};
-                }
-            }
-        }
-        filePathCallback.onReceiveValue(result);
-        filePathCallback = null;
-        cameraOutputUri = null;
+        if (commandRouter != null) commandRouter.onActivityResult(requestCode, resultCode, data);
     }
 
     @Override
     public void onBackPressed() {
-        if (webView.canGoBack()) webView.goBack();
-        else super.onBackPressed();
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        webView.saveState(outState);
-        super.onSaveInstanceState(outState);
+        if (geckoSession != null && canGoBack) {
+            geckoSession.goBack();
+        } else if (legacyWebView != null && legacyWebView.canGoBack()) {
+            legacyWebView.goBack();
+        } else {
+            super.onBackPressed();
+        }
     }
 
     @Override
     protected void onDestroy() {
-        if (webView != null) {
-            webView.loadUrl("about:blank");
-            webView.stopLoading();
-            webView.setWebChromeClient(null);
-            webView.setWebViewClient(null);
-            webView.destroy();
+        if (migrationCoordinator != null) migrationCoordinator.destroy();
+        stopGecko();
+        if (legacyWebView != null) {
+            legacyWebView.stopLoading();
+            legacyWebView.loadUrl("about:blank");
+            legacyWebView.setWebViewClient(null);
+            legacyWebView.destroy();
+            legacyWebView = null;
         }
         super.onDestroy();
+    }
+
+    private static JSONObject errorResponse(String code, String message) {
+        try {
+            return new JSONObject().put("ok", false).put("code", code).put("message", message);
+        } catch (Exception impossible) {
+            return new JSONObject();
+        }
+    }
+
+    private static WebResourceResponse response(int status, String reason, String mime, String body) {
+        return new WebResourceResponse(
+            mime, "UTF-8", status, reason,
+            Collections.singletonMap("Cache-Control", "no-store"),
+            new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8))
+        );
     }
 
     private static String mimeType(String path) {
