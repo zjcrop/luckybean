@@ -9,22 +9,21 @@ function beanName(bean) {
 
 function qrPayload(bean) {
   return JSON.stringify({
-    format: 'luckybean-bean-v2',
     schemaVersion: 3,
-    bean: {
-      id: bean.id,
-      name: beanName(bean),
-      countryCode: bean.countryCode || '',
-      regionCode: bean.regionCode || '',
-      entityCode: bean.entityCode || '',
-      varietyCode: bean.varietyCode || bean.varietyCodes?.[0] || '',
-      processCode: bean.processCode || bean.processCodes?.[0] || '',
-      roastCode: bean.roastCode || bean.roastLevelCode || '',
-      roastDate: bean.roastDate || '',
-      flavorTags: bean.flavorTags || [],
-      initialWeight: Number(bean.initialWeight || 0),
-      remainingWeight: Number(bean.remainingWeight || 0)
-    }
+    name: beanName(bean),
+    countryCode: bean.countryCode || '',
+    regionCode: bean.regionCode || '',
+    entityCode: bean.entityCode || '',
+    varietyCode: bean.varietyCode || bean.varietyCodes?.[0] || '',
+    varietyCodes: bean.varietyCodes || (bean.varietyCode ? [bean.varietyCode] : []),
+    processCode: bean.processCode || bean.processCodes?.[0] || '',
+    processCodes: bean.processCodes || (bean.processCode ? [bean.processCode] : []),
+    roastCode: bean.roastCode || bean.roastLevelCode || '',
+    roastDate: bean.roastDate || '',
+    flavorTags: bean.flavorTags || [],
+    initialWeight: Number(bean.initialWeight || 0),
+    remainingWeight: Number(bean.remainingWeight || 0),
+    importedFrom: 'luckybean-core-v2-qr'
   });
 }
 
