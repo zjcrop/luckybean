@@ -117,16 +117,20 @@ jobs:
 
       - name: Verify and collect artifacts
         run: |
-          apk=$(find android/app/build/outputs/apk/debug -name '*.apk' -type f | head -n 1)
+          apk=$(find android/app/build/outputs/apk/debug -name '*.apk' -type f -print -quit)
           test -n "$apk"
           "$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk" | tee SIGNING-CERTIFICATE.txt
-          "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "versionCode='100107'"
-          unzip -t "$apk" >/dev/null
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/app.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/v099f-cloud-codec.js'
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$apk" > APK-BADGING.txt
+          cat APK-BADGING.txt
+          grep -F "versionCode='100107'" APK-BADGING.txt
+          unzip -t "$apk" > APK-ZIP-TEST.txt
+          tail -n 5 APK-ZIP-TEST.txt
+          unzip -Z1 "$apk" > APK-CONTENTS.txt
+          grep -Fx 'assets/web-cache/src/app.js' APK-CONTENTS.txt
+          grep -Fx 'assets/web-cache/src/v099f-cloud-codec.js' APK-CONTENTS.txt
           mkdir -p artifacts web-preview
           cp "$apk" artifacts/LuckyBean-1.0.7-consolidated-test.apk
-          cp SIGNING-CERTIFICATE.txt artifacts/
+          cp SIGNING-CERTIFICATE.txt APK-BADGING.txt APK-CONTENTS.txt APK-ZIP-TEST.txt artifacts/
           sha256sum artifacts/LuckyBean-1.0.7-consolidated-test.apk > artifacts/SHA256SUMS.txt
           cp index.html manifest.webmanifest sw.js styles.css web-preview/
           cp -R src public web-preview/
@@ -136,7 +140,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          printf '/artifacts/\n/web-preview/\n/SIGNING-CERTIFICATE.txt\n' >> .git/info/exclude
+          printf '/artifacts/\n/web-preview/\n/SIGNING-CERTIFICATE.txt\n/APK-BADGING.txt\n/APK-CONTENTS.txt\n/APK-ZIP-TEST.txt\n' >> .git/info/exclude
           git add -A
           git diff --cached --check
           git commit -m "refactor: consolidate LuckyBean 1.0.7 source and record workflows"
