@@ -6,6 +6,7 @@ on:
       - refactor/core-v2-local-first
     paths:
       - 'android/app/src/main/java/com/luckybean/app/data/**'
+      - 'android/app/src/main/java/com/luckybean/app/backup/BackupArchiveService.java'
       - 'android/app/build.gradle'
       - 'android/build.gradle'
       - '.github/workflows/core-v2-room-schema.yml'
@@ -42,18 +43,38 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
+      - name: Apply API 26 compatible UTF-8 reader
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('android/app/src/main/java/com/luckybean/app/backup/BackupArchiveService.java')
+          text = path.read_text(encoding='utf-8')
+          old = 'return Files.readString(file.toPath(), StandardCharsets.UTF_8);'
+          if old in text:
+              new = '''try (InputStream input = new BufferedInputStream(new FileInputStream(file));
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = input.read(buffer)) >= 0) output.write(buffer, 0, read);
+            return output.toString(StandardCharsets.UTF_8.name());
+        }'''
+              path.write_text(text.replace(old, new), encoding='utf-8')
+          elif 'output.toString(StandardCharsets.UTF_8.name())' not in text:
+              raise SystemExit('Backup UTF-8 reader is neither legacy nor expected compatible implementation')
+
       - name: Generate Room schema
         run: gradle --no-daemon -p android clean compileDebugJavaWithJavac
 
-      - name: Commit generated Room schema
+      - name: Commit generated sources and Room schema
         shell: bash
         run: |
-          if [ -z "$(git status --porcelain -- android/app/schemas)" ]; then
-            echo "Room schema unchanged."
+          if [ -z "$(git status --porcelain -- android/app/src/main/java/com/luckybean/app/backup/BackupArchiveService.java android/app/schemas)" ]; then
+            echo "Source and Room schema unchanged."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add android/app/schemas
-          git commit -m "core-v2(batch-6): generated Room schema"
+          git add android/app/src/main/java/com/luckybean/app/backup/BackupArchiveService.java android/app/schemas
+          git commit -m "fix(android): use API 26 compatible backup reader and refresh Room schema"
           git push origin HEAD:refactor/core-v2-local-first
