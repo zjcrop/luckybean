@@ -98,7 +98,7 @@ jobs:
 
       - name: Install Android SDK 35
         run: |
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
           "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Set up Gradle 8.9
@@ -112,8 +112,15 @@ jobs:
           path: ~/.android/debug.keystore
           key: luckybean-online-shell-debug-keystore-v1
 
-      - name: Build Android test APK
-        run: gradle --no-daemon --stacktrace -p android clean assembleDebug
+      - name: Generate Android Web assets and build APK
+        run: |
+          gradle --no-daemon --stacktrace -p android clean
+          gradle --no-daemon --stacktrace -p android :app:copyOnlineShellCriticalAssets
+          test -f android/app/build/generated/onlineShellAssets/web-cache/src/app.js
+          test -f android/app/build/generated/onlineShellAssets/web-cache/src/v099f-cloud-codec.js
+          cmp src/app.js android/app/build/generated/onlineShellAssets/web-cache/src/app.js
+          cmp src/v099f-cloud-codec.js android/app/build/generated/onlineShellAssets/web-cache/src/v099f-cloud-codec.js
+          gradle --no-daemon --stacktrace -p android :app:assembleDebug
 
       - name: Verify and collect artifacts
         run: |
@@ -126,8 +133,11 @@ jobs:
           unzip -t "$apk" > APK-ZIP-TEST.txt
           tail -n 5 APK-ZIP-TEST.txt
           unzip -Z1 "$apk" > APK-CONTENTS.txt
-          grep -Fx 'assets/web-cache/src/app.js' APK-CONTENTS.txt
-          grep -Fx 'assets/web-cache/src/v099f-cloud-codec.js' APK-CONTENTS.txt
+          grep -F 'assets/web-cache/' APK-CONTENTS.txt | sed -n '1,40p'
+          unzip -p "$apk" assets/web-cache/src/app.js > /tmp/apk-app.js
+          unzip -p "$apk" assets/web-cache/src/v099f-cloud-codec.js > /tmp/apk-cloud-codec.js
+          cmp src/app.js /tmp/apk-app.js
+          cmp src/v099f-cloud-codec.js /tmp/apk-cloud-codec.js
           mkdir -p artifacts web-preview
           cp "$apk" artifacts/LuckyBean-1.0.7-consolidated-test.apk
           cp SIGNING-CERTIFICATE.txt APK-BADGING.txt APK-CONTENTS.txt APK-ZIP-TEST.txt artifacts/
