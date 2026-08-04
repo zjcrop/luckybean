@@ -56,3 +56,9 @@ test-results/
 .cache/
 .vite/
 .eslintcache
+
+# The consolidated CI workflow is intentionally tracked even when a runner
+# or global ignore file excludes workflow directories.
+!.github/
+!.github/workflows/
+!.github/workflows/android-v1-online-shell.yml
