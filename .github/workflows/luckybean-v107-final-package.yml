@@ -1,6 +1,9 @@
 name: LuckyBean v1.0.7 Final Test Package
 
 on:
+  push:
+    branches:
+      - ci/v107-final-package-trigger
   issues:
     types: [opened]
   workflow_dispatch:
@@ -15,7 +18,10 @@ concurrency:
 
 jobs:
   package-and-publish:
-    if: github.event_name == 'workflow_dispatch' || github.event.issue.title == 'LB-V107-FINAL-PACKAGE-20260804'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
+      github.event.issue.title == 'LB-V107-FINAL-PACKAGE-20260804'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
