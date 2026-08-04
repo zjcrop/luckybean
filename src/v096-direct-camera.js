@@ -14,6 +14,7 @@ function cameraErrorMessage(error) {
   if (error?.name === 'NotAllowedError') return '未获得摄像头权限，请在浏览器网站权限中允许使用摄像头。';
   if (error?.name === 'NotFoundError') return '没有找到可用摄像头。';
   if (error?.name === 'NotReadableError') return '摄像头正被其他应用占用，请关闭系统相机后重试。';
+  if (error?.code === 'NATIVE_ACTIVITY_FAILED') return `原生相机未完成：${error?.message || '操作已取消'}`;
   if (!globalThis.isSecureContext) return '网页内摄像头只能在 HTTPS 安全连接中使用。';
   return `摄像头启动失败：${error?.message || error}`;
 }
@@ -44,7 +45,7 @@ async function takeFrame(video) {
   ));
 }
 
-function sendBlobToBagCapture(blob) {
+function sendBlobToBagCapture(blob, metadata = null) {
   const input = document.querySelector('#bagCameraInput');
   if (!input) throw new Error('拍袋录入窗口已经关闭');
   const extension = blob.type === 'image/png' ? 'png' : 'jpg';
@@ -52,7 +53,39 @@ function sendBlobToBagCapture(blob) {
   const transfer = new DataTransfer();
   transfer.items.add(file);
   input.files = transfer.files;
-  input.dispatchEvent(new Event('change', { bubbles: true }));
+  if (metadata?.attachmentId) input.dataset.nativeAttachmentId = String(metadata.attachmentId);
+  else delete input.dataset.nativeAttachmentId;
+  if (metadata?.path) input.dataset.nativeAttachmentPath = String(metadata.path);
+  else delete input.dataset.nativeAttachmentPath;
+  input.dispatchEvent(new CustomEvent('change', { bubbles: true, detail: { nativeAttachment: metadata } }));
+}
+
+async function dataUrlToBlob(dataUrl) {
+  if (!String(dataUrl || '').startsWith('data:image/')) throw new Error('原生相机未返回可用预览');
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  if (!blob.size) throw new Error('原生相机返回空图片');
+  return blob;
+}
+
+function nativeCameraAvailable() {
+  return Boolean(globalThis.LuckyBeanNative?.invoke && globalThis.__LUCKYBEAN_NATIVE_ENGINE__ === 'geckoview');
+}
+
+async function openNativeCamera() {
+  const response = await globalThis.LuckyBeanNative.invoke('camera.capture');
+  const value = response?.value ?? response;
+  const blob = await dataUrlToBlob(value?.previewDataUrl);
+  sendBlobToBagCapture(blob, {
+    attachmentId: value?.attachmentId || '',
+    path: value?.path || '',
+    uri: value?.uri || '',
+    persisted: Boolean(value?.persisted),
+    width: Number(value?.width) || 0,
+    height: Number(value?.height) || 0,
+    source: value?.source || 'camera-x'
+  });
+  return value;
 }
 
 async function openStream(video, status) {
@@ -89,9 +122,7 @@ function stopTracksOnly() {
   stream = null;
 }
 
-async function openCamera() {
-  if (opening || cameraRoot) return;
-  opening = true;
+async function openWebCamera() {
   const root = document.createElement('div');
   root.className = 'lb-direct-camera';
   root.innerHTML = `
@@ -140,6 +171,20 @@ async function openCamera() {
     shot.disabled = false;
   } catch (error) {
     status.textContent = cameraErrorMessage(error);
+  }
+}
+
+async function openCamera() {
+  if (opening || cameraRoot) return;
+  opening = true;
+  try {
+    if (nativeCameraAvailable()) await openNativeCamera();
+    else await openWebCamera();
+  } catch (error) {
+    console.error('LuckyBean camera failed', error);
+    if (nativeCameraAvailable()) {
+      globalThis.dispatchEvent(new CustomEvent('luckybean:native-camera-error', { detail: { message: cameraErrorMessage(error) } }));
+    }
   } finally {
     opening = false;
   }
@@ -158,4 +203,8 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden' && cameraRoot) stopCamera();
 });
 
-globalThis.LuckyBeanDirectCamera = { open: openCamera, close: stopCamera };
+globalThis.LuckyBeanDirectCamera = {
+  open: openCamera,
+  close: stopCamera,
+  nativeAvailable: nativeCameraAvailable
+};
