@@ -162,6 +162,10 @@ android {
 dependencies {
     implementation "org.mozilla.geckoview:geckoview:${geckoVersion}"
 
+    implementation 'androidx.activity:activity:1.13.0'
+    implementation 'androidx.core:core:1.18.0'
+    implementation 'androidx.annotation:annotation:1.10.0'
+
     implementation "androidx.room:room-runtime:${roomVersion}"
     annotationProcessor "androidx.room:room-compiler:${roomVersion}"
 
@@ -175,8 +179,6 @@ dependencies {
     implementation 'com.google.mlkit:text-recognition:16.0.1'
     implementation 'com.google.mlkit:text-recognition-chinese:16.0.1'
     implementation 'com.google.mlkit:barcode-scanning:17.3.0'
-
-    implementation 'androidx.annotation:annotation:1.10.0'
 }
 
 tasks.named('preBuild').configure {
