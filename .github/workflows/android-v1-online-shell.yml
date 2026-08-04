@@ -1,0 +1,112 @@
+name: LuckyBean Consolidation Build
+
+on:
+  push:
+    branches:
+      - android/v1-online-shell
+
+permissions:
+  contents: read
+
+concurrency:
+  group: luckybean-consolidation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  materialize-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          ref: android/v1-online-shell
+
+      - name: Materialize accepted changes
+        run: |
+          python3 tools/apply_online_shell_native_ocr.py
+          python3 tools/apply_online_shell_v103_fixes.py
+          python3 tools/apply_online_shell_cloud_password_migration.py
+          python3 tools/prepare_online_shell_v105_patch_helpers.py
+          python3 tools/apply_online_shell_v105_data_ui.py
+          python3 tools/apply_online_shell_v105_parser_precedence.py
+          python3 tools/apply_online_shell_v105_sensory.py
+          python3 tools/apply_online_shell_v105_assets.py
+          python3 tools/prepare_online_shell_v106_verifier.py
+          python3 tools/apply_online_shell_v106_web.py
+          python3 tools/apply_online_shell_v106_android.py
+          python3 tools/apply_online_shell_v106_asset_dependencies.py
+          python3 tools/bump_online_shell_v106_version.py
+
+      - name: Validate materialized source
+        run: |
+          node --check src/app.js
+          node --check src/codebook.js
+          node --check src/db.js
+          node --check src/brew-engine.js
+          node --check src/v106-native-backup.js
+          node --check src/v106-brew-profile-service.js
+          node --check src/v095-sensory-pro.js
+          node --check src/v095-sensory-bootstrap.js
+          node --check src/v095-sensory-flow-guard.js
+          node --check src/v099f-cloud-sync.js
+          node --check src/v099p-settings-rebuild.js
+          grep -q "restoreNativeBackupIfNeeded" src/app.js
+          grep -q "requestSyncedBrewPlan" src/brew-engine.js
+          grep -q "scheduleLaunchOverlayWatchdog" android/app/src/main/java/com/luckybean/app/MainActivity.java
+
+      - name: Package materialized source snapshot
+        run: |
+          rm -rf .git android/.gradle android/app/build
+          zip -qr LuckyBean-materialized-source-v106.zip . \
+            -x '.github/workflows/android-v1-online-shell.yml'
+
+      - name: Upload materialized source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-materialized-source-v106
+          path: LuckyBean-materialized-source-v106.zip
+          if-no-files-found: error
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK 35
+        run: |
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Restore stable online-shell test signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: luckybean-online-shell-debug-keystore-v1
+
+      - name: Build Android test APK
+        run: gradle --no-daemon --stacktrace -p android clean assembleDebug
+
+      - name: Verify and collect APK
+        run: |
+          apk=$(find android/app/build/outputs/apk/debug -name '*.apk' -type f | head -n 1)
+          test -n "$apk"
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk" | tee SIGNING-CERTIFICATE.txt
+          unzip -t "$apk" >/dev/null
+          mkdir -p artifacts
+          cp "$apk" artifacts/LuckyBean-1.0.6-materialized-source-test.apk
+          cp SIGNING-CERTIFICATE.txt artifacts/
+          sha256sum artifacts/LuckyBean-1.0.6-materialized-source-test.apk > artifacts/SHA256SUMS.txt
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-materialized-source-apk-v106
+          path: artifacts/
+          if-no-files-found: error
