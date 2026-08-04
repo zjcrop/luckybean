@@ -20,17 +20,20 @@ import org.mozilla.geckoview.GeckoResult;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public final class NativeCommandRouter {
-    private static final Set<String> STORES = Set.of(
+    private static final Set<String> STORES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
         "beans", "brewSessions", "sensoryRecords", "inventoryEvents", "settings",
         "customCodes", "codebookCache", "syncMetadata", "shareDrafts",
         "attachments", "syncOutbox", "syncTombstones", "schemaMetadata"
-    );
+    )));
 
     private final Activity activity;
     private final LuckyBeanDao dao;
