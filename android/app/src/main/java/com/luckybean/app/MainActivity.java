@@ -38,6 +38,7 @@ import java.util.Locale;
 public final class MainActivity extends Activity {
     private static final String EXTENSION_LOCATION = "resource://android/assets/luckybean-extension/";
     private static final String EXTENSION_ID = "core-v2@luckybean.local";
+    private static final String CORE_ENTRY = "core-v2/index.html";
     private static final String NATIVE_APP = "luckybean";
     private static final String LEGACY_ORIGIN = "https://app.luckybean.local/";
 
@@ -115,7 +116,7 @@ public final class MainActivity extends Activity {
                 return commandRouter.handle((JSONObject) message);
             }
         }, NATIVE_APP);
-        geckoSession.loadUri(trustedExtensionBase + "index.html");
+        geckoSession.loadUri(trustedExtensionBase + CORE_ENTRY);
     }
 
     private boolean isTrustedMessage(String nativeApp, WebExtension.MessageSender sender) {
@@ -126,7 +127,7 @@ public final class MainActivity extends Activity {
             && EXTENSION_ID.equals(sender.webExtension.id)
             && sender.url != null
             && !trustedExtensionBase.isBlank()
-            && sender.url.startsWith(trustedExtensionBase);
+            && sender.url.startsWith(trustedExtensionBase + "core-v2/");
     }
 
     private final class AppNavigationDelegate implements GeckoSession.NavigationDelegate {
