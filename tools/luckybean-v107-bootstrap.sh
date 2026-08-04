@@ -116,6 +116,11 @@ zip -qr artifacts/LuckyBean-1.0.7-web-preview.zip web-preview
 
 echo '== Commit validated consolidated source =='
 printf '/artifacts/\n/web-preview/\n/SIGNING-CERTIFICATE.txt\n/APK-BADGING.txt\n/APK-CONTENTS.txt\n/APK-ZIP-TEST.txt\n' >> .git/info/exclude
+python3 - <<'PY'
+from pathlib import Path
+path = Path('styles.css')
+path.write_text(path.read_text(encoding='utf-8').rstrip() + '\n', encoding='utf-8')
+PY
 git config user.name 'github-actions[bot]'
 git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 git add -A
