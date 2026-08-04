@@ -1,3 +1,5 @@
 plugins {
     id 'com.android.application' version '8.9.1' apply false
 }
+
+// Core v2 Android builds are validated by the Room schema workflow before merge.
