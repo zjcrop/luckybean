@@ -15,6 +15,7 @@ tasks.register('syncLuckyBeanWebAssets') {
         new File(repositoryRoot, 'manifest.webmanifest'),
         new File(repositoryRoot, 'sw.js'),
         fileTree(repositoryRoot) { include '*.css' },
+        fileTree(new File(repositoryRoot, 'core-v2')),
         fileTree(new File(repositoryRoot, 'src')),
         fileTree(new File(repositoryRoot, 'public')),
         fileTree(new File(rootProject.projectDir, 'migration'))
@@ -29,7 +30,7 @@ tasks.register('syncLuckyBeanWebAssets') {
         copy {
             from(repositoryRoot) {
                 include 'index.html', '*.css', 'manifest.webmanifest', 'sw.js'
-                include 'src/**', 'public/**'
+                include 'core-v2/**', 'src/**', 'public/**'
             }
             into extensionRoot
         }
@@ -57,49 +58,13 @@ tasks.register('syncLuckyBeanWebAssets') {
 }
 ''', 'UTF-8')
 
-        File nativeBridge = new File(extensionRoot, 'native-bridge.js')
-        nativeBridge.write('''(() => {
-  const nativeApp = 'luckybean';
-  const invoke = async (command, payload = {}) => {
-    const response = await browser.runtime.sendNativeMessage(nativeApp, {
-      command,
-      payload,
-      requestId: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`
-    });
-    if (!response || response.ok === false) {
-      const error = new Error(response?.message || `Native command failed: ${command}`);
-      error.code = response?.code || 'NATIVE_ERROR';
-      error.details = response?.details || null;
-      throw error;
-    }
-    return response;
-  };
-  globalThis.__LUCKYBEAN_ANDROID__ = true;
-  globalThis.__LUCKYBEAN_NATIVE_ENGINE__ = 'geckoview';
-  globalThis.__LUCKYBEAN_PUBLIC_URL__ = 'https://zjcrop.github.io/BrewIon/luckybean/';
-  globalThis.LuckyBeanNative = Object.freeze({ invoke });
-})();
-''', 'UTF-8')
-
-        File indexFile = new File(extensionRoot, 'index.html')
-        String indexHtml = indexFile.getText('UTF-8')
-        def moduleMatcher = (indexHtml =~ /<script type="module" src="\.\/src\/app\.js(?:\?v=[^"]+)?"><\/script>/)
-        if (!moduleMatcher.find()) {
-            throw new GradleException('未找到应用模块入口，Android资产同步中止。')
+        File coreIndex = new File(extensionRoot, 'core-v2/index.html')
+        if (!coreIndex.isFile()) throw new GradleException('Core v2 入口缺失，Android资产同步中止。')
+        File coreApp = new File(extensionRoot, 'core-v2/app.js')
+        if (!coreApp.isFile()) throw new GradleException('Core v2 应用模块缺失，Android资产同步中止。')
+        if (!coreApp.getText('UTF-8').contains("./native-bridge-loader.js")) {
+            throw new GradleException('Core v2 未加载受信任原生消息桥。')
         }
-        String moduleTag = moduleMatcher.group(0)
-        indexFile.write(indexHtml.replace(moduleTag, '<script src="./native-bridge.js"></script>\n  ' + moduleTag), 'UTF-8')
-
-        File appScript = new File(extensionRoot, 'src/app.js')
-        String original = appScript.getText('UTF-8')
-        String shareTarget = 'const link = `${location.origin}${location.pathname}#share=${encoded}`;'
-        String shareReplacement = 'const shareBase = globalThis.__LUCKYBEAN_PUBLIC_URL__ || `${location.origin}${location.pathname}`; const link = `${shareBase}#share=${encoded}`;'
-        if (original.contains(shareTarget)) {
-            original = original.replace(shareTarget, shareReplacement)
-        } else if (!original.contains('__LUCKYBEAN_PUBLIC_URL__')) {
-            throw new GradleException('未找到分享链接生成语句，Android资产同步中止。')
-        }
-        appScript.write(original, 'UTF-8')
     }
 }
 
@@ -179,6 +144,7 @@ dependencies {
     implementation 'com.google.mlkit:text-recognition:16.0.1'
     implementation 'com.google.mlkit:text-recognition-chinese:16.0.1'
     implementation 'com.google.mlkit:barcode-scanning:17.3.0'
+    implementation 'com.google.zxing:core:3.5.3'
 }
 
 tasks.named('preBuild').configure {
