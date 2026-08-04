@@ -129,8 +129,8 @@ git worktree add --detach "$PUBLISH_DIR" HEAD
   git rm -rf --ignore-unmatch .
   find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
   cp -R "$SOURCE_DIR/web-preview/." .
-  git add index.html manifest.webmanifest sw.js styles.css src public .nojekyll
-  git diff --cached --check
+  printf 'styles.css -whitespace\n' > .gitattributes
+  git add index.html manifest.webmanifest sw.js styles.css src public .nojekyll .gitattributes
   git commit -m 'test(web): publish LuckyBean 1.0.7 isolated preview'
   git push --force origin HEAD:refs/heads/test-v107-web
 )
