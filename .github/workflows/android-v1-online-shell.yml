@@ -40,6 +40,9 @@ jobs:
       - name: Apply label-aware parser form and flavor fixes
         run: python3 tools/apply_online_shell_v105_data_ui.py
 
+      - name: Enforce explicit OCR label precedence
+        run: python3 tools/apply_online_shell_v105_parser_precedence.py
+
       - name: Apply independent sensory workflows
         run: python3 tools/apply_online_shell_v105_sensory.py
 
@@ -63,6 +66,7 @@ jobs:
           grep -q "flavor-accordion" src/app.js
           grep -q "烘焙时间" src/codebook.js
           grep -q "parseRoastDateValue" src/codebook.js
+          grep -q "result\[customField\] = labeledValue" src/codebook.js
           grep -q "杯测品鉴" src/v095-sensory-pro.js
           grep -q "independent-note-v105" src/v095-sensory-pro.js
           grep -q "independent-cupping-v105" src/v095-sensory-pro.js
@@ -89,11 +93,13 @@ jobs:
           assert.equal(result.countryCode, 'ET');
           assert.equal(result.regionCode, 'RG-SID');
           assert.equal(result.processCode, 'PR-WASH');
+          assert.equal(result.varietyCode, undefined);
           assert.equal(result.varietyCustomName, '74110');
           assert.equal(result.harvestYear, 2026);
           assert.equal(result.roastDate, '2026-07-27');
           assert.equal(result.roasterName, '山丘咖啡');
           assert.ok(result.flavorCodes.includes('FV-JAS'));
+          assert.ok(result.customFlavorNames.includes('白玉兰'));
           console.log('label-aware parser fixture passed', result);
           NODE
 
