@@ -38,12 +38,14 @@ public final class NativeCommandRouter {
     private final Activity activity;
     private final LuckyBeanDao dao;
     private final NativeActivityBroker activityBroker;
+    private final NativeBackupBroker backupBroker;
     private final ExecutorService databaseExecutor = Executors.newSingleThreadExecutor();
 
     public NativeCommandRouter(Activity activity) {
         this.activity = activity;
         dao = LuckyBeanDatabase.get(activity).dao();
         activityBroker = new NativeActivityBroker(activity);
+        backupBroker = new NativeBackupBroker(activity);
     }
 
     public GeckoResult<Object> handle(JSONObject request) {
@@ -72,6 +74,10 @@ public final class NativeCommandRouter {
                     ));
                 case "files.openText":
                     return wrap(activityBroker.openText(payload.optJSONArray("mimeTypes")));
+                case "backup.export":
+                    return wrap(backupBroker.exportArchive(payload.optString("name", "luckybean-backup.luckybean")));
+                case "backup.import":
+                    return wrap(backupBroker.importArchive());
                 case "ocr.pickImage":
                     return wrap(activityBroker.pickImageForOcr());
                 case "camera.capture":
@@ -89,10 +95,12 @@ public final class NativeCommandRouter {
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (backupBroker.onActivityResult(requestCode, resultCode, data)) return;
         activityBroker.onActivityResult(requestCode, resultCode, data);
     }
 
     public void destroy() {
+        backupBroker.destroy();
         activityBroker.destroy();
         databaseExecutor.shutdownNow();
     }
@@ -128,6 +136,7 @@ public final class NativeCommandRouter {
             .put("storage", "room")
             .put("schemaVersion", 3)
             .put("files", true)
+            .put("archiveBackup", true)
             .put("cameraX", true)
             .put("ocr", new JSONObject()
                 .put("bundled", true)
