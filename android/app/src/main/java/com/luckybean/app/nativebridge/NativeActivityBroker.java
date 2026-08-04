@@ -3,8 +3,11 @@ package com.luckybean.app.nativebridge;
 import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.provider.OpenableColumns;
+import android.util.Base64;
 
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.TextRecognition;
@@ -32,6 +35,7 @@ public final class NativeActivityBroker {
     private static final int REQUEST_OCR_IMAGE = 3203;
     private static final int REQUEST_CAMERA_CAPTURE = 3204;
     private static final int MAX_TEXT_BYTES = 25 * 1024 * 1024;
+    private static final int CAMERA_PREVIEW_MAX_EDGE = 2048;
 
     private final Activity activity;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
@@ -108,14 +112,9 @@ public final class NativeActivityBroker {
         } else if (requestCode == REQUEST_OCR_IMAGE) {
             recognize(uri, result);
         } else if (requestCode == REQUEST_CAMERA_CAPTURE) {
-            try {
-                result.complete(new JSONObject()
-                    .put("uri", uri.toString())
-                    .put("source", "camera")
-                    .put("persisted", true));
-            } catch (Exception error) {
-                result.completeExceptionally(error);
-            }
+            String absolutePath = data.getStringExtra("absolutePath");
+            String attachmentId = data.getStringExtra("attachmentId");
+            io.execute(() -> cameraPayload(uri, absolutePath, attachmentId, result));
         }
     }
 
@@ -159,9 +158,55 @@ public final class NativeActivityBroker {
                 .put("uri", uri.toString())
                 .put("name", displayName(uri))
                 .put("bytes", total)
-                .put("text", output.toString(StandardCharsets.UTF_8)));
+                .put("text", new String(output.toByteArray(), StandardCharsets.UTF_8)));
         } catch (Exception error) {
             result.completeExceptionally(error);
+        }
+    }
+
+    private void cameraPayload(Uri uri, String absolutePath, String attachmentId, GeckoResult<Object> result) {
+        Bitmap bitmap = null;
+        Bitmap scaled = null;
+        try {
+            if (absolutePath == null || absolutePath.isBlank()) throw new IllegalStateException("相机未返回本地文件");
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(absolutePath, bounds);
+            int sample = 1;
+            int largest = Math.max(bounds.outWidth, bounds.outHeight);
+            while (largest / sample > CAMERA_PREVIEW_MAX_EDGE * 2) sample *= 2;
+
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inSampleSize = Math.max(1, sample);
+            bitmap = BitmapFactory.decodeFile(absolutePath, options);
+            if (bitmap == null) throw new IllegalStateException("无法解码拍摄图片");
+
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+            float scale = Math.min(1f, CAMERA_PREVIEW_MAX_EDGE / (float) Math.max(width, height));
+            scaled = scale < 1f
+                ? Bitmap.createScaledBitmap(bitmap, Math.round(width * scale), Math.round(height * scale), true)
+                : bitmap;
+
+            ByteArrayOutputStream preview = new ByteArrayOutputStream();
+            if (!scaled.compress(Bitmap.CompressFormat.JPEG, 90, preview)) {
+                throw new IllegalStateException("无法生成拍摄预览");
+            }
+            String dataUrl = "data:image/jpeg;base64," + Base64.encodeToString(preview.toByteArray(), Base64.NO_WRAP);
+            result.complete(new JSONObject()
+                .put("uri", uri.toString())
+                .put("attachmentId", attachmentId == null ? "" : attachmentId)
+                .put("path", absolutePath)
+                .put("source", "camera-x")
+                .put("persisted", true)
+                .put("width", width)
+                .put("height", height)
+                .put("previewDataUrl", dataUrl));
+        } catch (Exception error) {
+            result.completeExceptionally(error);
+        } finally {
+            if (scaled != null && scaled != bitmap) scaled.recycle();
+            if (bitmap != null) bitmap.recycle();
         }
     }
 
