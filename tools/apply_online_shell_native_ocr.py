@@ -36,4 +36,9 @@ needle = "    implementation 'androidx.exifinterface:exifinterface:1.3.7'"
 addition = needle + "\n    implementation 'com.google.mlkit:text-recognition-chinese:16.0.1'"
 if 'com.google.mlkit:text-recognition-chinese' not in gradle_text:
     gradle_text = gradle_text.replace(needle, addition)
+
+resolution_block = '''\n\nconfigurations.configureEach {\n    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'\n    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'\n    resolutionStrategy.force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'\n}\n'''
+if "exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'" not in gradle_text:
+    gradle_text += resolution_block
+
 gradle.write_text(gradle_text, encoding='utf-8')
