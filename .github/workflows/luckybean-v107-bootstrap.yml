@@ -63,7 +63,23 @@ jobs:
           base64 --decode /tmp/materialize.b64 > /tmp/materialize.py.gz
           gzip -t /tmp/materialize.py.gz
           gzip -dc /tmp/materialize.py.gz > /tmp/materialize_v107.py
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('/tmp/materialize_v107.py')
+          text = path.read_text(encoding='utf-8')
+          start = text.index("\nfrom pathlib import Path\nimport re\npath=Path('src/codebook.js')")
+          end = text.index("\n\nfrom pathlib import Path\n\n# Persist parse metadata", start)
+          text = text[:start] + "\nprint('parser update deferred to validated codebook payload')\n" + text[end:]
+          path.write_text(text, encoding='utf-8')
+          PY
           python3 /tmp/materialize_v107.py
+          cat .consolidation/codebook.payload.* > /tmp/codebook.b64
+          test "$(wc -c < /tmp/codebook.b64)" -eq 10988
+          echo "e19bc30a2a280d0e4052ebcfda8060ce58a8b5b17f3f33281fe6547c7722e653  /tmp/codebook.b64" | sha256sum -c -
+          base64 --decode /tmp/codebook.b64 > /tmp/codebook.js.gz
+          gzip -t /tmp/codebook.js.gz
+          gzip -dc /tmp/codebook.js.gz > src/codebook.js
+          echo "afb2d3a8f70e1eff63100062496c0ec21f3dc74414374218adfd2ad27c939873  src/codebook.js" | sha256sum -c -
           sed -i 's#refactor/v1-consolidated#android/v1-source-consolidation#g' .github/workflows/android-v1-online-shell.yml
           rm -rf .consolidation
 
