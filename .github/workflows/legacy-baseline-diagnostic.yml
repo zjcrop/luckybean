@@ -1,0 +1,56 @@
+name: LuckyBean Legacy Baseline Diagnostic
+
+on:
+  push:
+    branches:
+      - diagnostic/legacy-test-baseline-20260804
+
+permissions:
+  contents: read
+
+jobs:
+  legacy-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout frozen baseline
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Run complete frozen test suite
+        shell: bash
+        run: |
+          set +e
+          npm test 2>&1 | tee legacy-test-output.log
+          status=${PIPESTATUS[0]}
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const text = fs.readFileSync('legacy-test-output.log', 'utf8');
+          const failures = [...text.matchAll(/^not ok\s+\d+\s+-\s+(.+)$/gm)].map(match => match[1].trim());
+          const summary = {
+            baselineCommit: process.env.GITHUB_SHA,
+            capturedAt: new Date().toISOString(),
+            failures,
+            failureCount: failures.length
+          };
+          fs.writeFileSync('legacy-test-baseline.json', JSON.stringify(summary, null, 2));
+          console.log(JSON.stringify(summary, null, 2));
+          NODE
+          exit $status
+
+      - name: Upload diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: legacy-test-baseline-112c5b7
+          path: |
+            legacy-test-output.log
+            legacy-test-baseline.json
+          if-no-files-found: error
