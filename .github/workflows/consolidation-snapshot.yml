@@ -1,0 +1,66 @@
+name: LuckyBean Consolidation Snapshot
+
+on:
+  push:
+    branches:
+      - android/v1-online-shell
+
+permissions:
+  contents: read
+
+concurrency:
+  group: luckybean-consolidation-snapshot-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          ref: android/v1-online-shell
+
+      - name: Materialize all accepted online-shell changes
+        run: |
+          python3 tools/apply_online_shell_native_ocr.py
+          python3 tools/apply_online_shell_v103_fixes.py
+          python3 tools/apply_online_shell_cloud_password_migration.py
+          python3 tools/prepare_online_shell_v105_patch_helpers.py
+          python3 tools/apply_online_shell_v105_data_ui.py
+          python3 tools/apply_online_shell_v105_parser_precedence.py
+          python3 tools/apply_online_shell_v105_sensory.py
+          python3 tools/apply_online_shell_v105_assets.py
+          python3 tools/prepare_online_shell_v106_verifier.py
+          python3 tools/apply_online_shell_v106_web.py
+          python3 tools/apply_online_shell_v106_android.py
+          python3 tools/apply_online_shell_v106_asset_dependencies.py
+          python3 tools/bump_online_shell_v106_version.py
+
+      - name: Validate materialized source
+        run: |
+          node --check src/app.js
+          node --check src/codebook.js
+          node --check src/db.js
+          node --check src/brew-engine.js
+          node --check src/v106-native-backup.js
+          node --check src/v106-brew-profile-service.js
+          node --check src/v095-sensory-pro.js
+          node --check src/v095-sensory-bootstrap.js
+          node --check src/v095-sensory-flow-guard.js
+          node --check src/v099f-cloud-sync.js
+          node --check src/v099p-settings-rebuild.js
+
+      - name: Package materialized repository snapshot
+        run: |
+          rm -rf .git android/.gradle android/app/build
+          zip -qr LuckyBean-consolidation-source-v106.zip . \
+            -x '.github/workflows/consolidation-snapshot.yml'
+
+      - name: Upload materialized source
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-consolidation-source-v106
+          path: LuckyBean-consolidation-source-v106.zip
+          if-no-files-found: error
