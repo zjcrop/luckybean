@@ -121,8 +121,9 @@ public final class MigrationRepository {
             if (snapshot != null) snapshot.writeReport(finalReport.toString(2));
 
             if (errors.length() > 0) {
-                markFailed(migrationId, "MIGRATION_VERIFY_FAILED", new IllegalStateException(errors.toString()));
-                return failure("MIGRATION_VERIFY_FAILED", new IllegalStateException(errors.toString()));
+                IllegalStateException failure = new IllegalStateException(errors.toString());
+                markFailed(migrationId, "MIGRATION_VERIFY_FAILED", failure);
+                return failure("MIGRATION_VERIFY_FAILED", failure);
             }
 
             List<MigrationRecord> staged = dao.staged(migrationId);
@@ -139,16 +140,17 @@ public final class MigrationRepository {
                 promoted.add(record);
             }
 
+            MigrationState existingState = dao.migrationState(migrationId);
+            final MigrationState promotionState = existingState == null ? new MigrationState() : existingState;
+            promotionState.migrationId = migrationId;
+            promotionState.status = "complete";
+            promotionState.completedAt = now;
+            promotionState.reportJson = finalReport.toString();
+            if (snapshot != null) promotionState.snapshotPath = snapshot.snapshotPath();
+
             database.runInTransaction(() -> {
                 dao.putAll(promoted);
-                MigrationState state = dao.migrationState(migrationId);
-                if (state == null) state = new MigrationState();
-                state.migrationId = migrationId;
-                state.status = "complete";
-                state.completedAt = now;
-                state.reportJson = finalReport.toString();
-                if (snapshot != null) state.snapshotPath = snapshot.snapshotPath();
-                dao.putMigrationState(state);
+                dao.putMigrationState(promotionState);
                 dao.clearStaging(migrationId);
             });
 
