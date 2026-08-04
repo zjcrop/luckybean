@@ -49,6 +49,9 @@ jobs:
       - name: Package all public illustrations locally
         run: python3 tools/apply_online_shell_v105_assets.py
 
+      - name: Prepare v106 verifier keys
+        run: python3 tools/prepare_online_shell_v106_verifier.py
+
       - name: Apply private brew profile and backup lifecycle
         run: python3 tools/apply_online_shell_v106_web.py
 
