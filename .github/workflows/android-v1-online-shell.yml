@@ -1,75 +1,42 @@
-name: LuckyBean Consolidation Build
+name: Bootstrap LuckyBean 1.0.7 Consolidation
 
 on:
   push:
     branches:
-      - android/v1-online-shell
-  pull_request:
-    branches:
-      - main
+      - android/v1-source-consolidation
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: luckybean-consolidation-${{ github.ref }}
+  group: luckybean-v107-bootstrap-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  materialize-and-build:
+  materialize-test-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 60
     steps:
-      - name: Checkout source branch
+      - name: Checkout consolidation branch
         uses: actions/checkout@v4
         with:
-          ref: android/v1-online-shell
+          ref: android/v1-source-consolidation
+          fetch-depth: 0
 
-      - name: Materialize accepted changes
+      - name: Decode and materialize consolidated source
         run: |
-          python3 tools/apply_online_shell_native_ocr.py
-          python3 tools/apply_online_shell_v103_fixes.py
-          python3 tools/apply_online_shell_cloud_password_migration.py
-          python3 tools/prepare_online_shell_v105_patch_helpers.py
-          python3 tools/apply_online_shell_v105_data_ui.py
-          python3 tools/apply_online_shell_v105_parser_precedence.py
-          python3 tools/apply_online_shell_v105_sensory.py
-          python3 tools/apply_online_shell_v105_assets.py
-          python3 tools/prepare_online_shell_v106_verifier.py
-          python3 tools/apply_online_shell_v106_web.py
-          python3 tools/apply_online_shell_v106_android.py
-          python3 tools/apply_online_shell_v106_asset_dependencies.py
-          python3 tools/bump_online_shell_v106_version.py
+          cat .consolidation/materialize.py.gz.b64.* | base64 --decode | gzip --decompress > /tmp/materialize_v107.py
+          python3 /tmp/materialize_v107.py
+          sed -i 's#refactor/v1-consolidated#android/v1-source-consolidation#g' .github/workflows/android-v1-online-shell.yml
+          rm -rf .consolidation
 
-      - name: Validate materialized source
+      - name: JavaScript syntax and focused tests
         run: |
-          node --check src/app.js
-          node --check src/codebook.js
-          node --check src/db.js
-          node --check src/brew-engine.js
-          node --check src/v106-native-backup.js
-          node --check src/v106-brew-profile-service.js
-          node --check src/v095-sensory-pro.js
-          node --check src/v095-sensory-bootstrap.js
-          node --check src/v095-sensory-flow-guard.js
-          node --check src/v099f-cloud-sync.js
-          node --check src/v099p-settings-rebuild.js
-          grep -q "restoreNativeBackupIfNeeded" src/app.js
-          grep -q "requestSyncedBrewPlan" src/brew-engine.js
-          grep -q "scheduleLaunchOverlayWatchdog" android/app/src/main/java/com/luckybean/app/MainActivity.java
-
-      - name: Package materialized source snapshot
-        run: |
-          rm -rf .git android/.gradle android/app/build
-          zip -qr LuckyBean-materialized-source-v106.zip . \
-            -x '.github/workflows/android-v1-online-shell.yml'
-
-      - name: Upload materialized source snapshot
-        uses: actions/upload-artifact@v4
-        with:
-          name: luckybean-materialized-source-v106
-          path: LuckyBean-materialized-source-v106.zip
-          if-no-files-found: error
+          find src -name '*.js' -print0 | xargs -0 -n1 node --check
+          npm test
+          npm run check
+          python3 tests/browser-smoke.py
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -87,7 +54,7 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Restore stable online-shell test signing key
+      - name: Restore stable test signing key
         uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
@@ -96,20 +63,35 @@ jobs:
       - name: Build Android test APK
         run: gradle --no-daemon --stacktrace -p android clean assembleDebug
 
-      - name: Verify and collect APK
+      - name: Verify and collect artifacts
         run: |
           apk=$(find android/app/build/outputs/apk/debug -name '*.apk' -type f | head -n 1)
           test -n "$apk"
           "$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk" | tee SIGNING-CERTIFICATE.txt
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "versionCode='100107'"
           unzip -t "$apk" >/dev/null
-          mkdir -p artifacts
-          cp "$apk" artifacts/LuckyBean-1.0.6-materialized-source-test.apk
+          unzip -l "$apk" | grep -q 'assets/web-cache/src/app.js'
+          unzip -l "$apk" | grep -q 'assets/web-cache/src/v099f-cloud-codec.js'
+          mkdir -p artifacts web-preview
+          cp "$apk" artifacts/LuckyBean-1.0.7-consolidated-test.apk
           cp SIGNING-CERTIFICATE.txt artifacts/
-          sha256sum artifacts/LuckyBean-1.0.6-materialized-source-test.apk > artifacts/SHA256SUMS.txt
+          sha256sum artifacts/LuckyBean-1.0.7-consolidated-test.apk > artifacts/SHA256SUMS.txt
+          cp index.html manifest.webmanifest sw.js styles.css web-preview/
+          cp -R src public web-preview/
+          zip -qr artifacts/LuckyBean-1.0.7-web-preview.zip web-preview
 
-      - name: Upload APK
+      - name: Commit consolidated source after successful validation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "refactor: consolidate LuckyBean 1.0.7 source and record workflows"
+          git push origin HEAD:android/v1-source-consolidation
+
+      - name: Upload APK and Web preview
         uses: actions/upload-artifact@v4
         with:
-          name: luckybean-materialized-source-apk-v106
+          name: luckybean-v107-consolidated-test
           path: artifacts/
           if-no-files-found: error
