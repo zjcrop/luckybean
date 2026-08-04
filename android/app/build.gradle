@@ -4,6 +4,10 @@ plugins {
 
 def repositoryRoot = rootProject.projectDir.parentFile
 def generatedWebAssets = layout.buildDirectory.dir('generated/luckybeanWebAssets')
+def geckoVersion = '152.0.20260713164047'
+def roomVersion = '2.8.4'
+def workVersion = '2.11.2'
+def cameraVersion = '1.6.1'
 
 tasks.register('syncLuckyBeanWebAssets') {
     inputs.files(
@@ -12,24 +16,72 @@ tasks.register('syncLuckyBeanWebAssets') {
         new File(repositoryRoot, 'sw.js'),
         fileTree(repositoryRoot) { include '*.css' },
         fileTree(new File(repositoryRoot, 'src')),
-        fileTree(new File(repositoryRoot, 'public'))
+        fileTree(new File(repositoryRoot, 'public')),
+        fileTree(new File(rootProject.projectDir, 'migration'))
     )
     outputs.dir(generatedWebAssets)
+
     doLast {
         File output = generatedWebAssets.get().asFile
+        File extensionRoot = new File(output, 'luckybean-extension')
         delete output
+
         copy {
             from(repositoryRoot) {
                 include 'index.html', '*.css', 'manifest.webmanifest', 'sw.js'
                 include 'src/**', 'public/**'
             }
-            into output
+            into extensionRoot
         }
 
-        File nativeBridge = new File(output, 'native-bridge.js')
-        nativeBridge.write("globalThis.__LUCKYBEAN_ANDROID__ = true;\nglobalThis.__LUCKYBEAN_PUBLIC_URL__ = 'https://zjcrop.github.io/BrewIon/luckybean/';\n", 'UTF-8')
+        copy {
+            from(new File(rootProject.projectDir, 'migration'))
+            into new File(output, 'migration')
+        }
 
-        File indexFile = new File(output, 'index.html')
+        File extensionManifest = new File(extensionRoot, 'manifest.json')
+        extensionManifest.write('''{
+  "manifest_version": 2,
+  "name": "LuckyBean Core v2",
+  "version": "2.0.0",
+  "description": "LuckyBean trusted local application shell",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "core-v2@luckybean.local"
+    }
+  },
+  "permissions": [
+    "nativeMessaging",
+    "geckoViewAddons"
+  ]
+}
+''', 'UTF-8')
+
+        File nativeBridge = new File(extensionRoot, 'native-bridge.js')
+        nativeBridge.write('''(() => {
+  const nativeApp = 'luckybean';
+  const invoke = async (command, payload = {}) => {
+    const response = await browser.runtime.sendNativeMessage(nativeApp, {
+      command,
+      payload,
+      requestId: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`
+    });
+    if (!response || response.ok === false) {
+      const error = new Error(response?.message || `Native command failed: ${command}`);
+      error.code = response?.code || 'NATIVE_ERROR';
+      error.details = response?.details || null;
+      throw error;
+    }
+    return response;
+  };
+  globalThis.__LUCKYBEAN_ANDROID__ = true;
+  globalThis.__LUCKYBEAN_NATIVE_ENGINE__ = 'geckoview';
+  globalThis.__LUCKYBEAN_PUBLIC_URL__ = 'https://zjcrop.github.io/BrewIon/luckybean/';
+  globalThis.LuckyBeanNative = Object.freeze({ invoke });
+})();
+''', 'UTF-8')
+
+        File indexFile = new File(extensionRoot, 'index.html')
         String indexHtml = indexFile.getText('UTF-8')
         def moduleMatcher = (indexHtml =~ /<script type="module" src="\.\/src\/app\.js(?:\?v=[^"]+)?"><\/script>/)
         if (!moduleMatcher.find()) {
@@ -38,7 +90,7 @@ tasks.register('syncLuckyBeanWebAssets') {
         String moduleTag = moduleMatcher.group(0)
         indexFile.write(indexHtml.replace(moduleTag, '<script src="./native-bridge.js"></script>\n  ' + moduleTag), 'UTF-8')
 
-        File appScript = new File(output, 'src/app.js')
+        File appScript = new File(extensionRoot, 'src/app.js')
         String original = appScript.getText('UTF-8')
         String shareTarget = 'const link = `${location.origin}${location.pathname}#share=${encoded}`;'
         String shareReplacement = 'const shareBase = globalThis.__LUCKYBEAN_PUBLIC_URL__ || `${location.origin}${location.pathname}`; const link = `${shareBase}#share=${encoded}`;'
@@ -59,8 +111,18 @@ android {
         applicationId 'com.luckybean.app'
         minSdk 26
         targetSdk 35
-        versionCode 100001
-        versionName '1.0.0-alpha'
+        versionCode 200001
+        versionName '2.0.0-alpha.1'
+
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments += [
+                    'room.schemaLocation': "$projectDir/schemas".toString(),
+                    'room.incremental': 'true',
+                    'room.expandProjection': 'true'
+                ]
+            }
+        }
     }
 
     sourceSets {
@@ -95,6 +157,26 @@ android {
             excludes += ['/META-INF/{AL2.0,LGPL2.1}']
         }
     }
+}
+
+dependencies {
+    implementation "org.mozilla.geckoview:geckoview:${geckoVersion}"
+
+    implementation "androidx.room:room-runtime:${roomVersion}"
+    annotationProcessor "androidx.room:room-compiler:${roomVersion}"
+
+    implementation "androidx.work:work-runtime:${workVersion}"
+
+    implementation "androidx.camera:camera-core:${cameraVersion}"
+    implementation "androidx.camera:camera-camera2:${cameraVersion}"
+    implementation "androidx.camera:camera-lifecycle:${cameraVersion}"
+    implementation "androidx.camera:camera-view:${cameraVersion}"
+
+    implementation 'com.google.mlkit:text-recognition:16.0.1'
+    implementation 'com.google.mlkit:text-recognition-chinese:16.0.1'
+    implementation 'com.google.mlkit:barcode-scanning:17.3.0'
+
+    implementation 'androidx.annotation:annotation:1.10.0'
 }
 
 tasks.named('preBuild').configure {
