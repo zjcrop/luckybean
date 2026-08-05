@@ -98,8 +98,9 @@ function bindStatusEvents() {
   document.addEventListener('luckybean:cloud-data-restored', () => {
     const node = splash();
     if (node && !node.classList.contains('hidden')) {
-      setStatus('云端数据已更新，正在重新载入…');
-      setTimeout(() => location.reload(), 120);
+      setStatus('云端数据已更新，正在刷新本地视图…');
+      document.addEventListener('luckybean:app-refreshed', () => { setStatus('点击进入'); if (enterRequested) dismissSplash(); }, { once: true });
+      document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail: { source: 'cloud-data-restored' } }));
     }
   });
 }

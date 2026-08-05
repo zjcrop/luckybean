@@ -341,7 +341,7 @@ async function hydrateCloud(section) {
         } else {
           status.textContent = `恢复完成：${result.packets || 0}个分包`;
           toast('云端数据已合并到本地', 'status-good');
-          setTimeout(() => location.reload(), 600);
+          document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail: { source: 'cloud-restore-settings' } }));
         }
       } catch (error) {
         status.textContent = error.message;

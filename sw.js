@@ -10,6 +10,7 @@ const CORE = [
   './src/core/bootstrap.js?v=1.1.0-test',
   './src/services/cloud-auth-service.js?v=1.1.0-test',
   './src/services/cloud-sync-service.js?v=1.1.0-test',
+  './src/cloud-codec.js?v=1.2.0-test',
   './src/services/brew-analysis-service.js?v=1.1.0-test',
   './src/services/local-reference-analysis.js?v=1.1.0-test',
   './src/services/provider-package-service.js?v=1.1.0-test',

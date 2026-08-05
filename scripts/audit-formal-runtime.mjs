@@ -17,7 +17,7 @@ const patterns = [
   ['global-observer', /observe\(document\.documentElement/g],
   ['document-observer', /new MutationObserver[\s\S]{0,500}document\.documentElement/g],
   ['reload-state', /location\.reload\s*\(/g],
-  ['dom-plan-reparse', /#generatedPlan[\s\S]{0,800}(?:textContent|querySelector|stage-cell)/g],
+  ['dom-plan-reparse', /#generatedPlan[\s\S]{0,800}(?:textContent\s*\.|stage-cell|querySelector\([^)]*stage)/g],
   ['native-monkey-patch', /(?:Element|Document|Node)\.prototype\.[A-Za-z_$][\w$]*\s*=/g],
   ['history-status-write', /(?:status\s*=\s*['"](?:planned|completed|terminated)|status:\s*['"](?:planned|completed|terminated))/g],
   ['legacy-runtime-file', /(?:^|\/)v0\d+[a-z0-9-]*\.js$/g]

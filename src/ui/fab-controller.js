@@ -81,5 +81,5 @@ if (wrap && !globalThis.__LuckyBeanFabControllerLoaded) {
   addEventListener('pageshow', () => requestAnimationFrame(repair));
   restore();
 
-  globalThis.LuckyBeanFabController = { repair, reset: () => { localStorage.removeItem(STORAGE_KEY); location.reload(); } };
+  globalThis.LuckyBeanFabController = { repair, reset: () => { localStorage.removeItem(STORAGE_KEY); wrap.style.removeProperty('left'); wrap.style.removeProperty('top'); wrap.style.removeProperty('right'); wrap.style.removeProperty('bottom'); wrap.style.removeProperty('transform'); requestAnimationFrame(repair); } };
 }

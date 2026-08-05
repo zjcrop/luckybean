@@ -2,7 +2,7 @@ import { get, put, getSetting, setSetting } from '../db.js';
 import {
   SYNC_FORMAT, CHUNK_FORMAT, SYNC_SCHEMA_VERSION,
   buildLogicalPackets, encodePacket, decodePacket, compressBytes, decompressBytes, restorePackets
-} from '../v099f-cloud-codec.js';
+} from '../cloud-codec.js';
 
 const ENABLE_KEY = 'cloud.sync.enabled.v3';
 const STATE_ID = 'cloud.sync.state.v3';
