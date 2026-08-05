@@ -1875,7 +1875,7 @@ function renderSettings() {
   <details class="settings-category"><summary><span>本物</span><small>关于本工具和开发小哥的一切</small></summary><div class="settings-category-body about-content"><h2>富贵盒子</h2><p>咖啡豆管理、拾味冲煮辅助、品鉴记录与本地数据归档工具。</p><dl><dt>版本</dt><dd>${APP_VERSION}</dd><dt>数据结构</dt><dd>${SCHEMA_VERSION}</dd><dt>离线引擎</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>数据源</dt><dd>公开编码数据 ${esc(meta.version||state.codebook.version||'6')}</dd><dt>开发与维护</dt><dd>zjcrop</dd></dl></div></details>
   </div>`;
   renderProviderStatusPanel($('#providerStatusPanel')).catch(error => console.warn('数据源状态读取失败', error));
-  $('.settings-category').forEach(section=>section.addEventListener('toggle',()=>{if(!section.open)return;$('.settings-category').forEach(other=>{if(other!==section)other.open=false;});}));
+  $$('.settings-category').forEach(section=>section.addEventListener('toggle',()=>{if(!section.open)return;$$('.settings-category').forEach(other=>{if(other!==section)other.open=false;});}));
   $('#updateCodebookBtn').addEventListener('click', updateCodebook);
   $('#saveApiBtn').addEventListener('click',async()=>{state.settings.brew.apiEndpoint=$('#brewApiEndpoint').value.trim();await saveSettings();toast('接口地址已保存');});
   $('#planVisualToggle').addEventListener('change',async event=>{state.settings.ui.planVisualsExpanded=event.target.checked;await saveSettings();});
