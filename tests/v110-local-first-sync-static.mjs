@@ -12,6 +12,7 @@ const sync = read('src/services/cloud-sync-service.js');
 const db = read('src/db.js');
 const panel = read('src/ui/account-sync-panel.js');
 const fab = read('src/ui/fab-controller.js');
+const compatibility = read('src/features/compatibility-bundle.js');
 const sw = read('sw.js');
 const manifest = JSON.parse(read('manifest.webmanifest'));
 
@@ -21,6 +22,8 @@ assert.match(index, /src\/core\/bootstrap\.js/);
 assert.match(index, /src\/services\/cloud-auth-service\.js/);
 assert.match(index, /src\/services\/cloud-sync-service\.js/);
 assert.match(index, /src\/ui\/fab-controller\.js/);
+assert.match(index, /src\/features\/compatibility-bundle\.js/);
+assert.doesNotMatch(index, /<script[^>]+src="\.\/src\/v/);
 assert.doesNotMatch(index, /v109-supabase-auth-gate\.js/);
 assert.doesNotMatch(index, /v099f-cloud-sync\.js/);
 assert.doesNotMatch(index, /v099j-runtime-stability\.js|v099o-dom-stability\.js|v099h-splash-assets\.js|v099d-radar-scroll\.js|v097-fab-gesture\.js/);
@@ -53,8 +56,15 @@ assert.match(bootstrap, /reconcile/);
 assert.match(panel, /启动和使用不等待服务器/);
 assert.match(fab, /LuckyBeanFabController/);
 
+assert.match(compatibility, /COMPATIBILITY_MODULES/);
+assert.match(compatibility, /for \(const path of COMPATIBILITY_MODULES\)/);
+assert.match(compatibility, /try\s*\{[\s\S]*await import\(path\)/);
+assert.match(compatibility, /LuckyBeanCompatibilityLayer/);
+assert.match(compatibility, /v109-history-management\.js/);
+
 assert.match(sw, /luckybean-1\.1\.0-test/);
 assert.match(sw, /src\/core\/bootstrap\.js/);
+assert.match(sw, /src\/features\/compatibility-bundle\.js/);
 assert.equal(manifest.version, '1.1.0-test');
 
 for (const path of [
@@ -72,4 +82,4 @@ for (const path of [
   'src/v108-local-first-history.js'
 ]) assert.equal(exists(path), false, `${path} should have been removed`);
 
-console.log('v1.1.0 local-first startup and incremental sync static checks passed');
+console.log('v1.1.0 local-first startup, incremental sync and compatibility-layer checks passed');
