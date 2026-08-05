@@ -1,0 +1,82 @@
+name: Commit fully verified v1.2.0 product tree
+
+on:
+  push:
+    branches:
+      - fix/v120-requirements-clean
+    paths:
+      - .github/workflows/commit-v120-verified-product.yml
+
+permissions:
+  contents: write
+
+jobs:
+  verify-and-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/v120-requirements-clean
+          fetch-depth: 0
+
+      - name: Recreate the previously verified product tree
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+          import textwrap
+
+          source = Path('.github/workflows/complete-v120-profile-ownership.yml').read_text(encoding='utf-8')
+          blocks = re.findall(
+              r"(?ms)^        run: \|\n          python3 - <<'PY'\n(?P<script>.*?)^          PY\n",
+              source
+          )
+          if len(blocks) != 2:
+              raise SystemExit(f'expected exactly two verified implementation blocks, got {len(blocks)}')
+
+          for index, block in enumerate(blocks):
+              script_path = Path(f'/tmp/v120-verified-block-{index}.py')
+              script_path.write_text(textwrap.dedent(block), encoding='utf-8')
+              subprocess.run(['python3', str(script_path)], check=True)
+          PY
+
+      - name: Verify JavaScript syntax and structural contracts
+        run: |
+          node --check src/app.js
+          node --check src/sensory-professional-controller.js
+          node --check src/ui/account-sync-panel.js
+          node --check src/ui/voice-settings-controller.js
+          node --check src/renderers/brew-spatial-controller.js
+          node --check src/renderers/brew-spatial-view.js
+          node --check src/services/brew-analysis-service.js
+          node --check src/brew-engine.js
+          node --check src/ui-layout-controller.js
+          npm install --no-audit --no-fund
+          npm run test:static
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run complete browser and visual verification
+        run: |
+          python3 -m http.server 4173 > /tmp/luckybean-http.log 2>&1 &
+          npm run test:smoke
+          npm run test:core
+          npm run test:visual
+
+      - name: Commit the exact verified product tree
+        run: |
+          rm -f .github/workflows/implement-v120-requirements.yml
+          rm -f .github/workflows/resume-v120-implementation.yml
+          rm -f .github/workflows/diagnose-v120-browser-startup.yml
+          rm -f .github/workflows/finalize-v120-requirements.yml
+          rm -f .github/workflows/complete-v120-profile-ownership.yml
+          rm -f .github/workflows/commit-v120-verified-product.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix: implement v1.2.0 requirements with single feature owners"
+          git push origin HEAD:fix/v120-requirements-clean
