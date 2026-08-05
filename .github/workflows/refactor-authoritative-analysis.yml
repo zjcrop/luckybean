@@ -1,0 +1,41 @@
+name: Apply authoritative analysis migration
+
+on:
+  push:
+    branches: [test-v107-web]
+    paths:
+      - 'scripts/refactor-authoritative-analysis.mjs'
+      - '.github/workflows/refactor-authoritative-analysis.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test-v107-web
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply deterministic migration
+        run: node scripts/refactor-authoritative-analysis.mjs
+      - name: Verify syntax and static contracts
+        run: |
+          node --check src/brew-engine.js
+          node --check src/services/brew-analysis-service.js
+          npm test
+      - name: Commit migrated source
+        run: |
+          if git diff --quiet; then
+            echo 'No migration changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/brew-engine.js
+          git commit -m 'refactor: make BrewProfiles analysis authoritative'
+          git push origin HEAD:test-v107-web
