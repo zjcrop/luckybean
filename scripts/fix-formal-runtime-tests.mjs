@@ -8,11 +8,15 @@ for (const path of ['tests/v110-startup-smoke.spec.mjs','tests/v110-local-first-
     .replaceAll('runtimeFeatures-ready', 'runtime-features-ready')
     .replaceAll('src/features/runtimeFeatures', 'src/features/runtime-features')
     .replaceAll('LuckyBeanCompatibilityLayer', 'LuckyBeanRuntimeFeatures')
-    .replaceAll('COMPATIBILITY_MODULES', 'RUNTIME_FEATURES');
+    .replaceAll('COMPATIBILITY_MODULES', 'RUNTIME_FEATURES')
+    .replaceAll('for \\(const path of RUNTIME_FEATURES\\)', 'for \\(const feature of RUNTIME_FEATURES\\)')
+    .replaceAll('await import\\(path\\)', 'await import\\(feature\\.path\\)');
   await writeFile(path, source);
 }
 
 const staticSource = await readFile('tests/v110-local-first-sync-static.mjs', 'utf8');
 if (!/src\\\/features\\\/runtime-features\\\.js/.test(staticSource)) throw new Error('runtime feature index assertion not repaired');
+if (!/for \\\(const feature of RUNTIME_FEATURES\\\)/.test(staticSource)) throw new Error('runtime feature iteration assertion not repaired');
+if (!/await import\\\(feature\\\.path\\\)/.test(staticSource)) throw new Error('runtime feature import assertion not repaired');
 if (staticSource.includes('compatibility-bundle') || staticSource.includes('runtimeFeatures-bundle')) throw new Error('obsolete bundle assertion remains');
 console.log('Formal runtime feature tests repaired precisely.');
