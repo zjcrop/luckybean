@@ -11,6 +11,7 @@ const auth = read('src/services/cloud-auth-service.js');
 const sync = read('src/services/cloud-sync-service.js');
 const db = read('src/db.js');
 const panel = read('src/ui/account-sync-panel.js');
+const appearance = read('src/ui/appearance-controller.js');
 const fab = read('src/ui/fab-controller.js');
 const compatibility = read('src/features/compatibility-bundle.js');
 const sw = read('sw.js');
@@ -21,6 +22,7 @@ assert.match(index, /src\/core\/startup-controller\.js/);
 assert.match(index, /src\/core\/bootstrap\.js/);
 assert.match(index, /src\/services\/cloud-auth-service\.js/);
 assert.match(index, /src\/services\/cloud-sync-service\.js/);
+assert.match(index, /src\/ui\/appearance-controller\.js/);
 assert.match(index, /src\/ui\/fab-controller\.js/);
 assert.match(index, /src\/features\/compatibility-bundle\.js/);
 assert.doesNotMatch(index, /<script[^>]+src="\.\/src\/app\.js/);
@@ -56,6 +58,10 @@ assert.match(db, /luckybean:data-changed/);
 assert.match(bootstrap, /requestIdleCallback/);
 assert.match(bootstrap, /reconcile/);
 assert.match(panel, /启动和使用不等待服务器/);
+assert.match(appearance, /splash-art-red\.webp/);
+assert.match(appearance, /splash-art-light\.webp/);
+assert.match(appearance, /LuckyBeanAppearanceController/);
+assert.doesNotMatch(appearance, /new MutationObserver\([^\n]*document\.documentElement/);
 assert.match(fab, /LuckyBeanFabController/);
 
 assert.match(compatibility, /COMPATIBILITY_MODULES/);
@@ -63,11 +69,14 @@ assert.match(compatibility, /for \(const path of COMPATIBILITY_MODULES\)/);
 assert.match(compatibility, /try\s*\{[\s\S]*await import\(path\)/);
 assert.match(compatibility, /LuckyBeanCompatibilityLayer/);
 assert.match(compatibility, /v109-history-management\.js/);
+assert.doesNotMatch(compatibility, /v095-ui\.js|theme-bridge\.js/);
 
 assert.match(sw, /luckybean-1\.1\.0-test/);
 assert.match(sw, /src\/app\.js/);
 assert.match(sw, /src\/core\/bootstrap\.js/);
+assert.match(sw, /src\/ui\/appearance-controller\.js/);
 assert.match(sw, /src\/features\/compatibility-bundle\.js/);
+assert.doesNotMatch(sw, /v095-ui\.js|theme-bridge\.js|splash-red\.jpg|settings-mascot\.png/);
 assert.equal(manifest.version, '1.1.0-test');
 
 for (const path of [
@@ -82,7 +91,9 @@ for (const path of [
   'src/v099e-account-bridge.js',
   'src/v099e-cloud-sync.js',
   'src/v099f-runtime-hotfix.js',
-  'src/v108-local-first-history.js'
+  'src/v108-local-first-history.js',
+  'src/v095-ui.js',
+  'src/theme-bridge.js'
 ]) assert.equal(exists(path), false, `${path} should have been removed`);
 
 console.log('v1.1.0 local-first startup, incremental sync and compatibility-layer checks passed');
