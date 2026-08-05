@@ -12,10 +12,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: luckybean-checks-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   static-architecture:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,9 +30,9 @@ jobs:
       - name: Run static architecture checks
         run: npm run test:static
 
-  browser-startup:
+  browser-regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,5 +46,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Start local server
         run: python3 -m http.server 4173 > /tmp/luckybean-http.log 2>&1 &
-      - name: Run browser startup smoke test
+      - name: Run local-first startup smoke test
         run: npm run test:smoke
+      - name: Run completed-history and spatial regression test
+        run: npm run test:core
