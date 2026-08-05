@@ -7,6 +7,7 @@ import {
 } from '../../domain/history/history-service.js';
 import { all } from '../../db.js';
 import { formatDate } from '../../utils.js';
+import { compareAnalyses, changeReasons } from '../../domain/history/history-comparison.js';
 
 const esc = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[char]));
 const overlayRoot = () => document.querySelector('#overlayRoot');
@@ -59,7 +60,7 @@ export async function openHistoryScreen(options = {}) {
     <div class="history-toolbar"><input id="historySearchInput" class="control" placeholder="搜索豆卡、方案或札记" value="${esc(state.query)}"><button type="button" data-history-search>搜索</button><button type="button" data-history-select-all>全选</button><span data-history-count>已选 ${state.selected.size} 条</span></div>
     <div class="history-list">${filtered.length ? filtered.map(record => rowHtml(record,beanMap.get(record.beanId))).join('') : '<p class="empty-state">没有符合条件的正式冲煮记录。</p>'}</div>
     <div class="history-actions">
-      ${state.recycle ? '<button type="button" data-history-restore>恢复所选</button><button type="button" class="danger" data-history-permanent>永久删除</button>' : `<button type="button" data-history-archive>${state.archived?'取消归档':'归档所选'}</button><button type="button" class="danger" data-history-recycle>移至回收站</button>`}
+      ${state.recycle ? '<button type="button" data-history-restore>恢复所选</button><button type="button" class="danger" data-history-permanent>永久删除</button>' : `<button type="button" data-history-compare>对比两条记录</button><button type="button" data-history-archive>${state.archived?'取消归档':'归档所选'}</button><button type="button" class="danger" data-history-recycle>移至回收站</button>`}
     </div>
   </div></div>`;
   bindHistory(root, filtered, beanMap);
@@ -75,6 +76,7 @@ function bindHistory(root, records, beanMap) {
   root.querySelectorAll('[data-history-select]').forEach(input=>input.addEventListener('change',()=>updateCount(root)));
   root.querySelector('[data-history-select-all]')?.addEventListener('click',()=>{root.querySelectorAll('[data-history-select]').forEach(input=>{input.checked=true;});updateCount(root);});
   root.querySelectorAll('[data-history-open]').forEach(button=>button.addEventListener('click',()=>openHistoryDetail(records.find(record=>record.id===button.dataset.historyOpen),beanMap.get(records.find(record=>record.id===button.dataset.historyOpen)?.beanId))));
+  root.querySelector('[data-history-compare]')?.addEventListener('click',()=>{const ids=selectedIds(root);if(ids.length!==2)return;openHistoryComparison(records.filter(record=>ids.includes(record.id)),beanMap);});
   root.querySelector('[data-history-archive]')?.addEventListener('click',async()=>{const ids=selectedIds(root);if(!ids.length)return;await archiveBrewRecords(ids,!state.archived);await openHistoryScreen();});
   root.querySelector('[data-history-recycle]')?.addEventListener('click',async()=>{const ids=selectedIds(root);if(!ids.length)return;await moveBrewRecordsToRecycleBin(ids);await openHistoryScreen();});
   root.querySelector('[data-history-restore]')?.addEventListener('click',async()=>{const ids=selectedIds(root);if(!ids.length)return;await restoreBrewRecordsFromRecycleBin(ids);await openHistoryScreen();});
@@ -97,6 +99,31 @@ function openHistoryDetail(record, bean) {
   root.querySelectorAll('[data-history-back]').forEach(button=>button.addEventListener('click',()=>openHistoryScreen()));
   root.querySelector('[data-history-spatial]')?.addEventListener('click',()=>document.dispatchEvent(new CustomEvent('luckybean:open-spatial-scene',{detail:{scene:analysis.trajectory}})));
   root.querySelector('[data-history-replay]')?.addEventListener('click',()=>document.dispatchEvent(new CustomEvent('luckybean:request-history-replay',{detail:{recordId:record.id}})));
+}
+
+function comparisonDirectionRow(item) {
+  return `<div class="history-compare-signal ${esc(item.direction.key)}"><span>${esc(item.label)}</span><strong>${esc(item.direction.arrow)} ${esc(item.direction.label)}</strong></div>`;
+}
+
+function openHistoryComparison(selected, beanMap) {
+  if (!Array.isArray(selected) || selected.length !== 2) return;
+  const [previous, current] = [...selected].sort((a,b)=>String(a.createdAt).localeCompare(String(b.createdAt)));
+  const comparison = compareAnalyses(previous, current);
+  const reasons = changeReasons(comparison);
+  const root = overlayRoot();
+  if (!root) return;
+  root.innerHTML = `<div class="overlay full" data-overlay="history-comparison"><div class="dialog history-comparison-dialog">
+    <div class="dialog-header"><div><h2>冲煮记录对比</h2><p>${esc(beanMap.get(previous.beanId)?.name || '豆卡')} · ${esc(formatDate(previous.createdAt))} → ${esc(formatDate(current.createdAt))}</p></div><button class="close-button" type="button" data-history-comparison-back>×</button></div>
+    <section class="panel"><div class="panel-title"><div><h3>总体趋势</h3><p>${esc(comparison.headline)}</p></div></div><div class="history-compare-signals">${comparison.signals.length?comparison.signals.map(comparisonDirectionRow).join(''):'<p class="muted">两条记录没有共同的可比较风味信号。</p>'}</div></section>
+    <section class="panel"><div class="panel-title"><h3>方案参数变化</h3></div><div class="history-compare-parameters">${comparison.parameters.map(item=>`<div><span>${esc(item.label)}</span><strong>${item.before==null?'—':esc(item.before)}${esc(item.unit)} → ${item.after==null?'—':esc(item.after)}${esc(item.unit)}</strong></div>`).join('')}</div>${reasons.length?`<p class="muted small">${reasons.map(esc).join('；')}</p>`:''}</section>
+    <p class="muted small">风味结果采用方向比较，不表示实验室级绝对测量。</p>
+    <div class="history-detail-actions"><button type="button" data-history-comparison-spatial="previous">查看前次三维</button><button type="button" data-history-comparison-spatial="current">查看本次三维</button><button type="button" data-history-comparison-back>返回</button></div>
+  </div></div>`;
+  root.querySelectorAll('[data-history-comparison-back]').forEach(button=>button.addEventListener('click',()=>openHistoryScreen()));
+  root.querySelectorAll('[data-history-comparison-spatial]').forEach(button=>button.addEventListener('click',()=>{
+    const record=button.dataset.historyComparisonSpatial==='previous'?previous:current;
+    document.dispatchEvent(new CustomEvent('luckybean:open-spatial-scene',{detail:{scene:record.analysisSnapshot?.trajectory}}));
+  }));
 }
 
 function openPermanentDelete(ids) {
