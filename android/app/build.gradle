@@ -2,69 +2,20 @@ plugins {
     id 'com.android.application'
 }
 
-def repositoryRoot = rootProject.projectDir.parentFile
-def generatedWebAssets = layout.buildDirectory.dir('generated/luckybeanWebAssets')
-
-tasks.register('syncLuckyBeanWebAssets') {
-    inputs.files(
-        new File(repositoryRoot, 'index.html'),
-        new File(repositoryRoot, 'manifest.webmanifest'),
-        new File(repositoryRoot, 'sw.js'),
-        fileTree(repositoryRoot) { include '*.css' },
-        fileTree(new File(repositoryRoot, 'src')),
-        fileTree(new File(repositoryRoot, 'public'))
-    )
-    outputs.dir(generatedWebAssets)
-    doLast {
-        File output = generatedWebAssets.get().asFile
-        delete output
-        copy {
-            from(repositoryRoot) {
-                include 'index.html', '*.css', 'manifest.webmanifest', 'sw.js'
-                include 'src/**', 'public/**'
-            }
-            into output
-        }
-
-        File nativeBridge = new File(output, 'native-bridge.js')
-        nativeBridge.write("globalThis.__LUCKYBEAN_ANDROID__ = true;\nglobalThis.__LUCKYBEAN_PUBLIC_URL__ = 'https://zjcrop.github.io/BrewIon/luckybean/';\n", 'UTF-8')
-
-        File indexFile = new File(output, 'index.html')
-        String indexHtml = indexFile.getText('UTF-8')
-        def moduleMatcher = (indexHtml =~ /<script type="module" src="\.\/src\/app\.js(?:\?v=[^"]+)?"><\/script>/)
-        if (!moduleMatcher.find()) {
-            throw new GradleException('未找到应用模块入口，Android资产同步中止。')
-        }
-        String moduleTag = moduleMatcher.group(0)
-        indexFile.write(indexHtml.replace(moduleTag, '<script src="./native-bridge.js"></script>\n  ' + moduleTag), 'UTF-8')
-
-        File appScript = new File(output, 'src/app.js')
-        String original = appScript.getText('UTF-8')
-        String shareTarget = 'const link = `${location.origin}${location.pathname}#share=${encoded}`;'
-        String shareReplacement = 'const shareBase = globalThis.__LUCKYBEAN_PUBLIC_URL__ || `${location.origin}${location.pathname}`; const link = `${shareBase}#share=${encoded}`;'
-        if (original.contains(shareTarget)) {
-            original = original.replace(shareTarget, shareReplacement)
-        } else if (!original.contains('__LUCKYBEAN_PUBLIC_URL__')) {
-            throw new GradleException('未找到分享链接生成语句，Android资产同步中止。')
-        }
-        appScript.write(original, 'UTF-8')
-    }
-}
-
 android {
     namespace 'com.luckybean.app'
     compileSdk 35
 
     defaultConfig {
-        applicationId 'com.luckybean.app'
+        applicationId 'com.luckybean.app.online'
         minSdk 26
         targetSdk 35
-        versionCode 100001
-        versionName '1.0.0-alpha'
+        versionCode 100101
+        versionName '1.0.1-online-test'
     }
 
-    sourceSets {
-        main.assets.srcDir(generatedWebAssets)
+    buildFeatures {
+        buildConfig true
     }
 
     buildTypes {
@@ -97,6 +48,14 @@ android {
     }
 }
 
-tasks.named('preBuild').configure {
-    dependsOn tasks.named('syncLuckyBeanWebAssets')
+dependencies {
+    implementation 'androidx.core:core:1.15.0'
+    implementation 'androidx.exifinterface:exifinterface:1.3.7'
+    implementation 'com.google.mlkit:text-recognition-chinese:16.0.1'
+}
+
+configurations.configureEach {
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+    resolutionStrategy.force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
 }
