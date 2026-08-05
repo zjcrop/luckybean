@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "brewCases": [
+    {
+      "id": "light-washed-geisha-auto",
+      "input": {
+        "bean": {
+          "id": "bean-geisha",
+          "countryCode": "PA",
+          "varietyCode": "GEISHA",
+          "processCode": "WASHED",
+          "roastCode": "RL-L1"
+        },
+        "brew": {
+          "doseG": 15,
+          "ratio": 16,
+          "profileId": "recommended",
+          "segmentMode": "auto",
+          "dripper": "V60",
+          "dripperCode": "V60",
+          "grinder": "ZP6",
+          "lowTempFirst": true
+        },
+        "targets": {
+          "floral": 3,
+          "acidity": 2,
+          "sweetness": 2,
+          "body": 1,
+          "bitterness": 0.5
+        }
+      }
+    },
+    {
+      "id": "medium-natural-three-stage",
+      "input": {
+        "bean": {
+          "id": "bean-natural",
+          "countryCode": "ET",
+          "varietyCode": "HEIRLOOM",
+          "processCode": "NATURAL",
+          "roastCode": "RL-L3"
+        },
+        "brew": {
+          "doseG": 18,
+          "ratio": 15,
+          "profileId": "three-pulse",
+          "segmentMode": "3",
+          "dripper": "平底滤杯",
+          "dripperCode": "FLATBED",
+          "grinder": "C40",
+          "lowTempFirst": false
+        },
+        "targets": {
+          "floral": 1,
+          "acidity": 1,
+          "sweetness": 3,
+          "body": 2,
+          "bitterness": 1
+        }
+      }
+    },
+    {
+      "id": "dark-two-pour-low-ratio",
+      "input": {
+        "bean": {
+          "id": "bean-dark",
+          "countryCode": "BR",
+          "varietyCode": "BOURBON",
+          "processCode": "PULPED_NATURAL",
+          "roastCode": "RL-L5"
+        },
+        "brew": {
+          "doseG": 20,
+          "ratio": 13.5,
+          "profileId": "two-pulse",
+          "segmentMode": "2",
+          "dripper": "Switch",
+          "dripperCode": "SWITCH",
+          "grinder": "C60",
+          "lowTempFirst": true
+        },
+        "targets": {
+          "floral": 0.5,
+          "acidity": 0.5,
+          "sweetness": 2,
+          "body": 3,
+          "bitterness": 1.5
+        }
+      }
+    }
+  ],
+  "inventoryCase": {
+    "beanId": "bean-geisha",
+    "events": [
+      { "id": "inventory-001", "beanId": "bean-geisha", "type": "initial", "deltaG": 200, "createdAt": "2026-08-01T00:00:00.000Z" },
+      { "id": "inventory-002", "beanId": "bean-geisha", "type": "brew", "deltaG": -15, "createdAt": "2026-08-02T00:00:00.000Z" },
+      { "id": "inventory-003", "beanId": "bean-geisha", "type": "adjustment", "deltaG": -1.8, "createdAt": "2026-08-03T00:00:00.000Z" },
+      { "id": "inventory-004", "beanId": "bean-geisha", "type": "brew", "deltaG": -15, "createdAt": "2026-08-04T00:00:00.000Z" }
+    ]
+  },
+  "qrCase": {
+    "schemaVersion": 3,
+    "name": "Golden Panama Geisha",
+    "countryCode": "PA",
+    "varietyCode": "GEISHA",
+    "processCode": "WASHED",
+    "roastCode": "RL-L1",
+    "roastDate": "2026-08-01",
+    "flavorTags": ["花香", "柑橘", "蜂蜜"],
+    "initialWeight": 100,
+    "remainingWeight": 85,
+    "importedFrom": "luckybean-core-v2-golden"
+  }
+}

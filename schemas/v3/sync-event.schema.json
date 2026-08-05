@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luckybean.local/schema/v3/sync-event.schema.json",
+  "title": "LuckyBean Sync Event v2",
+  "type": "object",
+  "required": ["eventId", "protocolVersion", "entityType", "entityId", "revision", "operation", "deviceId", "clientTime", "contentHash"],
+  "properties": {
+    "eventId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "protocolVersion": { "const": 2 },
+    "entityType": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "entityId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "revision": { "type": "integer", "minimum": 1 },
+    "operation": { "enum": ["upsert", "delete"] },
+    "deviceId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "clientTime": { "type": "string", "format": "date-time" },
+    "contentHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "payload": { "type": ["object", "null"] }
+  },
+  "additionalProperties": false
+}

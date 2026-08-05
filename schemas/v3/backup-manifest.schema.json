@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luckybean.local/schema/v3/backup-manifest.schema.json",
+  "title": "LuckyBean Backup Manifest",
+  "type": "object",
+  "required": ["format", "formatVersion", "coreVersion", "schemaVersion", "createdAt", "counts", "checksums"],
+  "properties": {
+    "format": { "const": "luckybean-backup-v1" },
+    "formatVersion": { "const": 1 },
+    "coreVersion": { "type": "string", "minLength": 1 },
+    "appVersion": { "type": "string" },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "syncProtocolVersion": { "type": "integer", "minimum": 1 },
+    "codebookVersion": { "type": "string" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "deviceId": { "type": "string" },
+    "encrypted": { "type": "boolean" },
+    "counts": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "checksums": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+    }
+  },
+  "additionalProperties": false
+}

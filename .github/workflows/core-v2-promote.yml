@@ -1,0 +1,204 @@
+name: LuckyBean Core v2 Test Build
+
+on:
+  push:
+    branches:
+      - refactor/core-v2-local-first
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  actions: read
+
+concurrency:
+  group: core-v2-test-build
+  cancel-in-progress: true
+
+env:
+  LEGACY_BASELINE_SHA: 112c5b7f77ed8fbf788b80868ce58f42b3d73057
+  TEST_VERSION: 2.0.0-alpha.1
+
+jobs:
+  preflight:
+    if: ${{ hashFiles('.release/PROMOTE_CORE_V2_ALPHA') != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install project dependencies
+        run: npm install --ignore-scripts
+
+      - name: Core v2 contracts, security and golden tests
+        run: node --test tests/core-v2-*.test.mjs
+
+      - name: Static checks and schema parsing
+        run: |
+          npm run check
+          node -e "for (const f of ['schemas/v3/bean.schema.json','schemas/v3/backup-manifest.schema.json','schemas/v3/sync-event.schema.json','.release/core-v2-baseline.json']) JSON.parse(require('fs').readFileSync(f,'utf8'));"
+
+      - name: Legacy regression differential
+        shell: bash
+        run: |
+          git worktree add ../legacy-baseline "$LEGACY_BASELINE_SHA"
+          (cd ../legacy-baseline && npm install --ignore-scripts >/dev/null && npm test) > legacy-baseline.log 2>&1 || true
+          npm test > legacy-current.log 2>&1 || true
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const failures = path => [...fs.readFileSync(path,'utf8').matchAll(/^not ok\s+\d+\s+-\s+(.+)$/gm)].map(m => m[1].trim());
+          const baseline = failures('legacy-baseline.log');
+          const current = failures('legacy-current.log');
+          const known = new Set(baseline);
+          const added = current.filter(name => !known.has(name));
+          const report = { baseline, current, added, passed: added.length === 0 };
+          fs.writeFileSync('legacy-promotion-report.json', JSON.stringify(report,null,2));
+          if (added.length) {
+            console.error('New legacy failures:', added);
+            process.exit(1);
+          }
+          NODE
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save @playwright/test
+          npx playwright install --with-deps chromium
+
+      - name: Run real browser and offline smoke
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > core-v2-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill $server_pid || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/core-v2/ >/dev/null; then break; fi
+            sleep 1
+          done
+          CORE_V2_BASE_URL=http://127.0.0.1:4173/core-v2/ npx playwright test tests/core-v2-browser.spec.mjs --reporter=line
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android API 36
+        run: |
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"
+
+      - name: Set up Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Build Android Debug and Alpha
+        run: gradle --no-daemon --stacktrace -p android clean assembleDebug assembleAlpha
+
+      - name: Require committed Room schema
+        shell: bash
+        run: |
+          test -f android/app/schemas/com.luckybean.app.data.LuckyBeanDatabase/1.json
+          git diff --exit-code -- android/app/schemas
+
+      - name: Prepare APK and Web test package
+        shell: bash
+        run: |
+          mkdir -p test-artifacts/web
+          cp android/app/build/outputs/apk/alpha/*.apk test-artifacts/LuckyBean-Core-v2.0.0-alpha.1-test.apk
+          cp -R core-v2 test-artifacts/web/
+          mkdir -p test-artifacts/web/src
+          cp -R src/core-v2 test-artifacts/web/src/
+          cp -R schemas test-artifacts/web/
+          cp README.md test-artifacts/web/README-repository.md
+          (cd test-artifacts/web && zip -qr ../LuckyBean-Core-v2-Web-Test.zip .)
+          sha256sum test-artifacts/LuckyBean-Core-v2.0.0-alpha.1-test.apk test-artifacts/LuckyBean-Core-v2-Web-Test.zip > test-artifacts/SHA256SUMS.txt
+          unzip -l test-artifacts/LuckyBean-Core-v2.0.0-alpha.1-test.apk > test-artifacts/apk-contents.txt
+          grep -q 'luckybean-extension/core-v2/index.html' test-artifacts/apk-contents.txt
+          grep -q 'luckybean-extension/core-v2/app.js' test-artifacts/apk-contents.txt
+
+      - name: Write test evidence
+        shell: bash
+        run: |
+          cat > test-artifacts/test-build.json <<JSON
+          {
+            "candidateSha": "${GITHUB_SHA}",
+            "baselineSha": "${LEGACY_BASELINE_SHA}",
+            "coreVersion": "${TEST_VERSION}",
+            "schemaVersion": 3,
+            "syncProtocolVersion": 2,
+            "mainMerged": false,
+            "productionDeployed": false,
+            "gates": {
+              "coreTests": true,
+              "securityTests": true,
+              "goldenTests": true,
+              "legacyDifferential": true,
+              "browserOfflineSmoke": true,
+              "androidDebug": true,
+              "androidAlpha": true,
+              "roomSchemaCommitted": true
+            }
+          }
+          JSON
+          cp legacy-promotion-report.json test-artifacts/
+
+      - name: Upload test candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-core-v2-test-candidate
+          path: test-artifacts/
+          if-no-files-found: error
+
+  publish-test-release:
+    needs: preflight
+    if: ${{ needs.preflight.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Download verified test candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: luckybean-core-v2-test-candidate
+          path: test-candidate
+
+      - name: Publish branch-only prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          tag="v${TEST_VERSION}-test-${short_sha}"
+          cat > release-notes.md <<NOTES
+          ## LuckyBean Core v${TEST_VERSION} 测试包
+
+          该版本来自 \`refactor/core-v2-local-first\`，仅供测试：
+
+          - 未合并 \`main\`；
+          - 未替换正式 Web/PWA；
+          - APK 使用测试签名；
+          - 数据迁移遵循不清库、保留原始快照原则；
+          - 请重点测试离线保存、旧数据迁移、备份恢复、相机/OCR、二维码、冲煮计时、品鉴与复刻。
+
+          Candidate: \`${GITHUB_SHA}\`
+          NOTES
+          gh release create "$tag" \
+            test-candidate/LuckyBean-Core-v2.0.0-alpha.1-test.apk \
+            test-candidate/LuckyBean-Core-v2-Web-Test.zip \
+            test-candidate/SHA256SUMS.txt \
+            test-candidate/test-build.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "LuckyBean Core v${TEST_VERSION} Test ${short_sha}" \
+            --notes-file release-notes.md \
+            --prerelease
+          release_url=$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json url --jq .url)
+          gh issue comment 22 --repo "$GITHUB_REPOSITORY" --body "Core v2 测试包已生成：${release_url}。该版本未合并 main、未部署正式 Web。"

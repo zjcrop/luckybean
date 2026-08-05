@@ -1,0 +1,20 @@
+{
+  "name": "富贵盒子 LuckyBean Core v2",
+  "short_name": "富贵盒子",
+  "description": "本地优先的咖啡豆管理、冲煮与品鉴工具",
+  "id": "./index.html",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0c0c",
+  "theme_color": "#0b0c0c",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "../public/app-logo.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
+  ]
+}

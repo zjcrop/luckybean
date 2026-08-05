@@ -1,0 +1,82 @@
+name: LuckyBean Core v2 Android Diagnostic
+
+on:
+  push:
+    branches:
+      - refactor/core-v2-local-first
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: core-v2-android-diagnostic
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android API 36
+        run: |
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Compile and extract errors
+        id: compile
+        shell: bash
+        run: |
+          set +e
+          gradle --no-daemon --stacktrace -p android assembleDebug > android-build.log 2>&1
+          status=$?
+          set -e
+          grep -E "(^|[[:space:]])(error:|FAILURE:|What went wrong:|Caused by:)|\.java:[0-9]+:" android-build.log | tail -n 120 > android-errors.txt || true
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          if [ "$status" -eq 0 ]; then
+            echo "Android compile gate: PASS" > diagnostic-summary.txt
+          else
+            echo "Android compile gate: FAIL" > diagnostic-summary.txt
+            cat android-errors.txt >> diagnostic-summary.txt
+          fi
+
+      - name: Report to Issue 22
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_STATUS: ${{ steps.compile.outputs.status }}
+        shell: bash
+        run: |
+          {
+            echo "### Android 编译诊断"
+            echo
+            echo "- Commit: \`${GITHUB_SHA}\`"
+            echo "- Exit code: \`${BUILD_STATUS}\`"
+            echo
+            echo '```text'
+            sed -n '1,140p' diagnostic-summary.txt
+            echo '```'
+          } > issue-comment.md
+          gh issue comment 22 --repo "$GITHUB_REPOSITORY" --body-file issue-comment.md
+          test "$BUILD_STATUS" = "0"
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-android-diagnostic
+          path: |
+            android-build.log
+            android-errors.txt
+            diagnostic-summary.txt
+          if-no-files-found: error

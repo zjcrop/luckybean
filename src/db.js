@@ -1,10 +1,22 @@
-import * as core from './db-storage-core.js';
+import * as core from './storage-router.js';
 import { sealPrivateJson, openPrivateJson, PRIVATE_ENVELOPE_FORMAT } from './privacy-codec-v096.js';
+import { createSyncEvent } from './core-v2/sync/outbox.js';
+import './core-v2/platform/platform-ui.js';
 
-export * from './db-storage-core.js';
+export * from './storage-router.js';
 
 const PRIVACY_KEY_ID = 'local.privacy.key.v1';
+const CORE_V2_SYNCABLE_STORES = Object.freeze({
+  beans: 'bean',
+  brewSessions: 'brewSession',
+  sensoryRecords: 'sensoryRecord',
+  inventoryEvents: 'inventoryEvent',
+  settings: 'setting',
+  customCodes: 'customCode',
+  attachments: 'attachment'
+});
 let privacySecretPromise;
+let outboxWriteDepth = 0;
 
 function bytesToBase64(bytes) {
   let binary = '';
@@ -14,6 +26,36 @@ function bytesToBase64(bytes) {
 
 function base64ToBytes(value) {
   return Uint8Array.from(atob(String(value || '')), char => char.charCodeAt(0));
+}
+
+function deviceId() {
+  const key = 'luckybean.core-v2.device-id';
+  let value = '';
+  try { value = localStorage.getItem(key) || ''; } catch { /* ignored */ }
+  if (!value) {
+    value = crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    try { localStorage.setItem(key, value); } catch { /* Room/IndexedDB remains authoritative. */ }
+  }
+  return value;
+}
+
+async function enqueueCoreV2Sync(name, value, operation = 'upsert') {
+  if (!globalThis.__LUCKYBEAN_CORE_V2__ || outboxWriteDepth > 0) return;
+  const entityType = CORE_V2_SYNCABLE_STORES[name];
+  if (!entityType || !value?.id) return;
+  const event = await createSyncEvent({
+    entityType,
+    entity: value,
+    operation,
+    deviceId: deviceId(),
+    clientTime: new Date().toISOString()
+  });
+  outboxWriteDepth += 1;
+  try {
+    await core.put('syncOutbox', event);
+  } finally {
+    outboxWriteDepth -= 1;
+  }
 }
 
 async function privacySecret() {
@@ -102,12 +144,18 @@ export async function all(name) {
 }
 
 export async function put(name, value) {
-  return core.put(name, await prepareWrite(name, value));
+  const prepared = await prepareWrite(name, value);
+  const result = await core.put(name, prepared);
+  await enqueueCoreV2Sync(name, prepared, 'upsert');
+  return result;
 }
 
 export async function bulkPut(name, values) {
   if (!Array.isArray(values)) throw new Error('批量写入数据必须是数组');
-  return core.bulkPut(name, await Promise.all(values.map(value => prepareWrite(name, value))));
+  const prepared = await Promise.all(values.map(value => prepareWrite(name, value)));
+  const result = await core.bulkPut(name, prepared);
+  for (const value of prepared) await enqueueCoreV2Sync(name, value, 'upsert');
+  return result;
 }
 
 export async function getSetting(id, fallback = null) {
@@ -119,7 +167,7 @@ export async function setSetting(id, value) {
   return put('settings', { id, value, updatedAt: new Date().toISOString() });
 }
 
-export async function clearAll() {
+export async function clearAll(options = {}) {
   privacySecretPromise = undefined;
-  return core.clearAll();
+  return core.clearAll(options);
 }

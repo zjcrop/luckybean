@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luckybean.local/schema/v3/bean.schema.json",
+  "title": "LuckyBean Bean v3",
+  "type": "object",
+  "required": ["id", "schemaVersion", "revision", "name", "createdAt", "updatedAt"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "schemaVersion": { "const": 3 },
+    "revision": { "type": "integer", "minimum": 1 },
+    "deviceId": { "type": "string", "maxLength": 128 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "countryCode": { "type": "string", "maxLength": 32 },
+    "regionCode": { "type": "string", "maxLength": 64 },
+    "entityCode": { "type": "string", "maxLength": 64 },
+    "varietyCodes": { "type": "array", "items": { "type": "string", "maxLength": 64 }, "uniqueItems": true },
+    "processCodes": { "type": "array", "items": { "type": "string", "maxLength": 64 }, "uniqueItems": true },
+    "flavorCodes": { "type": "array", "items": { "type": "string", "maxLength": 64 }, "uniqueItems": true },
+    "roastDate": { "type": ["string", "null"], "format": "date" },
+    "roastLevelCode": { "type": "string", "maxLength": 32 },
+    "agtron": { "type": ["number", "null"], "minimum": 0, "maximum": 200 },
+    "initialWeight": { "type": "number", "minimum": 0 },
+    "remainingWeight": { "type": "number", "minimum": 0 },
+    "archived": { "type": "boolean" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "deletedAt": { "type": ["string", "null"], "format": "date-time" }
+  },
+  "additionalProperties": true
+}

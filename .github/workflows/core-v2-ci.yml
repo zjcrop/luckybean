@@ -1,0 +1,199 @@
+name: LuckyBean Core v2 CI
+
+on:
+  push:
+    branches:
+      - refactor/core-v2-local-first
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: core-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  LEGACY_BASELINE_SHA: 112c5b7f77ed8fbf788b80868ce58f42b3d73057
+
+jobs:
+  web-core:
+    name: Core v2 contracts and static checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Run Core v2 tests
+        run: node --test tests/core-v2-*.test.mjs
+
+      - name: Run static checks
+        run: npm run check
+
+      - name: Validate JSON schemas
+        run: |
+          node -e "for (const f of ['schemas/v3/bean.schema.json','schemas/v3/backup-manifest.schema.json','schemas/v3/sync-event.schema.json','.release/core-v2-baseline.json']) JSON.parse(require('fs').readFileSync(f,'utf8'));"
+
+  legacy-regression:
+    name: Legacy suite baseline differential
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+        with:
+          path: current
+
+      - name: Checkout frozen v1 baseline
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.LEGACY_BASELINE_SHA }}
+          path: baseline
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install current dependencies
+        working-directory: current
+        run: npm install --ignore-scripts
+
+      - name: Install baseline dependencies
+        working-directory: baseline
+        run: npm install --ignore-scripts
+
+      - name: Compare complete test suites
+        shell: bash
+        run: |
+          set +e
+          (cd baseline && npm test) > baseline-test.log 2>&1
+          baseline_status=$?
+          (cd current && npm test) > current-test.log 2>&1
+          current_status=$?
+          set -e
+
+          BASELINE_STATUS=$baseline_status CURRENT_STATUS=$current_status node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          function failures(path) {
+            const text = fs.readFileSync(path, 'utf8');
+            return [...text.matchAll(/^not ok\s+\d+\s+-\s+(.+)$/gm)]
+              .map(match => match[1].trim());
+          }
+
+          const baselineFailures = failures('baseline-test.log');
+          const currentFailures = failures('current-test.log');
+          const baselineSet = new Set(baselineFailures);
+          const currentSet = new Set(currentFailures);
+          const newFailures = currentFailures.filter(name => !baselineSet.has(name));
+          const resolvedFailures = baselineFailures.filter(name => !currentSet.has(name));
+          const report = {
+            baselineCommit: process.env.LEGACY_BASELINE_SHA,
+            currentCommit: process.env.GITHUB_SHA,
+            capturedAt: new Date().toISOString(),
+            baselineExitCode: Number(process.env.BASELINE_STATUS),
+            currentExitCode: Number(process.env.CURRENT_STATUS),
+            baselineFailures,
+            currentFailures,
+            newFailures,
+            resolvedFailures,
+            gatePassed: newFailures.length === 0
+          };
+          fs.writeFileSync('legacy-regression-report.json', JSON.stringify(report, null, 2));
+          console.log(JSON.stringify(report, null, 2));
+          if (newFailures.length) process.exit(1);
+          NODE
+
+      - name: Upload legacy regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-legacy-regression
+          path: |
+            baseline-test.log
+            current-test.log
+            legacy-regression-report.json
+          if-no-files-found: error
+
+  android:
+    name: Android compile gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android API 36
+        run: |
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"
+
+      - name: Set up Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+          cache-read-only: false
+
+      - name: Assemble debug APK and capture diagnostics
+        id: android_build
+        shell: bash
+        run: |
+          set +e
+          gradle --no-daemon --stacktrace -p android assembleDebug 2>&1 | tee android-build.log
+          status=${PIPESTATUS[0]}
+          set -e
+          grep -E "(^|[[:space:]])(error:|FAILURE:|What went wrong:|Caused by:)|\.java:[0-9]+:" android-build.log > android-errors.txt || true
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit $status
+
+      - name: Upload Android compiler diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-android-build-diagnostics
+          path: |
+            android-build.log
+            android-errors.txt
+          if-no-files-found: error
+
+      - name: Upload arm64 phone APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-core-v2-debug-arm64-v8a
+          path: android/app/build/outputs/apk/debug/*arm64-v8a*.apk
+          if-no-files-found: error
+
+      - name: Upload 32-bit ARM fallback APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-core-v2-debug-armeabi-v7a
+          path: android/app/build/outputs/apk/debug/*armeabi-v7a*.apk
+          if-no-files-found: error
+
+      - name: Upload x86_64 emulator APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-core-v2-debug-x86_64
+          path: android/app/build/outputs/apk/debug/*x86_64*.apk
+          if-no-files-found: error

@@ -1,0 +1,39 @@
+name: LuckyBean Core v2 Golden Candidate
+
+on:
+  push:
+    branches:
+      - refactor/core-v2-local-first
+
+permissions:
+  contents: read
+
+concurrency:
+  group: core-v2-golden-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Generate candidate vectors from shared engine
+        run: node scripts/generate-core-v2-golden.mjs artifacts/core-v2-golden-candidate.json
+
+      - name: Upload candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-core-v2-golden-candidate
+          path: artifacts/core-v2-golden-candidate.json
+          if-no-files-found: error

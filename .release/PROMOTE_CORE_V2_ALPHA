@@ -1,0 +1,4 @@
+LuckyBean Core v2.0.0-alpha.1
+
+Promotion is authorized only when every gate in .github/workflows/core-v2-promote.yml passes.
+No failed or cancelled run may merge main, deploy Web, or publish the APK.
