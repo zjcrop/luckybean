@@ -4,6 +4,8 @@ import { sealPrivateJson, openPrivateJson, PRIVATE_ENVELOPE_FORMAT } from './pri
 export * from './db-storage-core.js';
 
 const PRIVACY_KEY_ID = 'local.privacy.key.v1';
+const SYNC_DIRTY_KEY = 'luckybean.cloud.dirty.v3';
+const SYNCABLE_STORES = new Set(['beans', 'brewSessions', 'sensoryRecords', 'inventoryEvents', 'customCodes']);
 let privacySecretPromise;
 
 function bytesToBase64(bytes) {
@@ -14,6 +16,32 @@ function bytesToBase64(bytes) {
 
 function base64ToBytes(value) {
   return Uint8Array.from(atob(String(value || '')), char => char.charCodeAt(0));
+}
+
+function shouldMarkSyncDirty(name, value) {
+  if (globalThis.__LuckyBeanCloudRestoreActive) return false;
+  if (SYNCABLE_STORES.has(name)) return true;
+  return name === 'settings' && value?.id === 'app.settings';
+}
+
+function markSyncDirty(name, operation, value = null) {
+  if (!shouldMarkSyncDirty(name, value)) return;
+  const now = new Date().toISOString();
+  try {
+    const previous = JSON.parse(localStorage.getItem(SYNC_DIRTY_KEY) || 'null') || {};
+    const stores = new Set(Array.isArray(previous.stores) ? previous.stores : []);
+    stores.add(name);
+    localStorage.setItem(SYNC_DIRTY_KEY, JSON.stringify({
+      dirty: true,
+      firstChangedAt: previous.firstChangedAt || now,
+      lastChangedAt: now,
+      stores: [...stores],
+      operation
+    }));
+  } catch { /* 本地保存已经成功；同步标记失败不应回滚业务数据 */ }
+  globalThis.document?.dispatchEvent(new CustomEvent('luckybean:data-changed', {
+    detail: { store: name, operation, at: now }
+  }));
 }
 
 async function privacySecret() {
@@ -102,12 +130,28 @@ export async function all(name) {
 }
 
 export async function put(name, value) {
-  return core.put(name, await prepareWrite(name, value));
+  const result = await core.put(name, await prepareWrite(name, value));
+  markSyncDirty(name, 'put', value);
+  return result;
 }
 
 export async function bulkPut(name, values) {
   if (!Array.isArray(values)) throw new Error('批量写入数据必须是数组');
-  return core.bulkPut(name, await Promise.all(values.map(value => prepareWrite(name, value))));
+  const result = await core.bulkPut(name, await Promise.all(values.map(value => prepareWrite(name, value))));
+  if (values.length) markSyncDirty(name, 'bulkPut', values[0]);
+  return result;
+}
+
+export async function remove(name, key) {
+  const result = await core.remove(name, key);
+  markSyncDirty(name, 'remove', name === 'settings' ? { id: key } : null);
+  return result;
+}
+
+export async function clear(name) {
+  const result = await core.clear(name);
+  markSyncDirty(name, 'clear', name === 'settings' ? { id: 'app.settings' } : null);
+  return result;
 }
 
 export async function getSetting(id, fallback = null) {
@@ -121,5 +165,6 @@ export async function setSetting(id, value) {
 
 export async function clearAll() {
   privacySecretPromise = undefined;
+  try { localStorage.removeItem(SYNC_DIRTY_KEY); } catch { /* ignore */ }
   return core.clearAll();
 }
