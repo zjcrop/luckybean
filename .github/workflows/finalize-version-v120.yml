@@ -1,0 +1,50 @@
+name: Finalize v1.2.0 test version
+
+on:
+  push:
+    branches: [test-v107-web]
+    paths:
+      - 'scripts/finalize-version-v120.mjs'
+      - '.github/workflows/finalize-version-v120.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-test-v107-refactor-write
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test-v107-web
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Rebase on latest branch head
+        run: git pull --rebase origin test-v107-web
+      - name: Apply version finalizer
+        run: node scripts/finalize-version-v120.mjs
+      - name: Verify version and contracts
+        run: |
+          node --check src/core/startup-controller.js
+          node --check src/features/runtime-features.js
+          npm run test:static
+          grep -q "luckybean-1.2.0-test" sw.js
+          ! grep -R "1.1.0-test" index.html manifest.webmanifest package.json sw.js src/core/startup-controller.js src/utils.js src/features/runtime-features.js tests
+      - name: Commit final version
+        run: |
+          if git diff --quiet; then
+            echo 'No version changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html manifest.webmanifest package.json sw.js src/utils.js src/core/startup-controller.js src/features/runtime-features.js tests
+          git commit -m 'chore: finalize LuckyBean v1.2.0 test version'
+          git pull --rebase origin test-v107-web
+          git push origin HEAD:test-v107-web
