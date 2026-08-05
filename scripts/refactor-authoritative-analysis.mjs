@@ -1,16 +1,16 @@
 import { readFile, writeFile } from 'node:fs/promises';
 
-const path = 'src/brew-engine.js';
-let source = await readFile(path, 'utf8');
+async function migrateAuthoritativeEngine() {
+  const path = 'src/brew-engine.js';
+  let source = await readFile(path, 'utf8');
+  const importMarker = "import * as core from './brew-engine-core.js';\n";
+  const serviceImport = "import { requestAuthoritativePlan } from './services/brew-analysis-service.js';\n";
+  if (!source.includes(serviceImport)) {
+    if (!source.includes(importMarker)) throw new Error('brew-engine import marker not found');
+    source = source.replace(importMarker, importMarker + serviceImport);
+  }
 
-const importMarker = "import * as core from './brew-engine-core.js';\n";
-const serviceImport = "import { requestAuthoritativePlan } from './services/brew-analysis-service.js';\n";
-if (!source.includes(serviceImport)) {
-  if (!source.includes(importMarker)) throw new Error('brew-engine import marker not found');
-  source = source.replace(importMarker, importMarker + serviceImport);
-}
-
-const legacy = `export async function requestPrivatePlan(endpoint, input, timeoutMs = 9000) {
+  const legacy = `export async function requestPrivatePlan(endpoint, input, timeoutMs = 9000) {
   const selected = explicitProfileId(input);
   if (selected && CORE_PROFILE_ALIAS[selected]) return computeOptimizedPlan(input, { forceProfile: selected });
   const normalized = normalizeExplicitInput(input);
@@ -22,7 +22,7 @@ const legacy = `export async function requestPrivatePlan(endpoint, input, timeou
   return attachLegacyTrajectory(optimized);
 }`;
 
-const replacement = `export async function requestPrivatePlan(endpoint, input, timeoutMs = 9000) {
+  const replacement = `export async function requestPrivatePlan(endpoint, input, timeoutMs = 9000) {
   const normalized = normalizeExplicitInput(input);
   const plan = await requestAuthoritativePlan(normalized, {
     endpoint: endpoint || undefined,
@@ -52,12 +52,22 @@ const replacement = `export async function requestPrivatePlan(endpoint, input, t
   return plan;
 }`;
 
-if (source.includes(legacy)) source = source.replace(legacy, replacement);
-else if (!source.includes("executionSource = 'brew-profiles-authoritative'")) throw new Error('legacy requestPrivatePlan block not found');
-
-if (/requestPrivatePlan[\s\S]*optimizeBrewPlan\(normalized, semanticPlan\)/.test(source)) {
-  throw new Error('authoritative request path still invokes client optimizer');
+  if (source.includes(legacy)) source = source.replace(legacy, replacement);
+  else if (!source.includes("executionSource = 'brew-profiles-authoritative'")) throw new Error('legacy requestPrivatePlan block not found');
+  if (/requestPrivatePlan[\s\S]*optimizeBrewPlan\(normalized, semanticPlan\)/.test(source)) throw new Error('authoritative request path still invokes client optimizer');
+  await writeFile(path, source);
 }
 
-await writeFile(path, source);
-console.log('Authoritative BrewProfiles request path migrated.');
+async function migrateHistoryStores() {
+  const path = 'src/db-storage-core.js';
+  let source = await readFile(path, 'utf8');
+  const oldStores = "const STORES = ['beans', 'brewSessions', 'sensoryRecords', 'inventoryEvents', 'settings', 'customCodes', 'codebookCache', 'syncMetadata', 'shareDrafts'];";
+  const newStores = "const STORES = ['beans', 'brewSessions', 'sensoryRecords', 'inventoryEvents', 'settings', 'customCodes', 'codebookCache', 'syncMetadata', 'shareDrafts', 'historyRevisions', 'recycleBin', 'syncOutbox'];";
+  if (source.includes(oldStores)) source = source.replace(oldStores, newStores);
+  else if (!source.includes("'historyRevisions'")) throw new Error('IndexedDB store declaration not found');
+  await writeFile(path, source);
+}
+
+await migrateAuthoritativeEngine();
+await migrateHistoryStores();
+console.log('Authoritative analysis path and transactional history stores migrated.');
