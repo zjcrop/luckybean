@@ -11,7 +11,12 @@ async function openApp(page, suffix = 'v120-core=1') {
   await expect(page.locator('#splashScreen')).toBeVisible();
   await page.locator('#splashScreen').click();
   await expect(page.locator('#appShell')).toBeVisible({ timeout: 15000 });
-  await page.waitForFunction(() => Boolean(globalThis.LuckyBeanCompatibilityLayer), null, { timeout: 15000 });
+  await expect(page.locator('.bottom-nav .nav-button')).toHaveCount(4, { timeout: 15000 });
+  await page.waitForFunction(() => {
+    const shell = document.querySelector('#appShell');
+    const activePage = document.querySelector('.page.active');
+    return Boolean(shell && !shell.classList.contains('hidden') && activePage);
+  }, null, { timeout: 15000 });
 }
 
 function collectErrors(page) {
