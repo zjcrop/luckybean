@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - test-v107-web
+      - refactor/v120-integrated-core
   pull_request:
     branches:
       - main
       - test-v107-web
+      - refactor/v120-integrated-core
 
 permissions:
   contents: read
