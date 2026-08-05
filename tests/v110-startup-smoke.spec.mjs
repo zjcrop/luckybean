@@ -24,11 +24,13 @@ test('server failure never blocks local startup', async ({ page }) => {
   await expect(page.locator('#loginScreen')).toBeHidden();
   await expect(page.locator('#pageBeans')).toBeVisible();
   await expect(page.locator('body')).toHaveAttribute('data-release', '1.1.0-test');
+  await page.waitForFunction(() => Boolean(globalThis.LuckyBeanCompatibilityLayer), null, { timeout: 15000 });
 
   const state = await page.evaluate(() => ({
     startup: document.documentElement.dataset.startup,
     cloudAuth: document.documentElement.dataset.cloudAuth,
     compatibilityLoaded: Boolean(globalThis.LuckyBeanCompatibilityLayer),
+    compatibilityFailures: globalThis.LuckyBeanCompatibilityLayer?.failures || [],
     syncServiceLoaded: Boolean(globalThis.LuckyBeanCloudSync),
     authServiceLoaded: Boolean(globalThis.LuckyBeanCloudAuth)
   }));
@@ -36,6 +38,7 @@ test('server failure never blocks local startup', async ({ page }) => {
   expect(state.startup).toBe('ready');
   expect(['offline', 'reauth-required', 'signed-out']).toContain(state.cloudAuth);
   expect(state.compatibilityLoaded).toBe(true);
+  expect(state.compatibilityFailures).toEqual([]);
   expect(state.syncServiceLoaded).toBe(true);
   expect(state.authServiceLoaded).toBe(true);
   expect(pageErrors).toEqual([]);
