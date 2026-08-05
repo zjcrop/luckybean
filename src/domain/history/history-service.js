@@ -58,6 +58,21 @@ function validateExecution(execution) {
   };
 }
 
+function validateInventoryEvidence(record, inventoryEvent) {
+  if (!record.inventoryEventId) throw new Error(`冲煮记录${record.id}缺少库存事件引用，必须先修复数据`);
+  if (!inventoryEvent) throw new Error(`冲煮记录${record.id}对应的原始扣豆事件不存在，必须先修复数据`);
+  const deducted = positiveNumber(record.deductedWeightG, '历史扣豆量');
+  const consumed = Math.abs(Number(inventoryEvent.amountG));
+  const valid = inventoryEvent.id === record.inventoryEventId
+    && inventoryEvent.sessionId === record.id
+    && inventoryEvent.beanId === record.beanId
+    && inventoryEvent.type === 'brew-consume'
+    && Number.isFinite(consumed)
+    && Math.abs(consumed - deducted) <= 0.001;
+  if (!valid) throw new Error(`冲煮记录${record.id}与原始库存事件不一致，禁止删除或猜测豆量`);
+  return consumed;
+}
+
 async function deterministicId(prefix, idempotencyKey) {
   if (!idempotencyKey) return `${prefix}-${crypto.randomUUID()}`;
   return `${prefix}-${(await sha256Hex(String(idempotencyKey))).slice(0, 32)}`;
@@ -279,22 +294,24 @@ export async function permanentlyDeleteBrewRecords(ids, { restoreWeight = false,
     const recycled = await requestValue(recycle.get(id));
     const record = active || recycled?.payload;
     if (!record || record.schemaVersion !== BREW_HISTORY_SCHEMA) continue;
+    const originalInventoryEvent = await requestValue(inventory.get(record.inventoryEventId));
+    const consumedAmount = validateInventoryEvidence(record, originalInventoryEvent);
     const linkedSensory = allSensory.filter(item => item.brewSessionId === id);
     for (const item of linkedSensory) {
       if (sensoryMode === 'delete') sensory.delete(item.id);
       else sensory.put({ ...item, brewSessionId: '', detachedFromBrewSessionId: id, updatedAt: at });
     }
     if (restoreWeight) {
-      const amount = positiveNumber(record.deductedWeightG, '历史扣豆量');
-      weightByBean.set(record.beanId, (weightByBean.get(record.beanId) || 0) + amount);
-      restoredWeightG += amount;
+      weightByBean.set(record.beanId, (weightByBean.get(record.beanId) || 0) + consumedAmount);
+      restoredWeightG += consumedAmount;
       inventory.put({
         id: `${id}:restore:${crypto.randomUUID()}`,
         beanId: record.beanId,
+        sessionId: id,
+        sourceEventId: originalInventoryEvent.id,
         type: 'restore-brew-deletion',
-        amountG: amount,
-        sourceSessionId: id,
-        note: `永久删除冲煮记录并补回${amount.toFixed(1)}g`,
+        amountG: consumedAmount,
+        note: `永久删除冲煮记录并补回${consumedAmount.toFixed(1)}g`,
         createdAt: at
       });
     }
