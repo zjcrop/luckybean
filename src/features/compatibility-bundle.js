@@ -17,7 +17,7 @@ const COMPATIBILITY_MODULES = Object.freeze([
   '../v099f-ui-upgrade.js?v=1.1.0-test',
   '../v099g-world-map.js?v=1.1.0-test',
   '../v099p-settings-rebuild.js?v=1.1.0-test',
-  '../v109-history-management.js?v=1.1.0-test'
+
 ]);
 
 const failures = [];

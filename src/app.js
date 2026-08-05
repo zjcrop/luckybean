@@ -10,6 +10,8 @@ import { commitCompletedBrew } from './domain/history/history-service.js';
 import { createLocalReferenceAnalysis } from './services/local-reference-analysis.js';
 import { adaptAuthoritativePlan } from './services/brew-analysis-service.js';
 import './renderers/brew-spatial-controller.js';
+import { openHistoryScreen } from './ui/history/history-screen.js';
+import { migrateLegacyBrewHistory } from './domain/history/history-migration.js';
 import './v095-sensory-pro.js';
 
 const PAGE_META = {
@@ -127,6 +129,8 @@ async function loadSettings() {
 }
 
 async function saveSettings() { await setSetting('app.settings', state.settings); }
+
+migrateLegacyBrewHistory().catch(error => console.error('冲煮历史迁移失败', error));
 
 async function refreshData() {
   [state.beans, state.brewSessions, state.sensoryRecords, state.inventoryEvents] = await Promise.all([
@@ -1881,8 +1885,9 @@ function bindGlobalEvents() {
   $('#beanGroups').addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-bean-id]'))detailBean(event.target.dataset.beanId);});
   $('#activeFilterBar').addEventListener('click',event=>{if(event.target.id==='clearActiveFilters'){state.filter={search:'',country:'',variety:'',process:'',flavors:[],sort:'freshness',dir:'asc'};state.activeGroupKey=null;renderBeans();}});
   $('#groupBtn').addEventListener('click',openGroupMenu); $('#manageBtn').addEventListener('click',openManageMenu);
-  $('#fabSearchBtn').addEventListener('click',openSearchDialog); $('#fabRecommendBtn').addEventListener('click',openRecommendMenu); $('#fabHistoryBtn').addEventListener('click',openHistory); $('#fabAddBtn').addEventListener('click',openAddMenu);
-  document.addEventListener('click',event=>{
+  $('#fabSearchBtn').addEventListener('click',openSearchDialog); $('#fabRecommendBtn').addEventListener('click',openRecommendMenu); $('#fabHistoryBtn').addEventListener('click',()=>openHistoryScreen()); $('#fabAddBtn').addEventListener('click',openAddMenu);
+  document.addEventListener('luckybean:request-history-replay', event => loadBrewSession(event.detail?.recordId));
+document.addEventListener('click',event=>{
     const deleteSession=event.target.closest('[data-delete-session]');if(deleteSession){event.preventDefault();event.stopPropagation();confirmDeleteBrewSession(deleteSession.dataset.deleteSession);return;}
     const sensoryRecord=event.target.closest('[data-sensory-record]');if(sensoryRecord){event.preventDefault();openSensoryRecord(sensoryRecord.dataset.sensoryRecord);return;}
     const manage=event.target.closest('[data-manage-action]');if(manage){const action=manage.dataset.manageAction;closePopups();if(action==='export')exportData();if(action==='import')$('#importInput').click();return;}
