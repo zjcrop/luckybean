@@ -84,7 +84,10 @@ assert.match(runtimeFeatures, /LuckyBeanRuntimeFeatures/);
 assert.doesNotMatch(runtimeFeatures, /v109-history-management\.js|v099-trajectory-signal-bridge\.js|v099i-trajectory-space\.js/);
 assert.doesNotMatch(runtimeFeatures, /v095-ui\.js|theme-bridge\.js/);
 
-assert.match(sw, /luckybean-1\.2\.0-test/);
+assert.match(sw, /CACHE_PREFIX = 'luckybean-v120-test-'/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}1\.2\.0-test`/);
+assert.match(sw, /key\.startsWith\(CACHE_PREFIX\) && key !== CACHE_NAME/);
+assert.doesNotMatch(sw, /keys\.filter\(key => key !== CACHE_NAME\)/);
 assert.match(sw, /src\/app\.js/);
 assert.match(sw, /src\/core\/bootstrap\.js/);
 assert.match(sw, /src\/ui\/appearance-controller\.js/);
@@ -112,4 +115,4 @@ for (const path of [
   'src/theme-bridge.js'
 ]) assert.equal(exists(path), false, `${path} should have been removed`);
 
-console.log('v1.1.0 local-first, authoritative analysis, spatial renderer and formal history checks passed');
+console.log('v1.2.0 local-first, isolated cache, authoritative analysis, spatial renderer and formal history checks passed');
