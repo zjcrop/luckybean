@@ -1,0 +1,43 @@
+name: Apply verified provider integration
+
+on:
+  push:
+    branches: [test-v107-web]
+    paths:
+      - 'scripts/refactor-provider-integration.mjs'
+      - '.github/workflows/refactor-provider-integration.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test-v107-web
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply provider migration
+        run: node scripts/refactor-provider-integration.mjs
+      - name: Verify provider services
+        run: |
+          node --check src/app.js
+          node --check src/services/provider-package-service.js
+          node --check src/services/codebook-reconciliation-service.js
+          node --check src/services/provider-bootstrap-controller.js
+          npm run test:static
+      - name: Commit migrated source
+        run: |
+          if git diff --quiet; then
+            echo 'No provider migration changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/app.js sw.js
+          git commit -m 'refactor: integrate verified provider packages and code reconciliation'
+          git push origin HEAD:test-v107-web
