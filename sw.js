@@ -15,6 +15,7 @@ const CORE = [
   './src/services/provider-package-service.js?v=1.1.0-test',
   './src/services/codebook-reconciliation-service.js?v=1.1.0-test',
   './src/services/provider-bootstrap-controller.js?v=1.1.0-test',
+  './src/ui/provider-status-panel.js?v=1.1.0-test',
   './src/domain/history/history-service.js?v=1.1.0-test',
   './src/domain/history/history-migration.js?v=1.1.0-test',
   './src/ui/history/history-screen.js?v=1.1.0-test',

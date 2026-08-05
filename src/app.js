@@ -1,6 +1,6 @@
 import { APP_VERSION, SCHEMA_VERSION, $, $$, uid, esc, clamp, todayISO, formatDate, freshness, freshnessProfile, downloadBlob, safeJsonParse, assertPlainObject, assertSafeJson, browserTitle, parseNumber } from './utils.js';
 import { openDb, all, get, put, remove, bulkPut, getSetting, setSetting, clearAll, migrateLegacy } from './db.js';
-import { loadCodebook, checkCodebookUpdate, makeIndex, displayName, optionsHtml, relatedRows, parseNaturalLanguage, REMOTE_CODEBOOK_URL } from './codebook.js';
+import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, parseNaturalLanguage, REMOTE_CODEBOOK_URL } from './codebook.js';
 import { CameraScanner, scanQrFile, decodeJsQrResult } from './qr.js';
 import { computeFallbackPlan, requestPrivatePlan, validatePlan, FALLBACK_ENGINE_VERSION, buildCorrectedPlan, listBrewProfiles } from './brew-engine.js';
 import { listWaterProfiles, inferWaterProfile } from './water-profiles.js';
@@ -13,6 +13,7 @@ import './renderers/brew-spatial-controller.js';
 import { openHistoryScreen } from './ui/history/history-screen.js';
 import { migrateLegacyBrewHistory } from './domain/history/history-migration.js';
 import './services/provider-bootstrap-controller.js';
+import { renderProviderStatusPanel } from './ui/provider-status-panel.js';
 import './v095-sensory-pro.js';
 
 const PAGE_META = {
@@ -1860,10 +1861,11 @@ function renderSettings() {
   $('#settingsContent').innerHTML = `<div class="settings-categories">
   <details class="settings-category"><summary><span>账户</span><small>个人信息，账户 ID，其他平台绑定</small></summary><div class="settings-category-body"><div class="grid-2"><label class="field"><span>昵称</span><input id="settingsNickname" class="control" maxlength="24" value="${esc(identity.nickname||'')}"></label><label class="field"><span>邮箱</span><input id="settingsEmail" class="control" type="email" value="${esc(identity.email||'')}"></label><label class="field"><span>手机</span><input id="settingsPhone" class="control" inputmode="tel" value="${esc(identity.phone||'')}"></label><label class="field"><span>微信</span><input id="settingsWechat" class="control" value="${esc(identity.wechat||'')}"></label><label class="field"><span>QQ</span><input id="settingsQq" class="control" inputmode="numeric" value="${esc(identity.qq||'')}"></label><div class="field"><span>个人 ID</span><div class="static-value mono">${esc(identity.publicId||'保存账户后生成')}</div></div></div><button id="saveIdentityBtn" class="button primary" type="button">保存账户</button></div></details>
   <details class="settings-category" id="privateGearCategory"${autoOpenGear?' open':''}><summary><span>私器${low.length?'<sup class="gear-low-star">*</sup>':''}</span><small>滤纸，滤杯，磨豆机设定</small></summary><div class="settings-category-body">${gearManagerHtml()}</div></details>
-  <details class="settings-category data-category"><summary><span>数藏</span><small>数据的导入导出及备份，数据接口</small></summary><div class="settings-category-body"><div class="text-actions data-actions"><button id="settingsExportBtn" class="button" type="button">导出备份</button><button id="settingsImportBtn" class="button" type="button">导入备份</button><button id="clearAllDataBtn" class="button danger" type="button">清空本地数据</button></div><details class="nested-settings"><summary>数据源与接口（点击展开）</summary><div class="nested-content"><div class="setting-row"><div><h3>数据源</h3><p>仅在需要时检查更新。</p></div><button id="updateCodebookBtn" class="button" type="button">检查更新</button></div><label class="field"><span>私有冲煮 API</span><input id="brewApiEndpoint" class="control" type="url" placeholder="HTTPS 服务端地址" value="${esc(state.settings.brew.apiEndpoint||'')}"></label><button id="saveApiBtn" class="button" type="button">保存接口</button><label class="toggle"><input id="planVisualToggle" type="checkbox"${state.settings.ui.planVisualsExpanded?' checked':''}>默认显示冲煮轨迹图</label></div></details></div></details>
+  <details class="settings-category data-category"><summary><span>数藏</span><small>数据的导入导出及备份，数据接口</small></summary><div class="settings-category-body"><div class="text-actions data-actions"><button id="settingsExportBtn" class="button" type="button">导出备份</button><button id="settingsImportBtn" class="button" type="button">导入备份</button><button id="clearAllDataBtn" class="button danger" type="button">清空本地数据</button></div><details class="nested-settings"><summary>数据源与接口（点击展开）</summary><div class="nested-content"><div class="setting-row"><div><h3>数据源</h3><p>后台校验并原子更新，失败时保留最后有效版本。</p></div><button id="updateCodebookBtn" class="button" type="button">更新全部数据源</button></div><div id="providerStatusPanel"></div><label class="field"><span>私有冲煮 API</span><input id="brewApiEndpoint" class="control" type="url" placeholder="HTTPS 服务端地址" value="${esc(state.settings.brew.apiEndpoint||'')}"></label><button id="saveApiBtn" class="button" type="button">保存接口</button><label class="toggle"><input id="planVisualToggle" type="checkbox"${state.settings.ui.planVisualsExpanded?' checked':''}>默认显示冲煮轨迹图</label></div></details></div></details>
   <details class="settings-category"><summary><span>本物</span><small>关于本工具和开发小哥的一切</small></summary><div class="settings-category-body about-content"><h2>富贵盒子</h2><p>咖啡豆管理、拾味冲煮辅助、品鉴记录与本地数据归档工具。</p><dl><dt>版本</dt><dd>${APP_VERSION}</dd><dt>数据结构</dt><dd>${SCHEMA_VERSION}</dd><dt>离线引擎</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>数据源</dt><dd>公开编码数据 ${esc(meta.version||state.codebook.version||'6')}</dd><dt>开发与维护</dt><dd>zjcrop</dd></dl></div></details>
   </div>`;
-  $$('.settings-category').forEach(section=>section.addEventListener('toggle',()=>{if(!section.open)return;$$('.settings-category').forEach(other=>{if(other!==section)other.open=false;});}));
+  renderProviderStatusPanel($('#providerStatusPanel')).catch(error => console.warn('数据源状态读取失败', error));
+  $('.settings-category').forEach(section=>section.addEventListener('toggle',()=>{if(!section.open)return;$('.settings-category').forEach(other=>{if(other!==section)other.open=false;});}));
   $('#updateCodebookBtn').addEventListener('click', updateCodebook);
   $('#saveApiBtn').addEventListener('click',async()=>{state.settings.brew.apiEndpoint=$('#brewApiEndpoint').value.trim();await saveSettings();toast('接口地址已保存');});
   $('#planVisualToggle').addEventListener('change',async event=>{state.settings.ui.planVisualsExpanded=event.target.checked;await saveSettings();});
@@ -1877,11 +1879,18 @@ function renderSettings() {
 }
 
 async function updateCodebook() {
-  const button=$('#updateCodebookBtn');button.disabled=true;button.textContent='检查中…';
-  try { const result=await checkCodebookUpdate({force:true});state.codebook=result.data;state.codebookIndex=makeIndex(result.data);state.codebookMeta=result.meta;renderSettings();toast(result.updated?'数据源已更新':'数据源已是最新','status-good'); }
-  catch(error){button.disabled=false;button.textContent='检查更新';toast(`更新失败：${error.message}`,'status-bad');}
+  const button=$('#updateCodebookBtn'); button.disabled=true; button.textContent='校验更新中…';
+  try {
+    const result = await globalThis.LuckyBeanProviders.refresh({ force: true });
+    await renderProviderStatusPanel($('#providerStatusPanel'));
+    const changed = Object.values(result.results || {}).filter(item => item?.updated).length;
+    button.disabled=false; button.textContent='更新全部数据源';
+    toast(changed ? ('已更新' + changed + '个数据源') : '全部数据源已是最新', 'status-good');
+  } catch(error) {
+    button.disabled=false; button.textContent='更新全部数据源';
+    toast('更新失败，继续使用最后有效版本：' + error.message, 'status-bad');
+  }
 }
-
 async function exportData() {
   const payload={format:'luckybean-backup',schemaVersion:SCHEMA_VERSION,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),beans:state.beans,brewSessions:state.brewSessions,sensoryRecords:state.sensoryRecords,inventoryEvents:state.inventoryEvents,settings:state.settings};
   downloadBlob(`luckybean_backup_${todayISO()}.json`,JSON.stringify(payload,null,2),'application/json;charset=utf-8');
@@ -1960,7 +1969,6 @@ async function init() {
   await refreshData(); await migrateLegacyFlavorCodes(); bindGlobalEvents();
   if (state.settings.identity.publicId) enterApp();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
-  setTimeout(()=>checkCodebookUpdate().then(result=>{state.codebook=result.data;state.codebookIndex=makeIndex(result.data);state.codebookMeta=result.meta;if(state.page==='settings')renderSettings();}).catch(()=>{}),800);
 }
 
 
