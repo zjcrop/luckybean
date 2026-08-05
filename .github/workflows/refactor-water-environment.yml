@@ -1,0 +1,44 @@
+name: Apply simplified water and environment
+
+on:
+  push:
+    branches: [test-v107-web]
+    paths:
+      - 'scripts/refactor-water-environment.mjs'
+      - '.github/workflows/refactor-water-environment.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test-v107-web
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply water/environment migration
+        run: node scripts/refactor-water-environment.mjs
+      - name: Verify simplified water boundary
+        run: |
+          node --check src/app.js
+          node --check src/water-profiles.js
+          node --check src/brew-engine-core.js
+          node --check src/brew-model-v09.js
+          ! grep -R -E "customWater(Ca|Mg|Hco3)|targetIonsMgL|totalDoseG|waterProfile\.(ca|mg|hco3)" src/app.js src/water-profiles.js src/brew-engine-core.js src/brew-model-v09.js
+          npm run test:static
+      - name: Commit migrated source
+        run: |
+          if git diff --quiet; then
+            echo 'No water/environment migration changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/app.js src/brew-engine-core.js src/brew-model-v09.js styles.css
+          git commit -m 'refactor: simplify water profiles and add optional environment inputs'
+          git push origin HEAD:test-v107-web
