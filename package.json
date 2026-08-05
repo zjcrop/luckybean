@@ -1,0 +1,13 @@
+{
+  "name": "luckybean-static-app",
+  "private": true,
+  "version": "1.1.0-test",
+  "type": "module",
+  "scripts": {
+    "test:static": "node tests/v110-local-first-sync-static.mjs",
+    "test:smoke": "playwright test tests/v110-startup-smoke.spec.mjs --browser=chromium --reporter=line"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.0"
+  }
+}
