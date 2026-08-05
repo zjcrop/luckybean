@@ -1,0 +1,52 @@
+name: Apply runtime safety migration
+
+on:
+  push:
+    branches: [test-v107-web]
+    paths:
+      - 'scripts/refactor-runtime-safety.mjs'
+      - '.github/workflows/refactor-runtime-safety.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-test-v107-refactor-write
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test-v107-web
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Rebase on latest branch head
+        run: git pull --rebase origin test-v107-web
+      - name: Apply runtime safety migration
+        run: node scripts/refactor-runtime-safety.mjs
+      - name: Verify runtime safety
+        run: |
+          node --check src/app.js
+          node --check src/sensory-professional-controller.js
+          node --check src/settings-screen-controller.js
+          node --check src/feature-controller.js
+          node --check src/runtime-controller.js
+          ! grep -R -E "observe\(document\.documentElement|Element\.prototype\.scrollIntoView\s*=|location\.reload" src/*.js
+          npm run test:static
+      - name: Commit migrated source
+        run: |
+          if git diff --quiet; then
+            echo 'No runtime safety changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/app.js src/sensory-professional-controller.js src/settings-screen-controller.js src/integrity-ui-controller.js src/postbrew-sensory-controller.js src/qr-ui-controller.js src/runtime-controller.js src/selection-controller.js src/ui-upgrade-controller.js src/feature-controller.js
+          git commit -m 'refactor: scope runtime observers and remove reload state updates'
+          git pull --rebase origin test-v107-web
+          git push origin HEAD:test-v107-web
