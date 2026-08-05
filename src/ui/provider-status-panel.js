@@ -1,6 +1,7 @@
 import { getActiveProvider, PROVIDER_REGISTRY } from '../services/provider-package-service.js';
 import { get } from '../db.js';
 import { BREW_ANALYSIS_CONTRACT, BREW_SPATIAL_CONTRACT } from '../services/brew-analysis-service.js';
+import { openCodebookReconciliationScreen } from './codebook-reconciliation-screen.js';
 
 const LABELS = Object.freeze({
   brewion: 'BrewIon编码表',
@@ -31,7 +32,9 @@ export async function renderProviderStatusPanel(host) {
     <div class="provider-status-row"><div><strong>专业分析协议</strong><small>${esc(BREW_ANALYSIS_CONTRACT)}</small></div><span class="provider-status-state">正式契约</span></div>
     <div class="provider-status-row"><div><strong>三维轨迹协议</strong><small>${esc(BREW_SPATIAL_CONTRACT)}</small></div><span class="provider-status-state">正式契约</span></div>
     <div class="provider-status-row"><div><strong>自定义编码整理</strong><small>已自动归并 ${Number(reconciliation?.merged || 0)} 项</small></div><span class="provider-status-state${pending ? ' pending' : ''}">${pending ? `${pending}项待确认` : '无待确认项'}</span></div>
+    ${pending ? '<button type="button" class="provider-review-button" data-provider-review-codes>处理待确认编码</button>' : ''}
   </div>`;
+  host.querySelector('[data-provider-review-codes]')?.addEventListener('click', openCodebookReconciliationScreen);
 }
 
 export async function refreshProviderStatusPanel(host) {
