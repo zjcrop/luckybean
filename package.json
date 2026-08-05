@@ -4,8 +4,9 @@
   "version": "1.1.0-test",
   "type": "module",
   "scripts": {
-    "test:static": "node tests/v110-local-first-sync-static.mjs",
-    "test:smoke": "playwright test tests/v110-startup-smoke.spec.mjs --browser=chromium --reporter=line"
+    "test:static": "node tests/v110-local-first-sync-static.mjs && node tests/v120-core-contracts-static.mjs",
+    "test:smoke": "playwright test tests/v110-startup-smoke.spec.mjs --browser=chromium --reporter=line",
+    "test:core": "playwright test tests/v120-core-flow.spec.mjs --browser=chromium --reporter=line"
   },
   "devDependencies": {
     "@playwright/test": "1.55.0"
