@@ -1,0 +1,55 @@
+name: Apply final runtime cleanup
+
+on:
+  push:
+    branches: [test-v107-web]
+    paths:
+      - 'scripts/refactor-final-runtime-cleanup.mjs'
+      - '.github/workflows/refactor-final-runtime-cleanup.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-test-v107-refactor-write
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test-v107-web
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Rebase on latest branch head
+        run: git pull --rebase origin test-v107-web
+      - name: Apply final cleanup
+        run: node scripts/refactor-final-runtime-cleanup.mjs
+      - name: Verify final runtime safety
+        run: |
+          node --check src/core/startup-controller.js
+          node --check src/ui/fab-controller.js
+          node --check src/settings-screen-controller.js
+          node --check src/services/cloud-sync-service.js
+          node --check src/cloud-codec.js
+          test ! -e src/v099f-cloud-codec.js
+          test ! -e src/v099i-freshness-group.js
+          ! grep -R -E "location\.reload|v099f-cloud-codec|observe\(document\.documentElement|Element\.prototype\.scrollIntoView\s*=" src
+          node scripts/audit-formal-runtime.mjs
+          npm run test:static
+      - name: Commit cleaned runtime
+        run: |
+          if git diff --quiet; then
+            echo 'No final cleanup changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'refactor: finalize safe runtime graph and formal cloud codec'
+          git pull --rebase origin test-v107-web
+          git push origin HEAD:test-v107-web
