@@ -524,7 +524,6 @@ queueUi();
 
 globalThis.LuckyBeanV098Fixes = {
   renderCustomGroups,
-  v17Trajectory,
   saveRadarSnapshot,
   transformTemperatureSummary
 };

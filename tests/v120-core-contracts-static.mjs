@@ -70,6 +70,7 @@ assert.doesNotMatch(spatial, /MutationObserver/);
 assert.match(spatialController, /luckybean:plan-ready/);
 assert.match(spatialController, /luckybean:history-plan-loaded/);
 assert.doesNotMatch(runtimeFeatures, /v099-trajectory-signal-bridge|v099i-trajectory-space|v109-history-management/);
+assert.doesNotMatch(read('src/feature-controller.js'), /v17Trajectory|stageDataFromPlan|trajectory-series/);
 
 // Providers are verified, atomically activated and reconciled without overwriting custom codes.
 assert.match(providers, /artifact\.bytes/);
