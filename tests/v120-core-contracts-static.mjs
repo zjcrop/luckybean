@@ -86,7 +86,7 @@ assert.match(providerStatus, /BREW_ANALYSIS_CONTRACT/);
 assert.match(providerStatus, /openCodebookReconciliationScreen/);
 
 // LuckyBean water boundary: no salts or precise ions, optional environment defaults.
-assert.match(water, /精确配方请在“萃离”中调整/);
+assert.match(water, /精确配方请在.?萃离.?中调整|精细调整请使用“萃离”/);
 assert.match(water, /customProfile/);
 assert.doesNotMatch(water, /CaCl|MgSO|KHCO|NaHCO|targetIonsMgL|totalDoseG|\bdoses\b/);
 assert.doesNotMatch(model, /waterProfile\.(?:ca|mg|hco3)/);
