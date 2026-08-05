@@ -65,14 +65,20 @@ function sync() {
 document.addEventListener('click', markRecommendationRun, true);
 document.addEventListener('DOMContentLoaded', sync, { once: true });
 let queued = false;
-new MutationObserver(() => {
+{
+  const runtimeObserver1 = new MutationObserver(() => {
   if (queued) return;
   queued = true;
   requestAnimationFrame(() => {
     queued = false;
     sync();
   });
-}).observe(document.documentElement, { childList: true, subtree: true });
+});
+  ["#brewContent","#overlayRoot"].forEach(selector => {
+    const root = document.querySelector(selector);
+    if (root) runtimeObserver1.observe(root, { childList: true, subtree: true });
+  });
+}
 sync();
 
 globalThis.LuckyBeanV099Runtime = { ensureProfileOptions, renameProfessionalContent };

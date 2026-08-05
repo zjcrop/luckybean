@@ -358,7 +358,13 @@ document.addEventListener('click', captureProfessionalProgress, true);
 document.addEventListener('click', resetProfessionalDraft, true);
 document.addEventListener('click', enterSensoryChoice, true);
 document.addEventListener('luckybean:data-changed', () => { dataPromise = null; queueSync(); });
-new MutationObserver(queueSync).observe(document.documentElement, { childList: true, subtree: true });
+{
+  const integrityObserver1 = new MutationObserver(queueSync);
+  ["#overlayRoot","#sensoryContent"].forEach(selector => {
+    const root = document.querySelector(selector);
+    if (root) integrityObserver1.observe(root, { childList: true, subtree: true });
+  });
+}
 queueSync();
 
 globalThis.LuckyBeanIntegrityUI = {

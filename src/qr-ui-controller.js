@@ -36,6 +36,12 @@ function queueEnhance() {
   });
 }
 
-new MutationObserver(queueEnhance).observe(document.documentElement, { childList: true, subtree: true });
+{
+  const qrUiObserver1 = new MutationObserver(queueEnhance);
+  ["#overlayRoot"].forEach(selector => {
+    const root = document.querySelector(selector);
+    if (root) qrUiObserver1.observe(root, { childList: true, subtree: true });
+  });
+}
 document.addEventListener('DOMContentLoaded', queueEnhance, { once: true });
 queueEnhance();

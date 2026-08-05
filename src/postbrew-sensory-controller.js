@@ -50,5 +50,11 @@ document.addEventListener('click', event => {
   beginPending();
 }, true);
 
-new MutationObserver(queueRestore).observe(document.documentElement, { childList: true, subtree: true });
+{
+  const postbrewObserver1 = new MutationObserver(queueRestore);
+  ["#sensoryContent","#overlayRoot"].forEach(selector => {
+    const root = document.querySelector(selector);
+    if (root) postbrewObserver1.observe(root, { childList: true, subtree: true });
+  });
+}
 window.addEventListener('pagehide', clearPending);

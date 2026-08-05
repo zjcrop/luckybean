@@ -37,25 +37,17 @@ let codebookPromise = null;
 let transferBusy = false;
 
 function waitFor(selector, timeout = 5000) {
+  const startedAt = performance.now();
   return new Promise((resolve, reject) => {
-    const found = $(selector);
-    if (found) return resolve(found);
-    const observer = new MutationObserver(() => {
-      const node = $(selector);
-      if (node) {
-        clearTimeout(timer);
-        observer.disconnect();
-        resolve(node);
-      }
-    });
-    observer.observe(document.documentElement, { childList: true, subtree: true });
-    const timer = setTimeout(() => {
-      observer.disconnect();
-      reject(new Error(`等待界面元素超时：${selector}`));
-    }, timeout);
+    const check = () => {
+      const found = $(selector);
+      if (found) return resolve(found);
+      if (performance.now() - startedAt >= timeout) return reject(new Error(`等待界面元素超时：${selector}`));
+      requestAnimationFrame(check);
+    };
+    check();
   });
 }
-
 async function codebookContext() {
   if (!codebookPromise) {
     codebookPromise = loadCodebook().then(result => ({ book: result.data, index: makeIndex(result.data) }));

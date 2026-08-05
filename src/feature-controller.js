@@ -385,7 +385,7 @@ async function rebuyBean(beanId) {
     };
     await put('beans', copy);
     root.remove();
-    location.reload();
+    document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail: { source: 'feature' } }));
   });
 }
 
@@ -404,7 +404,7 @@ async function permanentlyDeleteBean(beanId) {
       remove('beans', beanId)
     ]);
     root.remove();
-    location.reload();
+    document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail: { source: 'feature' } }));
   });
 }
 

@@ -395,16 +395,6 @@ async function hydrateCloud(section) {
   window.__luckyBean099pScrollPatched = true;
 }
 
-function patchSettingsScrollIntoView() {
-    const native = Element.prototype.scrollIntoView;
-    if (native.__luckyBean099pPatched) return;
-    function patched(options) {
-      if ($('#pageSettings.active') && this.matches?.('#settingsContent [data-filter-item]')) return;
-      return native.call(this, options);
-    }
-    Object.defineProperty(patched, '__luckyBean099pPatched', { value: true });
-    Element.prototype.scrollIntoView = patched;
-  }
 
   function mount({ preserveOpen = false } = {}) {
     clearTimeout(mountTimer);
@@ -457,7 +447,6 @@ function patchSettingsScrollIntoView() {
   });
 
   patchSettingsWindowScroll();
-  patchSettingsScrollIntoView();
   installVoicePatch();
   if ($('#pageSettings.active')) scheduleMount({ preserveOpen: false });
 

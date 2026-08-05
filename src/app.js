@@ -147,6 +147,15 @@ document.addEventListener('luckybean:codebook-provider-activated', event => {
   if (state.page === 'brew') renderBrew();
 });
 
+document.addEventListener('luckybean:request-app-refresh', async event => {
+  await refreshData();
+  if (state.page === 'beans') renderBeans();
+  else if (state.page === 'brew') renderBrew();
+  else if (state.page === 'sensory') renderSensory();
+  else if (state.page === 'settings') renderSettings();
+  document.dispatchEvent(new CustomEvent('luckybean:app-refreshed', { detail: event.detail || {} }));
+});
+
 async function refreshData() {
   [state.beans, state.brewSessions, state.sensoryRecords, state.inventoryEvents] = await Promise.all([
     all('beans'), all('brewSessions'), all('sensoryRecords'), all('inventoryEvents')
@@ -1905,7 +1914,7 @@ async function importData(file) {
 }
 function confirmClearAll() {
   const overlay=showOverlay(`${dialogHeader('清空本地数据','此操作不可撤销')}<p class="status-bad">将删除豆卡、库存、方案、品鉴、设置和本地数据缓存。</p><label class="field"><span>输入“清空”确认</span><input id="clearConfirmInput" class="control"></label><button id="confirmClearBtn" class="button danger" type="button">永久清空</button>`);bindClose(overlay);
-  $('#confirmClearBtn').addEventListener('click',async()=>{if($('#clearConfirmInput').value!=='清空')return toast('请输入“清空”');await clearAll();location.reload();});
+  $('#confirmClearBtn').addEventListener('click',async()=>{if($('#clearConfirmInput').value!=='清空')return toast('请输入“清空”');await clearAll();state.beans=[];state.brewSessions=[];state.sensoryRecords=[];state.inventoryEvents=[];state.currentPlan=null;state.currentBrewInput=null;state.currentExecution=null;state.settings=structuredClone(DEFAULT_SETTINGS);await saveSettings();closeOverlay();await refreshData();switchPage('beans');toast('本地数据已清空','status-good');document.dispatchEvent(new CustomEvent('luckybean:local-data-cleared'));});
 }
 
 function openProfileDialog() { switchPage('settings'); }

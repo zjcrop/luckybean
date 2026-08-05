@@ -23,7 +23,13 @@ document.addEventListener('click', event => {
   [0, 40, 120, 260, 500].forEach(delay => setTimeout(captureSelectedBean, delay));
 }, true);
 
-new MutationObserver(queueCapture).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+{
+  const selectionObserver1 = new MutationObserver(queueCapture);
+  ["#beanGroups"].forEach(selector => {
+    const root = document.querySelector(selector);
+    if (root) selectionObserver1.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+  });
+}
 queueCapture();
 
 globalThis.LuckyBeanSelectionBridge = { captureSelectedBean };

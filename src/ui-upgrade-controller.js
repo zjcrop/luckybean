@@ -525,7 +525,13 @@ if (!globalThis.__LuckyBeanV099fUiUpgradeLoaded) {
     }
   }, true);
 
-  new MutationObserver(queueEnhance).observe(document.documentElement, { childList: true, subtree: true });
+  {
+  const uiUpgradeObserver1 = new MutationObserver(queueEnhance);
+  ["#beanGroups","#overlayRoot","#settingsContent"].forEach(selector => {
+    const root = document.querySelector(selector);
+    if (root) uiUpgradeObserver1.observe(root, { childList: true, subtree: true });
+  });
+}
   queueEnhance();
   globalThis.LuckyBeanV099fUi = { openPreferencePage, openWorldPage, renderFreshnessGrouping, focusFirstMissing };
 }
