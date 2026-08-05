@@ -108,6 +108,15 @@ document.documentElement.dataset.startup = 'booting';
 bindEarlyEntry();
 bindStatusEvents();
 setStatus('正在准备本地数据…');
-await ensureLocalIdentity();
-document.dispatchEvent(new CustomEvent('luckybean:local-bootstrap-ready'));
-watchForShell();
+
+try {
+  await ensureLocalIdentity();
+  document.dispatchEvent(new CustomEvent('luckybean:local-bootstrap-ready'));
+  await import('../app.js?v=1.1.0-test');
+  document.dispatchEvent(new CustomEvent('luckybean:app-module-loaded'));
+  watchForShell();
+} catch (error) {
+  console.error('本地应用启动失败', error);
+  document.documentElement.dataset.startup = 'failed';
+  setStatus(`本地程序加载失败：${error?.message || '未知错误'}`);
+}
