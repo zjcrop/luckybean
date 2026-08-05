@@ -3,7 +3,7 @@ import { SENSORY_STORAGE_FORMAT, sealSensoryRecord, openSensoryRecord } from './
 
 const DB_NAME = 'luckybean';
 const LEGACY_DB_NAME = 'coffee_cellar_local_mvp_v1';
-const STORES = ['beans', 'brewSessions', 'sensoryRecords', 'inventoryEvents', 'settings', 'customCodes', 'codebookCache', 'syncMetadata', 'shareDrafts'];
+const STORES = ['beans', 'brewSessions', 'sensoryRecords', 'inventoryEvents', 'settings', 'customCodes', 'codebookCache', 'syncMetadata', 'shareDrafts', 'historyRevisions', 'recycleBin', 'syncOutbox'];
 const SENSORY_KEY_ID = 'local.sensory.key.v1';
 let dbPromise;
 let sensorySecretPromise;
