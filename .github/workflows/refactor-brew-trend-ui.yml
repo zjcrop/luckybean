@@ -1,0 +1,49 @@
+name: Apply brew trend UI
+
+on:
+  push:
+    branches: [test-v107-web]
+    paths:
+      - 'scripts/refactor-brew-trend-ui.mjs'
+      - '.github/workflows/refactor-brew-trend-ui.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-test-v107-refactor-write
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test-v107-web
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Rebase on latest branch head
+        run: git pull --rebase origin test-v107-web
+      - name: Apply trend migration
+        run: node scripts/refactor-brew-trend-ui.mjs
+      - name: Verify trend modules
+        run: |
+          node --check src/app.js
+          node --check src/domain/history/history-comparison.js
+          node --check src/ui/brew-trend-panel.js
+          npm run test:static
+      - name: Commit migrated source
+        run: |
+          if git diff --quiet; then
+            echo 'No brew trend migration changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/app.js styles.css sw.js
+          git commit -m 'refactor: add directional brew iteration comparison'
+          git pull --rebase origin test-v107-web
+          git push origin HEAD:test-v107-web
