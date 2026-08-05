@@ -1,0 +1,48 @@
+name: Remove stale trajectory export
+
+on:
+  push:
+    branches: [test-v107-web]
+    paths:
+      - 'scripts/fix-feature-controller-exports.mjs'
+      - '.github/workflows/fix-feature-controller-exports.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-test-v107-refactor-write
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test-v107-web
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Rebase on latest branch head
+        run: git pull --rebase origin test-v107-web
+      - name: Remove stale export
+        run: node scripts/fix-feature-controller-exports.mjs
+      - name: Verify
+        run: |
+          node --check src/feature-controller.js
+          ! grep -R "v17Trajectory" src/feature-controller.js
+          npm run test:static
+      - name: Commit fix
+        run: |
+          if git diff --quiet; then
+            echo 'No stale export changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/feature-controller.js tests/v120-core-contracts-static.mjs
+          git commit -m 'fix: remove stale legacy trajectory export'
+          git pull --rebase origin test-v107-web
+          git push origin HEAD:test-v107-web
