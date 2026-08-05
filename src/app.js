@@ -12,6 +12,7 @@ import { adaptAuthoritativePlan } from './services/brew-analysis-service.js';
 import './renderers/brew-spatial-controller.js';
 import { openHistoryScreen } from './ui/history/history-screen.js';
 import { migrateLegacyBrewHistory } from './domain/history/history-migration.js';
+import './services/provider-bootstrap-controller.js';
 import './v095-sensory-pro.js';
 
 const PAGE_META = {
@@ -131,6 +132,16 @@ async function loadSettings() {
 async function saveSettings() { await setSetting('app.settings', state.settings); }
 
 migrateLegacyBrewHistory().catch(error => console.error('冲煮历史迁移失败', error));
+
+document.addEventListener('luckybean:codebook-provider-activated', event => {
+  const data = event.detail?.data;
+  if (!data) return;
+  state.codebook = data;
+  state.codebookIndex = makeIndex(data);
+  state.codebookMeta = event.detail?.meta || state.codebookMeta;
+  if (state.page === 'beans') renderBeans();
+  if (state.page === 'brew') renderBrew();
+});
 
 async function refreshData() {
   [state.beans, state.brewSessions, state.sensoryRecords, state.inventoryEvents] = await Promise.all([
