@@ -3,10 +3,10 @@ import { readFile, writeFile } from 'node:fs/promises';
 async function patchApp() {
   const path = 'src/app.js';
   let source = await readFile(path, 'utf8');
-  source = source.replace(
-    "import { loadCodebook, checkCodebookUpdate, makeIndex, displayName, optionsHtml, relatedRows, parseNaturalLanguage, REMOTE_CODEBOOK_URL } from './codebook.js';",
-    "import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, parseNaturalLanguage, REMOTE_CODEBOOK_URL } from './codebook.js';"
-  );
+  source = source.replace(/import \{([^\n]*?)\bcheckCodebookUpdate,?\s*([^\n]*?)\} from '\.\/codebook\.js';/, (_, before, after) => {
+    const names = `${before}${after}`.split(',').map(value => value.trim()).filter(Boolean);
+    return `import { ${names.join(', ')} } from './codebook.js';`;
+  });
   const marker = "import './services/provider-bootstrap-controller.js';\n";
   const statusImport = "import { renderProviderStatusPanel } from './ui/provider-status-panel.js';\n";
   if (!source.includes(statusImport)) {
@@ -39,6 +39,7 @@ async function patchApp() {
   }
 }`;
   source = source.slice(0, functionStart) + replacement + source.slice(functionEnd);
+  source = source.replace(/\n\s*setTimeout\(\(\)=>checkCodebookUpdate\(\)[\s\S]*?\),800\);/, '');
   if (source.includes('checkCodebookUpdate')) throw new Error('legacy direct codebook update remains');
   await writeFile(path, source);
 }
@@ -46,7 +47,7 @@ async function patchApp() {
 async function patchStyles() {
   const path = 'styles.css';
   let source = await readFile(path, 'utf8');
-  const css = `\n.provider-status-list{display:grid;gap:9px;margin:12px 0 18px}.provider-status-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07)}.provider-status-row>div{display:grid;gap:2px}.provider-status-row strong{font-weight:540}.provider-status-row small{color:var(--muted)}.provider-status-state{color:var(--ok);font-size:12px;text-align:right}.provider-status-state.pending{color:var(--warn)}\n`;
+  const css = `\n.provider-status-list{display:grid;gap:9px;margin:12px 0 18px}.provider-status-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07)}.provider-status-row>div{display:grid;gap:2px}.provider-status-row strong{font-weight:540}.provider-status-row small{color:var(--muted)}.provider-status-state{color:var(--ok);font-size:12px;text-align:right}.provider-status-state.pending{color:var(--warn)}.provider-review-button{width:100%;border:0;background:transparent;color:var(--clickable);padding:8px 0;text-align:left}\n`;
   if (!source.includes('.provider-status-list{')) source += css;
   await writeFile(path, source);
 }
