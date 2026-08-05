@@ -1,0 +1,48 @@
+name: Remove legacy trajectory parsing
+
+on:
+  push:
+    branches: [test-v107-web]
+    paths:
+      - 'scripts/refactor-remove-legacy-trajectory.mjs'
+      - '.github/workflows/refactor-remove-legacy-trajectory.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-test-v107-refactor-write
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test-v107-web
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Rebase on latest branch head
+        run: git pull --rebase origin test-v107-web
+      - name: Remove legacy trajectory parsing
+        run: node scripts/refactor-remove-legacy-trajectory.mjs
+      - name: Verify no parallel trajectory chain remains
+        run: |
+          node --check src/v098-feature-fixes.js
+          ! grep -E "stageDataFromPlan|function v17Trajectory|trajectory-series|observe\(document\.documentElement" src/v098-feature-fixes.js
+          npm run test:static
+      - name: Commit migrated source
+        run: |
+          if git diff --quiet; then
+            echo 'No legacy trajectory changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/v098-feature-fixes.js
+          git commit -m 'refactor: remove legacy DOM trajectory reconstruction'
+          git pull --rebase origin test-v107-web
+          git push origin HEAD:test-v107-web
