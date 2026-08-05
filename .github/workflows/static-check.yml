@@ -1,4 +1,4 @@
-name: LuckyBean static checks
+name: LuckyBean checks
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  local-first-sync:
+  static-architecture:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -24,4 +24,23 @@ jobs:
         with:
           node-version: '22'
       - name: Run static architecture checks
-        run: node tests/v110-local-first-sync-static.mjs
+        run: npm run test:static
+
+  browser-startup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install test dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start local server
+        run: python3 -m http.server 4173 > /tmp/luckybean-http.log 2>&1 &
+      - name: Run browser startup smoke test
+        run: npm run test:smoke
