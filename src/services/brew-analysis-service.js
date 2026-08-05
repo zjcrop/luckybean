@@ -4,7 +4,7 @@ import { sha256Hex } from '../utils.js';
 export const BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.0';
 export const BREW_SPATIAL_CONTRACT = 'brew-spatial/1.1';
 export const BREW_ANALYSIS_ENDPOINT = 'https://vaxwncdcuvbpvdbbketb.supabase.co/functions/v1/brew-analyze-v2';
-export const BREW_ANALYSIS_SERVICE_VERSION = 'luckybean-analysis-client/1.0.0';
+export const BREW_ANALYSIS_SERVICE_VERSION = 'luckybean-analysis-client/1.1.0';
 
 const SUPABASE_KEY = 'sb_publishable_MsB0RFoxxf5zJbbT9PPBjQ_WP7GBMMn';
 const SESSION_KEY = 'luckybean.supabase.session.v099d';
@@ -22,8 +22,12 @@ function canonical(value) {
   return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])]));
 }
 
+async function inputFingerprint(input) {
+  return `sha256:${await sha256Hex(JSON.stringify(canonical(input)))}`;
+}
+
 async function cacheKey(input) {
-  return `${CACHE_PREFIX}${await sha256Hex(JSON.stringify(canonical({ contract: BREW_ANALYSIS_CONTRACT, input })))}`;
+  return `${CACHE_PREFIX}${(await inputFingerprint(input)).slice(7)}`;
 }
 
 function assertFinite(value, field) {
@@ -35,6 +39,7 @@ function validateSpatial(spatial) {
   if (!spatial || spatial.schemaVersion !== BREW_SPATIAL_CONTRACT) {
     throw new Error(`专业分析缺少 ${BREW_SPATIAL_CONTRACT} 三维轨迹`);
   }
+  if (!spatial.planFingerprint) throw new Error('专业分析三维轨迹缺少方案指纹');
   if (!Array.isArray(spatial.path) || spatial.path.length < 2) throw new Error('专业分析三维轨迹点不足');
   let previousTime = -Infinity;
   let previousWater = -Infinity;
@@ -52,16 +57,20 @@ function validateSpatial(spatial) {
   return spatial;
 }
 
-function validateAnalysis(analysis) {
+function validateAnalysis(analysis, { expectedInputFingerprint = '' } = {}) {
   if (!analysis || analysis.contract !== BREW_ANALYSIS_CONTRACT) {
     throw new Error(`专业分析接口契约不匹配，应为 ${BREW_ANALYSIS_CONTRACT}`);
   }
   if (!analysis.analysisFingerprint) throw new Error('专业分析缺少统一计算指纹');
   if (!analysis.plan || typeof analysis.plan !== 'object') throw new Error('专业分析缺少冲煮方案');
   validateSpatial(analysis.trajectory);
-  if (analysis.trajectory.planFingerprint && analysis.plan.metadata?.fingerprint
-    && analysis.trajectory.planFingerprint !== analysis.plan.metadata.fingerprint) {
+  const metadata = analysis.metadata || {};
+  const planFingerprint = metadata.planFingerprint || analysis.plan.metadata?.fingerprint || '';
+  if (planFingerprint && analysis.trajectory.planFingerprint !== planFingerprint) {
     throw new Error('冲煮方案与三维轨迹指纹不一致');
+  }
+  if (expectedInputFingerprint && metadata.inputFingerprint !== expectedInputFingerprint) {
+    throw new Error('专业分析返回的输入指纹与本次请求不一致');
   }
   return analysis;
 }
@@ -132,10 +141,11 @@ export function adaptAuthoritativePlan(analysis) {
 
 async function cached(input) {
   const id = await cacheKey(input);
+  const expected = await inputFingerprint(input);
   const record = await get('syncMetadata', id).catch(() => null);
   if (!record?.analysis) return null;
   try {
-    return { analysis: validateAnalysis(record.analysis), cacheId: id, cached: true };
+    return { analysis: validateAnalysis(record.analysis, { expectedInputFingerprint: expected }), cacheId: id, cached: true };
   } catch {
     return null;
   }
@@ -148,6 +158,8 @@ async function persistCache(input, analysis) {
     analysis: structuredClone(analysis),
     contract: BREW_ANALYSIS_CONTRACT,
     fingerprint: analysis.analysisFingerprint,
+    inputFingerprint: await inputFingerprint(input),
+    engineVersion: analysis.metadata?.engineVersion || '',
     createdAt: new Date().toISOString()
   });
   return id;
@@ -166,6 +178,7 @@ async function fetchAnalysis(input, { endpoint = BREW_ANALYSIS_ENDPOINT, timeout
     error.code = 'AUTH_REQUIRED';
     throw error;
   }
+  const expected = await inputFingerprint(input);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -193,7 +206,7 @@ async function fetchAnalysis(input, { endpoint = BREW_ANALYSIS_ENDPOINT, timeout
       error.payload = payload;
       throw error;
     }
-    return validateAnalysis(payload);
+    return validateAnalysis(payload, { expectedInputFingerprint: expected });
   } catch (error) {
     if (error?.name === 'AbortError') {
       const timeoutError = new Error('专业冲煮分析连接超时');
