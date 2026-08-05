@@ -1,0 +1,167 @@
+name: Complete v1.2.0 profile ownership and verification
+
+on:
+  push:
+    branches:
+      - fix/v120-requirements-clean
+    paths:
+      - .github/workflows/complete-v120-profile-ownership.yml
+
+permissions:
+  contents: write
+
+jobs:
+  verify-and-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/v120-requirements-clean
+          fetch-depth: 0
+
+      - name: Build corrected implementation tree
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, textwrap, subprocess
+
+          original = Path('.github/workflows/implement-v120-requirements.yml').read_text(encoding='utf-8')
+          match = re.search(r"(?ms)^        run: \|\n          python3 - <<'PY'\n(?P<script>.*?)^          PY\n", original)
+          if not match:
+              raise SystemExit('unable to extract implementation script')
+          script = textwrap.dedent(match.group('script'))
+          script = script.replace(
+              '本地功能无需登录。数据先写入本机；登录云端后，新变化等待约8秒批量增量同步。',
+              '本地功能无需登录。数据先写入本机；登录云端后，新变化等待约8秒批量增量同步。启动和使用不等待服务器。'
+          )
+          script = script.replace(
+              'if (token) headers.authorization = `Bearer ${token}`;',
+              'Object.assign(headers, token ? { authorization: `Bearer ${token}` } : {});'
+          )
+          Path('/tmp/apply.py').write_text(script, encoding='utf-8')
+          subprocess.run(['python3', '/tmp/apply.py'], check=True)
+
+          resume = Path('.github/workflows/resume-v120-implementation.yml').read_text(encoding='utf-8')
+          blocks = re.findall(r"(?ms)^        run: \|\n          python3 - <<'PY'\n(?P<script>.*?)^          PY\n", resume)
+          if len(blocks) < 2:
+              raise SystemExit('unable to extract ownership cleanup script')
+          cleanup = textwrap.dedent(blocks[1])
+          Path('/tmp/cleanup.py').write_text(cleanup, encoding='utf-8')
+          subprocess.run(['python3', '/tmp/cleanup.py'], check=True)
+
+          sensory_path = Path('src/sensory-professional-controller.js')
+          sensory = sensory_path.read_text(encoding='utf-8')
+          sensory = sensory.replace("professionalSummary().split('\n').filter", "professionalSummary().split('\\n').filter")
+          sensory_path.write_text(sensory, encoding='utf-8')
+          PY
+
+      - name: Remove legacy UI ownership of brew profile selection
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('src/ui-layout-controller.js')
+          source = path.read_text(encoding='utf-8')
+
+          source, count = re.subn(
+              r"const PROFILE_TO_SEGMENT = Object\.freeze\([\s\S]*?const EXPLICIT_PROFILES = new Set\(Object\.keys\(PROFILE_TO_SEGMENT\)\);\n\n",
+              '',
+              source,
+              count=1
+          )
+          if count != 1:
+              raise SystemExit(f'profile maps removal failed: {count}')
+
+          source = source.replace("let brewSyncBusy = false;\n", '')
+          source = source.replace("let requestedProfileId = '';\n", '')
+
+          source, count = re.subn(
+              r"function normalizeSegmentOptionLabels\([\s\S]*?\nfunction preserveTrajectoryChart",
+              'function preserveTrajectoryChart',
+              source,
+              count=1
+          )
+          if count != 1:
+              raise SystemExit(f'legacy profile synchronizer removal failed: {count}')
+
+          source = source.replace('  synchronizeBrewControls();\n', '')
+          source, count = re.subn(
+              r"  document\.addEventListener\('change', event => \{\n    if \(event\.target\.matches\?\.\('#brewProfile,#brewSegments'\)\) synchronizeBrewControls\(event\);\n  \}, true\);\n  document\.addEventListener\('input', event => \{\n    if \(event\.target\.matches\?\.\('#brewProfile,#brewSegments'\)\) synchronizeBrewControls\(event\);\n  \}, true\);\n  document\.addEventListener\('click', event => \{\n    if \(event\.target\.closest\?\.\('#generatePlanBtn'\)\) enforceBrewSelection\(\);\n  \}, true\);\n",
+              '',
+              source,
+              count=1
+          )
+          if count != 1:
+              raise SystemExit(f'legacy profile event handlers removal failed: {count}')
+
+          source = source.replace('  preserveTrajectoryChart,\n  synchronizeBrewControls,\n  enforceBrewSelection\n', '  preserveTrajectoryChart\n')
+
+          forbidden = [
+              'PROFILE_TO_SEGMENT', 'SEGMENT_TO_PROFILE', 'EXPLICIT_PROFILES',
+              'synchronizeBrewControls', 'enforceBrewSelection', 'data-v097-explicit-profile'
+          ]
+          remaining = [token for token in forbidden if token in source]
+          if remaining:
+              raise SystemExit('legacy profile ownership remains: ' + ', '.join(remaining))
+          path.write_text(source, encoding='utf-8')
+
+          test_path = Path('tests/v120-requirements-static.mjs')
+          test = test_path.read_text(encoding='utf-8')
+          test = test.replace(
+              "const analysis = read('src/services/brew-analysis-service.js');",
+              "const analysis = read('src/services/brew-analysis-service.js');\nconst layoutController = read('src/ui-layout-controller.js');"
+          )
+          test = test.replace(
+              "assert.doesNotMatch(analysis, /专业冲煮分析需要登录云端账号/);",
+              "assert.doesNotMatch(analysis, /专业冲煮分析需要登录云端账号/);\nassert.doesNotMatch(layoutController, /PROFILE_TO_SEGMENT|SEGMENT_TO_PROFILE|synchronizeBrewControls|enforceBrewSelection|v097ExplicitProfile/);"
+          )
+          test_path.write_text(test, encoding='utf-8')
+
+          ui_path = Path('tests/v120-requirements-ui.spec.mjs')
+          ui = ui_path.read_text(encoding='utf-8')
+          old = """  const selected = options.includes('four-six-33666') ? 'four-six-33666' : options.at(-1);\n  await page.locator('#brewProfile').selectOption(selected);\n  await page.locator('#generatePlanBtn').click();\n  await expect(page.locator('#generatedPlan')).toBeVisible({ timeout: 20000 });\n  await expect(page.locator('#brewProfile')).toHaveValue(selected);\n  await expect(page.locator('#brewSpatialMount [data-brew-spatial-preview]')).toBeVisible({ timeout: 10000 });"""
+          new = """  const profile = page.locator('#brewProfile');\n  const generate = page.locator('#generatePlanBtn');\n  for (const selected of options) {\n    await profile.selectOption(selected);\n    await expect(profile).toHaveValue(selected);\n    await generate.click();\n    await expect(generate).toBeEnabled({ timeout: 20000 });\n    await expect(page.locator('#generatedPlan')).toBeVisible({ timeout: 20000 });\n    await expect(profile).toHaveValue(selected);\n  }\n  await expect(page.locator('#brewSpatialMount [data-brew-spatial-preview]')).toBeVisible({ timeout: 10000 });"""
+          if old not in ui:
+              raise SystemExit('unable to expand all-profile UI test')
+          ui_path.write_text(ui.replace(old, new, 1), encoding='utf-8')
+          PY
+
+      - name: Verify JavaScript syntax and structural contracts
+        run: |
+          node --check src/app.js
+          node --check src/sensory-professional-controller.js
+          node --check src/ui/account-sync-panel.js
+          node --check src/ui/voice-settings-controller.js
+          node --check src/renderers/brew-spatial-controller.js
+          node --check src/renderers/brew-spatial-view.js
+          node --check src/services/brew-analysis-service.js
+          node --check src/brew-engine.js
+          node --check src/ui-layout-controller.js
+          npm install --no-audit --no-fund
+          npm run test:static
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run complete browser and visual verification
+        run: |
+          python3 -m http.server 4173 > /tmp/luckybean-http.log 2>&1 &
+          npm run test:smoke
+          npm run test:core
+          npm run test:visual
+
+      - name: Commit only the verified product tree
+        run: |
+          rm .github/workflows/implement-v120-requirements.yml
+          rm .github/workflows/resume-v120-implementation.yml
+          rm .github/workflows/diagnose-v120-browser-startup.yml
+          rm .github/workflows/finalize-v120-requirements.yml
+          rm .github/workflows/complete-v120-profile-ownership.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix: implement v1.2.0 requirements with single feature owners"
+          git push origin HEAD:fix/v120-requirements-clean
