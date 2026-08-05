@@ -1,0 +1,83 @@
+name: Finalize verified v1.2.0 requirements
+
+on:
+  push:
+    branches:
+      - fix/v120-requirements-clean
+    paths:
+      - .github/workflows/finalize-v120-requirements.yml
+
+permissions:
+  contents: write
+
+jobs:
+  verify-and-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/v120-requirements-clean
+          fetch-depth: 0
+
+      - name: Build corrected implementation tree
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, textwrap, subprocess
+
+          original = Path('.github/workflows/implement-v120-requirements.yml').read_text(encoding='utf-8')
+          match = re.search(r"(?ms)^        run: \|\n          python3 - <<'PY'\n(?P<script>.*?)^          PY\n", original)
+          script = textwrap.dedent(match.group('script'))
+          script = script.replace('本地功能无需登录。数据先写入本机；登录云端后，新变化等待约8秒批量增量同步。', '本地功能无需登录。数据先写入本机；登录云端后，新变化等待约8秒批量增量同步。启动和使用不等待服务器。')
+          script = script.replace('if (token) headers.authorization = `Bearer ${token}`;', 'Object.assign(headers, token ? { authorization: `Bearer ${token}` } : {});')
+          Path('/tmp/apply.py').write_text(script, encoding='utf-8')
+          subprocess.run(['python3', '/tmp/apply.py'], check=True)
+
+          resume = Path('.github/workflows/resume-v120-implementation.yml').read_text(encoding='utf-8')
+          blocks = re.findall(r"(?ms)^        run: \|\n          python3 - <<'PY'\n(?P<script>.*?)^          PY\n", resume)
+          cleanup = textwrap.dedent(blocks[1])
+          Path('/tmp/cleanup.py').write_text(cleanup, encoding='utf-8')
+          subprocess.run(['python3', '/tmp/cleanup.py'], check=True)
+
+          sensory_path = Path('src/sensory-professional-controller.js')
+          sensory = sensory_path.read_text(encoding='utf-8')
+          sensory = sensory.replace("professionalSummary().split('\n').filter", "professionalSummary().split('\\n').filter")
+          sensory_path.write_text(sensory, encoding='utf-8')
+          PY
+
+      - name: Verify JavaScript syntax and source contracts
+        run: |
+          node --check src/app.js
+          node --check src/sensory-professional-controller.js
+          node --check src/ui/account-sync-panel.js
+          node --check src/ui/voice-settings-controller.js
+          node --check src/renderers/brew-spatial-controller.js
+          node --check src/renderers/brew-spatial-view.js
+          node --check src/services/brew-analysis-service.js
+          node --check src/brew-engine.js
+          npm install --no-audit --no-fund
+          npm run test:static
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run complete browser verification
+        run: |
+          python3 -m http.server 4173 > /tmp/luckybean-http.log 2>&1 &
+          npm run test:smoke
+          npm run test:core
+          npm run test:visual
+
+      - name: Commit only after all checks pass
+        run: |
+          rm .github/workflows/implement-v120-requirements.yml
+          rm .github/workflows/resume-v120-implementation.yml
+          rm .github/workflows/diagnose-v120-browser-startup.yml
+          rm .github/workflows/finalize-v120-requirements.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix: implement v1.2.0 requirements with single feature owners"
+          git push origin HEAD:fix/v120-requirements-clean
