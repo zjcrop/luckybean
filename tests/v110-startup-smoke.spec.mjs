@@ -2,7 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test('server failure never blocks local startup', async ({ page }) => {
   const pageErrors = [];
+  const consoleMessages = [];
   page.on('pageerror', error => pageErrors.push(error.message));
+  page.on('console', message => consoleMessages.push(`${message.type()}: ${message.text()}`));
 
   await page.addInitScript(() => {
     localStorage.setItem('luckybean.supabase.session.v099d', JSON.stringify({
@@ -19,6 +21,34 @@ test('server failure never blocks local startup', async ({ page }) => {
   await expect(page.locator('#splashScreen')).toBeVisible();
   await expect(page.locator('#splashImage')).toBeVisible();
   await page.locator('#splashScreen').click();
+  await page.waitForTimeout(5000);
+
+  const diagnostics = await page.evaluate(async () => {
+    let settings = null;
+    let settingsError = '';
+    try {
+      const db = await import('/src/db.js');
+      settings = await db.getSetting('app.settings', null);
+    } catch (error) {
+      settingsError = error?.message || String(error);
+    }
+    return {
+      startup: document.documentElement.dataset.startup || '',
+      cloudAuth: document.documentElement.dataset.cloudAuth || '',
+      cloudSync: document.documentElement.dataset.cloudSync || '',
+      splashStatus: document.querySelector('#splashStatus')?.textContent || '',
+      appShellClass: document.querySelector('#appShell')?.className || '',
+      loginClass: document.querySelector('#loginScreen')?.className || '',
+      overlayText: document.querySelector('#overlayRoot')?.textContent?.trim() || '',
+      settingsIdentity: settings?.identity || null,
+      settingsError,
+      compatibilityLoaded: Boolean(globalThis.LuckyBeanCompatibilityLayer),
+      compatibilityFailures: globalThis.LuckyBeanCompatibilityLayer?.failures || [],
+      syncServiceLoaded: Boolean(globalThis.LuckyBeanCloudSync),
+      authServiceLoaded: Boolean(globalThis.LuckyBeanCloudAuth)
+    };
+  });
+  console.log('STARTUP_DIAGNOSTICS', JSON.stringify({ diagnostics, pageErrors, consoleMessages }, null, 2));
 
   await expect(page.locator('#appShell')).toBeVisible({ timeout: 15000 });
   await expect(page.locator('#loginScreen')).toBeHidden();
