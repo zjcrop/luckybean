@@ -29,7 +29,7 @@ async function openLocalApp(page, suffix) {
   await expect(page.locator('#appShell')).toBeVisible({ timeout: 15000 });
   await expect(page.locator('#loginScreen')).toBeHidden();
   await expect(page.locator('#pageBeans')).toBeVisible();
-  await page.waitForFunction(() => Boolean(globalThis.LuckyBeanCompatibilityLayer), null, { timeout: 15000 });
+  await page.waitForFunction(() => Boolean(globalThis.LuckyBeanRuntimeFeatures), null, { timeout: 15000 });
 }
 
 function jwt(expSeconds) {
@@ -55,7 +55,7 @@ test('server failure never blocks local startup', async ({ page }) => {
   const state = await page.evaluate(() => ({
     startup: document.documentElement.dataset.startup,
     cloudAuth: document.documentElement.dataset.cloudAuth,
-    compatibilityFailures: globalThis.LuckyBeanCompatibilityLayer?.failures || [],
+    runtimeFeaturesFailures: globalThis.LuckyBeanRuntimeFeatures?.failures || [],
     syncServiceLoaded: Boolean(globalThis.LuckyBeanCloudSync),
     authServiceLoaded: Boolean(globalThis.LuckyBeanCloudAuth),
     appearanceLoaded: Boolean(globalThis.LuckyBeanAppearanceController)
@@ -63,7 +63,7 @@ test('server failure never blocks local startup', async ({ page }) => {
 
   expect(state.startup).toBe('ready');
   expect(['offline', 'reauth-required', 'signed-out']).toContain(state.cloudAuth);
-  expect(state.compatibilityFailures).toEqual([]);
+  expect(state.runtimeFeaturesFailures).toEqual([]);
   expect(state.syncServiceLoaded).toBe(true);
   expect(state.authServiceLoaded).toBe(true);
   expect(state.appearanceLoaded).toBe(true);

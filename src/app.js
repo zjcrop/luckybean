@@ -15,7 +15,7 @@ import { openHistoryScreen } from './ui/history/history-screen.js';
 import { migrateLegacyBrewHistory } from './domain/history/history-migration.js';
 import './services/provider-bootstrap-controller.js';
 import { renderProviderStatusPanel } from './ui/provider-status-panel.js';
-import './v095-sensory-pro.js';
+import './sensory-professional-controller.js';
 
 const PAGE_META = {
   beans: { nav: '藏', title: '豆藏', browser: '豆藏' },

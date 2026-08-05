@@ -20,7 +20,7 @@ const providerStatus = read('src/ui/provider-status-panel.js');
 const water = read('src/water-profiles.js');
 const model = read('src/brew-model-v09.js');
 const dbCore = read('src/db-storage-core.js');
-const compatibility = read('src/features/compatibility-bundle.js');
+const runtimeFeatures = read('src/features/runtime-features.js');
 const historySchema = json('schemas/brew-history.schema.json');
 const sw = read('sw.js');
 
@@ -69,7 +69,7 @@ assert.match(spatial, /轻点路径或靶区查看三轴参数/);
 assert.doesNotMatch(spatial, /MutationObserver/);
 assert.match(spatialController, /luckybean:plan-ready/);
 assert.match(spatialController, /luckybean:history-plan-loaded/);
-assert.doesNotMatch(compatibility, /v099-trajectory-signal-bridge|v099i-trajectory-space|v109-history-management/);
+assert.doesNotMatch(runtimeFeatures, /v099-trajectory-signal-bridge|v099i-trajectory-space|v109-history-management/);
 
 // Providers are verified, atomically activated and reconciled without overwriting custom codes.
 assert.match(providers, /artifact\.bytes/);
