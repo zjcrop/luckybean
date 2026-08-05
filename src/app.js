@@ -6,7 +6,8 @@ import { computeFallbackPlan, requestPrivatePlan, validatePlan, FALLBACK_ENGINE_
 import { listWaterProfiles, inferWaterProfile } from './water-profiles.js';
 import { buildCompactSharePayload, encodeSharePayload, decodeSharePayload } from './share-codec.js';
 import { computeAutomaticScore, sensoryPreferenceTags, buildPreferenceModel, recommendedBeanIds } from './preference-model.js';
-import { commitCompletedBrew } from './domain/history/history-service.js';
+import { commitCompletedBrew, permanentlyDeleteBrewRecords } from './domain/history/history-service.js';
+import { attachSensoryToCompletedBrew } from './domain/history/history-sensory-service.js';
 import { createLocalReferenceAnalysis } from './services/local-reference-analysis.js';
 import { adaptAuthoritativePlan } from './services/brew-analysis-service.js';
 import './renderers/brew-spatial-controller.js';
@@ -1026,7 +1027,7 @@ function detailBean(beanId) {
 }
 
 function sessionRecordHtml(session) {
-  const corrected = session.status === 'corrected' || session.correction;
+  const corrected = Boolean(session.correction || session.nextPlanDraft);
   const score = Number(session.subjectiveScore ?? 0);
   return `<div class="record-item brew-record-row"><button class="brew-record-main" type="button" data-replay-session="${esc(session.id)}"><span>${formatDate(session.createdAt)}</span><span>${esc(session.profile?.label || String(session.profileVersion || '').split('@')[0] || '冲煮方案')}${corrected ? '<em>修</em>' : ''}${session.sensoryNote ? `<small>${esc(session.sensoryNote)}</small>` : ''}</span><strong>${score ? score.toFixed(1) : `${Number(session.totals?.waterG || 0).toFixed(0)}g`}</strong></button><button class="record-delete-button" type="button" data-delete-session="${esc(session.id)}" aria-label="删除本条冲煮记录">删</button></div>`;
 }
@@ -1054,34 +1055,20 @@ function confirmDeleteBrewSession(sessionId) {
 async function deleteBrewSession(sessionId, restoreBeans = false) {
   const session = state.brewSessions.find(item => item.id === sessionId);
   if (!session) return toast('冲煮记录不存在', 'status-bad');
-  const now = new Date().toISOString();
   const bean = state.beans.find(item => item.id === session.beanId);
-  const consumed = sessionConsumedGrams(sessionId);
-  const writes = [];
-  if (restoreBeans && bean && consumed > 0) {
-    bean.remainingWeight = Number(bean.remainingWeight || 0) + consumed;
-    bean.updatedAt = now;
-    writes.push(put('beans', bean));
-    writes.push(put('inventoryEvents', {
-      id: uid('inv'), beanId: bean.id, type: 'restore-brew-deletion', amountG: consumed,
-      resultingWeightG: bean.remainingWeight, sourceSessionId: sessionId,
-      note: `删除冲煮记录并回收 ${consumed.toFixed(1)}g`, createdAt: now
-    }));
+  try {
+    await permanentlyDeleteBrewRecords([sessionId], { restoreWeight: restoreBeans, sensoryMode: 'detach' });
+    if (state.currentPlan?.id === sessionId) { state.currentPlan = null; state.currentBrewInput = null; }
+    await refreshData();
+    closeOverlay();
+    if (state.page === 'brew') renderBrew();
+    else if (state.page === 'sensory') renderSensory();
+    else renderBeans();
+    if (bean) requestAnimationFrame(() => detailBean(bean.id));
+    toast(restoreBeans ? '冲煮记录已删除，原扣豆账本已冲正' : '冲煮记录已删除，豆卡重量未改动', 'status-good');
+  } catch (error) {
+    toast(error.message || '删除冲煮记录失败', 'status-bad');
   }
-  const linked = state.sensoryRecords.filter(record => record.brewSessionId === sessionId).map(record => ({
-    ...record, brewSessionId: '', detachedFromBrewSessionId: sessionId, updatedAt: now
-  }));
-  if (linked.length) writes.push(bulkPut('sensoryRecords', linked));
-  await Promise.all(writes);
-  await remove('brewSessions', sessionId);
-  if (state.currentPlan?.id === sessionId) { state.currentPlan = null; state.currentBrewInput = null; }
-  await refreshData();
-  closeOverlay();
-  if (state.page === 'brew') renderBrew();
-  else if (state.page === 'sensory') renderSensory();
-  else renderBeans();
-  if (bean) requestAnimationFrame(() => detailBean(bean.id));
-  toast(restoreBeans && consumed > 0 ? `冲煮记录已删除，已回收 ${consumed.toFixed(1)}g` : '冲煮记录已删除', 'status-good');
 }
 
 function loadBrewSession(sessionId) {
@@ -1299,8 +1286,7 @@ function planHtml(plan) {
   <section class="visual-section trajectory-section${showVisual?' open':''}"><div class="trajectory-title-row"><button id="trajectoryTitleBtn" type="button"><h3>冲煮轨迹拟合图</h3></button><label class="switch-control"><span>默认开启</span><input id="trajectoryDefaultToggle" type="checkbox"${state.settings.ui.planVisualsExpanded?' checked':''}><i></i></label></div>${showVisual?`${trajectorySvg(plan)}<p class="muted small">目标 EY ${extraction.targetEY ?? '—'}% · 预测 TDS ${extraction.predictedTds ?? '—'}%；轨迹是相对模型，不替代折光仪测量。</p>`:''}</section>
   <details class="details-block professional-result"><summary>专业内容……</summary><div class="details-content">
     <section class="visual-section"><h3>风味拟合</h3><div class="bar-chart">${Object.entries({花香:flavor.floral,酸质:flavor.acidity,甜感:flavor.sweetness,口感:flavor.body,苦感风险:flavor.bitterness,洁净度:flavor.clarity}).map(([key,value])=>`<div class="bar-row"><span>${key}</span><div class="bar-track"><div class="bar-fill" style="width:${clamp(Number(value||0)*100,0,100)}%"></div></div><strong>${Math.round(Number(value||0)*100)}</strong></div>`).join('')}</div></section>
-    <dl class="professional-list"><dt>研磨建议</dt><dd>${esc(plan.grinder ? `${plan.grinder.label} ${plan.grinder.recommended}${plan.grinder.unit}` : '未提供')}</dd><dt>品种模型</dt><dd>${esc(plan.temperature?.model?.model || '通用模型')}</dd><dt>关键化学标记</dt><dd>${esc((plan.temperature?.model?.markers || []).join('、') || '未提供')}</dd><dt>敏感度</dt><dd>${esc(plan.temperature?.model?.sensitivityText || '未提供')}</dd><dt>执行主轴</dt><dd>${esc(plan.temperature?.model?.execution || '未提供')}</dd><dt>容差参考</dt><dd>${plan.temperature?.model?.tolerance ? `温度 ±${plan.temperature.model.tolerance.temperatureC}°C / 流速 ±${plan.temperature.model.tolerance.flowGPerSec}g/s / 水量 ±${plan.temperature.model.tolerance.waterG}g` : '未提供'}</dd><dt>调水方案</dt><dd>${esc(water?.profile?.name || '未提供')} ${water?.profile ? `· Ca ${water.profile.ca} / Mg ${water.profile.mg} / HCO₃ ${water.profile.hco3} mg/L` : ''}</dd><dt>水质判断</dt><dd>${esc(plan.temperature?.model?.waterAdvice || '未提供')}</dd><dt>调水版本</dt><dd>${esc(water?.modelVersion || '—')}</dd><dt>计算模型</dt><dd>${esc(plan.professional?.calculationModelVersion || plan.engineVersion || '—')}</dd><dt>平均流速</dt><dd>${esc(String(plan.professional?.hydraulics?.averageFlowGPerSec ?? '—'))} g/s</dd></dl>
-    ${water?.doses?.length ? `<details class="nested-settings"><summary>调水粉剂换算</summary><div class="nested-content"><p class="muted small">按 ${Number(water.volumeL||5)}L RO水；称量值含纯度修正。</p>${water.doses.map(item=>`<div class="record-item"><span>${esc(item.name)}</span><span>${esc(item.id)}</span><strong>${Number(item.grams).toFixed(4)}g</strong></div>`).join('')}<p class="status-warn small">${esc(water.warning || '')}</p></div></details>` : ''}
+    <dl class="professional-list"><dt>研磨建议</dt><dd>${esc(plan.grinder ? `${plan.grinder.label} ${plan.grinder.recommended}${plan.grinder.unit}` : '未提供')}</dd><dt>品种模型</dt><dd>${esc(plan.temperature?.model?.model || '通用模型')}</dd><dt>关键化学标记</dt><dd>${esc((plan.temperature?.model?.markers || []).join('、') || '未提供')}</dd><dt>敏感度</dt><dd>${esc(plan.temperature?.model?.sensitivityText || '未提供')}</dd><dt>执行主轴</dt><dd>${esc(plan.temperature?.model?.execution || '未提供')}</dd><dt>容差参考</dt><dd>${plan.temperature?.model?.tolerance ? `温度 ±${plan.temperature.model.tolerance.temperatureC}°C / 流速 ±${plan.temperature.model.tolerance.flowGPerSec}g/s / 水量 ±${plan.temperature.model.tolerance.waterG}g` : '未提供'}</dd><dt>调水方案</dt><dd>${esc(water?.profile?.name || '未提供')} · 参考TDS ${Number(water?.profile?.tdsMid ?? water?.targetTdsRange?.[0] ?? state.settings.brew.customWater?.tds ?? 85)} mg/L</dd><dt>水质判断</dt><dd>${esc(plan.temperature?.model?.waterAdvice || '未提供')}</dd><dt>调水版本</dt><dd>${esc(water?.modelVersion || '—')}</dd><dt>计算模型</dt><dd>${esc(plan.professional?.calculationModelVersion || plan.engineVersion || '—')}</dd><dt>平均流速</dt><dd>${esc(String(plan.professional?.hydraulics?.averageFlowGPerSec ?? '—'))} g/s</dd></dl>
     ${candidates.length ? `<details class="nested-settings"><summary>方案推荐排序</summary><div class="nested-content">${candidates.map(item=>`<div class="record-item"><span>${esc(item.profile?.label || item.id)}</span><span>${esc(item.reason || '')}</span><strong>${Math.round(Number(item.score||0)*100)}</strong></div>`).join('')}</div></details>` : ''}
     ${(plan.explanation||[]).map(value=>`<p class="muted small">${esc(value)}</p>`).join('')}
     ${(plan.professional?.modelLimitations||[]).map(value=>`<p class="status-warn small">${esc(value)}</p>`).join('')}
@@ -1322,7 +1308,7 @@ function planExportDocument(plan, format, bean) {
   const title = bean ? beanDisplayName(bean) : '咖啡豆';
   const rows = (plan.stages || []).map(stage => `${stage.index}. ${stage.name}｜${stage.durationSec}s｜${stage.stageWaterG}g｜${stage.temperatureC}°C｜${stage.method}${stage.methodCode ? `｜${stage.methodCode}` : ''}`);
   if (format === 'json') return JSON.stringify({ format: 'luckybean-brew-plan', version: APP_VERSION, bean: { id: bean?.id || '', name: title, varietyCode: bean?.varietyCode || '' }, plan }, null, 2);
-  if (format === 'md') return `# ${title} · 冲煮方案\n\n- 引擎：${plan.engineVersion}\n- 方案：${plan.profile?.label || plan.profileVersion}\n- 粉量：${plan.totals?.doseG}g\n- 水量：${plan.totals?.waterG}g\n- 粉水比：1:${plan.totals?.ratio}\n- 目标时间：${formatSeconds(plan.totals?.targetTimeSec)}\n\n## 分段\n\n${rows.map(row=>`- ${row}`).join('\n')}\n\n## 调水\n\n${plan.water ? `${plan.water.profile?.name}；Ca ${plan.water.profile?.ca}、Mg ${plan.water.profile?.mg}、HCO₃ ${plan.water.profile?.hco3} mg/L。` : '未记录'}\n`;
+  if (format === 'md') return `# ${title} · 冲煮方案\n\n- 引擎：${plan.engineVersion}\n- 方案：${plan.profile?.label || plan.profileVersion}\n- 粉量：${plan.totals?.doseG}g\n- 水量：${plan.totals?.waterG}g\n- 粉水比：1:${plan.totals?.ratio}\n- 目标时间：${formatSeconds(plan.totals?.targetTimeSec)}\n\n## 分段\n\n${rows.map(row=>`- ${row}`).join('\n')}\n\n## 调水\n\n${plan.water ? `${plan.water.profile?.name}；参考TDS ${plan.water.profile?.tdsMid ?? plan.water.targetTdsRange?.[0] ?? '—'} mg/L。` : '未记录'}\n`;
   return `${title} · 冲煮方案\n引擎：${plan.engineVersion}\n方案：${plan.profile?.label || plan.profileVersion}\n粉量：${plan.totals?.doseG}g\n水量：${plan.totals?.waterG}g\n粉水比：1:${plan.totals?.ratio}\n目标时间：${formatSeconds(plan.totals?.targetTimeSec)}\n\n${rows.join('\n')}\n`;
 }
 
@@ -1464,19 +1450,6 @@ function promptRecordConsumption(reason) {
     }
   });
   $('#skipConsumptionBtn').addEventListener('click', () => { state.currentExecution = null; closeOverlay(); switchPage('brew'); toast('本次冲煮未扣豆，未保存记录'); });
-}
-
-async function consumeBean(bean, amount, sessionId, note = '') {
-  if (!bean) return;
-  const consumed = Math.min(Number(bean.remainingWeight)||0, amount); bean.remainingWeight = Math.max(0, Number(bean.remainingWeight||0) - consumed); bean.updatedAt = new Date().toISOString();
-  const event = { id: uid('inv'), beanId: bean.id, type: 'consume', amountG: -consumed, resultingWeightG: bean.remainingWeight, sessionId, note, createdAt: new Date().toISOString() };
-  state.settings.gear = normalizeGearSettings(state.settings.gear);
-  const filterId = state.currentBrewInput?.brew?.filterPaperId || state.currentPlan?.input?.brew?.filterPaperId || state.settings.brew.filterPaperId || '';
-  const filter = state.settings.gear.filters.find(item => item.id === filterId);
-  if (filter) filter.quantity = Math.max(0, Number(filter.quantity||0)-1);
-  await Promise.all([put('beans', bean), put('inventoryEvents', event), saveSettings()]); await refreshData();
-  if (filter && filter.quantity < 10) toast(`滤纸“${filter.type}”仅剩 ${filter.quantity} 张`, 'status-bad');
-  return { grams: consumed, filter: filter || null };
 }
 
 function startEvaluation(beanId = state.selectedBeanId, options = {}) {
@@ -1718,24 +1691,39 @@ async function saveEvaluation() {
 
   let correctionSaved = false;
   const session = state.brewSessions.find(item => item.id === record.brewSessionId);
-  if (session) {
-    session.sensoryRecordId = record.id; session.sensoryNote = record.naturalNote;
-    session.autoScore = autoScore; session.subjectiveScore = subjectiveScore; session.scoreDelta = record.scoreDelta;
-    session.status = session.status === 'planned' ? 'evaluated' : session.status;
-    if (subjectiveScore < autoScore && session.input) {
-      const corrected = await buildCorrectedPlan(session.input, record, session);
+  if (session?.schemaVersion === 'brew-history/1.0') {
+    let nextPlanDraft = null;
+    if (subjectiveScore < autoScore && (session.normalizedInput || session.rawInput)) {
+      const sourceInput = session.normalizedInput || session.rawInput;
+      const sourcePlan = session.analysisSnapshot?.plan || session;
+      const corrected = await buildCorrectedPlan(sourceInput, record, sourcePlan);
       const hasIssue = Object.values(corrected.correction?.issues || {}).some(Boolean);
       if (hasIssue) {
-        corrected.id = uid('brew'); corrected.beanId = record.beanId; corrected.createdAt = new Date().toISOString(); corrected.status = 'corrected'; corrected.input = corrected.input || session.input;
-        record.correctedPlanId = corrected.id; session.correctedPlanId = corrected.id;
-        await put('brewSessions', corrected); correctionSaved = true;
+        corrected.id = uid('draft');
+        corrected.beanId = record.beanId;
+        corrected.createdAt = new Date().toISOString();
+        corrected.sourceHistoryId = session.id;
+        corrected.input = corrected.input || sourceInput;
+        record.correctedPlanId = corrected.id;
+        nextPlanDraft = corrected;
+        correctionSaved = true;
       }
     }
-    await put('brewSessions', session);
+    await attachSensoryToCompletedBrew({ recordId: session.id, sensoryRecord: record, nextPlanDraft });
+  } else {
+    if (session) {
+      session.sensoryRecordId = record.id;
+      session.sensoryNote = record.naturalNote;
+      session.autoScore = autoScore;
+      session.subjectiveScore = subjectiveScore;
+      session.scoreDelta = record.scoreDelta;
+      await put('brewSessions', session);
+    }
+    await put('sensoryRecords', record);
   }
-  await put('sensoryRecords', record); await refreshData(); state.evaluation = null;
+  await refreshData(); state.evaluation = null;
   switchPage('beans'); requestAnimationFrame(()=>detailBean(record.beanId));
-  if (correctionSaved) toast('品鉴已保存，并生成下一次修正方案', 'status-warn');
+  if (correctionSaved) toast('品鉴已保存，并生成下一次修正草案', 'status-warn');
   else if (subjectiveScore < autoScore) toast('品鉴已保存；主观分低于自动分，已记录分差', 'status-warn');
   else toast('品鉴与个人偏好已保存', 'status-good');
 }
