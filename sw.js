@@ -7,6 +7,7 @@ const CORE = [
   './styles.css?v=1.1.0-test',
   './src/app.js?v=1.1.0-test',
   './src/core/startup-controller.js?v=1.1.0-test',
+  './src/core/bootstrap.js?v=1.1.0-test',
   './src/services/cloud-auth-service.js?v=1.1.0-test',
   './src/services/cloud-sync-service.js?v=1.1.0-test',
   './src/ui/account-sync-panel.js?v=1.1.0-test',
