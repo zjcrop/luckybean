@@ -3,8 +3,14 @@ import { test, expect } from '@playwright/test';
 test('server failure never blocks local startup', async ({ page }) => {
   const pageErrors = [];
   const consoleMessages = [];
-  page.on('pageerror', error => pageErrors.push(error.message));
+  const missingResponses = [];
+  const failedRequests = [];
+  page.on('pageerror', error => pageErrors.push(error.stack || error.message));
   page.on('console', message => consoleMessages.push(`${message.type()}: ${message.text()}`));
+  page.on('response', response => {
+    if (response.status() === 404) missingResponses.push(response.url());
+  });
+  page.on('requestfailed', request => failedRequests.push(`${request.failure()?.errorText || 'failed'} ${request.url()}`));
 
   await page.addInitScript(() => {
     localStorage.setItem('luckybean.supabase.session.v099d', JSON.stringify({
@@ -48,7 +54,10 @@ test('server failure never blocks local startup', async ({ page }) => {
       authServiceLoaded: Boolean(globalThis.LuckyBeanCloudAuth)
     };
   });
-  console.log('STARTUP_DIAGNOSTICS', JSON.stringify({ diagnostics, pageErrors, consoleMessages }, null, 2));
+  const uniqueErrors = [...new Set(pageErrors)];
+  const unique404s = [...new Set(missingResponses)];
+  const uniqueFailed = [...new Set(failedRequests)];
+  console.log('STARTUP_DIAGNOSTICS', JSON.stringify({ diagnostics, uniqueErrors, unique404s, uniqueFailed, consoleMessages: [...new Set(consoleMessages)] }, null, 2));
 
   await expect(page.locator('#appShell')).toBeVisible({ timeout: 15000 });
   await expect(page.locator('#loginScreen')).toBeHidden();
@@ -71,5 +80,5 @@ test('server failure never blocks local startup', async ({ page }) => {
   expect(state.compatibilityFailures).toEqual([]);
   expect(state.syncServiceLoaded).toBe(true);
   expect(state.authServiceLoaded).toBe(true);
-  expect(pageErrors).toEqual([]);
+  expect(uniqueErrors).toEqual([]);
 });
