@@ -1,0 +1,50 @@
+name: Formalize runtime features
+
+on:
+  push:
+    branches: [test-v107-web]
+    paths:
+      - 'scripts/refactor-formal-runtime-features.mjs'
+      - '.github/workflows/refactor-formal-runtime-features.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-test-v107-refactor-write
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test-v107-web
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Rebase on latest branch head
+        run: git pull --rebase origin test-v107-web
+      - name: Formalize runtime feature modules
+        run: node scripts/refactor-formal-runtime-features.mjs
+      - name: Verify formal runtime feature graph
+        run: |
+          node --check src/app.js
+          node --check src/features/runtime-features.js
+          test ! -e src/features/compatibility-bundle.js
+          ! find src -maxdepth 1 -type f -name 'v0*.js' | grep -E 'v095-postbrew|v095-qr-ui|v095-sensory-pro|v096-direct-camera|v096-integrity-ui|v096-package-capture|v096-web-ocr|v097-ui-fixes|v098-feature-fixes|v098-selection-bridge|v099-runtime|v099d-ocr-quality|v099f-ui-upgrade|v099g-paddle-ocr|v099g-world-map|v099i-migrations|v099m-group-controller|v099p-settings-rebuild|v099t-bean-groups'
+          npm run test:static
+      - name: Commit migrated source
+        run: |
+          if git diff --quiet; then
+            echo 'No runtime feature migration changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'refactor: replace version patch bundle with formal runtime features'
+          git pull --rebase origin test-v107-web
+          git push origin HEAD:test-v107-web
