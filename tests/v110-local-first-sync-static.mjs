@@ -14,6 +14,9 @@ const panel = read('src/ui/account-sync-panel.js');
 const appearance = read('src/ui/appearance-controller.js');
 const fab = read('src/ui/fab-controller.js');
 const compatibility = read('src/features/compatibility-bundle.js');
+const analysis = read('src/services/brew-analysis-service.js');
+const history = read('src/domain/history/history-service.js');
+const spatial = read('src/renderers/brew-spatial-view.js');
 const sw = read('sw.js');
 const manifest = JSON.parse(read('manifest.webmanifest'));
 
@@ -64,11 +67,21 @@ assert.match(appearance, /LuckyBeanAppearanceController/);
 assert.doesNotMatch(appearance, /new MutationObserver\([^\n]*document\.documentElement/);
 assert.match(fab, /LuckyBeanFabController/);
 
+assert.match(analysis, /brew-analysis\/2\.0/);
+assert.match(analysis, /brew-spatial\/1\.1/);
+assert.match(analysis, /clientAdjusted:\s*false/);
+assert.match(history, /commitCompletedBrew/);
+assert.match(history, /inventoryEventId/);
+assert.doesNotMatch(history, /status:\s*['"](?:planned|completed|terminated)/);
+assert.match(spatial, /class BrewSpatialView/);
+assert.match(spatial, /pointerdown/);
+assert.match(spatial, /pinchDistance/);
+
 assert.match(compatibility, /COMPATIBILITY_MODULES/);
 assert.match(compatibility, /for \(const path of COMPATIBILITY_MODULES\)/);
 assert.match(compatibility, /try\s*\{[\s\S]*await import\(path\)/);
 assert.match(compatibility, /LuckyBeanCompatibilityLayer/);
-assert.match(compatibility, /v109-history-management\.js/);
+assert.doesNotMatch(compatibility, /v109-history-management\.js|v099-trajectory-signal-bridge\.js|v099i-trajectory-space\.js/);
 assert.doesNotMatch(compatibility, /v095-ui\.js|theme-bridge\.js/);
 
 assert.match(sw, /luckybean-1\.1\.0-test/);
@@ -76,6 +89,9 @@ assert.match(sw, /src\/app\.js/);
 assert.match(sw, /src\/core\/bootstrap\.js/);
 assert.match(sw, /src\/ui\/appearance-controller\.js/);
 assert.match(sw, /src\/features\/compatibility-bundle\.js/);
+assert.match(sw, /src\/renderers\/brew-spatial-view\.js/);
+assert.match(sw, /src\/domain\/history\/history-service\.js/);
+assert.doesNotMatch(sw, /v109-history-management\.js|v099-trajectory-signal-bridge\.js|v099i-trajectory-space\.js/);
 assert.doesNotMatch(sw, /v095-ui\.js|theme-bridge\.js|splash-red\.jpg|settings-mascot\.png/);
 assert.equal(manifest.version, '1.1.0-test');
 
@@ -96,4 +112,4 @@ for (const path of [
   'src/theme-bridge.js'
 ]) assert.equal(exists(path), false, `${path} should have been removed`);
 
-console.log('v1.1.0 local-first startup, incremental sync and compatibility-layer checks passed');
+console.log('v1.1.0 local-first, authoritative analysis, spatial renderer and formal history checks passed');
