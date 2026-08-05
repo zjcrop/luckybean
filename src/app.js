@@ -34,9 +34,10 @@ const DEFAULT_SETTINGS = {
     apiEndpoint: '', mode: 'simple', method: 'pourover', doseG: 15, ratio: 15.5,
     profileId: 'recommended', segmentMode: 'auto', segments: 3, lowTempFirst: true,
     dripper: '平底滤杯', filterPaperId: '', grinder: '', waterProfileId: 'auto', waterVolumeL: 5,
-    customWater: { tds: 85, ca: 9, mg: 12, hco3: 28 }, flavorTargets: { floral: 2, acidity: 1.5, sweetness: 2, body: 1, bitterness: 2 },
+    customWater: { name: '我的水型', tds: 85, tendency: { floral: 0, acidity: 0, sweetness: 0, body: 0, bitterness: 0, astringency: 0 }, note: '' }, flavorTargets: { floral: 2, acidity: 1.5, sweetness: 2, body: 1, bitterness: 2 },
     firstCoolingMode: 'auto', firstTemperatureC: 87, tailCoolingMode: 'auto', tailTemperatureC: 86,
-    temperatureTune: 0, grindTune: 0, bloomTune: 0, repeatability: false
+    temperatureTune: 0, grindTune: 0, bloomTune: 0, repeatability: false,
+    environment: { ambientTemperatureC: 25, relativeHumidityPct: null, initialBedTemperatureC: 25 }
   },
   identity: { mode: 'guest', nickname: '访客', publicId: '', idSalt: '', verified: false, email: '', phone: '', wechat: '', qq: '' },
   gear: { filters: [], drippers: [{ id: 'dripper_flat', name: '平底滤杯', type: '平底滤杯' }], grinders: '' },
@@ -120,7 +121,8 @@ async function loadSettings() {
     ui: { ...DEFAULT_SETTINGS.ui, ...(saved?.ui || {}) },
     brew: {
       ...DEFAULT_SETTINGS.brew, ...(saved?.brew || {}),
-      customWater: { ...DEFAULT_SETTINGS.brew.customWater, ...(saved?.brew?.customWater || {}) },
+      customWater: { ...DEFAULT_SETTINGS.brew.customWater, ...(saved?.brew?.customWater || {}), tendency: { ...DEFAULT_SETTINGS.brew.customWater.tendency, ...(saved?.brew?.customWater?.tendency || {}) } },
+      environment: { ...DEFAULT_SETTINGS.brew.environment, ...(saved?.brew?.environment || {}) },
       flavorTargets: { ...DEFAULT_SETTINGS.brew.flavorTargets, ...(saved?.brew?.flavorTargets || {}) }
     },
     identity: { ...DEFAULT_SETTINGS.identity, ...(saved?.identity || {}) },
@@ -1125,6 +1127,7 @@ function buildBrewInput(bean) {
       repeatability: Boolean(state.settings.brew.repeatability), waterProfileId: resolvedWater
     },
     water: { profileId: resolvedWater, recipeVolumeL: Number(state.settings.brew.waterVolumeL || 5), tdsMgL: Number(customWater.tds || 85), customProfile: resolvedWater === 'custom' ? customWater : undefined },
+    environment: { ...state.settings.brew.environment },
     targets: { floral: Number(targets.floral), acidity: Number(targets.acidity), sweetness: Number(targets.sweetness), body: Number(targets.body), bitterness: Number(targets.bitterness) }
   };
 }
@@ -1145,17 +1148,27 @@ function renderBrew() {
   const recentSessions = state.brewSessions.filter(session => session.beanId === state.selectedBeanId).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,5);
   const heading = $('#brewHeadingBean');
   if (heading) heading.innerHTML = `<select id="brewBean" class="control brew-bean-heading" aria-label="选择豆子">${activeBeans.map(bean=>`<option value="${esc(bean.id)}"${bean.id===state.selectedBeanId?' selected':''}>${esc(beanDisplayName(bean))}</option>`).join('')}</select>`;
-  const customWaterLabel = currentWater === 'custom' ? '自定义' : '';
+  const customWaterLabel = currentWater === 'custom' ? `${settings.customWater?.name || '自定义'} · TDS ${Number(settings.customWater?.tds || 85)}` : '';
   container.innerHTML = `<section class="panel brew-form"><div class="brew-compact-grid">
     <div class="brew-row three"><label class="field"><span>粉量</span><input id="brewDose" class="control" type="number" min="5" max="40" step="0.1" value="${settings.doseG}"></label><label class="field"><span>粉水比</span><select id="brewRatio" class="control">${[14,14.5,15,15.5,16,16.5,17,18].map(value=>`<option value="${value}"${Number(settings.ratio)===value?' selected':''}>1:${value}</option>`).join('')}</select></label><label class="field"><span>滤杯</span><select id="brewDripper" class="control">${drippers.map(item=>`<option value="${esc(item.type)}"${settings.dripper===item.type?' selected':''}>${esc(item.name)}</option>`).join('')}</select><select id="brewFilterPaper" class="control sub-control" aria-label="滤纸">${filters.length?filters.map(item=>`<option value="${esc(item.id)}"${selectedFilterId===item.id?' selected':''}>${esc([item.brand,item.type].filter(Boolean).join(' '))} · ${item.quantity}张</option>`).join(''):'<option value="">未设滤纸</option>'}</select></label></div>
     <div class="brew-row two"><label class="field"><span>冲煮法</span><select id="brewProfile" class="control">${listBrewProfiles().map(profile=>`<option value="${profile.id}"${settings.profileId===profile.id?' selected':''}>${profile.label}</option>`).join('')}</select></label><label class="field"><span>分段方式</span><select id="brewSegments" class="control"><option value="auto"${settings.segmentMode==='auto'?' selected':''}>模型推荐：${recommendedSegments+1}段</option>${[1,2,3,4,5].map(value=>`<option value="${value}"${String(settings.segmentMode)===String(value)?' selected':''}>${value+1}段（含首段）</option>`).join('')}</select></label></div>
     <div class="brew-row two"><label class="field"><span>调水方案</span><select id="brewWaterProfile" class="control${currentWater==='auto'?' model-recommended':' custom-selected'}"><option value="auto"${currentWater==='auto'?' selected':''}>模型推荐：${esc(waterProfiles.find(item=>item.id===inferredWater)?.name || inferredWater)}</option>${waterProfiles.filter(profile=>profile.id!=='custom').map(profile=>`<option value="${profile.id}"${currentWater===profile.id?' selected':''}>${esc(profile.name)}</option>`).join('')}<option value="custom"${currentWater==='custom'?' selected':''}>自定义</option></select>${customWaterLabel?'<small class="custom-summary">自定义</small>':''}</label><div class="field"><span>风味设定</span><button id="openFlavorTargetBtn" class="control control-button" type="button">风味设定</button></div></div>
     <div class="brew-row three"><div class="field"><span>微调</span><button id="openBrewTuneBtn" class="control control-button" type="button">微调</button></div><label class="field"><span>首段降温</span><select id="firstCoolingMode" class="control ${settings.firstCoolingMode==='auto'?'model-recommended':'custom-selected'}"><option value="auto"${settings.firstCoolingMode==='auto'?' selected':''}>模型推荐</option><option value="custom"${settings.firstCoolingMode==='custom'?' selected':''}>自定义 ${Number(settings.firstTemperatureC||87)}°C</option><option value="off"${settings.firstCoolingMode==='off'?' selected':''}>不开启</option></select></label><label class="field"><span>尾段降温</span><select id="tailCoolingMode" class="control ${settings.tailCoolingMode==='auto'?'model-recommended':'custom-selected'}"><option value="auto"${settings.tailCoolingMode==='auto'?' selected':''}>模型推荐</option><option value="custom"${settings.tailCoolingMode==='custom'?' selected':''}>自定义 ${Number(settings.tailTemperatureC||86)}°C</option><option value="off"${settings.tailCoolingMode==='off'?' selected':''}>不开启</option></select></label></div>
+    <details class="brew-environment-details"><summary>环境细节（默认25°C，可选）</summary><div class="brew-row three"><label class="field"><span>室温 °C</span><input id="ambientTemperatureC" class="control" type="number" min="5" max="40" step="0.5" value="${Number(settings.environment?.ambientTemperatureC ?? 25)}"></label><label class="field"><span>相对湿度 %</span><input id="relativeHumidityPct" class="control" type="number" min="0" max="100" step="1" placeholder="可留空" value="${settings.environment?.relativeHumidityPct == null ? '' : Number(settings.environment.relativeHumidityPct)}"></label><label class="field"><span>初始粉床温度 °C</span><input id="initialBedTemperatureC" class="control" type="number" min="5" max="40" step="0.5" value="${Number(settings.environment?.initialBedTemperatureC ?? 25)}"></label></div></details>
     <div class="brew-generate-row menu-row"><button id="generatePlanBtn" class="button primary" type="button"${selected?'':' disabled'}>生成方案</button><button id="directSensoryBtn" class="button" type="button"${selected?'':' disabled'}>直接品鉴</button></div>
   </div></section>
   <div id="planResult">${state.currentPlan && state.currentPlan.beanId === state.selectedBeanId ? planHtml(state.currentPlan) : ''}</div>
   ${recentSessions.length ? `<section class="panel"><div class="panel-title"><div><h3>往次方案</h3><p>点击复刻，修正方案标“修”</p></div></div><div class="record-list">${recentSessions.map(sessionRecordHtml).join('')}</div></section>` : ''}`;
   $('#brewBean')?.addEventListener('change', event => { state.selectedBeanId = event.target.value; state.currentPlan = null; renderBrew(); });
+  ['ambientTemperatureC','relativeHumidityPct','initialBedTemperatureC'].forEach(id => $('#'+id)?.addEventListener('change', async () => {
+    const humidityRaw = $('#relativeHumidityPct')?.value;
+    state.settings.brew.environment = {
+      ambientTemperatureC: parseNumber($('#ambientTemperatureC')?.value, 25),
+      relativeHumidityPct: humidityRaw === '' ? null : clamp(parseNumber(humidityRaw, 50), 0, 100),
+      initialBedTemperatureC: parseNumber($('#initialBedTemperatureC')?.value, 25)
+    };
+    await saveSettings();
+  }));
   $('#generatePlanBtn')?.addEventListener('click', generatePlan);
   $('#directSensoryBtn')?.addEventListener('click', () => { if (!state.selectedBeanId) return; startEvaluation(state.selectedBeanId, { direct: true }); switchPage('sensory'); });
   $('#openFlavorTargetBtn')?.addEventListener('click', openFlavorTargetDialog);
@@ -1174,13 +1187,30 @@ function rangeSelect(id, value, labels = ['低','中','高']) {
   return `<select id="${id}" class="control">${[0,1,2,3].map(number=>`<option value="${number}"${Number(value)===number?' selected':''}>${number===0?'关闭/最低':labels[Math.min(labels.length-1,number-1)]}</option>`).join('')}</select>`;
 }
 
-function openCustomWaterDialog() {
-  const water = state.settings.brew.customWater || DEFAULT_SETTINGS.brew.customWater;
-  const overlay = showOverlay(`${dialogHeader('自定义调水', '保存后拾味页仅显示“自定义”', { centered: true })}<div class="grid-2"><label class="field"><span>TDS mg/L</span><input id="customWaterTds" class="control" type="number" min="0" max="300" value="${Number(water.tds||85)}"></label><label class="field"><span>Ca mg/L</span><input id="customWaterCa" class="control" type="number" min="0" max="100" step="0.1" value="${Number(water.ca||9)}"></label><label class="field"><span>Mg mg/L</span><input id="customWaterMg" class="control" type="number" min="0" max="100" step="0.1" value="${Number(water.mg||12)}"></label><label class="field"><span>HCO₃⁻ mg/L</span><input id="customWaterHco3" class="control" type="number" min="0" max="200" step="0.1" value="${Number(water.hco3||28)}"></label></div><p class="status-warn small">TDS不能推导pH，离子浓度与TDS应分别实测。</p><div class="row end"><button id="saveCustomWaterBtn" class="button primary" type="button">确定</button></div>`, { id: 'custom-water', backdropClose: true });
-  bindClose(overlay);
-  $('#saveCustomWaterBtn').addEventListener('click', async () => { state.settings.brew.customWater = { tds: parseNumber($('#customWaterTds').value,85), ca: parseNumber($('#customWaterCa').value,9), mg: parseNumber($('#customWaterMg').value,12), hco3: parseNumber($('#customWaterHco3').value,28) }; state.settings.brew.waterProfileId='custom'; await saveSettings(); closeOverlay(); renderBrew(); });
+function waterDirectionOptions(value = 0) {
+  return [[-2,'明显降低'],[-1,'略有降低'],[0,'基本不变'],[1,'略有增强'],[2,'明显增强']]
+    .map(([number,label]) => `<option value="${number}"${Number(value)===number?' selected':''}>${label}</option>`).join('');
 }
 
+function openCustomWaterDialog() {
+  const water = state.settings.brew.customWater || DEFAULT_SETTINGS.brew.customWater;
+  const tendency = { ...DEFAULT_SETTINGS.brew.customWater.tendency, ...(water.tendency || {}) };
+  const overlay = showOverlay(`${dialogHeader('自定义水型', '仅保存名称、TDS和风味倾向；精确配方请在“萃离”中调整', { centered: true })}<div class="grid-2"><label class="field"><span>水型名称</span><input id="customWaterName" class="control" maxlength="40" value="${esc(water.name || '我的水型')}"></label><label class="field"><span>参考TDS mg/L</span><input id="customWaterTds" class="control" type="number" min="0" max="300" value="${Number(water.tds||85)}"></label><label class="field"><span>花香倾向</span><select id="customWaterFloral" class="control">${waterDirectionOptions(tendency.floral)}</select></label><label class="field"><span>酸质倾向</span><select id="customWaterAcidity" class="control">${waterDirectionOptions(tendency.acidity)}</select></label><label class="field"><span>甜感倾向</span><select id="customWaterSweetness" class="control">${waterDirectionOptions(tendency.sweetness)}</select></label><label class="field"><span>醇厚倾向</span><select id="customWaterBody" class="control">${waterDirectionOptions(tendency.body)}</select></label><label class="field"><span>苦感倾向</span><select id="customWaterBitterness" class="control">${waterDirectionOptions(tendency.bitterness)}</select></label><label class="field"><span>涩感倾向</span><select id="customWaterAstringency" class="control">${waterDirectionOptions(tendency.astringency)}</select></label></div><label class="field"><span>备注</span><textarea id="customWaterNote" class="control" rows="3" placeholder="例如：在萃离中微调后，花香更突出、涩感降低">${esc(water.note || '')}</textarea></label><p class="muted small">LuckyBean不记录盐类、离子浓度和精确投加量。</p><div class="row end"><button id="saveCustomWaterBtn" class="button primary" type="button">确定</button></div>`, { id: 'custom-water', backdropClose: true });
+  bindClose(overlay);
+  $('#saveCustomWaterBtn').addEventListener('click', async () => {
+    state.settings.brew.customWater = {
+      name: $('#customWaterName').value.trim() || '我的水型',
+      tds: parseNumber($('#customWaterTds').value,85),
+      tendency: {
+        floral: parseNumber($('#customWaterFloral').value,0), acidity: parseNumber($('#customWaterAcidity').value,0),
+        sweetness: parseNumber($('#customWaterSweetness').value,0), body: parseNumber($('#customWaterBody').value,0),
+        bitterness: parseNumber($('#customWaterBitterness').value,0), astringency: parseNumber($('#customWaterAstringency').value,0)
+      },
+      note: $('#customWaterNote').value.trim()
+    };
+    state.settings.brew.waterProfileId='custom'; await saveSettings(); closeOverlay(); renderBrew();
+  });
+}
 function openFlavorTargetDialog() {
   const target = state.settings.brew.flavorTargets || DEFAULT_SETTINGS.brew.flavorTargets;
   const overlay = showOverlay(`${dialogHeader('风味设定', '设定花香、酸、甜、口感与抑苦方向', { centered: true })}<div class="grid-2"><label class="field"><span>花香</span>${rangeSelect('flavorTargetFloral',target.floral)}</label><label class="field"><span>酸</span>${rangeSelect('flavorTargetAcidity',target.acidity)}</label><label class="field"><span>甜</span>${rangeSelect('flavorTargetSweetness',target.sweetness)}</label><label class="field"><span>口感</span>${rangeSelect('flavorTargetBody',target.body,['轻盈','均衡','厚重'])}</label><label class="field"><span>抑苦</span>${rangeSelect('flavorTargetBitterness',target.bitterness,['轻度','中度','强'])}</label></div><div class="row end"><button id="saveFlavorTargetBtn" class="button primary" type="button">确定</button></div>`, { id: 'flavor-target', backdropClose: true });
@@ -1231,6 +1261,7 @@ async function generatePlan() {
       firstCoolingMode: input.brew.firstCoolingMode, firstTemperatureC: input.brew.firstTemperatureC,
       tailCoolingMode: input.brew.tailCoolingMode, tailTemperatureC: input.brew.tailTemperatureC,
       temperatureTune: input.brew.temperatureTune, grindTune: input.brew.grindTune, bloomTune: input.brew.bloomTune, repeatability: input.brew.repeatability,
+      environment: { ...input.environment },
       flavorTargets: { floral: input.targets.floral, acidity: input.targets.acidity, sweetness: input.targets.sweetness, body: input.targets.body, bitterness: input.targets.bitterness }
     };
     await saveSettings(); $('#planResult').innerHTML = planHtml(plan); bindPlanActions();

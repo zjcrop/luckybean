@@ -3805,3 +3805,5 @@ html.v099p-settings-active #settingsContent .settings-category-body {
   .v099p-analysis-actions { grid-template-columns: 1fr 1fr; }
   .v099p-setting-row { align-items: flex-start; }
 }
+
+.brew-environment-details{margin:10px 0 4px;border:0;background:transparent}.brew-environment-details>summary{cursor:pointer;color:var(--muted);font-size:12px;padding:6px 0;list-style:none}.brew-environment-details>summary::-webkit-details-marker{display:none}.brew-environment-details[open]>summary{color:var(--text);border-bottom:1px dashed var(--active);margin-bottom:12px}
