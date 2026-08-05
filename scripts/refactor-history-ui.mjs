@@ -39,7 +39,7 @@ async function patchStyles(){
 async function patchCompatibility(){
   const path='src/features/compatibility-bundle.js';
   let source=await readFile(path,'utf8');
-  source=source.replace("  '../v109-history-management.js?v=1.1.0-test',\n",'');
+  source=source.replace(/^\s*['"]\.\.\/v109-history-management\.js\?v=[^'"]+['"],?\s*$/gm,'');
   if(source.includes('v109-history-management'))throw new Error('legacy history patch remains');
   await writeFile(path,source);
 }
@@ -57,7 +57,8 @@ async function patchServiceWorker(){
     if(!source.includes(marker))throw new Error('history service worker marker missing');
     source=source.replace(marker,marker+additions);
   }
-  source=source.replace("  './src/v109-history-management.js?v=1.1.0-test',\n",'');
+  source=source.replace(/^\s*['"]\.\/src\/v109-history-management\.js\?v=[^'"]+['"],?\s*$/gm,'');
+  if(source.includes('v109-history-management'))throw new Error('legacy history service-worker entry remains');
   await writeFile(path,source);
 }
 
