@@ -20,7 +20,7 @@ const spatial = read('src/renderers/brew-spatial-view.js');
 const sw = read('sw.js');
 const manifest = JSON.parse(read('manifest.webmanifest'));
 
-assert.match(index, /1\.1\.0-test/);
+assert.match(index, /1\.2\.0-test/);
 assert.match(index, /src\/core\/startup-controller\.js/);
 assert.match(index, /src\/core\/bootstrap\.js/);
 assert.match(index, /src\/services\/cloud-auth-service\.js/);
@@ -38,7 +38,7 @@ assert.match(startup, /ensureLocalIdentity/);
 assert.match(startup, /LB-LOCAL-/);
 assert.match(startup, /luckybean:local-app-ready/);
 assert.match(startup, /点击进入/);
-assert.match(startup, /await ensureLocalIdentity\(\)[\s\S]*await import\('\.\.\/app\.js\?v=1\.1\.0-test'\)/);
+assert.match(startup, /await ensureLocalIdentity\(\)[\s\S]*await import\('\.\.\/app\.js\?v=1\.2\.0-test'\)/);
 assert.doesNotMatch(startup, /fetch\s*\(/);
 
 assert.match(auth, /REMEMBER_MS\s*=\s*7\s*\*\s*24/);
@@ -84,7 +84,7 @@ assert.match(runtimeFeatures, /LuckyBeanRuntimeFeatures/);
 assert.doesNotMatch(runtimeFeatures, /v109-history-management\.js|v099-trajectory-signal-bridge\.js|v099i-trajectory-space\.js/);
 assert.doesNotMatch(runtimeFeatures, /v095-ui\.js|theme-bridge\.js/);
 
-assert.match(sw, /luckybean-1\.1\.0-test/);
+assert.match(sw, /luckybean-1\.2\.0-test/);
 assert.match(sw, /src\/app\.js/);
 assert.match(sw, /src\/core\/bootstrap\.js/);
 assert.match(sw, /src\/ui\/appearance-controller\.js/);
@@ -93,7 +93,7 @@ assert.match(sw, /src\/renderers\/brew-spatial-view\.js/);
 assert.match(sw, /src\/domain\/history\/history-service\.js/);
 assert.doesNotMatch(sw, /v109-history-management\.js|v099-trajectory-signal-bridge\.js|v099i-trajectory-space\.js/);
 assert.doesNotMatch(sw, /v095-ui\.js|theme-bridge\.js|splash-red\.jpg|settings-mascot\.png/);
-assert.equal(manifest.version, '1.1.0-test');
+assert.equal(manifest.version, '1.2.0-test');
 
 for (const path of [
   'src/v109-supabase-auth-gate.js',

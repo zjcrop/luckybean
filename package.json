@@ -1,7 +1,7 @@
 {
   "name": "luckybean-static-app",
   "private": true,
-  "version": "1.1.0-test",
+  "version": "1.2.0-test",
   "type": "module",
   "scripts": {
     "test:static": "node tests/v110-local-first-sync-static.mjs && node tests/v120-core-contracts-static.mjs",

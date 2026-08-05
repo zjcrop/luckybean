@@ -113,7 +113,7 @@ setStatus('正在准备本地数据…');
 try {
   await ensureLocalIdentity();
   document.dispatchEvent(new CustomEvent('luckybean:local-bootstrap-ready'));
-  await import('../app.js?v=1.1.0-test');
+  await import('../app.js?v=1.2.0-test');
   document.dispatchEvent(new CustomEvent('luckybean:app-module-loaded'));
   watchForShell();
 } catch (error) {
