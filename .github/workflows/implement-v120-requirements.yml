@@ -1,0 +1,863 @@
+name: Implement v1.2.0 requirements cleanly
+
+on:
+  push:
+    branches:
+      - fix/v120-requirements-clean
+    paths:
+      - .github/workflows/implement-v120-requirements.yml
+
+permissions:
+  contents: write
+
+jobs:
+  implement-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout working branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/v120-requirements-clean
+          fetch-depth: 0
+
+      - name: Apply structural implementation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          import re
+
+          ROOT = Path('.')
+
+          def read(path):
+              return (ROOT / path).read_text(encoding='utf-8')
+
+          def write(path, content):
+              (ROOT / path).write_text(content, encoding='utf-8')
+
+          def replace_once(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly one match, got {count}')
+              return text.replace(old, new, 1)
+
+          def regex_once(text, pattern, replacement, label, flags=0):
+              result, count = re.subn(pattern, replacement, text, count=1, flags=flags)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly one regex match, got {count}')
+              return result
+
+          # 1. Remove the obsolete settings owner from formal runtime and offline cache.
+          runtime_path = 'src/features/runtime-features.js'
+          runtime = read(runtime_path)
+          runtime = runtime.replace("  { id: 'settings-screen', path: '../settings-screen-controller.js?v=1.2.0-test' }\n", '')
+          runtime = runtime.replace("  { id: 'origin-map', path: '../origin-map-controller.js?v=1.2.0-test' },\n]);", "  { id: 'origin-map', path: '../origin-map-controller.js?v=1.2.0-test' }\n]);")
+          if 'settings-screen-controller' in runtime:
+              raise SystemExit('legacy settings controller still declared in runtime features')
+          write(runtime_path, runtime)
+
+          sw_path = 'sw.js'
+          sw = read(sw_path)
+          sw = sw.replace("  './src/settings-screen-controller.js?v=1.2.0-test',\n", '')
+          write(sw_path, sw)
+
+          legacy_settings = ROOT / 'src/settings-screen-controller.js'
+          if legacy_settings.exists():
+              legacy_settings.unlink()
+
+          # 2. Make the document local-first by construction and provide one stable 3D host.
+          index_path = 'index.html'
+          index = read(index_path)
+          index = regex_once(
+              index,
+              r'\n  <section id="loginScreen"[\s\S]*?</section>\n  <div id="appShell"',
+              '\n  <div id="appShell"',
+              'remove app login screen'
+          )
+          index = replace_once(
+              index,
+              '  <link rel="stylesheet" href="./src/ui/layout-guard.css?v=1.2.0-test">',
+              '  <link rel="stylesheet" href="./src/ui/layout-guard.css?v=1.2.0-test">\n  <link rel="stylesheet" href="./src/renderers/brew-spatial-view.css?v=1.2.0-test">',
+              'load spatial stylesheet'
+          )
+          index = replace_once(
+              index,
+              '<div id="brewContent"></div></section>',
+              '<div id="brewContent"></div><div id="brewSpatialMount" class="brew-spatial-mount" aria-live="polite"></div></section>',
+              'add spatial mount'
+          )
+          write(index_path, index)
+
+          # 3. Replace the cloud account UI with one authoritative component.
+          account_panel = r'''const STATUS_TEXT = {
+            authenticated: '云端已连接', connecting: '正在连接云端…', offline: '网络不可用，本地功能正常',
+            'signed-out': '未登录云端', expired: '登录已超过7天，请重新登录', 'reauth-required': '云端登录已失效',
+            syncing: '正在后台同步…', downloading: '正在读取云端数据…', synced: '云端同步完成', downloaded: '云端数据已恢复',
+            idle: '云端数据已是最新', error: '云端同步失败，稍后重试', conflict: '检测到多设备冲突，已停止自动覆盖',
+            disabled: '自动同步已关闭', 'waiting-for-login': '登录后自动同步', 'legacy-encrypted': '检测到旧版加密云端数据'
+          };
+
+          let lastAuthState = document.documentElement.dataset.cloudAuth || 'signed-out';
+          let lastSyncState = document.documentElement.dataset.cloudSync || 'idle';
+          let lastDetail = {};
+          let renderQueued = false;
+
+          function session() { return globalThis.LuckyBeanCloudAuth?.getSession?.() || null; }
+
+          async function panelState() {
+            const promise = globalThis.LuckyBeanCloudSync?.getState?.();
+            const state = promise ? await promise.catch(() => null) : null;
+            const email = session()?.user?.email || '';
+            const main = STATUS_TEXT[lastSyncState] || STATUS_TEXT[lastAuthState] || '本地优先运行';
+            const last = state?.lastSuccessfulSyncAt ? new Date(state.lastSuccessfulSyncAt).toLocaleString('zh-CN') : '尚未同步';
+            const enabledPromise = globalThis.LuckyBeanCloudSync?.enabled?.();
+            const enabled = enabledPromise ? await enabledPromise.catch(() => true) : true;
+            return { email, main, last, enabled, error: lastDetail.error || lastDetail.message || '' };
+          }
+
+          function accountSection() {
+            return document.querySelector('#settingsContent [data-settings-key="account"]')
+              || [...document.querySelectorAll('#settingsContent .settings-category')]
+                .find(section => /云端|账户|账号/.test(section.querySelector('summary')?.textContent || ''));
+          }
+
+          async function renderPanel() {
+            const root = document.querySelector('#settingsContent');
+            const account = accountSection();
+            if (!root || !account) return;
+            root.querySelectorAll('[data-cloud-account-panel],[data-v099p-cloud-panel],[data-v099e-cloud-panel],[data-v099f-account-sync]').forEach(node => node.remove());
+            const body = account.querySelector(':scope > .settings-category-body');
+            if (!body) return;
+            const info = await panelState();
+            const signedIn = Boolean(session()?.user?.id);
+            const section = document.createElement('section');
+            section.className = 'cloud-account-panel';
+            section.dataset.cloudAccountPanel = '1';
+            section.innerHTML = `<div class="setting-row"><div><h3>云端同步</h3><p data-cloud-status>${info.main}${info.email ? ` · ${info.email}` : ''}</p><small class="muted">上次完成：${info.last}${info.error ? ` · ${info.error}` : ''}</small></div><label class="toggle"><input type="checkbox" data-cloud-sync-toggle ${info.enabled ? 'checked' : ''}>自动同步</label></div>
+              <p class="muted small">本地功能无需登录。数据先写入本机；登录云端后，新变化等待约8秒批量增量同步。</p>
+              <div class="text-actions data-actions">
+                ${signedIn ? '<button class="button" type="button" data-cloud-sync-now>立即同步</button><button class="button" type="button" data-cloud-pull>从云端恢复</button><button class="button subtle" type="button" data-cloud-logout>退出云端</button>' : '<button class="button primary" type="button" data-cloud-login>登录云端</button><button class="button" type="button" data-cloud-register>注册云端</button>'}
+              </div>`;
+            body.replaceChildren(section);
+            section.querySelector('[data-cloud-login]')?.addEventListener('click', () => globalThis.LuckyBeanCloudAuth?.openDialog?.('login'));
+            section.querySelector('[data-cloud-register]')?.addEventListener('click', () => globalThis.LuckyBeanCloudAuth?.openDialog?.('register'));
+            section.querySelector('[data-cloud-logout]')?.addEventListener('click', async () => { await globalThis.LuckyBeanCloudAuth?.signOut?.(); queueRender(); });
+            section.querySelector('[data-cloud-sync-now]')?.addEventListener('click', async event => {
+              event.currentTarget.disabled = true;
+              try { await globalThis.LuckyBeanCloudSync?.syncNow?.(); }
+              catch (error) { lastDetail = { error: error.message }; }
+              finally { queueRender(); }
+            });
+            section.querySelector('[data-cloud-pull]')?.addEventListener('click', async event => {
+              event.currentTarget.disabled = true;
+              try { await globalThis.LuckyBeanCloudSync?.pullNow?.(); }
+              catch (error) { lastDetail = { error: error.message }; }
+              finally { queueRender(); }
+            });
+            section.querySelector('[data-cloud-sync-toggle]')?.addEventListener('change', event => globalThis.LuckyBeanCloudSync?.setEnabled?.(event.target.checked));
+            document.documentElement.dataset.cloudPanelCount = String(root.querySelectorAll('[data-cloud-account-panel]').length);
+          }
+
+          function queueRender() {
+            if (renderQueued) return;
+            renderQueued = true;
+            queueMicrotask(() => {
+              renderQueued = false;
+              renderPanel().catch(error => console.error('云端同步面板渲染失败', error));
+            });
+          }
+
+          function bind() {
+            const root = document.querySelector('#settingsContent');
+            if (!root) return;
+            if (root.dataset.cloudPanelObserver !== '1') {
+              root.dataset.cloudPanelObserver = '1';
+              new MutationObserver(records => {
+                const externalChange = records.some(record => [...record.addedNodes, ...record.removedNodes]
+                  .some(node => node.nodeType === 1 && !node.matches?.('[data-cloud-account-panel]')));
+                if (externalChange) queueRender();
+              }).observe(root, { childList: true, subtree: true });
+            }
+            queueRender();
+          }
+
+          document.addEventListener('luckybean:cloud-auth-state', event => {
+            lastAuthState = event.detail?.state || lastAuthState;
+            lastDetail = event.detail || {};
+            queueRender();
+          });
+          document.addEventListener('luckybean:cloud-sync-state', event => {
+            lastSyncState = event.detail?.state || lastSyncState;
+            lastDetail = event.detail || {};
+            queueRender();
+          });
+          document.addEventListener('luckybean:app-refreshed', queueRender);
+
+          if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
+          else bind();
+          '''
+          write('src/ui/account-sync-panel.js', account_panel)
+
+          # 4. Mount 3D output into a stable host that is not overwritten by plan HTML.
+          spatial_controller = r'''import { brewSpatialView } from './brew-spatial-view.js';
+
+          function sceneFromPlan(plan) {
+            return plan?.visualization3d
+              || (plan?.trajectory?.schemaVersion === 'brew-spatial/1.1' ? plan.trajectory : null)
+              || plan?.analysisSnapshot?.trajectory
+              || null;
+          }
+
+          function host() { return document.querySelector('#brewSpatialMount'); }
+
+          async function mount(plan) {
+            const target = host();
+            if (!target) return false;
+            target.replaceChildren();
+            const scene = sceneFromPlan(plan);
+            if (!scene) {
+              target.hidden = false;
+              const note = document.createElement('p');
+              note.className = 'muted small spatial-unavailable';
+              note.textContent = '当前方案没有可用的三维轨迹数据。';
+              target.append(note);
+              return false;
+            }
+            target.hidden = false;
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            return Boolean(brewSpatialView.mountPreview(target, scene));
+          }
+
+          function clear() {
+            const target = host();
+            if (!target) return;
+            target.replaceChildren();
+            target.hidden = true;
+            brewSpatialView.close();
+          }
+
+          document.addEventListener('luckybean:plan-ready', event => mount(event.detail?.plan));
+          document.addEventListener('luckybean:history-plan-loaded', event => mount(event.detail?.plan));
+          document.addEventListener('luckybean:spatial-clear', clear);
+          document.addEventListener('luckybean:open-spatial-scene', event => {
+            if (brewSpatialView.setScene(event.detail?.scene)) brewSpatialView.open();
+          });
+
+          globalThis.LuckyBeanSpatial = {
+            revision: 'brew-spatial-view/1.2.0',
+            mount,
+            clear,
+            open(scene) { if (brewSpatialView.setScene(scene)) brewSpatialView.open(); },
+            close() { brewSpatialView.close(); }
+          };
+          '''
+          write('src/renderers/brew-spatial-controller.js', spatial_controller)
+
+          # 5. Professional analysis is independent from cloud-sync login.
+          analysis_path = 'src/services/brew-analysis-service.js'
+          analysis = read(analysis_path)
+          new_fetch_analysis = r'''async function fetchAnalysis(input, { endpoint = BREW_ANALYSIS_ENDPOINT, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+            const token = await accessToken();
+            const expected = await inputFingerprint(input);
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), timeoutMs);
+            const headers = {
+              'content-type': 'application/json',
+              accept: 'application/json',
+              apikey: SUPABASE_KEY,
+              'x-client-info': BREW_ANALYSIS_SERVICE_VERSION,
+              'x-request-id': crypto.randomUUID()
+            };
+            if (token) headers.authorization = `Bearer ${token}`;
+            try {
+              const response = await fetch(endpoint, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(input),
+                cache: 'no-store',
+                signal: controller.signal
+              });
+              const text = await response.text();
+              let payload;
+              try { payload = text ? JSON.parse(text) : null; }
+              catch { payload = null; }
+              if (!response.ok) {
+                const error = new Error(payload?.message || payload?.error || payload?.code || `专业冲煮分析失败（HTTP ${response.status}）`);
+                error.status = response.status;
+                error.payload = payload;
+                throw error;
+              }
+              return validateAnalysis(payload, { expectedInputFingerprint: expected });
+            } catch (error) {
+              if (error?.name === 'AbortError') {
+                const timeoutError = new Error('专业冲煮分析连接超时');
+                timeoutError.code = 'NETWORK_TIMEOUT';
+                throw timeoutError;
+              }
+              throw error;
+            } finally {
+              clearTimeout(timeout);
+            }
+          }
+          '''
+          analysis = regex_once(
+              analysis,
+              r'async function fetchAnalysis\([\s\S]*?\n}\n\nexport async function requestBrewAnalysis',
+              new_fetch_analysis + '\nexport async function requestBrewAnalysis',
+              'replace professional analysis transport'
+          )
+          write(analysis_path, analysis)
+
+          # 6. Refactor app ownership: no app account form, persistent profile selection, fixed spatial lifecycle and direct sensory modes.
+          app_path = 'src/app.js'
+          app = read(app_path)
+          app = app.replace('  const identity = state.settings.identity;\n', '')
+          app = regex_once(
+              app,
+              r'  <details class="settings-category"><summary><span>账户</span>[\s\S]*?</div></details>\n  <details class="settings-category" id="privateGearCategory"',
+              '  <details class="settings-category" data-settings-key="account"><summary><span>云端</span><small>云端同步、恢复与多设备连接</small></summary><div class="settings-category-body" data-cloud-account-host></div></details>\n  <details class="settings-category" id="privateGearCategory"',
+              'replace local account form'
+          )
+          app = re.sub(r"^  \$\('#saveIdentityBtn'\).*?$\n", '', app, flags=re.M)
+          app = re.sub(r"^  \$\('#guestBtn'\).*?$\n", '', app, flags=re.M)
+          app = re.sub(r"^  \$\('#testBtn'\).*?$\n", '', app, flags=re.M)
+          app = replace_once(app, "  if (state.settings.identity.publicId) enterApp();", "  enterApp();", 'always enter local app')
+          app = replace_once(
+              app,
+              "  $('#generatePlanBtn')?.addEventListener('click', generatePlan);",
+              "  $('#generatePlanBtn')?.addEventListener('click', generatePlan);\n  $('#brewProfile')?.addEventListener('change', async event => { state.settings.brew.profileId = event.target.value; await saveSettings(); });",
+              'persist selected brew profile'
+          )
+          app = replace_once(
+              app,
+              "  bindPlanActions(); bindControlStates(container);\n}",
+              "  bindPlanActions(); bindControlStates(container);\n  const spatialHost = $('#brewSpatialMount');\n  const spatialPlan = state.currentPlan && state.currentPlan.beanId === state.selectedBeanId ? state.currentPlan : null;\n  if (spatialHost) {\n    if (spatialPlan) {\n      spatialHost.hidden = false;\n      document.dispatchEvent(new CustomEvent('luckybean:plan-ready', { detail: { plan: spatialPlan, input: state.currentBrewInput, source: spatialPlan.executionSource || 'history' } }));\n    } else document.dispatchEvent(new CustomEvent('luckybean:spatial-clear'));\n  }\n}",
+              'bind spatial lifecycle to brew render'
+          )
+          app = replace_once(
+              app,
+              "    naturalNote: '', direct: Boolean(options.direct), createdAt: new Date().toISOString()",
+              "    naturalNote: '', direct: Boolean(options.direct), evaluationMode: options.evaluationMode || 'player', sourceMode: options.sourceMode || 'independent-player-v120', createdAt: new Date().toISOString()",
+              'record sensory mode'
+          )
+
+          sensory_bridge = r'''
+          async function saveProfessionalEvaluation(detail = {}) {
+            const beanId = String(detail.beanId || state.selectedBeanId || '');
+            if (!beanId || !state.beans.some(bean => bean.id === beanId)) return toast('杯测记录缺少有效豆卡', 'status-bad');
+            const now = new Date().toISOString();
+            const score = clamp(Number(detail.score || 0), 0, 100);
+            const record = {
+              id: uid('sensory'),
+              beanId,
+              brewSessionId: String(detail.brewSessionId ?? state.currentPlan?.id ?? ''),
+              evaluationMode: 'professional',
+              sourceMode: 'independent-cupping-v120',
+              professionalData: structuredClone(detail.professionalData || {}),
+              summary: Array.isArray(detail.summary) ? detail.summary.map(String) : [],
+              autoScore: score,
+              subjectiveScore: score,
+              score,
+              scoreDelta: 0,
+              naturalNote: String(detail.naturalNote || '').trim(),
+              preferenceTags: [],
+              createdAt: now,
+              updatedAt: now
+            };
+            const session = state.brewSessions.find(item => item.id === record.brewSessionId);
+            if (session?.schemaVersion === 'brew-history/1.0') {
+              await attachSensoryToCompletedBrew({ recordId: session.id, sensoryRecord: record, nextPlanDraft: null });
+            } else {
+              await put('sensoryRecords', record);
+              if (session) {
+                session.sensoryRecordId = record.id;
+                session.sensoryNote = record.naturalNote;
+                session.autoScore = score;
+                session.subjectiveScore = score;
+                session.scoreDelta = 0;
+                await put('brewSessions', session);
+              }
+            }
+            await refreshData();
+            state.evaluation = null;
+            switchPage('beans');
+            requestAnimationFrame(() => detailBean(beanId));
+            toast('专业杯测记录已保存', 'status-good');
+          }
+
+          document.addEventListener('luckybean:start-sensory-mode', event => {
+            const mode = event.detail?.mode === 'note' ? 'note' : 'player';
+            const beanId = String(event.detail?.beanId || state.selectedBeanId || '');
+            if (!beanId) return;
+            startEvaluation(beanId, {
+              direct: true,
+              evaluationMode: mode,
+              sourceMode: mode === 'note' ? 'independent-note-v120' : 'independent-player-v120'
+            });
+            if (mode === 'note') state.evaluation.nodeIndex = SENSORY_NODES.findIndex(node => node.id === 'score');
+            renderSensory();
+          });
+
+          document.addEventListener('luckybean:professional-sensory-complete', event => {
+            saveProfessionalEvaluation(event.detail || {}).catch(error => toast(error.message || '专业杯测保存失败', 'status-bad'));
+          });
+
+          '''
+          app = replace_once(app, '\nasync function saveEvaluation() {', '\n' + sensory_bridge + 'async function saveEvaluation() {', 'add direct sensory bridges')
+          write(app_path, app)
+
+          # 7. Upgrade the existing professional sensory controller instead of layering a second controller.
+          sensory_path = 'src/sensory-professional-controller.js'
+          sensory = read(sensory_path)
+          new_start_mode = r'''async function startMode(mode) {
+            if (transferBusy) return;
+            const beanId = await selectedBeanId();
+            if (!beanId) return;
+            if (mode === 'player' || mode === 'note') {
+              document.dispatchEvent(new CustomEvent('luckybean:start-sensory-mode', { detail: { mode, beanId } }));
+              return;
+            }
+            const context = await beanContext(beanId);
+            wizard = {
+              beanId,
+              bean: context.bean,
+              original: context.original,
+              step: 0,
+              selections: Object.fromEntries(STEPS.map(step => [step.id, []])),
+              intensities: Object.fromEntries(STEPS.map(step => [step.id, 7.5])),
+              radar: { aroma: [5, 5, 5, 5, 5], style: [5, 5, 5, 5, 5, 5, 5, 5] },
+              defects: { major: [], minor: [] },
+              selectedRadar: null,
+              score: 0
+            };
+            renderWizard();
+          }
+          '''
+          sensory = regex_once(
+              sensory,
+              r'async function startMode\([\s\S]*?\n}\n\nasync function startNative',
+              new_start_mode + '\nasync function startNative',
+              'replace sensory mode startup'
+          )
+
+          new_radar_block = r'''function radarPoint(values, index, value = values[index], size = 260) {
+            const center = size / 2;
+            const radius = size * .34;
+            const angle = -Math.PI / 2 + index * (Math.PI * 2 / values.length);
+            const r = radius * clamp(value, 0, 10) / 10;
+            return { x: center + Math.cos(angle) * r, y: center + Math.sin(angle) * r, angle, center, radius };
+          }
+
+          function radarSvg(group, values, labels, size = 260) {
+            const center = size / 2;
+            const radius = size * .34;
+            const points = values.map((value, index) => {
+              const point = radarPoint(values, index, value, size);
+              return `${point.x},${point.y}`;
+            }).join(' ');
+            const grid = [2.5, 5, 7.5, 10].map(level => {
+              const ring = values.map((_, index) => {
+                const point = radarPoint(values, index, level, size);
+                return `${point.x},${point.y}`;
+              }).join(' ');
+              return `<polygon points="${ring}" fill="none" stroke="rgba(190,151,80,.22)"/>`;
+            }).join('');
+            const axes = values.map((_, index) => {
+              const angle = -Math.PI / 2 + index * (Math.PI * 2 / values.length);
+              return `<line x1="${center}" y1="${center}" x2="${center + Math.cos(angle) * radius}" y2="${center + Math.sin(angle) * radius}" stroke="rgba(190,151,80,.22)"/>`;
+            }).join('');
+            const text = labels.map((label, index) => {
+              const angle = -Math.PI / 2 + index * (Math.PI * 2 / labels.length);
+              const r = radius + 22;
+              return `<text x="${center + Math.cos(angle) * r}" y="${center + Math.sin(angle) * r}" fill="currentColor" text-anchor="middle" dominant-baseline="middle" font-size="11">${esc(label)}</text>`;
+            }).join('');
+            const nodes = values.map((value, index) => {
+              const point = radarPoint(values, index, value, size);
+              const active = wizard.selectedRadar?.group === group && wizard.selectedRadar?.index === index;
+              return `<circle class="v120-radar-node${active ? ' active' : ''}" cx="${point.x}" cy="${point.y}" r="7" data-v120-radar-node data-v095-radar-group="${group}" data-v095-radar-index="${index}" role="slider" tabindex="0" aria-label="${esc(labels[index])}" aria-valuemin="0" aria-valuemax="10" aria-valuenow="${Number(value).toFixed(1)}"></circle>`;
+            }).join('');
+            return `<svg viewBox="0 0 ${size} ${size}" aria-label="感官雷达图" data-v120-radar-chart="${group}">${grid}${axes}<polygon data-v120-radar-polygon="${group}" points="${points}" fill="rgba(190,151,80,.3)" stroke="rgba(190,151,80,.9)" stroke-width="2"/>${nodes}${text}</svg>`;
+          }
+
+          function selectRadarAxis(root, group, index) {
+            wizard.selectedRadar = { group, index };
+            $$('[data-v095-radar-group]', root).forEach(node => node.classList.toggle('active', node.dataset.v095RadarGroup === group && Number(node.dataset.v095RadarIndex) === index));
+            const range = $('[data-v095-radar-value]', root);
+            const value = Number(wizard.radar[group][index] || 0);
+            if (range) { range.disabled = false; range.value = String(value); }
+            const output = $('[data-v095-radar-output]', root);
+            if (output) output.textContent = value.toFixed(1);
+          }
+
+          function updateRadarChart(root, group) {
+            const values = wizard.radar[group];
+            const svg = $(`[data-v120-radar-chart="${group}"]`, root);
+            if (!svg) return;
+            const polygon = $(`[data-v120-radar-polygon="${group}"]`, svg);
+            if (polygon) polygon.setAttribute('points', values.map((value, index) => {
+              const point = radarPoint(values, index, value);
+              return `${point.x},${point.y}`;
+            }).join(' '));
+            $$(`[data-v120-radar-node][data-v095-radar-group="${group}"]`, svg).forEach(node => {
+              const index = Number(node.dataset.v095RadarIndex);
+              const point = radarPoint(values, index, values[index]);
+              node.setAttribute('cx', String(point.x));
+              node.setAttribute('cy', String(point.y));
+              node.setAttribute('aria-valuenow', Number(values[index]).toFixed(1));
+            });
+            $$(`.v095-radar-axis[data-v095-radar-group="${group}"]`, root).forEach(button => {
+              const index = Number(button.dataset.v095RadarIndex);
+              const output = $('strong', button);
+              if (output) output.textContent = Number(values[index]).toFixed(1);
+            });
+          }
+
+          function bindRadarInteractions(root) {
+            $$('.v095-radar-axis[data-v095-radar-group]', root).forEach(button => button.addEventListener('click', () => {
+              selectRadarAxis(root, button.dataset.v095RadarGroup, Number(button.dataset.v095RadarIndex));
+            }));
+            $$('[data-v120-radar-node]', root).forEach(node => {
+              let activePointer = null;
+              const group = node.dataset.v095RadarGroup;
+              const index = Number(node.dataset.v095RadarIndex);
+              const updateFromPointer = event => {
+                const svg = node.closest('svg');
+                const rect = svg.getBoundingClientRect();
+                const x = (event.clientX - rect.left) * 260 / Math.max(1, rect.width);
+                const y = (event.clientY - rect.top) * 260 / Math.max(1, rect.height);
+                const geometry = radarPoint(wizard.radar[group], index, 10);
+                const dx = Math.cos(geometry.angle), dy = Math.sin(geometry.angle);
+                const projection = (x - geometry.center) * dx + (y - geometry.center) * dy;
+                const value = clamp(projection / geometry.radius * 10, 0, 10);
+                wizard.radar[group][index] = Math.round(value * 10) / 10;
+                updateRadarChart(root, group);
+                selectRadarAxis(root, group, index);
+              };
+              node.addEventListener('pointerdown', event => {
+                event.preventDefault();
+                activePointer = event.pointerId;
+                node.setPointerCapture?.(event.pointerId);
+                selectRadarAxis(root, group, index);
+                updateFromPointer(event);
+              });
+              node.addEventListener('pointermove', event => {
+                if (activePointer !== event.pointerId) return;
+                event.preventDefault();
+                updateFromPointer(event);
+              });
+              const release = event => { if (activePointer === event.pointerId) activePointer = null; };
+              node.addEventListener('pointerup', release);
+              node.addEventListener('pointercancel', release);
+              node.addEventListener('keydown', event => {
+                if (!['ArrowUp','ArrowRight','ArrowDown','ArrowLeft'].includes(event.key)) return;
+                event.preventDefault();
+                const delta = ['ArrowUp','ArrowRight'].includes(event.key) ? .1 : -.1;
+                wizard.radar[group][index] = clamp(Number(wizard.radar[group][index]) + delta, 0, 10);
+                updateRadarChart(root, group);
+                selectRadarAxis(root, group, index);
+              });
+            });
+          }
+
+          function bindSelectedTagSorting(root, stepId) {
+            if (!stepId) return;
+            const list = $(`[data-v120-selected-list="${stepId}"]`, root);
+            if (!list) return;
+            let drag = null;
+            const persist = () => { wizard.selections[stepId] = $$('[data-v120-selected-tag]', list).map(node => node.dataset.v120SelectedTag); };
+            $$('[data-v120-selected-tag]', list).forEach(chip => {
+              chip.addEventListener('pointerdown', event => {
+                event.preventDefault();
+                drag = { id: event.pointerId, chip, x: event.clientX, y: event.clientY, moved: false };
+                chip.setPointerCapture?.(event.pointerId);
+                chip.classList.add('dragging');
+              });
+              chip.addEventListener('pointermove', event => {
+                if (!drag || drag.id !== event.pointerId) return;
+                if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 5) drag.moved = true;
+                const target = document.elementFromPoint(event.clientX, event.clientY)?.closest?.('[data-v120-selected-tag]');
+                if (!target || target === chip || target.parentElement !== list) return;
+                const rect = target.getBoundingClientRect();
+                list.insertBefore(chip, event.clientX < rect.left + rect.width / 2 ? target : target.nextSibling);
+              });
+              const release = event => {
+                if (!drag || drag.id !== event.pointerId) return;
+                chip.classList.remove('dragging');
+                const moved = drag.moved;
+                drag = null;
+                if (moved) persist();
+                else toggleTag(stepId, chip.dataset.v120SelectedTag);
+              };
+              chip.addEventListener('pointerup', release);
+              chip.addEventListener('pointercancel', release);
+            });
+          }
+          '''
+          sensory = regex_once(
+              sensory,
+              r'function radarSvg\([\s\S]*?\n}\n\nfunction defectPanel',
+              new_radar_block + '\n\nfunction defectPanel',
+              'replace radar renderer and interactions'
+          )
+
+          old_tag_grid = '''<div class="v095-tag-grid">${step.tags.map(tag => `<button type="button" data-v095-tag="${esc(tag)}" class="${wizard.selections[step.id].includes(tag) ? 'active' : ''}">${esc(tag)}</button>`).join('')}</div>'''
+          new_tag_grid = '''<div class="v120-selected-tag-list" data-v120-selected-list="${step.id}">${wizard.selections[step.id].length ? wizard.selections[step.id].map(tag => `<button type="button" class="v120-selected-tag" data-v120-selected-tag="${esc(tag)}">${esc(tag)}</button>`).join('') : '<span class="muted small">已选便签会显示在这里，可长按拖动排序。</span>'}</div><div class="v095-tag-grid">${step.tags.map(tag => `<button type="button" data-v095-tag="${esc(tag)}" class="${wizard.selections[step.id].includes(tag) ? 'active' : ''}">${esc(tag)}</button>`).join('')}</div>'''
+          sensory = replace_once(sensory, old_tag_grid, new_tag_grid, 'add selected tag sorting surface')
+          sensory = sensory.replace('radarSvg(wizard.radar.aroma, AROMA_AXES)', "radarSvg('aroma', wizard.radar.aroma, AROMA_AXES)")
+          sensory = sensory.replace('radarSvg(wizard.radar.style, STYLE_AXES)', "radarSvg('style', wizard.radar.style, STYLE_AXES)")
+          old_axis_binding = "  $$('[data-v095-radar-group]', overlay).forEach(button => button.addEventListener('click', () => { wizard.selectedRadar = { group: button.dataset.v095RadarGroup, index: Number(button.dataset.v095RadarIndex) }; renderWizard(); }));\n"
+          sensory = replace_once(sensory, old_axis_binding, '', 'remove rerender-only radar binding')
+          sensory = replace_once(
+              sensory,
+              "  $('[data-v095-prev]', overlay)?.addEventListener('click', () => { wizard.step = Math.max(0, wizard.step - 1); renderWizard(); });",
+              "  bindSelectedTagSorting(overlay, sensoryStep ? step.id : '');\n  bindRadarInteractions(overlay);\n  $('[data-v095-prev]', overlay)?.addEventListener('click', () => { wizard.step = Math.max(0, wizard.step - 1); renderWizard(); });",
+              'bind sensory direct interactions'
+          )
+          new_finish = r'''async function finishProfessional() {
+            if (!wizard || transferBusy) return;
+            transferBusy = true;
+            const detail = {
+              beanId: wizard.beanId,
+              score: affectiveMappedScore(),
+              summary: professionalSummary().split('\n').filter(Boolean),
+              naturalNote: professionalSummary(),
+              professionalData: {
+                selections: structuredClone(wizard.selections),
+                intensities: structuredClone(wizard.intensities),
+                radar: structuredClone(wizard.radar),
+                defects: structuredClone(wizard.defects)
+              }
+            };
+            closeWizard();
+            document.dispatchEvent(new CustomEvent('luckybean:professional-sensory-complete', { detail }));
+            transferBusy = false;
+          }
+          '''
+          sensory = regex_once(
+              sensory,
+              r'async function finishProfessional\([\s\S]*?\n}\n\nexport function syncSensoryModePanel',
+              new_finish + '\nexport function syncSensoryModePanel',
+              'save professional sensory directly'
+          )
+          write(sensory_path, sensory)
+
+          # 8. Add direct interaction styles to the existing stylesheet.
+          styles_path = 'styles.css'
+          styles = read(styles_path)
+          marker = '/* v1.2.0 clean requirements: stable 3D and direct sensory interactions */'
+          if marker not in styles:
+              styles += r'''
+
+          /* v1.2.0 clean requirements: stable 3D and direct sensory interactions */
+          .brew-spatial-mount:empty{display:none}
+          .brew-spatial-mount{margin:14px 0 22px}
+          .spatial-unavailable{padding:12px 0;text-align:center}
+          .v120-selected-tag-list{display:flex;flex-wrap:wrap;gap:8px;min-height:42px;align-items:center;margin:0 0 14px;padding:10px;border:1px dashed rgba(190,151,80,.35);border-radius:12px}
+          .v120-selected-tag{border:1px solid rgba(190,151,80,.55);border-radius:999px;padding:8px 12px;background:rgba(190,151,80,.12);color:inherit;touch-action:none;cursor:grab;user-select:none}
+          .v120-selected-tag.dragging{opacity:.72;cursor:grabbing;transform:scale(1.03)}
+          .v120-radar-node{fill:#f5efe1;stroke:#8f6f38;stroke-width:2.5;pointer-events:all;touch-action:none;cursor:grab}
+          .v120-radar-node.active{fill:#be9750;stroke:#fff;stroke-width:3}
+          .v095-radar-stage svg{overflow:visible;touch-action:none}
+          '''
+          write(styles_path, styles)
+
+          # 9. Add explicit product-regression tests and run them in normal CI.
+          static_test = r'''import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          import { listBrewProfiles, computeFallbackPlan } from '../src/brew-engine.js';
+
+          const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+          const index = read('index.html');
+          const app = read('src/app.js');
+          const runtime = read('src/features/runtime-features.js');
+          const sw = read('sw.js');
+          const account = read('src/ui/account-sync-panel.js');
+          const sensory = read('src/sensory-professional-controller.js');
+          const spatial = read('src/renderers/brew-spatial-controller.js');
+          const analysis = read('src/services/brew-analysis-service.js');
+
+          assert.doesNotMatch(index, /id="loginScreen"|id="guestBtn"|id="emailIdentityBtn"|id="wechatIdentityBtn"/);
+          assert.equal((index.match(/id="brewSpatialMount"/g) || []).length, 1);
+          assert.doesNotMatch(runtime, /settings-screen-controller/);
+          assert.doesNotMatch(sw, /settings-screen-controller/);
+          assert.equal(fs.existsSync(new URL('../src/settings-screen-controller.js', import.meta.url)), false);
+          assert.doesNotMatch(app, /saveIdentityBtn|settingsNickname|settingsPhone|settingsWechat|settingsQq/);
+          assert.match(app, /data-settings-key="account"/);
+          assert.match(account, /replaceChildren\(section\)/);
+          assert.match(account, /querySelectorAll\('\[data-cloud-account-panel\]/);
+          assert.match(spatial, /#brewSpatialMount/);
+          assert.match(sensory, /data-v120-radar-node/);
+          assert.match(sensory, /pointermove/);
+          assert.match(sensory, /data-v120-selected-tag/);
+          assert.match(sensory, /luckybean:professional-sensory-complete/);
+          assert.doesNotMatch(analysis, /专业冲煮分析需要登录云端账号/);
+
+          const baseInput = {
+            schemaVersion: 2,
+            bean: { countryCode: 'CO-ET', varietyCode: 'VA-GE', processCode: 'PR-WA', roastCode: 'RL-L1', roastDate: '2026-08-01', altitude: 1900 },
+            brew: { mode: 'professional', method: 'pourover', doseG: 15, ratio: 16, segmentMode: 'auto', segments: 4, dripperCode: '锥形滤杯', filterPaper: '', filterPaperId: '', grinder: '', firstCoolingMode: 'auto', firstTemperatureC: 87, tailCoolingMode: 'auto', tailTemperatureC: 86, temperatureTune: 0, grindTune: 0, bloomTune: 0, repeatability: false, waterProfileId: 'floral' },
+            water: { profileId: 'floral', recipeVolumeL: 5, tdsMgL: 85 },
+            environment: { ambientTemperatureC: 25, relativeHumidityPct: null, initialBedTemperatureC: 25 },
+            targets: { floral: 2, acidity: 1.5, sweetness: 2, body: 1, bitterness: 2 }
+          };
+
+          for (const profile of listBrewProfiles()) {
+            if (profile.id === 'recommended') continue;
+            const input = structuredClone(baseInput);
+            input.brew.profileId = profile.id;
+            const plan = await computeFallbackPlan(input);
+            assert.equal(plan.profile?.id, profile.id, `profile selection was not preserved: ${profile.id}`);
+            assert.ok(Array.isArray(plan.stages) && plan.stages.length > 0, `profile generated no stages: ${profile.id}`);
+          }
+
+          console.log('v1.2 product requirements static and all-profile generation checks passed');
+          '''
+          write('tests/v120-requirements-static.mjs', static_test)
+
+          ui_test = r'''import { test, expect } from '@playwright/test';
+
+          const BASE_URL = 'http://127.0.0.1:4173';
+          const SUPABASE_PATTERN = 'https://vaxwncdcuvbpvdbbketb.supabase.co/**';
+
+          async function openApp(page, suffix) {
+            await page.route(SUPABASE_PATTERN, route => route.abort('failed'));
+            await page.goto(`${BASE_URL}/?${suffix}`, { waitUntil: 'domcontentloaded' });
+            await page.locator('#splashScreen').click();
+            await expect(page.locator('#appShell')).toBeVisible({ timeout: 15000 });
+            await page.waitForFunction(() => Boolean(globalThis.LuckyBeanRuntimeFeatures), null, { timeout: 15000 });
+          }
+
+          async function seedBean(page) {
+            await page.evaluate(async () => {
+              const db = await import('/src/db.js');
+              await db.put('beans', {
+                id: 'requirements-bean', name: '测试豆', countryCode: 'CO-ET', varietyCode: 'VA-GE', processCode: 'PR-WA', roastCode: 'RL-L1',
+                roastDate: '2026-08-01', initialWeight: 100, remainingWeight: 100, altitude: 1900, archived: false,
+                createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+              });
+              document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail: { source: 'requirements-test' } }));
+            });
+          }
+
+          test('one cloud panel, all profile selection and stable 3D mount', async ({ page }) => {
+            await openApp(page, 'requirements-account-brew=1');
+            await page.locator('[data-page-target="settings"]').click();
+            const cloudSection = page.locator('#settingsContent [data-settings-key="account"]');
+            await expect(cloudSection).toBeVisible();
+            await cloudSection.locator('summary').click();
+            await expect(page.locator('[data-cloud-account-panel]')).toHaveCount(1);
+            await expect(page.locator('[data-v099p-cloud-panel],[data-v099e-cloud-panel],[data-v099f-account-sync]')).toHaveCount(0);
+            await expect(page.locator('#saveIdentityBtn,#settingsNickname,#settingsPhone,#settingsWechat,#settingsQq')).toHaveCount(0);
+
+            await seedBean(page);
+            await page.locator('[data-page-target="brew"]').click();
+            const options = await page.locator('#brewProfile option').evaluateAll(nodes => nodes.map(node => node.value).filter(Boolean));
+            expect(options.length).toBeGreaterThan(8);
+            const selected = options.includes('four-six-33666') ? 'four-six-33666' : options.at(-1);
+            await page.locator('#brewProfile').selectOption(selected);
+            await page.locator('#generatePlanBtn').click();
+            await expect(page.locator('#generatedPlan')).toBeVisible({ timeout: 20000 });
+            await expect(page.locator('#brewProfile')).toHaveValue(selected);
+            await expect(page.locator('#brewSpatialMount [data-brew-spatial-preview]')).toBeVisible({ timeout: 10000 });
+          });
+
+          test('professional tags sort and radar nodes select and drag; note mode opens directly', async ({ page }) => {
+            await openApp(page, 'requirements-sensory=1');
+            await seedBean(page);
+            await page.locator('[data-page-target="sensory"]').click();
+            await page.locator('#sensoryBeanSelect').selectOption('requirements-bean');
+            await page.locator('[data-v095-mode="professional"]').click();
+            const tags = page.locator('[data-v095-tag]');
+            await tags.nth(0).click();
+            await tags.nth(1).click();
+            await expect(page.locator('[data-v120-selected-tag]')).toHaveCount(2);
+            const first = page.locator('[data-v120-selected-tag]').nth(0);
+            const second = page.locator('[data-v120-selected-tag]').nth(1);
+            const firstBox = await first.boundingBox();
+            const secondBox = await second.boundingBox();
+            await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2);
+            await page.mouse.down();
+            await page.mouse.move(secondBox.x + secondBox.width, secondBox.y + secondBox.height / 2, { steps: 5 });
+            await page.mouse.up();
+
+            for (let i = 0; i < 8; i += 1) await page.locator('[data-v095-next]').click();
+            const node = page.locator('[data-v120-radar-node]').first();
+            await expect(node).toBeVisible();
+            const before = Number(await node.getAttribute('aria-valuenow'));
+            const box = await node.boundingBox();
+            await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+            await page.mouse.down();
+            await page.mouse.move(box.x + box.width / 2, box.y - 24, { steps: 5 });
+            await page.mouse.up();
+            const after = Number(await node.getAttribute('aria-valuenow'));
+            expect(after).not.toBe(before);
+
+            await page.locator('[data-v095-close]').click();
+            await page.locator('[data-v095-mode="note"]').click();
+            await expect(page.locator('#sensoryDeltaWheel')).toBeVisible({ timeout: 3000 });
+          });
+          '''
+          write('tests/v120-requirements-ui.spec.mjs', ui_test)
+
+          package_path = 'package.json'
+          package = json.loads(read(package_path))
+          package['scripts']['test:static'] = 'node tests/v110-local-first-sync-static.mjs && node tests/v120-core-contracts-static.mjs && node tests/v120-requirements-static.mjs'
+          package['scripts']['test:core'] = 'playwright test tests/v120-core-flow.spec.mjs tests/v120-history-integrity.spec.mjs tests/v120-requirements-ui.spec.mjs --browser=chromium --reporter=line'
+          write(package_path, json.dumps(package, ensure_ascii=False, indent=2) + '\n')
+
+          # Include this working branch in the normal final-SHA CI workflow.
+          check_path = '.github/workflows/static-check.yml'
+          check = read(check_path)
+          if '      - fix/v120-requirements-clean\n' not in check:
+              check = check.replace('      - release/v1.2.0-test\n  pull_request:', '      - release/v1.2.0-test\n      - fix/v120-requirements-clean\n  pull_request:', 1)
+          write(check_path, check)
+
+          # Hard guards against partial migration.
+          guards = {
+              'index login screen': 'id="loginScreen"' not in read(index_path),
+              'legacy runtime owner': 'settings-screen-controller' not in read(runtime_path),
+              'legacy offline asset': 'settings-screen-controller' not in read(sw_path),
+              'legacy source removed': not legacy_settings.exists(),
+              'single stable spatial host': read(index_path).count('id="brewSpatialMount"') == 1,
+              'direct radar node': 'data-v120-radar-node' in read(sensory_path),
+              'direct professional save': 'luckybean:professional-sensory-complete' in read(sensory_path),
+              'no analysis login gate': '专业冲煮分析需要登录云端账号' not in read(analysis_path)
+          }
+          failed = [name for name, ok in guards.items() if not ok]
+          if failed:
+              raise SystemExit('structural guards failed: ' + ', '.join(failed))
+          PY
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install test dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run static and all-profile verification
+        run: npm run test:static
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start local test server
+        run: python3 -m http.server 4173 > /tmp/luckybean-http.log 2>&1 &
+
+      - name: Run startup, core, requirements and visual tests
+        run: |
+          npm run test:smoke
+          npm run test:core
+          npm run test:visual
+
+      - name: Remove one-shot workflow and commit verified implementation
+        run: |
+          rm .github/workflows/implement-v120-requirements.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix: implement v1.2.0 product requirements without legacy owners"
+          git push origin HEAD:fix/v120-requirements-clean
