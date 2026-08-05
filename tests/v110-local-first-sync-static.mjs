@@ -23,6 +23,7 @@ assert.match(index, /src\/services\/cloud-auth-service\.js/);
 assert.match(index, /src\/services\/cloud-sync-service\.js/);
 assert.match(index, /src\/ui\/fab-controller\.js/);
 assert.match(index, /src\/features\/compatibility-bundle\.js/);
+assert.doesNotMatch(index, /<script[^>]+src="\.\/src\/app\.js/);
 assert.doesNotMatch(index, /<script[^>]+src="\.\/src\/v/);
 assert.doesNotMatch(index, /v109-supabase-auth-gate\.js/);
 assert.doesNotMatch(index, /v099f-cloud-sync\.js/);
@@ -32,6 +33,7 @@ assert.match(startup, /ensureLocalIdentity/);
 assert.match(startup, /LB-LOCAL-/);
 assert.match(startup, /luckybean:local-app-ready/);
 assert.match(startup, /点击进入/);
+assert.match(startup, /await ensureLocalIdentity\(\)[\s\S]*await import\('\.\.\/app\.js\?v=1\.1\.0-test'\)/);
 assert.doesNotMatch(startup, /fetch\s*\(/);
 
 assert.match(auth, /REMEMBER_MS\s*=\s*7\s*\*\s*24/);
@@ -63,6 +65,7 @@ assert.match(compatibility, /LuckyBeanCompatibilityLayer/);
 assert.match(compatibility, /v109-history-management\.js/);
 
 assert.match(sw, /luckybean-1\.1\.0-test/);
+assert.match(sw, /src\/app\.js/);
 assert.match(sw, /src\/core\/bootstrap\.js/);
 assert.match(sw, /src\/features\/compatibility-bundle\.js/);
 assert.equal(manifest.version, '1.1.0-test');
