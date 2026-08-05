@@ -220,125 +220,6 @@ function syncBrewControls() {
   if (helper) helper.textContent = '这里的段数为总段数，闷蒸计为第一段；仅在冲煮法未固定段数时显示。';
 }
 
-function parseNumber(text, fallback = 0) {
-  const value = Number(String(text || '').replace(/[^\d.-]/g, ''));
-  return Number.isFinite(value) ? value : fallback;
-}
-
-function stageDataFromPlan() {
-  let start = 0;
-  return $$('#generatedPlan .plan-stage').map(card => {
-    const cells = $$('.stage-cell', card);
-    const value = label => {
-      const cell = cells.find(item => $('span', item)?.textContent.trim() === label);
-      return $('strong', cell)?.textContent || '';
-    };
-    const tempPair = value('壶中/粉床').match(/([\d.]+).*?([\d.]+)?°?C?/) || [];
-    const timeFlow = value('时间/流速');
-    const duration = parseNumber(timeFlow.split('·')[0], 1);
-    const flow = parseNumber(timeFlow.split('·')[1], 1);
-    const stage = {
-      index: parseNumber($('.stage-index', card)?.textContent, 1),
-      name: value('阶段'),
-      water: parseNumber(value('本段注水')),
-      cumulative: parseNumber(value('累计注水')),
-      temp: parseNumber(tempPair[1]),
-      core: parseNumber(tempPair[2], parseNumber(tempPair[1])),
-      duration,
-      flow,
-      start,
-      end: start + duration
-    };
-    start = stage.end;
-    return stage;
-  });
-}
-
-function pathPoints(path) {
-  const values = String(path?.getAttribute('d') || '').match(/-?\d+(?:\.\d+)?/g)?.map(Number) || [];
-  const points = [];
-  for (let index = 0; index + 1 < values.length; index += 2) points.push({ x: values[index], y: values[index + 1] });
-  return points;
-}
-
-function v17Trajectory(svg) {
-  if (!svg || svg.dataset.v098Trajectory === '1') return;
-  const stages = stageDataFromPlan();
-  if (!stages.length) return;
-  const old = svg.cloneNode(true);
-  const W = 800, H = 190, left = 38, right = 14, top = 16, bottom = 32;
-  const innerW = W - left - right, innerH = H - top - bottom;
-  const totalTime = Math.max(1, stages.at(-1).end);
-  const minTemp = Math.min(...stages.map(stage => stage.temp));
-  const maxTemp = Math.max(...stages.map(stage => stage.temp));
-  const tempRange = Math.max(4, maxTemp - minTemp);
-  const maxFlow = Math.max(1, ...stages.map(stage => stage.flow));
-  const tx = time => left + time / totalTime * innerW;
-  const tyTemp = value => top + innerH - (value - minTemp) / tempRange * innerH * .85;
-  const tyFlow = value => top + innerH - value / maxFlow * innerH * .70;
-
-  const physical = [];
-  stages.forEach((stage, index) => {
-    if (index === 0) physical.push({ t: stage.start, temp: stage.temp, flow: 0 });
-    physical.push({ t: (stage.start + stage.end) / 2, temp: stage.temp, flow: stage.flow });
-    physical.push({ t: stage.end, temp: stage.temp, flow: 0 });
-  });
-  const tempPoints = physical.map(point => `${tx(point.t).toFixed(1)},${tyTemp(point.temp).toFixed(1)}`).join(' ');
-  const flowPoints = physical.map(point => `${tx(point.t).toFixed(1)},${tyFlow(point.flow).toFixed(1)}`).join(' ');
-
-  const flavorSeries = ['floral', 'acidity', 'sweetness'].map(name => pathPoints(old.querySelector(`.trajectory-series.${name}`))).filter(points => points.length);
-  const coverage = flavorSeries.length ? flavorSeries[0].map((point, index) => {
-    const ys = flavorSeries.map(series => series[index]?.y).filter(Number.isFinite);
-    const normalizedX = clamp((point.x - 42) / 660, 0, 1);
-    const normalizedY = clamp(1 - (Math.min(...ys) - 24) / 268, 0, 1);
-    return `${(left + normalizedX * innerW).toFixed(1)},${(top + innerH - normalizedY * innerH * .72).toFixed(1)}`;
-  }).join(' ') : '';
-
-  const peakColors = {
-    floral: ['rgba(139,240,197,.18)', 'rgba(139,240,197,.72)'],
-    acidity: ['rgba(255,214,102,.18)', 'rgba(255,214,102,.72)'],
-    fruit: ['rgba(255,128,190,.16)', 'rgba(255,128,190,.70)'],
-    sweetness: ['rgba(126,219,255,.16)', 'rgba(126,219,255,.68)'],
-    bitter: ['rgba(255,92,92,.15)', 'rgba(255,92,92,.62)'],
-    astringency: ['rgba(255,92,92,.12)', 'rgba(255,92,92,.54)']
-  };
-  const windows = $$('.trajectory-peak', old).map((group, index) => {
-    const rect = $('rect', group);
-    const label = $('text', group)?.textContent.trim() || '';
-    const type = [...group.classList].find(name => peakColors[name]) || 'floral';
-    const x = parseNumber(rect?.getAttribute('x'));
-    const width = parseNumber(rect?.getAttribute('width'));
-    const from = clamp((x - 42) / 660, 0, 1);
-    const to = clamp((x + width - 42) / 660, 0, 1);
-    const row = index % 4;
-    const y = top + 19 + row * 22;
-    const [fill, stroke] = peakColors[type];
-    return `<g class="v098-flavor-window ${type}"><rect x="${(left + from * innerW).toFixed(1)}" y="${y}" width="${Math.max(24, (to - from) * innerW).toFixed(1)}" height="16" rx="5" fill="${fill}" stroke="${stroke}"></rect><text x="${(left + from * innerW + 5).toFixed(1)}" y="${y + 11}">${esc(label)}</text></g>`;
-  }).join('');
-
-  const stageLines = stages.map(stage => `<g class="v098-stage-marker"><line x1="${tx(stage.start).toFixed(1)}" y1="${top}" x2="${tx(stage.start).toFixed(1)}" y2="${H - bottom}"></line><text x="${(tx(stage.start) + 3).toFixed(1)}" y="${H - 11}">${stage.index}</text></g>`).join('');
-  const grid = [0, .25, .5, .75, 1].map(value => {
-    const y = top + (1 - value) * innerH;
-    return `<line class="v098-grid" x1="${left}" y1="${y}" x2="${W - right}" y2="${y}"></line>`;
-  }).join('');
-
-  svg.dataset.v098Trajectory = '1';
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  svg.setAttribute('aria-label', '按阶段时间绘制的温度、流量、风味覆盖与风味窗口轨迹');
-  svg.innerHTML = `${grid}${windows}${stageLines}<polyline class="v098-temp-line" points="${tempPoints}"></polyline><polyline class="v098-flow-line" points="${flowPoints}"></polyline>${coverage ? `<polyline class="v098-flavor-line" points="${coverage}"></polyline>` : ''}<text class="v098-axis" x="${left}" y="12">阶段时间轨迹</text><text class="v098-axis" x="${W-right}" y="${H-9}" text-anchor="end">时间 →</text>`;
-
-  const shell = svg.closest('.trajectory-shell');
-  const legend = $('.trajectory-legend', shell);
-  if (legend) legend.innerHTML = '<span class="v098-legend-temp">温度曲线</span><span class="v098-legend-flow">流量曲线</span><span class="v098-legend-flavor">风味覆盖轨迹</span><span class="v098-legend-window">标志性风味窗口</span><span class="v098-legend-risk">木质 / 苦涩风险窗口</span>';
-  let bar = $('.phase-marker-bar', shell);
-  if (!bar && shell) {
-    bar = document.createElement('div');
-    bar.className = 'phase-marker-bar v098-phase-bar';
-    svg.after(bar);
-  }
-  if (bar) bar.innerHTML = stages.map(stage => `<span class="phase-seg" style="flex:${Math.max(1, stage.duration)}" title="${esc(stage.name)}"></span>`).join('');
-}
-
 function radarValues(key) {
   const svg = $(`[data-radar-svg="${key}"]`);
   const fallback = key === 'style' ? Array(8).fill(5) : Array(5).fill(5);
@@ -555,7 +436,6 @@ async function enhanceArchivedDetail() {
 function syncUi() {
   // v0.9.9 uses the non-recursive group-menu guard.
   syncBrewControls();
-  $$('.trajectory-chart.detailed').forEach(v17Trajectory);
   normalizeRadarUi();
   normalizeProfessionalSummary();
   enhanceArchivedDetail().catch(console.error);
@@ -634,7 +514,11 @@ document.addEventListener('input', event => {
   if (event.target.matches?.('#brewProfile,#brewSegments')) setTimeout(syncBrewControls, 0);
 }, true);
 
-new MutationObserver(queueUi).observe(document.documentElement, { childList: true, subtree: true });
+const uiObserver = new MutationObserver(queueUi);
+['#beanGroups','#brewContent','#sensoryContent','#overlayRoot'].forEach(selector => {
+  const root = document.querySelector(selector);
+  if (root) uiObserver.observe(root, { childList: true, subtree: true });
+});
 migrateDefaultGroup().catch(console.error).finally(queueUi);
 queueUi();
 
