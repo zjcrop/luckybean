@@ -1,0 +1,193 @@
+name: Refactor domain migration
+
+on:
+  push:
+    branches:
+      - refactor/v120-integrated-core
+
+permissions:
+  contents: write
+
+jobs:
+  migrate-formal-core:
+    if: ${{ !contains(github.event.head_commit.message, '[domain-migration]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/v120-integrated-core
+          fetch-depth: 0
+      - name: Migrate old app paths into formal domain services
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('src/app.js')
+          text = path.read_text(encoding='utf-8')
+
+          text = text.replace(
+              "import { commitCompletedBrew } from './domain/history/history-service.js';",
+              "import { commitCompletedBrew, permanentlyDeleteBrewRecords } from './domain/history/history-service.js';\nimport { attachSensoryToCompletedBrew } from './domain/history/history-sensory-service.js';",
+              1
+          )
+
+          text = text.replace(
+              "const corrected = session.status === 'corrected' || session.correction;",
+              "const corrected = Boolean(session.correction || session.nextPlanDraft);",
+              1
+          )
+
+          delete_function = '''async function deleteBrewSession(sessionId, restoreBeans = false) {
+            const session = state.brewSessions.find(item => item.id === sessionId);
+            if (!session) return toast('冲煮记录不存在', 'status-bad');
+            const bean = state.beans.find(item => item.id === session.beanId);
+            try {
+              await permanentlyDeleteBrewRecords([sessionId], { restoreWeight: restoreBeans, sensoryMode: 'detach' });
+              if (state.currentPlan?.id === sessionId) { state.currentPlan = null; state.currentBrewInput = null; }
+              await refreshData();
+              closeOverlay();
+              if (state.page === 'brew') renderBrew();
+              else if (state.page === 'sensory') renderSensory();
+              else renderBeans();
+              if (bean) requestAnimationFrame(() => detailBean(bean.id));
+              toast(restoreBeans ? '冲煮记录已删除，原扣豆账本已冲正' : '冲煮记录已删除，豆卡重量未改动', 'status-good');
+            } catch (error) {
+              toast(error.message || '删除冲煮记录失败', 'status-bad');
+            }
+          }
+
+          function loadBrewSession'''
+          text, count = re.subn(
+              r"async function deleteBrewSession\(sessionId, restoreBeans = false\) \{.*?\n\}\n\nfunction loadBrewSession",
+              delete_function,
+              text,
+              count=1,
+              flags=re.S
+          )
+          if count != 1:
+              raise SystemExit('deleteBrewSession migration did not match exactly once')
+
+          text, count = re.subn(
+              r"async function consumeBean\(bean, amount, sessionId, note = ''\) \{.*?\n\}\n\nfunction startEvaluation",
+              "function startEvaluation",
+              text,
+              count=1,
+              flags=re.S
+          )
+          if count != 1:
+              raise SystemExit('obsolete consumeBean removal did not match exactly once')
+
+          new_save_evaluation = '''async function saveEvaluation() {
+            const evaluation = state.evaluation; if (!evaluation) return;
+            const bean = state.beans.find(item => item.id === evaluation.beanId);
+            const summary = [];
+            for (const node of SENSORY_NODES.filter(item => !['score','note'].includes(item.type))) {
+              const values = Object.values(evaluation.answers[node.id] || {}).flat();
+              if (values.length && !values.every(value => value === '无')) summary.push(`${node.label}:${values.join('/')}`);
+            }
+            const autoScore = Number(evaluation.autoScore || computeAutomaticScore(evaluation.answers));
+            const scoreDelta = clamp(Number(evaluation.scoreDelta || 0), -10, 10);
+            const subjectiveScore = clamp(autoScore + scoreDelta, 0, 100);
+            const record = {
+              ...evaluation, summary, autoScore, subjectiveScore, score: subjectiveScore,
+              scoreDelta, naturalNote: String(evaluation.naturalNote || '').trim(),
+              preferenceTags: sensoryPreferenceTags({ ...evaluation, autoScore, subjectiveScore }, bean || {}), updatedAt: new Date().toISOString()
+            };
+            delete record.nodeIndex;
+
+            let correctionSaved = false;
+            const session = state.brewSessions.find(item => item.id === record.brewSessionId);
+            if (session?.schemaVersion === 'brew-history/1.0') {
+              let nextPlanDraft = null;
+              if (subjectiveScore < autoScore && (session.normalizedInput || session.rawInput)) {
+                const sourceInput = session.normalizedInput || session.rawInput;
+                const sourcePlan = session.analysisSnapshot?.plan || session;
+                const corrected = await buildCorrectedPlan(sourceInput, record, sourcePlan);
+                const hasIssue = Object.values(corrected.correction?.issues || {}).some(Boolean);
+                if (hasIssue) {
+                  corrected.id = uid('draft');
+                  corrected.beanId = record.beanId;
+                  corrected.createdAt = new Date().toISOString();
+                  corrected.sourceHistoryId = session.id;
+                  corrected.input = corrected.input || sourceInput;
+                  record.correctedPlanId = corrected.id;
+                  nextPlanDraft = corrected;
+                  correctionSaved = true;
+                }
+              }
+              await attachSensoryToCompletedBrew({ recordId: session.id, sensoryRecord: record, nextPlanDraft });
+            } else {
+              if (session) {
+                session.sensoryRecordId = record.id;
+                session.sensoryNote = record.naturalNote;
+                session.autoScore = autoScore;
+                session.subjectiveScore = subjectiveScore;
+                session.scoreDelta = record.scoreDelta;
+                await put('brewSessions', session);
+              }
+              await put('sensoryRecords', record);
+            }
+            await refreshData(); state.evaluation = null;
+            switchPage('beans'); requestAnimationFrame(()=>detailBean(record.beanId));
+            if (correctionSaved) toast('品鉴已保存，并生成下一次修正草案', 'status-warn');
+            else if (subjectiveScore < autoScore) toast('品鉴已保存；主观分低于自动分，已记录分差', 'status-warn');
+            else toast('品鉴与个人偏好已保存', 'status-good');
+          }
+
+          function openSensoryRecordsPage'''
+          text, count = re.subn(
+              r"async function saveEvaluation\(\) \{.*?\n\}\n\nfunction openSensoryRecordsPage",
+              new_save_evaluation,
+              text,
+              count=1,
+              flags=re.S
+          )
+          if count != 1:
+              raise SystemExit('saveEvaluation migration did not match exactly once')
+
+          text = text.replace(
+              "<dt>调水方案</dt><dd>${esc(water?.profile?.name || '未提供')} ${water?.profile ? `· Ca ${water.profile.ca} / Mg ${water.profile.mg} / HCO₃ ${water.profile.hco3} mg/L` : ''}</dd>",
+              "<dt>调水方案</dt><dd>${esc(water?.profile?.name || '未提供')} · 参考TDS ${Number(water?.profile?.tdsMid ?? water?.targetTdsRange?.[0] ?? state.settings.brew.customWater?.tds ?? 85)} mg/L</dd>",
+              1
+          )
+
+          text, count = re.subn(
+              r"\n    \$\{water\?\.doses\?\.length \? `<details class=\"nested-settings\"><summary>调水粉剂换算</summary>.*?` : ''\}",
+              "",
+              text,
+              count=1,
+              flags=re.S
+          )
+          if count != 1:
+              raise SystemExit('water dose panel removal did not match exactly once')
+
+          text = text.replace(
+              "${plan.water ? `${plan.water.profile?.name}；Ca ${plan.water.profile?.ca}、Mg ${plan.water.profile?.mg}、HCO₃ ${plan.water.profile?.hco3} mg/L。` : '未记录'}",
+              "${plan.water ? `${plan.water.profile?.name}；参考TDS ${plan.water.profile?.tdsMid ?? plan.water.targetTdsRange?.[0] ?? '—'} mg/L。` : '未记录'}",
+              1
+          )
+
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Run source checks
+        run: |
+          node --check src/app.js
+          grep -F "attachSensoryToCompletedBrew" src/app.js
+          ! grep -F "session.status =" src/app.js
+          ! grep -F "async function consumeBean" src/app.js
+          ! grep -F "调水粉剂换算" src/app.js
+      - name: Commit formal domain migration
+        run: |
+          if git diff --quiet -- src/app.js; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app.js
+          git commit -m "refactor: route history and sensory through formal domain services [domain-migration]"
+          for attempt in 1 2 3; do
+            git push origin HEAD:refactor/v120-integrated-core && exit 0
+            sleep $((attempt * 3))
+          done
+          exit 1
