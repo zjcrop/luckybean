@@ -8,6 +8,8 @@ import { buildCompactSharePayload, encodeSharePayload, decodeSharePayload } from
 import { computeAutomaticScore, sensoryPreferenceTags, buildPreferenceModel, recommendedBeanIds } from './preference-model.js';
 import { commitCompletedBrew } from './domain/history/history-service.js';
 import { createLocalReferenceAnalysis } from './services/local-reference-analysis.js';
+import { adaptAuthoritativePlan } from './services/brew-analysis-service.js';
+import './renderers/brew-spatial-controller.js';
 import './v095-sensory-pro.js';
 
 const PAGE_META = {
@@ -1056,8 +1058,20 @@ async function deleteBrewSession(sessionId, restoreBeans = false) {
 
 function loadBrewSession(sessionId) {
   const session = state.brewSessions.find(item => item.id === sessionId); if (!session) return toast('冲煮记录不存在');
-  closeOverlay(); state.selectedBeanId = session.beanId; state.currentPlan = structuredClone(session); state.currentBrewInput = structuredClone(session.input || null);
-  switchPage('brew'); requestAnimationFrame(() => $('#generatedPlan')?.scrollIntoView({ behavior: 'smooth', block: 'start' })); toast(session.correction ? '已载入修正方案' : '已载入历史方案');
+  let plan;
+  if (session.analysisSnapshot?.contract === 'brew-analysis/2.0') {
+    plan = adaptAuthoritativePlan(session.analysisSnapshot);
+    plan.id = session.id;
+    plan.beanId = session.beanId;
+    plan.historyRecordId = session.id;
+  } else {
+    plan = structuredClone(session);
+  }
+  closeOverlay(); state.selectedBeanId = session.beanId; state.currentPlan = plan; state.currentBrewInput = structuredClone(session.normalizedInput || session.input || null);
+  switchPage('brew');
+  document.dispatchEvent(new CustomEvent('luckybean:history-plan-loaded', { detail: { plan, record: session } }));
+  requestAnimationFrame(() => $('#generatedPlan')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  toast(session.correction ? '已载入修正方案' : '已载入历史方案');
 }
 
 function correctWeightDialog(bean) {
