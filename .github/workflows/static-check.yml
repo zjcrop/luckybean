@@ -5,11 +5,13 @@ on:
     branches:
       - test-v107-web
       - refactor/v120-integrated-core
+      - release/v1.2.0-test
   pull_request:
     branches:
       - main
       - test-v107-web
       - refactor/v120-integrated-core
+      - release/v1.2.0-test
 
 permissions:
   contents: read
