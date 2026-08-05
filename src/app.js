@@ -10,6 +10,7 @@ import { commitCompletedBrew } from './domain/history/history-service.js';
 import { createLocalReferenceAnalysis } from './services/local-reference-analysis.js';
 import { adaptAuthoritativePlan } from './services/brew-analysis-service.js';
 import './renderers/brew-spatial-controller.js';
+import './ui/brew-trend-panel.js';
 import { openHistoryScreen } from './ui/history/history-screen.js';
 import { migrateLegacyBrewHistory } from './domain/history/history-migration.js';
 import './services/provider-bootstrap-controller.js';
