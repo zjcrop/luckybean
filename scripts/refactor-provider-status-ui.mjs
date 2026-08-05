@@ -32,10 +32,10 @@ async function patchApp() {
     await renderProviderStatusPanel($('#providerStatusPanel'));
     const changed = Object.values(result.results || {}).filter(item => item?.updated).length;
     button.disabled=false; button.textContent='更新全部数据源';
-    toast(changed ? `已更新${changed}个数据源` : '全部数据源已是最新', 'status-good');
+    toast(changed ? ('已更新' + changed + '个数据源') : '全部数据源已是最新', 'status-good');
   } catch(error) {
     button.disabled=false; button.textContent='更新全部数据源';
-    toast(`更新失败，继续使用最后有效版本：${error.message}`, 'status-bad');
+    toast('更新失败，继续使用最后有效版本：' + error.message, 'status-bad');
   }
 }`;
   source = source.slice(0, functionStart) + replacement + source.slice(functionEnd);
