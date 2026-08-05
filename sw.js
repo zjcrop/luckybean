@@ -1,16 +1,20 @@
-// LuckyBean gated auth test release: 1.0.9-test
-const CACHE_NAME = 'luckybean-1.0.9-test';
+// LuckyBean local-first sync test release: 1.1.0-test
+const CACHE_NAME = 'luckybean-1.1.0-test';
 const CORE = [
   './',
   './index.html',
-  './manifest.webmanifest?v=1.0.9-test',
-  './styles.css?v=1.0.9-test',
-  './src/app.js?v=1.0.9-test',
-  './src/v109-supabase-auth-gate.js?v=1.0.9-test',
-  './src/v109-history-management.js?v=1.0.9-test',
-  './public/app-logo.webp?v=1.0.9-test',
-  './public/splash-art-red.webp?v=1.0.9-test',
-  './public/splash-art-light.webp?v=1.0.9-test',
+  './manifest.webmanifest?v=1.1.0-test',
+  './styles.css?v=1.1.0-test',
+  './src/app.js?v=1.1.0-test',
+  './src/core/startup-controller.js?v=1.1.0-test',
+  './src/services/cloud-auth-service.js?v=1.1.0-test',
+  './src/services/cloud-sync-service.js?v=1.1.0-test',
+  './src/ui/account-sync-panel.js?v=1.1.0-test',
+  './src/ui/fab-controller.js?v=1.1.0-test',
+  './src/v109-history-management.js?v=1.1.0-test',
+  './public/app-logo.webp?v=1.1.0-test',
+  './public/splash-art-red.webp?v=1.1.0-test',
+  './public/splash-art-light.webp?v=1.1.0-test',
   './public/fallback-codebook.json',
   './public/legacy-flavor-map.json'
 ];
