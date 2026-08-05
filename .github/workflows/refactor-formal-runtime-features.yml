@@ -5,6 +5,7 @@ on:
     branches: [test-v107-web]
     paths:
       - 'scripts/refactor-formal-runtime-features.mjs'
+      - 'scripts/fix-formal-runtime-tests.mjs'
       - '.github/workflows/refactor-formal-runtime-features.yml'
 
 permissions:
@@ -28,7 +29,9 @@ jobs:
       - name: Rebase on latest branch head
         run: git pull --rebase origin test-v107-web
       - name: Formalize runtime feature modules
-        run: node scripts/refactor-formal-runtime-features.mjs
+        run: |
+          node scripts/refactor-formal-runtime-features.mjs
+          node scripts/fix-formal-runtime-tests.mjs
       - name: Verify formal runtime feature graph
         run: |
           node --check src/app.js
