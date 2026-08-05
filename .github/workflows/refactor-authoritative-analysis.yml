@@ -27,7 +27,9 @@ jobs:
         run: |
           node --check src/brew-engine.js
           node --check src/services/brew-analysis-service.js
-          npm test
+          node --check src/domain/history/history-service.js
+          node --check src/db-storage-core.js
+          npm run test:static
       - name: Commit migrated source
         run: |
           if git diff --quiet; then
@@ -36,6 +38,6 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/brew-engine.js
-          git commit -m 'refactor: make BrewProfiles analysis authoritative'
+          git add src/brew-engine.js src/db-storage-core.js
+          git commit -m 'refactor: make BrewProfiles analysis authoritative and add history stores'
           git push origin HEAD:test-v107-web
