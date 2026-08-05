@@ -1,0 +1,27 @@
+name: LuckyBean static checks
+
+on:
+  push:
+    branches:
+      - test-v107-web
+  pull_request:
+    branches:
+      - main
+      - test-v107-web
+
+permissions:
+  contents: read
+
+jobs:
+  local-first-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run static architecture checks
+        run: node tests/v110-local-first-sync-static.mjs
