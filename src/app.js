@@ -6,6 +6,8 @@ import { computeFallbackPlan, requestPrivatePlan, validatePlan, FALLBACK_ENGINE_
 import { listWaterProfiles, inferWaterProfile } from './water-profiles.js';
 import { buildCompactSharePayload, encodeSharePayload, decodeSharePayload } from './share-codec.js';
 import { computeAutomaticScore, sensoryPreferenceTags, buildPreferenceModel, recommendedBeanIds } from './preference-model.js';
+import { commitCompletedBrew } from './domain/history/history-service.js';
+import { createLocalReferenceAnalysis } from './services/local-reference-analysis.js';
 import './v095-sensory-pro.js';
 
 const PAGE_META = {
@@ -63,7 +65,7 @@ const state = {
   filter: { search: '', country: '', variety: '', process: '', flavors: [], sort: 'freshness', dir: 'asc' },
   recommendedBeanId: null, currentPlan: null, currentBrewInput: null,
   beanFormSource: null, beanFormDraft: null, cameraScanner: null,
-  timer: { interval: null, paused: false, stageIndex: 0, remaining: 0 },
+  timer: { interval: null, paused: false, stageIndex: 0, remaining: 0 }, currentExecution: null,
   activeGroupKey: null, groupAnimationMode: 'manual', recommendationTimer: null, recommendationRun: false, recommendationExpandedAll: false, recommendationPromptMemory: {}, preferenceBoardOpen: false, settingsFocusFilterId: '',
   evaluation: null, sensoryHistoryOpen: false, sensoryFilter: { beanId: '', minScore: '', maxScore: '', start: '', end: '', expanded: false }
 };
@@ -1181,10 +1183,17 @@ async function generatePlan() {
     let plan, apiError = '';
     try { plan = await requestPrivatePlan(state.settings.brew.apiEndpoint, input); }
     catch (error) { apiError = error.message; plan = await computeFallbackPlan(input); }
-    plan.beanId = bean.id; plan.id = uid('brew'); plan.createdAt = new Date().toISOString(); plan.status = 'planned'; plan.input = input;
-    if (apiError) plan.warnings = [...(plan.warnings || []), '私有冲煮服务未接通，当前使用浏览器兼容模型；私有仓库代码未暴露到网页。'];
+    plan.beanId = bean.id; plan.generatedAt = new Date().toISOString(); plan.input = input;
+    if (apiError) {
+      plan.warnings = [...(plan.warnings || []), '专业冲煮服务暂不可用，当前使用本地参考模型。'];
+      plan.analysisSnapshot = await createLocalReferenceAnalysis(input, plan, apiError);
+      plan.visualization3d = plan.analysisSnapshot.trajectory;
+      plan.trajectory = plan.analysisSnapshot.trajectory;
+      plan.analysisFingerprint = plan.analysisSnapshot.analysisFingerprint;
+      plan.executionSource = 'local-reference';
+    }
     validatePlan(plan); state.currentPlan = plan;
-    await put('brewSessions', plan); await refreshData();
+    document.dispatchEvent(new CustomEvent('luckybean:plan-ready', { detail: { plan, input, source: plan.executionSource || 'brew-profiles-authoritative' } }));
     state.settings.brew = {
       ...state.settings.brew, method: input.brew.method, doseG: input.brew.doseG, ratio: input.brew.ratio,
       profileId: input.brew.profileId, segmentMode: input.brew.segmentMode, segments: input.brew.segments, lowTempFirst: input.brew.lowTempFirst,
@@ -1263,6 +1272,14 @@ function speak(text) {
 function startTimer() {
   if (!state.currentPlan) return;
   const first = state.currentPlan.stages[0];
+  state.currentExecution = {
+    id: `execution-${crypto.randomUUID()}`,
+    startedAt: new Date().toISOString(),
+    finishedAt: '',
+    stageExecutions: [],
+    deviations: [],
+    notes: []
+  };
   state.timer.stageIndex = 0; state.timer.remaining = Number(first.durationSec); state.timer.paused = false;
   renderTimerDialog(); startTimerInterval();
   speak(`第一段，${first.name}，注水${Math.round(first.stageWaterG)}克，水温${Math.round(first.temperatureC)}度，${first.method}。${first.notice || ''}`);
@@ -1289,7 +1306,7 @@ function renderTimerDialog() {
   $('#timerPauseBtn').addEventListener('click', () => { state.timer.paused = !state.timer.paused; $('#timerPauseBtn').textContent = state.timer.paused ? '续' : '驻'; $('#timerPauseBtn').classList.toggle('active', state.timer.paused); if (state.timer.paused) speak('已暂停'); });
   $('#timerPrevBtn').addEventListener('click', () => moveTimerStage(-1));
   $('#timerNextBtn').addEventListener('click', () => moveTimerStage(1));
-  $('#timerEndBtn').addEventListener('click', () => { clearInterval(state.timer.interval); stopSpeech(); state.timer.paused = true; state.timer.stageIndex = state.currentPlan.stages.length - 1; state.timer.remaining = 0; renderTimerValues(); promptRecordConsumption('terminated'); });
+  $('#timerEndBtn').addEventListener('click', () => { clearInterval(state.timer.interval); stopSpeech(); state.timer.paused = true; state.currentExecution = null; closeOverlay(); switchPage('brew'); toast('本次冲煮已中止，不扣豆、不保存记录'); });
   renderTimerValues();
 }
 
@@ -1326,21 +1343,56 @@ function moveTimerStage(direction = 1, automatic = false) {
 
 function promptRecordConsumption(reason) {
   clearInterval(state.timer.interval); stopSpeech(); state.timer.paused = true;
+  if (reason !== 'complete') { state.currentExecution = null; closeOverlay(); switchPage('brew'); return; }
+  const finishedAt = new Date().toISOString();
+  if (!state.currentExecution) state.currentExecution = { id: `execution-${crypto.randomUUID()}`, startedAt: finishedAt, stageExecutions: [], deviations: [], notes: [] };
+  state.currentExecution.finishedAt = finishedAt;
   const bean = state.beans.find(item => item.id === state.selectedBeanId);
   const dose = Number(state.currentPlan?.totals?.doseG || state.currentBrewInput?.brew?.doseG || 15);
   const subtitle = bean ? `${codeName('countries', bean.countryCode, '未定国家')} · ${codeName('varieties', bean.varietyCode, '未定豆种')}` : '当前豆卡';
   const filterId = state.currentBrewInput?.brew?.filterPaperId || state.currentPlan?.input?.brew?.filterPaperId || state.settings.brew.filterPaperId || '';
   const filter = gearFilters().find(item => item.id === filterId);
   const filterText = filter ? `${[filter.brand, filter.type].filter(Boolean).join(' ')} · 1张` : '未设置滤纸库存，本次无法扣减滤纸';
-  const content = `<div class="consume-confirm">${dialogHeader('记录本次消耗', subtitle, { closable: false, centered: true })}<div class="consume-dose">${dose.toFixed(1)}g</div><div class="consume-filter">同时扣除滤纸：${esc(filterText)}</div><div class="consume-actions"><button id="recordConsumptionBtn" class="button primary" type="button">扣除咖啡豆与滤纸，进入品鉴</button><button id="skipConsumptionBtn" class="button" type="button">不记录则返回小酌</button></div></div>`;
+  const content = `<div class="consume-confirm">${dialogHeader('记录本次消耗', subtitle, { closable: false, centered: true })}<label class="field consume-dose-field"><span>本次实际使用豆量</span><input id="actualDoseInput" class="control consume-dose" type="number" min="0.1" step="0.1" value="${dose.toFixed(1)}"></label><div class="consume-filter">同时扣除滤纸：${esc(filterText)}</div><div class="consume-actions"><button id="recordConsumptionBtn" class="button primary" type="button">扣除咖啡豆与滤纸，进入品鉴</button><button id="skipConsumptionBtn" class="button" type="button">不记录则返回小酌</button></div></div>`;
   const overlay = showOverlay(content, { id: 'consume-confirm', dialogClass: 'consume-dialog' });
   $('#recordConsumptionBtn').addEventListener('click', async () => {
-    const consumed = await consumeBean(bean, dose, state.currentPlan?.id, reason);
-    if (state.currentPlan?.id) { const session = state.brewSessions.find(item => item.id === state.currentPlan.id); if (session) { session.status = reason === 'terminated' ? 'terminated' : 'completed'; session.completedAt = new Date().toISOString(); await put('brewSessions', session); await refreshData(); } }
-    closeOverlay(); startEvaluation(bean.id, { brewSessionId: state.currentPlan?.id || '' }); switchPage('sensory', { preserveOverlay: true }); renderSensory();
-    toast(consumed.filter ? `已扣除 ${consumed.grams.toFixed(1)}g 咖啡豆与滤纸1张` : `已扣除 ${consumed.grams.toFixed(1)}g 咖啡豆；未设置滤纸库存`, consumed.filter ? 'status-good' : 'status-warn');
+    const actualDose = parseNumber($('#actualDoseInput')?.value, dose);
+    const button = $('#recordConsumptionBtn');
+    button.disabled = true; button.textContent = '正在保存…';
+    try {
+      const execution = {
+        ...state.currentExecution,
+        actualTotalTimeSec: Math.max(0, Math.round((Date.parse(state.currentExecution.finishedAt) - Date.parse(state.currentExecution.startedAt)) / 1000)),
+        environment: {
+          ambientTemperatureC: Number(state.currentBrewInput?.environment?.ambientTemperatureC ?? 25),
+          relativeHumidityPct: state.currentBrewInput?.environment?.relativeHumidityPct ?? null,
+          initialBedTemperatureC: Number(state.currentBrewInput?.environment?.initialBedTemperatureC ?? state.currentBrewInput?.environment?.ambientTemperatureC ?? 25)
+        }
+      };
+      const analysisSnapshot = state.currentPlan.analysisSnapshot || await createLocalReferenceAnalysis(state.currentBrewInput, state.currentPlan, '专业分析快照缺失');
+      const saved = await commitCompletedBrew({
+        beanId: bean.id,
+        deductedWeightG: actualDose,
+        rawInput: state.currentBrewInput,
+        normalizedInput: analysisSnapshot.input || state.currentBrewInput,
+        analysisSnapshot,
+        execution,
+        providerVersions: analysisSnapshot.integrations?.sourceVersions || {},
+        idempotencyKey: state.currentExecution.id
+      });
+      const activeFilter = state.settings.gear.filters.find(item => item.id === filterId);
+      if (activeFilter) { activeFilter.quantity = Math.max(0, Number(activeFilter.quantity || 0) - 1); await saveSettings(); }
+      state.currentPlan = { ...state.currentPlan, id: saved.record.id, historyRecordId: saved.record.id };
+      state.currentExecution = null;
+      await refreshData();
+      closeOverlay(); startEvaluation(bean.id, { brewSessionId: saved.record.id }); switchPage('sensory', { preserveOverlay: true }); renderSensory();
+      toast(activeFilter ? `已扣除 ${actualDose.toFixed(1)}g 咖啡豆与滤纸1张` : `已扣除 ${actualDose.toFixed(1)}g 咖啡豆；未设置滤纸库存`, activeFilter ? 'status-good' : 'status-warn');
+    } catch (error) {
+      button.disabled = false; button.textContent = '扣除咖啡豆与滤纸，进入品鉴';
+      toast(error.message || '保存冲煮记录失败', 'status-bad');
+    }
   });
-  $('#skipConsumptionBtn').addEventListener('click', () => { closeOverlay(); switchPage('brew'); });
+  $('#skipConsumptionBtn').addEventListener('click', () => { state.currentExecution = null; closeOverlay(); switchPage('brew'); toast('本次冲煮未扣豆，未保存记录'); });
 }
 
 async function consumeBean(bean, amount, sessionId, note = '') {
