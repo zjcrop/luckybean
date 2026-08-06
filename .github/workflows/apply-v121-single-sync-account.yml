@@ -35,6 +35,48 @@ jobs:
           rm -f .delivery/v121-single-account-payload.b64.*
           rmdir .delivery 2>/dev/null || true
 
+      - name: Update version-sensitive regression contracts
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('tests/v110-local-first-sync-static.mjs')
+          source = path.read_text(encoding='utf-8')
+          replacements = {
+              "assert.match(index, /1\\.2\\.0-test/);": "assert.match(index, /1\\.2\\.1-account-test/);",
+              """assert.match(startup, /ensureLocalIdentity/);
+          assert.match(startup, /LB-LOCAL-/);
+          assert.match(startup, /luckybean:local-app-ready/);
+          assert.match(startup, /点击进入/);
+          assert.match(startup, /await ensureLocalIdentity\\(\\)[\\s\\S]*await import\\('\\.\\.\\/app\\.js\\?v=1\\.2\\.0-test'\\)/);
+          assert.doesNotMatch(startup, /fetch\\s*\\(/);""": """assert.match(startup, /ensureLocalDevice/);
+          assert.doesNotMatch(startup, /ensureLocalIdentity|LB-LOCAL-/);
+          assert.match(startup, /luckybean:local-app-ready/);
+          assert.match(startup, /点击进入/);
+          assert.match(startup, /navigator\\.serviceWorker\\.register\\('\\.\\/sw\\.js\\?v=1\\.2\\.1-account-test'/);
+          assert.match(startup, /await ensureLocalDevice\\(\\)[\\s\\S]*await import\\('\\.\\.\\/app\\.js\\?v=1\\.2\\.1-account-test'\\)/);
+          assert.doesNotMatch(startup, /fetch\\s*\\(/);""",
+              "assert.match(panel, /启动和使用不等待服务器/);": "assert.match(panel, /登录服务器同步/);\nassert.match(panel, /自动同步始终启用/);",
+              "assert.doesNotMatch(sync, /PASSPHRASE|promptPassphrase|sessionStorage/i);": "assert.doesNotMatch(sync, /PASSPHRASE|promptPassphrase|sessionStorage/i);\nassert.match(sync, /function ensureAutomatic/);\nassert.doesNotMatch(sync, /ENABLE_KEY|setEnabled|getSetting|setSetting/);",
+              """assert.match(sw, /CACHE_PREFIX = 'luckybean-v120-test-'/);
+          assert.match(sw, /CACHE_NAME = `\\$\\{CACHE_PREFIX\\}1\\.2\\.0-test`/);
+          assert.match(sw, /key\\.startsWith\\(CACHE_PREFIX\\) && key !== CACHE_NAME/);
+          assert.doesNotMatch(sw, /keys\\.filter\\(key => key !== CACHE_NAME\\)/);""": """assert.match(sw, /CACHE_PREFIX = 'luckybean-v121-account-test-'/);
+          assert.match(sw, /CACHE_NAME = `\\$\\{CACHE_PREFIX\\}1\\.2\\.1-account-test`/);
+          assert.match(sw, /LEGACY_CACHE_PREFIXES = \\['luckybean-v120-test-'\\]/);
+          assert.match(sw, /key\\.startsWith\\(CACHE_PREFIX\\) && key !== CACHE_NAME/);
+          assert.match(sw, /LEGACY_CACHE_PREFIXES\\.some/);
+          assert.doesNotMatch(sw, /keys\\.filter\\(key => key !== CACHE_NAME\\)/);""",
+              "assert.equal(manifest.version, '1.2.0-test');": "assert.equal(manifest.version, '1.2.1-account-test');",
+              "console.log('v1.2.0 local-first, isolated cache, authoritative analysis, spatial renderer and formal history checks passed');": "console.log('v1.2.1 single server account, mandatory automatic sync, isolated cache and core contracts passed');"
+          }
+          for old, new in replacements.items():
+              if old not in source:
+                  raise SystemExit(f'missing expected baseline block: {old[:100]}')
+              source = source.replace(old, new, 1)
+          path.write_text(source, encoding='utf-8')
+          PY
+
       - name: Verify source syntax and single-account contracts
         run: |
           node --check src/ui/account-sync-panel.js
