@@ -16,13 +16,18 @@ let running = null;
 
 function readCache() {
   try {
-    const value = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    const value = JSON.parse(globalThis.localStorage?.getItem(CACHE_KEY) || 'null');
     return validateCatalog(value, { requireCompetition: false });
   } catch { return null; }
 }
 
 function writeCache(catalog) {
-  try { localStorage.setItem(CACHE_KEY, JSON.stringify(catalog)); } catch { /* storage unavailable */ }
+  try { globalThis.localStorage?.setItem(CACHE_KEY, JSON.stringify(catalog)); } catch { /* storage unavailable */ }
+}
+
+function dispatch(name, detail) {
+  if (typeof globalThis.document === 'undefined' || typeof globalThis.CustomEvent !== 'function') return;
+  globalThis.document.dispatchEvent(new CustomEvent(name, { detail }));
 }
 
 function publicProfile(value) {
@@ -87,9 +92,7 @@ export async function refreshBrewProfileCatalog({ force = false, timeoutMs = 100
     const changed = !current || current.catalogHash !== catalog.catalogHash;
     current = catalog;
     writeCache(catalog);
-    document.dispatchEvent(new CustomEvent('luckybean:brew-profile-catalog-updated', {
-      detail: { catalog: structuredClone(catalog), changed }
-    }));
+    dispatch('luckybean:brew-profile-catalog-updated', { catalog: structuredClone(catalog), changed });
     return { catalog: structuredClone(catalog), changed };
   })().finally(() => { running = null; });
   return running;
@@ -98,14 +101,16 @@ export async function refreshBrewProfileCatalog({ force = false, timeoutMs = 100
 function scheduleRefresh() {
   const run = () => refreshBrewProfileCatalog().catch(error => {
     console.warn('BrewProfiles方案目录更新失败，继续使用本地缓存', error);
-    document.dispatchEvent(new CustomEvent('luckybean:brew-profile-catalog-error', { detail: { message: error.message } }));
+    dispatch('luckybean:brew-profile-catalog-error', { message: error.message });
   });
   if ('requestIdleCallback' in globalThis) requestIdleCallback(run, { timeout: 3000 });
   else setTimeout(run, 400);
 }
 
-window.addEventListener('online', scheduleRefresh, { passive: true });
-scheduleRefresh();
+if (typeof globalThis.window !== 'undefined') {
+  globalThis.window.addEventListener('online', scheduleRefresh, { passive: true });
+  scheduleRefresh();
+}
 
 globalThis.LuckyBeanBrewProfiles = {
   list: listCachedBrewProfiles,
