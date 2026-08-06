@@ -1,20 +1,15 @@
 import { get, put } from '../db.js';
 import { sha256Hex } from '../utils.js';
+import { BREW_API_ENDPOINT, brewApiJson } from './brew-api-client.js';
 
 export const BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.0';
 export const BREW_SPATIAL_CONTRACT = 'brew-spatial/1.1';
-export const BREW_ANALYSIS_ENDPOINT = 'https://vaxwncdcuvbpvdbbketb.supabase.co/functions/v1/brew-analyze-v2';
-export const BREW_ANALYSIS_SERVICE_VERSION = 'luckybean-analysis-client/1.1.0';
+export const BREW_ANALYSIS_ENDPOINT = BREW_API_ENDPOINT;
+export const BREW_ANALYSIS_SERVICE_VERSION = 'luckybean-analysis-client/1.3.0';
 
-const SUPABASE_KEY = 'sb_publishable_MsB0RFoxxf5zJbbT9PPBjQ_WP7GBMMn';
-const SESSION_KEY = 'luckybean.supabase.session.v099d';
 const CACHE_PREFIX = 'brew.analysis.cache.v2.';
-const DEFAULT_TIMEOUT_MS = 6500;
-
-function readSession() {
-  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); }
-  catch { return null; }
-}
+const DEFAULT_TIMEOUT_MS = 12000;
+const REQUIRED_TARGET_IDS = Object.freeze(['acidity', 'floral', 'fruity', 'sweetness', 'bitterness', 'astringency']);
 
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical);
@@ -54,6 +49,14 @@ function validateSpatial(spatial) {
     previousWater = water;
   }
   if (!Array.isArray(spatial.targets)) throw new Error('专业分析缺少三维风味靶区');
+  const targetIds = new Set(spatial.targets.map(target => String(target?.id || '')));
+  const missing = REQUIRED_TARGET_IDS.filter(id => !targetIds.has(id));
+  if (missing.length) throw new Error(`专业分析缺少靶区：${missing.join('、')}`);
+  for (const target of spatial.targets) {
+    if (!Array.isArray(target?.points) || target.points.length < 12) {
+      throw new Error(`专业分析靶区几何无效：${target?.id || 'unknown'}`);
+    }
+  }
   return spatial;
 }
 
@@ -73,6 +76,12 @@ function validateAnalysis(analysis, { expectedInputFingerprint = '' } = {}) {
     throw new Error('专业分析返回的输入指纹与本次请求不一致');
   }
   return analysis;
+}
+
+function warningText(value) {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object') return String(value.message || value.code || '模型提示');
+  return String(value || '');
 }
 
 function mapStage(stage, index) {
@@ -98,13 +107,15 @@ function mapStage(stage, index) {
     cumulativeWaterG: cumulative,
     temperatureC: temperature,
     coreTemperatureC: bedTemperature,
-    flowGPerSec: flow
+    flowGPerSec: flow,
+    method: String(stage.method || stage.transitionCondition || ''),
+    notice: String(stage.notice || stage.source?.timing || '')
   };
 }
 
 /**
- * Adds compatibility aliases only. No stage value, recommendation, risk or trajectory
- * is recalculated in LuckyBean; BrewProfiles remains authoritative.
+ * Adds display aliases only. No stage value, recommendation, risk, profile
+ * definition or target geometry is recalculated in LuckyBean.
  */
 export function adaptAuthoritativePlan(analysis) {
   validateAnalysis(analysis);
@@ -115,8 +126,18 @@ export function adaptAuthoritativePlan(analysis) {
   const dose = Number(summary.dose ?? source.totals?.doseG ?? analysis.input?.brew?.doseG ?? 0);
   const ratio = Number(summary.ratio ?? source.totals?.ratio ?? (dose > 0 ? totalWater / dose : 0));
   const totalTime = Number(summary.totalTime ?? source.totals?.targetTimeSec ?? stages.at(-1)?.end ?? 0);
+  const profileId = String(source.profile?.id || source.metadata?.profileId || analysis.metadata?.resolvedProfileId || 'recommended');
+  const profileVersion = String(source.profile?.version || source.metadata?.profileVersion || analysis.metadata?.resolvedProfileVersion || '');
+  const warnings = [...(source.warnings || []), ...(analysis.warnings || [])].map(warningText).filter(Boolean);
   return {
     ...source,
+    profile: {
+      ...(source.profile || {}),
+      id: profileId,
+      version: profileVersion,
+      label: source.profile?.label || profileId
+    },
+    profileVersion: profileVersion ? `${profileId}@${profileVersion}` : profileId,
     stages,
     totals: {
       ...(source.totals || {}),
@@ -125,10 +146,11 @@ export function adaptAuthoritativePlan(analysis) {
       ratio,
       targetTimeSec: totalTime
     },
-    trajectory: analysis.trajectory,
-    visualization3d: analysis.trajectory,
-    prediction: analysis.prediction,
-    integrations: analysis.integrations,
+    warnings: [...new Set(warnings)],
+    trajectory: structuredClone(analysis.trajectory),
+    visualization3d: structuredClone(analysis.trajectory),
+    prediction: structuredClone(analysis.prediction || analysis.trajectory.prediction || {}),
+    integrations: structuredClone(analysis.integrations || {}),
     analysisContract: analysis.contract,
     analysisFingerprint: analysis.analysisFingerprint,
     analysisRequestId: analysis.requestId,
@@ -160,72 +182,43 @@ async function persistCache(input, analysis) {
     fingerprint: analysis.analysisFingerprint,
     inputFingerprint: await inputFingerprint(input),
     engineVersion: analysis.metadata?.engineVersion || '',
+    profileId: analysis.metadata?.resolvedProfileId || '',
+    profileVersion: analysis.metadata?.resolvedProfileVersion || '',
     createdAt: new Date().toISOString()
   });
   return id;
 }
 
-async function accessToken() {
-  const cloud = globalThis.LuckyBeanCloudAuth;
-  if (cloud?.getAccessToken) return cloud.getAccessToken();
-  return readSession()?.access_token || '';
-}
-
 async function fetchAnalysis(input, { endpoint = BREW_ANALYSIS_ENDPOINT, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
-  const token = await accessToken();
   const expected = await inputFingerprint(input);
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  const headers = {
-    'content-type': 'application/json',
-    accept: 'application/json',
-    apikey: SUPABASE_KEY,
-    'x-client-info': BREW_ANALYSIS_SERVICE_VERSION,
-    'x-request-id': crypto.randomUUID()
-  };
-  Object.assign(headers, token ? { authorization: `Bearer ${token}` } : {});
-  try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(input),
-      cache: 'no-store',
-      signal: controller.signal
-    });
-    const text = await response.text();
-    let payload;
-    try { payload = text ? JSON.parse(text) : null; }
-    catch { payload = null; }
-    if (!response.ok) {
-      const error = new Error(payload?.message || payload?.error || payload?.code || `专业冲煮分析失败（HTTP ${response.status}）`);
-      error.status = response.status;
-      error.payload = payload;
-      throw error;
-    }
-    return validateAnalysis(payload, { expectedInputFingerprint: expected });
-  } catch (error) {
-    if (error?.name === 'AbortError') {
-      const timeoutError = new Error('专业冲煮分析连接超时');
-      timeoutError.code = 'NETWORK_TIMEOUT';
-      throw timeoutError;
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
+  const { payload } = await brewApiJson('', {
+    method: 'POST',
+    body: input,
+    endpoint,
+    timeoutMs: Math.min(Math.max(Number(timeoutMs) || DEFAULT_TIMEOUT_MS, 2500), 20000)
+  });
+  return validateAnalysis(payload, { expectedInputFingerprint: expected });
 }
 
 export async function requestBrewAnalysis(input, options = {}) {
   const cacheRecord = await cached(input);
-  if (cacheRecord && options.preferFresh !== true) {
-    return { ...cacheRecord, plan: adaptAuthoritativePlan(cacheRecord.analysis) };
-  }
+  const online = globalThis.navigator?.onLine !== false;
+  if (!online && cacheRecord) return { ...cacheRecord, plan: adaptAuthoritativePlan(cacheRecord.analysis), stale: true, offline: true };
+  if (options.preferCache === true && cacheRecord) return { ...cacheRecord, plan: adaptAuthoritativePlan(cacheRecord.analysis) };
   try {
     const analysis = await fetchAnalysis(input, options);
     const cacheId = await persistCache(input, analysis);
     return { analysis, plan: adaptAuthoritativePlan(analysis), cacheId, cached: false };
   } catch (error) {
-    if (cacheRecord) return { ...cacheRecord, plan: adaptAuthoritativePlan(cacheRecord.analysis), stale: true, networkError: error.message };
+    if (cacheRecord) {
+      return {
+        ...cacheRecord,
+        plan: adaptAuthoritativePlan(cacheRecord.analysis),
+        stale: true,
+        networkError: error.message,
+        networkErrorCode: error.code || ''
+      };
+    }
     throw error;
   }
 }
