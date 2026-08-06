@@ -88,9 +88,9 @@ assert.match(runtimeFeatures, /LuckyBeanRuntimeFeatures/);
 assert.doesNotMatch(runtimeFeatures, /v109-history-management\.js|v099-trajectory-signal-bridge\.js|v099i-trajectory-space\.js/);
 assert.doesNotMatch(runtimeFeatures, /v095-ui\.js|theme-bridge\.js/);
 
-assert.match(sw, /CACHE_PREFIX = 'luckybean-v121-account-test-'/);
+assert.match(sw, /CACHE_PREFIX = 'luckybean-v122-cloud-safety-test-'/);
 assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}1\.2\.1-account-test`/);
-assert.match(sw, /LEGACY_CACHE_PREFIXES = \['luckybean-v120-test-'\]/);
+assert.match(sw, /LEGACY_CACHE_PREFIXES = \['luckybean-v120-test-', 'luckybean-v121-account-test-'\]/);
 assert.match(sw, /key\.startsWith\(CACHE_PREFIX\) && key !== CACHE_NAME/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES\.some/);
 assert.doesNotMatch(sw, /keys\.filter\(key => key !== CACHE_NAME\)/);
