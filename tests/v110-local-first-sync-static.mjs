@@ -49,7 +49,7 @@ assert.doesNotMatch(auth, /localStorage\.setItem\([^\n]*password/i);
 
 assert.match(sync, /DEBOUNCE_MS\s*=\s*8000/);
 assert.match(sync, /changedRows/);
-assert.match(sync, /body:\s*changedRows/);
+assert.match(sync, /body:\s*(?:prepared\.)?changedRows/);
 assert.match(sync, /luckybean:data-changed/);
 assert.match(sync, /cipher:\s*'none'/);
 assert.match(sync, /remoteChangedElsewhere/);
