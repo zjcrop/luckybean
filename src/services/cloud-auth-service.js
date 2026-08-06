@@ -1,5 +1,3 @@
-import { getSetting, setSetting } from '../db.js';
-
 const SUPABASE_URL = 'https://vaxwncdcuvbpvdbbketb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_MsB0RFoxxf5zJbbT9PPBjQ_WP7GBMMn';
 const SESSION_KEY = 'luckybean.supabase.session.v099d';
@@ -92,25 +90,6 @@ async function rawRequest(path, { method = 'POST', body, token, timeoutMs = 6000
   }
 }
 
-async function persistIdentity(user) {
-  const email = String(user?.email || '').trim().toLowerCase();
-  if (!email) return;
-  const settings = await getSetting('app.settings', {});
-  const identity = settings?.identity || {};
-  await setSetting('app.settings', {
-    ...(settings || {}),
-    identity: {
-      ...identity,
-      mode: 'email',
-      nickname: user?.user_metadata?.nickname || identity.nickname || email.split('@')[0] || '云端用户',
-      email,
-      verified: true,
-      cloudUserId: user?.id || identity.cloudUserId || '',
-      publicId: identity.publicId || user?.id || ''
-    }
-  });
-}
-
 async function refreshSession({ force = false, reason = 'background' } = {}) {
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {
@@ -141,7 +120,6 @@ async function refreshSession({ force = false, reason = 'background' } = {}) {
       active = { ...payload, user: payload?.user || active.user || null };
       writeSession(active);
       markServerActivity();
-      if (active.user) await persistIdentity(active.user);
       emit('authenticated', { user: active.user, refreshed: true });
       return active;
     } catch (error) {
@@ -203,7 +181,7 @@ function openDialog(mode = 'login', notice = '', preset = {}) {
   if (!root) return;
   const register = mode === 'register';
   root.innerHTML = `<div class="overlay" data-overlay="cloud-auth"><div class="dialog v099d-auth-dialog">
-    <div class="dialog-header"><div><h2>${register ? '注册云端账号' : '登录云端账号'}</h2><p>本地功能无需登录。账号仅用于云端同步，密码不会保存在设备中。</p></div><button class="close-button" type="button" data-cloud-auth-close>×</button></div>
+    <div class="dialog-header"><div><h2>${register ? '注册云端账号' : '登录云端账号'}</h2><p>这是唯一的服务器同步账号。登录后自动同步立即启用，无需在其他位置再次登录或设置同步方式。密码不会保存在设备中。</p></div><button class="close-button" type="button" data-cloud-auth-close>×</button></div>
     ${register ? `<label class="field"><span>昵称</span><input id="cloudAuthNickname" class="control" maxlength="24" autocomplete="nickname" value="${esc(preset.nickname || '')}"></label>` : ''}
     <label class="field"><span>邮箱</span><input id="cloudAuthEmail" class="control" type="email" autocomplete="email" value="${esc(preset.email || '')}" placeholder="name@example.com"></label>
     <label class="field"><span>密码</span><input id="cloudAuthPassword" class="control" type="password" minlength="8" autocomplete="${register ? 'new-password' : 'current-password'}" placeholder="至少8位"></label>
@@ -240,9 +218,9 @@ async function submit(mode) {
       }
       writeSession(payload);
       markServerActivity();
-      await persistIdentity(payload.user);
       emit('authenticated', { user: payload.user, login: true });
       closeDialog();
+      globalThis.LuckyBeanCloudSync?.ensureAutomatic?.('register-success');
       document.dispatchEvent(new CustomEvent('luckybean:cloud-login-success'));
       return;
     }
@@ -252,9 +230,9 @@ async function submit(mode) {
     });
     writeSession(payload);
     markServerActivity();
-    await persistIdentity(payload.user);
     emit('authenticated', { user: payload.user, login: true });
     closeDialog();
+    globalThis.LuckyBeanCloudSync?.ensureAutomatic?.('login-success');
     document.dispatchEvent(new CustomEvent('luckybean:cloud-login-success'));
   } catch (error) {
     setDialogMessage(error.message || '登录失败');

@@ -8,6 +8,9 @@ const app = read('src/app.js');
 const runtime = read('src/features/runtime-features.js');
 const sw = read('sw.js');
 const account = read('src/ui/account-sync-panel.js');
+const auth = read('src/services/cloud-auth-service.js');
+const sync = read('src/services/cloud-sync-service.js');
+const startup = read('src/core/startup-controller.js');
 const sensory = read('src/sensory-professional-controller.js');
 const spatial = read('src/renderers/brew-spatial-controller.js');
 const analysis = read('src/services/brew-analysis-service.js');
@@ -22,7 +25,20 @@ assert.equal(fs.existsSync(new URL('../src/settings-screen-controller.js', impor
 assert.doesNotMatch(app, /saveIdentityBtn|settingsNickname|settingsPhone|settingsWechat|settingsQq/);
 assert.match(app, /data-settings-key="account"/);
 assert.match(account, /replaceChildren\(section\)/);
-assert.match(account, /querySelectorAll\('\[data-cloud-account-panel\]/);
+assert.match(account, /removeLegacyAccountUi/);
+assert.match(account, /dataset\.singleSyncAccount/);
+assert.match(account, /登录服务器同步/);
+assert.match(account, /自动同步始终启用/);
+assert.doesNotMatch(account, /type=\"checkbox\"|data-cloud-register|\.setEnabled\?\.|\.syncNow\?\.|\.pullNow\?\./);
+assert.doesNotMatch(auth, /persistIdentity|getSetting|setSetting/);
+assert.match(auth, /唯一的服务器同步账号/);
+assert.match(sync, /function ensureAutomatic/);
+assert.doesNotMatch(sync, /ENABLE_KEY|setEnabled|reason: 'disabled'|emit\('disabled'/);
+assert.doesNotMatch(startup, /ensureLocalIdentity|LB-LOCAL-|getSetting|setSetting/);
+assert.match(sw, /CACHE_PREFIX = 'luckybean-v121-account-test-'/);
+assert.match(sw, /LEGACY_CACHE_PREFIXES = \['luckybean-v120-test-'\]/);
+assert.match(sw, /1\.2\.1-account-test/);
+assert.match(startup, /serviceWorker\.register\('\.\/sw\.js\?v=1\.2\.1-account-test', \{ updateViaCache: 'none' \}\)/);
 assert.match(spatial, /#brewSpatialMount/);
 assert.match(sensory, /data-v120-radar-node/);
 assert.match(sensory, /pointermove/);
@@ -52,4 +68,4 @@ for (const profile of listBrewProfiles()) {
   assert.ok(Array.isArray(plan.stages) && plan.stages.length > 0, `profile generated no stages: ${profile.id}`);
 }
 
-console.log('v1.2 product requirements static and all-profile generation checks passed');
+console.log('v1.2.1 single server account, mandatory automatic sync and all-profile checks passed');

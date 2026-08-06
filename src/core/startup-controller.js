@@ -1,4 +1,4 @@
-import { getSetting, setSetting, get, put } from '../db.js';
+import { get, put } from '../db.js';
 
 const DEVICE_RECORD_ID = 'cloud.device.id.v3';
 const SPLASH_READY_TIMEOUT_MS = 12000;
@@ -21,24 +21,8 @@ async function deviceId() {
   return value;
 }
 
-async function ensureLocalIdentity() {
-  const settings = await getSetting('app.settings', {});
-  const identity = settings?.identity || {};
-  if (identity.publicId) return identity;
-  const device = await deviceId();
-  const publicId = `LB-LOCAL-${device.replaceAll('-', '').slice(0, 12).toUpperCase()}`;
-  const next = {
-    ...(settings || {}),
-    identity: {
-      ...identity,
-      mode: identity.mode === 'email' ? 'email' : 'local',
-      nickname: identity.nickname && identity.nickname !== '访客' ? identity.nickname : '本地用户',
-      publicId,
-      verified: Boolean(identity.verified)
-    }
-  };
-  await setSetting('app.settings', next);
-  return next.identity;
+async function ensureLocalDevice() {
+  return deviceId();
 }
 
 function dismissSplash() {
@@ -105,15 +89,19 @@ function bindStatusEvents() {
   });
 }
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js?v=1.2.1-account-test', { updateViaCache: 'none' }).catch(() => {});
+}
+
 document.documentElement.dataset.startup = 'booting';
 bindEarlyEntry();
 bindStatusEvents();
 setStatus('正在准备本地数据…');
 
 try {
-  await ensureLocalIdentity();
+  await ensureLocalDevice();
   document.dispatchEvent(new CustomEvent('luckybean:local-bootstrap-ready'));
-  await import('../app.js?v=1.2.0-test');
+  await import('../app.js?v=1.2.1-account-test');
   document.dispatchEvent(new CustomEvent('luckybean:app-module-loaded'));
   watchForShell();
 } catch (error) {

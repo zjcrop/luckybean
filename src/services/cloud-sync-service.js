@@ -1,10 +1,9 @@
-import { get, put, getSetting, setSetting } from '../db.js';
+import { get, put } from '../db.js';
 import {
   SYNC_FORMAT, CHUNK_FORMAT, SYNC_SCHEMA_VERSION,
   buildLogicalPackets, encodePacket, decodePacket, compressBytes, decompressBytes, restorePackets
 } from '../cloud-codec.js';
 
-const ENABLE_KEY = 'cloud.sync.enabled.v3';
 const STATE_ID = 'cloud.sync.state.v3';
 const DEVICE_ID = 'cloud.device.id.v3';
 const DIRTY_KEY = 'luckybean.cloud.dirty.v3';
@@ -28,17 +27,6 @@ function readDirty() {
 }
 
 function clearDirty() { localStorage.removeItem(DIRTY_KEY); }
-
-async function enabled() {
-  return (await getSetting(ENABLE_KEY, true)) !== false;
-}
-
-async function setEnabled(value) {
-  await setSetting(ENABLE_KEY, Boolean(value));
-  if (value) scheduleSync(500, 'enabled');
-  else clearTimeout(timer);
-  emit(value ? 'idle' : 'disabled');
-}
 
 async function deviceId() {
   const record = await get('syncMetadata', DEVICE_ID);
@@ -251,10 +239,6 @@ async function reconcile({ reason = 'startup', interactive = false, forcePull = 
     pendingRun = true;
     return { queued: true };
   }
-  if (!(await enabled())) {
-    emit('disabled');
-    return { skipped: true, reason: 'disabled' };
-  }
   const active = auth()?.getSession?.();
   if (!active?.user?.id) {
     emit('waiting-for-login');
@@ -304,11 +288,21 @@ function scheduleSync(delay = DEBOUNCE_MS, reason = 'local-change') {
   }, delay);
 }
 
+function ensureAutomatic(reason = 'authenticated') {
+  const active = auth()?.getSession?.();
+  if (!active?.user?.id) {
+    emit('waiting-for-login');
+    return false;
+  }
+  scheduleSync(250, reason);
+  return true;
+}
+
 document.addEventListener('luckybean:data-changed', () => scheduleSync(DEBOUNCE_MS, 'local-change'));
 document.addEventListener('luckybean:cloud-auth-state', event => {
-  if (event.detail?.state === 'authenticated') scheduleSync(350, 'auth-ready');
+  if (event.detail?.state === 'authenticated') ensureAutomatic('auth-ready');
 });
-document.addEventListener('luckybean:cloud-login-success', () => scheduleSync(250, 'login'));
+document.addEventListener('luckybean:cloud-login-success', () => ensureAutomatic('login'));
 window.addEventListener('online', () => scheduleSync(500, 'network-online'));
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && readDirty()) scheduleSync(800, 'foreground');
@@ -317,10 +311,10 @@ document.addEventListener('visibilitychange', () => {
 globalThis.LuckyBeanCloudSync = {
   revision: 'cloud-sync-service-v1',
   reconcile,
+  ensureAutomatic,
   syncNow: () => reconcile({ reason: 'manual', interactive: true }),
   pullNow: () => reconcile({ reason: 'manual-pull', interactive: true, forcePull: true }),
-  enabled,
-  setEnabled,
+  enabled: async () => true,
   getState: stateRecord,
   hasPendingChanges: () => Boolean(readDirty())
 };

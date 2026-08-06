@@ -23,15 +23,59 @@ async function seedBean(page) {
   });
 }
 
-test('one cloud panel, all profile selection and stable 3D mount', async ({ page }) => {
+test('one server login remains one panel after authentication and automatic sync has no settings', async ({ page }) => {
   await openApp(page, 'requirements-account-brew=1');
   await page.locator('[data-page-target="settings"]').click();
   const cloudSection = page.locator('#settingsContent [data-settings-key="account"]');
   await expect(cloudSection).toBeVisible();
   await cloudSection.locator('summary').click();
+
+  await expect(page.locator('#settingsContent [data-settings-key="account"]')).toHaveCount(1);
   await expect(page.locator('[data-cloud-account-panel]')).toHaveCount(1);
   await expect(page.locator('[data-v099p-cloud-panel],[data-v099e-cloud-panel],[data-v099f-account-sync]')).toHaveCount(0);
-  await expect(page.locator('#saveIdentityBtn,#settingsNickname,#settingsPhone,#settingsWechat,#settingsQq')).toHaveCount(0);
+  await expect(page.locator('#saveIdentityBtn,#settingsNickname,#settingsEmail,#settingsPhone,#settingsWechat,#settingsQq')).toHaveCount(0);
+  await expect(page.locator('[data-cloud-sync-toggle],[data-cloud-sync-now],[data-cloud-pull],[data-cloud-register]')).toHaveCount(0);
+  await expect(page.locator('[data-cloud-login]')).toHaveCount(1);
+  await expect(page.locator('[data-cloud-login]')).toHaveText('登录服务器同步');
+
+  await page.evaluate(() => {
+    const original = globalThis.LuckyBeanCloudSync.ensureAutomatic;
+    globalThis.__singleSyncCalls = [];
+    globalThis.LuckyBeanCloudSync.ensureAutomatic = reason => {
+      globalThis.__singleSyncCalls.push(reason);
+      return original ? true : true;
+    };
+    localStorage.setItem('luckybean.supabase.session.v099d', JSON.stringify({
+      user: { id: 'single-cloud-user', email: 'single@example.com' }
+    }));
+    document.dispatchEvent(new CustomEvent('luckybean:cloud-auth-state', {
+      detail: { state: 'authenticated', user: { id: 'single-cloud-user', email: 'single@example.com' } }
+    }));
+  });
+
+  await expect(page.locator('[data-cloud-account-panel]')).toHaveCount(1);
+  await expect(page.locator('[data-cloud-account-panel]')).toContainText('single@example.com');
+  await expect(page.locator('[data-cloud-account-panel]')).toContainText('自动同步始终启用');
+  await expect(page.locator('[data-cloud-login],[data-cloud-register]')).toHaveCount(0);
+  await expect(page.locator('[data-cloud-logout]')).toHaveCount(1);
+  await expect(page.locator('[data-cloud-sync-toggle],[data-cloud-sync-now],[data-cloud-pull]')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => globalThis.__singleSyncCalls.length)).toBeGreaterThan(0);
+
+  await page.evaluate(() => {
+    const root = document.querySelector('#settingsContent .settings-categories');
+    const duplicate = document.createElement('details');
+    duplicate.className = 'settings-category';
+    duplicate.innerHTML = '<summary><span>账号</span><small>个人信息与云端储存</small></summary><div class="settings-category-body"><input id="settingsNickname"><button id="saveIdentityBtn">保存账户</button></div>';
+    root.append(duplicate);
+    const oldPanel = document.createElement('section');
+    oldPanel.dataset.v099fAccountSync = '1';
+    oldPanel.textContent = '旧服务器登录';
+    root.append(oldPanel);
+  });
+
+  await expect(page.locator('#settingsContent .settings-category').filter({ hasText: '个人信息与云端储存' })).toHaveCount(0);
+  await expect(page.locator('[data-v099f-account-sync],#settingsNickname,#saveIdentityBtn')).toHaveCount(0);
+  await expect(page.locator('[data-cloud-account-panel]')).toHaveCount(1);
 
   await seedBean(page);
   await page.locator('[data-page-target="brew"]').click();
