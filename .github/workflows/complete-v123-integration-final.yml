@@ -1,0 +1,134 @@
+name: Complete LuckyBean v1.2.3 integration final
+
+on:
+  push:
+    branches: [fix/v123-brewprofiles-integration-final]
+    paths: [.github/workflows/complete-v123-integration-final.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-v123-integration-final-isolated
+  cancel-in-progress: false
+
+jobs:
+  verify-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/v123-brewprofiles-integration-final
+          fetch-depth: 0
+
+      - name: Apply structural ownership refactor
+        run: |
+          set -euo pipefail
+          python3 tools/refactor_v123.py
+          python3 tools/update_v123_version_contracts.py
+          sed -i 's/fix\/v123-brewprofiles-integration]/fix\/v123-brewprofiles-integration-final]/' .github/workflows/v123-integration-ci.yml
+
+      - name: Verify source and live BrewProfiles boundary
+        run: |
+          set -euo pipefail
+          find src -name '*.js' -print0 | xargs -0 -n1 node --check
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run test:static
+          npm run test:live-brewprofiles
+
+      - name: Run browser and visual regressions
+        run: |
+          set -euo pipefail
+          npx playwright install --with-deps chromium
+          python3 -m http.server 4173 > /tmp/luckybean-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          npm run test:smoke
+          npm run test:core
+          npm run test:visual
+
+      - name: Commit verified product tree
+        run: |
+          set -euo pipefail
+          rm -rf node_modules test-results playwright-report .playwright
+          rm -f tools/refactor_v123.py tools/update_v123_version_contracts.py tools/update_v123_contract_semantics.py
+          rm -f .github/workflows/complete-v123-integration-final.yml .github/workflows/refactor-v123-brewprofiles-integration.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "refactor: establish authoritative BrewProfiles integration"
+          git push origin HEAD:refs/heads/fix/v123-brewprofiles-integration-final
+          git rev-parse HEAD | tee /tmp/LUCKYBEAN_SOURCE_SHA.txt
+
+      - name: Create Web test package
+        run: |
+          set -euo pipefail
+          mkdir -p package/web-preview
+          cp index.html manifest.webmanifest sw.js styles.css .nojekyll package/web-preview/
+          cp -R src public package/web-preview/
+          cp /tmp/LUCKYBEAN_SOURCE_SHA.txt package/SOURCE-SHA.txt
+          printf '%s\n' \
+            'version=1.2.3-brewprofiles-integration-test' \
+            'brew_gateway=brew-analyze-v2/2.1.0' \
+            'profile_catalog=brew-profile-catalog/1.0' \
+            'spatial_contract=brew-spatial/1.1' \
+            'cloud_account_required_for_calculation=false' > package/BUILD-INFO.txt
+          (cd package && zip -qr LuckyBean-1.2.3-web-preview.zip web-preview)
+
+      - uses: actions/checkout@v4
+        with:
+          ref: android/v1-source-consolidation
+          path: shell
+
+      - name: Assemble local-first Android source
+        run: |
+          set -euo pipefail
+          rm -rf android
+          cp -R shell/android android
+          python3 tools/build_android_v123.py
+          grep -F 'versionCode 100123' android/app/build.gradle
+          grep -F "versionName '1.2.3-brewprofiles-integration-test'" android/app/build.gradle
+          grep -F 'appassets.androidplatform.net/assets/web-cache/index.html' android/app/src/main/java/com/luckybean/app/MainActivity.java
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK 35
+        run: |
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build and inspect APK
+        run: |
+          set -euo pipefail
+          gradle --no-daemon --stacktrace -p android clean
+          gradle --no-daemon --stacktrace -p android :app:assembleDebug
+          apk="$(find android/app/build/outputs/apk/debug -name '*.apk' -type f -print -quit)"
+          test -n "$apk"
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk" > package/SIGNING-CERTIFICATE.txt
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$apk" > package/APK-BADGING.txt
+          grep -F "versionCode='100123'" package/APK-BADGING.txt
+          unzip -Z1 "$apk" > package/APK-CONTENTS.txt
+          grep -F 'assets/web-cache/src/services/brew-api-client.js' package/APK-CONTENTS.txt
+          grep -F 'assets/web-cache/src/services/brew-profile-catalog-service.js' package/APK-CONTENTS.txt
+          grep -F 'assets/web-cache/src/services/brew-analysis-service.js' package/APK-CONTENTS.txt
+          grep -F 'assets/web-cache/src/renderers/brew-spatial-controller.js' package/APK-CONTENTS.txt
+          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -F 'REQUIRED_TARGET_IDS'
+          if unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -F 'LuckyBeanCloudAuth'; then exit 1; fi
+          cp "$apk" package/LuckyBean-1.2.3-brewprofiles-integration-test.apk
+          sha256sum package/LuckyBean-1.2.3-brewprofiles-integration-test.apk package/LuckyBean-1.2.3-web-preview.zip > package/SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-v123-brewprofiles-integration-test
+          path: package/
+          if-no-files-found: error
+          retention-days: 30
