@@ -1,0 +1,50 @@
+name: Retry LuckyBean v1.2.2 cloud safety build
+
+on:
+  push:
+    branches:
+      - fix/v122-cloud-safety
+    paths:
+      - .github/workflows/retry-v122-cloud-safety.yml
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  correct-and-rerun:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/v122-cloud-safety
+          fetch-depth: 0
+
+      - name: Correct obsolete upload-body assertion
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tests/v110-local-first-sync-static.mjs')
+          text = path.read_text(encoding='utf-8')
+          old = "assert.match(sync, /body:\\s*changedRows/);"
+          new = "assert.match(sync, /body:\\s*(?:prepared\\.)?changedRows/);"
+          if old not in text and new not in text:
+              raise SystemExit('legacy changedRows assertion not found')
+          text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/v110-local-first-sync-static.mjs
+          git diff --cached --check
+          if ! git diff --cached --quiet; then
+            git commit -m "test: accept prepared incremental upload rows"
+            git push origin HEAD:refs/heads/fix/v122-cloud-safety
+          fi
+
+      - name: Dispatch full verification and APK build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run apply-build-v122-cloud-safety.yml --ref fix/v122-cloud-safety
