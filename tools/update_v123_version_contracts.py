@@ -15,6 +15,21 @@ for path in Path('src').rglob('*.js'):
     if updated != text:
         path.write_text(updated, encoding='utf-8')
 
+# Profile catalog refresh is owned by the browser-facing catalog service. The brew
+# engine reads the current verified catalog but never starts network activity at
+# module-import time, which keeps the core deterministic and testable.
+engine_path = Path('src/brew-engine.js')
+engine = engine_path.read_text(encoding='utf-8')
+engine = engine.replace(
+    "import { listCachedBrewProfiles, refreshBrewProfileCatalog } from './services/brew-profile-catalog-service.js';",
+    "import { listCachedBrewProfiles } from './services/brew-profile-catalog-service.js';",
+)
+engine = engine.replace(
+    "\nrefreshBrewProfileCatalog().catch(error => console.warn('BrewProfiles方案目录尚未更新，暂用本地启动目录', error));\n",
+    "\n",
+)
+engine_path.write_text(engine, encoding='utf-8')
+
 # Historical tests continue to enforce the same local-first and cloud-safety
 # invariants, but against the current release identity.
 for path in Path('tests').glob('*.mjs'):
