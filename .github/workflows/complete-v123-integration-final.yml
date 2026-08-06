@@ -73,7 +73,7 @@ jobs:
           cp /tmp/LUCKYBEAN_SOURCE_SHA.txt package/SOURCE-SHA.txt
           printf '%s\n' \
             'version=1.2.3-brewprofiles-integration-test' \
-            'brew_gateway=brew-analyze-v2/2.1.1' \
+            'brew_gateway=brew-analyze-v2/2.1.2' \
             'profile_catalog=brew-profile-catalog/1.0' \
             'spatial_contract=brew-spatial/1.1' \
             'cloud_account_required_for_calculation=false' > package/BUILD-INFO.txt
