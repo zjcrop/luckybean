@@ -1,10 +1,10 @@
 {
   "name": "luckybean-static-app",
   "private": true,
-  "version": "1.2.1-account-test",
+  "version": "1.2.2-cloud-safety-test",
   "type": "module",
   "scripts": {
-    "test:static": "node tests/v110-local-first-sync-static.mjs && node tests/v120-core-contracts-static.mjs && node tests/v120-requirements-static.mjs",
+    "test:static": "node tests/v110-local-first-sync-static.mjs && node tests/v120-core-contracts-static.mjs && node tests/v120-requirements-static.mjs && node tests/v122-cloud-sync-safety.mjs",
     "test:smoke": "playwright test tests/v110-startup-smoke.spec.mjs --browser=chromium --reporter=line",
     "test:core": "playwright test tests/v120-core-flow.spec.mjs tests/v120-history-integrity.spec.mjs tests/v120-requirements-ui.spec.mjs --browser=chromium --reporter=line",
     "test:visual": "playwright test tests/v120-visual-baseline.spec.mjs --browser=chromium --reporter=line"

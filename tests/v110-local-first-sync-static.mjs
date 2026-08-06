@@ -20,7 +20,7 @@ const spatial = read('src/renderers/brew-spatial-view.js');
 const sw = read('sw.js');
 const manifest = JSON.parse(read('manifest.webmanifest'));
 
-assert.match(index, /1\.2\.1-account-test/);
+assert.match(index, /1\.2\.2-cloud-safety-test/);
 assert.match(index, /src\/core\/startup-controller\.js/);
 assert.match(index, /src\/core\/bootstrap\.js/);
 assert.match(index, /src\/services\/cloud-auth-service\.js/);
@@ -38,8 +38,8 @@ assert.match(startup, /ensureLocalDevice/);
 assert.doesNotMatch(startup, /ensureLocalIdentity|LB-LOCAL-/);
 assert.match(startup, /luckybean:local-app-ready/);
 assert.match(startup, /点击进入/);
-assert.match(startup, /navigator\.serviceWorker\.register\('\.\/sw\.js\?v=1\.2\.1-account-test'/);
-assert.match(startup, /await ensureLocalDevice\(\)[\s\S]*await import\('\.\.\/app\.js\?v=1\.2\.1-account-test'\)/);
+assert.match(startup, /navigator\.serviceWorker\.register\('\.\/sw\.js\?v=1\.2\.2-cloud-safety-test'/);
+assert.match(startup, /await ensureLocalDevice\(\)[\s\S]*await import\('\.\.\/app\.js\?v=1\.2\.2-cloud-safety-test'\)/);
 assert.doesNotMatch(startup, /fetch\s*\(/);
 
 assert.match(auth, /REMEMBER_MS\s*=\s*7\s*\*\s*24/);
@@ -56,6 +56,9 @@ assert.match(sync, /remoteChangedElsewhere/);
 assert.doesNotMatch(sync, /setInterval\s*\(/);
 assert.doesNotMatch(sync, /PASSPHRASE|promptPassphrase|sessionStorage/i);
 assert.match(sync, /function ensureAutomatic/);
+assert.match(sync, /resolveDeletionDecision/);
+assert.match(sync, /deletion-confirmation-required/);
+assert.match(sync, /mergePacketPreservingRemote/);
 assert.doesNotMatch(sync, /ENABLE_KEY|setEnabled|getSetting|setSetting/);
 
 assert.match(db, /luckybean\.cloud\.dirty\.v3/);
@@ -89,20 +92,21 @@ assert.doesNotMatch(runtimeFeatures, /v109-history-management\.js|v099-trajector
 assert.doesNotMatch(runtimeFeatures, /v095-ui\.js|theme-bridge\.js/);
 
 assert.match(sw, /CACHE_PREFIX = 'luckybean-v122-cloud-safety-test-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}1\.2\.1-account-test`/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}1\.2\.2-cloud-safety-test`/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES = \['luckybean-v120-test-', 'luckybean-v121-account-test-'\]/);
 assert.match(sw, /key\.startsWith\(CACHE_PREFIX\) && key !== CACHE_NAME/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES\.some/);
 assert.doesNotMatch(sw, /keys\.filter\(key => key !== CACHE_NAME\)/);
 assert.match(sw, /src\/app\.js/);
 assert.match(sw, /src\/core\/bootstrap\.js/);
+assert.match(sw, /src\/services\/cloud-sync-safety\.js/);
 assert.match(sw, /src\/ui\/appearance-controller\.js/);
 assert.match(sw, /src\/features\/runtime-features\.js/);
 assert.match(sw, /src\/renderers\/brew-spatial-view\.js/);
 assert.match(sw, /src\/domain\/history\/history-service\.js/);
 assert.doesNotMatch(sw, /v109-history-management\.js|v099-trajectory-signal-bridge\.js|v099i-trajectory-space\.js/);
 assert.doesNotMatch(sw, /v095-ui\.js|theme-bridge\.js|splash-red\.jpg|settings-mascot\.png/);
-assert.equal(manifest.version, '1.2.1-account-test');
+assert.equal(manifest.version, '1.2.2-cloud-safety-test');
 
 for (const path of [
   'src/v109-supabase-auth-gate.js',
@@ -121,4 +125,4 @@ for (const path of [
   'src/theme-bridge.js'
 ]) assert.equal(exists(path), false, `${path} should have been removed`);
 
-console.log('v1.2.1 single server account, mandatory automatic sync, isolated cache and core contracts passed');
+console.log('v1.2.2 single account, recoverable panel and protected cloud deletion checks passed');

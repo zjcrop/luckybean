@@ -77,6 +77,22 @@ test('one server login remains one panel after authentication and automatic sync
   await expect(page.locator('[data-v099f-account-sync],#settingsNickname,#saveIdentityBtn')).toHaveCount(0);
   await expect(page.locator('[data-cloud-account-panel]')).toHaveCount(1);
 
+  await page.evaluate(() => {
+    document.querySelector('[data-cloud-account-panel]')?.remove();
+    document.dispatchEvent(new CustomEvent('luckybean:app-refreshed'));
+  });
+  await expect(page.locator('[data-cloud-account-panel]')).toHaveCount(1);
+
+  await page.evaluate(() => {
+    document.dispatchEvent(new CustomEvent('luckybean:cloud-sync-state', {
+      detail: { state: 'deletion-confirmation-required', fingerprint: 'risk-test', missingUnits: 6, remoteUnits: 10, ratioPct: 60, largeDeletion: true }
+    }));
+  });
+  await expect(page.locator('[data-overlay="cloud-deletion-review"]')).toBeVisible();
+  await expect(page.locator('[data-cloud-deletion-preserve]')).toHaveText('保留云端数据并同步');
+  await expect(page.locator('[data-cloud-deletion-delete]')).toHaveText('删除云端缺失数据');
+  await page.locator('[data-cloud-deletion-close]').click();
+
   await seedBean(page);
   await page.locator('[data-page-target="brew"]').click();
   const options = await page.locator('#brewProfile option').evaluateAll(nodes => nodes.map(node => node.value).filter(Boolean));
