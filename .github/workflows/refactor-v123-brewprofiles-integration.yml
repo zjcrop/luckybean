@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/refactor-v123-brewprofiles-integration.yml
       - tools/refactor_v123.py
+      - tools/update_v123_version_contracts.py
       - tools/build_android_v123.py
 
 permissions:
@@ -28,7 +29,9 @@ jobs:
           fetch-depth: 0
 
       - name: Apply structural ownership refactor
-        run: python3 tools/refactor_v123.py
+        run: |
+          python3 tools/refactor_v123.py
+          python3 tools/update_v123_version_contracts.py
 
       - name: Verify source syntax and integration contracts
         run: |
@@ -53,7 +56,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf node_modules test-results playwright-report .playwright
-          rm -f tools/refactor_v123.py
+          rm -f tools/refactor_v123.py tools/update_v123_version_contracts.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
