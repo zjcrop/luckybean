@@ -32,6 +32,7 @@ const CORE = [
   './src/renderers/brew-spatial-view.css?v=1.2.0-test',
   './src/ui/account-sync-panel.js?v=1.2.0-test',
   './src/ui/appearance-controller.js?v=1.2.0-test',
+  './src/ui/voice-settings-controller.js?v=1.2.0-test',
   './src/ui/fab-controller.js?v=1.2.0-test',
   './src/features/runtime-features.js?v=1.2.0-test',
   './src/data-migrations.js?v=1.2.0-test',
@@ -51,7 +52,6 @@ const CORE = [
   './src/group-interaction-controller.js?v=1.2.0-test',
   './src/ui-upgrade-controller.js?v=1.2.0-test',
   './src/origin-map-controller.js?v=1.2.0-test',
-  './src/settings-screen-controller.js?v=1.2.0-test',
 
   './public/app-logo.webp?v=1.2.0-test',
   './public/splash-art-red.webp?v=1.2.0-test',

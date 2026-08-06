@@ -222,34 +222,10 @@ function switchPage(page, { preserveOverlay = false } = {}) {
 }
 
 function enterApp() {
-  $('#loginScreen').classList.add('hidden');
+  $('#loginScreen')?.classList.add('hidden');
   $('#appShell').classList.remove('hidden');
   switchPage('beans');
   bindControlStates(document);
-}
-
-async function setIdentity(mode, details = {}) {
-  const nickname = details.nickname || $('#loginNickname')?.value?.trim() || (mode === 'guest' ? '访客' : '本机用户');
-  if (mode === 'wechat') {
-    showInfoDialog('微信注册尚未接通', '微信 OAuth 需要后端回调、会话和隐私协议。本版本不伪造注册成功，可先使用访客或本机邮箱身份。');
-    return;
-  }
-  const nextIdentity = { ...state.settings.identity, ...details, mode, nickname, verified: false };
-  Object.assign(nextIdentity, await derivePublicId(nextIdentity));
-  state.settings.identity = nextIdentity;
-  await saveSettings();
-  enterApp();
-}
-
-function openEmailIdentityDialog() {
-  const overlay = showOverlay(`${dialogHeader('邮箱身份', '当前仅保存在本机，未发送验证邮件，也不代表真实注册')}<label class="field"><span>昵称</span><input id="identityNickname" class="control" maxlength="24" value="${esc($('#loginNickname')?.value || '')}"></label><label class="field"><span>邮箱</span><input id="identityEmail" class="control" type="email" autocomplete="email" placeholder="name@example.com"></label><div class="row end"><button id="saveEmailIdentityBtn" class="button primary" type="button">保存本机身份</button></div>`);
-  bindClose(overlay);
-  $('#saveEmailIdentityBtn').addEventListener('click', async () => {
-    const email = $('#identityEmail').value.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast('邮箱格式无效', 'status-bad');
-    await setIdentity('local-email', { email, nickname: $('#identityNickname').value.trim() || '本机用户' });
-    closeOverlay();
-  });
 }
 
 function showInfoDialog(title, message) {
@@ -1168,6 +1144,7 @@ function renderBrew() {
     await saveSettings();
   }));
   $('#generatePlanBtn')?.addEventListener('click', generatePlan);
+  $('#brewProfile')?.addEventListener('change', async event => { state.settings.brew.profileId = event.target.value; await saveSettings(); });
   $('#directSensoryBtn')?.addEventListener('click', () => { if (!state.selectedBeanId) return; startEvaluation(state.selectedBeanId, { direct: true }); switchPage('sensory'); });
   $('#openFlavorTargetBtn')?.addEventListener('click', openFlavorTargetDialog);
   $('#openBrewTuneBtn')?.addEventListener('click', openBrewTuneDialog);
@@ -1179,6 +1156,14 @@ function renderBrew() {
     container.addEventListener('click', event => { const replay = event.target.closest('[data-replay-session]'); if (replay) loadBrewSession(replay.dataset.replaySession); });
   }
   bindPlanActions(); bindControlStates(container);
+  const spatialHost = $('#brewSpatialMount');
+  const spatialPlan = state.currentPlan && state.currentPlan.beanId === state.selectedBeanId ? state.currentPlan : null;
+  if (spatialHost) {
+    if (spatialPlan) {
+      spatialHost.hidden = false;
+      document.dispatchEvent(new CustomEvent('luckybean:plan-ready', { detail: { plan: spatialPlan, input: state.currentBrewInput, source: spatialPlan.executionSource || 'history' } }));
+    } else document.dispatchEvent(new CustomEvent('luckybean:spatial-clear'));
+  }
 }
 
 function rangeSelect(id, value, labels = ['低','中','高']) {
@@ -1459,7 +1444,7 @@ function startEvaluation(beanId = state.selectedBeanId, options = {}) {
     id: uid('sensory'), beanId, brewSessionId: sessionId,
     engineVersion: state.currentPlan?.engineVersion || '', profileVersion: state.currentPlan?.profileVersion || '',
     nodeIndex: 0, answers: { floral: { 1: ['无'] }, fruit: { 1: ['无'] }, other: { 1: ['无'], 2: ['无'], 3: ['无'] } }, autoScore: 0, subjectiveScore: 0, scoreDelta: 0,
-    naturalNote: '', direct: Boolean(options.direct), createdAt: new Date().toISOString()
+    naturalNote: '', direct: Boolean(options.direct), evaluationMode: options.evaluationMode || 'player', sourceMode: options.sourceMode || 'independent-player-v120', createdAt: new Date().toISOString()
   };
 }
 
@@ -1671,6 +1656,67 @@ function bindEvaluationEvents() {
   });
 }
 
+
+async function saveProfessionalEvaluation(detail = {}) {
+  const beanId = String(detail.beanId || state.selectedBeanId || '');
+  if (!beanId || !state.beans.some(bean => bean.id === beanId)) return toast('杯测记录缺少有效豆卡', 'status-bad');
+  const now = new Date().toISOString();
+  const score = clamp(Number(detail.score || 0), 0, 100);
+  const record = {
+    id: uid('sensory'),
+    beanId,
+    brewSessionId: String(detail.brewSessionId ?? state.currentPlan?.id ?? ''),
+    evaluationMode: 'professional',
+    sourceMode: 'independent-cupping-v120',
+    professionalData: structuredClone(detail.professionalData || {}),
+    summary: Array.isArray(detail.summary) ? detail.summary.map(String) : [],
+    autoScore: score,
+    subjectiveScore: score,
+    score,
+    scoreDelta: 0,
+    naturalNote: String(detail.naturalNote || '').trim(),
+    preferenceTags: [],
+    createdAt: now,
+    updatedAt: now
+  };
+  const session = state.brewSessions.find(item => item.id === record.brewSessionId);
+  if (session?.schemaVersion === 'brew-history/1.0') {
+    await attachSensoryToCompletedBrew({ recordId: session.id, sensoryRecord: record, nextPlanDraft: null });
+  } else {
+    await put('sensoryRecords', record);
+    if (session) {
+      session.sensoryRecordId = record.id;
+      session.sensoryNote = record.naturalNote;
+      session.autoScore = score;
+      session.subjectiveScore = score;
+      session.scoreDelta = 0;
+      await put('brewSessions', session);
+    }
+  }
+  await refreshData();
+  state.evaluation = null;
+  switchPage('beans');
+  requestAnimationFrame(() => detailBean(beanId));
+  toast('专业杯测记录已保存', 'status-good');
+}
+
+document.addEventListener('luckybean:start-sensory-mode', event => {
+  const mode = event.detail?.mode === 'note' ? 'note' : 'player';
+  const beanId = String(event.detail?.beanId || state.selectedBeanId || '');
+  if (!beanId) return;
+  startEvaluation(beanId, {
+    direct: true,
+    evaluationMode: mode,
+    sourceMode: mode === 'note' ? 'independent-note-v120' : 'independent-player-v120'
+  });
+  if (mode === 'note') state.evaluation.nodeIndex = SENSORY_NODES.findIndex(node => node.id === 'score');
+  renderSensory();
+});
+
+document.addEventListener('luckybean:professional-sensory-complete', event => {
+  saveProfessionalEvaluation(event.detail || {}).catch(error => toast(error.message || '专业杯测保存失败', 'status-bad'));
+});
+
 async function saveEvaluation() {
   const evaluation = state.evaluation; if (!evaluation) return;
   const bean = state.beans.find(item => item.id === evaluation.beanId);
@@ -1810,7 +1856,7 @@ async function openShareDialog(bean) {
 
 function renderSharedPayload(payload) {
   assertPlainObject(payload,'分享数据');
-  $('#loginScreen').classList.add('hidden'); $('#appShell').classList.add('hidden');
+  $('#loginScreen')?.classList.add('hidden'); $('#appShell').classList.add('hidden');
   document.body.innerHTML = shareHtmlDocument(payload).match(/<body[^>]*>([\s\S]*)<\/body>/i)?.[1] || '<p>分享数据无效</p>';
 }
 
@@ -1851,13 +1897,12 @@ function openAddDripperDialog(existingId = '') {
 
 function renderSettings() {
   const meta = state.codebookMeta || {};
-  const identity = state.settings.identity;
   state.settings.gear = normalizeGearSettings(state.settings.gear);
   const low = lowStockFilters();
   const autoOpenGear = low.length > 0;
   if (autoOpenGear) state.settingsFocusFilterId = low[0].id;
   $('#settingsContent').innerHTML = `<div class="settings-categories">
-  <details class="settings-category"><summary><span>账户</span><small>个人信息，账户 ID，其他平台绑定</small></summary><div class="settings-category-body"><div class="grid-2"><label class="field"><span>昵称</span><input id="settingsNickname" class="control" maxlength="24" value="${esc(identity.nickname||'')}"></label><label class="field"><span>邮箱</span><input id="settingsEmail" class="control" type="email" value="${esc(identity.email||'')}"></label><label class="field"><span>手机</span><input id="settingsPhone" class="control" inputmode="tel" value="${esc(identity.phone||'')}"></label><label class="field"><span>微信</span><input id="settingsWechat" class="control" value="${esc(identity.wechat||'')}"></label><label class="field"><span>QQ</span><input id="settingsQq" class="control" inputmode="numeric" value="${esc(identity.qq||'')}"></label><div class="field"><span>个人 ID</span><div class="static-value mono">${esc(identity.publicId||'保存账户后生成')}</div></div></div><button id="saveIdentityBtn" class="button primary" type="button">保存账户</button></div></details>
+  <details class="settings-category" data-settings-key="account"><summary><span>云端</span><small>云端同步、恢复与多设备连接</small></summary><div class="settings-category-body" data-cloud-account-host></div></details>
   <details class="settings-category" id="privateGearCategory"${autoOpenGear?' open':''}><summary><span>私器${low.length?'<sup class="gear-low-star">*</sup>':''}</span><small>滤纸，滤杯，磨豆机设定</small></summary><div class="settings-category-body">${gearManagerHtml()}</div></details>
   <details class="settings-category data-category"><summary><span>数藏</span><small>数据的导入导出及备份，数据接口</small></summary><div class="settings-category-body"><div class="text-actions data-actions"><button id="settingsExportBtn" class="button" type="button">导出备份</button><button id="settingsImportBtn" class="button" type="button">导入备份</button><button id="clearAllDataBtn" class="button danger" type="button">清空本地数据</button></div><details class="nested-settings"><summary>数据源与接口（点击展开）</summary><div class="nested-content"><div class="setting-row"><div><h3>数据源</h3><p>后台校验并原子更新，失败时保留最后有效版本。</p></div><button id="updateCodebookBtn" class="button" type="button">更新全部数据源</button></div><div id="providerStatusPanel"></div><label class="field"><span>私有冲煮 API</span><input id="brewApiEndpoint" class="control" type="url" placeholder="HTTPS 服务端地址" value="${esc(state.settings.brew.apiEndpoint||'')}"></label><button id="saveApiBtn" class="button" type="button">保存接口</button><label class="toggle"><input id="planVisualToggle" type="checkbox"${state.settings.ui.planVisualsExpanded?' checked':''}>默认显示冲煮轨迹图</label></div></details></div></details>
   <details class="settings-category"><summary><span>本物</span><small>关于本工具和开发小哥的一切</small></summary><div class="settings-category-body about-content"><h2>富贵盒子</h2><p>咖啡豆管理、拾味冲煮辅助、品鉴记录与本地数据归档工具。</p><dl><dt>版本</dt><dd>${APP_VERSION}</dd><dt>数据结构</dt><dd>${SCHEMA_VERSION}</dd><dt>离线引擎</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>数据源</dt><dd>公开编码数据 ${esc(meta.version||state.codebook.version||'6')}</dd><dt>开发与维护</dt><dd>zjcrop</dd></dl></div></details>
@@ -1867,7 +1912,6 @@ function renderSettings() {
   $('#updateCodebookBtn').addEventListener('click', updateCodebook);
   $('#saveApiBtn').addEventListener('click',async()=>{state.settings.brew.apiEndpoint=$('#brewApiEndpoint').value.trim();await saveSettings();toast('接口地址已保存');});
   $('#planVisualToggle').addEventListener('change',async event=>{state.settings.ui.planVisualsExpanded=event.target.checked;await saveSettings();});
-  $('#saveIdentityBtn').addEventListener('click',async()=>{const next={...state.settings.identity,nickname:$('#settingsNickname').value.trim()||'访客',email:$('#settingsEmail').value.trim(),phone:$('#settingsPhone').value.trim(),wechat:$('#settingsWechat').value.trim(),qq:$('#settingsQq').value.trim()};Object.assign(next,await derivePublicId(next));state.settings.identity=next;await saveSettings();renderSettings();toast('账户信息与个人 ID 已保存');});
   $('#addFilterBtn')?.addEventListener('click',()=>openAddFilterDialog()); $('#addDripperBtn')?.addEventListener('click',()=>openAddDripperDialog());
   $$('[data-filter-item]').forEach(button=>button.addEventListener('click',()=>openAddFilterDialog(button.dataset.filterItem))); $$('[data-dripper-item]').forEach(button=>button.addEventListener('click',()=>openAddDripperDialog(button.dataset.dripperItem)));
   $('#saveGearTextBtn')?.addEventListener('click',async()=>{state.settings.gear.grinders=$('#gearGrinders').value.trim();await saveSettings();toast('磨豆机已保存');});
@@ -1917,8 +1961,6 @@ function dismissSplash() {
 function bindGlobalEvents() {
   $('#splashScreen')?.addEventListener('click', dismissSplash);
   $('#splashScreen')?.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') dismissSplash(); });
-  $('#guestBtn').addEventListener('click',()=>setIdentity('guest')); $('#emailIdentityBtn').addEventListener('click',openEmailIdentityDialog); $('#wechatIdentityBtn').addEventListener('click',()=>setIdentity('wechat'));
-  $('#testBtn').addEventListener('click',async()=>{await setIdentity('guest');await seedDemo();renderBeans();});
   $('#bottomNav').addEventListener('click',event=>{const button=event.target.closest('[data-page-target]');if(button)switchPage(button.dataset.pageTarget);});
   $('#beanGroups').addEventListener('click',event=>{
     const boardBean = event.target.closest('[data-board-bean]'); if (boardBean) { const bean = state.beans.find(item => item.id === boardBean.dataset.boardBean); if (bean) focusRecommendedBean(bean, { openDetail: true, duration: 800 }); return; }
@@ -1965,7 +2007,7 @@ async function init() {
   const loaded = await loadCodebook(); state.codebook=loaded.data;state.codebookMeta=loaded.meta;state.codebookIndex=makeIndex(loaded.data);
   if (await handleSharedHash()) return;
   await refreshData(); await migrateLegacyFlavorCodes(); bindGlobalEvents();
-  if (state.settings.identity.publicId) enterApp();
+  enterApp();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
 

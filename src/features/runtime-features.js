@@ -15,8 +15,7 @@ const RUNTIME_FEATURES = Object.freeze([
   { id: 'bean-groups', path: '../bean-groups-controller.js?v=1.2.0-test' },
   { id: 'group-interaction', path: '../group-interaction-controller.js?v=1.2.0-test' },
   { id: 'ui-upgrade', path: '../ui-upgrade-controller.js?v=1.2.0-test' },
-  { id: 'origin-map', path: '../origin-map-controller.js?v=1.2.0-test' },
-  { id: 'settings-screen', path: '../settings-screen-controller.js?v=1.2.0-test' }
+  { id: 'origin-map', path: '../origin-map-controller.js?v=1.2.0-test' }
 ]);
 
 const failures = [];

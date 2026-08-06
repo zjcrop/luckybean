@@ -173,25 +173,21 @@ async function accessToken() {
 
 async function fetchAnalysis(input, { endpoint = BREW_ANALYSIS_ENDPOINT, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
   const token = await accessToken();
-  if (!token) {
-    const error = new Error('专业冲煮分析需要登录云端账号');
-    error.code = 'AUTH_REQUIRED';
-    throw error;
-  }
   const expected = await inputFingerprint(input);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const headers = {
+    'content-type': 'application/json',
+    accept: 'application/json',
+    apikey: SUPABASE_KEY,
+    'x-client-info': BREW_ANALYSIS_SERVICE_VERSION,
+    'x-request-id': crypto.randomUUID()
+  };
+  Object.assign(headers, token ? { authorization: `Bearer ${token}` } : {});
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        accept: 'application/json',
-        apikey: SUPABASE_KEY,
-        authorization: `Bearer ${token}`,
-        'x-client-info': BREW_ANALYSIS_SERVICE_VERSION,
-        'x-request-id': crypto.randomUUID()
-      },
+      headers,
       body: JSON.stringify(input),
       cache: 'no-store',
       signal: controller.signal

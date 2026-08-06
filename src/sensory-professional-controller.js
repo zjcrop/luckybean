@@ -91,13 +91,8 @@ async function startMode(mode) {
   if (transferBusy) return;
   const beanId = await selectedBeanId();
   if (!beanId) return;
-  if (mode === 'player') {
-    await startNative(beanId);
-    return;
-  }
-  if (mode === 'note') {
-    await startNative(beanId);
-    await skipNativeToScore({}, { hidden: true });
+  if (mode === 'player' || mode === 'note') {
+    document.dispatchEvent(new CustomEvent('luckybean:start-sensory-mode', { detail: { mode, beanId } }));
     return;
   }
   const context = await beanContext(beanId);
@@ -148,19 +143,25 @@ function axisButtons(group, labels, values) {
   return labels.map((label, index) => `<button type="button" class="v095-radar-axis${wizard.selectedRadar?.group === group && wizard.selectedRadar?.index === index ? ' active' : ''}" data-v095-radar-group="${group}" data-v095-radar-index="${index}"><span>${esc(label)}</span><strong>${Number(values[index] || 0).toFixed(1)}</strong></button>`).join('');
 }
 
-function radarSvg(values, labels, size = 260) {
+function radarPoint(values, index, value = values[index], size = 260) {
+  const center = size / 2;
+  const radius = size * .34;
+  const angle = -Math.PI / 2 + index * (Math.PI * 2 / values.length);
+  const r = radius * clamp(value, 0, 10) / 10;
+  return { x: center + Math.cos(angle) * r, y: center + Math.sin(angle) * r, angle, center, radius };
+}
+
+function radarSvg(group, values, labels, size = 260) {
   const center = size / 2;
   const radius = size * .34;
   const points = values.map((value, index) => {
-    const angle = -Math.PI / 2 + index * (Math.PI * 2 / values.length);
-    const r = radius * clamp(value, 0, 10) / 10;
-    return `${center + Math.cos(angle) * r},${center + Math.sin(angle) * r}`;
+    const point = radarPoint(values, index, value, size);
+    return `${point.x},${point.y}`;
   }).join(' ');
   const grid = [2.5, 5, 7.5, 10].map(level => {
     const ring = values.map((_, index) => {
-      const angle = -Math.PI / 2 + index * (Math.PI * 2 / values.length);
-      const r = radius * level / 10;
-      return `${center + Math.cos(angle) * r},${center + Math.sin(angle) * r}`;
+      const point = radarPoint(values, index, level, size);
+      return `${point.x},${point.y}`;
     }).join(' ');
     return `<polygon points="${ring}" fill="none" stroke="rgba(190,151,80,.22)"/>`;
   }).join('');
@@ -173,8 +174,128 @@ function radarSvg(values, labels, size = 260) {
     const r = radius + 22;
     return `<text x="${center + Math.cos(angle) * r}" y="${center + Math.sin(angle) * r}" fill="currentColor" text-anchor="middle" dominant-baseline="middle" font-size="11">${esc(label)}</text>`;
   }).join('');
-  return `<svg viewBox="0 0 ${size} ${size}" aria-label="感官雷达图">${grid}${axes}<polygon points="${points}" fill="rgba(190,151,80,.3)" stroke="rgba(190,151,80,.9)" stroke-width="2"/>${text}</svg>`;
+  const nodes = values.map((value, index) => {
+    const point = radarPoint(values, index, value, size);
+    const active = wizard.selectedRadar?.group === group && wizard.selectedRadar?.index === index;
+    return `<circle class="v120-radar-node${active ? ' active' : ''}" cx="${point.x}" cy="${point.y}" r="7" data-v120-radar-node data-v095-radar-group="${group}" data-v095-radar-index="${index}" role="slider" tabindex="0" aria-label="${esc(labels[index])}" aria-valuemin="0" aria-valuemax="10" aria-valuenow="${Number(value).toFixed(1)}"></circle>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${size} ${size}" aria-label="感官雷达图" data-v120-radar-chart="${group}">${grid}${axes}<polygon data-v120-radar-polygon="${group}" points="${points}" fill="rgba(190,151,80,.3)" stroke="rgba(190,151,80,.9)" stroke-width="2"/>${nodes}${text}</svg>`;
 }
+
+function selectRadarAxis(root, group, index) {
+  wizard.selectedRadar = { group, index };
+  $$('[data-v095-radar-group]', root).forEach(node => node.classList.toggle('active', node.dataset.v095RadarGroup === group && Number(node.dataset.v095RadarIndex) === index));
+  const range = $('[data-v095-radar-value]', root);
+  const value = Number(wizard.radar[group][index] || 0);
+  if (range) { range.disabled = false; range.value = String(value); }
+  const output = $('[data-v095-radar-output]', root);
+  if (output) output.textContent = value.toFixed(1);
+}
+
+function updateRadarChart(root, group) {
+  const values = wizard.radar[group];
+  const svg = $(`[data-v120-radar-chart="${group}"]`, root);
+  if (!svg) return;
+  const polygon = $(`[data-v120-radar-polygon="${group}"]`, svg);
+  if (polygon) polygon.setAttribute('points', values.map((value, index) => {
+    const point = radarPoint(values, index, value);
+    return `${point.x},${point.y}`;
+  }).join(' '));
+  $$(`[data-v120-radar-node][data-v095-radar-group="${group}"]`, svg).forEach(node => {
+    const index = Number(node.dataset.v095RadarIndex);
+    const point = radarPoint(values, index, values[index]);
+    node.setAttribute('cx', String(point.x));
+    node.setAttribute('cy', String(point.y));
+    node.setAttribute('aria-valuenow', Number(values[index]).toFixed(1));
+  });
+  $$(`.v095-radar-axis[data-v095-radar-group="${group}"]`, root).forEach(button => {
+    const index = Number(button.dataset.v095RadarIndex);
+    const output = $('strong', button);
+    if (output) output.textContent = Number(values[index]).toFixed(1);
+  });
+}
+
+function bindRadarInteractions(root) {
+  $$('.v095-radar-axis[data-v095-radar-group]', root).forEach(button => button.addEventListener('click', () => {
+    selectRadarAxis(root, button.dataset.v095RadarGroup, Number(button.dataset.v095RadarIndex));
+  }));
+  $$('[data-v120-radar-node]', root).forEach(node => {
+    let activePointer = null;
+    const group = node.dataset.v095RadarGroup;
+    const index = Number(node.dataset.v095RadarIndex);
+    const updateFromPointer = event => {
+      const svg = node.closest('svg');
+      const rect = svg.getBoundingClientRect();
+      const x = (event.clientX - rect.left) * 260 / Math.max(1, rect.width);
+      const y = (event.clientY - rect.top) * 260 / Math.max(1, rect.height);
+      const geometry = radarPoint(wizard.radar[group], index, 10);
+      const dx = Math.cos(geometry.angle), dy = Math.sin(geometry.angle);
+      const projection = (x - geometry.center) * dx + (y - geometry.center) * dy;
+      const value = clamp(projection / geometry.radius * 10, 0, 10);
+      wizard.radar[group][index] = Math.round(value * 10) / 10;
+      updateRadarChart(root, group);
+      selectRadarAxis(root, group, index);
+    };
+    node.addEventListener('pointerdown', event => {
+      event.preventDefault();
+      activePointer = event.pointerId;
+      node.setPointerCapture?.(event.pointerId);
+      selectRadarAxis(root, group, index);
+      updateFromPointer(event);
+    });
+    node.addEventListener('pointermove', event => {
+      if (activePointer !== event.pointerId) return;
+      event.preventDefault();
+      updateFromPointer(event);
+    });
+    const release = event => { if (activePointer === event.pointerId) activePointer = null; };
+    node.addEventListener('pointerup', release);
+    node.addEventListener('pointercancel', release);
+    node.addEventListener('keydown', event => {
+      if (!['ArrowUp','ArrowRight','ArrowDown','ArrowLeft'].includes(event.key)) return;
+      event.preventDefault();
+      const delta = ['ArrowUp','ArrowRight'].includes(event.key) ? .1 : -.1;
+      wizard.radar[group][index] = clamp(Number(wizard.radar[group][index]) + delta, 0, 10);
+      updateRadarChart(root, group);
+      selectRadarAxis(root, group, index);
+    });
+  });
+}
+
+function bindSelectedTagSorting(root, stepId) {
+  if (!stepId) return;
+  const list = $(`[data-v120-selected-list="${stepId}"]`, root);
+  if (!list) return;
+  let drag = null;
+  const persist = () => { wizard.selections[stepId] = $$('[data-v120-selected-tag]', list).map(node => node.dataset.v120SelectedTag); };
+  $$('[data-v120-selected-tag]', list).forEach(chip => {
+    chip.addEventListener('pointerdown', event => {
+      event.preventDefault();
+      drag = { id: event.pointerId, chip, x: event.clientX, y: event.clientY, moved: false };
+      chip.setPointerCapture?.(event.pointerId);
+      chip.classList.add('dragging');
+    });
+    chip.addEventListener('pointermove', event => {
+      if (!drag || drag.id !== event.pointerId) return;
+      if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 5) drag.moved = true;
+      const target = document.elementFromPoint(event.clientX, event.clientY)?.closest?.('[data-v120-selected-tag]');
+      if (!target || target === chip || target.parentElement !== list) return;
+      const rect = target.getBoundingClientRect();
+      list.insertBefore(chip, event.clientX < rect.left + rect.width / 2 ? target : target.nextSibling);
+    });
+    const release = event => {
+      if (!drag || drag.id !== event.pointerId) return;
+      chip.classList.remove('dragging');
+      const moved = drag.moved;
+      drag = null;
+      if (moved) persist();
+      else toggleTag(stepId, chip.dataset.v120SelectedTag);
+    };
+    chip.addEventListener('pointerup', release);
+    chip.addEventListener('pointercancel', release);
+  });
+}
+
 
 function defectPanel() {
   return Object.entries(DEFECT_GROUPS).map(([key, group]) => `<section class="v095-defect-group"><header><strong>${group.label}</strong><small>${group.note}</small></header>${group.tags.map(tag => `<button type="button" data-v095-defect-group="${key}" data-v095-defect-tag="${esc(tag)}" class="${wizard.defects[key].includes(tag) ? 'active' : ''}">${esc(tag)}</button>`).join('')}</section>`).join('');
@@ -190,14 +311,13 @@ function renderWizard() {
   const sensoryStep = wizard.step < STEPS.length;
   overlay.innerHTML = `<div class="dialog v095-professional-dialog">
     <div class="dialog-header"><div><h2>专业品鉴</h2><p>${sensoryStep ? `${wizard.step + 1}/${STEPS.length + 2} · ${step.title}` : wizard.step === STEPS.length ? '雷达与缺陷' : '确认结果'}</p></div><button class="close-button" type="button" data-v095-close>×</button></div>
-    ${sensoryStep ? `<section class="v095-wizard-step"><p>${esc(step.subtitle)}</p><div class="v095-tag-grid">${step.tags.map(tag => `<button type="button" data-v095-tag="${esc(tag)}" class="${wizard.selections[step.id].includes(tag) ? 'active' : ''}">${esc(tag)}</button>`).join('')}</div>${step.intensity ? `<label class="v095-intensity"><span>强度 <output data-v095-intensity-output="${step.id}">${Number(wizard.intensities[step.id]).toFixed(1)}</output></span><input type="range" min="0" max="10" step="0.1" value="${wizard.intensities[step.id]}" data-v095-intensity="${step.id}"></label>` : ''}</section>` : wizard.step === STEPS.length ? `<section class="v095-radar-stage"><div class="v095-radar-stack"><div>${radarSvg(wizard.radar.aroma, AROMA_AXES)}<div class="v095-radar-buttons">${axisButtons('aroma', AROMA_AXES, wizard.radar.aroma)}</div></div><div>${radarSvg(wizard.radar.style, STYLE_AXES)}<div class="v095-radar-buttons">${axisButtons('style', STYLE_AXES, wizard.radar.style)}</div></div></div><label class="v095-intensity"><span>当前轴值 <output data-v095-radar-output>${wizard.selectedRadar ? Number(wizard.radar[wizard.selectedRadar.group][wizard.selectedRadar.index]).toFixed(1) : '选择轴'}</output></span><input type="range" min="0" max="10" step="0.1" value="${wizard.selectedRadar ? wizard.radar[wizard.selectedRadar.group][wizard.selectedRadar.index] : 5}" data-v095-radar-value ${wizard.selectedRadar ? '' : 'disabled'}></label><div class="v095-defects">${defectPanel()}</div></section>` : `<section class="v095-summary-stage"><h3>${esc(wizard.bean?.name || '未命名咖啡')}</h3><pre>${esc(professionalSummary())}</pre><p>映射评分：${affectiveMappedScore().toFixed(1)}</p></section>`}
+    ${sensoryStep ? `<section class="v095-wizard-step"><p>${esc(step.subtitle)}</p><div class="v120-selected-tag-list" data-v120-selected-list="${step.id}">${wizard.selections[step.id].length ? wizard.selections[step.id].map(tag => `<button type="button" class="v120-selected-tag" data-v120-selected-tag="${esc(tag)}">${esc(tag)}</button>`).join('') : '<span class="muted small">已选便签会显示在这里，可长按拖动排序。</span>'}</div><div class="v095-tag-grid">${step.tags.map(tag => `<button type="button" data-v095-tag="${esc(tag)}" class="${wizard.selections[step.id].includes(tag) ? 'active' : ''}">${esc(tag)}</button>`).join('')}</div>${step.intensity ? `<label class="v095-intensity"><span>强度 <output data-v095-intensity-output="${step.id}">${Number(wizard.intensities[step.id]).toFixed(1)}</output></span><input type="range" min="0" max="10" step="0.1" value="${wizard.intensities[step.id]}" data-v095-intensity="${step.id}"></label>` : ''}</section>` : wizard.step === STEPS.length ? `<section class="v095-radar-stage"><div class="v095-radar-stack"><div>${radarSvg('aroma', wizard.radar.aroma, AROMA_AXES)}<div class="v095-radar-buttons">${axisButtons('aroma', AROMA_AXES, wizard.radar.aroma)}</div></div><div>${radarSvg('style', wizard.radar.style, STYLE_AXES)}<div class="v095-radar-buttons">${axisButtons('style', STYLE_AXES, wizard.radar.style)}</div></div></div><label class="v095-intensity"><span>当前轴值 <output data-v095-radar-output>${wizard.selectedRadar ? Number(wizard.radar[wizard.selectedRadar.group][wizard.selectedRadar.index]).toFixed(1) : '选择轴'}</output></span><input type="range" min="0" max="10" step="0.1" value="${wizard.selectedRadar ? wizard.radar[wizard.selectedRadar.group][wizard.selectedRadar.index] : 5}" data-v095-radar-value ${wizard.selectedRadar ? '' : 'disabled'}></label><div class="v095-defects">${defectPanel()}</div></section>` : `<section class="v095-summary-stage"><h3>${esc(wizard.bean?.name || '未命名咖啡')}</h3><pre>${esc(professionalSummary())}</pre><p>映射评分：${affectiveMappedScore().toFixed(1)}</p></section>`}
     <div class="v095-wizard-actions"><button type="button" class="button" data-v095-prev ${wizard.step <= 0 ? 'disabled' : ''}>上一步</button><button type="button" class="button primary" data-v095-next>${wizard.step >= STEPS.length + 1 ? '写入品鉴' : '下一步'}</button></div>
   </div>`;
   document.body.append(overlay);
   $('[data-v095-close]', overlay)?.addEventListener('click', closeWizard);
   $$('[data-v095-tag]', overlay).forEach(button => button.addEventListener('click', () => toggleTag(step.id, button.dataset.v095Tag)));
   $$('[data-v095-intensity]', overlay).forEach(input => input.addEventListener('input', () => setIntensity(input.dataset.v095Intensity, input.value)));
-  $$('[data-v095-radar-group]', overlay).forEach(button => button.addEventListener('click', () => { wizard.selectedRadar = { group: button.dataset.v095RadarGroup, index: Number(button.dataset.v095RadarIndex) }; renderWizard(); }));
   $('[data-v095-radar-value]', overlay)?.addEventListener('input', event => {
     if (!wizard.selectedRadar) return;
     wizard.radar[wizard.selectedRadar.group][wizard.selectedRadar.index] = Number(event.target.value);
@@ -210,6 +330,8 @@ function renderWizard() {
     if (index >= 0) list.splice(index, 1); else list.push(tag);
     renderWizard();
   }));
+  bindSelectedTagSorting(overlay, sensoryStep ? step.id : '');
+  bindRadarInteractions(overlay);
   $('[data-v095-prev]', overlay)?.addEventListener('click', () => { wizard.step = Math.max(0, wizard.step - 1); renderWizard(); });
   $('[data-v095-next]', overlay)?.addEventListener('click', async () => {
     if (wizard.step < STEPS.length + 1) { wizard.step += 1; renderWizard(); }
@@ -285,28 +407,22 @@ function injectProfessionalNote(summary) {
 
 async function finishProfessional() {
   if (!wizard || transferBusy) return;
-  const beanId = wizard.beanId;
-  const summary = professionalSummary();
-  const targetScore = affectiveMappedScore();
-  const preferences = nativePreferences();
-  closeWizard();
   transferBusy = true;
-  await startNative(beanId);
-  document.documentElement.classList.add('v095-native-bypass');
-  try {
-    await skipNativeToScore(preferences, { hidden: true });
-    const auto = Number($('#sensoryAutoScore')?.textContent || 0);
-    const wheel = $('#sensoryDeltaWheel');
-    if (!wheel) throw new Error('评分控件未出现');
-    wheel.value = clamp(targetScore - auto, -10, 10).toFixed(1);
-    wheel.dispatchEvent(new Event('input', { bubbles: true }));
-    $('#nextSensoryNodeBtn')?.click();
-    await waitFor('#sensoryNaturalNote');
-    injectProfessionalNote(summary);
-  } finally {
-    document.documentElement.classList.remove('v095-native-bypass');
-    transferBusy = false;
-  }
+  const detail = {
+    beanId: wizard.beanId,
+    score: affectiveMappedScore(),
+    summary: professionalSummary().split('\n').filter(Boolean),
+    naturalNote: professionalSummary(),
+    professionalData: {
+      selections: structuredClone(wizard.selections),
+      intensities: structuredClone(wizard.intensities),
+      radar: structuredClone(wizard.radar),
+      defects: structuredClone(wizard.defects)
+    }
+  };
+  closeWizard();
+  document.dispatchEvent(new CustomEvent('luckybean:professional-sensory-complete', { detail }));
+  transferBusy = false;
 }
 
 export function syncSensoryModePanel() { replaceModePanel(); }

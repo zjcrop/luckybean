@@ -8,23 +8,6 @@ const esc = value => String(value ?? '').replace(/[&<>'"]/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
 }[character]));
 
-const PROFILE_TO_SEGMENT = Object.freeze({
-  'one-pour': '1',
-  'two-pulse': '2',
-  'three-pulse': '3',
-  'four-six-v17': '4',
-  'flat46-clean': '4',
-  'five-pulse': '5',
-  'pulse-30x15': '5'
-});
-const SEGMENT_TO_PROFILE = Object.freeze({
-  '1': 'one-pour',
-  '2': 'two-pulse',
-  '3': 'three-pulse',
-  '5': 'five-pulse'
-});
-const EXPLICIT_PROFILES = new Set(Object.keys(PROFILE_TO_SEGMENT));
-
 const FIELD_CONTROLS = Object.freeze({
   countryCode: 'beanCountry',
   regionCode: 'beanRegion',
@@ -84,8 +67,6 @@ const REQUIRED_FIELDS = Object.freeze([
 let codebookPromise;
 let syncQueued = false;
 let historyBusy = false;
-let brewSyncBusy = false;
-let requestedProfileId = '';
 let fabDrag = null;
 let suppressFabClick = false;
 
@@ -161,87 +142,6 @@ async function compactBrewHistory() {
   } finally {
     historyBusy = false;
   }
-}
-
-function normalizeSegmentOptionLabels(select) {
-  if (!select || select.dataset.v097Labels === '1') return;
-  const labels = {
-    '1': '一刀流（闷蒸 + 一次主体注水）',
-    '2': '两段式（闷蒸 + 两段注水）',
-    '3': '三段式（闷蒸 + 三段注水）',
-    '4': '四段注水（闷蒸 + 四段注水）',
-    '5': '五段式（闷蒸 + 五段注水）'
-  };
-  for (const option of select.options) {
-    if (labels[option.value]) option.textContent = labels[option.value];
-  }
-  select.dataset.v097Labels = '1';
-}
-
-function setControlValue(control, value) {
-  if (!control || !value || control.value === value) return false;
-  if (![...control.options].some(option => option.value === value)) return false;
-  control.value = value;
-  control.dispatchEvent(new Event('input', { bubbles: true }));
-  return true;
-}
-
-function synchronizeBrewControls(event) {
-  if (brewSyncBusy) return;
-  const profile = $('#brewProfile');
-  const segments = $('#brewSegments');
-  if (!profile || !segments) return;
-  normalizeSegmentOptionLabels(segments);
-
-  brewSyncBusy = true;
-  try {
-    if (event?.target === profile) {
-      requestedProfileId = EXPLICIT_PROFILES.has(profile.value) ? profile.value : '';
-      const mapped = PROFILE_TO_SEGMENT[profile.value];
-      if (mapped) setControlValue(segments, mapped);
-      return;
-    }
-
-    if (event?.target === segments) {
-      const mapped = SEGMENT_TO_PROFILE[segments.value];
-      if (mapped) {
-        requestedProfileId = mapped;
-        setControlValue(profile, mapped);
-      } else if (segments.value === 'auto') {
-        requestedProfileId = profile.value === 'recommended' ? '' : profile.value;
-      }
-      return;
-    }
-
-    if (EXPLICIT_PROFILES.has(profile.value)) {
-      requestedProfileId = profile.value;
-      const mapped = PROFILE_TO_SEGMENT[profile.value];
-      if (mapped) setControlValue(segments, mapped);
-    } else if (segments.value !== 'auto' && SEGMENT_TO_PROFILE[segments.value]) {
-      requestedProfileId = SEGMENT_TO_PROFILE[segments.value];
-      setControlValue(profile, requestedProfileId);
-    }
-  } finally {
-    brewSyncBusy = false;
-  }
-}
-
-function enforceBrewSelection() {
-  const profile = $('#brewProfile');
-  const segments = $('#brewSegments');
-  if (!profile || !segments) return;
-
-  const explicit = EXPLICIT_PROFILES.has(profile.value)
-    ? profile.value
-    : (SEGMENT_TO_PROFILE[segments.value] || requestedProfileId);
-  if (!explicit || !EXPLICIT_PROFILES.has(explicit)) return;
-
-  requestedProfileId = explicit;
-  profile.value = explicit;
-  const mappedSegment = PROFILE_TO_SEGMENT[explicit];
-  if (mappedSegment) segments.value = mappedSegment;
-  profile.dataset.v097ExplicitProfile = explicit;
-  segments.dataset.v097ExplicitProfile = explicit;
 }
 
 function preserveTrajectoryChart(svg) {
@@ -597,7 +497,6 @@ function enhanceCollapseTarget() {
 }
 
 function sync() {
-  synchronizeBrewControls();
   compactBrewHistory().catch(console.error);
   $$('.trajectory-chart.detailed').forEach(preserveTrajectoryChart);
   restoreFabPosition();
@@ -614,15 +513,6 @@ function queueSync() {
 }
 
 if (typeof document !== 'undefined') {
-  document.addEventListener('change', event => {
-    if (event.target.matches?.('#brewProfile,#brewSegments')) synchronizeBrewControls(event);
-  }, true);
-  document.addEventListener('input', event => {
-    if (event.target.matches?.('#brewProfile,#brewSegments')) synchronizeBrewControls(event);
-  }, true);
-  document.addEventListener('click', event => {
-    if (event.target.closest?.('#generatePlanBtn')) enforceBrewSelection();
-  }, true);
   document.addEventListener('click', interceptRecognitionParse, true);
   document.addEventListener('click', blankGroupCollapse, true);
   window.addEventListener('resize', () => {
@@ -640,7 +530,5 @@ globalThis.LuckyBeanV097Fixes = {
   abbreviateBrewMethod,
   autoFillRecognition,
   extractRecognitionEvidence,
-  preserveTrajectoryChart,
-  synchronizeBrewControls,
-  enforceBrewSelection
+  preserveTrajectoryChart
 };
