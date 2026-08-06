@@ -1,4 +1,5 @@
 from pathlib import Path
+import runpy
 
 OLD = '1.2.2-cloud-safety-test'
 NEW = '1.2.3-brewprofiles-integration-test'
@@ -31,3 +32,8 @@ for path in Path('tests').glob('*.mjs'):
     )
     if updated != text:
         path.write_text(updated, encoding='utf-8')
+
+semantic_update = Path('tools/update_v123_contract_semantics.py')
+if semantic_update.exists():
+    runpy.run_path(str(semantic_update), run_name='__main__')
+    semantic_update.unlink()
