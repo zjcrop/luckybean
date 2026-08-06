@@ -1,0 +1,287 @@
+name: Verify and build LuckyBean v1.2.2 cloud safety
+
+on:
+  push:
+    branches:
+      - fix/v122-cloud-safety
+    paths:
+      - .github/workflows/apply-build-v122-cloud-safety.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-v122-cloud-safety
+  cancel-in-progress: false
+
+jobs:
+  verify-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    steps:
+      - name: Checkout cloud safety branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/v122-cloud-safety
+          path: web
+          fetch-depth: 0
+
+      - name: Checkout Android shell
+        uses: actions/checkout@v4
+        with:
+          ref: android/v1-source-consolidation
+          path: shell
+
+      - name: Apply version isolation and regression contracts
+        working-directory: web
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          old = '1.2.1-account-test'
+          new = '1.2.2-cloud-safety-test'
+          roots = [Path('index.html'), Path('manifest.webmanifest'), Path('package.json'), Path('package-lock.json'), Path('sw.js')]
+          roots += list(Path('src').rglob('*.js'))
+          roots += list(Path('tests').rglob('*.mjs'))
+          for path in roots:
+              text = path.read_text(encoding='utf-8')
+              text = text.replace(old, new)
+              text = text.replace(r'1\.2\.1-account-test', r'1\.2\.2-cloud-safety-test')
+              path.write_text(text, encoding='utf-8')
+
+          sw = Path('sw.js')
+          text = sw.read_text(encoding='utf-8')
+          text = text.replace("CACHE_PREFIX = 'luckybean-v121-account-test-'", "CACHE_PREFIX = 'luckybean-v122-cloud-safety-test-'")
+          text = text.replace(
+              "LEGACY_CACHE_PREFIXES = ['luckybean-v120-test-'];",
+              "LEGACY_CACHE_PREFIXES = ['luckybean-v120-test-', 'luckybean-v121-account-test-'];"
+          )
+          marker = "  './src/services/cloud-sync-service.js?v=1.2.2-cloud-safety-test',\n"
+          addition = marker + "  './src/services/cloud-sync-safety.js?v=1.2.2-cloud-safety-test',\n"
+          if "cloud-sync-safety.js" not in text:
+              if marker not in text:
+                  raise SystemExit('service worker cloud sync marker missing')
+              text = text.replace(marker, addition, 1)
+          sw.write_text(text, encoding='utf-8')
+
+          sync = Path('src/services/cloud-sync-service.js')
+          text = sync.read_text(encoding='utf-8')
+          text = text.replace("from './cloud-sync-safety.js';", "from './cloud-sync-safety.js?v=1.2.2-cloud-safety-test';")
+          sync.write_text(text, encoding='utf-8')
+
+          package = Path('package.json')
+          text = package.read_text(encoding='utf-8')
+          old_script = 'node tests/v110-local-first-sync-static.mjs && node tests/v120-core-contracts-static.mjs && node tests/v120-requirements-static.mjs'
+          new_script = old_script + ' && node tests/v122-cloud-sync-safety.mjs'
+          if 'v122-cloud-sync-safety.mjs' not in text:
+              if old_script not in text:
+                  raise SystemExit('package static test script marker missing')
+              text = text.replace(old_script, new_script, 1)
+          package.write_text(text, encoding='utf-8')
+
+          static = Path('tests/v110-local-first-sync-static.mjs')
+          text = static.read_text(encoding='utf-8')
+          text = text.replace(
+              "assert.match(sw, /LEGACY_CACHE_PREFIXES = \\['luckybean-v120-test-'\\]/);",
+              "assert.match(sw, /LEGACY_CACHE_PREFIXES = \\['luckybean-v120-test-', 'luckybean-v121-account-test-'\\]/);"
+          )
+          marker = "assert.match(sync, /function ensureAutomatic/);\n"
+          addition = marker + "assert.match(sync, /resolveDeletionDecision/);\nassert.match(sync, /deletion-confirmation-required/);\nassert.match(sync, /mergePacketPreservingRemote/);\n"
+          if 'assert.match(sync, /resolveDeletionDecision/);' not in text:
+              if marker not in text:
+                  raise SystemExit('static sync assertion marker missing')
+              text = text.replace(marker, addition, 1)
+          marker = "assert.match(sw, /src\\/core\\/bootstrap\\.js/);\n"
+          addition = marker + "assert.match(sw, /src\\/services\\/cloud-sync-safety\\.js/);\n"
+          if 'cloud-sync-safety' not in text.split('assert.match(sw, /src\\/core\\/bootstrap\\.js/);', 1)[-1]:
+              text = text.replace(marker, addition, 1)
+          text = text.replace(
+              "console.log('v1.2.1 single server account, mandatory automatic sync, isolated cache and core contracts passed');",
+              "console.log('v1.2.2 single account, recoverable panel and protected cloud deletion checks passed');"
+          )
+          static.write_text(text, encoding='utf-8')
+
+          requirements = Path('tests/v120-requirements-static.mjs')
+          text = requirements.read_text(encoding='utf-8')
+          marker = "const account = read('src/ui/account-sync-panel.js');\n"
+          addition = marker + "const cloudSafety = read('src/services/cloud-sync-safety.js');\nconst cloudSync = read('src/services/cloud-sync-service.js');\n"
+          if "const cloudSafety" not in text:
+              text = text.replace(marker, addition, 1)
+          marker = "assert.match(account, /querySelectorAll\\('\\[data-cloud-account-panel\\]/);\n"
+          addition = marker + "assert.match(account, /确认云端删除/);\nassert.match(account, /保留云端数据并同步/);\nassert.match(account, /startReadinessRecovery/);\nassert.match(cloudSafety, /analyzeRemoteDeletionRisk/);\nassert.match(cloudSafety, /mergePacketPreservingRemote/);\nassert.match(cloudSync, /resolveDeletionDecision/);\n"
+          if "assert.match(account, /确认云端删除/);" not in text:
+              text = text.replace(marker, addition, 1)
+          requirements.write_text(text, encoding='utf-8')
+
+          ui = Path('tests/v120-requirements-ui.spec.mjs')
+          text = ui.read_text(encoding='utf-8')
+          marker = "  await expect(page.locator('[data-v099f-account-sync],#settingsNickname,#saveIdentityBtn')).toHaveCount(0);\n  await expect(page.locator('[data-cloud-account-panel]')).toHaveCount(1);\n\n  await seedBean(page);"
+          addition = "  await expect(page.locator('[data-v099f-account-sync],#settingsNickname,#saveIdentityBtn')).toHaveCount(0);\n  await expect(page.locator('[data-cloud-account-panel]')).toHaveCount(1);\n\n  await page.evaluate(() => {\n    document.querySelector('[data-cloud-account-panel]')?.remove();\n    document.dispatchEvent(new CustomEvent('luckybean:app-refreshed'));\n  });\n  await expect(page.locator('[data-cloud-account-panel]')).toHaveCount(1);\n\n  await page.evaluate(() => {\n    document.dispatchEvent(new CustomEvent('luckybean:cloud-sync-state', {\n      detail: { state: 'deletion-confirmation-required', fingerprint: 'risk-test', missingUnits: 6, remoteUnits: 10, ratioPct: 60, largeDeletion: true }\n    }));\n  });\n  await expect(page.locator('[data-overlay=\"cloud-deletion-review\"]')).toBeVisible();\n  await expect(page.locator('[data-cloud-deletion-preserve]')).toHaveText('保留云端数据并同步');\n  await expect(page.locator('[data-cloud-deletion-delete]')).toHaveText('删除云端缺失数据');\n  await page.locator('[data-cloud-deletion-close]').click();\n\n  await seedBean(page);"
+          if 'risk-test' not in text:
+              if marker not in text:
+                  raise SystemExit('UI account test insertion marker missing')
+              text = text.replace(marker, addition, 1)
+          ui.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Verify syntax and cloud safety source contracts
+        working-directory: web
+        run: |
+          find src -name '*.js' -print0 | xargs -0 -n1 node --check
+          grep -F '1.2.2-cloud-safety-test' package.json index.html manifest.webmanifest
+          grep -F "CACHE_PREFIX = 'luckybean-v122-cloud-safety-test-'" sw.js
+          grep -F "'luckybean-v121-account-test-'" sw.js
+          grep -F 'cloud-sync-safety.js?v=1.2.2-cloud-safety-test' sw.js src/services/cloud-sync-service.js
+          grep -F 'resolveDeletionDecision' src/services/cloud-sync-service.js
+          grep -F '保留云端数据并同步' src/ui/account-sync-panel.js
+          grep -F '再次点击确认删除' src/ui/account-sync-panel.js
+          ! grep -F "staleChunkIds) {" src/services/cloud-sync-service.js | grep -F "manifest" || true
+
+      - name: Install web test dependencies
+        working-directory: web
+        run: npm install --no-audit --no-fund
+
+      - name: Run static and pure safety tests
+        working-directory: web
+        run: npm run test:static
+
+      - name: Install Chromium
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Run startup core account safety and visual regression
+        working-directory: web
+        run: |
+          python3 -m http.server 4173 > /tmp/luckybean-v122-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          npm run test:smoke
+          npm run test:core
+          npm run test:visual
+
+      - name: Commit verified product changes
+        working-directory: web
+        run: |
+          rm -rf node_modules test-results playwright-report .playwright
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix: guard cloud deletions and recover account panel loading"
+          git push origin HEAD:refs/heads/fix/v122-cloud-safety
+
+      - name: Assemble Android local app source
+        run: |
+          rm -rf web/android
+          cp -R shell/android web/android
+          python3 - <<'PY'
+          from pathlib import Path
+
+          gradle = Path('web/android/app/build.gradle')
+          text = gradle.read_text(encoding='utf-8')
+          replacements = {
+              "versionCode 100101": "versionCode 100122",
+              "versionName '1.0.1-online-test'": "versionName '1.2.2-cloud-safety-test'",
+              "implementation 'androidx.exifinterface:exifinterface:1.3.7'": "implementation 'androidx.exifinterface:exifinterface:1.3.7'\n    implementation 'androidx.webkit:webkit:1.12.1'",
+              "include 'public/**'\n        include 'src/**'\n        include 'styles.css'": "include 'index.html'\n        include 'manifest.webmanifest'\n        include 'sw.js'\n        include 'public/**'\n        include 'src/**'\n        include 'styles.css'",
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'build.gradle source block not found: {old}')
+              text = text.replace(old, new, 1)
+          gradle.write_text(text, encoding='utf-8')
+
+          java = Path('web/android/app/src/main/java/com/luckybean/app/MainActivity.java')
+          text = java.read_text(encoding='utf-8')
+          replacements = {
+              'import android.webkit.WebResourceRequest;\n': 'import android.webkit.WebResourceRequest;\nimport android.webkit.WebResourceResponse;\n',
+              'import androidx.exifinterface.media.ExifInterface;\n': 'import androidx.exifinterface.media.ExifInterface;\nimport androidx.webkit.WebViewAssetLoader;\n',
+              'private static final String APP_URL = "https://zjcrop.github.io/BrewIon/luckybean/";\n    private static final String TRUSTED_HOST = "zjcrop.github.io";\n    private static final String TRUSTED_PATH_PREFIX = "/BrewIon/luckybean/";': 'private static final String APP_URL = "https://appassets.androidplatform.net/assets/web-cache/index.html";\n    private static final String TRUSTED_HOST = "appassets.androidplatform.net";\n    private static final String TRUSTED_PATH_PREFIX = "/assets/web-cache/";',
+              'private WebView webView;\n': 'private WebView webView;\n    private WebViewAssetLoader assetLoader;\n',
+              'settings.setUserAgentString(settings.getUserAgentString() + " LuckyBeanAndroidOnline/1.0.1-test");': 'settings.setUserAgentString(settings.getUserAgentString() + " LuckyBeanAndroidLocalFirst/1.2.2-cloud-safety-test");',
+              'webView.addJavascriptInterface(new NativeOcrBridge(this, webView), "LuckyBeanOcrAndroid");\n        webView.setWebViewClient(new OnlineAppClient());': 'webView.addJavascriptInterface(new NativeOcrBridge(this, webView), "LuckyBeanOcrAndroid");\n        assetLoader = new WebViewAssetLoader.Builder()\n            .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))\n            .build();\n        webView.setWebViewClient(new OnlineAppClient());',
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'MainActivity source block not found: {old[:80]}')
+              text = text.replace(old, new, 1)
+          old_load = '''    private void loadOnlineApp() {
+                  if (!hasNetwork()) {
+                      showOfflinePage();
+                      return;
+                  }
+                  webView.loadUrl(APP_URL + "?source=android-online-shell");
+              }
+          '''
+          new_load = '''    private void loadOnlineApp() {
+                  webView.loadUrl(APP_URL + "?source=android-local-first");
+              }
+          '''
+          if old_load not in text:
+              raise SystemExit('loadOnlineApp source block not found')
+          text = text.replace(old_load, new_load, 1)
+          marker = '    private final class OnlineAppClient extends WebViewClient {\n'
+          replacement = '''    private final class OnlineAppClient extends WebViewClient {
+                  @Override
+                  public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                      WebResourceResponse response = assetLoader.shouldInterceptRequest(request.getUrl());
+                      return response != null ? response : super.shouldInterceptRequest(view, request);
+                  }
+
+          '''
+          if marker not in text:
+              raise SystemExit('OnlineAppClient marker not found')
+          text = text.replace(marker, replacement, 1)
+          java.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Set up Java and Android SDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK 35
+        run: |
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build debug APK
+        run: |
+          gradle --no-daemon --stacktrace -p web/android clean
+          gradle --no-daemon --stacktrace -p web/android :app:assembleDebug
+
+      - name: Verify and package APK
+        run: |
+          apk="$(find web/android/app/build/outputs/apk/debug -name '*.apk' -type f -print -quit)"
+          test -n "$apk"
+          mkdir -p package/web-preview
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk" > package/SIGNING-CERTIFICATE.txt
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$apk" > package/APK-BADGING.txt
+          grep -F "versionCode='100122'" package/APK-BADGING.txt
+          unzip -Z1 "$apk" > package/APK-CONTENTS.txt
+          grep -F 'assets/web-cache/src/services/cloud-sync-safety.js' package/APK-CONTENTS.txt
+          grep -F 'assets/web-cache/src/ui/account-sync-panel.js' package/APK-CONTENTS.txt
+          unzip -p "$apk" assets/web-cache/index.html | grep -F '1.2.2-cloud-safety-test'
+          unzip -p "$apk" assets/web-cache/src/ui/account-sync-panel.js | grep -F '保留云端数据并同步'
+          unzip -p "$apk" assets/web-cache/src/services/cloud-sync-service.js | grep -F 'resolveDeletionDecision'
+          cp "$apk" package/LuckyBean-1.2.2-cloud-safety-test.apk
+          cp web/index.html web/manifest.webmanifest web/sw.js web/styles.css web/.nojekyll package/web-preview/
+          cp -R web/src web/public package/web-preview/
+          printf '%s\n' "source_branch=fix/v122-cloud-safety" "version=1.2.2-cloud-safety-test" "source_sha=$(git -C web rev-parse HEAD)" > package/BUILD-INFO.txt
+          sha256sum package/LuckyBean-1.2.2-cloud-safety-test.apk > package/SHA256SUMS.txt
+          (cd package && zip -qr LuckyBean-1.2.2-web-preview.zip web-preview)
+
+      - name: Upload APK and audit package
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-v122-cloud-safety-test
+          path: package/
+          if-no-files-found: error
+          retention-days: 30
