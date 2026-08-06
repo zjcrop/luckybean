@@ -3,6 +3,9 @@ import {
   SYNC_FORMAT, CHUNK_FORMAT, SYNC_SCHEMA_VERSION,
   buildLogicalPackets, encodePacket, decodePacket, compressBytes, decompressBytes, restorePackets
 } from '../cloud-codec.js';
+import {
+  analyzeRemoteDeletionRisk, deletionRiskFingerprintSource, mergePacketPreservingRemote
+} from './cloud-sync-safety.js';
 
 const STATE_ID = 'cloud.sync.state.v3';
 const DEVICE_ID = 'cloud.device.id.v3';
@@ -37,7 +40,14 @@ async function deviceId() {
 }
 
 async function stateRecord() {
-  return (await get('syncMetadata', STATE_ID)) || { id: STATE_ID, lastRemoteRevision: '', lastSuccessfulSyncAt: '', lastStatus: 'never' };
+  return (await get('syncMetadata', STATE_ID)) || {
+    id: STATE_ID,
+    lastRemoteRevision: '',
+    lastSuccessfulSyncAt: '',
+    lastStatus: 'never',
+    preservedDeletionFingerprint: '',
+    pendingDeletionFingerprint: ''
+  };
 }
 
 async function saveState(patch) {
@@ -70,11 +80,131 @@ async function digestB64(bytes) { return bytesToB64(await digest(bytes)); }
 async function chunkId(logicalKey) { return b64Url(await digest(enc.encode(logicalKey))).slice(0, 32); }
 
 async function remoteManifest(userId) {
-  const rows = await auth().apiRequest(`/rest/v1/luckybean_sync_manifests?user_id=eq.${encodeURIComponent(userId)}&select=*`, { method: 'GET', timeoutMs: 6000 });
+  const rows = await auth().apiRequest(`/rest/v1/luckybean_sync_manifests?user_id=eq.${encodeURIComponent(userId)}&select=*`, {
+    method: 'GET', timeoutMs: 6000
+  });
   return rows?.[0] || null;
 }
 
-async function upload({ reason = 'auto', forceMigration = false } = {}) {
+async function remotePacketBundle(userId, manifest) {
+  if (!manifest?.chunks?.length) return { rows: new Map(), packets: new Map() };
+  const result = await auth().apiRequest(`/rest/v1/luckybean_sync_chunks?user_id=eq.${encodeURIComponent(userId)}&select=*`, {
+    method: 'GET', timeoutMs: 12000
+  });
+  const rows = new Map((result || []).map(row => [row.chunk_id, row]));
+  const packets = new Map();
+  for (const meta of manifest.chunks || []) {
+    const row = rows.get(meta.chunk_id);
+    if (!row) throw new Error(`云端缺少分包 ${meta.chunk_id}`);
+    if (row.cipher && row.cipher !== 'none') {
+      const error = new Error('检测到旧版加密云端数据，已停止覆盖。请先使用旧版完成迁移。');
+      error.code = 'LEGACY_ENCRYPTED';
+      throw error;
+    }
+    const packed = b64ToBytes(row.payload);
+    const plain = await decompressBytes(packed, row.compression);
+    if (await digestB64(plain) !== row.content_hash) throw new Error(`分包 ${row.chunk_id} 完整性校验失败`);
+    packets.set(meta.chunk_id, decodePacket(plain));
+    await sleep(0);
+  }
+  return { rows, packets };
+}
+
+async function localPacketBundle(built) {
+  const descriptors = new Map();
+  const packets = new Map();
+  for (const packetInfo of built.packets) {
+    const id = await chunkId(packetInfo.logicalKey);
+    descriptors.set(id, { id, logicalKey: packetInfo.logicalKey, packet: packetInfo.packet });
+    packets.set(id, packetInfo.packet);
+  }
+  return { descriptors, packets };
+}
+
+async function riskFingerprint(risk) {
+  return digestB64(enc.encode(deletionRiskFingerprintSource(risk)));
+}
+
+function guardDetail(risk, fingerprint, remoteRevision) {
+  return {
+    fingerprint,
+    remoteRevision,
+    baselineUnknown: risk.baselineUnknown,
+    missingUnits: risk.missingUnits,
+    remoteUnits: risk.remoteUnits,
+    remoteOnlyChunks: risk.remoteOnlyChunks,
+    largeDeletion: risk.largeDeletion,
+    ratioPct: Math.round(risk.ratio * 1000) / 10,
+    message: risk.baselineUnknown
+      ? '云端已有数据，但本机尚未建立同步基线。为防止本机不完整数据覆盖云端，需要确认处理方式。'
+      : `本机数据将使云端减少 ${risk.missingUnits} 项记录，已停止自动删除。`
+  };
+}
+
+async function prepareUploadRows({ built, localBundle, remoteBundle, existing, policy, forceMigration, device, now }) {
+  const nextChunks = [];
+  const changedRows = [];
+  const remoteChunks = new Map((existing?.chunks || []).map(item => [item.chunk_id, item]));
+
+  for (const [id, descriptor] of localBundle.descriptors) {
+    const remotePacket = remoteBundle.packets.get(id);
+    const packet = policy === 'preserve' && remotePacket
+      ? mergePacketPreservingRemote(descriptor.packet, remotePacket)
+      : descriptor.packet;
+    const plain = encodePacket(packet);
+    const contentHash = await digestB64(plain);
+    const previous = remoteChunks.get(id);
+    const plainCompatible = previous?.cipher === 'none' || previous?.transport === 'plain-compressed-v1';
+    if (previous?.content_hash === contentHash && plainCompatible && !forceMigration) {
+      nextChunks.push(previous);
+      continue;
+    }
+    const compressed = await compressBytes(plain);
+    changedRows.push({
+      user_id: existing?.user_id || auth()?.getSession?.()?.user?.id,
+      chunk_id: id,
+      format: CHUNK_FORMAT,
+      schema_version: SYNC_SCHEMA_VERSION,
+      compression: compressed.algorithm,
+      cipher: 'none',
+      iv: '',
+      payload: bytesToB64(compressed.bytes),
+      content_hash: contentHash,
+      plain_bytes: plain.byteLength,
+      compressed_bytes: compressed.bytes.byteLength,
+      cipher_bytes: compressed.bytes.byteLength,
+      source_device_id: device,
+      client_updated_at: now,
+      uploaded_at: now
+    });
+    nextChunks.push({
+      chunk_id: id,
+      content_hash: contentHash,
+      logical_hash: await digestB64(enc.encode(descriptor.logicalKey)),
+      plain_bytes: plain.byteLength,
+      compressed_bytes: compressed.bytes.byteLength,
+      cipher_bytes: compressed.bytes.byteLength,
+      cipher: 'none',
+      transport: 'plain-compressed-v1',
+      client_updated_at: now
+    });
+    await sleep(0);
+  }
+
+  const localIds = new Set(localBundle.descriptors.keys());
+  const remoteOnly = [...remoteChunks.entries()].filter(([id]) => !localIds.has(id));
+  if (policy === 'preserve') {
+    for (const [, meta] of remoteOnly) nextChunks.push(meta);
+  }
+
+  return {
+    nextChunks,
+    changedRows,
+    staleChunkIds: policy === 'delete' ? remoteOnly.map(([id]) => id) : []
+  };
+}
+
+async function upload({ reason = 'auto', forceMigration = false, deletionPolicy = '', expectedFingerprint = '' } = {}) {
   const active = auth()?.getSession?.();
   if (!active?.user?.id) throw new Error('请先登录云端账号');
   const userId = active.user.id;
@@ -91,70 +221,47 @@ async function upload({ reason = 'auto', forceMigration = false } = {}) {
     return { conflict: true };
   }
 
-  emit('syncing', { reason });
+  emit('comparing', { reason });
   const built = await buildLogicalPackets();
-  const remoteChunks = new Map((existing?.chunks || []).map(item => [item.chunk_id, item]));
-  const nextChunks = [];
-  const changedRows = [];
-  const now = new Date().toISOString();
+  const localBundle = await localPacketBundle(built);
+  const remoteBundle = await remotePacketBundle(userId, existing);
+  const baselineUnknown = Boolean(
+    existing?.chunks?.length && !localState.lastRemoteRevision && existing.source_device_id && existing.source_device_id !== device
+  );
+  const risk = analyzeRemoteDeletionRisk(localBundle.packets, remoteBundle.packets, { baselineUnknown });
+  const fingerprint = await riskFingerprint(risk);
+  let policy = deletionPolicy;
 
-  for (const packetInfo of built.packets) {
-    const plain = encodePacket(packetInfo.packet);
-    const id = await chunkId(packetInfo.logicalKey);
-    const contentHash = await digestB64(plain);
-    const previous = remoteChunks.get(id);
-    const plainCompatible = previous?.cipher === 'none' || previous?.transport === 'plain-compressed-v1';
-    if (previous?.content_hash === contentHash && plainCompatible && !forceMigration) {
-      nextChunks.push(previous);
-      continue;
+  if (risk.requiresConfirmation) {
+    if (expectedFingerprint && expectedFingerprint !== fingerprint) policy = '';
+    if (!policy && localState.preservedDeletionFingerprint === fingerprint) policy = 'preserve';
+    if (!policy) {
+      const detail = guardDetail(risk, fingerprint, remoteRevision);
+      await saveState({
+        lastStatus: 'deletion-confirmation-required',
+        pendingDeletionFingerprint: fingerprint,
+        pendingDeletionDetail: detail,
+        pendingDeletionAt: new Date().toISOString()
+      });
+      emit('deletion-confirmation-required', detail);
+      return { confirmationRequired: true, ...detail };
     }
-    const compressed = await compressBytes(plain);
-    const row = {
-      user_id: userId,
-      chunk_id: id,
-      format: CHUNK_FORMAT,
-      schema_version: SYNC_SCHEMA_VERSION,
-      compression: compressed.algorithm,
-      cipher: 'none',
-      iv: '',
-      payload: bytesToB64(compressed.bytes),
-      content_hash: contentHash,
-      plain_bytes: plain.byteLength,
-      compressed_bytes: compressed.bytes.byteLength,
-      cipher_bytes: compressed.bytes.byteLength,
-      source_device_id: device,
-      client_updated_at: now,
-      uploaded_at: now
-    };
-    changedRows.push(row);
-    nextChunks.push({
-      chunk_id: id,
-      content_hash: contentHash,
-      logical_hash: await digestB64(enc.encode(packetInfo.logicalKey)),
-      plain_bytes: plain.byteLength,
-      compressed_bytes: compressed.bytes.byteLength,
-      cipher_bytes: compressed.bytes.byteLength,
-      cipher: 'none',
-      transport: 'plain-compressed-v1',
-      client_updated_at: now
-    });
-    await sleep(0);
+  } else {
+    policy = 'delete';
   }
 
-  if (changedRows.length) {
+  if (!['preserve', 'delete'].includes(policy)) throw new Error('无效的云端删除处理方式');
+
+  emit('syncing', { reason, deletionPolicy: policy });
+  const now = new Date().toISOString();
+  const prepared = await prepareUploadRows({ built, localBundle, remoteBundle, existing, policy, forceMigration, device, now });
+
+  if (prepared.changedRows.length) {
     await auth().apiRequest('/rest/v1/luckybean_sync_chunks?on_conflict=user_id,chunk_id', {
       method: 'POST',
       headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-      body: changedRows,
+      body: prepared.changedRows,
       timeoutMs: 12000
-    });
-  }
-
-  const activeIds = new Set(nextChunks.map(item => item.chunk_id));
-  const stale = [...remoteChunks.keys()].filter(id => !activeIds.has(id));
-  for (const id of stale) {
-    await auth().apiRequest(`/rest/v1/luckybean_sync_chunks?user_id=eq.${encodeURIComponent(userId)}&chunk_id=eq.${encodeURIComponent(id)}`, {
-      method: 'DELETE', headers: { Prefer: 'return=minimal' }, timeoutMs: 6000
     });
   }
 
@@ -166,7 +273,7 @@ async function upload({ reason = 'auto', forceMigration = false } = {}) {
     kdf: 'none',
     kdf_iterations: 0,
     kdf_salt: '',
-    chunks: nextChunks,
+    chunks: prepared.nextChunks,
     source_device_id: device,
     client_updated_at: now,
     uploaded_at: now
@@ -178,18 +285,38 @@ async function upload({ reason = 'auto', forceMigration = false } = {}) {
     timeoutMs: 10000
   });
 
+  for (const id of prepared.staleChunkIds) {
+    await auth().apiRequest(`/rest/v1/luckybean_sync_chunks?user_id=eq.${encodeURIComponent(userId)}&chunk_id=eq.${encodeURIComponent(id)}`, {
+      method: 'DELETE', headers: { Prefer: 'return=minimal' }, timeoutMs: 6000
+    });
+  }
+
   clearDirty();
+  const preservedUnits = policy === 'preserve' ? risk.missingUnits : 0;
+  const deletedUnits = policy === 'delete' ? risk.missingUnits : 0;
+  const lastStatus = preservedUnits ? 'synced-preserved' : 'synced';
   await saveState({
     lastRemoteRevision: now,
     lastSuccessfulSyncAt: now,
-    lastStatus: 'synced',
-    changedPackets: changedRows.length,
-    deletedPackets: stale.length,
-    packetCount: nextChunks.length,
-    uploadedBytes: changedRows.reduce((sum, row) => sum + Number(row.compressed_bytes || 0), 0)
+    lastStatus,
+    changedPackets: prepared.changedRows.length,
+    deletedPackets: prepared.staleChunkIds.length,
+    deletedUnits,
+    preservedUnits,
+    packetCount: prepared.nextChunks.length,
+    uploadedBytes: prepared.changedRows.reduce((sum, row) => sum + Number(row.compressed_bytes || 0), 0),
+    pendingDeletionFingerprint: '',
+    pendingDeletionDetail: null,
+    preservedDeletionFingerprint: policy === 'preserve' && risk.requiresConfirmation ? fingerprint : ''
   });
-  emit('synced', { changed: changedRows.length, deleted: stale.length, packetCount: nextChunks.length });
-  return { changed: changedRows.length, deleted: stale.length, packetCount: nextChunks.length };
+  emit(lastStatus, {
+    changed: prepared.changedRows.length,
+    deleted: prepared.staleChunkIds.length,
+    deletedUnits,
+    preservedUnits,
+    packetCount: prepared.nextChunks.length
+  });
+  return { changed: prepared.changedRows.length, deleted: prepared.staleChunkIds.length, deletedUnits, preservedUnits, packetCount: prepared.nextChunks.length };
 }
 
 async function download(manifest, { interactive = false } = {}) {
@@ -224,7 +351,9 @@ async function download(manifest, { interactive = false } = {}) {
       lastRemoteRevision: String(manifest.client_updated_at || ''),
       lastSuccessfulSyncAt: new Date().toISOString(),
       lastStatus: 'downloaded',
-      restored
+      restored,
+      pendingDeletionFingerprint: '',
+      pendingDeletionDetail: null
     });
     emit('downloaded', { restored });
     document.dispatchEvent(new CustomEvent('luckybean:cloud-data-restored', { detail: { restored } }));
@@ -234,7 +363,7 @@ async function download(manifest, { interactive = false } = {}) {
   }
 }
 
-async function reconcile({ reason = 'startup', interactive = false, forcePull = false } = {}) {
+async function reconcile({ reason = 'startup', interactive = false, forcePull = false, deletionPolicy = '', expectedFingerprint = '' } = {}) {
   if (busy) {
     pendingRun = true;
     return { queued: true };
@@ -257,15 +386,16 @@ async function reconcile({ reason = 'startup', interactive = false, forcePull = 
     const remoteChanged = Boolean(manifest && remoteRevision && remoteRevision !== localState.lastRemoteRevision);
 
     if (forcePull && manifest) return await download(manifest, { interactive: true });
-    if (dirty) return await upload({ reason });
+    if (dirty || deletionPolicy) return await upload({ reason, deletionPolicy, expectedFingerprint });
     if (remoteChanged) return await download(manifest, { interactive });
 
     await saveState({ lastStatus: 'idle', lastCheckedAt: new Date().toISOString(), lastRemoteRevision: remoteRevision || localState.lastRemoteRevision });
     emit('idle');
     return { idle: true };
   } catch (error) {
-    await saveState({ lastStatus: 'error', lastError: error.message, lastErrorAt: new Date().toISOString() }).catch(() => {});
-    emit('error', { error: error.message });
+    const status = error?.code === 'LEGACY_ENCRYPTED' ? 'legacy-encrypted' : 'error';
+    await saveState({ lastStatus: status, lastError: error.message, lastErrorAt: new Date().toISOString() }).catch(() => {});
+    emit(status, { error: error.message });
     if (interactive) throw error;
     return { error: error.message };
   } finally {
@@ -298,6 +428,19 @@ function ensureAutomatic(reason = 'authenticated') {
   return true;
 }
 
+async function resolveDeletionDecision(decision) {
+  const current = await stateRecord();
+  const fingerprint = current.pendingDeletionFingerprint || '';
+  if (!fingerprint) return reconcile({ reason: 'deletion-review-missing', interactive: true });
+  const policy = decision === 'delete' ? 'delete' : 'preserve';
+  return reconcile({
+    reason: policy === 'delete' ? 'confirmed-cloud-deletion' : 'preserve-cloud-data',
+    interactive: true,
+    deletionPolicy: policy,
+    expectedFingerprint: fingerprint
+  });
+}
+
 document.addEventListener('luckybean:data-changed', () => scheduleSync(DEBOUNCE_MS, 'local-change'));
 document.addEventListener('luckybean:cloud-auth-state', event => {
   if (event.detail?.state === 'authenticated') ensureAutomatic('auth-ready');
@@ -309,9 +452,10 @@ document.addEventListener('visibilitychange', () => {
 });
 
 globalThis.LuckyBeanCloudSync = {
-  revision: 'cloud-sync-service-v1',
+  revision: 'cloud-sync-service-v2-safe-delete',
   reconcile,
   ensureAutomatic,
+  resolveDeletionDecision,
   syncNow: () => reconcile({ reason: 'manual', interactive: true }),
   pullNow: () => reconcile({ reason: 'manual-pull', interactive: true, forcePull: true }),
   enabled: async () => true,
@@ -319,4 +463,5 @@ globalThis.LuckyBeanCloudSync = {
   hasPendingChanges: () => Boolean(readDirty())
 };
 
+document.dispatchEvent(new CustomEvent('luckybean:cloud-sync-service-ready'));
 if (readDirty()) scheduleSync(1200, 'startup-dirty');
