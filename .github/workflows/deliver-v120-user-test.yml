@@ -1,4 +1,4 @@
-name: Deliver LuckyBean v1.2.0 user test
+name: Package LuckyBean v1.2.0 user test
 
 on:
   push:
@@ -8,50 +8,22 @@ on:
       - .github/workflows/deliver-v120-user-test.yml
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: luckybean-v120-user-test-delivery
+  group: luckybean-v120-user-test-package
   cancel-in-progress: false
 
 jobs:
-  verify-build-deliver:
+  verify-build-package:
     runs-on: ubuntu-24.04
     timeout-minutes: 70
     steps:
-      - name: Checkout exact delivery source
+      - name: Checkout immutable verified product commit
         uses: actions/checkout@v4
         with:
-          ref: delivery-v120-user-test
-          fetch-depth: 0
-
-      - name: Materialize the previously verified product implementation
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          import subprocess
-          import textwrap
-
-          source = Path('.github/workflows/complete-v120-profile-ownership.yml').read_text(encoding='utf-8')
-          blocks = re.findall(
-              r"(?ms)^        run: \|\n          python3 - <<'PY'\n(?P<script>.*?)^          PY\n",
-              source
-          )
-          if len(blocks) != 2:
-              raise SystemExit(f'expected two verified implementation blocks, got {len(blocks)}')
-          for index, block in enumerate(blocks):
-              path = Path(f'/tmp/luckybean-v120-implementation-{index}.py')
-              path.write_text(textwrap.dedent(block), encoding='utf-8')
-              subprocess.run(['python3', str(path)], check=True)
-          PY
-
-      - name: Protect the repository from generated test files
-        run: |
-          touch .gitignore
-          for entry in 'node_modules/' 'test-results/' 'playwright-report/' '.playwright/'; do
-            grep -qxF "$entry" .gitignore || printf '%s\n' "$entry" >> .gitignore
-          done
+          ref: a59672ebe29a843927cbc0dcbfab54f2e681d425
+          fetch-depth: 1
 
       - name: Verify syntax contracts complete UI flows and visual baselines
         run: |
@@ -64,7 +36,7 @@ jobs:
           node --check src/services/brew-analysis-service.js
           node --check src/brew-engine.js
           node --check src/ui-layout-controller.js
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           npm run test:static
           npx playwright install --with-deps chromium
           python3 -m http.server 4173 > /tmp/luckybean-http.log 2>&1 &
@@ -74,25 +46,12 @@ jobs:
           npm run test:core
           npm run test:visual
 
-      - name: Commit the verified product tree without workflow changes
-        run: |
-          rm -rf node_modules test-results playwright-report .playwright
-          git restore --source=HEAD --staged --worktree .github/workflows
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git restore --staged .github/workflows
-          git diff --cached --check
-          git commit -m "fix: deliver verified LuckyBean v1.2.0 user-test product tree"
-          git push origin HEAD:refs/heads/delivery-v120-user-test
-          git rev-parse HEAD > /tmp/LUCKYBEAN_SOURCE_SHA.txt
-
       - name: Create immutable Web test package
         run: |
           mkdir -p package/web-preview
           cp index.html manifest.webmanifest sw.js styles.css package/web-preview/
           cp -R src public package/web-preview/
-          cp /tmp/LUCKYBEAN_SOURCE_SHA.txt package/SOURCE-SHA.txt
+          printf '%s\n' 'a59672ebe29a843927cbc0dcbfab54f2e681d425' > package/SOURCE-SHA.txt
           (cd package && zip -qr LuckyBean-1.2.0-web-preview.zip web-preview)
 
       - name: Checkout Android shell
@@ -156,7 +115,7 @@ jobs:
         run: |
           find src -name '*.js' -print0 | xargs -0 -n1 node --check
           grep -F '1.2.0-test' package.json
-          grep -F '启动和使用不等待服务器' index.html
+          grep -F '启动和使用不等待服务器' src/ui/account-sync-panel.js
           ! grep -R -F 'data-auth-gate="checking"' index.html src
           grep -F 'versionCode 100120' android/app/build.gradle
           grep -F "versionName '1.2.0-local-first-test'" android/app/build.gradle
@@ -197,7 +156,7 @@ jobs:
           grep -F 'assets/web-cache/src/app.js' package/APK-CONTENTS.txt
           grep -F 'assets/web-cache/src/ui/account-sync-panel.js' package/APK-CONTENTS.txt
           grep -F 'assets/web-cache/src/renderers/brew-spatial-controller.js' package/APK-CONTENTS.txt
-          unzip -p "$apk" assets/web-cache/index.html | grep -F '启动和使用不等待服务器'
+          unzip -p "$apk" assets/web-cache/src/ui/account-sync-panel.js | grep -F '启动和使用不等待服务器'
           cp "$apk" package/LuckyBean-1.2.0-local-first-test.apk
           sha256sum package/LuckyBean-1.2.0-local-first-test.apk package/LuckyBean-1.2.0-web-preview.zip > package/SHA256SUMS.txt
 
