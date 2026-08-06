@@ -1,5 +1,7 @@
 from pathlib import Path
 
+# This migration updates the historical core test to the deliberate separation
+# between the cloud-sync account and the installation-scoped brew gateway.
 path = Path('tests/v120-core-contracts-static.mjs')
 text = path.read_text(encoding='utf-8')
 analysis_import = "const analysis = read('src/services/brew-analysis-service.js');\n"
