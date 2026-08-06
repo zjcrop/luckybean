@@ -2,14 +2,30 @@ from pathlib import Path
 
 path = Path('tests/v120-core-contracts-static.mjs')
 text = path.read_text(encoding='utf-8')
-text = text.replace(
-    "const analysis = read('src/services/brew-analysis-service.js');\n",
-    "const analysis = read('src/services/brew-analysis-service.js');\nconst brewApi = read('src/services/brew-api-client.js');\n",
-    1,
-)
-old = "assert.match(analysis, /authorization:\\s*`Bearer \\${token}`/);\n"
-new = "assert.doesNotMatch(analysis, /LuckyBeanCloudAuth|access_token|authorization:\\s*`Bearer/);\nassert.match(brewApi, /x-installation-id/);\nassert.match(brewApi, /luckybean\\.installation\\.id\\.v1/);\nassert.doesNotMatch(brewApi, /authorization:\\s*`Bearer|LuckyBeanCloudAuth|access_token/);\n"
-if old not in text:
+analysis_import = "const analysis = read('src/services/brew-analysis-service.js');\n"
+if "const brewApi = read('src/services/brew-api-client.js');" not in text:
+    if analysis_import not in text:
+        raise SystemExit('analysis import not found')
+    text = text.replace(
+        analysis_import,
+        analysis_import + "const brewApi = read('src/services/brew-api-client.js');\n",
+        1,
+    )
+
+lines = text.splitlines(keepends=True)
+replaced = False
+output = []
+for line in lines:
+    if not replaced and line.startswith('assert.match(analysis, /authorization:'):
+        output.extend([
+            "assert.doesNotMatch(analysis, /LuckyBeanCloudAuth|access_token|authorization:\\s*`Bearer/);\n",
+            "assert.match(brewApi, /x-installation-id/);\n",
+            "assert.match(brewApi, /luckybean\\.installation\\.id\\.v1/);\n",
+            "assert.doesNotMatch(brewApi, /authorization:\\s*`Bearer|LuckyBeanCloudAuth|access_token/);\n",
+        ])
+        replaced = True
+    else:
+        output.append(line)
+if not replaced:
     raise SystemExit('old cloud-account authorization assertion not found')
-text = text.replace(old, new, 1)
-path.write_text(text, encoding='utf-8')
+path.write_text(''.join(output), encoding='utf-8')
