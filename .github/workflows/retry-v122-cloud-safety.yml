@@ -22,27 +22,11 @@ jobs:
           ref: fix/v122-cloud-safety
           fetch-depth: 0
 
-      - name: Correct obsolete upload-body assertion
+      - name: Verify corrected version-sensitive assertions
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          path = Path('tests/v110-local-first-sync-static.mjs')
-          text = path.read_text(encoding='utf-8')
-          old = "assert.match(sync, /body:\\s*changedRows/);"
-          new = "assert.match(sync, /body:\\s*(?:prepared\\.)?changedRows/);"
-          if old not in text and new not in text:
-              raise SystemExit('legacy changedRows assertion not found')
-          text = text.replace(old, new, 1)
-          path.write_text(text, encoding='utf-8')
-          PY
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tests/v110-local-first-sync-static.mjs
-          git diff --cached --check
-          if ! git diff --cached --quiet; then
-            git commit -m "test: accept prepared incremental upload rows"
-            git push origin HEAD:refs/heads/fix/v122-cloud-safety
-          fi
+          grep -F "body:\\s*(?:prepared\\.)?changedRows" tests/v110-local-first-sync-static.mjs
+          grep -F "CACHE_PREFIX = 'luckybean-v122-cloud-safety-test-'" tests/v110-local-first-sync-static.mjs
+          grep -F "'luckybean-v121-account-test-'" tests/v110-local-first-sync-static.mjs
 
       - name: Dispatch full verification and APK build
         env:
