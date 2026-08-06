@@ -26,7 +26,8 @@ jobs:
         run: |
           grep -F "body:\\s*(?:prepared\\.)?changedRows" tests/v110-local-first-sync-static.mjs
           grep -F "CACHE_PREFIX = 'luckybean-v122-cloud-safety-test-'" tests/v110-local-first-sync-static.mjs
-          grep -F "'luckybean-v121-account-test-'" tests/v110-local-first-sync-static.mjs
+          grep -F "CACHE_PREFIX = 'luckybean-v122-cloud-safety-test-'" tests/v120-requirements-static.mjs
+          grep -F "'luckybean-v121-account-test-'" tests/v120-requirements-static.mjs
 
       - name: Dispatch full verification and APK build
         env:
