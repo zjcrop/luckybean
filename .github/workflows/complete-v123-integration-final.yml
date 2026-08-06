@@ -3,7 +3,9 @@ name: Complete LuckyBean v1.2.3 integration final
 on:
   push:
     branches: [fix/v123-brewprofiles-integration-final]
-    paths: [.github/workflows/complete-v123-integration-final.yml]
+    paths:
+      - .github/workflows/complete-v123-integration-final.yml
+      - tools/update_v123_contract_semantics.py
 
 permissions:
   contents: write
