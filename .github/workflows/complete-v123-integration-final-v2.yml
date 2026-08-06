@@ -1,3 +1,4 @@
+# rerun after BrewProfiles gateway 2.1.2 and brew-plan 2.0.1 deployment
 name: Complete LuckyBean v1.2.3 integration final v2
 
 on:
