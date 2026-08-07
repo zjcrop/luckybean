@@ -117,6 +117,12 @@ test('professional tags sort and radar nodes select and drag; note mode opens di
   await seedBean(page);
   await page.locator('[data-page-target="sensory"]').click();
   await page.locator('#sensoryBeanSelect').selectOption('requirements-bean');
+  const modeButtons = page.locator('.v095-sensory-modes [data-v095-mode]');
+  await expect(modeButtons).toHaveCount(3);
+  await expect(modeButtons.nth(0)).toContainText('专业品鉴');
+  await expect(modeButtons.nth(1)).toContainText('玩家互动品鉴');
+  await expect(modeButtons.nth(2)).toContainText('札记');
+  await expect(page.locator('#startSensoryBtn')).toHaveCount(0);
   await page.locator('[data-v095-mode="professional"]').click();
   const tags = page.locator('[data-v095-tag]');
   await tags.nth(0).click();
@@ -156,6 +162,16 @@ test('professional tags sort and radar nodes select and drag; note mode opens di
   await expect(page.locator('#sensoryNaturalNote')).toBeVisible();
   await expect(page.locator('#sensoryNoteScore')).toBeVisible();
   await expect(page.locator('#prevSensoryNodeBtn,#sensoryDeltaWheel,.sensory-option')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '退', exact: true })).toHaveCount(0);
+  await page.locator('#cancelEvaluationBtn').click();
+  await expect(page.locator('.v095-sensory-modes [data-v095-mode]')).toHaveCount(3);
+  await expect(page.locator('[data-sensory-mode="player"]')).toHaveCount(0);
+
+  await page.locator('[data-v095-mode="player"]').click();
+  await expect(page.locator('[data-sensory-mode="player"]')).toBeVisible();
+  await expect(page.locator('[data-sensory-mode="note"]')).toHaveCount(0);
+  await page.locator('#cancelEvaluationBtn').click();
+  await expect(page.locator('.v095-sensory-modes [data-v095-mode]')).toHaveCount(3);
 });
 
 
@@ -187,4 +203,40 @@ test('private gear uses three closed, aligned list editors', async ({ page }) =>
   await expect(page.locator('[data-grinder-item]')).toContainText('测试磨豆机');
   await page.locator('[data-grinder-item]').click();
   await expect(page.locator('#grinderName')).toHaveValue('测试磨豆机');
+  await page.locator('#grinderSetting').fill('23格');
+  await page.locator('#saveGrinderBtn').click();
+
+  await page.locator('#privateGearCategory > summary').click();
+  await page.locator('[data-gear-kind="filter"] > summary').click();
+  await page.locator('[data-add-gear="filter"]').click();
+  await page.locator('#filterBrand').fill('测试品牌');
+  await page.locator('#filterType').fill('测试滤纸');
+  await page.locator('#filterQuantity').fill('50');
+  await page.locator('#saveFilterBtn').click();
+
+  await page.locator('#privateGearCategory > summary').click();
+  await page.locator('[data-gear-kind="dripper"] > summary').click();
+  await page.locator('[data-add-gear="dripper"]').click();
+  await page.locator('#dripperName').fill('测试滤杯');
+  await page.locator('#saveDripperBtn').click();
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  const splash = page.locator('#splashScreen');
+  if (await splash.isVisible()) await splash.click();
+  await expect(page.locator('#appShell')).toBeVisible({ timeout: 15000 });
+  await page.locator('[data-page-target="settings"]').click();
+  await page.locator('#privateGearCategory > summary').click();
+
+  for (const kind of ['filter', 'dripper', 'grinder']) {
+    await expect(page.locator(`[data-gear-kind="${kind}"]`)).not.toHaveAttribute('open', '');
+  }
+  await page.locator('[data-gear-kind="filter"] > summary').click();
+  await expect(page.locator('[data-filter-item]')).toContainText('测试品牌 测试滤纸');
+  await page.locator('[data-gear-kind="filter"] > summary').click();
+  await page.locator('[data-gear-kind="dripper"] > summary').click();
+  await expect(page.locator('[data-dripper-item]')).toContainText('测试滤杯');
+  await page.locator('[data-gear-kind="dripper"] > summary').click();
+  await page.locator('[data-gear-kind="grinder"] > summary').click();
+  await expect(page.locator('[data-grinder-item]')).toContainText('测试磨豆机');
+  await expect(page.locator('[data-grinder-item]')).toContainText('23格');
 });
