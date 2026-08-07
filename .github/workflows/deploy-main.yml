@@ -1,9 +1,10 @@
 name: LuckyBean main web deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: ["LuckyBean main tests"]
     branches: [main]
-  workflow_dispatch:
+    types: [completed]
 
 permissions:
   contents: read
@@ -11,28 +12,36 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: luckybean-pages-${{ github.event.workflow_run.head_sha }}
   cancel-in-progress: false
+
+env:
+  SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
 
 jobs:
   package-web:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Prepare web site
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+      - name: Prepare exact tested web site
         shell: bash
         run: |
           mkdir -p _site
           cp index.html manifest.webmanifest sw.js styles.css _site/
-          cp -R src public _site/
+          cp -R src public contracts _site/
           touch _site/.nojekyll
-          zip -qr LuckyBean-1.2.3-main-test-web.zip index.html manifest.webmanifest sw.js styles.css src public
+          printf '{"commit":"%s","version":"1.2.3-main-test"}\n' "$SOURCE_SHA" > _site/version.json
+          zip -qr LuckyBean-1.2.3-main-test-web.zip index.html manifest.webmanifest sw.js styles.css src public contracts
       - uses: actions/upload-artifact@v4
         with:
-          name: luckybean-main-web
+          name: luckybean-main-web-${{ env.SOURCE_SHA }}
           path: |
             _site/
             LuckyBean-1.2.3-main-test-web.zip
+          if-no-files-found: error
 
   deploy-pages:
     needs: package-web
@@ -42,14 +51,17 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
       - uses: actions/configure-pages@v5
-      - name: Prepare web site
+      - name: Prepare exact tested web site
         shell: bash
         run: |
           mkdir -p _site
           cp index.html manifest.webmanifest sw.js styles.css _site/
-          cp -R src public _site/
+          cp -R src public contracts _site/
           touch _site/.nojekyll
+          printf '{"commit":"%s","version":"1.2.3-main-test"}\n' "$SOURCE_SHA" > _site/version.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
@@ -59,20 +71,24 @@ jobs:
   verify-pages:
     needs: deploy-pages
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
-      - name: Verify published page
+      - name: Verify published commit and core resources
         shell: bash
         run: |
-          for attempt in {1..18}; do
-            status=$(curl -L -sS -o /tmp/luckybean-pages.html -w '%{http_code}' https://zjcrop.github.io/luckybean/)
-            if [ "$status" = "200" ] && grep -qi '<html' /tmp/luckybean-pages.html; then
-              echo "LuckyBean Pages is reachable: HTTP $status"
+          base='https://zjcrop.github.io/luckybean'
+          for attempt in {1..24}; do
+            index_status=$(curl -L -sS -o /tmp/luckybean-index.html -w '%{http_code}' "$base/")
+            version_status=$(curl -L -sS -o /tmp/luckybean-version.json -w '%{http_code}' "$base/version.json")
+            app_status=$(curl -L -sS -o /tmp/luckybean-app.js -w '%{http_code}' "$base/src/app.js")
+            manifest_status=$(curl -L -sS -o /tmp/luckybean-manifest.json -w '%{http_code}' "$base/manifest.webmanifest")
+            if [ "$index_status" = "200" ] && [ "$version_status" = "200" ] && [ "$app_status" = "200" ] && [ "$manifest_status" = "200" ]               && grep -qi '<html' /tmp/luckybean-index.html               && grep -q "$SOURCE_SHA" /tmp/luckybean-version.json               && grep -q 'buildBrewInput' /tmp/luckybean-app.js; then
+              echo "LuckyBean Pages verified for $SOURCE_SHA"
               exit 0
             fi
-            echo "Attempt $attempt: HTTP $status; waiting for Pages propagation"
+            echo "Attempt $attempt: index=$index_status version=$version_status app=$app_status manifest=$manifest_status"
             sleep 10
           done
-          echo "LuckyBean Pages did not become reachable"
-          cat /tmp/luckybean-pages.html || true
+          echo 'LuckyBean Pages verification failed'
+          cat /tmp/luckybean-version.json || true
           exit 1
