@@ -37,7 +37,6 @@ for (const profileId of competitionIds) {
     method: 'POST',
     headers: { ...headers, 'x-request-id': crypto.randomUUID() },
     body: JSON.stringify({
-      schemaVersion: 2,
       bean: {
         countryCode: 'PA',
         varietyCode: 'GEISHA',
@@ -69,7 +68,7 @@ for (const profileId of competitionIds) {
       },
       water: { profileId: 'balanced', recipeVolumeL: 5, tdsMgL: 80 },
       environment: { ambientTemperatureC: 25, relativeHumidityPct: 50, initialBedTemperatureC: 25 },
-      targets: { floral: 2, acidity: 2, sweetness: 2, body: 1, bitterness: 2 }
+      targets: { acidity: 2, floral: 2.5, fruity: 1.5, sweetness: 2.25, bitterness: 2, astringency: 1.75 }
     })
   });
   const analysis = await response.json();
@@ -84,6 +83,18 @@ for (const profileId of competitionIds) {
   assert.equal(analysis.metadata.resolvedProfileId, profileId);
   assert.equal(analysis.metadata.resolvedProfileVersion, catalogVersions.get(profileId));
   assert.deepEqual(analysis.input.brew.profileId, profileId);
+  for (const key of ['schemaVersion', 'appVersion', 'engineVersion', 'profileVersion']) {
+    assert.equal(Object.hasOwn(analysis.input, key), false, `${profileId}: business input leaked ${key}`);
+  }
+  assert.deepEqual(analysis.input.targets, {
+    acidity: 2,
+    floral: 2.5,
+    fruity: 1.5,
+    sweetness: 2.25,
+    bitterness: 2,
+    astringency: 1.75
+  });
+  assert.equal(Object.hasOwn(analysis.input.targets, 'body'), false);
   for (const field of ['profile','input','recommendation','summary','stages','models','warnings','integration','options']) {
     assert.ok(Object.hasOwn(analysis.plan, field), `${profileId}: plan missing ${field}`);
   }
