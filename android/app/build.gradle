@@ -18,18 +18,19 @@ tasks.register('syncLuckyBeanWebAssets') {
     doLast {
         File output = generatedWebAssets.get().asFile
         delete output
+        File webCache = new File(output, 'web-cache')
         copy {
             from(repositoryRoot) {
                 include 'index.html', '*.css', 'manifest.webmanifest', 'sw.js'
                 include 'src/**', 'public/**'
             }
-            into output
+            into webCache
         }
 
-        File nativeBridge = new File(output, 'native-bridge.js')
+        File nativeBridge = new File(webCache, 'native-bridge.js')
         nativeBridge.write("globalThis.__LUCKYBEAN_ANDROID__ = true;\nglobalThis.__LUCKYBEAN_PUBLIC_URL__ = 'https://zjcrop.github.io/BrewIon/luckybean/';\n", 'UTF-8')
 
-        File indexFile = new File(output, 'index.html')
+        File indexFile = new File(webCache, 'index.html')
         String indexHtml = indexFile.getText('UTF-8')
         def moduleMatcher = (indexHtml =~ /<script type="module" src="\.\/src\/(?:app\.js|core\/startup-controller\.js)(?:\?v=[^"]+)?"><\/script>/)
         if (!moduleMatcher.find()) {
@@ -38,7 +39,7 @@ tasks.register('syncLuckyBeanWebAssets') {
         String moduleTag = moduleMatcher.group(0)
         indexFile.write(indexHtml.replace(moduleTag, '<script src="./native-bridge.js"></script>\n  ' + moduleTag), 'UTF-8')
 
-        File appScript = new File(output, 'src/app.js')
+        File appScript = new File(webCache, 'src/app.js')
         String original = appScript.getText('UTF-8')
         String shareTarget = 'const link = `${location.origin}${location.pathname}#share=${encoded}`;'
         String shareReplacement = 'const shareBase = globalThis.__LUCKYBEAN_PUBLIC_URL__ || `${location.origin}${location.pathname}`; const link = `${shareBase}#share=${encoded}`;'

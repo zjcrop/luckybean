@@ -15,7 +15,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  package-web:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare web site
+        shell: bash
+        run: |
+          mkdir -p _site
+          cp index.html manifest.webmanifest sw.js styles.css _site/
+          cp -R src public _site/
+          touch _site/.nojekyll
+          zip -qr LuckyBean-1.2.3-main-test-web.zip index.html manifest.webmanifest sw.js styles.css src public
+      - uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-main-web
+          path: |
+            _site/
+            LuckyBean-1.2.3-main-test-web.zip
+
+  deploy-pages:
+    if: ${{ vars.LUCKYBEAN_ENABLE_PAGES == 'true' }}
+    needs: package-web
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

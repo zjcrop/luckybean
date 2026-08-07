@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
 const endpoint = 'https://vaxwncdcuvbpvdbbketb.supabase.co/functions/v1/brew-analyze-v2';
-const key = 'sb_publishable_MsB0RFoxxf5zJbbT9PPBjQ_WP7GBMMn';
+const key = process.env.BREWPROFILES_API_KEY || 'sb_publishable_MsB0RFoxxf5zJbbT9PPBjQ_WP7GBMMn';
 const installationId = `lb-ci-${crypto.randomUUID()}`;
 const competitionIds = [
   'cbrc-2026-01-zhong-jingjing',

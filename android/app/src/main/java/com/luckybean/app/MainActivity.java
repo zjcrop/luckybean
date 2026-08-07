@@ -87,6 +87,7 @@ public final class MainActivity extends Activity {
             if (path == null || path.equals("/")) path = "/index.html";
             path = path.replace("..", "");
             String assetPath = path.startsWith("/") ? path.substring(1) : path;
+            assetPath = "web-cache/" + assetPath;
             try {
                 InputStream input = getAssets().open(assetPath);
                 Map<String, String> headers = new HashMap<>();
