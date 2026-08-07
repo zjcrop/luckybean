@@ -90,7 +90,7 @@ function normalizeAccountSection(section) {
   if (section.dataset.singleSyncNormalized === '1') return;
   section.dataset.singleSyncNormalized = '1';
   const summary = section.querySelector(':scope > summary');
-  if (summary) summary.innerHTML = '<span>云端同步</span><small>唯一的服务器登录与自动同步入口</small>';
+  if (summary) summary.innerHTML = '<span>账户</span><small>唯一的登录与自动同步入口</small>';
 }
 
 function removeLegacyAccountUi(root, account) {
