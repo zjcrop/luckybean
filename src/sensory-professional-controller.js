@@ -54,24 +54,20 @@ async function beanContext(beanId) {
 
 function modePanel() {
   return `<div class="v095-sensory-modes v095-sensory-modes-v2" data-mode-version="professional-v2" aria-label="品鉴模式">
-    <button type="button" data-v095-mode="professional"><strong>专业品鉴</strong><small>专业杯测品鉴 / 雷达图 / 札记</small></button>
+    <button type="button" data-v095-mode="professional"><strong>杯测品鉴</strong><small>专业杯测 / 雷达图 / 札记</small></button>
     <button type="button" data-v095-mode="player"><strong>玩家互动品鉴</strong><small>风味互动 / 札记</small></button>
     <button type="button" data-v095-mode="note"><strong>札记</strong><small>自然语言记录，评分</small></button>
   </div>`;
 }
 
 function replaceModePanel() {
-  const startPanel = $('#sensoryContent .sensory-start-panel');
-  if (!startPanel) return;
-  const action = $('.sensory-start-action', startPanel);
-  const native = $('#startSensoryBtn', startPanel);
-  if (!action || !native) return;
-  native.classList.add('v095-native-start');
-  const current = $('.v095-sensory-modes', action);
+  const host = $('#sensoryContent [data-sensory-mode-host]');
+  if (!host) return;
+  const current = $('.v095-sensory-modes', host);
   if (current?.dataset.modeVersion === 'professional-v2') return;
-  current?.remove();
-  action.insertAdjacentHTML('beforeend', modePanel());
-  $$('[data-v095-mode]', action).forEach(button => button.addEventListener('click', () => startMode(button.dataset.v095Mode)));
+  host.replaceChildren();
+  host.insertAdjacentHTML('beforeend', modePanel());
+  $('[data-v095-mode]', host).forEach(button => button.addEventListener('click', () => startMode(button.dataset.v095Mode)));
 }
 
 async function selectedBeanId() {
@@ -312,7 +308,7 @@ function renderWizard() {
         ? `<section class="v095-note-stage"><h3>札记</h3><p class="muted small">记录香气、酸甜、口感、缺陷判断及下一次调整方向。</p><textarea class="control natural-note" data-v095-professional-note maxlength="1600" placeholder="填写本次专业杯测札记……">${esc(wizard.naturalNote)}</textarea></section>`
         : `<section class="v095-summary-stage"><h3>${esc(wizard.bean?.name || '未命名咖啡')}</h3><pre>${esc(professionalSummary())}</pre><p>映射评分：${affectiveMappedScore().toFixed(1)}</p><div class="v095-professional-note-preview"><strong>札记</strong><p>${wizard.naturalNote ? esc(wizard.naturalNote) : '未填写札记'}</p></div></section>`;
   overlay.innerHTML = `<div class="dialog v095-professional-dialog">
-    <div class="dialog-header"><div><h2>专业品鉴</h2><p>${progressTitle}</p></div><button class="close-button" type="button" data-v095-close>×</button></div>
+    <div class="dialog-header"><div><h2>杯测品鉴</h2><p>${progressTitle}</p></div><button class="close-button" type="button" data-v095-close>×</button></div>
     ${body}
     <div class="v095-wizard-actions"><button type="button" class="button" data-v095-prev ${wizard.step <= 0 ? 'disabled' : ''}>上一步</button><button type="button" class="button primary" data-v095-next>${summaryStep ? '写入品鉴' : '下一步'}</button></div>
   </div>`;
