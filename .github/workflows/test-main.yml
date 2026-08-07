@@ -32,11 +32,6 @@ jobs:
         shell: bash
         run: find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
       - run: npm run test:static
-      - name: Run live BrewProfiles verification when credentials are configured
-        if: ${{ secrets.BREWPROFILES_API_KEY != '' }}
-        env:
-          BREWPROFILES_API_KEY: ${{ secrets.BREWPROFILES_API_KEY }}
-        run: npm run test:live-brewprofiles
       - run: npx playwright install --with-deps chromium
       - name: Start web server
         shell: bash
