@@ -1,23 +1,29 @@
 name: LuckyBean main build
 
 on:
-  push:
+  workflow_run:
+    workflows: ["LuckyBean main tests"]
     branches: [main]
-  workflow_dispatch:
+    types: [completed]
 
 permissions:
   contents: read
 
 concurrency:
-  group: luckybean-main-build-${{ github.ref }}
+  group: luckybean-main-build-${{ github.event.workflow_run.head_sha }}
   cancel-in-progress: true
 
 jobs:
   build:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    env:
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -34,6 +40,7 @@ jobs:
         with:
           gradle-version: '8.9'
       - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run test:static
       - name: Build Android debug APK
         run: gradle --no-daemon -p android :app:assembleDebug
@@ -47,14 +54,20 @@ jobs:
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/src/services/brew-profile-catalog-service.js'
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/src/services/brew-analysis-service.js'
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/src/renderers/brew-spatial-controller.js'
-      - name: Package web test artifact
+          if unzip -p android/app/build/outputs/apk/debug/app-debug.apk | grep -aEq 'sb_secret_|SUPABASE_SERVICE_ROLE_KEY'; then
+            echo 'Server secret material found in APK'
+            exit 1
+          fi
+      - name: Package exact tested source
         shell: bash
         run: |
           mkdir -p dist
-          zip -qr dist/LuckyBean-1.2.3-main-test-web.zip index.html manifest.webmanifest sw.js styles.css src public
+          zip -qr dist/LuckyBean-1.2.3-main-test-web.zip index.html manifest.webmanifest sw.js styles.css src public contracts
           cp android/app/build/outputs/apk/debug/app-debug.apk dist/LuckyBean-1.2.3-main-test-debug.apk
-          sha256sum dist/* > dist/SHA256SUMS.txt
+          printf 'source_sha=%s\nversion=1.2.3-main-test\nversion_code=102300\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
+          sha256sum dist/LuckyBean-1.2.3-main-test-web.zip dist/LuckyBean-1.2.3-main-test-debug.apk > dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: luckybean-main-v1.2.3-test
+          name: luckybean-main-v1.2.3-test-${{ env.SOURCE_SHA }}
           path: dist/
+          if-no-files-found: error
