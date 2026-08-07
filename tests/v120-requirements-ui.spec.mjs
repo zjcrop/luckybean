@@ -29,6 +29,7 @@ test('one server login remains one panel after authentication and automatic sync
   await page.locator('[data-page-target="settings"]').click();
   const cloudSection = page.locator('#settingsContent [data-settings-key="account"]');
   await expect(cloudSection).toBeVisible();
+  await expect(cloudSection.locator('summary > span')).toHaveText('账户');
   await cloudSection.locator('summary').click();
 
   await expect(page.locator('#settingsContent [data-settings-key="account"]')).toHaveCount(1);
@@ -142,8 +143,48 @@ test('professional tags sort and radar nodes select and drag; note mode opens di
   const after = Number(await node.getAttribute('aria-valuenow'));
   expect(after).not.toBe(before);
 
+  await page.locator('[data-v095-next]').click();
+  const professionalNote = page.locator('[data-v095-professional-note]');
+  await expect(professionalNote).toBeVisible();
+  await professionalNote.fill('高温花香清晰，低温甜感延续；下一次降低尾段扰动。');
+  await page.locator('[data-v095-next]').click();
+  await expect(page.locator('.v095-summary-stage')).toContainText('下一次降低尾段扰动');
+
   await page.locator('[data-v095-close]').click();
   await page.locator('[data-v095-mode="note"]').click();
-  await expect(page.locator('#sensoryDeltaWheel')).toBeVisible({ timeout: 3000 });
+  await expect(page.locator('[data-sensory-mode="note"]')).toBeVisible({ timeout: 3000 });
+  await expect(page.locator('#sensoryNaturalNote')).toBeVisible();
+  await expect(page.locator('#sensoryNoteScore')).toBeVisible();
+  await expect(page.locator('#prevSensoryNodeBtn,#sensoryDeltaWheel,.sensory-option')).toHaveCount(0);
 });
 
+
+
+test('private gear uses three closed, aligned list editors', async ({ page }) => {
+  await openApp(page, 'requirements-gear=1');
+  await page.locator('[data-page-target="settings"]').click();
+  const privateGear = page.locator('#privateGearCategory');
+  await expect(privateGear).not.toHaveAttribute('open', '');
+  await privateGear.locator(':scope > summary').click();
+  const subpages = privateGear.locator('.gear-subpage');
+  await expect(subpages).toHaveCount(3);
+  await expect(subpages.nth(0).locator(':scope > summary strong')).toHaveText('滤纸');
+  await expect(subpages.nth(1).locator(':scope > summary strong')).toHaveText('滤杯');
+  await expect(subpages.nth(2).locator(':scope > summary strong')).toHaveText('磨豆机');
+  for (let index = 0; index < 3; index += 1) await expect(subpages.nth(index)).not.toHaveAttribute('open', '');
+  const alignments = await subpages.locator(':scope > summary').evaluateAll(nodes => nodes.map(node => getComputedStyle(node).textAlign));
+  expect(alignments).toEqual(['left', 'left', 'left']);
+
+  await subpages.nth(2).locator(':scope > summary').click();
+  await page.locator('[data-add-gear="grinder"]').click();
+  await page.locator('#grinderName').fill('测试磨豆机');
+  await page.locator('#grinderSetting').fill('22格');
+  await page.locator('#saveGrinderBtn').click();
+
+  await page.locator('#privateGearCategory > summary').click();
+  const grinderSection = page.locator('[data-gear-kind="grinder"]');
+  await grinderSection.locator(':scope > summary').click();
+  await expect(page.locator('[data-grinder-item]')).toContainText('测试磨豆机');
+  await page.locator('[data-grinder-item]').click();
+  await expect(page.locator('#grinderName')).toHaveValue('测试磨豆机');
+});
