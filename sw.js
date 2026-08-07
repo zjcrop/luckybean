@@ -45,7 +45,6 @@ const CORE = [
   './src/recognition-quality-controller.js?v=1.2.3-main-test',
   './src/package-capture-controller.js?v=1.2.3-main-test',
   './src/direct-camera-controller.js?v=1.2.3-main-test',
-  './src/postbrew-sensory-controller.js?v=1.2.3-main-test',
   './src/qr-ui-controller.js?v=1.2.3-main-test',
   './src/integrity-ui-controller.js?v=1.2.3-main-test',
   './src/ui-layout-controller.js?v=1.2.3-main-test',
