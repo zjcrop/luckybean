@@ -70,6 +70,10 @@ for (const profileId of competitionIds) {
   const analysis = await response.json();
   assert.equal(response.status, 200, `${profileId}: ${JSON.stringify(analysis)}`);
   assert.equal(analysis.contract, 'brew-analysis/2.0');
+  assert.match(analysis.analysisFingerprint, /^sha256:[0-9a-f]{64}$/);
+  assert.match(analysis.metadata.inputFingerprint, /^sha256:[0-9a-f]{64}$/);
+  assert.match(analysis.metadata.planFingerprint, /^sha256:[0-9a-f]{64}$/);
+  assert.equal(analysis.trajectory.planFingerprint, analysis.metadata.planFingerprint);
   assert.equal(analysis.metadata.requestedProfileId, profileId);
   assert.equal(analysis.metadata.resolvedProfileId, profileId);
   assert.equal(analysis.metadata.resolvedProfileVersion, catalogVersions.get(profileId));
