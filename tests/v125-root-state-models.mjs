@@ -10,6 +10,10 @@ const sw = read('sw.js');
 
 assert.match(app, /pendingSensoryContext/);
 assert.match(app, /data-sensory-mode="note"/);
+assert.match(app, /data-sensory-mode-host/);
+assert.doesNotMatch(app, /id="startSensoryBtn"/);
+assert.match(app, /source: 'direct-brew'/);
+assert.match(app, /source: 'generated-plan'/);
 assert.match(app, /id="saveSensoryNoteBtn"/);
 assert.doesNotMatch(app, /evaluation\.nodeIndex = SENSORY_NODES\.findIndex/);
 assert.match(app, /state\.pendingSensoryContext = \{ beanId: bean\.id, brewSessionId: saved\.record\.id/);
