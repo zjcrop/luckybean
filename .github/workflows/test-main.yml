@@ -19,12 +19,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7.0.0
         with:
           python-version: '3.x'
       - run: npm ci
@@ -37,11 +37,27 @@ jobs:
       - name: Verify live BrewProfiles contract
         run: npm run test:live-brewprofiles
       - run: npx playwright install --with-deps chromium
-      - name: Start web server
+      - name: Start web server and wait until ready
         shell: bash
         run: |
           python -m http.server 4173 > /tmp/luckybean-http.log 2>&1 &
-          echo $! > /tmp/luckybean-http.pid
+          server_pid=$!
+          echo "$server_pid" > /tmp/luckybean-http.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:4173/ > /dev/null; then
+              echo "Local web server ready on attempt $attempt"
+              exit 0
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              echo "Local web server exited before becoming ready"
+              cat /tmp/luckybean-http.log
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "Local web server readiness timed out"
+          cat /tmp/luckybean-http.log
+          exit 1
       - run: npm run test:smoke
       - run: npm run test:core
       - run: npm run test:visual
@@ -50,14 +66,14 @@ jobs:
         run: |
           mkdir -p validated-main
           printf 'source_sha=%s\nvalidated_at=%s\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" > validated-main/VALIDATED_SOURCE.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.1
         with:
           name: luckybean-main-validated-${{ github.sha }}
           path: validated-main/
           if-no-files-found: error
       - name: Upload browser test output
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: luckybean-main-browser-results-${{ github.sha }}
           path: |
