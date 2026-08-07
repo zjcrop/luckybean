@@ -1176,7 +1176,7 @@ function renderBrew() {
   }));
   $('#generatePlanBtn')?.addEventListener('click', generatePlan);
   $('#brewProfile')?.addEventListener('change', async event => { state.settings.brew.profileId = event.target.value; await saveSettings(); });
-  $('#directSensoryBtn')?.addEventListener('click', () => { if (!state.selectedBeanId) return; startEvaluation(state.selectedBeanId, { direct: true }); switchPage('sensory'); });
+  $('#directSensoryBtn')?.addEventListener('click', () => { if (!state.selectedBeanId) return; state.evaluation = null; state.pendingSensoryContext = { beanId: state.selectedBeanId, brewSessionId: '', source: 'direct-brew' }; switchPage('sensory'); renderSensory(); });
   $('#openFlavorTargetBtn')?.addEventListener('click', openFlavorTargetDialog);
   $('#openBrewTuneBtn')?.addEventListener('click', openBrewTuneDialog);
   $('#brewWaterProfile')?.addEventListener('change', async event => { state.settings.brew.waterProfileId = event.target.value; await saveSettings(); if (event.target.value === 'custom') openCustomWaterDialog(); else renderBrew(); });
@@ -1312,7 +1312,7 @@ function planHtml(plan) {
 
 function bindPlanActions() {
   $('#startBrewBtn')?.addEventListener('click', startTimer);
-  $('#planToSensoryBtn')?.addEventListener('click', () => { if (!state.selectedBeanId) return; startEvaluation(state.selectedBeanId, { direct: true }); switchPage('sensory'); });
+  $('#planToSensoryBtn')?.addEventListener('click', () => { if (!state.selectedBeanId) return; state.evaluation = null; state.pendingSensoryContext = { beanId: state.selectedBeanId, brewSessionId: String(state.currentPlan?.id || ''), source: 'generated-plan' }; switchPage('sensory'); renderSensory(); });
   $('#exportPlanBtn')?.addEventListener('click', () => exportCurrentPlan($('#planExportFormat')?.value || 'json'));
   $('#trajectoryDefaultToggle')?.addEventListener('change', async event => { state.settings.ui.planVisualsExpanded = event.target.checked; state.settings.ui.temporaryVisualOpen = false; await saveSettings(); if (state.currentPlan) { $('#planResult').innerHTML=planHtml(state.currentPlan); bindPlanActions(); } });
   $('#trajectoryTitleBtn')?.addEventListener('click', () => { if (state.settings.ui.planVisualsExpanded) return; state.settings.ui.temporaryVisualOpen = !state.settings.ui.temporaryVisualOpen; if (state.currentPlan) { $('#planResult').innerHTML=planHtml(state.currentPlan); bindPlanActions(); } });
@@ -1505,20 +1505,12 @@ function renderSensory() {
   container.dataset.brewSessionId = activeSessionId;
   container.dataset.sensoryOrigin = pending?.source || (current?.direct ? 'independent' : '');
   container.innerHTML = `<section class="panel sensory-history"><button id="sensoryHistoryToggle" class="history-toggle${state.sensoryHistoryOpen?' active':''}" type="button"><span>往昔……</span><span>${state.sensoryHistoryOpen?'⌃':'⌄'}</span></button>${state.sensoryHistoryOpen ? `<div class="record-list">${recent.length?recent.map(recordHtml).join(''):'<p class="muted small">尚无品鉴记录</p>'}</div><button id="sensoryMoreBtn" class="button" type="button">更多</button>` : ''}</section>
-  ${current ? evaluationHtml(current) : `<section class="panel sensory-start-panel"><div class="panel-title centered"><div><h2>本次品鉴</h2><p>${pending ? '冲煮记录已保存，请选择一种独立品鉴模式' : '专业杯测 · 玩家互动 · 札记'}</p></div></div><label class="field centered-field"><span>选择豆子</span><select id="sensoryBeanSelect" class="control">${state.beans.filter(bean=>!bean.archived).map(bean=>`<option value="${esc(bean.id)}"${bean.id===state.selectedBeanId?' selected':''}>${esc(beanDisplayName(bean))}</option>`).join('')}</select></label><div class="sensory-start-action"><button id="startSensoryBtn" class="button primary" type="button">开始玩家品鉴</button></div></section>`}`;
+  ${current ? evaluationHtml(current) : `<section class="panel sensory-start-panel"><div class="panel-title centered"><div><h2>本次品鉴</h2><p>${pending ? '冲煮记录已保存，请选择一种独立品鉴模式' : '专业杯测 · 玩家互动 · 札记'}</p></div></div><label class="field centered-field"><span>选择豆子</span><select id="sensoryBeanSelect" class="control">${state.beans.filter(bean=>!bean.archived).map(bean=>`<option value="${esc(bean.id)}"${bean.id===state.selectedBeanId?' selected':''}>${esc(beanDisplayName(bean))}</option>`).join('')}</select></label><div class="sensory-start-action" data-sensory-mode-host></div></section>`}`;
   $('#sensoryHistoryToggle').addEventListener('click', () => { state.sensoryHistoryOpen = !state.sensoryHistoryOpen; renderSensory(); });
   $('#sensoryMoreBtn')?.addEventListener('click', openSensoryRecordsPage);
   $('#sensoryBeanSelect')?.addEventListener('change', event => {
     state.selectedBeanId = event.target.value;
     if (state.pendingSensoryContext?.beanId !== event.target.value) state.pendingSensoryContext = null;
-  });
-  $('#startSensoryBtn')?.addEventListener('click', () => {
-    const beanId = $('#sensoryBeanSelect').value;
-    if (!beanId) return toast('请先选择豆子');
-    const brewSessionId = state.pendingSensoryContext?.beanId === beanId ? state.pendingSensoryContext.brewSessionId : '';
-    startEvaluation(beanId, { brewSessionId, evaluationMode: 'player' });
-    state.pendingSensoryContext = null;
-    renderSensory();
   });
   bindEvaluationEvents(); bindControlStates(container);
   document.dispatchEvent(new CustomEvent('luckybean:sensory-rendered', { detail: { hasEvaluation: Boolean(current), brewSessionId: activeSessionId } }));
