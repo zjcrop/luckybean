@@ -17,7 +17,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,6 +28,8 @@ jobs:
         with:
           python-version: '3.x'
       - run: npm ci
+      - name: Audit production dependency boundary
+        run: npm audit --omit=dev --audit-level=high
       - name: Check JavaScript syntax
         shell: bash
         run: find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
@@ -43,11 +45,21 @@ jobs:
       - run: npm run test:smoke
       - run: npm run test:core
       - run: npm run test:visual
+      - name: Record validated source
+        shell: bash
+        run: |
+          mkdir -p validated-main
+          printf 'source_sha=%s\nvalidated_at=%s\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" > validated-main/VALIDATED_SOURCE.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-main-validated-${{ github.sha }}
+          path: validated-main/
+          if-no-files-found: error
       - name: Upload browser test output
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: luckybean-main-browser-results
+          name: luckybean-main-browser-results-${{ github.sha }}
           path: |
             test-results/
             playwright-report/
