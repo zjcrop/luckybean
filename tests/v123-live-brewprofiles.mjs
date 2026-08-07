@@ -20,6 +20,11 @@ const headers = {
   'x-request-id': crypto.randomUUID()
 };
 
+const invalidKeyResponse = await fetch(`${endpoint}?mode=profiles`, {
+  headers: { ...headers, apikey: 'not-a-valid-publishable-key', 'x-request-id': crypto.randomUUID() }
+});
+assert.equal(invalidKeyResponse.status, 401, await invalidKeyResponse.text());
+
 const catalogResponse = await fetch(`${endpoint}?mode=profiles`, { headers });
 const catalog = await catalogResponse.json();
 assert.equal(catalogResponse.status, 200, JSON.stringify(catalog));
