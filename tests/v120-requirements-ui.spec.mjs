@@ -110,6 +110,18 @@ test('one server login remains one panel after authentication and automatic sync
     await expect(profile).toHaveValue(selected);
   }
   await expect(page.locator('#brewSpatialMount [data-brew-spatial-preview]')).toBeVisible({ timeout: 10000 });
+
+  await page.locator('#directSensoryBtn').click();
+  await expect(page.locator('#sensoryContent')).toHaveAttribute('data-sensory-origin', 'direct-brew');
+  await expect(page.locator('.v095-sensory-modes [data-v095-mode]')).toHaveCount(3);
+  await expect(page.locator('[data-sensory-mode="player"]')).toHaveCount(0);
+
+  await page.locator('[data-page-target="brew"]').click();
+  await expect(page.locator('#generatedPlan')).toBeVisible();
+  await page.locator('#planToSensoryBtn').click();
+  await expect(page.locator('#sensoryContent')).toHaveAttribute('data-sensory-origin', 'generated-plan');
+  await expect(page.locator('.v095-sensory-modes [data-v095-mode]')).toHaveCount(3);
+  await expect(page.locator('[data-sensory-mode="player"]')).toHaveCount(0);
 });
 
 test('professional tags sort and radar nodes select and drag; note mode opens directly', async ({ page }) => {
@@ -119,7 +131,7 @@ test('professional tags sort and radar nodes select and drag; note mode opens di
   await page.locator('#sensoryBeanSelect').selectOption('requirements-bean');
   const modeButtons = page.locator('.v095-sensory-modes [data-v095-mode]');
   await expect(modeButtons).toHaveCount(3);
-  await expect(modeButtons.nth(0)).toContainText('专业品鉴');
+  await expect(modeButtons.nth(0)).toContainText('杯测品鉴');
   await expect(modeButtons.nth(1)).toContainText('玩家互动品鉴');
   await expect(modeButtons.nth(2)).toContainText('札记');
   await expect(page.locator('#startSensoryBtn')).toHaveCount(0);
