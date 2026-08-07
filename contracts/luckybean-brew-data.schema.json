@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zjcrop.github.io/LuckyBean/contracts/luckybean-brew-data.schema.json",
+  "title": "LuckyBean Stable Brew Data",
+  "type": "object",
+  "required": ["bean", "brew", "water", "environment", "targets"],
+  "properties": {
+    "bean": { "type": "object", "additionalProperties": true },
+    "brew": {
+      "type": "object",
+      "required": ["doseG", "ratio", "profileId"],
+      "properties": {
+        "doseG": { "type": "number", "exclusiveMinimum": 0 },
+        "ratio": { "type": "number", "exclusiveMinimum": 0 },
+        "profileId": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    },
+    "water": { "type": "object", "additionalProperties": true },
+    "environment": { "type": "object", "additionalProperties": true },
+    "targets": { "type": "object", "additionalProperties": true },
+    "extensions": { "type": "object", "additionalProperties": true }
+  },
+  "not": {
+    "anyOf": [
+      { "required": ["schemaVersion"] },
+      { "required": ["appVersion"] },
+      { "required": ["engineVersion"] }
+    ]
+  },
+  "additionalProperties": true
+}
+

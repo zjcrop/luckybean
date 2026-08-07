@@ -1,5 +1,6 @@
 import * as core from './brew-engine-core.js';
 import { requestAuthoritativePlan } from './services/brew-analysis-service.js';
+import { toBrewProfilesTransport, toStableBrewData } from './contracts/stable-brew-data.js';
 import { listCachedBrewProfiles, refreshBrewProfileCatalog } from './services/brew-profile-catalog-service.js';
 import {
   BREW_OPTIMIZER_VERSION,
@@ -455,7 +456,8 @@ export async function buildCorrectedPlan(input, sensoryRecord, previousPlan = nu
 }
 
 export async function requestPrivatePlan(endpoint, input, timeoutMs = 9000) {
-  const normalized = normalizeExplicitInput(input);
+  const stable = toStableBrewData(input);
+  const normalized = normalizeExplicitInput(toBrewProfilesTransport(stable));
   const plan = await requestAuthoritativePlan(normalized, {
     endpoint: endpoint || undefined,
     timeoutMs: Math.min(Math.max(Number(timeoutMs) || 6500, 2500), 12000)
