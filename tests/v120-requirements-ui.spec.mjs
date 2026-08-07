@@ -246,7 +246,7 @@ test('private gear uses three closed, aligned list editors', async ({ page }) =>
   await expect(page.locator('[data-filter-item]')).toContainText('测试品牌 测试滤纸');
   await page.locator('[data-gear-kind="filter"] > summary').click();
   await page.locator('[data-gear-kind="dripper"] > summary').click();
-  await expect(page.locator('[data-dripper-item]')).toContainText('测试滤杯');
+  await expect(page.locator('[data-dripper-item]').filter({ hasText: '测试滤杯' })).toHaveCount(1);
   await page.locator('[data-gear-kind="dripper"] > summary').click();
   await page.locator('[data-gear-kind="grinder"] > summary').click();
   await expect(page.locator('[data-grinder-item]')).toContainText('测试磨豆机');
