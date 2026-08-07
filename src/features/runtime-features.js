@@ -5,7 +5,6 @@ const RUNTIME_FEATURES = Object.freeze([
   { id: 'recognition-quality', path: '../recognition-quality-controller.js?v=1.2.3-main-test' },
   { id: 'package-capture', path: '../package-capture-controller.js?v=1.2.3-main-test' },
   { id: 'direct-camera', path: '../direct-camera-controller.js?v=1.2.3-main-test' },
-  { id: 'postbrew-sensory', path: '../postbrew-sensory-controller.js?v=1.2.3-main-test' },
   { id: 'qr-ui', path: '../qr-ui-controller.js?v=1.2.3-main-test' },
   { id: 'integrity-ui', path: '../integrity-ui-controller.js?v=1.2.3-main-test' },
   { id: 'ui-layout', path: '../ui-layout-controller.js?v=1.2.3-main-test' },
