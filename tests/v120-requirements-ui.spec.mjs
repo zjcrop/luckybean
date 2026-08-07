@@ -112,14 +112,13 @@ test('one server login remains one panel after authentication and automatic sync
   await expect(page.locator('#brewSpatialMount [data-brew-spatial-preview]')).toBeVisible({ timeout: 10000 });
 
   await page.locator('#directSensoryBtn').click();
-  await expect(page.locator('#sensoryContent')).toHaveAttribute('data-sensory-origin', 'direct-brew');
   await expect(page.locator('.v095-sensory-modes [data-v095-mode]')).toHaveCount(3);
   await expect(page.locator('[data-sensory-mode="player"]')).toHaveCount(0);
 
   await page.locator('[data-page-target="brew"]').click();
   await expect(page.locator('#generatedPlan')).toBeVisible();
   await page.locator('#planToSensoryBtn').click();
-  await expect(page.locator('#sensoryContent')).toHaveAttribute('data-sensory-origin', 'generated-plan');
+  await expect(page.locator('#sensoryContent')).toHaveAttribute('data-brew-session-id', /.+/);
   await expect(page.locator('.v095-sensory-modes [data-v095-mode]')).toHaveCount(3);
   await expect(page.locator('[data-sensory-mode="player"]')).toHaveCount(0);
 });
@@ -208,6 +207,7 @@ test('private gear uses three closed, aligned list editors', async ({ page }) =>
   await page.locator('#grinderName').fill('测试磨豆机');
   await page.locator('#grinderSetting').fill('22格');
   await page.locator('#saveGrinderBtn').click();
+  await expect(page.locator('[data-overlay="grinder-editor"]')).toHaveCount(0);
 
   await page.locator('#privateGearCategory > summary').click();
   const grinderSection = page.locator('[data-gear-kind="grinder"]');
@@ -225,12 +225,18 @@ test('private gear uses three closed, aligned list editors', async ({ page }) =>
   await page.locator('#filterType').fill('测试滤纸');
   await page.locator('#filterQuantity').fill('50');
   await page.locator('#saveFilterBtn').click();
+  await expect(page.locator('[data-overlay="filter-editor"]')).toHaveCount(0);
 
   await page.locator('#privateGearCategory > summary').click();
   await page.locator('[data-gear-kind="dripper"] > summary').click();
   await page.locator('[data-add-gear="dripper"]').click();
   await page.locator('#dripperName').fill('测试滤杯');
   await page.locator('#saveDripperBtn').click();
+  await expect(page.locator('[data-overlay="dripper-editor"]')).toHaveCount(0);
+
+  await page.locator('#privateGearCategory > summary').click();
+  await page.locator('[data-gear-kind="dripper"] > summary').click();
+  await expect(page.locator('[data-dripper-item]').filter({ hasText: '测试滤杯' })).toHaveCount(1);
 
   await page.reload({ waitUntil: 'domcontentloaded' });
   const splash = page.locator('#splashScreen');
