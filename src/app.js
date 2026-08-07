@@ -38,7 +38,7 @@ const DEFAULT_SETTINGS = {
     apiEndpoint: '', mode: 'simple', method: 'pourover', doseG: 15, ratio: 15.5,
     profileId: 'recommended', segmentMode: 'auto', segments: 3, lowTempFirst: true,
     dripper: '平底滤杯', filterPaperId: '', grinder: '', waterProfileId: 'auto', waterVolumeL: 5,
-    customWater: { name: '我的水型', tds: 85, tendency: { floral: 0, acidity: 0, sweetness: 0, body: 0, bitterness: 0, astringency: 0 }, note: '' }, flavorTargets: { floral: 2, acidity: 1.5, sweetness: 2, body: 1, bitterness: 2 },
+    customWater: { name: '我的水型', tds: 85, tendency: { floral: 0, acidity: 0, sweetness: 0, body: 0, bitterness: 0, astringency: 0 }, note: '' }, flavorTargets: { acidity: 1.5, floral: 2, fruity: 2, sweetness: 2, bitterness: 2, astringency: 2 },
     firstCoolingMode: 'auto', firstTemperatureC: 87, tailCoolingMode: 'auto', tailTemperatureC: 86,
     temperatureTune: 0, grindTune: 0, bloomTune: 0, repeatability: false,
     environment: { ambientTemperatureC: 25, relativeHumidityPct: null, initialBedTemperatureC: 25 }
@@ -1115,7 +1115,6 @@ function buildBrewInput(bean) {
   const targets = state.settings.brew.flavorTargets || DEFAULT_SETTINGS.brew.flavorTargets;
   const customWater = state.settings.brew.customWater || DEFAULT_SETTINGS.brew.customWater;
   return {
-    schemaVersion: 2,
     bean: { countryCode: bean.countryCode, regionCode: bean.regionCode, entityCode: bean.entityCode, varietyCode: bean.varietyCode, processCode: bean.processCode, roastCode: bean.roastCode, roastColor: bean.roastColor || null, roastDate: bean.roastDate, altitude: bean.altitude || null },
     brew: {
       mode: 'professional', method: 'pourover', doseG: parseNumber($('#brewDose')?.value, 15), ratio: parseNumber($('#brewRatio')?.value, 15.5),
@@ -1129,7 +1128,7 @@ function buildBrewInput(bean) {
     },
     water: { profileId: resolvedWater, recipeVolumeL: Number(state.settings.brew.waterVolumeL || 5), tdsMgL: Number(customWater.tds || 85), customProfile: resolvedWater === 'custom' ? customWater : undefined },
     environment: { ...state.settings.brew.environment },
-    targets: { floral: Number(targets.floral), acidity: Number(targets.acidity), sweetness: Number(targets.sweetness), body: Number(targets.body), bitterness: Number(targets.bitterness) }
+    targets: { acidity: Number(targets.acidity), floral: Number(targets.floral), fruity: Number(targets.fruity), sweetness: Number(targets.sweetness), bitterness: Number(targets.bitterness), astringency: Number(targets.astringency) }
   };
 }
 
@@ -1228,9 +1227,9 @@ function openCustomWaterDialog() {
 }
 function openFlavorTargetDialog() {
   const target = state.settings.brew.flavorTargets || DEFAULT_SETTINGS.brew.flavorTargets;
-  const overlay = showOverlay(`${dialogHeader('风味设定', '设定花香、酸、甜、口感与抑苦方向', { centered: true })}<div class="grid-2"><label class="field"><span>花香</span>${rangeSelect('flavorTargetFloral',target.floral)}</label><label class="field"><span>酸</span>${rangeSelect('flavorTargetAcidity',target.acidity)}</label><label class="field"><span>甜</span>${rangeSelect('flavorTargetSweetness',target.sweetness)}</label><label class="field"><span>口感</span>${rangeSelect('flavorTargetBody',target.body,['轻盈','均衡','厚重'])}</label><label class="field"><span>抑苦</span>${rangeSelect('flavorTargetBitterness',target.bitterness,['轻度','中度','强'])}</label></div><div class="row end"><button id="saveFlavorTargetBtn" class="button primary" type="button">确定</button></div>`, { id: 'flavor-target', backdropClose: true });
+  const overlay = showOverlay(`${dialogHeader('风味设定', '设定花香、果香、酸、甜、抑苦与抑涩方向', { centered: true })}<div class="grid-2"><label class="field"><span>花香</span>${rangeSelect('flavorTargetFloral',target.floral)}</label><label class="field"><span>果香</span>${rangeSelect('flavorTargetFruity',target.fruity)}</label><label class="field"><span>酸</span>${rangeSelect('flavorTargetAcidity',target.acidity)}</label><label class="field"><span>甜</span>${rangeSelect('flavorTargetSweetness',target.sweetness)}</label><label class="field"><span>抑苦</span>${rangeSelect('flavorTargetBitterness',target.bitterness,['轻度','中度','强'])}</label><label class="field"><span>抑涩</span>${rangeSelect('flavorTargetAstringency',target.astringency,['轻度','中度','强'])}</label></div><div class="row end"><button id="saveFlavorTargetBtn" class="button primary" type="button">确定</button></div>`, { id: 'flavor-target', backdropClose: true });
   bindClose(overlay);
-  $('#saveFlavorTargetBtn').addEventListener('click', async () => { state.settings.brew.flavorTargets = { floral:parseNumber($('#flavorTargetFloral').value,2), acidity:parseNumber($('#flavorTargetAcidity').value,1.5), sweetness:parseNumber($('#flavorTargetSweetness').value,2), body:parseNumber($('#flavorTargetBody').value,1), bitterness:parseNumber($('#flavorTargetBitterness').value,2) }; await saveSettings(); closeOverlay(); renderBrew(); });
+  $('#saveFlavorTargetBtn').addEventListener('click', async () => { state.settings.brew.flavorTargets = { acidity:parseNumber($('#flavorTargetAcidity').value,1.5), floral:parseNumber($('#flavorTargetFloral').value,2), fruity:parseNumber($('#flavorTargetFruity').value,2), sweetness:parseNumber($('#flavorTargetSweetness').value,2), bitterness:parseNumber($('#flavorTargetBitterness').value,2), astringency:parseNumber($('#flavorTargetAstringency').value,2) }; await saveSettings(); closeOverlay(); renderBrew(); });
 }
 
 function openBrewTuneDialog() {
@@ -1275,7 +1274,7 @@ async function generatePlan() {
       tailCoolingMode: input.brew.tailCoolingMode, tailTemperatureC: input.brew.tailTemperatureC,
       temperatureTune: input.brew.temperatureTune, grindTune: input.brew.grindTune, bloomTune: input.brew.bloomTune, repeatability: input.brew.repeatability,
       environment: { ...input.environment },
-      flavorTargets: { floral: input.targets.floral, acidity: input.targets.acidity, sweetness: input.targets.sweetness, body: input.targets.body, bitterness: input.targets.bitterness }
+      flavorTargets: { acidity: input.targets.acidity, floral: input.targets.floral, fruity: input.targets.fruity, sweetness: input.targets.sweetness, bitterness: input.targets.bitterness, astringency: input.targets.astringency }
     };
     await saveSettings(); $('#planResult').innerHTML = planHtml(plan); bindPlanActions();
     requestAnimationFrame(() => $('#planResult').scrollIntoView({ behavior: 'smooth', block: 'start' }));
