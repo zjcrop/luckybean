@@ -35,6 +35,11 @@ and the fixed target IDs:
 
 `acidity`, `floral`, `fruity`, `sweetness`, `bitterness`, `astringency`.
 
+All six input target values are finite numbers from `0` to `3`. Higher values
+increase extraction emphasis for acidity/floral/fruity/sweetness and increase
+suppression priority for bitterness/astringency. `body` is not a canonical target;
+provider-specific body modelling remains internal to the engine.
+
 ## Compatibility rules
 
 1. Existing field names, meanings, units and IDs are never reused for a new meaning.
@@ -44,7 +49,8 @@ and the fixed target IDs:
 5. Breaking protocol changes may still bump the transport contract; this does not change the business-data format.
 6. A producer must validate the canonical object before sending it, and a consumer must reject invalid required data rather than guessing.
 
-The current HTTP endpoint receives `schemaVersion: 2` through a boundary adapter.
-That field is protocol metadata; it is deliberately absent from the stable business
-object described here.
+The HTTP request body is the stable business object itself and must not contain
+`schemaVersion`, `appVersion`, `engineVersion` or `profileVersion`. Protocol
+metadata belongs in headers or the response envelope and must never control how
+the business fields are interpreted.
 
