@@ -78,6 +78,10 @@ for (const profileId of competitionIds) {
     assert.ok(Object.hasOwn(analysis.plan, field), `${profileId}: plan missing ${field}`);
   }
   assert.ok(Array.isArray(analysis.plan.stages) && analysis.plan.stages.length > 0, `${profileId}: stages missing`);
+  assert.equal(analysis.plan.input.brewStyle, profileId);
+  assert.equal(analysis.plan.input.water.tds, 80);
+  assert.equal(typeof analysis.plan.input.grinder, 'object');
+  assert.equal(analysis.plan.models.environment.ambientTemperature, 25);
   assert.equal(analysis.trajectory.schemaVersion, 'brew-spatial/1.1');
   assert.ok(analysis.trajectory.path.length > 20, `${profileId}: path too short`);
   const returnedTargets = new Set(analysis.trajectory.targets.map(target => target.id));
