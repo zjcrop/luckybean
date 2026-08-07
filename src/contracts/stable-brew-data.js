@@ -2,8 +2,8 @@
  * Stable cross-project business data.
  *
  * Application, engine and provider versions belong to the transport envelope,
- * not to this object. The boundary adapter may add the provider's transport
- * metadata when calling a legacy or versioned endpoint.
+ * not to this object. Boundary adapters must not insert release/version fields
+ * into the shared business object.
  */
 const TRANSPORT_METADATA = new Set(['schemaVersion', 'contract', 'version', 'appVersion', 'engineVersion', 'profileVersion']);
 
@@ -18,6 +18,7 @@ function finite(value, fallback = null) {
 
 export const STABLE_BREW_DATA_FORMAT = 'luckybean-brew-data';
 export const STABLE_TARGET_IDS = Object.freeze(['acidity', 'floral', 'fruity', 'sweetness', 'bitterness', 'astringency']);
+const TARGET_DEFAULTS = Object.freeze({ acidity: 1.5, floral: 2, fruity: 2, sweetness: 2, bitterness: 2, astringency: 2 });
 
 /**
  * Removes application/provider metadata and normalizes the fields shared by
@@ -42,24 +43,26 @@ export function toStableBrewData(input = {}) {
   if (data.environment.relativeHumidityPct !== null && data.environment.relativeHumidityPct !== undefined) {
     data.environment.relativeHumidityPct = finite(data.environment.relativeHumidityPct, null);
   }
-  for (const id of ['floral', 'acidity', 'sweetness', 'body', 'bitterness']) {
-    if (data.targets[id] !== undefined) data.targets[id] = finite(data.targets[id], 0);
+  delete data.targets.body;
+  for (const id of STABLE_TARGET_IDS) {
+    data.targets[id] = finite(data.targets[id], TARGET_DEFAULTS[id]);
   }
   return data;
 }
 
 /**
- * Adds only the metadata required by the current BrewProfiles HTTP boundary.
- * This keeps the shared business object version-independent while allowing a
- * versioned endpoint to remain backward compatible during migration.
+ * Produces the exact version-independent business object accepted by the
+ * BrewProfiles gateway. HTTP protocol metadata belongs in headers/responses.
  */
 export function toBrewProfilesTransport(input = {}) {
-  return { schemaVersion: 2, ...toStableBrewData(input) };
+  return toStableBrewData(input);
 }
 
 export function isStableBrewData(value) {
-  if (!value || typeof value !== 'object') return false;
-  if (TRANSPORT_METADATA.has('schemaVersion') && Object.hasOwn(value, 'schemaVersion')) return false;
-  return ['bean', 'brew', 'water', 'environment', 'targets'].every(key => value[key] && typeof value[key] === 'object');
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  if ([...TRANSPORT_METADATA].some(key => Object.hasOwn(value, key))) return false;
+  if (!['bean', 'brew', 'water', 'environment', 'targets'].every(key => value[key] && typeof value[key] === 'object' && !Array.isArray(value[key]))) return false;
+  if (Object.hasOwn(value.targets, 'body')) return false;
+  return STABLE_TARGET_IDS.every(id => Number.isFinite(Number(value.targets[id])));
 }
 
