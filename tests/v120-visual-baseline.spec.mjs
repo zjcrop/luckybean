@@ -50,7 +50,7 @@ test('mobile 390x844 preserved layout screenshots', async ({ page }) => {
   await capturePages(page, '390x844');
 });
 
-test('mobile 412x915 history and 3D screenshots', async ({ page }) => {
+test('mobile 412x915 history and spatial safety screenshots', async ({ page }) => {
   await page.setViewportSize({ width: 412, height: 915 });
   await openApp(page, '412');
   await seedCompletedHistory(page);
@@ -61,8 +61,7 @@ test('mobile 412x915 history and 3D screenshots', async ({ page }) => {
   await page.locator('.history-row-main').click();
   await page.screenshot({ path: `${OUT}/412x915-history-detail.png`, fullPage: true });
   await page.locator('[data-history-spatial]').click();
-  await expect(page.locator('.spatial-fullscreen-overlay')).toBeVisible();
-  await page.screenshot({ path: `${OUT}/412x915-spatial.png`, fullPage: true });
+  await expect(page.locator('.spatial-fullscreen-overlay')).toHaveCount(0);
 });
 
 test('desktop preserved layout screenshots', async ({ page }) => {
@@ -70,3 +69,4 @@ test('desktop preserved layout screenshots', async ({ page }) => {
   await openApp(page, 'desktop');
   await capturePages(page, '1280x900');
 });
+
