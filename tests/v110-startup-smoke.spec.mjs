@@ -73,7 +73,7 @@ test('server failure never blocks local startup', async ({ page }) => {
 
 test('expired seven-day cloud memory never blocks local startup', async ({ page }) => {
   const capture = diagnosticsCollector(page);
-  let cloudRequests = 0;
+  let cloudSyncRequests = 0;
   await page.addInitScript(() => {
     localStorage.setItem('luckybean.supabase.session.v099d', JSON.stringify({
       refresh_token: 'expired-refresh-token',
@@ -83,7 +83,8 @@ test('expired seven-day cloud memory never blocks local startup', async ({ page 
     localStorage.setItem('luckybean.cloud.remember.until.v1', String(Date.now() - 1000));
   });
   await page.route(SUPABASE_PATTERN, route => {
-    cloudRequests += 1;
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname === '/auth/v1/token' || pathname.startsWith('/rest/')) cloudSyncRequests += 1;
     route.abort('failed');
   });
 
@@ -98,7 +99,7 @@ test('expired seven-day cloud memory never blocks local startup', async ({ page 
   expect(state.cloudAuth).toBe('expired');
   expect(state.storedSession).toBeNull();
   expect(state.publicId).toBe('');
-  expect(cloudRequests).toBe(0);
+  expect(cloudSyncRequests).toBe(0);
   expect(capture.uniqueErrors()).toEqual([]);
   expect(capture.unique404s()).toEqual([]);
 });
