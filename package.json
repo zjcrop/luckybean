@@ -1,11 +1,16 @@
 {
-  "name": "luckybean",
-  "version": "1.0.0-alpha",
+  "name": "luckybean-static-app",
   "private": true,
+  "version": "1.2.3-main-test",
   "type": "module",
   "scripts": {
-    "test": "node --test tests/*.test.mjs",
-    "check": "node tests/static-check.mjs",
-    "browser:smoke": "python tests/browser-smoke.py"
+    "test:static": "node tests/v110-local-first-sync-static.mjs && node tests/v120-core-contracts-static.mjs && node tests/v120-requirements-static.mjs && node tests/v122-cloud-sync-safety.mjs && node tests/v123-brewprofiles-integration.mjs",
+    "test:smoke": "playwright test tests/v110-startup-smoke.spec.mjs --browser=chromium --reporter=line",
+    "test:core": "playwright test tests/v120-core-flow.spec.mjs tests/v120-history-integrity.spec.mjs tests/v120-requirements-ui.spec.mjs --browser=chromium --reporter=line",
+    "test:visual": "playwright test tests/v120-visual-baseline.spec.mjs --browser=chromium --reporter=line",
+    "test:live-brewprofiles": "node tests/v123-live-brewprofiles.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.0"
   }
 }

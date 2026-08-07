@@ -1,0 +1,82 @@
+import assert from 'node:assert/strict';
+
+const endpoint = 'https://vaxwncdcuvbpvdbbketb.supabase.co/functions/v1/brew-analyze-v2';
+const key = 'sb_publishable_MsB0RFoxxf5zJbbT9PPBjQ_WP7GBMMn';
+const installationId = `lb-ci-${crypto.randomUUID()}`;
+const competitionIds = [
+  'cbrc-2026-01-zhong-jingjing',
+  'cbrc-2026-02-liang-baoyi',
+  'cbrc-2026-03-wu-minwei',
+  'cbrc-2026-04-yang-xiao',
+  'cbrc-2026-05-zhang-xiaobo',
+  'cbrc-2026-06-qu-yongxiang'
+];
+const targetIds = ['acidity', 'floral', 'fruity', 'sweetness', 'bitterness', 'astringency'];
+const headers = {
+  apikey: key,
+  'content-type': 'application/json',
+  'x-client-info': 'luckybean-v123-live-test',
+  'x-installation-id': installationId,
+  'x-request-id': crypto.randomUUID()
+};
+
+const catalogResponse = await fetch(`${endpoint}?mode=profiles`, { headers });
+const catalog = await catalogResponse.json();
+assert.equal(catalogResponse.status, 200, JSON.stringify(catalog));
+assert.equal(catalog.contract, 'brew-profile-catalog/1.0');
+const catalogIds = new Set(catalog.profiles.map(profile => profile.id));
+for (const id of competitionIds) assert.ok(catalogIds.has(id), `catalog missing ${id}`);
+
+for (const profileId of competitionIds) {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { ...headers, 'x-request-id': crypto.randomUUID() },
+    body: JSON.stringify({
+      schemaVersion: 2,
+      bean: {
+        countryCode: 'PA',
+        varietyCode: 'GEISHA',
+        processCode: 'washed',
+        roastCode: 'RL-L1',
+        roastColor: 92,
+        altitude: 1900
+      },
+      brew: {
+        mode: 'professional',
+        method: 'pourover',
+        doseG: 15,
+        ratio: 15,
+        profileId,
+        segmentMode: 'auto',
+        segments: 4,
+        dripperCode: 'cone',
+        filterPaper: 'fast',
+        grinder: 'test-grinder',
+        firstCoolingMode: 'auto',
+        firstTemperatureC: 88,
+        tailCoolingMode: 'auto',
+        tailTemperatureC: 86,
+        lowTempFirst: true,
+        temperatureTune: 0,
+        grindTune: 0,
+        bloomTune: 0,
+        repeatability: false
+      },
+      water: { profileId: 'balanced', recipeVolumeL: 5, tdsMgL: 80 },
+      environment: { ambientTemperatureC: 25, relativeHumidityPct: 50, initialBedTemperatureC: 25 },
+      targets: { floral: 2, acidity: 2, sweetness: 2, body: 1, bitterness: 2 }
+    })
+  });
+  const analysis = await response.json();
+  assert.equal(response.status, 200, `${profileId}: ${JSON.stringify(analysis)}`);
+  assert.equal(analysis.contract, 'brew-analysis/2.0');
+  assert.equal(analysis.metadata.requestedProfileId, profileId);
+  assert.equal(analysis.metadata.resolvedProfileId, profileId);
+  assert.equal(analysis.metadata.resolvedProfileVersion, '2.0.0');
+  assert.equal(analysis.trajectory.schemaVersion, 'brew-spatial/1.1');
+  assert.ok(analysis.trajectory.path.length > 20, `${profileId}: path too short`);
+  const returnedTargets = new Set(analysis.trajectory.targets.map(target => target.id));
+  for (const id of targetIds) assert.ok(returnedTargets.has(id), `${profileId}: missing target ${id}`);
+}
+
+console.log(`Verified ${competitionIds.length} database competition profiles with complete spatial target geometry.`);

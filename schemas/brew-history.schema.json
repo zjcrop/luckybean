@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zjcrop.github.io/luckybean/contracts/brew-history/1.0",
+  "title": "LuckyBean completed brew history record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "schemaVersion",
+    "beanId",
+    "createdAt",
+    "deductedWeightG",
+    "inventoryEventId",
+    "rawInput",
+    "normalizedInput",
+    "analysisSnapshot",
+    "execution",
+    "providerVersions",
+    "revision",
+    "syncState"
+  ],
+  "not": {
+    "anyOf": [
+      { "required": ["status"] },
+      { "required": ["completionStatus"] },
+      { "required": ["terminatedAt"] }
+    ]
+  },
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "schemaVersion": { "const": "brew-history/1.0" },
+    "beanId": { "type": "string", "minLength": 1 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "deductedWeightG": { "type": "number", "exclusiveMinimum": 0 },
+    "inventoryEventId": { "type": "string", "minLength": 1 },
+    "rawInput": { "type": "object" },
+    "normalizedInput": { "type": "object" },
+    "analysisSnapshot": {
+      "type": "object",
+      "required": ["contract", "analysisFingerprint", "plan", "trajectory"],
+      "properties": {
+        "contract": { "const": "brew-analysis/2.0" },
+        "analysisFingerprint": { "type": "string", "minLength": 1 },
+        "plan": { "type": "object" },
+        "trajectory": {
+          "type": "object",
+          "required": ["schemaVersion", "path", "targets"],
+          "properties": {
+            "schemaVersion": { "const": "brew-spatial/1.1" },
+            "path": { "type": "array", "minItems": 2 },
+            "targets": { "type": "array" }
+          }
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startedAt", "finishedAt", "actualTotalTimeSec", "stageExecutions", "deviations", "notes"],
+      "properties": {
+        "startedAt": { "type": "string", "format": "date-time" },
+        "finishedAt": { "type": "string", "format": "date-time" },
+        "actualTotalTimeSec": { "type": "number", "minimum": 0 },
+        "stageExecutions": { "type": "array", "items": { "type": "object" } },
+        "deviations": { "type": "array", "items": { "type": "object" } },
+        "notes": { "type": "array", "items": { "type": "string" } },
+        "environment": {
+          "type": "object",
+          "properties": {
+            "ambientTemperatureC": { "type": "number" },
+            "relativeHumidityPct": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+            "initialBedTemperatureC": { "type": "number" }
+          }
+        }
+      }
+    },
+    "providerVersions": { "type": "object" },
+    "sensoryRecordIds": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "revision": { "type": "integer", "minimum": 1 },
+    "revisionHeadId": { "type": ["string", "null"] },
+    "archivedAt": { "type": ["string", "null"], "format": "date-time" },
+    "recycledAt": { "type": ["string", "null"], "format": "date-time" },
+    "syncState": { "enum": ["local", "pending", "synced", "conflict"] }
+  }
+}

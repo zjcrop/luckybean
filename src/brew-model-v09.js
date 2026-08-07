@@ -45,28 +45,36 @@ export function professionalTemperatureModel(bean = {}, waterProfile = {}, targe
   const model = varietyModelForBean(bean);
   const roast = Number(String(bean.roastCode || 'RL-L2').replace(/\D/g, '')) || 2;
   const light = ({ 0: 1, 1: .85, 2: .55, 3: .25, 4: 0, 5: -.25, 6: -.45 })[roast] ?? .55;
-  const hco3 = Number(waterProfile.hco3) || 28;
-  const mg = Number(waterProfile.mg) || 10;
+  const hints = waterProfile.modelHints || {};
+  const buffer = String(hints.buffer || 'medium');
+  const aromaDrive = String(hints.aromaDrive || 'medium');
+  const tendency = waterProfile.tendency || {};
   const floral = clamp(Number(targets.floral ?? 1.5), 0, 3) / 3;
   const bitternessSuppression = clamp(Number(targets.bitterness ?? 1.5), 0, 3) / 3;
-  const volatilityBias = model.volatility * .55 + floral * .42;
+  const volatilityBias = model.volatility * .55 + floral * .42 + clamp(Number(tendency.floral || 0), -2, 2) * .08;
   const riskBias = model.sensitivity.temp * .28 + light * .35 + bitternessSuppression * .15;
-  const bufferBias = hco3 > 40 ? -.35 : hco3 < 18 ? .15 : 0;
-  const mainC = round(clamp(90 - volatilityBias + riskBias + bufferBias, 84, 96), 1);
+  const bufferBias = /high/.test(buffer) ? -.25 : buffer === 'low' ? .12 : 0;
+  const aromaBias = aromaDrive === 'high' ? -.12 : aromaDrive === 'low' ? .10 : 0;
+  const mainC = round(clamp(90 - volatilityBias + riskBias + bufferBias + aromaBias, 84, 96), 1);
   const firstDrop = round(clamp(1.5 + model.sensitivity.temp * 2.7 + light * .8, 1, 5), 1);
   const tailDrop = round(clamp(.8 + model.sensitivity.tail * 2.2 + Math.max(0, model.bitter) * 1.8, 1, 4), 1);
   const tempBand = round(clamp(1.75 - model.sensitivity.temp * .8 - model.sensitivity.tail * .18, .55, 1.8), 2);
   const flowBand = round(clamp(.52 - model.sensitivity.pulse * .28, .16, .55), 2);
   const waterBand = Math.round(clamp(8 - model.sensitivity.temp * 2.1 - model.sensitivity.tail * 2.4, 3, 8));
   const levelName = value => value >= .88 ? '极高' : value >= .72 ? '高' : value >= .58 ? '中高' : value >= .42 ? '中' : '低';
+  const waterAdvice = buffer === 'low'
+    ? '该水型偏向明亮与香气表达，尾段需注意避免酸质尖锐。'
+    : /high/.test(buffer)
+      ? '该水型偏向圆润与结构，可能降低部分明亮感。'
+      : '该水型以平衡表达为主，按实际杯测微调。';
   return {
     model: model.label,
     markers: model.markers || [],
     execution: model.execution || '',
     sensitivity: { ...model.sensitivity },
-    sensitivityText: `温度 ${levelName(model.sensitivity.temp)} / 碱度 ${levelName(model.sensitivity.alkalinity)} / Mg ${levelName(model.sensitivity.magnesium)} / 尾段 ${levelName(model.sensitivity.tail)} / 脉冲 ${levelName(model.sensitivity.pulse)}`,
+    sensitivityText: `温度 ${levelName(model.sensitivity.temp)} / 水型缓冲 ${buffer} / 尾段 ${levelName(model.sensitivity.tail)} / 脉冲 ${levelName(model.sensitivity.pulse)}`,
     tolerance: { temperatureC: tempBand, flowGPerSec: flowBand, waterG: waterBand },
-    waterAdvice: hco3 > 42 ? '碱度偏高，酸质可能钝化；建议降低HCO₃⁻或收紧尾段。' : mg >= 12 ? 'Mg可支撑香气释放；仍应以实际TDS与品鉴复核。' : 'Mg偏低，香气支撑可能不足。',
+    waterAdvice,
     mainC,
     firstC: round(clamp(mainC - firstDrop, 80, mainC), 1),
     tailC: round(clamp(mainC - tailDrop, 80, mainC), 1),
@@ -74,10 +82,9 @@ export function professionalTemperatureModel(bean = {}, waterProfile = {}, targe
     tailDropC: tailDrop,
     lowFirstRecommended: model.sensitivity.temp >= .68 || light >= .55,
     tailCoolingRecommended: model.sensitivity.tail >= .65 || model.bitter > .1,
-    reason: `${model.label}；温度敏感度${model.sensitivity.temp >= .8 ? '高' : '中'}，尾段敏感度${model.sensitivity.tail >= .8 ? '高' : '中'}；Mg ${mg}、HCO₃⁻ ${hco3} mg/L。`
+    reason: `${model.label}；温度敏感度${model.sensitivity.temp >= .8 ? '高' : '中'}，尾段敏感度${model.sensitivity.tail >= .8 ? '高' : '中'}；水型“${waterProfile.name || '未命名'}”，参考TDS ${Number(waterProfile.tdsMid || 85)}。`
   };
 }
-
 export function applyTemperatureOverrides(stages = [], model, brew = {}) {
   const firstMode = brew.firstCoolingMode || (brew.lowTempFirst === false ? 'off' : 'auto');
   const tailMode = brew.tailCoolingMode || 'auto';
@@ -165,7 +172,7 @@ export function buildDetailedTrajectory(stages = [], totalWater = 0, flavorFit =
   return {
     version: BREW_MODEL_VERSION,
     axes: { timeSec: totalTime, waterG: totalWater, temperatureC: [78, 98], flowGPerSec: [0, 8] },
-    water: { ca: Number(waterProfile.ca || 0), mg: Number(waterProfile.mg || 0), hco3: Number(waterProfile.hco3 || 0) },
+    water: { name: waterProfile.name || '未命名水型', tds: Number(waterProfile.tdsMid || 85), tendency: structuredClone(waterProfile.tendency || {}), modelHints: structuredClone(waterProfile.modelHints || {}) },
     points, windows, phases
   };
 }

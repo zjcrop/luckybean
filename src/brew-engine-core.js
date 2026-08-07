@@ -301,7 +301,7 @@ function buildProfessionalModel(input, stages, profileId, grinder, water, flavor
     flavorFit,
     modelLimitations: [
       '萃取轨迹为相对可溶物释放模型，不等同于实测萃取率或折光仪曲线。',
-      'TDS为电导换算量；pH不能由TDS或HCO₃⁻可靠反推。',
+      'LuckyBean仅使用水型、参考TDS和风味倾向；精确配方请在“萃离”中完成。',
       '研磨刻度受磨芯校准、零点、豆密度和筛分分布影响，必须以流速和品鉴复核。'
     ]
   };
@@ -320,27 +320,11 @@ export async function computeFallbackPlan(input) {
   const resolved = resolveProfile(input);
   const waterProfileId = brew.waterProfileId || input.water?.profileId || inferWaterProfile(bean);
   const customWater = waterProfileId === 'custom' && input.water?.customProfile;
-  const water = customWater
-    ? {
-        modelVersion: `${WATER_MODEL_VERSION}+custom`,
-        profile: {
-          id: 'custom', name: '自定义',
-          tds: [Number(input.water.customProfile.tds || 85), Number(input.water.customProfile.tds || 85)],
-          tdsMid: Number(input.water.customProfile.tds || 85),
-          ca: clamp(Number(input.water.customProfile.ca || 0), 0, 100),
-          mg: clamp(Number(input.water.customProfile.mg || 0), 0, 100),
-          hco3: clamp(Number(input.water.customProfile.hco3 || 0), 0, 150),
-          note: '用户自定义离子浓度；应以实测TDS和感官结果复核。'
-        },
-        volumeL: Number(input.water?.recipeVolumeL || 5), doses: [], totalDoseG: null,
-        targetIonsMgL: {
-          calcium: Number(input.water.customProfile.ca || 0), magnesium: Number(input.water.customProfile.mg || 0), bicarbonate: Number(input.water.customProfile.hco3 || 0)
-        },
-        targetTdsRange: [Number(input.water.customProfile.tds || 85), Number(input.water.customProfile.tds || 85)],
-        operationalTdsRange: [Math.max(0, Number(input.water.customProfile.tds || 85) - 8), Number(input.water.customProfile.tds || 85) + 8],
-        warning: '自定义调水仅记录目标浓度，不自动推导pH；必须实测。'
-      }
-    : calculateWaterRecipe(waterProfileId, { volumeL: Number(input.water?.recipeVolumeL || 5), targets });
+  const water = calculateWaterRecipe(waterProfileId, {
+    volumeL: Number(input.water?.recipeVolumeL || 5),
+    targets,
+    customProfile: customWater || null
+  });
   const legacyTemperature = resolveTemperature(input, level, process, water);
   const temperatureModel = professionalTemperatureModel(bean, water.profile, targets);
   const temperature = Number.isFinite(Number(brew.mainTemperatureC))

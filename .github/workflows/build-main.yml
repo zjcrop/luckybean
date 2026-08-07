@@ -1,0 +1,60 @@
+name: LuckyBean main build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: luckybean-main-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android build tools
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Install Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - run: npm ci
+      - run: npm run test:static
+      - name: Build Android debug APK
+        run: gradle --no-daemon -p android :app:assembleDebug
+      - name: Verify Android package contract
+        shell: bash
+        run: |
+          grep -q "versionCode 102300" android/app/build.gradle
+          grep -q "versionName '1.2.3-main-test'" android/app/build.gradle
+          test -f android/app/build/outputs/apk/debug/app-debug.apk
+          unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/index.html'
+          unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/src/services/brew-profile-catalog-service.js'
+          unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/src/services/brew-analysis-service.js'
+          unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/src/renderers/brew-spatial-controller.js'
+      - name: Package web test artifact
+        shell: bash
+        run: |
+          mkdir -p dist
+          zip -qr dist/LuckyBean-1.2.3-main-test-web.zip index.html manifest.webmanifest sw.js styles.css src public
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist/LuckyBean-1.2.3-main-test-debug.apk
+          sha256sum dist/* > dist/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: luckybean-main-v1.2.3-test
+          path: dist/

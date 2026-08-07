@@ -1,59 +1,93 @@
-// Release marker: luckybean-v1.0.0-alpha
-// Compatibility marker: luckybean-v0.9.9-main-099u
-const CACHE_NAME = 'luckybean-v1.0.0-alpha';
-const RELEASE = '1.0.0-alpha';
+// LuckyBean local-first sync test release: 1.2.3-main-test
+const CACHE_PREFIX = 'luckybean-main-v123-';
+const CACHE_NAME = `${CACHE_PREFIX}1.2.3-main-test`;
+const LEGACY_CACHE_PREFIXES = ['luckybean-v120-test-', 'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-'];
 const CORE = [
-  './', `./?v=${RELEASE}`, './index.html', `./index.html?v=${RELEASE}`,
-  `./manifest.webmanifest?v=${RELEASE}`,
-  `./styles.css?v=${RELEASE}`, `./styles-v095.css?v=${RELEASE}`, `./styles-action-grid.css?v=${RELEASE}`,
-  `./styles-theme-light.css?v=${RELEASE}`, `./styles-v095-refine.css?v=${RELEASE}`,
-  `./styles-v096-recognition.css?v=${RELEASE}`, `./styles-qr-scan.css?v=${RELEASE}`,
-  `./styles-v096-integrity.css?v=${RELEASE}`, `./styles-v097-fixes.css?v=${RELEASE}`,
-  `./styles-v098-fixes.css?v=${RELEASE}`, `./styles-v099.css?v=${RELEASE}`,
-  `./styles-v099d.css?v=${RELEASE}`, `./styles-v099f.css?v=${RELEASE}`,
-  `./styles-v099g.css?v=${RELEASE}`, `./styles-v099h.css?v=${RELEASE}`,
-  `./styles-v099i.css?v=${RELEASE}`, `./styles-v099j.css?v=${RELEASE}`,
-  `./styles-v099l.css?v=${RELEASE}`, `./styles-v099m.css?v=${RELEASE}`,
-  `./styles-v099o.css?v=${RELEASE}`, `./styles-v099p.css?v=${RELEASE}`,
-  `./src/v099j-runtime-stability.js?v=${RELEASE}`, `./src/v099o-dom-stability.js?v=${RELEASE}`,
-  `./src/app.js?v=${RELEASE}`, `./src/v099h-splash-assets.js?v=${RELEASE}`,
-  `./src/v099i-migrations.js?v=${RELEASE}`, `./src/v096-web-ocr.js?v=${RELEASE}`,
-  `./src/v099g-paddle-ocr.js?v=${RELEASE}`, `./src/v099d-ocr-quality.js?v=${RELEASE}`,
-  `./src/v096-package-capture.js?v=${RELEASE}`, `./src/v096-direct-camera.js?v=${RELEASE}`,
-  `./src/v095-sensory-bootstrap.js?v=${RELEASE}`, `./src/v095-sensory-pro.js?v=${RELEASE}`,
-  `./src/v095-ui.js?v=${RELEASE}`, `./src/theme-bridge.js?v=${RELEASE}`,
-  `./src/v095-sensory-flow-guard.js?v=${RELEASE}`, `./src/v095-postbrew-sensory.js?v=${RELEASE}`,
-  `./src/v095-qr-ui.js?v=${RELEASE}`, `./src/v096-integrity-ui.js?v=${RELEASE}`,
-  `./src/v097-ui-fixes.js?v=${RELEASE}`, `./src/v097-fab-gesture.js?v=${RELEASE}`,
-  `./src/v099-trajectory-signal-bridge.js?v=${RELEASE}`, `./src/v099i-trajectory-space.js?v=${RELEASE}`,
-  `./src/v098-selection-bridge.js?v=${RELEASE}`, `./src/v098-feature-fixes.js?v=${RELEASE}`,
-  `./src/v099-runtime.js?v=${RELEASE}`, `./src/v099d-radar-scroll.js?v=${RELEASE}`,
-  `./src/v099d-supabase-auth.js?v=${RELEASE}`, `./src/v099f-cloud-sync.js?v=${RELEASE}`,
-  `./src/v099f-cloud-codec.js?v=${RELEASE}`, `./src/v099t-bean-groups.js?v=${RELEASE}`,
-  `./src/v099m-group-controller.js?v=${RELEASE}`, `./src/v099f-ui-upgrade.js?v=${RELEASE}`,
-  `./src/v099g-world-map.js?v=${RELEASE}`, `./src/v099p-settings-rebuild.js?v=${RELEASE}`,
-  './src/recognition-candidates.js', './src/sensory-codec-v096.js', './src/privacy-codec-v096.js',
-  './src/image-quality.js', './src/recognition-bridge.js', './src/utils.js', './src/brew-model-v09.js',
-  './src/brew-trajectory-v096.js', './src/brew-optimizer-v097.js', './src/brew-engine-core.js', './src/brew-engine.js',
-  './src/db-storage-core.js', './src/db.js', './src/codebook.js', './src/qr.js', './src/qr-core.js',
-  './src/water-profiles.js', './src/preference-model.js', './src/share-codec-core.js', './src/share-codec.js',
-  './public/fallback-codebook.json', './public/legacy-flavor-map.json',
-  `./public/app-logo.webp?v=${RELEASE}`, `./public/splash-art-red.webp?v=${RELEASE}`,
-  `./public/splash-art-light.webp?v=${RELEASE}`, `./public/settings-mascot.webp?v=${RELEASE}`,
-  './public/action-grid.svg'
+  './',
+  './index.html',
+  './manifest.webmanifest?v=1.2.3-main-test',
+  './styles.css?v=1.2.3-main-test',
+  './src/app.js?v=1.2.3-main-test',
+  './src/core/startup-controller.js?v=1.2.3-main-test',
+  './src/core/bootstrap.js?v=1.2.3-main-test',
+  './src/services/cloud-auth-service.js?v=1.2.3-main-test',
+  './src/services/cloud-sync-service.js?v=1.2.3-main-test',
+  './src/services/cloud-sync-safety.js?v=1.2.3-main-test',
+  './src/cloud-codec.js?v=1.2.3-main-test',
+  './src/services/brew-analysis-service.js?v=1.2.3-main-test',
+  './src/services/brew-api-client.js?v=1.2.3-main-test',
+  './src/services/brew-profile-catalog-service.js?v=1.2.3-main-test',
+  './src/services/local-reference-analysis.js?v=1.2.3-main-test',
+  './src/services/provider-package-service.js?v=1.2.3-main-test',
+  './src/services/codebook-reconciliation-service.js?v=1.2.3-main-test',
+  './src/services/provider-bootstrap-controller.js?v=1.2.3-main-test',
+  './src/ui/provider-status-panel.js?v=1.2.3-main-test',
+  './src/ui/codebook-reconciliation-screen.js?v=1.2.3-main-test',
+  './src/ui/codebook-reconciliation-screen.css?v=1.2.3-main-test',
+  './src/domain/history/history-service.js?v=1.2.3-main-test',
+  './src/domain/history/history-comparison.js?v=1.2.3-main-test',
+  './src/ui/brew-trend-panel.js?v=1.2.3-main-test',
+  './src/ui/brew-trend-panel.css?v=1.2.3-main-test',
+  './src/domain/history/history-migration.js?v=1.2.3-main-test',
+  './src/ui/history/history-screen.js?v=1.2.3-main-test',
+  './src/ui/history/history-screen.css?v=1.2.3-main-test',
+  './src/renderers/brew-spatial-view.js?v=1.2.3-main-test',
+  './src/renderers/brew-spatial-controller.js?v=1.2.3-main-test',
+  './src/renderers/brew-spatial-view.css?v=1.2.3-main-test',
+  './src/ui/account-sync-panel.js?v=1.2.3-main-test',
+  './src/ui/appearance-controller.js?v=1.2.3-main-test',
+  './src/ui/voice-settings-controller.js?v=1.2.3-main-test',
+  './src/ui/fab-controller.js?v=1.2.3-main-test',
+  './src/features/runtime-features.js?v=1.2.3-main-test',
+  './src/data-migrations.js?v=1.2.3-main-test',
+  './src/recognition-web-ocr.js?v=1.2.3-main-test',
+  './src/recognition-paddle-ocr.js?v=1.2.3-main-test',
+  './src/recognition-quality-controller.js?v=1.2.3-main-test',
+  './src/package-capture-controller.js?v=1.2.3-main-test',
+  './src/direct-camera-controller.js?v=1.2.3-main-test',
+  './src/postbrew-sensory-controller.js?v=1.2.3-main-test',
+  './src/qr-ui-controller.js?v=1.2.3-main-test',
+  './src/integrity-ui-controller.js?v=1.2.3-main-test',
+  './src/ui-layout-controller.js?v=1.2.3-main-test',
+  './src/selection-controller.js?v=1.2.3-main-test',
+  './src/feature-controller.js?v=1.2.3-main-test',
+  './src/runtime-controller.js?v=1.2.3-main-test',
+  './src/bean-groups-controller.js?v=1.2.3-main-test',
+  './src/group-interaction-controller.js?v=1.2.3-main-test',
+  './src/ui-upgrade-controller.js?v=1.2.3-main-test',
+  './src/origin-map-controller.js?v=1.2.3-main-test',
+
+  './public/app-logo.webp?v=1.2.3-main-test',
+  './public/splash-art-red.webp?v=1.2.3-main-test',
+  './public/splash-art-light.webp?v=1.2.3-main-test',
+  './public/fallback-codebook.json',
+  './public/legacy-flavor-map.json'
 ];
-self.addEventListener('install', event => event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting())));
-self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim())));
-self.addEventListener('message', event => { if (event.data?.type === 'SKIP_WAITING') self.skipWaiting(); });
-function legacySplashUrl(url) {
-  if (url.pathname.endsWith('/public/splash-red.jpg')) return new URL(`./public/splash-art-red.webp?v=${RELEASE}`, self.registration.scope);
-  if (url.pathname.endsWith('/public/splash-white.jpg')) return new URL(`./public/splash-art-light.webp?v=${RELEASE}`, self.registration.scope);
-  return null;
-}
+
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys
+      .filter(key => (key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
+        || LEGACY_CACHE_PREFIXES.some(prefix => key.startsWith(prefix)))
+      .map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
+});
+
+self.addEventListener('message', event => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
+
   if (request.mode === 'navigate') {
     event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {
       if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put('./index.html', response.clone()));
@@ -61,18 +95,15 @@ self.addEventListener('fetch', event => {
     }).catch(() => caches.match('./index.html')));
     return;
   }
+
   if (url.origin === self.location.origin) {
-    const replacement = legacySplashUrl(url);
-    if (replacement) {
-      event.respondWith(caches.match(replacement.href).then(cached => cached || fetch(replacement.href)));
-      return;
-    }
     event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {
       if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
       return response;
     }).catch(() => caches.match(request)));
     return;
   }
+
   if (url.hostname === 'cdn.jsdelivr.net') {
     event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {
       caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));

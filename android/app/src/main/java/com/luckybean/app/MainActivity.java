@@ -68,7 +68,7 @@ public final class MainActivity extends Activity {
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
         settings.setSupportZoom(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " LuckyBeanAndroid/1.0.0-alpha");
+        settings.setUserAgentString(settings.getUserAgentString() + " LuckyBeanAndroid/1.2.3-main-test");
 
         webView.setWebViewClient(new LocalAssetClient());
         webView.setWebChromeClient(new LuckyBeanChromeClient());
