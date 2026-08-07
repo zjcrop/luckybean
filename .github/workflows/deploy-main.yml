@@ -35,7 +35,6 @@ jobs:
             LuckyBean-1.2.3-main-test-web.zip
 
   deploy-pages:
-    if: ${{ vars.LUCKYBEAN_ENABLE_PAGES == 'true' }}
     needs: package-web
     environment:
       name: github-pages
