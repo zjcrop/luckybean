@@ -1182,9 +1182,23 @@ function renderBrew() {
   $('#brewWaterProfile')?.addEventListener('change', async event => { state.settings.brew.waterProfileId = event.target.value; await saveSettings(); if (event.target.value === 'custom') openCustomWaterDialog(); else renderBrew(); });
   $('#firstCoolingMode')?.addEventListener('change', async event => { state.settings.brew.firstCoolingMode = event.target.value; await saveSettings(); if (event.target.value === 'custom') openCoolingDialog('first'); else renderBrew(); });
   $('#tailCoolingMode')?.addEventListener('change', async event => { state.settings.brew.tailCoolingMode = event.target.value; await saveSettings(); if (event.target.value === 'custom') openCoolingDialog('tail'); else renderBrew(); });
-  if (!container.dataset.replayBound) {
-    container.dataset.replayBound = 'true';
-    container.addEventListener('click', event => { const replay = event.target.closest('[data-replay-session]'); if (replay) loadBrewSession(replay.dataset.replaySession); });
+  if (!container.dataset.brewActionsBound) {
+    container.dataset.brewActionsBound = 'true';
+    container.addEventListener('click', event => {
+      const replay = event.target.closest('[data-replay-session]');
+      if (replay) {
+        loadBrewSession(replay.dataset.replaySession);
+        return;
+      }
+      const planSensory = event.target.closest('[data-brew-action="plan-sensory"]');
+      if (!planSensory) return;
+      openSensoryModeChooser({
+        beanId: planSensory.dataset.beanId || state.currentPlan?.beanId || state.selectedBeanId,
+        source: 'generated-plan',
+        planReference: planSensory.dataset.planReference || authoritativePlanReference(state.currentPlan),
+        profileId: planSensory.dataset.profileId || String(state.currentPlan?.profile?.id || state.currentBrewInput?.brew?.profileId || '')
+      });
+    });
   }
   bindPlanActions(); bindControlStates(container);
   const spatialHost = $('#brewSpatialMount');
@@ -1307,12 +1321,11 @@ function planHtml(plan) {
     ${plan.correction?.changes ? `<div class="correction-note"><strong>修正依据</strong>${plan.correction.changes.map(value=>`<p>${esc(value)}</p>`).join('')}</div>` : ''}
     <div class="plan-export-row"><select id="planExportFormat" class="control"><option value="json">JSON脚本</option><option value="txt">TXT</option><option value="md">Markdown</option></select><button id="exportPlanBtn" class="button" type="button">导出方案</button></div>
   </div></details>
-  <div class="row menu-row"><button id="startBrewBtn" class="button primary" type="button">开始计时</button><button id="planToSensoryBtn" class="button" type="button">直接品鉴</button></div></section>`;
+  <div class="row menu-row"><button id="startBrewBtn" class="button primary" type="button">开始计时</button><button id="planToSensoryBtn" class="button" type="button" data-brew-action="plan-sensory" data-bean-id="${esc(String(plan.beanId || state.selectedBeanId || ''))}" data-plan-reference="${esc(authoritativePlanReference(plan))}" data-profile-id="${esc(String(plan.profile?.id || state.currentBrewInput?.brew?.profileId || ''))}">直接品鉴</button></div></section>`;
 }
 
 function bindPlanActions() {
   $('#startBrewBtn')?.addEventListener('click', startTimer);
-  $('#planToSensoryBtn')?.addEventListener('click', () => openSensoryModeChooser({ beanId: state.selectedBeanId, source: 'generated-plan', planReference: authoritativePlanReference(state.currentPlan), profileId: String(state.currentPlan?.profile?.id || state.currentBrewInput?.brew?.profileId || '') }));
   $('#exportPlanBtn')?.addEventListener('click', () => exportCurrentPlan($('#planExportFormat')?.value || 'json'));
   $('#trajectoryDefaultToggle')?.addEventListener('change', async event => { state.settings.ui.planVisualsExpanded = event.target.checked; state.settings.ui.temporaryVisualOpen = false; await saveSettings(); if (state.currentPlan) { $('#planResult').innerHTML=planHtml(state.currentPlan); bindPlanActions(); } });
   $('#trajectoryTitleBtn')?.addEventListener('click', () => { if (state.settings.ui.planVisualsExpanded) return; state.settings.ui.temporaryVisualOpen = !state.settings.ui.temporaryVisualOpen; if (state.currentPlan) { $('#planResult').innerHTML=planHtml(state.currentPlan); bindPlanActions(); } });

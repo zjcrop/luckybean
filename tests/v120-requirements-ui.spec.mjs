@@ -118,7 +118,14 @@ test('one server login remains one panel after authentication and automatic sync
   await page.locator('[data-page-target="brew"]').click();
   await expect(page.locator('#generatedPlan')).toBeVisible();
   const linkedProfileId = await profile.inputValue();
-  await page.locator('#planToSensoryBtn').click();
+  const planSensoryButton = page.locator('#planToSensoryBtn');
+  await expect(planSensoryButton).toHaveAttribute('data-brew-action', 'plan-sensory');
+  await expect(planSensoryButton).toHaveAttribute('data-plan-reference', /.+/);
+  await expect(planSensoryButton).toHaveAttribute('data-profile-id', linkedProfileId);
+  await planSensoryButton.click();
+  await expect(page.locator('[data-page="sensory"]')).toHaveClass(/active/);
+  await expect(page.locator('#sensoryContent')).toBeVisible();
+  await expect(page.locator('#sensoryContent')).toHaveAttribute('data-sensory-origin', 'generated-plan');
   await expect(page.locator('#sensoryContent')).toHaveAttribute('data-plan-reference', /.+/);
   await expect(page.locator('#sensoryContent')).toHaveAttribute('data-profile-id', linkedProfileId);
   await expect(page.locator('#sensoryContent')).toHaveAttribute('data-brew-session-id', '');
