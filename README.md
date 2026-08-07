@@ -10,7 +10,7 @@ LuckyBean 主线是咖啡冲煮应用与跨项目数据编排层。
 
 跨项目业务数据只依赖约定好的字段、类型、单位和语义，不把 appVersion、engineVersion 或项目发布号写入业务对象，也不把它们作为能否读取数据的条件。接口、鉴权和传输协议可以有独立版本元数据，但必须位于业务数据之外。
 
-业务对象顶层不得新增或依赖：schemaVersion、appVersion、engineVersion。
+业务对象顶层不得新增或依赖：schemaVersion、appVersion、engineVersion、profileVersion。协议元数据只能放在 HTTP 头或响应包络中。
 
 ### LuckyBean 的数据边界
 
@@ -22,11 +22,11 @@ LuckyBean 不得重新定义上游字段含义，不得用本地硬编码表覆�
 
 | 对象 | 关键字段 | 单位/约束 |
 |---|---|---|
-| bean | id、origin、variety、process、roast | ID 稳定；文本不改语义 |
-| brew | dose_g、water_g、ratio、temperature_c、duration_s | g、g、无量纲、°C、s |
-| water | tds_mg_l、ph、ca_mg_l、mg_mg_l、hco3_mg_l | 浓度统一 mg/L；pH 必须标注来源 |
-| environment | ambient_temperature_c、humidity_pct、equipment | °C、%、设备标识 |
-| targets | acidity、floral、fruity、sweetness、bitterness、astringency | 目标 ID 固定 |
+| bean | countryCode、regionCode、varietyCode、processCode、roastCode、roastColor、altitude | 代码语义稳定；海拔 m |
+| brew | doseG、ratio、profileId、method、dripperCode、filterPaper、grinder | 粉量 g；粉水比无量纲；器具先规范化 |
+| water | profileId、recipeVolumeL、tdsMgL、calciumMgL、magnesiumMgL、bicarbonateMgL | L、mg/L |
+| environment | ambientTemperatureC、relativeHumidityPct、initialBedTemperatureC | °C、%、°C |
+| targets | acidity、floral、fruity、sweetness、bitterness、astringency | 六项均为 0–3；前四项为强调程度，后两项为抑制优先级；禁止 body |
 
 ### 稳定输出
 
