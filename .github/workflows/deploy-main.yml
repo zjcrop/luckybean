@@ -57,3 +57,24 @@ jobs:
           path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  verify-pages:
+    needs: deploy-pages
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify published page
+        shell: bash
+        run: |
+          for attempt in {1..18}; do
+            status=$(curl -L -sS -o /tmp/luckybean-pages.html -w '%{http_code}' https://zjcrop.github.io/luckybean/)
+            if [ "$status" = "200" ] && grep -qi '<html' /tmp/luckybean-pages.html; then
+              echo "LuckyBean Pages is reachable: HTTP $status"
+              exit 0
+            fi
+            echo "Attempt $attempt: HTTP $status; waiting for Pages propagation"
+            sleep 10
+          done
+          echo "LuckyBean Pages did not become reachable"
+          cat /tmp/luckybean-pages.html || true
+          exit 1
