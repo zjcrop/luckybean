@@ -78,15 +78,22 @@ async function startMode(mode) {
   if (transferBusy) return;
   const beanId = await selectedBeanId();
   if (!beanId) return;
-  const brewSessionId = $('#sensoryContent')?.dataset.brewSessionId || '';
+  const sensoryRoot = $('#sensoryContent');
+  const brewSessionId = sensoryRoot?.dataset.brewSessionId || '';
+  const planReference = sensoryRoot?.dataset.planReference || '';
+  const profileId = sensoryRoot?.dataset.profileId || '';
+  const source = sensoryRoot?.dataset.sensoryOrigin || 'independent';
   if (mode === 'player' || mode === 'note') {
-    document.dispatchEvent(new CustomEvent('luckybean:start-sensory-mode', { detail: { mode, beanId, brewSessionId } }));
+    document.dispatchEvent(new CustomEvent('luckybean:start-sensory-mode', { detail: { mode, beanId, brewSessionId, planReference, profileId, source } }));
     return;
   }
   const context = await beanContext(beanId);
   wizard = {
     beanId,
     brewSessionId,
+    planReference,
+    profileId,
+    source,
     bean: context.bean,
     original: context.original,
     step: 0,
@@ -365,6 +372,9 @@ async function finishProfessional() {
   const detail = {
     beanId: wizard.beanId,
     brewSessionId: wizard.brewSessionId,
+    planReference: wizard.planReference,
+    profileId: wizard.profileId,
+    source: wizard.source,
     score: affectiveMappedScore(),
     summary: professionalSummary().split('\n').filter(Boolean),
     naturalNote: wizard.naturalNote.trim(),

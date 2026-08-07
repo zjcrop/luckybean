@@ -117,8 +117,11 @@ test('one server login remains one panel after authentication and automatic sync
 
   await page.locator('[data-page-target="brew"]').click();
   await expect(page.locator('#generatedPlan')).toBeVisible();
+  const linkedProfileId = await profile.inputValue();
   await page.locator('#planToSensoryBtn').click();
-  await expect(page.locator('#sensoryContent')).toHaveAttribute('data-brew-session-id', /.+/);
+  await expect(page.locator('#sensoryContent')).toHaveAttribute('data-plan-reference', /.+/);
+  await expect(page.locator('#sensoryContent')).toHaveAttribute('data-profile-id', linkedProfileId);
+  await expect(page.locator('#sensoryContent')).toHaveAttribute('data-brew-session-id', '');
   await expect(page.locator('.v095-sensory-modes [data-v095-mode]')).toHaveCount(3);
   await expect(page.locator('[data-sensory-mode="player"]')).toHaveCount(0);
 });

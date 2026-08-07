@@ -1176,7 +1176,7 @@ function renderBrew() {
   }));
   $('#generatePlanBtn')?.addEventListener('click', generatePlan);
   $('#brewProfile')?.addEventListener('change', async event => { state.settings.brew.profileId = event.target.value; await saveSettings(); });
-  $('#directSensoryBtn')?.addEventListener('click', () => { if (!state.selectedBeanId) return; state.evaluation = null; state.pendingSensoryContext = { beanId: state.selectedBeanId, brewSessionId: '', source: 'direct-brew' }; switchPage('sensory'); renderSensory(); });
+  $('#directSensoryBtn')?.addEventListener('click', () => openSensoryModeChooser({ beanId: state.selectedBeanId, source: 'direct-brew' }));
   $('#openFlavorTargetBtn')?.addEventListener('click', openFlavorTargetDialog);
   $('#openBrewTuneBtn')?.addEventListener('click', openBrewTuneDialog);
   $('#brewWaterProfile')?.addEventListener('change', async event => { state.settings.brew.waterProfileId = event.target.value; await saveSettings(); if (event.target.value === 'custom') openCustomWaterDialog(); else renderBrew(); });
@@ -1312,7 +1312,7 @@ function planHtml(plan) {
 
 function bindPlanActions() {
   $('#startBrewBtn')?.addEventListener('click', startTimer);
-  $('#planToSensoryBtn')?.addEventListener('click', () => { if (!state.selectedBeanId) return; state.evaluation = null; state.pendingSensoryContext = { beanId: state.selectedBeanId, brewSessionId: String(state.currentPlan?.id || ''), source: 'generated-plan' }; switchPage('sensory'); renderSensory(); });
+  $('#planToSensoryBtn')?.addEventListener('click', () => openSensoryModeChooser({ beanId: state.selectedBeanId, source: 'generated-plan', planReference: authoritativePlanReference(state.currentPlan), profileId: String(state.currentPlan?.profile?.id || state.currentBrewInput?.brew?.profileId || '') }));
   $('#exportPlanBtn')?.addEventListener('click', () => exportCurrentPlan($('#planExportFormat')?.value || 'json'));
   $('#trajectoryDefaultToggle')?.addEventListener('change', async event => { state.settings.ui.planVisualsExpanded = event.target.checked; state.settings.ui.temporaryVisualOpen = false; await saveSettings(); if (state.currentPlan) { $('#planResult').innerHTML=planHtml(state.currentPlan); bindPlanActions(); } });
   $('#trajectoryTitleBtn')?.addEventListener('click', () => { if (state.settings.ui.planVisualsExpanded) return; state.settings.ui.temporaryVisualOpen = !state.settings.ui.temporaryVisualOpen; if (state.currentPlan) { $('#planResult').innerHTML=planHtml(state.currentPlan); bindPlanActions(); } });
@@ -1457,7 +1457,7 @@ function promptRecordConsumption(reason) {
       state.currentExecution = null;
       await refreshData();
       state.selectedBeanId = bean.id;
-      state.pendingSensoryContext = { beanId: bean.id, brewSessionId: saved.record.id, source: 'completed-brew' };
+      state.pendingSensoryContext = { beanId: bean.id, brewSessionId: saved.record.id, source: 'completed-brew', planReference: authoritativePlanReference(state.currentPlan), profileId: String(state.currentPlan?.profile?.id || state.currentBrewInput?.brew?.profileId || '') };
       state.evaluation = null;
       closeOverlay(); switchPage('sensory', { preserveOverlay: true }); renderSensory();
       toast(activeFilter ? `已扣除 ${actualDose.toFixed(1)}g 咖啡豆与滤纸1张` : `已扣除 ${actualDose.toFixed(1)}g 咖啡豆；未设置滤纸库存`, activeFilter ? 'status-good' : 'status-warn');
@@ -1471,10 +1471,11 @@ function promptRecordConsumption(reason) {
 
 function startEvaluation(beanId = state.selectedBeanId, options = {}) {
   state.selectedBeanId = beanId;
-  const sessionId = options.brewSessionId ?? state.currentPlan?.id ?? '';
+  const sessionId = String(options.brewSessionId || '');
   const evaluationMode = options.evaluationMode === 'note' ? 'note' : 'player';
   state.evaluation = {
     id: uid('sensory'), beanId, brewSessionId: sessionId,
+    planReference: String(options.planReference || ''), profileId: String(options.profileId || ''), sensorySource: String(options.sensorySource || 'independent'),
     engineVersion: state.currentPlan?.engineVersion || '', profileVersion: state.currentPlan?.profileVersion || '',
     nodeIndex: 0, answers: { floral: { 1: ['无'] }, fruit: { 1: ['无'] }, other: { 1: ['无'], 2: ['无'], 3: ['无'] } },
     autoScore: 0, subjectiveScore: evaluationMode === 'note' ? 80 : 0, scoreDelta: 0,
@@ -1496,16 +1497,39 @@ function filteredSensoryRecords(limit = null) {
   return limit == null ? records : records.slice(0, limit);
 }
 
+function authoritativePlanReference(plan = state.currentPlan) {
+  return String(plan?.analysisFingerprint || plan?.trajectory?.planFingerprint || plan?.analysisRequestId || '');
+}
+
+function openSensoryModeChooser({ beanId, brewSessionId = '', source = 'independent', planReference = '', profileId = '' } = {}) {
+  const targetBeanId = String(beanId || state.selectedBeanId || '');
+  if (!targetBeanId || !state.beans.some(bean => bean.id === targetBeanId)) return;
+  state.selectedBeanId = targetBeanId;
+  state.evaluation = null;
+  state.pendingSensoryContext = {
+    beanId: targetBeanId,
+    brewSessionId: String(brewSessionId || ''),
+    source: String(source || 'independent'),
+    planReference: String(planReference || ''),
+    profileId: String(profileId || '')
+  };
+  switchPage('sensory');
+}
+
 function renderSensory() {
   const container = $('#sensoryContent');
   const recent = filteredSensoryRecords(5);
   const current = state.evaluation;
   const pending = state.pendingSensoryContext;
   const activeSessionId = String(current?.brewSessionId || pending?.brewSessionId || '');
+  const activePlanReference = String(current?.planReference || pending?.planReference || '');
+  const activeProfileId = String(current?.profileId || pending?.profileId || '');
   container.dataset.brewSessionId = activeSessionId;
-  container.dataset.sensoryOrigin = pending?.source || (current?.direct ? 'independent' : '');
+  container.dataset.planReference = activePlanReference;
+  container.dataset.profileId = activeProfileId;
+  container.dataset.sensoryOrigin = pending?.source || current?.sensorySource || (current?.direct ? 'independent' : '');
   container.innerHTML = `<section class="panel sensory-history"><button id="sensoryHistoryToggle" class="history-toggle${state.sensoryHistoryOpen?' active':''}" type="button"><span>往昔……</span><span>${state.sensoryHistoryOpen?'⌃':'⌄'}</span></button>${state.sensoryHistoryOpen ? `<div class="record-list">${recent.length?recent.map(recordHtml).join(''):'<p class="muted small">尚无品鉴记录</p>'}</div><button id="sensoryMoreBtn" class="button" type="button">更多</button>` : ''}</section>
-  ${current ? evaluationHtml(current) : `<section class="panel sensory-start-panel"><div class="panel-title centered"><div><h2>本次品鉴</h2><p>${pending ? '冲煮记录已保存，请选择一种独立品鉴模式' : '专业杯测 · 玩家互动 · 札记'}</p></div></div><label class="field centered-field"><span>选择豆子</span><select id="sensoryBeanSelect" class="control">${state.beans.filter(bean=>!bean.archived).map(bean=>`<option value="${esc(bean.id)}"${bean.id===state.selectedBeanId?' selected':''}>${esc(beanDisplayName(bean))}</option>`).join('')}</select></label><div class="sensory-start-action" data-sensory-mode-host></div></section>`}`;
+  ${current ? evaluationHtml(current) : `<section class="panel sensory-start-panel"><div class="panel-title centered"><div><h2>本次品鉴</h2><p>${pending?.brewSessionId ? '冲煮记录已保存，请选择一种独立品鉴模式' : pending?.planReference ? '冲煮方案已关联，请选择一种独立品鉴模式' : '专业杯测 · 玩家互动 · 札记'}</p></div></div><label class="field centered-field"><span>选择豆子</span><select id="sensoryBeanSelect" class="control">${state.beans.filter(bean=>!bean.archived).map(bean=>`<option value="${esc(bean.id)}"${bean.id===state.selectedBeanId?' selected':''}>${esc(beanDisplayName(bean))}</option>`).join('')}</select></label><div class="sensory-start-action" data-sensory-mode-host></div></section>`}`;
   $('#sensoryHistoryToggle').addEventListener('click', () => { state.sensoryHistoryOpen = !state.sensoryHistoryOpen; renderSensory(); });
   $('#sensoryMoreBtn')?.addEventListener('click', openSensoryRecordsPage);
   $('#sensoryBeanSelect')?.addEventListener('change', event => {
@@ -1720,11 +1744,15 @@ async function saveProfessionalEvaluation(detail = {}) {
   const beanId = String(detail.beanId || state.selectedBeanId || '');
   if (!beanId || !state.beans.some(bean => bean.id === beanId)) return toast('杯测记录缺少有效豆卡', 'status-bad');
   const now = new Date().toISOString();
+  const pending = state.pendingSensoryContext?.beanId === beanId ? state.pendingSensoryContext : {};
   const score = clamp(Number(detail.score || 0), 0, 100);
   const record = {
     id: uid('sensory'),
     beanId,
-    brewSessionId: String(detail.brewSessionId ?? (state.pendingSensoryContext?.beanId === beanId ? state.pendingSensoryContext.brewSessionId : '') ?? state.currentPlan?.id ?? ''),
+    brewSessionId: String(detail.brewSessionId || pending.brewSessionId || ''),
+    planReference: String(detail.planReference || pending.planReference || ''),
+    profileId: String(detail.profileId || pending.profileId || ''),
+    sensorySource: String(detail.source || pending.source || 'independent'),
     evaluationMode: 'professional',
     sourceMode: 'independent-cupping-v120',
     professionalData: structuredClone(detail.professionalData || {}),
@@ -1764,10 +1792,13 @@ document.addEventListener('luckybean:start-sensory-mode', event => {
   const mode = event.detail?.mode === 'note' ? 'note' : 'player';
   const beanId = String(event.detail?.beanId || state.selectedBeanId || '');
   if (!beanId) return;
-  const pendingSessionId = state.pendingSensoryContext?.beanId === beanId ? state.pendingSensoryContext.brewSessionId : '';
+  const pending = state.pendingSensoryContext?.beanId === beanId ? state.pendingSensoryContext : {};
   startEvaluation(beanId, {
     direct: true,
-    brewSessionId: String(event.detail?.brewSessionId || pendingSessionId || ''),
+    brewSessionId: String(event.detail?.brewSessionId || pending.brewSessionId || ''),
+    planReference: String(event.detail?.planReference || pending.planReference || ''),
+    profileId: String(event.detail?.profileId || pending.profileId || ''),
+    sensorySource: String(event.detail?.source || pending.source || 'independent'),
     evaluationMode: mode,
     sourceMode: mode === 'note' ? 'independent-note-v125' : 'independent-player-v125'
   });
