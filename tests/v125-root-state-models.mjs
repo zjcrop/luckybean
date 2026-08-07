@@ -23,6 +23,10 @@ assert.match(app, /data-add-gear="grinder"/);
 assert.doesNotMatch(app, /saveGearTextBtn|gearGrinders" class="control"/);
 assert.match(app, /<span>账户<\/span>/);
 
+assert.match(professional, /<strong>杯测品鉴<\/strong>/);
+assert.match(professional, /\[data-sensory-mode-host\]/);
+assert.match(professional, /host\.replaceChildren\(\)/);
+assert.doesNotMatch(professional, /startSensoryBtn|v095-native-start/);
 assert.match(professional, /const NOTE_STEP = STEPS\.length \+ 1/);
 assert.match(professional, /data-v095-professional-note/);
 assert.match(professional, /naturalNote: wizard\.naturalNote\.trim\(\)/);
