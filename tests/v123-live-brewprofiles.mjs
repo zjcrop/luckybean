@@ -24,8 +24,8 @@ const catalogResponse = await fetch(`${endpoint}?mode=profiles`, { headers });
 const catalog = await catalogResponse.json();
 assert.equal(catalogResponse.status, 200, JSON.stringify(catalog));
 assert.equal(catalog.contract, 'brew-profile-catalog/1.0');
-const catalogIds = new Set(catalog.profiles.map(profile => profile.id));
-for (const id of competitionIds) assert.ok(catalogIds.has(id), `catalog missing ${id}`);
+const catalogVersions = new Map(catalog.profiles.map(profile => [profile.id, profile.version]));
+for (const id of competitionIds) assert.ok(catalogVersions.has(id), `catalog missing ${id}`);
 
 for (const profileId of competitionIds) {
   const response = await fetch(endpoint, {
@@ -72,7 +72,12 @@ for (const profileId of competitionIds) {
   assert.equal(analysis.contract, 'brew-analysis/2.0');
   assert.equal(analysis.metadata.requestedProfileId, profileId);
   assert.equal(analysis.metadata.resolvedProfileId, profileId);
-  assert.equal(analysis.metadata.resolvedProfileVersion, '2.0.0');
+  assert.equal(analysis.metadata.resolvedProfileVersion, catalogVersions.get(profileId));
+  assert.deepEqual(analysis.input.brew.profileId, profileId);
+  for (const field of ['profile','input','recommendation','summary','stages','models','warnings','integration','options']) {
+    assert.ok(Object.hasOwn(analysis.plan, field), `${profileId}: plan missing ${field}`);
+  }
+  assert.ok(Array.isArray(analysis.plan.stages) && analysis.plan.stages.length > 0, `${profileId}: stages missing`);
   assert.equal(analysis.trajectory.schemaVersion, 'brew-spatial/1.1');
   assert.ok(analysis.trajectory.path.length > 20, `${profileId}: path too short`);
   const returnedTargets = new Set(analysis.trajectory.targets.map(target => target.id));
