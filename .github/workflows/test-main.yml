@@ -32,6 +32,8 @@ jobs:
         shell: bash
         run: find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
       - run: npm run test:static
+      - name: Verify live BrewProfiles contract
+        run: npm run test:live-brewprofiles
       - run: npx playwright install --with-deps chromium
       - name: Start web server
         shell: bash
