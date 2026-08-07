@@ -67,7 +67,7 @@ function replaceModePanel() {
   if (current?.dataset.modeVersion === 'professional-v2') return;
   host.replaceChildren();
   host.insertAdjacentHTML('beforeend', modePanel());
-  $('[data-v095-mode]', host).forEach(button => button.addEventListener('click', () => startMode(button.dataset.v095Mode)));
+  $$('[data-v095-mode]', host).forEach(button => button.addEventListener('click', () => startMode(button.dataset.v095Mode)));
 }
 
 async function selectedBeanId() {
