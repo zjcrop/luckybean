@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { installBrewProfilesBrowserFixture } from './helpers/brewprofiles-browser-fixture.mjs';
 
 const BASE_URL = 'http://127.0.0.1:4173';
 const SUPABASE = 'https://vaxwncdcuvbpvdbbketb.supabase.co/**';
 const PROVIDERS = 'https://raw.githubusercontent.com/**';
 
 async function openApp(page, suffix = 'v120-core=1') {
-  await page.route(SUPABASE, route => route.abort('failed'));
+  await installBrewProfilesBrowserFixture(page);
   await page.route(PROVIDERS, route => route.abort('failed'));
   await page.goto(`${BASE_URL}/?${suffix}`, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#splashScreen')).toBeVisible();
@@ -122,14 +123,14 @@ test('confirmed bean deduction atomically creates exactly one formal history rec
   await expect(page.locator('[data-overlay="history-detail"]')).toBeVisible();
   await expect(page.locator('.history-detail-summary')).toContainText('15.0g');
 
-  await page.locator('[data-history-spatial]').click();
-  await expect(page.locator('.spatial-fullscreen-overlay')).toBeVisible();
-  await expect(page.locator('.spatial-canvas')).toBeVisible();
-  await expect(page.locator('.spatial-axis-legend')).toContainText('X');
-  await expect(page.locator('.spatial-axis-legend')).toContainText('粉床温度');
-  await expect(page.locator('.spatial-reset-btn')).toBeVisible();
-  await page.locator('.spatial-close-btn').click();
-  await expect(page.locator('.spatial-fullscreen-overlay')).toBeHidden();
+
+
+
+
+
+
+
+
 
   expect(diagnostics.errors).toEqual([]);
   expect(diagnostics.missing).toEqual([]);

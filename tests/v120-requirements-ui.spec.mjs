@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { installBrewProfilesBrowserFixture } from './helpers/brewprofiles-browser-fixture.mjs';
 
 const BASE_URL = 'http://127.0.0.1:4173';
 const SUPABASE_PATTERN = 'https://vaxwncdcuvbpvdbbketb.supabase.co/**';
 
 async function openApp(page, suffix) {
-  await page.route(SUPABASE_PATTERN, route => route.abort('failed'));
+  await installBrewProfilesBrowserFixture(page);
   await page.goto(`${BASE_URL}/?${suffix}`, { waitUntil: 'domcontentloaded' });
   await page.locator('#splashScreen').click();
   await expect(page.locator('#appShell')).toBeVisible({ timeout: 15000 });
@@ -145,3 +146,4 @@ test('professional tags sort and radar nodes select and drag; note mode opens di
   await page.locator('[data-v095-mode="note"]').click();
   await expect(page.locator('#sensoryDeltaWheel')).toBeVisible({ timeout: 3000 });
 });
+
