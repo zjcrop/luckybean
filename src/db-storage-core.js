@@ -166,6 +166,32 @@ export async function bulkPut(name, values) {
   });
 }
 
+export async function replaceStores(storeRows) {
+  assertPlainObject(storeRows, '恢复数据');
+  const names = Object.keys(storeRows);
+  if (!names.length) return;
+  for (const name of names) {
+    if (!STORES.includes(name)) throw new Error(`未知数据表：${name}`);
+    if (!Array.isArray(storeRows[name])) throw new Error(`${name}恢复数据必须是数组`);
+  }
+  const prepared = Object.fromEntries(await Promise.all(names.map(async name => [
+    name,
+    await Promise.all(storeRows[name].map(value => transformForWrite(name, value)))
+  ])));
+  const db = await openDb();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(names, 'readwrite');
+    for (const name of names) {
+      const objectStore = tx.objectStore(name);
+      objectStore.clear();
+      prepared[name].forEach(value => objectStore.put(structuredClone(value)));
+    }
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error || new Error('完整恢复失败'));
+    tx.onabort = () => reject(tx.error || new Error('完整恢复已中止'));
+  });
+}
+
 export async function activateCodebook(candidate) {
   assertPlainObject(candidate, '编码表候选');
   const db = await openDb();

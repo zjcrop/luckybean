@@ -397,13 +397,19 @@ export function parseNaturalLanguage(text, book) {
     result.evidence.roastCode = roastCode[1];
   }
 
-  const roastDateInput = labeled.roastDate || labeled.productionDate || (!labeled.packDate && !labeled.bestBefore && !labeled.expiryDate ? source : '');
-  const roastDateMatch = parseCoffeeDateValue(roastDateInput, { field: labeled.roastDate ? 'roastDate' : 'productionDate' });
-  if (roastDateInput) result.parseMetadata.roastDate = { ...roastDateMatch, sourceLabel: labeled.roastDate ? 'roastDate' : labeled.productionDate ? 'productionDate' : 'unlabeled' };
+  const roastDateInput = labeled.roastDate || '';
+  const roastDateMatch = parseCoffeeDateValue(roastDateInput, { field: 'roastDate' });
+  if (roastDateInput) result.parseMetadata.roastDate = { ...roastDateMatch, sourceLabel: 'roastDate' };
   if (roastDateMatch.normalizedValue) {
     result.roastDate = roastDateMatch.normalizedValue;
-    result.confidence.roastDate = labeled.roastDate ? roastDateMatch.confidence : Math.min(0.72, roastDateMatch.confidence);
+    result.confidence.roastDate = roastDateMatch.confidence;
     result.evidence.roastDate = roastDateMatch.rawValue;
+  }
+
+  for (const field of ['productionDate', 'packDate', 'bestBefore', 'expiryDate']) {
+    if (!labeled[field]) continue;
+    const match = parseCoffeeDateValue(labeled[field], { field });
+    result.parseMetadata[field] = { ...match, sourceLabel: field, excludedFromRoastDate: true };
   }
 
   const harvestMatch = parseHarvestSeasonValue(labeled.harvest || '');

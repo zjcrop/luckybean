@@ -12,7 +12,9 @@ tasks.register('syncLuckyBeanWebAssets') {
         new File(repositoryRoot, 'sw.js'),
         fileTree(repositoryRoot) { include '*.css' },
         fileTree(new File(repositoryRoot, 'src')),
-        fileTree(new File(repositoryRoot, 'public'))
+        fileTree(new File(repositoryRoot, 'public')),
+        fileTree(new File(repositoryRoot, 'contracts')),
+        new File(repositoryRoot, 'recognition-test.html')
     )
     outputs.dir(generatedWebAssets)
     doLast {
@@ -21,8 +23,8 @@ tasks.register('syncLuckyBeanWebAssets') {
         File webCache = new File(output, 'web-cache')
         copy {
             from(repositoryRoot) {
-                include 'index.html', '*.css', 'manifest.webmanifest', 'sw.js'
-                include 'src/**', 'public/**'
+                include 'index.html', 'recognition-test.html', '*.css', 'manifest.webmanifest', 'sw.js'
+                include 'src/**', 'public/**', 'contracts/**'
             }
             into webCache
         }
@@ -60,8 +62,8 @@ android {
         applicationId 'com.luckybean.app'
         minSdk 26
         targetSdk 35
-        versionCode 102300
-        versionName '1.2.3-main-test'
+        versionCode 102304
+        versionName '1.23D'
     }
 
     sourceSets {

@@ -1,20 +1,20 @@
 const RUNTIME_FEATURES = Object.freeze([
-  { id: 'data-migrations', path: '../data-migrations.js?v=1.2.3-main-test' },
-  { id: 'recognition-web-ocr', path: '../recognition-web-ocr.js?v=1.2.3-main-test' },
-  { id: 'recognition-paddle-ocr', path: '../recognition-paddle-ocr.js?v=1.2.3-main-test' },
-  { id: 'recognition-quality', path: '../recognition-quality-controller.js?v=1.2.3-main-test' },
-  { id: 'package-capture', path: '../package-capture-controller.js?v=1.2.3-main-test' },
-  { id: 'direct-camera', path: '../direct-camera-controller.js?v=1.2.3-main-test' },
-  { id: 'qr-ui', path: '../qr-ui-controller.js?v=1.2.3-main-test' },
-  { id: 'integrity-ui', path: '../integrity-ui-controller.js?v=1.2.3-main-test' },
-  { id: 'ui-layout', path: '../ui-layout-controller.js?v=1.2.3-main-test' },
-  { id: 'selection', path: '../selection-controller.js?v=1.2.3-main-test' },
-  { id: 'feature-controller', path: '../feature-controller.js?v=1.2.3-main-test' },
-  { id: 'runtime-controller', path: '../runtime-controller.js?v=1.2.3-main-test' },
-  { id: 'bean-groups', path: '../bean-groups-controller.js?v=1.2.3-main-test' },
-  { id: 'group-interaction', path: '../group-interaction-controller.js?v=1.2.3-main-test' },
-  { id: 'ui-upgrade', path: '../ui-upgrade-controller.js?v=1.2.3-main-test' },
-  { id: 'origin-map', path: '../origin-map-controller.js?v=1.2.3-main-test' }
+  { id: 'data-migrations', path: '../data-migrations.js?v=1.23D' },
+  { id: 'recognition-web-ocr', path: '../recognition-web-ocr.js?v=1.23D' },
+  { id: 'recognition-paddle-ocr', path: '../recognition-paddle-ocr.js?v=1.23D' },
+  { id: 'recognition-quality', path: '../recognition-quality-controller.js?v=1.23D' },
+  { id: 'package-capture', path: '../package-capture-controller.js?v=1.23D' },
+  { id: 'direct-camera', path: '../direct-camera-controller.js?v=1.23D' },
+  { id: 'qr-ui', path: '../qr-ui-controller.js?v=1.23D' },
+  { id: 'integrity-ui', path: '../integrity-ui-controller.js?v=1.23D' },
+  { id: 'ui-layout', path: '../ui-layout-controller.js?v=1.23D' },
+  { id: 'selection', path: '../selection-controller.js?v=1.23D' },
+  { id: 'feature-controller', path: '../feature-controller.js?v=1.23D' },
+  { id: 'runtime-controller', path: '../runtime-controller.js?v=1.23D' },
+  { id: 'bean-groups', path: '../bean-groups-controller.js?v=1.23D' },
+  { id: 'group-interaction', path: '../group-interaction-controller.js?v=1.23D' },
+  { id: 'ui-upgrade', path: '../ui-upgrade-controller.js?v=1.23D' },
+  { id: 'origin-map', path: '../origin-map-controller.js?v=1.23D' }
 ]);
 
 const failures = [];
@@ -32,7 +32,7 @@ for (const feature of RUNTIME_FEATURES) {
 }
 
 globalThis.LuckyBeanRuntimeFeatures = {
-  revision: '1.2.3-main-test',
+  revision: '1.23D',
   declared: RUNTIME_FEATURES.map(feature => feature.id),
   loaded,
   failures

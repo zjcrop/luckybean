@@ -9,7 +9,7 @@ function cleanText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
 }
 
-function normalizeBlock(block, imageId, engine) {
+function normalizeBlock(block, imageId, engine, imageRole = '') {
   const text = cleanText(block?.text ?? block?.rawValue ?? block?.value);
   if (!text) return null;
   const box = block?.polygon || block?.corners || block?.boundingBox || null;
@@ -19,6 +19,7 @@ function normalizeBlock(block, imageId, engine) {
     confidence: Number.isFinite(confidence) ? Math.max(0, Math.min(1, confidence)) : 0.75,
     polygon: box,
     imageId,
+    imageRole,
     engine
   };
 }
@@ -26,7 +27,8 @@ function normalizeBlock(block, imageId, engine) {
 function deduplicateBlocks(blocks) {
   const map = new Map();
   for (const block of blocks) {
-    const key = block.text.toLocaleLowerCase('zh-CN').replace(/[\s·•,，;；:：/_-]+/g, '');
+    const polygonKey = Array.isArray(block.polygon) ? JSON.stringify(block.polygon) : '';
+    const key = `${block.imageId}|${block.text.toLocaleLowerCase('zh-CN').replace(/[\s·•,，;；:：/_-]+/g, '')}|${polygonKey}`;
     if (!key) continue;
     const current = map.get(key);
     if (!current || block.confidence > current.confidence) map.set(key, block);
@@ -91,22 +93,25 @@ async function textDetectorRecognize(images) {
 function collectBlocks(result, images) {
   const engine = result?.engine || 'unknown';
   const blocks = [];
+  const roleByImage = new Map(images.map(image => [image.id, image.role || 'side']));
 
   if (Array.isArray(result?.blocks)) {
     for (const block of result.blocks) {
-      const normalized = normalizeBlock(block, block.imageId || images[0]?.id || '', engine);
+      const imageId = block.imageId || images[0]?.id || '';
+      const normalized = normalizeBlock(block, imageId, engine, block.imageRole || roleByImage.get(imageId) || 'side');
       if (normalized) blocks.push(normalized);
     }
   }
   for (const item of result?.results || []) {
     const rawBlocks = Array.isArray(item?.value) ? item.value : item?.value?.blocks || item?.value?.results || [];
     for (const block of rawBlocks) {
-      const normalized = normalizeBlock(block, item.imageId, engine);
+      const normalized = normalizeBlock(block, item.imageId, engine, roleByImage.get(item.imageId) || 'side');
       if (normalized) blocks.push(normalized);
     }
   }
   if (!blocks.length && result?.fullText) {
-    const normalized = normalizeBlock({ text: result.fullText, confidence: result.confidence }, images[0]?.id || '', engine);
+    const imageId = images[0]?.id || '';
+    const normalized = normalizeBlock({ text: result.fullText, confidence: result.confidence }, imageId, engine, roleByImage.get(imageId) || 'side');
     if (normalized) blocks.push(normalized);
   }
   return deduplicateBlocks(blocks);

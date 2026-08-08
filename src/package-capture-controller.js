@@ -1,5 +1,6 @@
 import { preparePackageImage } from './image-quality.js';
 import { getRecognitionCapabilities, recognizeCoffeeBag, RecognitionUnavailableError } from './recognition-bridge.js';
+import { createRecognitionDocument } from './domain/recognition/recognition-document.js';
 
 const MAX_IMAGES = 4;
 const ROLE_OPTIONS = [
@@ -205,6 +206,13 @@ function openManualEntry(message = '可粘贴包装上的文字，后续仍由�
 function handoffToExistingParser() {
   const text = (document.querySelector('#bagOcrText')?.value || captureState.ocrText).trim();
   if (!text) return;
+  const recognitionDocument = createRecognitionDocument({
+    images: captureState.images.map(({ id, role, roleLabel }) => ({ id, role, roleLabel })),
+    blocks: captureState.blocks,
+    engine: captureState.ocrEngine || 'manual-text',
+    fullText: text
+  });
+  globalThis.LuckyBeanPendingRecognitionDocument = recognitionDocument;
   clearCapture();
   const trigger = document.createElement('button');
   trigger.type = 'button';

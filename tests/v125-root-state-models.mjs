@@ -48,8 +48,8 @@ assert.match(account, /<span>账户<\/span><small>唯一的登录与自动同步
 assert.doesNotMatch(runtime, /postbrew-sensory/);
 assert.doesNotMatch(sw, /postbrew-sensory-controller/);
 assert.match(androidBuild, /applicationId 'com\.luckybean\.app'/);
-assert.match(androidBuild, /versionCode 102300/);
-assert.match(androidBuild, /versionName '1\.2\.3-main-test'/);
+assert.match(androidBuild, /versionCode 102304/);
+assert.match(androidBuild, /versionName '1\.23D'/);
 assert.match(androidBuild, /https:\/\/zjcrop\.github\.io\/luckybean\//);
 assert.doesNotMatch(androidBuild, /zjcrop\.github\.io\/(?:BrewIon\/luckybean|LuckyBean)\//);
 assert.equal(dataContract.$id, 'https://zjcrop.github.io/luckybean/contracts/luckybean-brew-data.schema.json');

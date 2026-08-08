@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.webkit.ConsoleMessage;
+import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -23,6 +24,8 @@ import android.widget.Toast;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import android.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
@@ -32,11 +35,14 @@ public final class MainActivity extends Activity {
     private static final String APP_ORIGIN = "https://app.luckybean.local/";
     private static final int FILE_CHOOSER_REQUEST = 2101;
     private static final int MEDIA_PERMISSION_REQUEST = 2102;
+    private static final int SAVE_FILE_REQUEST = 2103;
 
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
     private Uri cameraOutputUri;
     private PermissionRequest pendingWebPermission;
+    private byte[] pendingExportBytes;
+    private String pendingExportMime;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,7 +74,9 @@ public final class MainActivity extends Activity {
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
         settings.setSupportZoom(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " LuckyBeanAndroid/1.2.3-main-test");
+        settings.setUserAgentString(settings.getUserAgentString() + " LuckyBeanAndroid/1.23D");
+
+        webView.addJavascriptInterface(new NativeFileBridge(), "LuckyBeanNative");
 
         webView.setWebViewClient(new LocalAssetClient());
         webView.setWebChromeClient(new LuckyBeanChromeClient());
@@ -107,7 +115,14 @@ public final class MainActivity extends Activity {
             Uri uri = request.getUrl();
             if ("app.luckybean.local".equals(uri.getHost())) return false;
             String scheme = uri.getScheme();
-            if ("http".equals(scheme) || "https".equals(scheme)) return false;
+            if ("http".equals(scheme) || "https".equals(scheme)) {
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, uri));
+                } catch (ActivityNotFoundException ignored) {
+                    Toast.makeText(MainActivity.this, "无法打开该链接", Toast.LENGTH_SHORT).show();
+                }
+                return true;
+            }
             try {
                 startActivity(new Intent(Intent.ACTION_VIEW, uri));
             } catch (ActivityNotFoundException ignored) {
@@ -115,6 +130,32 @@ public final class MainActivity extends Activity {
             }
             return true;
         }
+    }
+
+    private final class NativeFileBridge {
+        @JavascriptInterface
+        public void saveFile(String base64, String filename, String mimeType) {
+            runOnUiThread(() -> {
+                try {
+                    pendingExportBytes = Base64.decode(base64, Base64.DEFAULT);
+                    pendingExportMime = (mimeType == null || mimeType.isEmpty()) ? "application/octet-stream" : mimeType;
+                    Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    intent.setType(pendingExportMime);
+                    intent.putExtra(Intent.EXTRA_TITLE, sanitizeFilename(filename));
+                    startActivityForResult(intent, SAVE_FILE_REQUEST);
+                } catch (Exception error) {
+                    pendingExportBytes = null;
+                    pendingExportMime = null;
+                    Toast.makeText(MainActivity.this, "准备导出文件失败", Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+    }
+
+    private static String sanitizeFilename(String value) {
+        String cleaned = value == null ? "luckybean-export.bin" : value.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
+        return cleaned.isEmpty() ? "luckybean-export.bin" : cleaned;
     }
 
     private final class LuckyBeanChromeClient extends WebChromeClient {
@@ -205,6 +246,21 @@ public final class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == SAVE_FILE_REQUEST) {
+            if (resultCode == RESULT_OK && data != null && data.getData() != null && pendingExportBytes != null) {
+                try (OutputStream output = getContentResolver().openOutputStream(data.getData(), "w")) {
+                    if (output == null) throw new IOException("无法打开目标文件");
+                    output.write(pendingExportBytes);
+                    output.flush();
+                    Toast.makeText(this, "文件已保存", Toast.LENGTH_SHORT).show();
+                } catch (IOException error) {
+                    Toast.makeText(this, "文件保存失败：" + error.getMessage(), Toast.LENGTH_LONG).show();
+                }
+            }
+            pendingExportBytes = null;
+            pendingExportMime = null;
+            return;
+        }
         if (requestCode != FILE_CHOOSER_REQUEST || filePathCallback == null) return;
         Uri[] result = null;
         if (resultCode == RESULT_OK) {

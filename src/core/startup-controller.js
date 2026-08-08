@@ -90,7 +90,7 @@ function bindStatusEvents() {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=1.2.3-main-test', { updateViaCache: 'none' }).catch(() => {});
+  navigator.serviceWorker.register('./sw.js?v=1.23D', { updateViaCache: 'none' }).catch(() => {});
 }
 
 document.documentElement.dataset.startup = 'booting';
@@ -101,7 +101,7 @@ setStatus('正在准备本地数据…');
 try {
   await ensureLocalDevice();
   document.dispatchEvent(new CustomEvent('luckybean:local-bootstrap-ready'));
-  await import('../app.js?v=1.2.3-main-test');
+  await import('../app.js?v=1.23D');
   document.dispatchEvent(new CustomEvent('luckybean:app-module-loaded'));
   watchForShell();
 } catch (error) {

@@ -18,6 +18,10 @@ import { migrateLegacyBrewHistory } from './domain/history/history-migration.js'
 import './services/provider-bootstrap-controller.js';
 import { renderProviderStatusPanel } from './ui/provider-status-panel.js';
 import './sensory-professional-controller.js';
+import { createPortableArchive, inspectPortableArchive, restorePortableArchive, MAX_ARCHIVE_BYTES } from './domain/archive/luckybean-archive-service.js';
+import { recognitionDocumentFromText } from './domain/recognition/recognition-document.js';
+import { classifyRecognitionDates } from './domain/recognition/recognition-date-classifier.js';
+import { buildDateReviewModel, resolveDateReviewSelections } from './domain/recognition/recognition-date-review.js';
 
 const PAGE_META = {
   beans: { nav: '藏', title: '豆藏', browser: '豆藏' },
@@ -817,7 +821,7 @@ function beanFormHtml(bean = {}, source = {}) {
         ${fieldHtml('beanProcess','处理法',`<select id="beanProcess" class="control">${selectOptions(state.codebook.processes,bean.processCode)}</select>`,'required')}
         ${fieldHtml('beanRoastColor','烘焙色值',`<input id="beanRoastColor" class="control" type="number" min="20" max="120" step="1" value="${esc(colorValue)}" placeholder="Agtron 20–120">`,'recommended')}
         ${fieldHtml('beanRoast','烘焙度',`<select id="beanRoast" class="control"><option value="">填写色值自动生成</option>${ROASTS.map(([value,label])=>`<option value="${value}"${roastValue===value?' selected':''}>${label}</option>`).join('')}</select>`,'required')}
-        ${fieldHtml('beanRoastDate','烘焙日期',`<input id="beanRoastDate" class="control" type="date" value="${esc(bean.roastDate || todayISO())}">`,'required')}
+        ${fieldHtml('beanRoastDate','烘焙日期',`<input id="beanRoastDate" class="control" type="date" value="${esc(bean.roastDate || (source.type === 'manual' ? todayISO() : ''))}">`,'required')}
         ${fieldHtml('beanInitialWeight','初始克重',`<input id="beanInitialWeight" class="control" type="number" min="1" max="10000" step="0.1" value="${esc(bean.initialWeight || '')}">`,'required')}
         ${fieldHtml('beanRefrigerated','是否冷藏',`<select id="beanRefrigerated" class="control"><option value="false"${!bean.refrigerated?' selected':''}>否</option><option value="true"${bean.refrigerated?' selected':''}>是</option></select>`,'recommended')}
         ${fieldHtml('beanPrice','购买价格',`<input id="beanPrice" class="control" type="number" min="0" step="0.01" value="${esc(bean.price || '')}">`,'recommended')}
@@ -933,8 +937,70 @@ function openFlavorEditor(selected, bean, source) {
   $('#confirmFlavorsBtn').addEventListener('click', () => { draft.flavorCodes = selectedFlavorCodes(overlay); openBeanForm(draft, source); });
 }
 
-function openTextRecognition(text = '', existingDraft = null) {
+function finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, dateDecision, reviewResolution = null }) {
+  const existing = existingDraft || {};
+  if (reviewResolution) {
+    if (reviewResolution.roastDate) {
+      const confirmed = reviewResolution.confirmedRoastDate;
+      parsed.roastDate = reviewResolution.roastDate;
+      parsed.confidence.roastDate = confirmed?.sourceConfidence || 0;
+      parsed.evidence.roastDate = [
+        `用户确认：${reviewResolution.roastDate}`,
+        confirmed?.labelEvidence,
+        confirmed?.imageRole ? `来源：${confirmed.imageRole}/${confirmed.imageId || confirmed.blockId}` : ''
+      ].filter(Boolean).join(' · ');
+    } else {
+      delete parsed.roastDate;
+      delete parsed.confidence.roastDate;
+      delete parsed.evidence.roastDate;
+    }
+  } else if (dateDecision.roastDate) {
+    parsed.roastDate = dateDecision.roastDate;
+    const chosen = dateDecision.candidates.find(candidate => candidate.normalizedValue === dateDecision.roastDate && candidate.decision === 'auto-fill');
+    parsed.confidence.roastDate = chosen?.confidence || 0.98;
+    parsed.evidence.roastDate = chosen?.labelEvidence || chosen?.rawValue || dateDecision.roastDate;
+  } else {
+    delete parsed.roastDate;
+    delete parsed.confidence.roastDate;
+    delete parsed.evidence.roastDate;
+  }
+  parsed.parseMetadata.dateDecision = dateDecision;
+  parsed.parseMetadata.dateReview = reviewResolution ? {
+    ...reviewResolution,
+    confirmedAt: new Date().toISOString()
+  } : null;
+  const merged = overwrite ? { ...existing, ...parsed } : { ...parsed, ...Object.fromEntries(Object.entries(existing).filter(([, value]) => value !== '' && value !== null && value !== undefined)) };
+  merged.name = merged.name || [codeName('countries', merged.countryCode, ''), codeName('varieties', merged.varietyCode, '')].filter(Boolean).join(' ') || '新豆卡';
+  openBeanForm(merged, { type: 'text', text: sourceText, evidence: parsed.evidence, confidence: parsed.confidence, parseMetadata: parsed.parseMetadata });
+}
+
+function openRecognitionDateReview({ parsed, sourceText, existingDraft, overwrite, dateDecision, recognitionDocument }) {
+  const reviewModel = buildDateReviewModel(dateDecision);
+  const rows = reviewModel.map(candidate => {
+    const values = candidate.values;
+    const valueOptions = values.map(value => `<option value="${esc(value)}">${esc(value)}</option>`).join('');
+    const defaultType = candidate.defaultType;
+    return `<article class="date-review-row" data-date-candidate="${esc(candidate.candidateId)}"><div><strong>${esc(candidate.rawValue)}</strong><small>${esc(candidate.fieldLabel)} · ${esc(candidate.imageRole || '文字')}</small></div><select class="control date-review-type"><option value="ignore"${defaultType === 'ignore' ? ' selected' : ''}>忽略/暂不确定</option><option value="roastDate"${defaultType === 'roastDate' ? ' selected' : ''}>烘焙日期</option><option value="productionDate"${defaultType === 'productionDate' ? ' selected' : ''}>生产日期</option><option value="packDate"${defaultType === 'packDate' ? ' selected' : ''}>包装日期</option><option value="bestBefore"${defaultType === 'bestBefore' ? ' selected' : ''}>最佳赏味期</option><option value="expiryDate"${defaultType === 'expiryDate' ? ' selected' : ''}>到期日期</option></select><select class="control date-review-value">${valueOptions}</select>${candidate.warnings?.length ? `<p>${candidate.warnings.map(esc).join(' ')}</p>` : ''}</article>`;
+  }).join('');
+  const content = `${dialogHeader('确认日期归属', '系统不会把未确认日期静默写入烘焙日期')}<div class="date-review-list">${rows}</div><div class="row"><button id="dateReviewBackBtn" class="button subtle" type="button">返回文字</button><span class="grow"></span><button id="dateReviewContinueBtn" class="button primary" type="button">确认并继续</button></div>`;
+  const overlay = showOverlay(content, { full: true, id: 'date-review' }); bindClose(overlay);
+  $('#dateReviewBackBtn').addEventListener('click', () => openTextRecognition(sourceText, existingDraft, recognitionDocument));
+  $$('.date-review-type', overlay).forEach(control => control.addEventListener('change', () => {
+    if (control.value !== 'roastDate') return;
+    $$('.date-review-type', overlay).filter(other => other !== control && other.value === 'roastDate').forEach(other => { other.value = 'ignore'; });
+  }));
+  $('#dateReviewContinueBtn').addEventListener('click', () => {
+    const selections = $$('.date-review-row', overlay).map(row => ({ candidateId: row.dataset.dateCandidate, type: $('.date-review-type', row).value, value: $('.date-review-value', row).value }));
+    const reviewResolution = resolveDateReviewSelections(dateDecision, selections);
+    if (!reviewResolution.ok) return toast(reviewResolution.errors[0], 'status-bad');
+    finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, dateDecision, reviewResolution });
+  });
+}
+
+function openTextRecognition(text = '', existingDraft = null, suppliedDocument = null) {
   if (existingDraft) state.beanFormDraft = structuredClone(existingDraft);
+  const pendingDocument = suppliedDocument || globalThis.LuckyBeanPendingRecognitionDocument;
+  if (pendingDocument) delete globalThis.LuckyBeanPendingRecognitionDocument;
   const content = `${dialogHeader('文字识别', '粘贴豆袋文字，系统按 BrewIon 词表提取字段')}<label class="field"><span>豆袋文字</span><textarea id="recognitionText" class="control" placeholder="例如：埃塞俄比亚 古吉 日晒 Heirloom，浅烘，2026-07-20，海拔2100m，净重150g，茉莉、蓝莓、蜂蜜">${esc(text)}</textarea></label><label class="toggle"><input id="overwriteRecognizedFields" type="checkbox" checked>识别结果覆盖已有表单字段</label><p class="muted small">语音识别可能由浏览器联网服务处理；识别证据和置信度会在表单中显示。</p><div class="row"><button id="speechTextBtn" class="button" type="button">语音输入</button><button id="clearRecognitionTextBtn" class="button subtle" type="button">清空</button><button id="manualBeanFormBtn" class="button subtle" type="button">直接填表</button><span class="grow"></span><button id="parseTextBtn" class="button primary" type="button">识别并填表</button></div>`;
   const overlay = showOverlay(content, { full: true, id: 'text-recognition' }); bindClose(overlay);
   $('#clearRecognitionTextBtn').addEventListener('click', () => { $('#recognitionText').value = ''; $('#recognitionText').focus(); });
@@ -943,12 +1009,11 @@ function openTextRecognition(text = '', existingDraft = null) {
     const sourceText = $('#recognitionText').value.trim();
     if (!sourceText) return toast('请先输入文字');
     const parsed = parseNaturalLanguage(sourceText, state.codebook);
-    const existing = existingDraft || {};
     const overwrite = $('#overwriteRecognizedFields').checked;
-    const merged = overwrite ? { ...existing, ...parsed } : { ...parsed, ...Object.fromEntries(Object.entries(existing).filter(([, value]) => value !== '' && value !== null && value !== undefined)) };
-    merged.name = merged.name || [codeName('countries', merged.countryCode, ''), codeName('varieties', merged.varietyCode, '')].filter(Boolean).join(' ') || '新豆卡';
-    merged.roastDate ||= todayISO();
-    openBeanForm(merged, { type: 'text', text: sourceText, evidence: parsed.evidence, confidence: parsed.confidence, parseMetadata: parsed.parseMetadata });
+    const recognitionDocument = pendingDocument?.fullText === sourceText ? pendingDocument : recognitionDocumentFromText(sourceText);
+    const dateDecision = classifyRecognitionDates(recognitionDocument);
+    if (dateDecision.reviewRequired) return openRecognitionDateReview({ parsed, sourceText, existingDraft, overwrite, dateDecision, recognitionDocument });
+    finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, dateDecision });
   });
   $('#speechTextBtn').addEventListener('click', () => startSpeechRecognition('recognitionText'));
 }
@@ -2059,14 +2124,28 @@ async function updateCodebook() {
   }
 }
 async function exportData() {
-  const payload={format:'luckybean-backup',schemaVersion:SCHEMA_VERSION,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),beans:state.beans,brewSessions:state.brewSessions,sensoryRecords:state.sensoryRecords,inventoryEvents:state.inventoryEvents,settings:state.settings};
-  downloadBlob(`luckybean_backup_${todayISO()}.json`,JSON.stringify(payload,null,2),'application/json;charset=utf-8');
+  try {
+    const { archive, mime } = await createPortableArchive();
+    downloadBlob(`LuckyBean_${todayISO()}.luckybean`, JSON.stringify(archive), mime);
+    toast('完整备份已导出', 'status-good');
+  } catch (error) {
+    toast(`导出失败：${error.message}`, 'status-bad');
+  }
 }
 async function importData(file) {
-  if (!file) return; if (file.size>5*1024*1024) return toast('导入文件不能超过 5MB','status-bad');
-  try { const text=await file.text();const parsed=JSON.parse(text);assertSafeJson(parsed);const payload=assertPlainObject(parsed,'备份文件');if(payload.format!=='luckybean-backup')throw new Error('不是富贵盒子备份');if(Number(payload.schemaVersion)>SCHEMA_VERSION)throw new Error('备份 Schema 版本高于当前应用');
-    for(const key of ['beans','brewSessions','sensoryRecords','inventoryEvents'])if(payload[key]!==undefined&&!Array.isArray(payload[key]))throw new Error(`${key} 必须是数组`);
-    await Promise.all([bulkPut('beans',payload.beans||[]),bulkPut('brewSessions',payload.brewSessions||[]),bulkPut('sensoryRecords',payload.sensoryRecords||[]),bulkPut('inventoryEvents',payload.inventoryEvents||[])]);if(payload.settings){state.settings={...state.settings,...payload.settings,ui:{...state.settings.ui,...(payload.settings.ui||{})},brew:{...state.settings.brew,...(payload.settings.brew||{}),customWater:{...state.settings.brew.customWater,...(payload.settings.brew?.customWater||{})},flavorTargets:{...state.settings.brew.flavorTargets,...(payload.settings.brew?.flavorTargets||{})}},identity:{...state.settings.identity,...(payload.settings.identity||{})},gear:normalizeGearSettings(payload.settings.gear||state.settings.gear)};await saveSettings();}await refreshData();renderBeans();toast('备份导入完成','status-good');
+  if (!file) return; if (file.size>MAX_ARCHIVE_BYTES) return toast('导入文件不能超过 64MB','status-bad');
+  try {
+    const payload=JSON.parse(await file.text());
+    const preview=await inspectPortableArchive(payload);
+    const countText=`豆卡 ${preview.counts.beans}、冲煮 ${preview.counts.brewSessions}、品鉴 ${preview.counts.sensoryRecords}、库存变更 ${preview.counts.inventoryEvents}`;
+    const overlay=showOverlay(`${dialogHeader('恢复完整备份','校验已经通过')}<p>${esc(countText)}</p><p class="status-bad">恢复后，本机现有数据将被备份内容完整替换。服务器同步账号不会从备份导入。</p><div class="text-actions"><button id="cancelArchiveRestoreBtn" class="button" type="button">取消</button><button id="confirmArchiveRestoreBtn" class="button danger" type="button">确认恢复</button></div>`);
+    bindClose(overlay);
+    $('#cancelArchiveRestoreBtn').addEventListener('click',closeOverlay);
+    $('#confirmArchiveRestoreBtn').addEventListener('click',async()=>{
+      const button=$('#confirmArchiveRestoreBtn');button.disabled=true;button.textContent='恢复中…';
+      try { const result=await restorePortableArchive(payload);await loadSettings();await refreshData();renderBeans();renderSettings();closeOverlay();toast(result.migratedFrom?'旧版备份已迁移并完整恢复':'完整备份恢复完成','status-good'); }
+      catch(error){button.disabled=false;button.textContent='确认恢复';toast(`恢复失败：${error.message}`,'status-bad');}
+    });
   } catch(error){toast(`导入失败：${error.message}`,'status-bad');} finally{$('#importInput').value='';}
 }
 function confirmClearAll() {

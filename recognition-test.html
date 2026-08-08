@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#11100f">
+  <title>LuckyBean 1.23D 日期归属验收页</title>
+  <link rel="stylesheet" href="./styles.css?v=1.23D">
+  <style>
+    body{min-height:100vh;background:var(--bg,#0b0b0b);color:var(--text,#eee)}
+    .recognition-test-shell{width:min(920px,calc(100% - 28px));margin:0 auto;padding:28px 0 60px}
+    .recognition-test-shell h1{margin:0 0 8px}.recognition-test-shell>p{color:var(--muted,#aaa)}
+    .test-panel{margin-top:18px;padding:18px;border:1px solid var(--line,#353535);border-radius:18px;background:var(--surface,#151515)}
+    .test-panel textarea{min-height:150px;resize:vertical}.test-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .test-result{margin-top:16px}.test-status{padding:12px;border-radius:12px;background:rgba(255,255,255,.05)}
+    .test-status.ok{border:1px solid #4d8a64}.test-status.bad{border:1px solid #b65757}
+    .test-meta{font-size:.8rem;color:var(--muted,#aaa);overflow-wrap:anywhere}
+  </style>
+</head>
+<body>
+  <main class="recognition-test-shell">
+    <h1>LuckyBean 1.23D 日期归属验收页</h1>
+    <p>只验证 OCR 后的日期候选归属，不上传图片或文字。不能确定时必须留给用户确认。</p>
+    <section class="test-panel">
+      <label class="field"><span>豆袋 OCR 文字</span><textarea id="testInput" class="control">ROAST DATE 2026-07-28
+BEST BEFORE 2026-10-28
+LOT 20260729</textarea></label>
+      <div class="test-actions"><button id="classifyBtn" class="button primary" type="button">提取日期候选</button><button id="resetBtn" class="button subtle" type="button">恢复示例</button><a class="button subtle" href="./index.html">返回应用</a></div>
+      <div id="testResult" class="test-result" aria-live="polite"></div>
+    </section>
+  </main>
+  <script type="module" src="./src/recognition-test-page.js?v=1.23D"></script>
+</body>
+</html>

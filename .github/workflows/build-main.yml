@@ -48,14 +48,19 @@ jobs:
         shell: bash
         run: |
           grep -q "applicationId 'com.luckybean.app'" android/app/build.gradle
-          grep -q "versionCode 102300" android/app/build.gradle
-          grep -q "versionName '1.2.3-main-test'" android/app/build.gradle
+          grep -q "versionCode 102304" android/app/build.gradle
+          grep -q "versionName '1.23D'" android/app/build.gradle
           test -f android/app/build/outputs/apk/debug/app-debug.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android/app/build/outputs/apk/debug/app-debug.apk | grep -q "package: name='com.luckybean.app' versionCode='102300' versionName='1.2.3-main-test'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android/app/build/outputs/apk/debug/app-debug.apk | grep -q "package: name='com.luckybean.app' versionCode='102304' versionName='1.23D'"
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/index.html'
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/src/services/brew-profile-catalog-service.js'
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/src/services/brew-analysis-service.js'
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/src/renderers/brew-spatial-controller.js'
+          unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/recognition-test.html'
+          unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/contracts/luckybean-archive-v1.schema.json'
+          unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/src/domain/recognition/recognition-date-classifier.js'
+          grep -q 'addJavascriptInterface(new NativeFileBridge(), "LuckyBeanNative")' android/app/src/main/java/com/luckybean/app/MainActivity.java
+          grep -q 'Intent.ACTION_CREATE_DOCUMENT' android/app/src/main/java/com/luckybean/app/MainActivity.java
           unzip -p android/app/build/outputs/apk/debug/app-debug.apk assets/web-cache/native-bridge.js | grep -Fq 'https://zjcrop.github.io/luckybean/'
           if unzip -p android/app/build/outputs/apk/debug/app-debug.apk assets/web-cache/native-bridge.js | grep -aFq 'https://zjcrop.github.io/BrewIon/luckybean/'; then
             echo 'Retired Android share URL found in APK'
@@ -69,12 +74,12 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          zip -qr dist/LuckyBean-1.2.3-main-test-web.zip index.html manifest.webmanifest sw.js styles.css src public contracts
-          cp android/app/build/outputs/apk/debug/app-debug.apk dist/LuckyBean-1.2.3-main-test-debug.apk
-          printf 'source_sha=%s\nversion=1.2.3-main-test\nversion_code=102300\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
-          sha256sum dist/LuckyBean-1.2.3-main-test-web.zip dist/LuckyBean-1.2.3-main-test-debug.apk > dist/SHA256SUMS.txt
+          zip -qr dist/LuckyBean-1.23D-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts docs DEVELOPMENT_STATUS.md
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist/LuckyBean-1.23D-debug.apk
+          printf 'source_sha=%s\nversion=1.23D\nversion_code=102304\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
+          sha256sum dist/LuckyBean-1.23D-web.zip dist/LuckyBean-1.23D-debug.apk > dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v7.0.1
         with:
-          name: luckybean-main-v1.2.3-test-${{ env.SOURCE_SHA }}
+          name: luckybean-main-v1.23D-${{ env.SOURCE_SHA }}
           path: dist/
           if-no-files-found: error

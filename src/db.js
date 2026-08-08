@@ -142,6 +142,20 @@ export async function bulkPut(name, values) {
   return result;
 }
 
+export async function replaceStores(storeRows) {
+  if (!storeRows || typeof storeRows !== 'object' || Array.isArray(storeRows)) throw new Error('恢复数据格式无效');
+  const prepared = Object.fromEntries(await Promise.all(Object.entries(storeRows).map(async ([name, values]) => {
+    if (!Array.isArray(values)) throw new Error(`${name}恢复数据必须是数组`);
+    return [name, await Promise.all(values.map(value => prepareWrite(name, value)))];
+  })));
+  const result = await core.replaceStores(prepared);
+  for (const [name, values] of Object.entries(storeRows)) {
+    const marker = name === 'settings' ? values.find(value => value?.id === 'app.settings') : values[0];
+    if (values.length || SYNCABLE_STORES.has(name) || name === 'settings') markSyncDirty(name, 'replace', marker || null);
+  }
+  return result;
+}
+
 export async function remove(name, key) {
   const result = await core.remove(name, key);
   markSyncDirty(name, 'remove', name === 'settings' ? { id: key } : null);

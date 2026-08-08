@@ -1,5 +1,5 @@
-export const APP_VERSION = '1.2.3-main-test';
-export const SCHEMA_VERSION = 7;
+export const APP_VERSION = '1.23D';
+export const SCHEMA_VERSION = 8;
 
 export const $ = (selector, root = document) => root.querySelector(selector);
 export const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -49,6 +49,18 @@ export function debounce(fn, wait = 160) {
 
 export function downloadBlob(filename, content, type = 'application/octet-stream') {
   const blob = content instanceof Blob ? content : new Blob([content], { type });
+  if (globalThis.LuckyBeanNative?.saveFile) {
+    blob.arrayBuffer().then(buffer => {
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      const chunkSize = 0x8000;
+      for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+      }
+      globalThis.LuckyBeanNative.saveFile(btoa(binary), String(filename || 'luckybean-export.bin'), blob.type || type);
+    }).catch(error => console.error('Android 文件导出失败', error));
+    return;
+  }
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;

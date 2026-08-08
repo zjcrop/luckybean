@@ -30,17 +30,17 @@ jobs:
         shell: bash
         run: |
           mkdir -p _site
-          cp index.html manifest.webmanifest sw.js styles.css _site/
+          cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
           cp -R src public contracts _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.2.3-main-test"}\n' "$SOURCE_SHA" > _site/version.json
-          zip -qr LuckyBean-1.2.3-main-test-web.zip index.html manifest.webmanifest sw.js styles.css src public contracts
+          printf '{"commit":"%s","version":"1.23D"}\n' "$SOURCE_SHA" > _site/version.json
+          zip -qr LuckyBean-1.23D-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts docs DEVELOPMENT_STATUS.md
       - uses: actions/upload-artifact@v7.0.1
         with:
           name: luckybean-main-web-${{ env.SOURCE_SHA }}
           path: |
             _site/
-            LuckyBean-1.2.3-main-test-web.zip
+            LuckyBean-1.23D-web.zip
           if-no-files-found: error
 
   deploy-pages:
@@ -58,10 +58,10 @@ jobs:
         shell: bash
         run: |
           mkdir -p _site
-          cp index.html manifest.webmanifest sw.js styles.css _site/
+          cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
           cp -R src public contracts _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.2.3-main-test"}\n' "$SOURCE_SHA" > _site/version.json
+          printf '{"commit":"%s","version":"1.23D"}\n' "$SOURCE_SHA" > _site/version.json
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
           path: _site
@@ -82,11 +82,13 @@ jobs:
             version_status=$(curl -L -sS -o /tmp/luckybean-version.json -w '%{http_code}' "$base/version.json")
             app_status=$(curl -L -sS -o /tmp/luckybean-app.js -w '%{http_code}' "$base/src/app.js")
             manifest_status=$(curl -L -sS -o /tmp/luckybean-manifest.json -w '%{http_code}' "$base/manifest.webmanifest")
-            if [ "$index_status" = "200" ] && [ "$version_status" = "200" ] && [ "$app_status" = "200" ] && [ "$manifest_status" = "200" ]               && grep -qi '<html' /tmp/luckybean-index.html               && grep -q "$SOURCE_SHA" /tmp/luckybean-version.json               && grep -q 'buildBrewInput' /tmp/luckybean-app.js; then
+            recognition_status=$(curl -L -sS -o /tmp/luckybean-recognition.html -w '%{http_code}' "$base/recognition-test.html")
+            archive_status=$(curl -L -sS -o /tmp/luckybean-archive-schema.json -w '%{http_code}' "$base/contracts/luckybean-archive-v1.schema.json")
+            if [ "$index_status" = "200" ] && [ "$version_status" = "200" ] && [ "$app_status" = "200" ] && [ "$manifest_status" = "200" ] && [ "$recognition_status" = "200" ] && [ "$archive_status" = "200" ]               && grep -qi '<html' /tmp/luckybean-index.html               && grep -q "$SOURCE_SHA" /tmp/luckybean-version.json               && grep -q 'buildBrewInput' /tmp/luckybean-app.js               && grep -q '日期归属' /tmp/luckybean-recognition.html; then
               echo "LuckyBean Pages verified for $SOURCE_SHA"
               exit 0
             fi
-            echo "Attempt $attempt: index=$index_status version=$version_status app=$app_status manifest=$manifest_status"
+            echo "Attempt $attempt: index=$index_status version=$version_status app=$app_status manifest=$manifest_status recognition=$recognition_status archive=$archive_status"
             sleep 10
           done
           echo 'LuckyBean Pages verification failed'

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luckybean.app/contracts/luckybean-archive-v1.schema.json",
+  "title": "LuckyBean portable archive v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "formatVersion", "schemaVersion", "appVersion", "createdAt", "manifest", "stores", "sha256"],
+  "properties": {
+    "format": { "const": "luckybean-archive" },
+    "formatVersion": { "const": 1 },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "appVersion": { "type": "string", "minLength": 1 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "manifest": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["count", "bytes", "sha256"],
+        "properties": {
+          "count": { "type": "integer", "minimum": 0 },
+          "bytes": { "type": "integer", "minimum": 2 },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        }
+      }
+    },
+    "stores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["beans", "brewSessions", "sensoryRecords", "inventoryEvents", "settings", "customCodes", "codebookCache", "shareDrafts", "historyRevisions", "recycleBin", "syncOutbox"],
+      "properties": {
+        "beans": { "type": "array", "items": { "type": "object" } },
+        "brewSessions": { "type": "array", "items": { "type": "object" } },
+        "sensoryRecords": { "type": "array", "items": { "type": "object" } },
+        "inventoryEvents": { "type": "array", "items": { "type": "object" } },
+        "settings": { "type": "array", "items": { "type": "object" } },
+        "customCodes": { "type": "array", "items": { "type": "object" } },
+        "codebookCache": { "type": "array", "items": { "type": "object" } },
+        "shareDrafts": { "type": "array", "items": { "type": "object" } },
+        "historyRevisions": { "type": "array", "items": { "type": "object" } },
+        "recycleBin": { "type": "array", "items": { "type": "object" } },
+        "syncOutbox": { "type": "array", "items": { "type": "object" } }
+      }
+    }
+  }
+}
