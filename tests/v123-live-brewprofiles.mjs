@@ -82,6 +82,7 @@ const catalog = await catalogResponse.json();
 assert.equal(catalogResponse.status, 200, JSON.stringify(catalog));
 assert.equal(catalog.contract, 'brew-profile-catalog/1.0');
 const catalogVersions = new Map(catalog.profiles.map(profile => [profile.id, profile.version]));
+assert.ok(catalogVersions.size >= 23, `catalog contains only ${catalogVersions.size} profiles`);
 for (const id of competitionIds) assert.ok(catalogVersions.has(id), `catalog missing ${id}`);
 
 const versionedInputResponse = await fetch(endpoint, {
@@ -102,7 +103,7 @@ const bodyTargetError = await bodyTargetResponse.json();
 assert.equal(bodyTargetResponse.status, 400, JSON.stringify(bodyTargetError));
 assert.equal(bodyTargetError.error, 'TARGET_BODY_FORBIDDEN');
 
-for (const profileId of competitionIds) {
+for (const profileId of catalogVersions.keys()) {
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { ...headers, 'x-request-id': crypto.randomUUID() },
@@ -139,4 +140,4 @@ for (const profileId of competitionIds) {
   for (const id of targetIds) assert.ok(returnedTargets.has(id), `${profileId}: missing target ${id}`);
 }
 
-console.log(`Verified strict authentication, version-free input and ${competitionIds.length} database competition profiles.`);
+console.log(`Verified strict authentication, version-free input and all ${catalogVersions.size} workbook profiles.`);
