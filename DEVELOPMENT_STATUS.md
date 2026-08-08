@@ -3,8 +3,11 @@
 > 后续完整开发顺序、未关闭问题和验收门禁统一见 `docs/LuckyBean-1.23D-DEVELOPMENT-HANDBOOK.md`。本文件记录当前检查点，不代表历史业务问题已经全部关闭。
 
 日期：2026-08-08  
-基线：GitHub `zjcrop/luckybean` main，提交 `ebcd1b7`  
-当前：LuckyBean 1.23D-main-deploy 候选（待 GitHub Actions、Pages 与 APK 构建）
+唯一主线：GitHub `zjcrop/luckybean` `main`
+
+当前部署：LuckyBean `1.23D`，提交 `d00edab22710113db24baeecd3e04805f101757a`
+
+内部资源修订：`1.23D-regression-fix.1`（仅用于清除旧 PWA/WebView 缓存，不是第二条版本线）
 
 ## 当前版本边界
 
@@ -35,6 +38,9 @@
 13. 将 1.23D 改动移植到远端最新 main，保留独立品鉴状态机、器具模型、分享地址和既有主线回归测试。
 14. 恢复 Android WebView 测试壳，并为导出文件接入系统 `ACTION_CREATE_DOCUMENT` 保存流程。
 15. 将 Web、PWA、Android、Actions 和构建产物版本统一为 `1.23D`；Android `versionCode` 为 `102304`。
+16. 修复正式 `brew-analysis/2.0` 分析包络与旧方案 `schemaVersion` 校验冲突；正式分析仍要求统一计算指纹、引擎版本、方案版本、有效阶段和水量守恒。
+17. 修复设置页红色/白色启动图预览背景；HTML 属性、交互选择器和计算样式已统一。
+18. 更新 Service Worker 缓存名和全部资源查询修订号，已安装 PWA 与 Android WebView 不再复用修复前资源。
 
 ## 已通过验证
 
@@ -45,19 +51,24 @@
 - 全部 JavaScript 文件语法检查：通过。
 - 本地模块引用与 Service Worker 离线资源路径检查：通过。
 - HTTP 静态入口、manifest、归档模块与 JSON Schema 可访问性检查：通过。
-- 日期字段专项、确认决策与首批 30 组黄金样本：49 项测试全部通过。
+- 日期、归档与方案契约专项：52 项测试全部通过。
 - Web 验收页、确认模块与分类器 HTTP 静态入口可访问；66 项离线资源路径完整。
-- main 原有静态测试、BrewProfiles 真实服务合约、1.23D 部署契约及 49 项专项测试通过。
+- GitHub Actions Chromium 已实际完成方案生成、3D 预览、红白背景计算样式与图片加载回归。
+- BrewProfiles 真实服务严格契约及 6 套竞赛方案通过。
+- Pages 已部署并核对 `version.json`、正式契约代码、预览资源和 Service Worker；提交指纹为 `d00edab22710113db24baeecd3e04805f101757a`。
+- Android APK 已由同一提交构建；内嵌 Web 资源包含本轮两项修复。
 - `npm audit --audit-level=high`：0 个漏洞。
 
 ## 当前识别检查点验证
 
 已通过代码级回归：生产日期、包装日期、最佳赏味期、到期日不再进入烘焙日期；无标签日期要求确认；明确烘焙标签可以自动填入；无效日历日期被拒绝。
 
-用户已决定跳过 100 组真实豆袋收集作为本次发布门禁；该项保留为后续抽样质量改进，不标记为已完成。仍需由 GitHub Actions 完成 Chromium 交互回归、Pages 部署和 Android APK 构建，并在真实 Android WebView 上验证相机、文件与语音。
+用户已决定跳过 100 组真实豆袋收集作为本次发布门禁；该项保留为后续抽样质量改进，不标记为已完成。仍需在真实 Android WebView 上验证相机、系统文件保存与语音。
 
-远端 main 已有推荐、分享、品鉴、器具、同步和 BrewProfiles 的自动回归基础；本次部署后仍需继续做真机与跨设备验收，不能仅凭代码存在标记全部关闭。
+远端 main 已有推荐、分享、品鉴、器具、同步和 BrewProfiles 的自动回归基础；仍需继续做真机与跨设备验收，不能仅凭代码或 CI 存在标记全部关闭。
 
-## 未使用素材
+## 防止重复修复
 
-本轮附带的两张人物照片未进入应用、测试包或归档，待项目对其用途有明确要求后再处理。
+- 本轮业务范围仅为：正式计算方案契约兼容、红白启动图预览背景。
+- 后续不得重新引入旧 `schemaVersion` 测试桩，不得把内部缓存修订号解释为新产品版本。
+- 已通过的识别、归档、日期规则和 Android 文件导出不重复改写；只有新的可复现失败证据才能重新开启。
