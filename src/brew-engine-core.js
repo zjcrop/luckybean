@@ -474,7 +474,10 @@ export async function requestPrivatePlan(endpoint, input, timeoutMs = 9000) {
 
 export function validatePlan(plan) {
   if (!plan || typeof plan !== 'object') throw new Error('方案响应不是对象');
-  if (![1, 2, '1.0.1'].includes(plan.schemaVersion)) throw new Error('方案 Schema 版本不兼容');
+  const authoritative = plan.analysisContract === 'brew-analysis/2.0';
+  if (plan.analysisContract && !authoritative) throw new Error(`方案分析契约不兼容：${plan.analysisContract}`);
+  if (!authoritative && ![1, 2, '1.0.1'].includes(plan.schemaVersion)) throw new Error('方案 Schema 版本不兼容');
+  if (authoritative && !plan.analysisFingerprint) throw new Error('专业方案缺少统一计算指纹');
   if (!plan.engineVersion || !plan.profileVersion) throw new Error('方案缺少版本信息');
   if (!Array.isArray(plan.stages) || !plan.stages.length) throw new Error('方案缺少阶段');
   let last = 0;

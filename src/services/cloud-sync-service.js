@@ -5,7 +5,7 @@ import {
 } from '../cloud-codec.js';
 import {
   analyzeRemoteDeletionRisk, deletionRiskFingerprintSource, mergePacketPreservingRemote
-} from './cloud-sync-safety.js?v=1.23D';
+} from './cloud-sync-safety.js?v=1.23D-regression-fix.1';
 
 const STATE_ID = 'cloud.sync.state.v3';
 const DEVICE_ID = 'cloud.device.id.v3';

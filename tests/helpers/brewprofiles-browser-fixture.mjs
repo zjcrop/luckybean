@@ -81,8 +81,9 @@ function analysisFor(input) {
     path, targets, signals: {}, aggregate: { positive: [], negative: [], net: [] },
     summary: [], prediction: { suitability: 0.8, verdict: 'browser fixture', strengths: [], risks: [], confidence: 'test' }
   };
+  // Mirror the production brew-analysis/2.0 response: transport and engine
+  // versions live on the analysis envelope, not as legacy plan fields.
   const plan = {
-    schemaVersion: 1, engineVersion: 'fixture/1.0.0',
     metadata: { fingerprint: planFingerprint, profileId, profileVersion: '2.0.0' },
     profile: { id: profileId, version: '2.0.0', label: profileId },
     stages,

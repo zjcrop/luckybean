@@ -1,8 +1,8 @@
 const UI_KEY = 'luckybean.ui.v095';
 const LEGACY_UI_KEY = 'luckybean.ui.v094';
 const SPLASH = Object.freeze({
-  red: './public/splash-art-red.webp?v=1.23D',
-  white: './public/splash-art-light.webp?v=1.23D'
+  red: './public/splash-art-red.webp?v=1.23D-regression-fix.1',
+  white: './public/splash-art-light.webp?v=1.23D-regression-fix.1'
 });
 let renderQueued = false;
 
@@ -99,8 +99,8 @@ function renderSettingsPanel() {
     <div class="settings-category-body">
       <div class="v095-setting-line"><span>显示模式</span><button class="button" type="button" data-appearance-theme>${pref.theme === 'dark' ? '黑色模式' : '白色模式'}</button></div>
       <div class="v095-splash-choice" role="radiogroup" aria-label="启动页图片">
-        <button type="button" data-appearance-splash="red" class="${pref.splash === 'red' ? 'selected' : ''}"><img src="${SPLASH.red}" alt="红色启动页"><span>红色版本（默认）</span></button>
-        <button type="button" data-appearance-splash="white" class="${pref.splash === 'white' ? 'selected' : ''}"><img src="${SPLASH.white}" alt="白色启动页"><span>白色版本</span></button>
+        <button type="button" data-appearance-splash="red" data-splash-variant="red" style="background-color:#993333" class="${pref.splash === 'red' ? 'selected' : ''}"><img src="${SPLASH.red}" alt="红色启动页"><span>红色版本（默认）</span></button>
+        <button type="button" data-appearance-splash="white" data-splash-variant="white" style="background-color:#f3efe5" class="${pref.splash === 'white' ? 'selected' : ''}"><img src="${SPLASH.white}" alt="白色启动页"><span>白色版本</span></button>
       </div>
     </div>`;
   root.prepend(details);

@@ -131,6 +131,7 @@ export function adaptAuthoritativePlan(analysis) {
   const warnings = [...(source.warnings || []), ...(analysis.warnings || [])].map(warningText).filter(Boolean);
   return {
     ...source,
+    engineVersion: String(source.engineVersion || source.metadata?.engineVersion || analysis.metadata?.engineVersion || ''),
     profile: {
       ...(source.profile || {}),
       id: profileId,

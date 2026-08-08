@@ -195,6 +195,23 @@ test('professional tags sort and radar nodes select and drag; note mode opens di
   await expect(page.locator('.v095-sensory-modes [data-v095-mode]')).toHaveCount(3);
 });
 
+test('settings splash previews keep their red and white backgrounds', async ({ page }) => {
+  await openApp(page, 'requirements-splash-preview=1');
+  await page.locator('[data-page-target="settings"]').click();
+  const appearance = page.locator('#appearanceSettings');
+  await expect(appearance).toBeVisible();
+  await appearance.locator(':scope > summary').click();
+
+  const red = appearance.locator('[data-appearance-splash="red"]');
+  const white = appearance.locator('[data-appearance-splash="white"]');
+  await expect(red).toHaveCSS('background-color', 'rgb(153, 51, 51)');
+  await expect(white).toHaveCSS('background-color', 'rgb(243, 239, 229)');
+  await expect(red.locator('img')).toBeVisible();
+  await expect(white.locator('img')).toBeVisible();
+  expect(await red.locator('img').evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
+  expect(await white.locator('img').evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
+});
+
 
 
 test('private gear uses three closed, aligned list editors', async ({ page }) => {
