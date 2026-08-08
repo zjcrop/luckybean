@@ -80,6 +80,12 @@ function render() {
       <p class="muted small">声音由当前操作系统和浏览器提供，不影响本地数据与云端同步。</p>
       <div class="row end"><button class="button" type="button" data-voice-preview>试听</button><button class="button primary" type="button" data-voice-save>保存语音</button></div>
     </div>`;
+  section.addEventListener('toggle', () => {
+    if (!section.open) return;
+    categories.querySelectorAll('.settings-category').forEach(other => {
+      if (other !== section) other.open = false;
+    });
+  });
   const data = categories.querySelector('.data-category');
   categories.insertBefore(section, data || categories.lastElementChild);
   $('[data-voice-mode]', section).value = current.mode;

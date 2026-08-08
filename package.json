@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test:recognition": "node --test test/*.test.js",
-    "test:static": "node tests/v110-local-first-sync-static.mjs && node tests/v120-core-contracts-static.mjs && node tests/v120-requirements-static.mjs && node tests/v122-cloud-sync-safety.mjs && node tests/v123-brewprofiles-integration.mjs && node tests/v124-stable-data-format.mjs && node tests/v125-root-state-models.mjs && node tests/v123d-deployment-contracts.mjs && npm run test:recognition",
+    "test:static": "node tests/v110-local-first-sync-static.mjs && node tests/v120-core-contracts-static.mjs && node tests/v120-requirements-static.mjs && node tests/v122-cloud-sync-safety.mjs && node tests/v123-brewprofiles-integration.mjs && node tests/v124-stable-data-format.mjs && node tests/v125-root-state-models.mjs && node tests/v123d-deployment-contracts.mjs && node tests/v123d-ui-sensory-regressions.mjs && npm run test:recognition",
     "test:smoke": "playwright test tests/v110-startup-smoke.spec.mjs --browser=chromium --reporter=line",
     "test:core": "playwright test tests/v120-core-flow.spec.mjs tests/v120-history-integrity.spec.mjs tests/v120-requirements-ui.spec.mjs --browser=chromium --reporter=line",
     "test:visual": "playwright test tests/v120-visual-baseline.spec.mjs --browser=chromium --reporter=line",

@@ -31,9 +31,10 @@ const STEPS = [
   { id: 'mouthfeel', title: '口感', subtitle: '勾选触感和醇厚度描述。', tags: MOUTHFEEL, intensity: true }
 ];
 const RADAR_STEP = STEPS.length;
-const NOTE_STEP = STEPS.length + 1;
-const SUMMARY_STEP = STEPS.length + 2;
-const TOTAL_STEPS = STEPS.length + 3;
+const SCORE_STEP = STEPS.length + 1;
+const NOTE_STEP = STEPS.length + 2;
+const SUMMARY_STEP = STEPS.length + 3;
+const TOTAL_STEPS = STEPS.length + 4;
 
 let wizard = null;
 let codebookPromise = null;
@@ -74,9 +75,9 @@ async function selectedBeanId() {
   return $('#sensoryBeanSelect')?.value || '';
 }
 
-async function startMode(mode) {
+async function startMode(mode, existingRecord = null) {
   if (transferBusy) return;
-  const beanId = await selectedBeanId();
+  const beanId = String(existingRecord?.beanId || await selectedBeanId());
   if (!beanId) return;
   const sensoryRoot = $('#sensoryContent');
   const brewSessionId = sensoryRoot?.dataset.brewSessionId || '';
@@ -87,23 +88,31 @@ async function startMode(mode) {
     document.dispatchEvent(new CustomEvent('luckybean:start-sensory-mode', { detail: { mode, beanId, brewSessionId, planReference, profileId, source } }));
     return;
   }
-  const context = await beanContext(beanId);
+  const context = await beanContext(existingRecord?.beanId || beanId);
+  const professional = existingRecord?.professionalData || {};
   wizard = {
-    beanId,
-    brewSessionId,
-    planReference,
-    profileId,
-    source,
+    editRecordId: String(existingRecord?.id || ''),
+    beanId: String(existingRecord?.beanId || beanId),
+    brewSessionId: String(existingRecord?.brewSessionId || brewSessionId),
+    planReference: String(existingRecord?.planReference || planReference),
+    profileId: String(existingRecord?.profileId || profileId),
+    source: String(existingRecord?.sensorySource || source),
     bean: context.bean,
     original: context.original,
     step: 0,
-    selections: Object.fromEntries(STEPS.map(step => [step.id, []])),
-    intensities: Object.fromEntries(STEPS.map(step => [step.id, 7.5])),
-    radar: { aroma: [5, 5, 5, 5, 5], style: [5, 5, 5, 5, 5, 5, 5, 5] },
-    defects: { major: [], minor: [] },
+    selections: Object.fromEntries(STEPS.map(step => [step.id, [...(professional.selections?.[step.id] || [])]])),
+    intensities: Object.fromEntries(STEPS.map(step => [step.id, Number(professional.intensities?.[step.id] ?? 7.5)])),
+    radar: {
+      aroma: Array.isArray(professional.radar?.aroma) ? [...professional.radar.aroma] : [5, 5, 5, 5, 5],
+      style: Array.isArray(professional.radar?.style) ? [...professional.radar.style] : [5, 5, 5, 5, 5, 5, 5, 5]
+    },
+    defects: {
+      major: [...(professional.defects?.major || [])],
+      minor: [...(professional.defects?.minor || [])]
+    },
     selectedRadar: null,
-    naturalNote: '',
-    score: 0
+    naturalNote: String(existingRecord?.naturalNote || ''),
+    scoreDelta: clamp(existingRecord?.scoreDelta || professional.scoring?.scoreDelta || 0, -10, 10)
   };
   renderWizard();
 }
@@ -298,32 +307,43 @@ function renderWizard() {
   const step = STEPS[wizard.step];
   const sensoryStep = wizard.step < STEPS.length;
   const radarStep = wizard.step === RADAR_STEP;
+  const scoreStep = wizard.step === SCORE_STEP;
   const noteStep = wizard.step === NOTE_STEP;
   const summaryStep = wizard.step === SUMMARY_STEP;
   const progressTitle = sensoryStep
     ? `${wizard.step + 1}/${TOTAL_STEPS} · ${step.title}`
     : radarStep
       ? `${RADAR_STEP + 1}/${TOTAL_STEPS} · 雷达与缺陷`
-      : noteStep
+      : scoreStep
+        ? `${SCORE_STEP + 1}/${TOTAL_STEPS} · 打分总结`
+        : noteStep
         ? `${NOTE_STEP + 1}/${TOTAL_STEPS} · 札记`
         : `${SUMMARY_STEP + 1}/${TOTAL_STEPS} · 确认结果`;
   const body = sensoryStep
     ? `<section class="v095-wizard-step"><p>${esc(step.subtitle)}</p><div class="v120-selected-tag-list" data-v120-selected-list="${step.id}">${wizard.selections[step.id].length ? wizard.selections[step.id].map(tag => `<button type="button" class="v120-selected-tag" data-v120-selected-tag="${esc(tag)}">${esc(tag)}</button>`).join('') : '<span class="muted small">已选便签会显示在这里，可长按拖动排序。</span>'}</div><div class="v095-tag-grid">${step.tags.map(tag => `<button type="button" data-v095-tag="${esc(tag)}" class="${wizard.selections[step.id].includes(tag) ? 'active' : ''}">${esc(tag)}</button>`).join('')}</div>${step.intensity ? `<label class="v095-intensity"><span>强度 <output data-v095-intensity-output="${step.id}">${Number(wizard.intensities[step.id]).toFixed(1)}</output></span><input type="range" min="0" max="10" step="0.1" value="${wizard.intensities[step.id]}" data-v095-intensity="${step.id}"></label>` : ''}</section>`
     : radarStep
       ? `<section class="v095-radar-stage"><div class="v095-radar-stack"><div>${radarSvg('aroma', wizard.radar.aroma, AROMA_AXES)}<div class="v095-radar-buttons">${axisButtons('aroma', AROMA_AXES, wizard.radar.aroma)}</div></div><div>${radarSvg('style', wizard.radar.style, STYLE_AXES)}<div class="v095-radar-buttons">${axisButtons('style', STYLE_AXES, wizard.radar.style)}</div></div></div><label class="v095-intensity"><span>当前轴值 <output data-v095-radar-output>${wizard.selectedRadar ? Number(wizard.radar[wizard.selectedRadar.group][wizard.selectedRadar.index]).toFixed(1) : '选择轴'}</output></span><input type="range" min="0" max="10" step="0.1" value="${wizard.selectedRadar ? wizard.radar[wizard.selectedRadar.group][wizard.selectedRadar.index] : 5}" data-v095-radar-value ${wizard.selectedRadar ? '' : 'disabled'}></label><div class="v095-defects">${defectPanel()}</div></section>`
+      : scoreStep
+        ? `<section class="v095-score-stage"><h3>打分总结</h3><p class="muted small">系统依据雷达、风味标签与缺陷计算自动分；可用主观分差表达本次个人判断。</p><div class="question-group score-comparison delta-only"><div class="score-head-row"><span>自动得分</span><span>主观分差</span></div><div class="score-value-row"><strong data-v095-auto-score>${affectiveMappedScore().toFixed(1)}</strong><div class="subjective-delta-control"><strong data-v095-score-delta>${wizard.scoreDelta >= 0 ? '+' : ''}${Number(wizard.scoreDelta).toFixed(1)}</strong><input type="range" min="-10" max="10" step="0.5" value="${Number(wizard.scoreDelta)}" data-v095-score-delta-input aria-label="设置杯测主观分差"></div></div><div class="score-derived-row"><small>折算总分</small><small data-v095-subjective-score>${subjectiveScore().toFixed(1)}</small></div></div><pre>${esc(professionalSummary())}</pre></section>`
       : noteStep
         ? `<section class="v095-note-stage"><h3>札记</h3><p class="muted small">记录香气、酸甜、口感、缺陷判断及下一次调整方向。</p><textarea class="control natural-note" data-v095-professional-note maxlength="1600" placeholder="填写本次专业杯测札记……">${esc(wizard.naturalNote)}</textarea></section>`
-        : `<section class="v095-summary-stage"><h3>${esc(wizard.bean?.name || '未命名咖啡')}</h3><pre>${esc(professionalSummary())}</pre><p>映射评分：${affectiveMappedScore().toFixed(1)}</p><div class="v095-professional-note-preview"><strong>札记</strong><p>${wizard.naturalNote ? esc(wizard.naturalNote) : '未填写札记'}</p></div></section>`;
+        : `<section class="v095-summary-stage"><h3>${esc(wizard.bean?.name || '未命名咖啡')}</h3><pre>${esc(professionalSummary())}</pre><p>自动得分：${affectiveMappedScore().toFixed(1)} · 主观总分：${subjectiveScore().toFixed(1)}</p><div class="v095-professional-note-preview"><strong>札记</strong><p>${wizard.naturalNote ? esc(wizard.naturalNote) : '未填写札记'}</p></div></section>`;
   overlay.innerHTML = `<div class="dialog v095-professional-dialog">
     <div class="dialog-header"><div><h2>杯测品鉴</h2><p>${progressTitle}</p></div><button class="close-button" type="button" data-v095-close>×</button></div>
     ${body}
-    <div class="v095-wizard-actions"><button type="button" class="button" data-v095-prev ${wizard.step <= 0 ? 'disabled' : ''}>上一步</button><button type="button" class="button primary" data-v095-next>${summaryStep ? '写入品鉴' : '下一步'}</button></div>
+    <div class="v095-wizard-actions"><button type="button" class="button subtle" data-v095-cancel>取消品鉴</button><button type="button" class="button" data-v095-prev ${wizard.step <= 0 ? 'disabled' : ''}>上一步</button><button type="button" class="button primary" data-v095-next>${summaryStep ? (wizard.editRecordId ? '保存修改' : '写入品鉴') : '下一步'}</button></div>
   </div>`;
   document.body.append(overlay);
   $('[data-v095-close]', overlay)?.addEventListener('click', closeWizard);
+  $('[data-v095-cancel]', overlay)?.addEventListener('click', closeWizard);
   $$('[data-v095-tag]', overlay).forEach(button => button.addEventListener('click', () => toggleTag(step.id, button.dataset.v095Tag)));
   $$('[data-v095-intensity]', overlay).forEach(input => input.addEventListener('input', () => setIntensity(input.dataset.v095Intensity, input.value)));
   $('[data-v095-professional-note]', overlay)?.addEventListener('input', event => { wizard.naturalNote = event.target.value; });
+  $('[data-v095-score-delta-input]', overlay)?.addEventListener('input', event => {
+    wizard.scoreDelta = clamp(event.target.value, -10, 10);
+    $('[data-v095-score-delta]', overlay).textContent = `${wizard.scoreDelta >= 0 ? '+' : ''}${Number(wizard.scoreDelta).toFixed(1)}`;
+    $('[data-v095-subjective-score]', overlay).textContent = subjectiveScore().toFixed(1);
+  });
   $('[data-v095-radar-value]', overlay)?.addEventListener('input', event => {
     if (!wizard.selectedRadar) return;
     wizard.radar[wizard.selectedRadar.group][wizard.selectedRadar.index] = Number(event.target.value);
@@ -335,7 +355,8 @@ function renderWizard() {
     const tag = button.dataset.v095DefectTag;
     const index = list.indexOf(tag);
     if (index >= 0) list.splice(index, 1); else list.push(tag);
-    renderWizard();
+    button.classList.toggle('active', index < 0);
+    button.setAttribute('aria-pressed', String(index < 0));
   }));
   bindSelectedTagSorting(overlay, sensoryStep ? step.id : '');
   bindRadarInteractions(overlay);
@@ -366,23 +387,29 @@ function affectiveMappedScore() {
   return clamp(70 + average * 3 - defectPenalty, 0, 100);
 }
 
+function subjectiveScore() { return clamp(affectiveMappedScore() + Number(wizard?.scoreDelta || 0), 0, 100); }
+
 async function finishProfessional() {
   if (!wizard || transferBusy) return;
   transferBusy = true;
   const detail = {
+    recordId: wizard.editRecordId,
     beanId: wizard.beanId,
     brewSessionId: wizard.brewSessionId,
     planReference: wizard.planReference,
     profileId: wizard.profileId,
     source: wizard.source,
-    score: affectiveMappedScore(),
+    autoScore: affectiveMappedScore(),
+    score: subjectiveScore(),
+    scoreDelta: Number(wizard.scoreDelta || 0),
     summary: professionalSummary().split('\n').filter(Boolean),
     naturalNote: wizard.naturalNote.trim(),
     professionalData: {
       selections: structuredClone(wizard.selections),
       intensities: structuredClone(wizard.intensities),
       radar: structuredClone(wizard.radar),
-      defects: structuredClone(wizard.defects)
+      defects: structuredClone(wizard.defects),
+      scoring: { autoScore: affectiveMappedScore(), subjectiveScore: subjectiveScore(), scoreDelta: Number(wizard.scoreDelta || 0) }
     }
   };
   closeWizard();
@@ -393,5 +420,10 @@ async function finishProfessional() {
 export function syncSensoryModePanel() { replaceModePanel(); }
 
 document.addEventListener('luckybean:sensory-rendered', replaceModePanel);
+document.addEventListener('luckybean:edit-professional-sensory', event => {
+  const record = event.detail?.record;
+  if (!record?.id || record.evaluationMode !== 'professional') return;
+  startMode('professional', record);
+});
 document.addEventListener('DOMContentLoaded', replaceModePanel, { once: true });
 replaceModePanel();

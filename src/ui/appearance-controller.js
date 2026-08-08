@@ -35,11 +35,7 @@ function writePreference(next) {
   return normalized;
 }
 
-function icon(theme) {
-  return theme === 'dark'
-    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>'
-    : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15.2A8.5 8.5 0 0 1 8.8 3 8.5 8.5 0 1 0 21 15.2Z"/></svg>';
-}
+function icon(theme) { return theme === 'dark' ? '🌙' : '☀️'; }
 
 function applyTheme(theme = readPreference().theme) {
   const normalized = theme === 'light' ? 'light' : 'dark';
@@ -50,13 +46,13 @@ function applyTheme(theme = readPreference().theme) {
   document.body?.classList.toggle('theme-light', normalized === 'light');
   const button = document.querySelector('#themeToggleBtn');
   if (button && button.dataset.appearanceTheme !== normalized) {
-    button.innerHTML = icon(normalized);
+    button.textContent = icon(normalized);
     button.dataset.appearanceTheme = normalized;
     button.setAttribute('aria-label', normalized === 'dark' ? '切换到白色模式' : '切换到黑色模式');
     button.title = normalized === 'dark' ? '白色模式' : '黑色模式';
   }
   const settingButton = document.querySelector('[data-appearance-theme]');
-  if (settingButton) settingButton.textContent = normalized === 'dark' ? '黑色模式' : '白色模式';
+  if (settingButton) settingButton.textContent = icon(normalized);
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = normalized === 'dark' ? '#080909' : '#ececea';
 }
@@ -75,7 +71,6 @@ function toggleTheme() {
   current.theme = current.theme === 'light' ? 'dark' : 'light';
   const next = writePreference(current);
   applyTheme(next.theme);
-  queueSettingsPanel();
 }
 
 function chooseSplash(value) {
@@ -83,7 +78,19 @@ function chooseSplash(value) {
   current.splash = value === 'white' ? 'white' : 'red';
   const next = writePreference(current);
   applySplash(next.splash);
-  queueSettingsPanel();
+  document.querySelectorAll('[data-appearance-splash]').forEach(button => {
+    button.classList.toggle('selected', button.dataset.appearanceSplash === next.splash);
+    button.setAttribute('aria-checked', String(button.dataset.appearanceSplash === next.splash));
+  });
+}
+
+function enforceSingleOpen(section) {
+  section.addEventListener('toggle', () => {
+    if (!section.open) return;
+    document.querySelectorAll('#settingsContent .settings-category').forEach(other => {
+      if (other !== section) other.open = false;
+    });
+  });
 }
 
 function renderSettingsPanel() {
@@ -97,13 +104,14 @@ function renderSettingsPanel() {
   details.className = 'settings-category';
   details.innerHTML = `<summary><span>界面</span><small>显示模式与启动图</small></summary>
     <div class="settings-category-body">
-      <div class="v095-setting-line"><span>显示模式</span><button class="button" type="button" data-appearance-theme>${pref.theme === 'dark' ? '黑色模式' : '白色模式'}</button></div>
+      <div class="v095-setting-line"><span>显示模式</span><button class="button" type="button" data-appearance-theme aria-label="${pref.theme === 'dark' ? '黑色模式' : '白色模式'}">${icon(pref.theme)}</button></div>
       <div class="v095-splash-choice" role="radiogroup" aria-label="启动页图片">
         <button type="button" data-appearance-splash="red" data-splash-variant="red" style="background-color:#993333!important" class="${pref.splash === 'red' ? 'selected' : ''}"><img src="${SPLASH.red}" alt="红色启动页"><span>红色版本（默认）</span></button>
         <button type="button" data-appearance-splash="white" data-splash-variant="white" style="background-color:#f3efe5!important" class="${pref.splash === 'white' ? 'selected' : ''}"><img src="${SPLASH.white}" alt="白色启动页"><span>白色版本</span></button>
       </div>
     </div>`;
   root.prepend(details);
+  enforceSingleOpen(details);
   details.querySelector('[data-appearance-theme]')?.addEventListener('click', toggleTheme);
   details.querySelectorAll('[data-appearance-splash]').forEach(button => button.addEventListener('click', () => chooseSplash(button.dataset.appearanceSplash)));
 }

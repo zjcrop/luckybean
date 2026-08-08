@@ -1,2222 +1,22 @@
-import { APP_VERSION, SCHEMA_VERSION, $, $$, uid, esc, clamp, todayISO, formatDate, freshness, freshnessProfile, downloadBlob, safeJsonParse, assertPlainObject, assertSafeJson, browserTitle, parseNumber } from './utils.js';
-import { openDb, all, get, put, remove, bulkPut, getSetting, setSetting, clearAll, migrateLegacy } from './db.js';
-import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, parseNaturalLanguage, REMOTE_CODEBOOK_URL } from './codebook.js';
-import { CameraScanner, scanQrFile, decodeJsQrResult } from './qr.js';
-import { computeFallbackPlan, requestPrivatePlan, validatePlan, FALLBACK_ENGINE_VERSION, buildCorrectedPlan, listBrewProfiles } from './brew-engine.js';
-import { brewProfileCatalogStatus } from './services/brew-profile-catalog-service.js';
-import { listWaterProfiles, inferWaterProfile } from './water-profiles.js';
-import { buildCompactSharePayload, encodeSharePayload, decodeSharePayload } from './share-codec.js';
-import { computeAutomaticScore, sensoryPreferenceTags, buildPreferenceModel, recommendedBeanIds } from './preference-model.js';
-import { commitCompletedBrew, permanentlyDeleteBrewRecords } from './domain/history/history-service.js';
-import { attachSensoryToCompletedBrew } from './domain/history/history-sensory-service.js';
-import { createLocalReferenceAnalysis } from './services/local-reference-analysis.js';
-import { adaptAuthoritativePlan } from './services/brew-analysis-service.js';
-import './renderers/brew-spatial-controller.js';
-import './ui/brew-trend-panel.js';
-import { openHistoryScreen } from './ui/history/history-screen.js';
-import { migrateLegacyBrewHistory } from './domain/history/history-migration.js';
-import './services/provider-bootstrap-controller.js';
-import { renderProviderStatusPanel } from './ui/provider-status-panel.js';
-import './sensory-professional-controller.js';
-import { createPortableArchive, inspectPortableArchive, restorePortableArchive, MAX_ARCHIVE_BYTES } from './domain/archive/luckybean-archive-service.js';
-import { recognitionDocumentFromText } from './domain/recognition/recognition-document.js';
-import { classifyRecognitionDates } from './domain/recognition/recognition-date-classifier.js';
-import { buildDateReviewModel, resolveDateReviewSelections } from './domain/recognition/recognition-date-review.js';
-
-const PAGE_META = {
-  beans: { nav: 'è—', title: 'è±†è—', browser: 'è±†è—' },
-  brew: { nav: 'é…Œ', title: 'å°é…Œ', browser: 'å°é…Œ' },
-  sensory: { nav: 'é‰´', title: 'å“é‰´', browser: 'å“é‰´' },
-  settings: { nav: 'å™¨', title: 'å™¨è®¾', browser: 'å™¨è®¾' }
-};
-
-const ROASTS = [
-  ['RL-L0', 'ææµ…çƒ˜'], ['RL-L1', 'æµ…çƒ˜'], ['RL-L2', 'æµ…ä¸­çƒ˜'], ['RL-L3', 'ä¸­çƒ˜'],
-  ['RL-L4', 'ä¸­æ·±çƒ˜'], ['RL-L5', 'æ·±çƒ˜'], ['RL-L6', 'ææ·±çƒ˜']
-];
-const ROAST_NAME = new Map(ROASTS);
-const STATUS_COLOR = { resting: '#5f8a73', peak: '#de9a42', good: '#bc8d55', decline: '#77736c', urgent: '#575757' };
-const DEFAULT_SETTINGS = {
-  ui: { planVisualsExpanded: true, temporaryVisualOpen: false, dripperListOpen: false },
-  brew: {
-    apiEndpoint: '', mode: 'simple', method: 'pourover', doseG: 15, ratio: 15.5,
-    profileId: 'recommended', segmentMode: 'auto', segments: 3, lowTempFirst: true,
-    dripper: 'å¹³åº•æ»¤æ¯', filterPaperId: '', grinder: '', waterProfileId: 'auto', waterVolumeL: 5,
-    customWater: { name: 'æˆ‘çš„æ°´å‹', tds: 85, tendency: { floral: 0, acidity: 0, sweetness: 0, body: 0, bitterness: 0, astringency: 0 }, note: '' }, flavorTargets: { acidity: 1.5, floral: 2, fruity: 2, sweetness: 2, bitterness: 2, astringency: 2 },
-    firstCoolingMode: 'auto', firstTemperatureC: 87, tailCoolingMode: 'auto', tailTemperatureC: 86,
-    temperatureTune: 0, grindTune: 0, bloomTune: 0, repeatability: false,
-    environment: { ambientTemperatureC: 25, relativeHumidityPct: null, initialBedTemperatureC: 25 }
-  },
-  identity: { mode: 'guest', nickname: 'è®¿å®¢', publicId: '', idSalt: '', verified: false, email: '', phone: '', wechat: '', qq: '' },
-  gear: { filters: [], drippers: [{ id: 'dripper_flat', name: 'å¹³åº•æ»¤æ¯', type: 'å¹³åº•æ»¤æ¯' }], grinders: [] },
-  sensoryRecentLimit: 50,
-  shareRecordLimit: 5,
-  groupMethod: 'country'
-};
-const SENSORY_NODES = [
-  { id: 'floral', label: 'èŠ±é¦™', type: 'multi', groups: [{ label: 'é¦™æ°”', options: ['æ— ', 'ç™½èŠ±', 'èŒ‰è‰', 'ç«ç‘°', 'æ©™èŠ±', 'ç´«ç½—å…°', 'æ´‹ç”˜èŠ'] }, { label: 'é£å‘³å¼ºåº¦', single: true, intensity: true, options: ['æ— ', 'ä½', 'ä¸­', 'å¼º'] }] },
-  { id: 'fruit', label: 'æœé¦™', type: 'multi', groups: [{ label: 'æœé¦™', options: ['æ— ', 'æŸ‘æ©˜', 'è“æœ', 'æ¡ƒå­', 'è‹¹æœ', 'è‘¡è„', 'çƒ­å¸¦æ°´æœ', 'å¹²æœ'] }, { label: 'é£å‘³å¼ºåº¦', single: true, intensity: true, options: ['æ— ', 'ä½', 'ä¸­', 'å¼º'] }] },
-  { id: 'other', label: 'å…¶ä»–', type: 'multi', groups: [{ label: 'å…¶ä»–é£å‘³', options: ['æ— ', 'èŒ¶æ„Ÿ', 'é¦™æ–™', 'åšæœ', 'å·§å…‹åŠ›', 'é…’é¦™', 'è‰æœ¬', 'è±†è…/è±†å‘³'] }, { label: 'é£å‘³å¼ºåº¦', single: true, intensity: true, options: ['æ— ', 'ä½', 'ä¸­', 'å¼º'] }, { label: 'é…µæ„Ÿå¼ºåº¦', single: true, intensity: true, options: ['æ— ', 'ä½', 'ä¸­', 'å¼º'] }, { label: 'å¢å‘³å¼ºåº¦', single: true, intensity: true, options: ['æ— ', 'ä½', 'ä¸­', 'å¼º'] }] },
-  { id: 'sweet', label: 'ç”œ', type: 'grouped', groups: [
-    { label: 'é£å‘³å€¾å‘', single: false, options: ['èœ‚èœœ', 'è”—ç³–', 'çº¢ç³–', 'ç„¦ç³–', 'æ«ç³–', 'ç³–æµ†', 'å¤ªå¦ƒç³–'] },
-    { label: 'é£å‘³å¼ºåº¦', single: true, options: ['æ— ', 'ä½', 'é€‚ä¸­', 'é«˜'] }
-  ] },
-  { id: 'acid', label: 'é…¸', type: 'grouped', groups: [
-    { label: 'é£å‘³å€¾å‘ / æŒ‡å‘æ€§', single: false, options: ['æŸ‘æ©˜', 'é†‹é…¸', 'æŸ æª¬', 'é†‹æ —', 'è‹¹æœ', 'è‘¡è„'] },
-    { label: 'é£å‘³å¼ºåº¦', single: true, options: ['æ— ', 'å¾®é…¸', 'åœ†æ¶¦èˆ’é€‚', 'å°–é”'] }
-  ] },
-  { id: 'bitter', label: 'è‹¦', type: 'single', groups: [{ label: 'è‹¦æ„Ÿ', single: true, options: ['æ— ', 'ä½', 'é€‚ä¸­', 'åé«˜', 'ç„¦è‹¦'] }] },
-  { id: 'mouthfeel', label: 'å£æ„Ÿ', type: 'multi', groups: [{ label: 'è´¨åœ°', options: ['è½»ç›ˆ', 'é¡ºæ»‘', 'åœ†æ¶¦', 'å¥¶æ²¹æ„Ÿ', 'åšé‡', 'å¹²æ¶©', 'æ”¶æ•›'] }] },
-  { id: 'negative', label: 'è´Ÿé¢', type: 'multi', groups: [{ label: 'è´Ÿé¢é£å‘³', options: ['æ— ', 'çº¸å‘³', 'æœ¨è´¨', 'åœŸå‘³', 'éœ‰å‘³', 'å‘é…µè¿‡åº¦', 'è¯æ„Ÿ', 'æ©¡èƒ¶', 'é‡‘å±æ„Ÿ'] }] },
-  { id: 'score', label: 'æ€»åˆ†', type: 'score', groups: [] },
-  { id: 'note', label: 'æœ­è®°', type: 'note', groups: [] }
-];
-
-const state = {
-  db: null, codebook: null, codebookIndex: null, codebookMeta: null,
-  beans: [], brewSessions: [], sensoryRecords: [], inventoryEvents: [], preferenceModel: null, recommendedIds: new Set(),
-  settings: structuredClone(DEFAULT_SETTINGS), page: 'beans', selectedBeanId: null,
-  filter: { search: '', country: '', variety: '', process: '', flavors: [], sort: 'freshness', dir: 'asc' },
-  recommendedBeanId: null, currentPlan: null, currentBrewInput: null,
-  beanFormSource: null, beanFormDraft: null, cameraScanner: null,
-  timer: { interval: null, paused: false, stageIndex: 0, remaining: 0 }, currentExecution: null,
-  activeGroupKey: null, groupAnimationMode: 'manual', recommendationTimer: null, recommendationRun: false, recommendationExpandedAll: false, recommendationPromptMemory: {}, preferenceBoardOpen: false, settingsFocusFilterId: '',
-  evaluation: null, pendingSensoryContext: null, sensoryHistoryOpen: false, sensoryFilter: { beanId: '', minScore: '', maxScore: '', start: '', end: '', expanded: false }
-};
-
-let toastTimer;
-let toastCleanupTimer;
-function toast(message, kind = '') {
-  const node = $('#toast');
-  clearTimeout(toastTimer);
-  clearTimeout(toastCleanupTimer);
-  node.textContent = message;
-  if (kind === 'recommendation') {
-    node.className = 'toast recommendation';
-    requestAnimationFrame(() => requestAnimationFrame(() => node.classList.add('show')));
-    toastTimer = setTimeout(() => node.classList.remove('show'), 6000);
-    toastCleanupTimer = setTimeout(() => { node.className = 'toast'; }, 7000);
-    return;
-  }
-  node.className = `toast show ${kind}`;
-  toastTimer = setTimeout(() => node.className = 'toast', 2600);
-}
-
-function showOverlay(content, { full = false, id = 'dialog', backdropClose = false, dialogClass = '' } = {}) {
-  const root = $('#overlayRoot');
-  root.innerHTML = `<div class="overlay${full ? ' full' : ''}" data-overlay="${esc(id)}"><div class="dialog${dialogClass ? ` ${esc(dialogClass)}` : ''}">${content}</div></div>`;
-  const overlay = root.firstElementChild;
-  if (backdropClose) overlay.addEventListener('click', event => { if (event.target === overlay) closeOverlay(); });
-  requestAnimationFrame(() => bindControlStates(overlay));
-  return overlay;
-}
-
-function closeOverlay() {
-  state.cameraScanner?.stop();
-  state.cameraScanner = null;
-  $('#overlayRoot').innerHTML = '';
-}
-function dialogHeader(title, subtitle = '', { closable = true, centered = false } = {}) {
-  return `<div class="dialog-header${centered ? ' centered' : ''}"><div><h2>${esc(title)}</h2>${subtitle ? `<p>${esc(subtitle)}</p>` : ''}</div>${closable ? '<button class="close-button" type="button" data-close-overlay aria-label="å…³é—­">Ã—</button>' : ''}</div>`;
-}
-
-function bindClose(root = document) { $$('[data-close-overlay]', root).forEach(btn => btn.addEventListener('click', closeOverlay)); }
-
-async function loadSettings() {
-  const saved = await getSetting('app.settings', null);
-  state.settings = {
-    ...structuredClone(DEFAULT_SETTINGS), ...(saved || {}),
-    ui: { ...DEFAULT_SETTINGS.ui, ...(saved?.ui || {}) },
-    brew: {
-      ...DEFAULT_SETTINGS.brew, ...(saved?.brew || {}),
-      customWater: { ...DEFAULT_SETTINGS.brew.customWater, ...(saved?.brew?.customWater || {}), tendency: { ...DEFAULT_SETTINGS.brew.customWater.tendency, ...(saved?.brew?.customWater?.tendency || {}) } },
-      environment: { ...DEFAULT_SETTINGS.brew.environment, ...(saved?.brew?.environment || {}) },
-      flavorTargets: { ...DEFAULT_SETTINGS.brew.flavorTargets, ...(saved?.brew?.flavorTargets || {}) }
-    },
-    identity: { ...DEFAULT_SETTINGS.identity, ...(saved?.identity || {}) },
-    gear: normalizeGearSettings(saved?.gear || DEFAULT_SETTINGS.gear)
-  };
-  state.settings.sensoryRecentLimit = clamp(state.settings.sensoryRecentLimit || 50, 5, 200);
-}
-
-async function saveSettings() { await setSetting('app.settings', state.settings); }
-
-migrateLegacyBrewHistory().catch(error => console.error('å†²ç…®å†å²è¿ç§»å¤±è´¥', error));
-
-document.addEventListener('luckybean:codebook-provider-activated', event => {
-  const data = event.detail?.data;
-  if (!data) return;
-  state.codebook = data;
-  state.codebookIndex = makeIndex(data);
-  state.codebookMeta = event.detail?.meta || state.codebookMeta;
-  if (state.page === 'beans') renderBeans();
-  if (state.page === 'brew') renderBrew();
-});
-
-document.addEventListener('luckybean:brew-profile-catalog-updated', () => {
-  if (state.page === 'brew') renderBrew();
-});
-
-document.addEventListener('luckybean:request-app-refresh', async event => {
-  await refreshData();
-  if (state.page === 'beans') renderBeans();
-  else if (state.page === 'brew') renderBrew();
-  else if (state.page === 'sensory') renderSensory();
-  else if (state.page === 'settings') renderSettings();
-  document.dispatchEvent(new CustomEvent('luckybean:app-refreshed', { detail: event.detail || {} }));
-});
-
-async function refreshData() {
-  [state.beans, state.brewSessions, state.sensoryRecords, state.inventoryEvents] = await Promise.all([
-    all('beans'), all('brewSessions'), all('sensoryRecords'), all('inventoryEvents')
-  ]);
-  const repaired = [];
-  state.beans = state.beans.map(bean => {
-    const normalized = normalizeBeanDisplayData(bean);
-    if (normalized.changed) repaired.push(normalized.bean);
-    return normalized.bean;
-  });
-  if (repaired.length) await bulkPut('beans', repaired).catch(() => {});
-  state.beans.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
-  const activeBeans = state.beans.filter(bean => !bean.archived && Number(bean.remainingWeight) > 0);
-  state.preferenceModel = buildPreferenceModel(activeBeans, state.sensoryRecords);
-  state.recommendedIds = recommendedBeanIds(activeBeans, state.sensoryRecords);
-  updateLowStockIndicator();
-}
-
-async function migrateLegacyFlavorCodes() {
-  const done = await getSetting('migration.flavors.brewion.v1', false);
-  if (done) return { migrated: 0, unmapped: 0 };
-  let mapping = {};
-  try {
-    const response = await fetch('./public/legacy-flavor-map.json');
-    if (response.ok) mapping = (await response.json()).mapping || {};
-  } catch { /* ä¿ç•™åŸä»£ç ï¼Œç¨åå¯å†æ¬¡è¿ç§» */ }
-  if (!Object.keys(mapping).length) return { migrated: 0, unmapped: 0 };
-  let migrated = 0, unmapped = 0;
-  for (const bean of state.beans) {
-    const original = Array.isArray(bean.flavorCodes) ? bean.flavorCodes : [];
-    const legacy = original.filter(code => String(code).startsWith('FL-'));
-    if (!legacy.length) continue;
-    const mapped = legacy.map(code => mapping[code]).filter(Boolean);
-    const missing = legacy.filter(code => !mapping[code]);
-    bean.flavorCodes = [...new Set([...original.filter(code => !String(code).startsWith('FL-')), ...mapped])];
-    if (missing.length) { bean.legacyFlavorCodes = [...new Set([...(bean.legacyFlavorCodes || []), ...missing])]; unmapped += missing.length; }
-    bean.updatedAt = new Date().toISOString();
-    await put('beans', bean); migrated += 1;
-  }
-  await setSetting('migration.flavors.brewion.v1', true);
-  if (migrated) await refreshData();
-  return { migrated, unmapped };
-}
-
-function pageElement(page) { return $(`#page${page[0].toUpperCase()}${page.slice(1)}`); }
-function switchPage(page, { preserveOverlay = false } = {}) {
-  if (!PAGE_META[page]) return;
-  if (!preserveOverlay) closeOverlay();
-  state.page = page;
-  $$('.page').forEach(node => node.classList.toggle('active', node.dataset.page === page));
-  $$('.nav-button').forEach(button => {
-    const active = button.dataset.pageTarget === page;
-    button.classList.toggle('active', active);
-    active ? button.setAttribute('aria-current', 'page') : button.removeAttribute('aria-current');
-  });
-  $('#fabWrap').classList.toggle('hidden', page !== 'beans');
-  browserTitle(PAGE_META[page].browser);
-  if (page === 'beans') renderBeans();
-  if (page === 'brew') renderBrew();
-  if (page === 'sensory') renderSensory();
-  if (page === 'settings') renderSettings();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function enterApp() {
-  $('#loginScreen')?.classList.add('hidden');
-  $('#appShell').classList.remove('hidden');
-  switchPage('beans');
-  bindControlStates(document);
-}
-
-function showInfoDialog(title, message) {
-  const overlay = showOverlay(`${dialogHeader(title)}<p class="muted">${esc(message)}</p><div class="row end"><button class="button primary" data-close-overlay type="button">çŸ¥é“äº†</button></div>`);
-  bindClose(overlay);
-}
-
-async function seedDemo() {
-  if (state.beans.length) return;
-  const today = new Date();
-  const demo = [
-    ['èŠ±å›­ç‘°å¤', 'CO-PA', 'VA-GE', 'PR-WA', 'RL-L1', 7, 150, 138, ['FV-100', 'FX-002', 'FV-093']],
-    ['å¤å‰æ—¥æ™’', 'CO-EA', 'VA-EH', 'PR-NA', 'RL-L1', 13, 200, 158, ['FV-009', 'FV-017', 'FV-096']],
-    ['æ…§å…°æ°´æ´—', 'CO-CO', 'VA-CAT', 'PR-WA', 'RL-L2', 20, 250, 128, ['FV-015', 'FV-091', 'FV-086']],
-    ['è‚¯å°¼äºšAA', 'CO-KE', 'VA-SL28', 'PR-WA', 'RL-L1', 28, 200, 108, ['FV-020', 'FV-025', 'FV-091']],
-    ['æ›¼ç‰¹å®', 'CO-ID', 'VA-TY', 'PR-WH', 'RL-L4', 18, 250, 96, ['FV-082', 'FV-087', 'FV-079']],
-    ['å·´è¥¿é»„æ³¢æ—', 'CO-BR', 'VA-BOU', 'PR-NA', 'RL-L3', 32, 250, 218, ['FV-084', 'FV-092', 'FV-086']],
-    ['äº‘å—åŒæ°§', 'CO-CN', 'VA-CAT', 'PR-AN', 'RL-L2', 10, 150, 75, ['FV-036', 'FV-017', 'FV-093']]
-  ].map((row, i) => {
-    const date = new Date(today); date.setDate(date.getDate() - row[5]);
-    return {
-      id: uid('bean'), name: row[0], countryCode: row[1], varietyCode: row[2], processCode: row[3], roastCode: row[4],
-      roastDate: date.toISOString().slice(0, 10), initialWeight: row[6], remainingWeight: row[7],
-      price: 88 + i * 19, roasterName: 'ç¤ºä¾‹çƒ˜ç„™å•†', refrigerated: i === 3, flavorCodes: row[8],
-      archived: false, source: 'demo', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
-    };
-  });
-  await bulkPut('beans', demo);
-  await refreshData();
-}
-
-function codeName(table, code, fallback = 'â€”') { return displayName(state.codebookIndex, table, code, fallback); }
-function beanDisplayName(bean) {
-  return `${codeName('countries', bean.countryCode, 'æœªå®šå›½å®¶')} Â· ${codeName('varieties', bean.varietyCode, 'æœªå®šè±†ç§')}`;
-}
-
-function normalizeGearSettings(gear = {}) {
-  const now = new Date().toISOString();
-  const filters = Array.isArray(gear.filters)
-    ? gear.filters.map(item => ({
-        id: String(item.id || uid('filter')), brand: String(item.brand || '').trim(),
-        type: String(item.type || item.name || '').trim(), quantity: Math.max(0, Math.floor(Number(item.quantity ?? item.qty ?? 0) || 0)),
-        price: Math.max(0, Number(item.price || 0)), createdAt: item.createdAt || now
-      })).filter(item => item.type)
-    : String(gear.filterTypes || '').split(/[ã€,ï¼Œ\n]/).map(value => value.trim()).filter(Boolean).map((type, index) => ({
-        id: `legacy_filter_${index}`, brand: '', type,
-        quantity: index === 0 ? Math.max(0, Math.floor(Number(gear.filterStock || 0) || 0)) : 0,
-        price: 0, createdAt: now
-      }));
-  const drippers = Array.isArray(gear.drippers)
-    ? gear.drippers.map(item => typeof item === 'string'
-        ? { id: uid('dripper'), name: item.trim(), type: item.trim(), price: 0, createdAt: now }
-        : ({ id: String(item.id || uid('dripper')), name: String(item.name || item.type || '').trim(), type: String(item.type || item.name || '').trim(), price: Math.max(0, Number(item.price || 0)), createdAt: item.createdAt || now }))
-      .filter(item => item.name)
-    : String(gear.drippers || 'å¹³åº•æ»¤æ¯').split(/[ã€,ï¼Œ\n]/).map(value => value.trim()).filter(Boolean).map((name, index) => ({ id: `legacy_dripper_${index}`, name, type: name, price: 0, createdAt: now }));
-  const legacyGrinders = Array.isArray(gear.grinders)
-    ? gear.grinders
-    : String(gear.grinders || gear.grinder || '').split(/[\nã€,ï¼Œ]/).map(value => value.trim()).filter(Boolean);
-  const grinders = legacyGrinders.map((item, index) => {
-    if (typeof item === 'string') return { id: `legacy_grinder_${index}`, name: item, setting: '', price: 0, createdAt: now };
-    return {
-      id: String(item.id || uid('grinder')),
-      name: String(item.name || item.model || '').trim(),
-      setting: String(item.setting || item.scale || '').trim(),
-      price: Math.max(0, Number(item.price || 0)),
-      createdAt: item.createdAt || now
-    };
-  }).filter(item => item.name);
-  return {
-    filters,
-    drippers: drippers.length ? drippers : [{ id: 'dripper_flat', name: 'å¹³åº•æ»¤æ¯', type: 'å¹³åº•æ»¤æ¯', price: 0, createdAt: now }],
-    grinders
-  };
-}
-
-function resolveKnownCode(table, value, parentCode = '') {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  if (state.codebookIndex?.[table]?.has(raw)) {
-    const row = state.codebookIndex[table].get(raw).row;
-    if ((table === 'regions' || table === 'entities') && parentCode && row[1] !== parentCode) return '';
-    return raw;
-  }
-  const key = raw.toLocaleLowerCase('zh-CN');
-  const matches = state.codebookIndex?.aliases?.get(key) || [];
-  const match = matches.find(item => item.table === table && (!parentCode || !['regions','entities'].includes(table) || item.row[1] === parentCode));
-  return match?.code || '';
-}
-
-function visibleFlavorCodes(bean = {}) {
-  return [...new Set((Array.isArray(bean.flavorCodes) ? bean.flavorCodes : [])
-    .map(value => resolveKnownCode('flavors', value))
-    .filter(code => code && codeName('flavors', code, '') && codeName('flavors', code, '') !== 'â€”'))];
-}
-
-function normalizeBeanDisplayData(original = {}) {
-  const bean = { ...original };
-  let changed = false;
-  for (const [field, table] of [['countryCode','countries'],['varietyCode','varieties'],['processCode','processes']]) {
-    const next = resolveKnownCode(table, bean[field]);
-    if (next && next !== bean[field]) { bean[field] = next; changed = true; }
-  }
-  const region = resolveKnownCode('regions', bean.regionCode, bean.countryCode);
-  if (bean.regionCode && region !== bean.regionCode) { bean.legacyRegionValue = bean.legacyRegionValue || bean.regionCode; bean.regionCode = region; changed = true; }
-  const entity = resolveKnownCode('entities', bean.entityCode, bean.countryCode);
-  if (bean.entityCode && entity !== bean.entityCode) { bean.legacyEntityValue = bean.legacyEntityValue || bean.entityCode; bean.entityCode = entity; changed = true; }
-  const rawFlavors = Array.isArray(bean.flavorCodes) ? bean.flavorCodes : [];
-  const legacyFlavors = rawFlavors.filter(code => String(code).startsWith('FL-'));
-  const flavors = [...new Set([...visibleFlavorCodes(bean), ...legacyFlavors])];
-  if (JSON.stringify(flavors) !== JSON.stringify(rawFlavors)) {
-    bean.legacyFlavorCodes = [...new Set([...(bean.legacyFlavorCodes || []), ...rawFlavors.filter(code => !flavors.includes(code))])];
-    bean.flavorCodes = flavors; changed = true;
-  }
-  if (changed) bean.updatedAt = bean.updatedAt || new Date().toISOString();
-  return { bean, changed };
-}
-
-function gearFilters() { return normalizeGearSettings(state.settings?.gear || {}).filters; }
-function gearDrippers() { return normalizeGearSettings(state.settings?.gear || {}).drippers; }
-function gearGrinders() { return normalizeGearSettings(state.settings?.gear || {}).grinders; }
-function lowStockFilters() { return gearFilters().filter(item => Number(item.quantity) < 10); }
-function updateLowStockIndicator() {
-  const button = document.querySelector('[data-page-target="settings"] span');
-  if (!button) return;
-  const low = lowStockFilters().length > 0;
-  button.innerHTML = `å™¨${low ? '<sup class="gear-low-star" aria-label="æ»¤çº¸åº“å­˜ä½">*</sup>' : ''}`;
-}
-function selectedFilterItem() {
-  const id = $('#brewFilterPaper')?.value || state.settings.brew.filterPaperId || '';
-  return gearFilters().find(item => item.id === id) || null;
-}
-function roastFromColor(value) {
-  const color = Number(value);
-  if (!Number.isFinite(color) || color <= 0) return '';
-  if (color >= 95) return 'RL-L0';
-  if (color >= 85) return 'RL-L1';
-  if (color >= 75) return 'RL-L2';
-  if (color >= 65) return 'RL-L3';
-  if (color >= 55) return 'RL-L4';
-  if (color >= 45) return 'RL-L5';
-  return 'RL-L6';
-}
-function uniqueRowsFromBeans(table, field, beans = state.beans.filter(bean => !bean.archived)) {
-  const codes = new Set(beans.map(bean => bean[field]).filter(Boolean));
-  return (state.codebook?.[table] || []).filter(row => codes.has(row[0]));
-}
-function availableFlavorRows(beans = state.beans.filter(bean => !bean.archived)) {
-  const codes = new Set(beans.flatMap(bean => bean.flavorCodes || []).filter(Boolean));
-  return (state.codebook?.flavors || []).filter(row => codes.has(row[0]));
-}
-function refreshControlState(control) {
-  if (!control?.classList?.contains('control')) return;
-  const empty = !String(control.value ?? '').trim();
-  control.classList.toggle('is-empty', empty);
-  control.classList.toggle('is-filled', !empty);
-}
-function bindControlStates(root = document) {
-  $$('input.control,select.control,textarea.control', root).forEach(control => {
-    refreshControlState(control);
-    if (!control.dataset.stateBound) {
-      control.dataset.stateBound = '1';
-      control.addEventListener('input', () => refreshControlState(control));
-      control.addEventListener('change', () => refreshControlState(control));
-    }
-  });
-}
-async function derivePublicId(identity) {
-  const salt = identity.idSalt || crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`;
-  const seed = [salt, identity.nickname, identity.email, identity.phone, identity.wechat, identity.qq, identity.mode].map(value => String(value || '').trim().toLocaleLowerCase('zh-CN')).join('|');
-  let token = '';
-  if (crypto?.subtle) {
-    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(seed));
-    token = [...new Uint8Array(digest)].slice(0, 6).map(value => value.toString(16).padStart(2, '0')).join('').toUpperCase();
-  } else token = Math.abs([...seed].reduce((hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) | 0, 0)).toString(36).toUpperCase().padStart(10, '0').slice(0, 12);
-  return { publicId: `LB-${token}`, idSalt: salt };
-}
-function resolvedSegmentCount(bean, mode = 'auto') {
-  if (mode !== 'auto') return clamp(Number(mode) || Number(state.settings.brew.segments) || 4, 2, 5);
-  const roast = Number(String(bean?.roastCode || 'RL-L2').replace(/\D/g, '')) || 2;
-  const dose = parseNumber($('#brewDose')?.value, state.settings.brew.doseG || 15);
-  if (roast <= 1 && dose >= 18) return 5;
-  if (roast >= 4) return 3;
-  return 4;
-}
-function trajectorySvg(plan) {
-  const model = structuredClone(plan.trajectoryModel || plan.professional?.trajectoryModel || {});
-  const points = model.points || [];
-  if (!points.length) {
-    const legacy = Array.isArray(plan.trajectory) ? plan.trajectory : [];
-    if (!legacy.length) return '<p class="muted small trajectory-empty">å½“å‰æ–¹æ¡ˆæ²¡æœ‰è½¨è¿¹æ•°æ®ï¼Œè¯·é‡æ–°ç”Ÿæˆæ–¹æ¡ˆã€‚</p>';
-    model.points = legacy.map(point => ({ x: point.x, cumulativeN: point.y, temperatureN: point.y, flowN: point.y, floral: point.y, acidity: point.y, sweetness: point.y, bitterRisk: Math.max(0, point.x - .7) }));
-  }
-  const data = model.points;
-  const width = 720, height = 330, left = 42, right = 18, top = 24, bottom = 38;
-  const plotW = width - left - right, plotH = height - top - bottom;
-  const valueFor = (point, key) => {
-    if (Number.isFinite(Number(point[key]))) return clamp(Number(point[key]), 0, 1);
-    if (key === 'fruit') return clamp((Number(point.floral || 0) * .42) + (Number(point.acidity || 0) * .58), 0, 1);
-    if (key === 'bitter') return clamp(Number(point.bitterRisk || 0), 0, 1);
-    if (key === 'astringency') return clamp(Number(point.astringency ?? point.bitterRisk ?? 0) * .82 + Number(point.flowN || 0) * .08, 0, 1);
-    return 0;
-  };
-  const xy = (point, key) => ({ x: left + clamp(point.x, 0, 1) * plotW, y: top + (1 - valueFor(point, key)) * plotH });
-  const line = key => data.map((point, index) => { const pos = xy(point, key); return `${index ? 'L' : 'M'}${pos.x.toFixed(1)},${pos.y.toFixed(1)}`; }).join(' ');
-  const windows = (model.windows || []).map(window => {
-    const x = left + clamp(window.start, 0, 1) * plotW;
-    const w = Math.max(0, clamp(window.end, 0, 1) - clamp(window.start, 0, 1)) * plotW;
-    return `<g class="trajectory-window ${window.kind === 'risk' ? 'risk' : 'positive'}"><rect x="${x.toFixed(1)}" y="${top}" width="${w.toFixed(1)}" height="${plotH}" rx="6"></rect><text x="${(x+6).toFixed(1)}" y="${top+15}">${esc(window.label)}</text></g>`;
-  }).join('');
-  const peakDefinitions = [
-    ['floral', 'èŠ±é¦™', 'floral'], ['sweetness', 'ç”œ', 'sweetness'], ['acidity', 'é…¸', 'acidity'],
-    ['fruit', 'æœé¦™', 'fruit'], ['bitter', 'è‹¦', 'bitter'], ['astringency', 'æ¶©', 'astringency']
-  ];
-  const peakBlocks = peakDefinitions.map(([key, label, className]) => {
-    let peak = data[0], peakValue = -1;
-    for (const point of data) {
-      const value = valueFor(point, key);
-      if (value > peakValue) { peak = point; peakValue = value; }
-    }
-    const center = clamp(Number(peak?.x || 0), 0, 1);
-    const start = clamp(center - .055, 0, 1);
-    const end = clamp(center + .055, 0, 1);
-    const x = left + start * plotW;
-    const w = Math.max(18, (end - start) * plotW);
-    const y = top + (1 - clamp(peakValue, 0, 1)) * plotH;
-    return `<g class="trajectory-peak ${className}"><rect x="${x.toFixed(1)}" y="${Math.max(top, y-18).toFixed(1)}" width="${w.toFixed(1)}" height="${Math.min(34, height-bottom-Math.max(top,y-18)).toFixed(1)}" rx="5"></rect><text x="${(x+w/2).toFixed(1)}" y="${Math.max(top+12,y-5).toFixed(1)}" text-anchor="middle">${label}</text></g>`;
-  }).join('');
-  const phases = (model.phases || []).map(phase => {
-    const x = left + clamp(phase.start, 0, 1) * plotW;
-    return `<g class="trajectory-phase"><line x1="${x.toFixed(1)}" y1="${top}" x2="${x.toFixed(1)}" y2="${height-bottom}"></line><text x="${(x+4).toFixed(1)}" y="${height-12}">${esc(String(phase.index))}</text></g>`;
-  }).join('');
-  const grid = [0,.25,.5,.75,1].map(value => { const y = top + (1-value)*plotH; return `<line class="trajectory-grid" x1="${left}" y1="${y}" x2="${width-right}" y2="${y}"></line><text class="trajectory-tick" x="${left-8}" y="${y+4}" text-anchor="end">${Math.round(value*100)}</text>`; }).join('');
-  return `<div class="trajectory-shell"><svg class="trajectory-chart detailed" viewBox="0 0 ${width} ${height}" role="img" aria-label="å†²ç…®æ¸©åº¦ã€æµé‡ã€ç´¯è®¡æ°´é‡å’Œé£å‘³çª—å£æ‹Ÿåˆå›¾">
-    ${windows}${peakBlocks}${grid}${phases}
-    <path class="trajectory-series temperature" d="${line('temperatureN')}"></path>
-    <path class="trajectory-series flow" d="${line('flowN')}"></path>
-    <path class="trajectory-series water" d="${line('cumulativeN')}"></path>
-    <path class="trajectory-series floral" d="${line('floral')}"></path>
-    <path class="trajectory-series acidity" d="${line('acidity')}"></path>
-    <path class="trajectory-series sweetness" d="${line('sweetness')}"></path>
-    <path class="trajectory-series risk" d="${line('bitterRisk')}"></path>
-    <text class="trajectory-axis-label" x="${left}" y="15">ç›¸å¯¹å¼ºåº¦ / %</text><text class="trajectory-axis-label" x="${width-right}" y="${height-9}" text-anchor="end">æ—¶é—´ â†’</text>
-  </svg><div class="trajectory-legend"><span class="temperature">æ¸©åº¦</span><span class="flow">æµé‡</span><span class="water">ç´¯è®¡æ°´é‡</span><span class="floral">èŠ±é¦™</span><span class="acidity">é…¸</span><span class="sweetness">ç”œ</span><span class="risk">è‹¦æ¶©é£é™©</span></div></div>`;
-}
-function beanNameSummary(bean) {
-  return [codeName('regions', bean.regionCode, ''), codeName('processes', bean.processCode, '')].filter(Boolean).join(' Â· ') || 'äº§åŒºä¸å¤„ç†æ³•æœªè®°å½•';
-}
-
-function scoreForBean(beanId) {
-  const records = state.sensoryRecords.filter(record => record.beanId === beanId && Number.isFinite(Number(record.subjectiveScore ?? record.score)));
-  if (!records.length) return 0;
-  return records.reduce((sum, record) => sum + Number(record.subjectiveScore ?? record.score), 0) / records.length;
-}
-
-function currentPreferenceModel() {
-  return state.preferenceModel || buildPreferenceModel(state.beans.filter(bean => !bean.archived), state.sensoryRecords);
-}
-
-function currentRecommendedIds() {
-  return state.recommendedIds || new Set();
-}
-
-function recommendationScore(bean) {
-  const sensory = scoreForBean(bean.id) || 70;
-  const preference = currentPreferenceModel().beanStats.get(bean.id)?.preferenceScore || 0;
-  const fresh = freshness(bean);
-  const freshnessWeight = { resting: 45, peak: 100, good: 82, decline: 64, urgent: 52 }[fresh.key] || 50;
-  const initial = Math.max(1, Number(bean.initialWeight) || Number(bean.remainingWeight) || 1);
-  const usePriority = clamp(1 - (Number(bean.remainingWeight) || 0) / initial, 0, 1) * 100;
-  return sensory * 0.34 + preference * 0.34 + freshnessWeight * 0.22 + usePriority * 0.10;
-}
-
-function filteredBeans({ includeArchived = false } = {}) {
-  let beans = state.beans.filter(bean => includeArchived ? Boolean(bean.archived) : !bean.archived && Number(bean.remainingWeight) > 0);
-  const query = state.filter.search.trim().toLocaleLowerCase('zh-CN');
-  if (query) beans = beans.filter(bean => [beanDisplayName(bean), bean.roasterName, bean.notes, codeName('regions', bean.regionCode, ''), codeName('entities', bean.entityCode, ''), codeName('processes', bean.processCode, ''), ...(bean.flavorCodes || []).map(code => codeName('flavors', code, ''))].join(' ').toLocaleLowerCase('zh-CN').includes(query));
-  if (state.filter.country) beans = beans.filter(bean => bean.countryCode === state.filter.country);
-  if (state.filter.variety) beans = beans.filter(bean => bean.varietyCode === state.filter.variety);
-  if (state.filter.process) beans = beans.filter(bean => bean.processCode === state.filter.process);
-  if (state.filter.flavors?.length) beans = beans.filter(bean => state.filter.flavors.some(code => (bean.flavorCodes || []).includes(code)));
-  const direction = state.filter.dir === 'desc' ? -1 : 1;
-  const value = bean => {
-    if (state.filter.sort === 'name') return beanDisplayName(bean);
-    if (state.filter.sort === 'roastDate') return bean.roastDate || '';
-    if (state.filter.sort === 'remaining') return Number(bean.remainingWeight) || 0;
-    if (state.filter.sort === 'price') return Number(bean.price) || 0;
-    if (state.filter.sort === 'score') return scoreForBean(bean.id);
-    if (state.filter.sort === 'recommended') return recommendationScore(bean);
-    return freshness(bean).remaining;
-  };
-  beans.sort((a, b) => {
-    const av = value(a), bv = value(b);
-    return typeof av === 'string' ? av.localeCompare(bv, 'zh-CN') * direction : (av - bv) * direction;
-  });
-  return beans;
-}
-
-function groupKey(bean, method) {
-  if (method === 'variety') return codeName('varieties', bean.varietyCode, 'æœªè®°å½•è±†ç§');
-  if (method === 'roast') return ROAST_NAME.get(bean.roastCode) || 'æœªè®°å½•çƒ˜ç„™åº¦';
-  if (method === 'process') return codeName('processes', bean.processCode, 'æœªè®°å½•å·¥æ³•');
-  return codeName('countries', bean.countryCode, 'æœªè®°å½•å›½å®¶');
-}
-function beanCardHtml(bean) {
-  const score = scoreForBean(bean.id);
-  const recommended = currentRecommendedIds().has(bean.id);
-  const process = codeName('processes', bean.processCode, 'å¤„ç†æ³•æœªè®°');
-  const fresh = freshnessProfile(bean);
-  const progress = Math.round(fresh.progress * 100);
-  return `<article class="bean-card compact${bean.id === state.recommendedBeanId ? ' recommended' : ''}${bean.archived ? ' archived' : ''}" data-bean-id="${esc(bean.id)}" tabindex="0">
-    <div class="compact-bean-copy"><h3>${esc(beanDisplayName(bean))}</h3><small>${esc(process)}</small><div class="compact-bean-row"><strong class="${bean.refrigerated ? 'frozen-weight' : ''}">${Number(bean.remainingWeight || 0).toFixed(1)}g${bean.refrigerated ? '<small class="frozen-mark" aria-label="å†·è—">â„ï¸</small>' : ''}</strong><span class="compact-score">${score ? `${score.toFixed(1)}åˆ†` : 'æœªè¯„åˆ†'}${recommended ? '<em>è</em>' : ''}</span></div></div>
-    <button class="cup-action compact-pick" type="button" data-brew-bean="${esc(bean.id)}" aria-label="ç”¨è¿™åªè±†å°é…Œ">é…Œ</button>
-    <div class="bean-freshness-progress" aria-label="${esc(fresh.label)}ï¼Œé£å‘³${esc(fresh.trend)}ï¼Œè¿›åº¦${progress}%"><span class="bean-freshness-solid" style="width:${progress}%;background:${fresh.color}"></span><span class="bean-freshness-dashed" style="left:${progress}%"></span></div>
-  </article>`;
-}
-
-function groupCardHtml(label, items) {
-  const totalWeight = items.reduce((sum, bean) => sum + Number(bean.remainingWeight || 0), 0);
-  return `<button class="group-card" type="button" data-open-group="${esc(label)}"><span>${esc(label)}</span><small>${items.length}åª Â· ${totalWeight.toFixed(1)}g</small></button>`;
-}
-
-function recommendationLeaderboardRows(limit = 3) {
-  const model = currentPreferenceModel();
-  return state.beans.filter(bean => !bean.archived && Number(bean.remainingWeight) > 0)
-    .map(bean => ({ bean, score: model.beanStats.get(bean.id)?.preferenceScore || 0, sensory: scoreForBean(bean.id) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
-}
-
-const LEADERBOARD_RANKS = ['é­é¦–', 'æ¦œçœ¼', 'æ¢èŠ±'];
-function recommendationLeaderboardHtml() {
-  const rows = recommendationLeaderboardRows(3);
-  if (!state.sensoryRecords.length || !rows.length) return '';
-  return `<div class="preference-board-strip"><button class="preference-board-title" type="button" data-open-recommend-board>æ¦œ</button><div class="preference-board-top3">${rows.map((row, index) => `<button type="button" data-board-bean="${esc(row.bean.id)}"><small>${LEADERBOARD_RANKS[index]}</small><span title="${esc(beanDisplayName(row.bean))}">${esc(beanDisplayName(row.bean))}</span></button>`).join('')}</div></div>`;
-}
-
-function openRecommendationLeaderboard() {
-  const rows = recommendationLeaderboardRows(3);
-  const content = `${dialogHeader('æ¦œ', 'ä»…åˆ—ä¸ªäººèæ¦œå‰ä¸‰å', { closable: false })}<div class="recommendation-board top-three">${rows.length ? rows.map((row, index) => `<button type="button" data-board-bean="${esc(row.bean.id)}"><span>${LEADERBOARD_RANKS[index]}</span><strong>${esc(beanDisplayName(row.bean))}</strong><small>${row.score.toFixed(1)} Â· å“é‰´${row.sensory ? row.sensory.toFixed(1) : 'â€”'}</small></button>`).join('') : '<p class="muted">å®Œæˆå“é‰´åç”Ÿæˆä¸ªäººæ¦œã€‚</p>'}</div><button class="bottom-return" type="button" data-close-overlay>é€€</button>`;
-  const overlay = showOverlay(content, { id: 'recommendation-board', backdropClose: true, dialogClass: 'bottom-sheet' });
-  bindClose(overlay);
-  overlay.addEventListener('click', event => { const button = event.target.closest('[data-board-bean]'); if (!button) return; const bean = state.beans.find(item => item.id === button.dataset.boardBean); closeOverlay(); if (bean) focusRecommendedBean(bean, { openDetail: true, duration: 800 }); });
-}
-
-function renderBeans() {
-  const container = $('#beanGroups');
-  const beans = filteredBeans();
-  const filterParts = [];
-  if (state.filter.search) filterParts.push(`å…³é”®è¯ï¼š${state.filter.search}`);
-  if (state.filter.country) filterParts.push(`å›½å®¶ï¼š${codeName('countries', state.filter.country)}`);
-  if (state.filter.variety) filterParts.push(`è±†ç§ï¼š${codeName('varieties', state.filter.variety)}`);
-  if (state.filter.process) filterParts.push(`å·¥æ³•ï¼š${codeName('processes', state.filter.process)}`);
-  if (state.filter.flavors?.length) filterParts.push(`é£å‘³ï¼š${state.filter.flavors.length}é¡¹`);
-  const bar = $('#activeFilterBar');
-  bar.classList.toggle('hidden', !filterParts.length);
-  bar.innerHTML = filterParts.length ? `${filterParts.map(value => `<span class="tag">${esc(value)}</span>`).join('')}<button class="button subtle small" id="clearActiveFilters" type="button">æ¸…é™¤</button>` : '';
-  if (!beans.length) {
-    state.activeGroupKey = null;
-    state.recommendationExpandedAll = false;
-    container.innerHTML = `<div class="empty-state"><strong>æ²¡æœ‰ç¬¦åˆæ¡ä»¶çš„è±†å¡</strong><p>ç‚¹å‡»â€œæ·»ä¸â€å½•å…¥ï¼Œæˆ–ä»â€œæœç´¢â€è°ƒæ•´æ¡ä»¶ã€‚</p></div>`;
-    return;
-  }
-  const board = recommendationLeaderboardHtml();
-  if (beans.length <= 6) {
-    state.activeGroupKey = null;
-    container.innerHTML = `${board}<div class="bean-grid compact-grid bean-grid-animated ${state.groupAnimationMode === 'auto' ? 'auto-motion' : 'manual-motion'}">${beans.map(beanCardHtml).join('')}</div>`;
-    return;
-  }
-  const groupMethod = state.settings.groupMethod || 'country';
-  const groups = new Map();
-  for (const bean of beans) {
-    const key = groupKey(bean, groupMethod);
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(bean);
-  }
-  if (state.activeGroupKey && !groups.has(state.activeGroupKey)) state.activeGroupKey = null;
-  if (state.recommendationExpandedAll) {
-    container.innerHTML = `${board}<div class="recommendation-all-groups" data-all-groups>${[...groups.entries()].map(([label, items], index) => `<section class="recommendation-group" style="--group-order:${index}"><div class="active-group-title"><span>${esc(label)}</span><small>${items.length}åª</small></div><div class="bean-grid compact-grid vertical-recommendation-grid">${items.map(beanCardHtml).join('')}</div></section>`).join('')}<div class="group-collapse-zone" data-collapse-group><button class="group-collapse" type="button">æ”¶</button></div></div>`;
-    return;
-  }
-  if (!state.activeGroupKey) {
-    container.innerHTML = `${board}<div class="bean-grid compact-grid group-grid bean-grid-animated ${state.groupAnimationMode === 'auto' ? 'auto-motion' : 'manual-motion'}">${[...groups.entries()].map(([label, items]) => groupCardHtml(label, items)).join('')}</div>`;
-    return;
-  }
-  const items = groups.get(state.activeGroupKey) || [];
-  container.innerHTML = `${board}<section class="active-group-panel ${state.groupAnimationMode === 'auto' ? 'auto-motion' : 'manual-motion'}" data-active-group-panel><div class="active-group-title"><span>${esc(state.activeGroupKey)}</span><small>${items.length}åª</small></div><div class="bean-grid compact-grid">${items.map(beanCardHtml).join('')}</div><div class="group-collapse-zone" data-collapse-group><button class="group-collapse" type="button">æ”¶</button></div></section>`;
-}
-
-function positionPopup(anchor, popup, { above = false } = {}) {
-  const rect = anchor.getBoundingClientRect();
-  if (above) {
-    popup.style.right = `${Math.max(12, window.innerWidth - rect.right)}px`;
-    popup.style.bottom = `${Math.max(90, window.innerHeight - rect.top + 8)}px`;
-  } else {
-    popup.style.right = `${Math.max(12, window.innerWidth - rect.right)}px`;
-    popup.style.top = `${rect.bottom + 6}px`;
-  }
-}
-function closePopups() { $$('.popup-menu,.recommend-menu').forEach(node => node.remove()); }
-function openGroupMenu() {
-  closePopups();
-  const popup = document.createElement('div');
-  popup.className = 'popup-menu';
-  popup.innerHTML = [['country', 'æŒ‰å›½å®¶'], ['variety', 'æŒ‰è±†ç§'], ['roast', 'æŒ‰çƒ˜ç„™åº¦'], ['process', 'æŒ‰å¤„ç†å·¥æ³•']].map(([value, label]) => `<button type="button" data-group-method="${value}">${label}${state.settings.groupMethod === value ? ' âœ“' : ''}</button>`).join('');
-  document.body.append(popup); positionPopup($('#groupBtn'), popup);
-  popup.addEventListener('click', async event => {
-    const button = event.target.closest('[data-group-method]'); if (!button) return;
-    state.settings.groupMethod = button.dataset.groupMethod; state.activeGroupKey = null;
-    await saveSettings(); closePopups(); renderBeans();
-  });
-}
-
-function openManageMenu() {
-  closePopups();
-  const popup = document.createElement('div'); popup.className = 'popup-menu';
-  popup.innerHTML = `<button type="button" data-manage-action="export">å¯¼å‡ºæ•°æ®</button><button type="button" data-manage-action="import">å¯¼å…¥æ•°æ®</button>`;
-  document.body.append(popup); positionPopup($('#manageBtn'), popup);
-}
-
-function openSearchDialog() {
-  closePopups();
-  const activeBeans = state.beans.filter(bean => !bean.archived && Number(bean.remainingWeight) > 0);
-  const countryRows = uniqueRowsFromBeans('countries', 'countryCode', activeBeans);
-  const varietyRows = uniqueRowsFromBeans('varieties', 'varietyCode', activeBeans);
-  const processRows = uniqueRowsFromBeans('processes', 'processCode', activeBeans);
-  const flavorRows = availableFlavorRows(activeBeans);
-  const selectedFlavors = new Set(state.filter.flavors || []);
-  const content = `${dialogHeader('å¯»', 'é€‰é¡¹åªæ¥è‡ªå½“å‰è±†è—ä¸­çš„è±†å¡', { closable: false })}
-    <div class="form-grid search-grid">
-      <div class="form-field"><label>å…³é”®è¯</label><input id="searchInput" class="control" value="${esc(state.filter.search)}" placeholder="äº§åŒºã€çƒ˜ç„™å•†ã€é£å‘³ç­‰"></div>
-      <div class="form-field"><label>å›½å®¶</label><select id="searchCountry" class="control">${optionsHtml(countryRows, state.filter.country, 1, 'å…¨éƒ¨ç°æœ‰å›½å®¶')}</select></div>
-      <div class="form-field"><label>è±†ç§</label><select id="searchVariety" class="control">${optionsHtml(varietyRows, state.filter.variety, 1, 'å…¨éƒ¨ç°æœ‰è±†ç§')}</select></div>
-      <div class="form-field"><label>å¤„ç†æ³•</label><select id="searchProcess" class="control">${optionsHtml(processRows, state.filter.process, 1, 'å…¨éƒ¨ç°æœ‰å¤„ç†æ³•')}</select></div>
-      <div class="form-field"><label>æ’åº</label><select id="searchSort" class="control">${[['recommended','æ¨è'],['freshness','èµå‘³'],['name','åç§°'],['roastDate','çƒ˜ç„™æ—¥æœŸ'],['remaining','å‰©ä½™å…‹é‡'],['price','ä»·æ ¼'],['score','å“é‰´å¾—åˆ†']].map(([value,label])=>`<option value="${value}"${state.filter.sort===value?' selected':''}>${label}</option>`).join('')}</select></div>
-      <div class="form-field"><label>æ–¹å‘</label><select id="searchDir" class="control"><option value="asc"${state.filter.dir==='asc'?' selected':''}>å‡åº</option><option value="desc"${state.filter.dir==='desc'?' selected':''}>é™åº</option></select></div>
-    </div>
-    <details class="details-block"${selectedFlavors.size ? ' open' : ''}><summary>ç°æœ‰é£å‘³</summary><div class="details-content"><div class="flavor-grid compact">${flavorRows.length ? flavorRows.map(row=>`<button type="button" class="flavor-button filter-flavor${selectedFlavors.has(row[0])?' selected':''}" data-filter-flavor="${esc(row[0])}">${esc(row[1])}</button>`).join('') : '<span class="muted small">å½“å‰è±†å¡å°šæ— é£å‘³æ ‡ç­¾</span>'}</div></div></details>
-    <div class="row menu-row"><button id="resetSearchBtn" class="button subtle" type="button">é‡ç½®</button><button id="applySearchBtn" class="button primary" type="button">ç¡®è®¤</button></div>`;
-  const overlay = showOverlay(content, { id: 'bean-search', backdropClose: true, dialogClass: 'bottom-sheet' });
-  overlay.addEventListener('click', event => {
-    const button = event.target.closest('[data-filter-flavor]');
-    if (button) button.classList.toggle('selected');
-  });
-  $('#resetSearchBtn').addEventListener('click', () => {
-    state.filter = { search: '', country: '', variety: '', process: '', flavors: [], sort: 'freshness', dir: 'asc' }; state.activeGroupKey = null; closeOverlay(); renderBeans();
-  });
-  $('#applySearchBtn').addEventListener('click', () => {
-    state.filter = {
-      search: $('#searchInput').value.trim(), country: $('#searchCountry').value, variety: $('#searchVariety').value, process: $('#searchProcess').value,
-      flavors: $$('[data-filter-flavor].selected', overlay).map(button => button.dataset.filterFlavor),
-      sort: $('#searchSort').value, dir: $('#searchDir').value
-    };
-    state.activeGroupKey = null; closeOverlay(); renderBeans();
-  });
-}
-
-const RECOMMENDATION_PROMPTS = Object.freeze({
-  leaderboard: [
-    'ç›´å–æ¦œé¦–ï¼Œä¸é—®å…¶ä½™ã€‚', 'ä¾æ¦œç´¢é­ï¼Œå¿…å¾—ä½³å‘³ã€‚', 'æ¦œå•åœ¨å‰ï¼Œä»Šæœä¸”è¯•å¤´ç­¹ã€‚',
-    'æ¦œé­å·²å®šï¼Œæ­¤åªé£å‘³ç²¾ç»ï¼Œä¸è´Ÿä¼—æœ›ã€‚', 'ä¸€ä¸¾æ‘˜é­ï¼Œæ°é€¢æ­¤è±†é£å‘³æ­£é…£ã€‚',
-    'ä¼—é‡Œå¯»å®ƒï¼Œç»ˆå¾—æ¦œé¦–ï¼Œå®œç»†ç»†å“ä¹‹ã€‚', 'ç…§æ¦œç‚¹å°†ï¼Œä¸“æŒ‘é‚£ä¸ªç¬¬ä¸€åï¼'
-  ],
-  freshness: [
-    'æ­¤åªé£å‘³ç²¾ç»ï¼Œå›æ—¢é€‰ä¸­ï¼Œç”šæ˜¯å¦¥å½“ã€‚', 'æ­£é€¢æ­¤åªé£å‘³æœ€ç››ï¼Œæ‚¨è¿™ä¸€é€‰ï¼Œå†å¥½ä¸è¿‡ã€‚',
-    'æ­¤åªæ­£å€¼é£å‘³ç²¾å¦™å¤„ï¼Œæ—¢å·²é€‰å®šï¼Œä¾¿æ˜¯è‰¯é…ã€‚', 'æ­¤åªæ­£å¾—æ„æ—¶ï¼Œæ°è¢«å›çœ¼ç›¸ä¸­ï¼Œçœ¼å…‰ä¸å·®ã€‚'
-  ],
-  price: [
-    'æ­¤åªä»·å† è¯¸è±†ï¼Œè¶³è§å›ä¹‹æ…§çœ¼ç‹¬é’Ÿã€‚', 'æ­¤åªä¹ƒä¼—è±†ä¹‹é­ï¼Œæ‰¿å›é’çï¼Œèº«ä»·è‡ªé«˜ã€‚',
-    'æ­¤åªä½åˆ—é¦–å¸­ï¼Œä»·äº¦æ˜‚ï¼Œå”¯å›å ªé…æ­¤å‘³ã€‚', 'æ—¢æ‹©æ­¤åªé£éª¨ï¼Œå½“çŸ¥ä¼—è±†ä¹‹ä¸­ï¼Œä»¥æ­¤æœ€ä¸ºçŸœè´µã€‚'
-  ],
-  remaining: [
-    'ä½™ç²’æ— å¤šï¼Œå®œè¶å…´é¥®å°½ï¼Œä¸ºæ­¤è±†ä½œç»“ã€‚', 'æ‰€å‰©å‡ ä½•ï¼Œå½“åŠæ—¶å•œé¥®ï¼Œä¸è´Ÿæ­¤è±†é£åã€‚',
-    'æ®‹è±†å°†å°½ï¼Œé€Ÿé¥®ä¹‹ï¼Œå¥½ä¸æ­¤åªä»å®¹ä½œåˆ«ã€‚', 'æ­¤è±†è§åº•å•¦ï¼Œè¶é£å‘³æœªæ•£ï¼Œå¿«å¿«é¥®å°½æ”¶åœºï¼'
-  ],
-  random: [
-    'é—­ç›®æ‹ˆç­¾ï¼Œä»»å…¶è‡ªç„¶ã€‚', 'ä¿¡æ‰‹æ‹ˆç­¾ï¼Œä»¥å®šä»Šæ—¥ä¹‹é€‰ã€‚', 'ä¸”å‡­ä¸€ç­¾ï¼Œå†³æ­¤è±†å½’è°ã€‚',
-    'ä¸€ç­¾è½åœ°ï¼Œæ­¤åªå½“å½’äºå›ã€‚', 'ç­¾æŒ‡æ­¤åªï¼Œé£å‘³æ­£é…£ï¼Œå›å¯å®‰å¿ƒäº«ä¹‹ã€‚',
-    'å¾—æ­¤ç­¾ï¼Œæ°é€¢ä½™ç²’æ— å‡ ï¼Œç¼˜åˆ†ä¹Ÿã€‚', 'ä¼¸æ‰‹æ‹ˆä¸€ç­¾ï¼Œçœ‹å¤©æ„é€‰å“ªåªï¼'
-  ]
-});
-
-function recommendationPrompt(mode) {
-  const pool = RECOMMENDATION_PROMPTS[mode] || [];
-  if (!pool.length) return '';
-  const previous = state.recommendationPromptMemory[mode] || '';
-  const choices = pool.filter(value => value !== previous);
-  const selected = choices[Math.floor(Math.random() * choices.length)] || pool[0];
-  state.recommendationPromptMemory[mode] = selected;
-  return selected;
-}
-
-function openRecommendMenu() {
-  closePopups();
-  const popup = document.createElement('div'); popup.className = 'recommend-menu';
-  const items = [
-    ['leaderboard', 'æ¦œé­', '#c9a45f', false], ['freshness', 'å‘³ç››', '#5e9a68', false],
-    ['price', 'ä»·å† ', '#c9a45f', false], ['remaining', 'æ‹¾ä½™', '#f1f1ed', false], ['random', 'æ‹ˆç­¾', '#e88b3d', true]
-  ];
-  popup.innerHTML = items.map(([mode, label, color, large]) => `<button type="button" class="recommend-option" data-recommend-mode="${mode}" aria-label="${label}"><span class="recommend-label">${label}</span><span class="recommend-dot${large?' random':''}" style="background:${color}"></span></button>`).join('');
-  document.body.append(popup); positionPopup($('#fabRecommendBtn'), popup, { above: true });
-}
-
-async function recommendBean(mode) {
-  closePopups();
-  const beans = filteredBeans();
-  if (!beans.length) return toast('æ²¡æœ‰å¯æ¨èçš„è±†å¡');
-  if (state.recommendationRun) return;
-  state.recommendationRun = true;
-  state.recommendationExpandedAll = beans.length > 6;
-  state.activeGroupKey = null;
-  state.groupAnimationMode = 'auto';
-  renderBeans();
-  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  let selected;
-  try {
-    if (mode === 'leaderboard') selected = [...beans].sort((a,b)=>recommendationScore(b)-recommendationScore(a))[0];
-    else if (mode === 'freshness') selected = [...beans].sort((a,b)=>freshnessProfile(b).flavorScore-freshnessProfile(a).flavorScore)[0];
-    else if (mode === 'price') selected = [...beans].sort((a,b)=>(Number(b.price)||0)-(Number(a.price)||0))[0];
-    else if (mode === 'remaining') selected = [...beans].sort((a,b)=>(Number(a.remainingWeight)||0)-(Number(b.remainingWeight)||0))[0];
-    else {
-      const rounds = Math.floor(Math.random() * 6) + 4;
-      let previousId = '';
-      for (let index = 0; index < rounds; index += 1) {
-        const available = beans.length > 1 ? beans.filter(bean => bean.id !== previousId) : beans;
-        const bean = available[Math.floor(Math.random() * available.length)];
-        previousId = bean.id;
-        selected = bean;
-        await focusRecommendedBean(bean, { automatic: true, settle: true, duration: 800 });
-      }
-    }
-    if (mode !== 'random') await focusRecommendedBean(selected, { automatic: true, settle: true, duration: 800 });
-    const prompt = recommendationPrompt(mode);
-    toast(prompt || `å·²é€‰ï¼š${beanDisplayName(selected)}`, 'recommendation');
-  } finally {
-    state.recommendationRun = false;
-  }
-}
-
-async function focusRecommendedBean(bean, { automatic = true, settle = true, openDetail = false, duration = 800 } = {}) {
-  if (!bean) return;
-  state.groupAnimationMode = automatic ? 'auto' : 'manual';
-  const visible = filteredBeans();
-  state.recommendationExpandedAll = visible.length > 6;
-  state.activeGroupKey = null;
-  state.recommendedBeanId = bean.id;
-  renderBeans();
-  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  const card = document.querySelector(`[data-bean-id="${CSS.escape(bean.id)}"]`);
-  if (card) {
-    card.classList.remove('recommend-step');
-    void card.offsetWidth;
-    card.scrollIntoView({ behavior: automatic ? 'smooth' : 'auto', block: 'center' });
-    card.classList.add('recommend-step');
-    await new Promise(resolve => setTimeout(resolve, Math.max(200, duration)));
-    if (settle) card.classList.remove('recommend-step');
-  } else await new Promise(resolve => setTimeout(resolve, Math.max(200, duration)));
-  if (openDetail) detailBean(bean.id);
-}
-
-function openAddMenu() {
-  closePopups();
-  const popup = document.createElement('div'); popup.className = 'popup-menu';
-  popup.innerHTML = `<button type="button" data-add-mode="photo">æ‹ç…§è¯†åˆ«</button><button type="button" data-add-mode="qr">äºŒç»´ç è¯†åˆ«</button><button type="button" data-add-mode="text">æ–‡å­—è¯†åˆ«</button>`;
-  document.body.append(popup); positionPopup($('#fabAddBtn'), popup, { above: true });
-}
-
-function selectOptions(rows, selected, labelIndex = 1, blank = 'è¯·é€‰æ‹©') { return optionsHtml(rows, selected, labelIndex, blank); }
-function formValue(id) { return $(`#${id}`)?.value?.trim?.() ?? ''; }
-function selectedFlavorCodes(root = document) { return $$('[data-flavor-code].selected', root).map(button => button.dataset.flavorCode); }
-
-function beanFormHtml(bean = {}, source = {}) {
-  const regions = relatedRows(state.codebook, 'regions', bean.countryCode);
-  const entities = relatedRows(state.codebook, 'entities', bean.countryCode);
-  const flavors = visibleFlavorCodes(bean);
-  const colorValue = bean.roastColor || '';
-  const roastValue = colorValue ? roastFromColor(colorValue) : (bean.roastCode || '');
-  return `${dialogHeader(bean.id ? 'ç¼–è¾‘è±†å¡' : 'æ–°å¢è±†å¡', `æ¥æºï¼š${source.type || bean.source || 'æ‰‹å·¥å½•å…¥'}`)}
-    <form id="beanForm" novalidate>
-      <div class="form-grid">
-        ${fieldHtml('beanCountry','å›½å®¶',`<select id="beanCountry" class="control">${selectOptions(state.codebook.countries,bean.countryCode)}</select>`,'required')}
-        ${fieldHtml('beanRegion','äº§åŒº',`<select id="beanRegion" class="control">${selectOptions(regions,bean.regionCode,2,bean.countryCode?'è¯·é€‰æ‹©äº§åŒº':'å…ˆé€‰æ‹©å›½å®¶')}</select>`)}
-        ${fieldHtml('beanEntity','åº„å›­ / å¤„ç†ç«™',`<select id="beanEntity" class="control">${selectOptions(entities,bean.entityCode,3,bean.countryCode?'è¯·é€‰æ‹©åº„å›­ / å¤„ç†ç«™':'å…ˆé€‰æ‹©å›½å®¶')}</select>`)}
-        ${fieldHtml('beanVariety','è±†ç§',`<select id="beanVariety" class="control">${selectOptions(state.codebook.varieties,bean.varietyCode)}</select>`,'required')}
-        ${fieldHtml('beanProcess','å¤„ç†æ³•',`<select id="beanProcess" class="control">${selectOptions(state.codebook.processes,bean.processCode)}</select>`,'required')}
-        ${fieldHtml('beanRoastColor','çƒ˜ç„™è‰²å€¼',`<input id="beanRoastColor" class="control" type="number" min="20" max="120" step="1" value="${esc(colorValue)}" placeholder="Agtron 20â€“120">`,'recommended')}
-        ${fieldHtml('beanRoast','çƒ˜ç„™åº¦',`<select id="beanRoast" class="control"><option value="">å¡«å†™è‰²å€¼è‡ªåŠ¨ç”Ÿæˆ</option>${ROASTS.map(([value,label])=>`<option value="${value}"${roastValue===value?' selected':''}>${label}</option>`).join('')}</select>`,'required')}
-        ${fieldHtml('beanRoastDate','çƒ˜ç„™æ—¥æœŸ',`<input id="beanRoastDate" class="control" type="date" value="${esc(bean.roastDate || (source.type === 'manual' ? todayISO() : ''))}">`,'required')}
-        ${fieldHtml('beanInitialWeight','åˆå§‹å…‹é‡',`<input id="beanInitialWeight" class="control" type="number" min="1" max="10000" step="0.1" value="${esc(bean.initialWeight || '')}">`,'required')}
-        ${fieldHtml('beanRefrigerated','æ˜¯å¦å†·è—',`<select id="beanRefrigerated" class="control"><option value="false"${!bean.refrigerated?' selected':''}>å¦</option><option value="true"${bean.refrigerated?' selected':''}>æ˜¯</option></select>`,'recommended')}
-        ${fieldHtml('beanPrice','è´­ä¹°ä»·æ ¼',`<input id="beanPrice" class="control" type="number" min="0" step="0.01" value="${esc(bean.price || '')}">`,'recommended')}
-        ${fieldHtml('beanRoaster','çƒ˜ç„™å•†',`<input id="beanRoaster" class="control" maxlength="60" value="${esc(bean.roasterName || bean.roaster || '')}">`,'recommended')}
-        ${fieldHtml('beanAltitude','æµ·æ‹”',`<input id="beanAltitude" class="control" type="number" min="0" max="5000" value="${esc(bean.altitude || '')}">`)}
-        ${fieldHtml('beanNotes','å¤‡æ³¨',`<input id="beanNotes" class="control" maxlength="300" value="${esc(bean.notes || '')}">`)}
-      </div>
-      <section class="panel"><div class="panel-title"><div><h3>é£å‘³æ ‡ç­¾</h3><p>${state.codebook.flavors?.length || 0}é¡¹å¯ç”¨</p></div><button id="editFlavorsBtn" class="button" type="button">ç¼–è¾‘</button></div><div id="formFlavorSummary" class="flavor-summary">${flavors.map(code=>`<span class="tag" data-summary-code="${esc(code)}">${esc(codeName('flavors',code,code))}</span>`).join('') || '<span class="muted small">å°šæœªé€‰æ‹©</span>'}</div></section>
-      ${source.evidence ? evidenceHtml(source.evidence, source.confidence) : ''}
-      <div class="row"><button id="beanFormBackBtn" class="button subtle" type="button">è¿”å›</button><span class="grow"></span><button class="button primary" type="submit">ä¿å­˜</button></div>
-    </form>`;
-}
-
-function fieldHtml(id, label, control, level = '') {
-  const badge = level === 'required' ? '<span class="badge required">å¿…å¡«</span>' : (level === 'recommended' ? '<span class="badge">å»ºè®®</span>' : '');
-  return `<div class="form-field${level === 'required' ? ' required' : ''}${level === 'recommended' ? ' is-recommended' : ''}" data-field="${id}"><label for="${id}"><span>${label}</span>${badge}</label>${control}</div>`;
-}
-
-function evidenceHtml(evidence = {}, confidence = {}) {
-  const labels = { countryCode:'å›½å®¶',regionCode:'äº§åŒº',entityCode:'åº„å›­/å¤„ç†ç«™',varietyCode:'è±†ç§',processCode:'å¤„ç†æ³•',roastCode:'çƒ˜ç„™åº¦',roastDate:'çƒ˜ç„™æ—¥æœŸ',harvestYear:'äº§å­£',roastColor:'çƒ˜ç„™è‰²å€¼',roasterName:'çƒ˜ç„™å•†',altitude:'æµ·æ‹”',initialWeight:'åˆå§‹å…‹é‡',price:'ä»·æ ¼' };
-  const rows = Object.entries(evidence).map(([key, value]) => `<div class="evidence-row"><span>${esc(labels[key]||key)}</span><span>${esc(value)}</span><span>${Math.round((confidence[key]||0)*100)}%</span></div>`).join('');
-  return rows ? `<section class="panel"><div class="panel-title"><div><h3>è¯†åˆ«è¯æ®</h3><p>ä½ç½®ä¿¡åº¦å­—æ®µè¯·äººå·¥ç¡®è®¤</p></div></div><div class="text-evidence">${rows}</div></section>` : '';
-}
-
-function openBeanForm(bean = {}, source = { type: 'manual' }) {
-  state.beanFormSource = source;
-  state.beanFormDraft = structuredClone(bean);
-  const overlay = showOverlay(beanFormHtml(bean, source), { full: true, id: 'bean-form' }); bindClose(overlay);
-  const form = $('#beanForm');
-  const syncRoastColor = () => {
-    const color = formValue('beanRoastColor');
-    const select = $('#beanRoast');
-    if (color) {
-      select.value = roastFromColor(color);
-      select.dataset.autoFromColor = 'true';
-      select.disabled = true;
-    } else if (select.dataset.autoFromColor === 'true') {
-      select.value = '';
-      delete select.dataset.autoFromColor;
-      select.disabled = false;
-    }
-    refreshControlState(select);
-  };
-  $('#beanCountry').addEventListener('change', () => {
-    const country = $('#beanCountry').value;
-    $('#beanRegion').innerHTML = selectOptions(relatedRows(state.codebook, 'regions', country), '', 2, country ? 'è¯·é€‰æ‹©äº§åŒº' : 'å…ˆé€‰æ‹©å›½å®¶');
-    $('#beanEntity').innerHTML = selectOptions(relatedRows(state.codebook, 'entities', country), '', 3, country ? 'è¯·é€‰æ‹©åº„å›­ / å¤„ç†ç«™' : 'å…ˆé€‰æ‹©å›½å®¶');
-    bindControlStates(form);
-  });
-  $('#beanRoastColor').addEventListener('input', syncRoastColor);
-  if (formValue('beanRoastColor')) { $('#beanRoast').dataset.autoFromColor = 'true'; syncRoastColor(); }
-  $('#editFlavorsBtn').addEventListener('click', () => openFlavorEditor(selectedSummaryCodes(), bean, source));
-  $('#beanFormBackBtn').addEventListener('click', () => {
-    if (source.type === 'text') openTextRecognition(source.text || '', captureBeanFormDraft()); else closeOverlay();
-  });
-  form.addEventListener('submit', async event => {
-    event.preventDefault();
-    const required = [['beanCountry','å›½å®¶'],['beanVariety','è±†ç§'],['beanProcess','å¤„ç†æ³•'],['beanRoast','çƒ˜ç„™åº¦'],['beanRoastDate','çƒ˜ç„™æ—¥æœŸ'],['beanInitialWeight','åˆå§‹å…‹é‡']];
-    for (const [id,label] of required) if (!formValue(id)) return toast(`è¯·å¡«å†™${label}`, 'status-bad');
-    const initialWeight = parseNumber(formValue('beanInitialWeight'));
-    if (initialWeight <= 0) return toast('åˆå§‹å…‹é‡å¿…é¡»å¤§äº 0', 'status-bad');
-    const countryCode = formValue('beanCountry');
-    const varietyCode = formValue('beanVariety');
-    const now = new Date().toISOString();
-    const record = {
-      ...bean, id: bean.id || uid('bean'), name: `${codeName('countries', countryCode, 'æœªå®šå›½å®¶')} Â· ${codeName('varieties', varietyCode, 'æœªå®šè±†ç§')}`,
-      countryCode, regionCode: formValue('beanRegion'), entityCode: formValue('beanEntity'), varietyCode, processCode: formValue('beanProcess'),
-      roastColor: parseNumber(formValue('beanRoastColor'), 0) || '', roastCode: formValue('beanRoast'), roastDate: formValue('beanRoastDate'), initialWeight,
-      remainingWeight: bean.id ? Number(bean.remainingWeight) : initialWeight, refrigerated: formValue('beanRefrigerated') === 'true', freezeDate: formValue('beanRefrigerated') === 'true' ? (bean.freezeDate || todayISO()) : '',
-      price: parseNumber(formValue('beanPrice'), 0), roasterName: formValue('beanRoaster'), altitude: parseNumber(formValue('beanAltitude'), 0), notes: formValue('beanNotes'),
-      flavorCodes: selectedSummaryCodes(), archived: Boolean(bean.archived), source: source.type || bean.source || 'manual',
-      codebookSchemaVersion: Number(state.codebook._schemaVersion || 1), codebookDataVersion: String(state.codebook.version || '6'),
-      recognitionMetadata: source.parseMetadata || bean.recognitionMetadata || null,
-      createdAt: bean.createdAt || now, updatedAt: now
-    };
-    await put('beans', record); await refreshData(); closeOverlay(); renderBeans(); toast(bean.id ? 'è±†å¡å·²æ›´æ–°' : 'è±†å¡å·²åŠ å…¥è±†è—', 'status-good');
-  });
-  bindControlStates(form);
-}
-
-function selectedSummaryCodes() { return $$('#formFlavorSummary [data-summary-code]').map(node => node.dataset.summaryCode); }
-function captureBeanFormDraft() {
-  return { ...state.beanFormDraft, countryCode: formValue('beanCountry'), regionCode: formValue('beanRegion'), entityCode: formValue('beanEntity'), varietyCode: formValue('beanVariety'), processCode: formValue('beanProcess'), roastColor: formValue('beanRoastColor'), roastCode: formValue('beanRoast'), roastDate: formValue('beanRoastDate'), initialWeight: formValue('beanInitialWeight'), refrigerated: formValue('beanRefrigerated') === 'true', price: formValue('beanPrice'), roasterName: formValue('beanRoaster'), altitude: formValue('beanAltitude'), notes: formValue('beanNotes'), flavorCodes: selectedSummaryCodes() };
-}
-
-function flavorGroupLabel(name = '') {
-  const value = String(name);
-  if (/èŠ±|èŒ‰è‰|ç«ç‘°|ç´«ç½—å…°|æ´‹ç”˜èŠ/.test(value)) return 'èŠ±é¦™';
-  if (/æœ|è“|æŸ‘|æ©˜|æŸ æª¬|æ¡ƒ|è‹¹æœ|è‘¡è„|èŠ’æœ|è è/.test(value)) return 'æœé¦™';
-  if (/èœ‚èœœ|ç³–|ç„¦ç³–|ç”œ|å¤ªå¦ƒ/.test(value)) return 'ç”œæ„Ÿ';
-  if (/èŒ¶|ä¹Œé¾™/.test(value)) return 'èŒ¶æ„Ÿ';
-  if (/é¦™æ–™|è‚‰æ¡‚|ä¸é¦™|èƒ¡æ¤’/.test(value)) return 'é¦™æ–™';
-  if (/åšæœ|å¯å¯|å·§å…‹åŠ›|æä»|æ¦›å­/.test(value)) return 'åšæœå¯å¯';
-  if (/çº¸|æœ¨|åœŸ|éœ‰|è¯|æ©¡èƒ¶|é‡‘å±|ç„¦ç³Š|é’è‰/.test(value)) return 'è´Ÿé¢';
-  return 'å…¶ä»–';
-}
-
-function openFlavorEditor(selected, bean, source) {
-  const draft = captureBeanFormDraft();
-  const set = new Set((selected || []).filter(code => state.codebookIndex?.flavors?.has(code)));
-  const rows = (state.codebook.flavors || []).filter(row => row?.[0] && String(row.length >= 9 ? row[4] : row[1] || '').trim());
-  const groups = new Map();
-  rows.forEach(row => { const name = row.length >= 9 ? row[4] : row[1]; const label = flavorGroupLabel(name || row[2] || row[1]); if (!groups.has(label)) groups.set(label, []); groups.get(label).push(row); });
-  const content = `${dialogHeader('é£å‘³æ ‡ç­¾', `ä¸­æ–‡æ ‡ç­¾ ${rows.length} é¡¹ï¼Œæœ€å¤šé€‰æ‹© 12 é¡¹`, { closable: false })}<div class="flavor-groups">${[...groups.entries()].map(([label, items]) => `<section class="flavor-group"><h3>${esc(label)}</h3><div class="flavor-grid">${items.map(row=>`<button type="button" class="flavor-button${set.has(row[0])?' selected':''}" data-flavor-code="${esc(row[0])}">${esc(String(row.length >= 9 ? row[4] : row[1]).trim())}</button>`).join('')}</div></section>`).join('')}</div><div class="row end"><button id="backFlavorsBtn" class="button subtle" type="button">è¿”å›</button><button id="clearFlavorsBtn" class="button subtle" type="button">æ¸…ç©º</button><button id="confirmFlavorsBtn" class="button primary" type="button">ç¡®å®š</button></div>`;
-  const overlay = showOverlay(content, { full: true, id: 'flavors' }); bindClose(overlay);
-  overlay.addEventListener('click', event => {
-    const button = event.target.closest('[data-flavor-code]'); if (!button) return;
-    if (!button.classList.contains('selected') && $$('.flavor-button.selected', overlay).length >= 12) return toast('é£å‘³æ ‡ç­¾æœ€å¤šé€‰æ‹© 12 é¡¹');
-    button.classList.toggle('selected');
-  });
-  $('#backFlavorsBtn').addEventListener('click', () => openBeanForm(draft, source));
-  $('#clearFlavorsBtn').addEventListener('click', () => $$('.flavor-button.selected', overlay).forEach(button => button.classList.remove('selected')));
-  $('#confirmFlavorsBtn').addEventListener('click', () => { draft.flavorCodes = selectedFlavorCodes(overlay); openBeanForm(draft, source); });
-}
-
-function finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, dateDecision, reviewResolution = null }) {
-  const existing = existingDraft || {};
-  if (reviewResolution) {
-    if (reviewResolution.roastDate) {
-      const confirmed = reviewResolution.confirmedRoastDate;
-      parsed.roastDate = reviewResolution.roastDate;
-      parsed.confidence.roastDate = confirmed?.sourceConfidence || 0;
-      parsed.evidence.roastDate = [
-        `ç”¨æˆ·ç¡®è®¤ï¼š${reviewResolution.roastDate}`,
-        confirmed?.labelEvidence,
-        confirmed?.imageRole ? `æ¥æºï¼š${confirmed.imageRole}/${confirmed.imageId || confirmed.blockId}` : ''
-      ].filter(Boolean).join(' Â· ');
-    } else {
-      delete parsed.roastDate;
-      delete parsed.confidence.roastDate;
-      delete parsed.evidence.roastDate;
-    }
-  } else if (dateDecision.roastDate) {
-    parsed.roastDate = dateDecision.roastDate;
-    const chosen = dateDecision.candidates.find(candidate => candidate.normalizedValue === dateDecision.roastDate && candidate.decision === 'auto-fill');
-    parsed.confidence.roastDate = chosen?.confidence || 0.98;
-    parsed.evidence.roastDate = chosen?.labelEvidence || chosen?.rawValue || dateDecision.roastDate;
-  } else {
-    delete parsed.roastDate;
-    delete parsed.confidence.roastDate;
-    delete parsed.evidence.roastDate;
-  }
-  parsed.parseMetadata.dateDecision = dateDecision;
-  parsed.parseMetadata.dateReview = reviewResolution ? {
-    ...reviewResolution,
-    confirmedAt: new Date().toISOString()
-  } : null;
-  const merged = overwrite ? { ...existing, ...parsed } : { ...parsed, ...Object.fromEntries(Object.entries(existing).filter(([, value]) => value !== '' && value !== null && value !== undefined)) };
-  merged.name = merged.name || [codeName('countries', merged.countryCode, ''), codeName('varieties', merged.varietyCode, '')].filter(Boolean).join(' ') || 'æ–°è±†å¡';
-  openBeanForm(merged, { type: 'text', text: sourceText, evidence: parsed.evidence, confidence: parsed.confidence, parseMetadata: parsed.parseMetadata });
-}
-
-function openRecognitionDateReview({ parsed, sourceText, existingDraft, overwrite, dateDecision, recognitionDocument }) {
-  const reviewModel = buildDateReviewModel(dateDecision);
-  const rows = reviewModel.map(candidate => {
-    const values = candidate.values;
-    const valueOptions = values.map(value => `<option value="${esc(value)}">${esc(value)}</option>`).join('');
-    const defaultType = candidate.defaultType;
-    return `<article class="date-review-row" data-date-candidate="${esc(candidate.candidateId)}"><div><strong>${esc(candidate.rawValue)}</strong><small>${esc(candidate.fieldLabel)} Â· ${esc(candidate.imageRole || 'æ–‡å­—')}</small></div><select class="control date-review-type"><option value="ignore"${defaultType === 'ignore' ? ' selected' : ''}>å¿½ç•¥/æš‚ä¸ç¡®å®š</option><option value="roastDate"${defaultType === 'roastDate' ? ' selected' : ''}>çƒ˜ç„™æ—¥æœŸ</option><option value="productionDate"${defaultType === 'productionDate' ? ' selected' : ''}>ç”Ÿäº§æ—¥æœŸ</option><option value="packDate"${defaultType === 'packDate' ? ' selected' : ''}>åŒ…è£…æ—¥æœŸ</option><option value="bestBefore"${defaultType === 'bestBefore' ? ' selected' : ''}>æœ€ä½³èµå‘³æœŸ</option><option value="expiryDate"${defaultType === 'expiryDate' ? ' selected' : ''}>åˆ°æœŸæ—¥æœŸ</option></select><select class="control date-review-value">${valueOptions}</select>${candidate.warnings?.length ? `<p>${candidate.warnings.map(esc).join(' ')}</p>` : ''}</article>`;
-  }).join('');
-  const content = `${dialogHeader('ç¡®è®¤æ—¥æœŸå½’å±', 'ç³»ç»Ÿä¸ä¼šæŠŠæœªç¡®è®¤æ—¥æœŸé™é»˜å†™å…¥çƒ˜ç„™æ—¥æœŸ')}<div class="date-review-list">${rows}</div><div class="row"><button id="dateReviewBackBtn" class="button subtle" type="button">è¿”å›æ–‡å­—</button><span class="grow"></span><button id="dateReviewContinueBtn" class="button primary" type="button">ç¡®è®¤å¹¶ç»§ç»­</button></div>`;
-  const overlay = showOverlay(content, { full: true, id: 'date-review' }); bindClose(overlay);
-  $('#dateReviewBackBtn').addEventListener('click', () => openTextRecognition(sourceText, existingDraft, recognitionDocument));
-  $$('.date-review-type', overlay).forEach(control => control.addEventListener('change', () => {
-    if (control.value !== 'roastDate') return;
-    $$('.date-review-type', overlay).filter(other => other !== control && other.value === 'roastDate').forEach(other => { other.value = 'ignore'; });
-  }));
-  $('#dateReviewContinueBtn').addEventListener('click', () => {
-    const selections = $$('.date-review-row', overlay).map(row => ({ candidateId: row.dataset.dateCandidate, type: $('.date-review-type', row).value, value: $('.date-review-value', row).value }));
-    const reviewResolution = resolveDateReviewSelections(dateDecision, selections);
-    if (!reviewResolution.ok) return toast(reviewResolution.errors[0], 'status-bad');
-    finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, dateDecision, reviewResolution });
-  });
-}
-
-function openTextRecognition(text = '', existingDraft = null, suppliedDocument = null) {
-  if (existingDraft) state.beanFormDraft = structuredClone(existingDraft);
-  const pendingDocument = suppliedDocument || globalThis.LuckyBeanPendingRecognitionDocument;
-  if (pendingDocument) delete globalThis.LuckyBeanPendingRecognitionDocument;
-  const content = `${dialogHeader('æ–‡å­—è¯†åˆ«', 'ç²˜è´´è±†è¢‹æ–‡å­—ï¼Œç³»ç»ŸæŒ‰ BrewIon è¯è¡¨æå–å­—æ®µ')}<label class="field"><span>è±†è¢‹æ–‡å­—</span><textarea id="recognitionText" class="control" placeholder="ä¾‹å¦‚ï¼šåŸƒå¡ä¿„æ¯”äºš å¤å‰ æ—¥æ™’ Heirloomï¼Œæµ…çƒ˜ï¼Œ2026-07-20ï¼Œæµ·æ‹”2100mï¼Œå‡€é‡150gï¼ŒèŒ‰è‰ã€è“è“ã€èœ‚èœœ">${esc(text)}</textarea></label><label class="toggle"><input id="overwriteRecognizedFields" type="checkbox" checked>è¯†åˆ«ç»“æœè¦†ç›–å·²æœ‰è¡¨å•å­—æ®µ</label><p class="muted small">è¯­éŸ³è¯†åˆ«å¯èƒ½ç”±æµè§ˆå™¨è”ç½‘æœåŠ¡å¤„ç†ï¼›è¯†åˆ«è¯æ®å’Œç½®ä¿¡åº¦ä¼šåœ¨è¡¨å•ä¸­æ˜¾ç¤ºã€‚</p><div class="row"><button id="speechTextBtn" class="button" type="button">è¯­éŸ³è¾“å…¥</button><button id="clearRecognitionTextBtn" class="button subtle" type="button">æ¸…ç©º</button><button id="manualBeanFormBtn" class="button subtle" type="button">ç›´æ¥å¡«è¡¨</button><span class="grow"></span><button id="parseTextBtn" class="button primary" type="button">è¯†åˆ«å¹¶å¡«è¡¨</button></div>`;
-  const overlay = showOverlay(content, { full: true, id: 'text-recognition' }); bindClose(overlay);
-  $('#clearRecognitionTextBtn').addEventListener('click', () => { $('#recognitionText').value = ''; $('#recognitionText').focus(); });
-  $('#manualBeanFormBtn').addEventListener('click', () => openBeanForm(existingDraft || {}, { type: 'manual' }));
-  $('#parseTextBtn').addEventListener('click', () => {
-    const sourceText = $('#recognitionText').value.trim();
-    if (!sourceText) return toast('è¯·å…ˆè¾“å…¥æ–‡å­—');
-    const parsed = parseNaturalLanguage(sourceText, state.codebook);
-    const overwrite = $('#overwriteRecognizedFields').checked;
-    const recognitionDocument = pendingDocument?.fullText === sourceText ? pendingDocument : recognitionDocumentFromText(sourceText);
-    const dateDecision = classifyRecognitionDates(recognitionDocument);
-    if (dateDecision.reviewRequired) return openRecognitionDateReview({ parsed, sourceText, existingDraft, overwrite, dateDecision, recognitionDocument });
-    finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, dateDecision });
-  });
-  $('#speechTextBtn').addEventListener('click', () => startSpeechRecognition('recognitionText'));
-}
-
-function startSpeechRecognition(targetId = 'recognitionText') {
-  const Recognition = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
-  if (!Recognition) return toast('å½“å‰æµè§ˆå™¨ä¸æ”¯æŒè¯­éŸ³è¯†åˆ«');
-  const target = $(`#${targetId}`); if (!target) return toast('æœªæ‰¾åˆ°æ–‡å­—è¾“å…¥åŒºåŸŸ');
-  const recognition = new Recognition(); recognition.lang = 'zh-CN'; recognition.interimResults = false;
-  recognition.onresult = event => { target.value += `${target.value ? ' ' : ''}${event.results[0][0].transcript}`; target.dispatchEvent(new Event('input', { bubbles: true })); };
-  recognition.onerror = () => toast('è¯­éŸ³è¯†åˆ«å¤±è´¥'); recognition.start(); toast('è¯·å¼€å§‹è¯´è¯');
-}
-
-function openCameraDialog() {
-  const content = `${dialogHeader('äºŒç»´ç è¯†åˆ«', 'å®æ—¶æ‰«æ BrewIon äºŒç»´ç ')}<video id="cameraVideo" class="camera-video" playsinline muted></video><p id="cameraStatus" class="muted small">æ­£åœ¨ç”³è¯·ç›¸æœºæƒé™â€¦</p><div class="row end"><button id="cameraFileBtn" class="button" type="button">æ”¹ç”¨å›¾ç‰‡</button></div>`;
-  const overlay = showOverlay(content, { full: true, id: 'camera' }); bindClose(overlay);
-  state.cameraScanner = new CameraScanner($('#cameraVideo'), result => handleQrResult(result), status => $('#cameraStatus').textContent = status);
-  state.cameraScanner.start().catch(error => { $('#cameraStatus').textContent = error.message; });
-  $('#cameraFileBtn').addEventListener('click', () => $('#qrImageInput').click());
-}
-async function handleQrResult(result) {
-  try {
-    const decoded = decodeJsQrResult(result, state.codebook);
-    decoded.name = [codeName('countries', decoded.countryCode, ''), codeName('varieties', decoded.varietyCode, '')].filter(Boolean).join(' ') || 'æ‰«ç è±†å¡';
-    decoded.notes = [`æ‰«ç è¯†åˆ«`, decoded.agtron ? `Agtron ${decoded.agtron}` : '', decoded.harvestYear ? `äº§å­£ ${decoded.harvestYear}` : ''].filter(Boolean).join('ï¼›');
-    openBeanForm(decoded, { type: 'qr' }); toast('äºŒç»´ç è§£ç æˆåŠŸ', 'status-good');
-  } catch (error) { toast(error.message, 'status-bad'); }
-}
-async function handleQrFile(file) {
-  if (!file) return;
-  try { const result = await scanQrFile(file); await handleQrResult(result); }
-  catch (error) { toast(error.message, 'status-bad'); }
-  finally { $('#qrImageInput').value = ''; }
-}
-
-function freshnessCurveSvg(bean) {
-  const profile = freshnessProfile(bean);
-  const width = 680, height = 210, left = 38, right = 20, top = 18, bottom = 36;
-  const maxDay = Math.max(profile.fullDay + 14, 45);
-  const sigma = Math.max(5, (profile.end - profile.start) / 2.2);
-  const samples = Array.from({ length: 61 }, (_, index) => {
-    const day = maxDay * index / 60;
-    let score = 100 * Math.exp(-((day - profile.peakDay) ** 2) / (2 * sigma ** 2));
-    if (day > profile.end) score *= Math.exp(-(day - profile.end) / 22);
-    return { day, score: clamp(score, 0, 100) };
-  });
-  const x = day => left + clamp(day / maxDay, 0, 1) * (width-left-right);
-  const y = score => top + (1-clamp(score/100,0,1))*(height-top-bottom);
-  const path = samples.map((point,index)=>`${index?'L':'M'}${x(point.day).toFixed(1)},${y(point.score).toFixed(1)}`).join(' ');
-  const currentX = x(profile.effectiveAge), currentY = y(profile.flavorScore);
-  const marks = [[0,'çƒ˜ç„™'],[profile.start,'é€‚é¥®å¼€å§‹'],[profile.peakDay,'é«˜å³°'],[profile.end,'èµå‘³ç»“æŸ']].map(([day,label])=>`<g class="freshness-mark"><line x1="${x(day)}" y1="${top}" x2="${x(day)}" y2="${height-bottom}"></line><text x="${x(day)}" y="${height-12}" text-anchor="middle">${esc(label)}</text></g>`).join('');
-  return `<svg class="freshness-curve" viewBox="0 0 ${width} ${height}" role="img" aria-label="èµå‘³æ›²çº¿ï¼Œå½“å‰å¤„äº${esc(profile.label)}ï¼Œé£å‘³${esc(profile.trend)}"><path class="freshness-curve-line" d="${path}"></path>${marks}<line class="freshness-today-line" x1="${currentX}" y1="${top}" x2="${currentX}" y2="${height-bottom}"></line><circle class="freshness-current-point" cx="${currentX}" cy="${currentY}" r="7"></circle><text class="freshness-current-label" x="${Math.min(width-right-80,currentX+10)}" y="${Math.max(top+14,currentY-10)}">ä»Šå¤© Â· ${esc(profile.label)} Â· é£å‘³${esc(profile.trend)}</text></svg>`;
-}
-
-function detailBean(beanId) {
-  const bean = state.beans.find(item => item.id === beanId); if (!bean) return;
-  state.selectedBeanId = bean.id;
-  const fresh = freshnessProfile(bean);
-  const flavors = visibleFlavorCodes(bean).map(code => `<span class="tag">${esc(codeName('flavors', code, ''))}</span>`).join('');
-  const records = state.sensoryRecords.filter(record => record.beanId === bean.id).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,3);
-  const sessions = state.brewSessions.filter(session => session.beanId === bean.id).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,5);
-  const content = `${dialogHeader(beanDisplayName(bean), beanNameSummary(bean))}
-    <div class="detail-layout"><div class="freshness-card"><div><div class="small muted">èµå‘³çŠ¶æ€</div><h2>${esc(fresh.label)}</h2><p class="muted small">çƒ˜ç„™æ—¥æœŸ ${formatDate(bean.roastDate)} Â· æœ‰æ•ˆè±†é¾„ ${Math.round(fresh.effectiveAge)} å¤© Â· å‰©ä½™ ${Number(bean.remainingWeight||0).toFixed(1)}g</p></div><div class="freshness-trend ${fresh.rising?'rising':'falling'}">é£å‘³${esc(fresh.trend)}</div></div>
-    <div class="management-stack"><button id="correctWeightBtn" class="button" type="button">ä¿®æ­£å…‹é‡</button><button id="toggleColdBtn" class="button${bean.refrigerated?' active':''}" type="button">${bean.refrigerated?'è§£é™¤å†·è—':'è®¾ä¸ºå†·è—'}</button><button id="archiveBeanBtn" class="button" type="button">${bean.archived?'ç§»å‡ºæº¯æ—§':'ç§»è‡³æº¯æ—§'}</button></div></div>
-    <section class="freshness-curve-panel">${freshnessCurveSvg(bean)}</section>
-    <div class="detail-tags">${flavors || '<span class="muted small">é£å‘³å¾…å½•</span>'}</div>
-    <section class="panel"><div class="panel-title"><div><h3>å†²ç…®è®°å½•</h3><p>ç‚¹å‡»å¯è½½å…¥å®Œæ•´æ–¹æ¡ˆå¤åˆ»</p></div></div><div class="record-list">${sessions.length ? sessions.map(sessionRecordHtml).join('') : '<p class="muted small">å°šæ— å†²ç…®è®°å½•</p>'}</div></section>
-    <section class="panel"><div class="panel-title"><div><h3>æœ€è¿‘å“é‰´</h3><p>ç‚¹å‡»æŸ¥çœ‹æˆ–ç¼–è¾‘å®Œæ•´è®°å½•</p></div></div><div class="record-list">${records.length ? records.map(recordHtml).join('') : '<p class="muted small">å°šæ— å“é‰´è®°å½•</p>'}</div></section>
-    <div class="detail-actions menu-row"><button id="brewThisBeanBtn" class="button primary" type="button">å°é…Œ</button><button id="editBeanBtn" class="button" type="button">ç¼–è¾‘</button><button id="copyBeanBtn" class="button" type="button">å¤åˆ¶</button><button id="shareBeanBtn" class="button" type="button">åˆ†äº«</button></div>`;
-  const overlay = showOverlay(content, { id: 'bean-detail', backdropClose: true }); bindClose(overlay);
-  $('#correctWeightBtn').addEventListener('click', () => correctWeightDialog(bean));
-  $('#toggleColdBtn').addEventListener('click', async () => { bean.refrigerated = !bean.refrigerated; bean.freezeDate = bean.refrigerated ? todayISO() : ''; bean.updatedAt = new Date().toISOString(); await put('beans', bean); await refreshData(); detailBean(bean.id); });
-  $('#archiveBeanBtn').addEventListener('click', async () => { bean.archived = !bean.archived; bean.updatedAt = new Date().toISOString(); await put('beans', bean); await refreshData(); closeOverlay(); renderBeans(); toast(bean.archived?'å·²ç§»è‡³æº¯æ—§':'å·²æ¢å¤åˆ°è±†è—'); });
-  $('#brewThisBeanBtn').addEventListener('click', () => { closeOverlay(); state.selectedBeanId = bean.id; state.currentPlan = null; switchPage('brew'); });
-  $('#editBeanBtn').addEventListener('click', () => openBeanForm(bean, { type: 'manual' }));
-  $('#copyBeanBtn').addEventListener('click', () => { const copy = { ...bean, id: undefined, createdAt: undefined, updatedAt: undefined, remainingWeight: bean.initialWeight }; openBeanForm(copy, { type: 'copy' }); });
-  $('#shareBeanBtn').addEventListener('click', () => openShareDialog(bean));
-  overlay.addEventListener('click', event => { const replay = event.target.closest('[data-replay-session]'); if (replay) loadBrewSession(replay.dataset.replaySession); });
-}
-
-function sessionRecordHtml(session) {
-  const corrected = Boolean(session.correction || session.nextPlanDraft);
-  const score = Number(session.subjectiveScore ?? 0);
-  return `<div class="record-item brew-record-row"><button class="brew-record-main" type="button" data-replay-session="${esc(session.id)}"><span>${formatDate(session.createdAt)}</span><span>${esc(session.profile?.label || String(session.profileVersion || '').split('@')[0] || 'å†²ç…®æ–¹æ¡ˆ')}${corrected ? '<em>ä¿®</em>' : ''}${session.sensoryNote ? `<small>${esc(session.sensoryNote)}</small>` : ''}</span><strong>${score ? score.toFixed(1) : `${Number(session.totals?.waterG || 0).toFixed(0)}g`}</strong></button><button class="record-delete-button" type="button" data-delete-session="${esc(session.id)}" aria-label="åˆ é™¤æœ¬æ¡å†²ç…®è®°å½•">åˆ </button></div>`;
-}
-
-function sessionConsumedGrams(sessionId) {
-  return state.inventoryEvents
-    .filter(event => event.sessionId === sessionId && Number(event.amountG) < 0 && ['consume', 'brew-consume'].includes(String(event.type || 'consume')))
-    .reduce((sum, event) => sum + Math.abs(Number(event.amountG) || 0), 0);
-}
-
-function confirmDeleteBrewSession(sessionId) {
-  const session = state.brewSessions.find(item => item.id === sessionId);
-  if (!session) return toast('å†²ç…®è®°å½•ä¸å­˜åœ¨', 'status-bad');
-  const bean = state.beans.find(item => item.id === session.beanId);
-  const consumed = sessionConsumedGrams(sessionId);
-  const linkedSensory = state.sensoryRecords.filter(record => record.brewSessionId === sessionId).length;
-  const subtitle = `${formatDate(session.createdAt)} Â· ${session.profile?.label || 'å†²ç…®æ–¹æ¡ˆ'}`;
-  const content = `${dialogHeader('åˆ é™¤å†²ç…®è®°å½•', subtitle, { centered: true })}<p>åˆ é™¤åæ— æ³•æ¢å¤æœ¬æ¡å†²ç…®æ–¹æ¡ˆã€‚${linkedSensory ? `å…³è”çš„ ${linkedSensory} æ¡å“é‰´è®°å½•ä¼šä¿ç•™å¹¶è§£é™¤å…³è”ã€‚` : ''}</p>${consumed > 0 ? `<p class="status-warn">æœ¬æ¬¡è®°å½•æ›¾æ‰£é™¤ ${consumed.toFixed(1)}g å’–å•¡è±†ã€‚è¯·é€‰æ‹©æ˜¯å¦å›æ”¶åˆ°â€œ${esc(bean ? beanDisplayName(bean) : 'å·²åˆ é™¤è±†å¡')}â€çš„å‰©ä½™å…‹é‡ã€‚</p>` : '<p class="muted small">æœ¬è®°å½•æœªæ‰¾åˆ°å¯å›æ”¶çš„è±†å­æ‰£å‡äº‹ä»¶ã€‚</p>'}<div class="delete-record-actions"><button id="deleteSessionOnlyBtn" class="button danger" type="button">ä»…åˆ é™¤è®°å½•</button>${consumed > 0 && bean ? `<button id="deleteSessionRestoreBtn" class="button primary" type="button">åˆ é™¤å¹¶å›æ”¶ ${consumed.toFixed(1)}g</button>` : ''}<button class="button subtle" type="button" data-close-overlay>å–æ¶ˆ</button></div>`;
-  const overlay = showOverlay(content, { id: 'delete-brew-record', backdropClose: true });
-  bindClose(overlay);
-  $('#deleteSessionOnlyBtn').addEventListener('click', () => deleteBrewSession(sessionId, false));
-  $('#deleteSessionRestoreBtn')?.addEventListener('click', () => deleteBrewSession(sessionId, true));
-}
-
-async function deleteBrewSession(sessionId, restoreBeans = false) {
-  const session = state.brewSessions.find(item => item.id === sessionId);
-  if (!session) return toast('å†²ç…®è®°å½•ä¸å­˜åœ¨', 'status-bad');
-  const bean = state.beans.find(item => item.id === session.beanId);
-  try {
-    await permanentlyDeleteBrewRecords([sessionId], { restoreWeight: restoreBeans, sensoryMode: 'detach' });
-    if (state.currentPlan?.id === sessionId) { state.currentPlan = null; state.currentBrewInput = null; }
-    await refreshData();
-    closeOverlay();
-    if (state.page === 'brew') renderBrew();
-    else if (state.page === 'sensory') renderSensory();
-    else renderBeans();
-    if (bean) requestAnimationFrame(() => detailBean(bean.id));
-    toast(restoreBeans ? 'å†²ç…®è®°å½•å·²åˆ é™¤ï¼ŒåŸæ‰£è±†è´¦æœ¬å·²å†²æ­£' : 'å†²ç…®è®°å½•å·²åˆ é™¤ï¼Œè±†å¡é‡é‡æœªæ”¹åŠ¨', 'status-good');
-  } catch (error) {
-    toast(error.message || 'åˆ é™¤å†²ç…®è®°å½•å¤±è´¥', 'status-bad');
-  }
-}
-
-function loadBrewSession(sessionId) {
-  const session = state.brewSessions.find(item => item.id === sessionId); if (!session) return toast('å†²ç…®è®°å½•ä¸å­˜åœ¨');
-  let plan;
-  if (session.analysisSnapshot?.contract === 'brew-analysis/2.0') {
-    plan = adaptAuthoritativePlan(session.analysisSnapshot);
-    plan.id = session.id;
-    plan.beanId = session.beanId;
-    plan.historyRecordId = session.id;
-  } else {
-    plan = structuredClone(session);
-  }
-  closeOverlay(); state.selectedBeanId = session.beanId; state.currentPlan = plan; state.currentBrewInput = structuredClone(session.normalizedInput || session.input || null);
-  switchPage('brew');
-  document.dispatchEvent(new CustomEvent('luckybean:history-plan-loaded', { detail: { plan, record: session } }));
-  requestAnimationFrame(() => $('#generatedPlan')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-  toast(session.correction ? 'å·²è½½å…¥ä¿®æ­£æ–¹æ¡ˆ' : 'å·²è½½å…¥å†å²æ–¹æ¡ˆ');
-}
-
-function correctWeightDialog(bean) {
-  const overlay = showOverlay(`${dialogHeader('ä¿®æ­£å…‹é‡', bean.name)}<label class="field"><span>å½“å‰å‰©ä½™å…‹é‡</span><input id="correctWeightInput" class="control" type="number" min="0" step="0.1" value="${Number(bean.remainingWeight||0)}"></label><label class="field"><span>ä¿®æ­£åŸå› </span><input id="correctWeightNote" class="control" maxlength="100" placeholder="ç›˜ç‚¹ã€æ’’ç²‰ã€å½•å…¥è¯¯å·®ç­‰"></label><div class="row end"><button id="saveWeightBtn" class="button primary" type="button">è®°å½•ä¿®æ­£</button></div>`);
-  bindClose(overlay);
-  $('#saveWeightBtn').addEventListener('click', async () => {
-    const next = parseNumber($('#correctWeightInput').value, -1); if (next < 0) return toast('å…‹é‡ä¸èƒ½å°äº 0');
-    const delta = next - Number(bean.remainingWeight || 0);
-    const event = { id: uid('inv'), beanId: bean.id, type: 'correct', amountG: delta, resultingWeightG: next, note: $('#correctWeightNote').value.trim(), createdAt: new Date().toISOString() };
-    bean.remainingWeight = next; bean.updatedAt = new Date().toISOString();
-    await Promise.all([put('inventoryEvents', event), put('beans', bean)]);
-    await refreshData(); closeOverlay(); renderBeans();
-    requestAnimationFrame(() => detailBean(bean.id));
-    toast('å…‹é‡ä¿®æ­£å·²å†™å…¥æ—¥å¿—', 'status-good');
-  });
-}
-
-function buildBrewInput(bean) {
-  const segmentMode = $('#brewSegments')?.value || state.settings.brew.segmentMode || 'auto';
-  const segments = resolvedSegmentCount(bean, segmentMode);
-  const waterSelection = $('#brewWaterProfile')?.value || state.settings.brew.waterProfileId || 'auto';
-  const resolvedWater = waterSelection === 'auto' ? inferWaterProfile(bean) : waterSelection;
-  const targets = state.settings.brew.flavorTargets || DEFAULT_SETTINGS.brew.flavorTargets;
-  const customWater = state.settings.brew.customWater || DEFAULT_SETTINGS.brew.customWater;
-  return {
-    bean: { countryCode: bean.countryCode, regionCode: bean.regionCode, entityCode: bean.entityCode, varietyCode: bean.varietyCode, processCode: bean.processCode, roastCode: bean.roastCode, roastColor: bean.roastColor || null, roastDate: bean.roastDate, altitude: bean.altitude || null },
-    brew: {
-      mode: 'professional', method: 'pourover', doseG: parseNumber($('#brewDose')?.value, 15), ratio: parseNumber($('#brewRatio')?.value, 15.5),
-      profileId: $('#brewProfile')?.value || 'recommended', segmentMode, segments,
-      dripperCode: $('#brewDripper')?.value || 'å¹³åº•æ»¤æ¯', filterPaper: selectedFilterItem()?.type || '', filterPaperId: $('#brewFilterPaper')?.value || '', grinder: state.settings.brew.grinder || '',
-      firstCoolingMode: $('#firstCoolingMode')?.value || state.settings.brew.firstCoolingMode || 'auto', firstTemperatureC: Number(state.settings.brew.firstTemperatureC),
-      tailCoolingMode: $('#tailCoolingMode')?.value || state.settings.brew.tailCoolingMode || 'auto', tailTemperatureC: Number(state.settings.brew.tailTemperatureC),
-      lowTempFirst: ($('#firstCoolingMode')?.value || state.settings.brew.firstCoolingMode) !== 'off',
-      temperatureTune: Number(state.settings.brew.temperatureTune || 0), grindTune: Number(state.settings.brew.grindTune || 0), bloomTune: Number(state.settings.brew.bloomTune || 0),
-      repeatability: Boolean(state.settings.brew.repeatability), waterProfileId: resolvedWater
-    },
-    water: { profileId: resolvedWater, recipeVolumeL: Number(state.settings.brew.waterVolumeL || 5), tdsMgL: Number(customWater.tds || 85), customProfile: resolvedWater === 'custom' ? customWater : undefined },
-    environment: { ...state.settings.brew.environment },
-    targets: { acidity: Number(targets.acidity), floral: Number(targets.floral), fruity: Number(targets.fruity), sweetness: Number(targets.sweetness), bitterness: Number(targets.bitterness), astringency: Number(targets.astringency) }
-  };
-}
-
-function renderBrew() {
-  const container = $('#brewContent');
-  const activeBeans = state.beans.filter(bean => !bean.archived && Number(bean.remainingWeight) > 0);
-  if (!state.selectedBeanId && activeBeans.length) state.selectedBeanId = activeBeans[0].id;
-  const selected = activeBeans.find(bean => bean.id === state.selectedBeanId);
-  const settings = state.settings.brew;
-  const recommendedSegments = resolvedSegmentCount(selected, 'auto');
-  const waterProfiles = listWaterProfiles();
-  const inferredWater = selected ? inferWaterProfile(selected) : 'custom';
-  const currentWater = settings.waterProfileId || 'auto';
-  const drippers = gearDrippers();
-  const filters = gearFilters();
-  const selectedFilterId = settings.filterPaperId || filters[0]?.id || '';
-  const brewProfiles = listBrewProfiles();
-  const catalogStatus = brewProfileCatalogStatus();
-   const catalogLabel = catalogStatus.available
-     ? `BrewProfilesåœ¨çº¿ç›®å½• Â· ${catalogStatus.profileCount}å¥—æ–¹æ¡ˆ / ${catalogStatus.competitionProfileCount}å¥—èµ›äº‹æ–¹æ¡ˆ`
-     : 'æ­£åœ¨è¿æ¥BrewProfilesï¼›å½“å‰æ˜¾ç¤ºæœ¬åœ°å¯åŠ¨ç›®å½•';
-  const recentSessions = state.brewSessions.filter(session => session.beanId === state.selectedBeanId).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,5);
-  const heading = $('#brewHeadingBean');
-  if (heading) heading.innerHTML = `<select id="brewBean" class="control brew-bean-heading" aria-label="é€‰æ‹©è±†å­">${activeBeans.map(bean=>`<option value="${esc(bean.id)}"${bean.id===state.selectedBeanId?' selected':''}>${esc(beanDisplayName(bean))}</option>`).join('')}</select>`;
-  const customWaterLabel = currentWater === 'custom' ? `${settings.customWater?.name || 'è‡ªå®šä¹‰'} Â· TDS ${Number(settings.customWater?.tds || 85)}` : '';
-  container.innerHTML = `<section class="panel brew-form"><div class="brew-compact-grid">
-    <div class="brew-row three"><label class="field"><span>ç²‰é‡</span><input id="brewDose" class="control" type="number" min="5" max="40" step="0.1" value="${settings.doseG}"></label><label class="field"><span>ç²‰æ°´æ¯”</span><select id="brewRatio" class="control">${[14,14.5,15,15.5,16,16.5,17,18].map(value=>`<option value="${value}"${Number(settings.ratio)===value?' selected':''}>1:${value}</option>`).join('')}</select></label><label class="field"><span>æ»¤æ¯</span><select id="brewDripper" class="control">${drippers.map(item=>`<option value="${esc(item.type)}"${settings.dripper===item.type?' selected':''}>${esc(item.name)}</option>`).join('')}</select><select id="brewFilterPaper" class="control sub-control" aria-label="æ»¤çº¸">${filters.length?filters.map(item=>`<option value="${esc(item.id)}"${selectedFilterId===item.id?' selected':''}>${esc([item.brand,item.type].filter(Boolean).join(' '))} Â· ${item.quantity}å¼ </option>`).join(''):'<option value="">æœªè®¾æ»¤çº¸</option>'}</select></label></div>
-    <div class="brew-row two"><label class="field"><span>å†²ç…®æ³•</span><select id="brewProfile" class="control">${brewProfiles.map(profile=>`<option value="${esc(profile.id)}"${settings.profileId===profile.id?' selected':''}>${esc(profile.label)}</option>`).join('')}</select><small class="profile-catalog-status">${esc(catalogLabel)}</small></label><label class="field"><span>åˆ†æ®µæ–¹å¼</span><select id="brewSegments" class="control"><option value="auto"${settings.segmentMode==='auto'?' selected':''}>æ¨¡å‹æ¨èï¼š${recommendedSegments+1}æ®µ</option>${[1,2,3,4,5].map(value=>`<option value="${value}"${String(settings.segmentMode)===String(value)?' selected':''}>${value+1}æ®µï¼ˆå«é¦–æ®µï¼‰</option>`).join('')}</select></label></div>
-    <div class="brew-row two"><label class="field"><span>è°ƒæ°´æ–¹æ¡ˆ</span><select id="brewWaterProfile" class="control${currentWater==='auto'?' model-recommended':' custom-selected'}"><option value="auto"${currentWater==='auto'?' selected':''}>æ¨¡å‹æ¨èï¼š${esc(waterProfiles.find(item=>item.id===inferredWater)?.name || inferredWater)}</option>${waterProfiles.filter(profile=>profile.id!=='custom').map(profile=>`<option value="${profile.id}"${currentWater===profile.id?' selected':''}>${esc(profile.name)}</option>`).join('')}<option value="custom"${currentWater==='custom'?' selected':''}>è‡ªå®šä¹‰</option></select>${customWaterLabel?'<small class="custom-summary">è‡ªå®šä¹‰</small>':''}</label><div class="field"><span>é£å‘³è®¾å®š</span><button id="openFlavorTargetBtn" class="control control-button" type="button">é£å‘³è®¾å®š</button></div></div>
-    <div class="brew-row three"><div class="field"><span>å¾®è°ƒ</span><button id="openBrewTuneBtn" class="control control-button" type="button">å¾®è°ƒ</button></div><label class="field"><span>é¦–æ®µé™æ¸©</span><select id="firstCoolingMode" class="control ${settings.firstCoolingMode==='auto'?'model-recommended':'custom-selected'}"><option value="auto"${settings.firstCoolingMode==='auto'?' selected':''}>æ¨¡å‹æ¨è</option><option value="custom"${settings.firstCoolingMode==='custom'?' selected':''}>è‡ªå®šä¹‰ ${Number(settings.firstTemperatureC||87)}Â°C</option><option value="off"${settings.firstCoolingMode==='off'?' selected':''}>ä¸å¼€å¯</option></select></label><label class="field"><span>å°¾æ®µé™æ¸©</span><select id="tailCoolingMode" class="control ${settings.tailCoolingMode==='auto'?'model-recommended':'custom-selected'}"><option value="auto"${settings.tailCoolingMode==='auto'?' selected':''}>æ¨¡å‹æ¨è</option><option value="custom"${settings.tailCoolingMode==='custom'?' selected':''}>è‡ªå®šä¹‰ ${Number(settings.tailTemperatureC||86)}Â°C</option><option value="off"${settings.tailCoolingMode==='off'?' selected':''}>ä¸å¼€å¯</option></select></label></div>
-    <details class="brew-environment-details"><summary>ç¯å¢ƒç»†èŠ‚ï¼ˆé»˜è®¤25Â°Cï¼Œå¯é€‰ï¼‰</summary><div class="brew-row three"><label class="field"><span>å®¤æ¸© Â°C</span><input id="ambientTemperatureC" class="control" type="number" min="5" max="40" step="0.5" value="${Number(settings.environment?.ambientTemperatureC ?? 25)}"></label><label class="field"><span>ç›¸å¯¹æ¹¿åº¦ %</span><input id="relativeHumidityPct" class="control" type="number" min="0" max="100" step="1" placeholder="å¯ç•™ç©º" value="${settings.environment?.relativeHumidityPct == null ? '' : Number(settings.environment.relativeHumidityPct)}"></label><label class="field"><span>åˆå§‹ç²‰åºŠæ¸©åº¦ Â°C</span><input id="initialBedTemperatureC" class="control" type="number" min="5" max="40" step="0.5" value="${Number(settings.environment?.initialBedTemperatureC ?? 25)}"></label></div></details>
-    <div class="brew-generate-row menu-row"><button id="generatePlanBtn" class="button primary" type="button"${selected?'':' disabled'}>ç”Ÿæˆæ–¹æ¡ˆ</button><button id="directSensoryBtn" class="button" type="button"${selected?'':' disabled'}>ç›´æ¥å“é‰´</button></div>
-  </div></section>
-  <div id="planResult">${state.currentPlan && state.currentPlan.beanId === state.selectedBeanId ? planHtml(state.currentPlan) : ''}</div>
-  ${recentSessions.length ? `<section class="panel"><div class="panel-title"><div><h3>å¾€æ¬¡æ–¹æ¡ˆ</h3><p>ç‚¹å‡»å¤åˆ»ï¼Œä¿®æ­£æ–¹æ¡ˆæ ‡â€œä¿®â€</p></div></div><div class="record-list">${recentSessions.map(sessionRecordHtml).join('')}</div></section>` : ''}`;
-  $('#brewBean')?.addEventListener('change', event => { state.selectedBeanId = event.target.value; state.currentPlan = null; renderBrew(); });
-  ['ambientTemperatureC','relativeHumidityPct','initialBedTemperatureC'].forEach(id => $('#'+id)?.addEventListener('change', async () => {
-    const humidityRaw = $('#relativeHumidityPct')?.value;
-    state.settings.brew.environment = {
-      ambientTemperatureC: parseNumber($('#ambientTemperatureC')?.value, 25),
-      relativeHumidityPct: humidityRaw === '' ? null : clamp(parseNumber(humidityRaw, 50), 0, 100),
-      initialBedTemperatureC: parseNumber($('#initialBedTemperatureC')?.value, 25)
-    };
-    await saveSettings();
-  }));
-  $('#generatePlanBtn')?.addEventListener('click', generatePlan);
-  $('#brewProfile')?.addEventListener('change', async event => { state.settings.brew.profileId = event.target.value; await saveSettings(); });
-  $('#directSensoryBtn')?.addEventListener('click', () => openSensoryModeChooser({ beanId: state.selectedBeanId, source: 'direct-brew' }));
-  $('#openFlavorTargetBtn')?.addEventListener('click', openFlavorTargetDialog);
-  $('#openBrewTuneBtn')?.addEventListener('click', openBrewTuneDialog);
-  $('#brewWaterProfile')?.addEventListener('change', async event => { state.settings.brew.waterProfileId = event.target.value; await saveSettings(); if (event.target.value === 'custom') openCustomWaterDialog(); else renderBrew(); });
-  $('#firstCoolingMode')?.addEventListener('change', async event => { state.settings.brew.firstCoolingMode = event.target.value; await saveSettings(); if (event.target.value === 'custom') openCoolingDialog('first'); else renderBrew(); });
-  $('#tailCoolingMode')?.addEventListener('change', async event => { state.settings.brew.tailCoolingMode = event.target.value; await saveSettings(); if (event.target.value === 'custom') openCoolingDialog('tail'); else renderBrew(); });
-  if (!container.dataset.brewActionsBound) {
-    container.dataset.brewActionsBound = 'true';
-    container.addEventListener('click', event => {
-      const replay = event.target.closest('[data-replay-session]');
-      if (replay) {
-        loadBrewSession(replay.dataset.replaySession);
-        return;
-      }
-      const planSensory = event.target.closest('[data-brew-action="plan-sensory"]');
-      if (!planSensory) return;
-      openSensoryModeChooser({
-        beanId: planSensory.dataset.beanId || state.currentPlan?.beanId || state.selectedBeanId,
-        source: 'generated-plan',
-        planReference: planSensory.dataset.planReference || authoritativePlanReference(state.currentPlan),
-        profileId: planSensory.dataset.profileId || String(state.currentPlan?.profile?.id || state.currentBrewInput?.brew?.profileId || '')
-      });
-    });
-  }
-  bindPlanActions(); bindControlStates(container);
-  const spatialHost = $('#brewSpatialMount');
-  const spatialPlan = state.currentPlan && state.currentPlan.beanId === state.selectedBeanId ? state.currentPlan : null;
-  if (spatialHost) {
-    if (spatialPlan) {
-      spatialHost.hidden = false;
-      document.dispatchEvent(new CustomEvent('luckybean:plan-ready', { detail: { plan: spatialPlan, input: state.currentBrewInput, source: spatialPlan.executionSource || 'history' } }));
-    } else document.dispatchEvent(new CustomEvent('luckybean:spatial-clear'));
-  }
-}
-
-function rangeSelect(id, value, labels = ['ä½','ä¸­','é«˜']) {
-  return `<select id="${id}" class="control">${[0,1,2,3].map(number=>`<option value="${number}"${Number(value)===number?' selected':''}>${number===0?'å…³é—­/æœ€ä½':labels[Math.min(labels.length-1,number-1)]}</option>`).join('')}</select>`;
-}
-
-function waterDirectionOptions(value = 0) {
-  return [[-2,'æ˜æ˜¾é™ä½'],[-1,'ç•¥æœ‰é™ä½'],[0,'åŸºæœ¬ä¸å˜'],[1,'ç•¥æœ‰å¢å¼º'],[2,'æ˜æ˜¾å¢å¼º']]
-    .map(([number,label]) => `<option value="${number}"${Number(value)===number?' selected':''}>${label}</option>`).join('');
-}
-
-function openCustomWaterDialog() {
-  const water = state.settings.brew.customWater || DEFAULT_SETTINGS.brew.customWater;
-  const tendency = { ...DEFAULT_SETTINGS.brew.customWater.tendency, ...(water.tendency || {}) };
-  const overlay = showOverlay(`${dialogHeader('è‡ªå®šä¹‰æ°´å‹', 'ä»…ä¿å­˜åç§°ã€TDSå’Œé£å‘³å€¾å‘ï¼›ç²¾ç¡®é…æ–¹è¯·åœ¨â€œèƒç¦»â€ä¸­è°ƒæ•´', { centered: true })}<div class="grid-2"><label class="field"><span>æ°´å‹åç§°</span><input id="customWaterName" class="control" maxlength="40" value="${esc(water.name || 'æˆ‘çš„æ°´å‹')}"></label><label class="field"><span>å‚è€ƒTDS mg/L</span><input id="customWaterTds" class="control" type="number" min="0" max="300" value="${Number(water.tds||85)}"></label><label class="field"><span>èŠ±é¦™å€¾å‘</span><select id="customWaterFloral" class="control">${waterDirectionOptions(tendency.floral)}</select></label><label class="field"><span>é…¸è´¨å€¾å‘</span><select id="customWaterAcidity" class="control">${waterDirectionOptions(tendency.acidity)}</select></label><label class="field"><span>ç”œæ„Ÿå€¾å‘</span><select id="customWaterSweetness" class="control">${waterDirectionOptions(tendency.sweetness)}</select></label><label class="field"><span>é†‡åšå€¾å‘</span><select id="customWaterBody" class="control">${waterDirectionOptions(tendency.body)}</select></label><label class="field"><span>è‹¦æ„Ÿå€¾å‘</span><select id="customWaterBitterness" class="control">${waterDirectionOptions(tendency.bitterness)}</select></label><label class="field"><span>æ¶©æ„Ÿå€¾å‘</span><select id="customWaterAstringency" class="control">${waterDirectionOptions(tendency.astringency)}</select></label></div><label class="field"><span>å¤‡æ³¨</span><textarea id="customWaterNote" class="control" rows="3" placeholder="ä¾‹å¦‚ï¼šåœ¨èƒç¦»ä¸­å¾®è°ƒåï¼ŒèŠ±é¦™æ›´çªå‡ºã€æ¶©æ„Ÿé™ä½">${esc(water.note || '')}</textarea></label><p class="muted small">LuckyBeanä¸è®°å½•ç›ç±»ã€ç¦»å­æµ“åº¦å’Œç²¾ç¡®æŠ•åŠ é‡ã€‚</p><div class="row end"><button id="saveCustomWaterBtn" class="button primary" type="button">ç¡®å®š</button></div>`, { id: 'custom-water', backdropClose: true });
-  bindClose(overlay);
-  $('#saveCustomWaterBtn').addEventListener('click', async () => {
-    state.settings.brew.customWater = {
-      name: $('#customWaterName').value.trim() || 'æˆ‘çš„æ°´å‹',
-      tds: parseNumber($('#customWaterTds').value,85),
-      tendency: {
-        floral: parseNumber($('#customWaterFloral').value,0), acidity: parseNumber($('#customWaterAcidity').value,0),
-        sweetness: parseNumber($('#customWaterSweetness').value,0), body: parseNumber($('#customWaterBody').value,0),
-        bitterness: parseNumber($('#customWaterBitterness').value,0), astringency: parseNumber($('#customWaterAstringency').value,0)
-      },
-      note: $('#customWaterNote').value.trim()
-    };
-    state.settings.brew.waterProfileId='custom'; await saveSettings(); closeOverlay(); renderBrew();
-  });
-}
-function openFlavorTargetDialog() {
-  const target = state.settings.brew.flavorTargets || DEFAULT_SETTINGS.brew.flavorTargets;
-  const overlay = showOverlay(`${dialogHeader('é£å‘³è®¾å®š', 'è®¾å®šèŠ±é¦™ã€æœé¦™ã€é…¸ã€ç”œã€æŠ‘è‹¦ä¸æŠ‘æ¶©æ–¹å‘', { centered: true })}<div class="grid-2"><label class="field"><span>èŠ±é¦™</span>${rangeSelect('flavorTargetFloral',target.floral)}</label><label class="field"><span>æœé¦™</span>${rangeSelect('flavorTargetFruity',target.fruity)}</label><label class="field"><span>é…¸</span>${rangeSelect('flavorTargetAcidity',target.acidity)}</label><label class="field"><span>ç”œ</span>${rangeSelect('flavorTargetSweetness',target.sweetness)}</label><label class="field"><span>æŠ‘è‹¦</span>${rangeSelect('flavorTargetBitterness',target.bitterness,['è½»åº¦','ä¸­åº¦','å¼º'])}</label><label class="field"><span>æŠ‘æ¶©</span>${rangeSelect('flavorTargetAstringency',target.astringency,['è½»åº¦','ä¸­åº¦','å¼º'])}</label></div><div class="row end"><button id="saveFlavorTargetBtn" class="button primary" type="button">ç¡®å®š</button></div>`, { id: 'flavor-target', backdropClose: true });
-  bindClose(overlay);
-  $('#saveFlavorTargetBtn').addEventListener('click', async () => { state.settings.brew.flavorTargets = { acidity:parseNumber($('#flavorTargetAcidity').value,1.5), floral:parseNumber($('#flavorTargetFloral').value,2), fruity:parseNumber($('#flavorTargetFruity').value,2), sweetness:parseNumber($('#flavorTargetSweetness').value,2), bitterness:parseNumber($('#flavorTargetBitterness').value,2), astringency:parseNumber($('#flavorTargetAstringency').value,2) }; await saveSettings(); closeOverlay(); renderBrew(); });
-}
-
-function openBrewTuneDialog() {
-  const brew = state.settings.brew;
-  const overlay = showOverlay(`${dialogHeader('å¾®è°ƒ', 'å…·ä½“æ•°å€¼ä¼šè¿›å…¥è®¡ç®—æ¨¡å‹', { centered: true })}<div class="grid-2"><label class="field"><span>ç ”ç£¨è®¾å¤‡/åˆ»åº¦</span><input id="tuneGrinder" class="control" value="${esc(brew.grinder||'')}" placeholder="ä¾‹å¦‚ C40 22æ ¼"></label><label class="field"><span>æ¸©åº¦å¾®è°ƒ Â°C</span><input id="tuneTemperature" class="control" type="number" min="-6" max="6" step="0.5" value="${Number(brew.temperatureTune||0)}"></label><label class="field"><span>ç ”ç£¨å¾®è°ƒ</span><input id="tuneGrind" class="control" type="number" min="-4" max="4" step="0.5" value="${Number(brew.grindTune||0)}"></label><label class="field"><span>é—·è’¸æ—¶é—´å¾®è°ƒ s</span><input id="tuneBloom" class="control" type="number" min="-20" max="40" value="${Number(brew.bloomTune||0)}"></label><label class="toggle"><input id="tuneRepeatability" type="checkbox"${brew.repeatability?' checked':''}>å¤åˆ»ä¼˜å…ˆ</label></div><div class="row end"><button id="saveBrewTuneBtn" class="button primary" type="button">ç¡®å®š</button></div>`, { id: 'brew-tune', backdropClose: true });
-  bindClose(overlay);
-  $('#saveBrewTuneBtn').addEventListener('click', async () => { Object.assign(state.settings.brew,{grinder:$('#tuneGrinder').value.trim(),temperatureTune:parseNumber($('#tuneTemperature').value,0),grindTune:parseNumber($('#tuneGrind').value,0),bloomTune:parseNumber($('#tuneBloom').value,0),repeatability:$('#tuneRepeatability').checked});await saveSettings();closeOverlay();renderBrew(); });
-}
-
-function openCoolingDialog(which) {
-  const first = which === 'first';
-  const key = first ? 'firstTemperatureC' : 'tailTemperatureC';
-  const overlay = showOverlay(`${dialogHeader(first?'é¦–æ®µé™æ¸©':'å°¾æ®µé™æ¸©', 'æ¨¡å‹æ¨èæ˜¾ç¤ºé‡‘è‰²ï¼›æ‰‹å·¥æ¸©åº¦æ˜¾ç¤ºç™½è‰²', { centered:true })}<label class="field"><span>è‡ªå®šä¹‰ç›®æ ‡æ¸©åº¦ Â°C</span><input id="coolingTemperature" class="control" type="number" min="78" max="97" step="0.5" value="${Number(state.settings.brew[key] || (first?87:86))}"></label><div class="row end"><button id="saveCoolingBtn" class="button primary" type="button">ç¡®å®š</button></div>`, { id:'cooling', backdropClose:true });
-  bindClose(overlay);
-  $('#saveCoolingBtn').addEventListener('click', async()=>{state.settings.brew[key]=parseNumber($('#coolingTemperature').value,first?87:86);state.settings.brew[first?'firstCoolingMode':'tailCoolingMode']='custom';await saveSettings();closeOverlay();renderBrew();});
-}
-
-async function generatePlan() {
-  const bean = state.beans.find(item => item.id === $('#brewBean').value); if (!bean) return toast('è¯·å…ˆé€‰æ‹©è±†å¡');
-  const button = $('#generatePlanBtn'); state.selectedBeanId = bean.id;
-  const input = buildBrewInput(bean); state.currentBrewInput = input;
-  button.disabled = true; button.textContent = 'æ­£åœ¨è®¡ç®—â€¦';
-  try {
-    let plan;
-    try {
-      plan = await requestPrivatePlan(state.settings.brew.apiEndpoint, input);
-    } catch (error) {
-      const failure = new Error(`${error.message} æœªç”Ÿæˆæœ¬åœ°æ›¿ä»£ä¸‰ç»´å›¾ï¼Œé¿å…å°†å‚è€ƒè½¨è¿¹è¯¯è®¤ä¸ºä¸“ä¸šé¶åŒºã€‚`);
-      failure.code = error.code || 'BREWPROFILES_UNAVAILABLE';
-      failure.cause = error;
-      throw failure;
-    }
-    plan.beanId = bean.id; plan.generatedAt = new Date().toISOString(); plan.input = input;
-    validatePlan(plan); state.currentPlan = plan;
-    document.dispatchEvent(new CustomEvent('luckybean:plan-ready', { detail: { plan, input, source: plan.executionSource || 'brew-profiles-authoritative' } }));
-    state.settings.brew = {
-      ...state.settings.brew, method: input.brew.method, doseG: input.brew.doseG, ratio: input.brew.ratio,
-      profileId: input.brew.profileId, segmentMode: input.brew.segmentMode, segments: input.brew.segments, lowTempFirst: input.brew.lowTempFirst,
-      dripper: input.brew.dripperCode, filterPaper: input.brew.filterPaper, filterPaperId: input.brew.filterPaperId, grinder: input.brew.grinder,
-      waterProfileId: $('#brewWaterProfile')?.value || 'auto', waterVolumeL: input.water.recipeVolumeL,
-      firstCoolingMode: input.brew.firstCoolingMode, firstTemperatureC: input.brew.firstTemperatureC,
-      tailCoolingMode: input.brew.tailCoolingMode, tailTemperatureC: input.brew.tailTemperatureC,
-      temperatureTune: input.brew.temperatureTune, grindTune: input.brew.grindTune, bloomTune: input.brew.bloomTune, repeatability: input.brew.repeatability,
-      environment: { ...input.environment },
-      flavorTargets: { acidity: input.targets.acidity, floral: input.targets.floral, fruity: input.targets.fruity, sweetness: input.targets.sweetness, bitterness: input.targets.bitterness, astringency: input.targets.astringency }
-    };
-    await saveSettings(); $('#planResult').innerHTML = planHtml(plan); bindPlanActions();
-    requestAnimationFrame(() => $('#planResult').scrollIntoView({ behavior: 'smooth', block: 'start' }));
-  } catch (error) {
-    console.error(error); toast(`æ–¹æ¡ˆç”Ÿæˆå¤±è´¥ï¼š${error.message}`, 'status-bad');
-  } finally {
-    if (button?.isConnected) { button.disabled = false; button.textContent = state.currentPlan ? 'é‡æ–°ç”Ÿæˆ' : 'ç”Ÿæˆæ–¹æ¡ˆ'; }
-  }
-}
-
-function planHtml(plan) {
-  const flavor = plan.flavorFit || {};
-  const first = plan.stages?.[0];
-  const water = plan.water;
-  const candidates = plan.recommendation?.candidates || [];
-  const corrected = Boolean(plan.correction);
-  const showVisual = Boolean(state.settings.ui.planVisualsExpanded || state.settings.ui.temporaryVisualOpen);
-  const extraction = plan.extractionModel || plan.professional?.extractionModel || {};
-  return `<section class="panel generated-plan" id="generatedPlan"><div class="panel-title"><div><h2>å†²ç…®æ–¹æ¡ˆ${corrected ? ' Â· ä¿®æ­£' : ''}</h2><p>${Number(plan.totals?.doseG||0).toFixed(1)}g Â· ${Number(plan.totals?.waterG||0).toFixed(0)}g Â· ${formatSeconds(plan.totals?.targetTimeSec||0)}</p></div><span class="plan-profile-label">${esc(plan.profile?.label || String(plan.profileVersion || '').split('@')[0])}</span></div>
-  ${(plan.warnings||[]).map(warning=>`<p class="small status-warn">${esc(warning)}</p>`).join('')}
-  ${first ? `<p class="low-temp-note">é¦–æ®µå»ºè®® ${Number(first.temperatureC).toFixed(0)}Â°Cï¼š${esc(plan.firstPourReason || 'æ§åˆ¶åˆæ®µé‡Šæ”¾å¹¶ä¿ç•™é¦™æ°”ä¸ç”œæ„Ÿã€‚')}</p>` : ''}
-  <div>${plan.stages.map(stage=>`<article class="plan-stage"><div class="stage-index">${stage.index}</div><div class="stage-lines"><div class="stage-line"><div class="stage-cell"><span>æœ¬æ®µæ³¨æ°´</span><strong>${Number(stage.stageWaterG).toFixed(0)}g</strong></div><div class="stage-cell"><span>ç´¯è®¡æ³¨æ°´</span><strong>${Number(stage.cumulativeWaterG).toFixed(0)}g</strong></div><div class="stage-cell"><span>é˜¶æ®µ</span><strong>${esc(stage.name)}</strong></div></div><div class="stage-line"><div class="stage-cell"><span>å£¶ä¸­/ç²‰åºŠ</span><strong>${Number(stage.temperatureC).toFixed(0)}Â°/${Number(stage.coreTemperatureC ?? stage.temperatureC).toFixed(0)}Â°C</strong></div><div class="stage-cell"><span>æ—¶é—´/æµé€Ÿ</span><strong>${Number(stage.durationSec).toFixed(0)}s Â· ${Number(stage.flowGPerSec||0).toFixed(1)}g/s</strong></div><div class="stage-cell"><span>æ³¨æ°´æ–¹æ³•</span><strong>${esc(stage.method)}</strong><small>${esc(stage.notice || '')}</small></div></div></div></article>`).join('')}</div>
-  <section class="visual-section trajectory-section${showVisual?' open':''}"><div class="trajectory-title-row"><button id="trajectoryTitleBtn" type="button"><h3>å†²ç…®è½¨è¿¹æ‹Ÿåˆå›¾</h3></button><label class="switch-control"><span>é»˜è®¤å¼€å¯</span><input id="trajectoryDefaultToggle" type="checkbox"${state.settings.ui.planVisualsExpanded?' checked':''}><i></i></label></div>${showVisual?`${trajectorySvg(plan)}<p class="muted small">ç›®æ ‡ EY ${extraction.targetEY ?? 'â€”'}% Â· é¢„æµ‹ TDS ${extraction.predictedTds ?? 'â€”'}%ï¼›è½¨è¿¹æ˜¯ç›¸å¯¹æ¨¡å‹ï¼Œä¸æ›¿ä»£æŠ˜å…‰ä»ªæµ‹é‡ã€‚</p>`:''}</section>
-  <details class="details-block professional-result"><summary>ä¸“ä¸šå†…å®¹â€¦â€¦</summary><div class="details-content">
-    <section class="visual-section"><h3>é£å‘³æ‹Ÿåˆ</h3><div class="bar-chart">${Object.entries({èŠ±é¦™:flavor.floral,é…¸è´¨:flavor.acidity,ç”œæ„Ÿ:flavor.sweetness,å£æ„Ÿ:flavor.body,è‹¦æ„Ÿé£é™©:flavor.bitterness,æ´å‡€åº¦:flavor.clarity}).map(([key,value])=>`<div class="bar-row"><span>${key}</span><div class="bar-track"><div class="bar-fill" style="width:${clamp(Number(value||0)*100,0,100)}%"></div></div><strong>${Math.round(Number(value||0)*100)}</strong></div>`).join('')}</div></section>
-    <dl class="professional-list"><dt>ç ”ç£¨å»ºè®®</dt><dd>${esc(plan.grinder ? `${plan.grinder.label} ${plan.grinder.recommended}${plan.grinder.unit}` : 'æœªæä¾›')}</dd><dt>å“ç§æ¨¡å‹</dt><dd>${esc(plan.temperature?.model?.model || 'é€šç”¨æ¨¡å‹')}</dd><dt>å…³é”®åŒ–å­¦æ ‡è®°</dt><dd>${esc((plan.temperature?.model?.markers || []).join('ã€') || 'æœªæä¾›')}</dd><dt>æ•æ„Ÿåº¦</dt><dd>${esc(plan.temperature?.model?.sensitivityText || 'æœªæä¾›')}</dd><dt>æ‰§è¡Œä¸»è½´</dt><dd>${esc(plan.temperature?.model?.execution || 'æœªæä¾›')}</dd><dt>å®¹å·®å‚è€ƒ</dt><dd>${plan.temperature?.model?.tolerance ? `æ¸©åº¦ Â±${plan.temperature.model.tolerance.temperatureC}Â°C / æµé€Ÿ Â±${plan.temperature.model.tolerance.flowGPerSec}g/s / æ°´é‡ Â±${plan.temperature.model.tolerance.waterG}g` : 'æœªæä¾›'}</dd><dt>è°ƒæ°´æ–¹æ¡ˆ</dt><dd>${esc(water?.profile?.name || 'æœªæä¾›')} Â· å‚è€ƒTDS ${Number(water?.profile?.tdsMid ?? water?.targetTdsRange?.[0] ?? state.settings.brew.customWater?.tds ?? 85)} mg/L</dd><dt>æ°´è´¨åˆ¤æ–­</dt><dd>${esc(plan.temperature?.model?.waterAdvice || 'æœªæä¾›')}</dd><dt>è°ƒæ°´ç‰ˆæœ¬</dt><dd>${esc(water?.modelVersion || 'â€”')}</dd><dt>è®¡ç®—æ¨¡å‹</dt><dd>${esc(plan.professional?.calculationModelVersion || plan.engineVersion || 'â€”')}</dd><dt>å¹³å‡æµé€Ÿ</dt><dd>${esc(String(plan.professional?.hydraulics?.averageFlowGPerSec ?? 'â€”'))} g/s</dd></dl>
-    ${candidates.length ? `<details class="nested-settings"><summary>æ–¹æ¡ˆæ¨èæ’åº</summary><div class="nested-content">${candidates.map(item=>`<div class="record-item"><span>${esc(item.profile?.label || item.id)}</span><span>${esc(item.reason || '')}</span><strong>${Math.round(Number(item.score||0)*100)}</strong></div>`).join('')}</div></details>` : ''}
-    ${(plan.explanation||[]).map(value=>`<p class="muted small">${esc(value)}</p>`).join('')}
-    ${(plan.professional?.modelLimitations||[]).map(value=>`<p class="status-warn small">${esc(value)}</p>`).join('')}
-    ${plan.correction?.changes ? `<div class="correction-note"><strong>ä¿®æ­£ä¾æ®</strong>${plan.correction.changes.map(value=>`<p>${esc(value)}</p>`).join('')}</div>` : ''}
-    <div class="plan-export-row"><select id="planExportFormat" class="control"><option value="json">JSONè„šæœ¬</option><option value="txt">TXT</option><option value="md">Markdown</option></select><button id="exportPlanBtn" class="button" type="button">å¯¼å‡ºæ–¹æ¡ˆ</button></div>
-  </div></details>
-  <div class="row menu-row"><button id="startBrewBtn" class="button primary" type="button">å¼€å§‹è®¡æ—¶</button><button id="planToSensoryBtn" class="button" type="button" data-brew-action="plan-sensory" data-bean-id="${esc(String(plan.beanId || state.selectedBeanId || ''))}" data-plan-reference="${esc(authoritativePlanReference(plan))}" data-profile-id="${esc(String(plan.profile?.id || state.currentBrewInput?.brew?.profileId || ''))}">ç›´æ¥å“é‰´</button></div></section>`;
-}
-
-function bindPlanActions() {
-  $('#startBrewBtn')?.addEventListener('click', startTimer);
-  $('#exportPlanBtn')?.addEventListener('click', () => exportCurrentPlan($('#planExportFormat')?.value || 'json'));
-  $('#trajectoryDefaultToggle')?.addEventListener('change', async event => { state.settings.ui.planVisualsExpanded = event.target.checked; state.settings.ui.temporaryVisualOpen = false; await saveSettings(); if (state.currentPlan) { $('#planResult').innerHTML=planHtml(state.currentPlan); bindPlanActions(); } });
-  $('#trajectoryTitleBtn')?.addEventListener('click', () => { if (state.settings.ui.planVisualsExpanded) return; state.settings.ui.temporaryVisualOpen = !state.settings.ui.temporaryVisualOpen; if (state.currentPlan) { $('#planResult').innerHTML=planHtml(state.currentPlan); bindPlanActions(); } });
-}
-
-function planExportDocument(plan, format, bean) {
-  const title = bean ? beanDisplayName(bean) : 'å’–å•¡è±†';
-  const rows = (plan.stages || []).map(stage => `${stage.index}. ${stage.name}ï½œ${stage.durationSec}sï½œ${stage.stageWaterG}gï½œ${stage.temperatureC}Â°Cï½œ${stage.method}${stage.methodCode ? `ï½œ${stage.methodCode}` : ''}`);
-  if (format === 'json') return JSON.stringify({ format: 'luckybean-brew-plan', version: APP_VERSION, bean: { id: bean?.id || '', name: title, varietyCode: bean?.varietyCode || '' }, plan }, null, 2);
-  if (format === 'md') return `# ${title} Â· å†²ç…®æ–¹æ¡ˆ\n\n- å¼•æ“ï¼š${plan.engineVersion}\n- æ–¹æ¡ˆï¼š${plan.profile?.label || plan.profileVersion}\n- ç²‰é‡ï¼š${plan.totals?.doseG}g\n- æ°´é‡ï¼š${plan.totals?.waterG}g\n- ç²‰æ°´æ¯”ï¼š1:${plan.totals?.ratio}\n- ç›®æ ‡æ—¶é—´ï¼š${formatSeconds(plan.totals?.targetTimeSec)}\n\n## åˆ†æ®µ\n\n${rows.map(row=>`- ${row}`).join('\n')}\n\n## è°ƒæ°´\n\n${plan.water ? `${plan.water.profile?.name}ï¼›å‚è€ƒTDS ${plan.water.profile?.tdsMid ?? plan.water.targetTdsRange?.[0] ?? 'â€”'} mg/Lã€‚` : 'æœªè®°å½•'}\n`;
-  return `${title} Â· å†²ç…®æ–¹æ¡ˆ\nå¼•æ“ï¼š${plan.engineVersion}\næ–¹æ¡ˆï¼š${plan.profile?.label || plan.profileVersion}\nç²‰é‡ï¼š${plan.totals?.doseG}g\næ°´é‡ï¼š${plan.totals?.waterG}g\nç²‰æ°´æ¯”ï¼š1:${plan.totals?.ratio}\nç›®æ ‡æ—¶é—´ï¼š${formatSeconds(plan.totals?.targetTimeSec)}\n\n${rows.join('\n')}\n`;
-}
-
-function exportCurrentPlan(format = 'json') {
-  const plan = state.currentPlan; if (!plan) return toast('å°šæœªç”Ÿæˆæ–¹æ¡ˆ');
-  const bean = state.beans.find(item => item.id === plan.beanId || item.id === state.selectedBeanId);
-  const safeName = (bean ? beanDisplayName(bean) : 'å’–å•¡è±†').replace(/[\\/:*?"<>|]/g, '_');
-  const ext = format === 'md' ? 'md' : format === 'txt' ? 'txt' : 'json';
-  const mime = format === 'json' ? 'application/json;charset=utf-8' : 'text/plain;charset=utf-8';
-  downloadBlob(`${safeName}_å†²ç…®æ–¹æ¡ˆ.${ext}`, planExportDocument(plan, format, bean), mime); toast(`å·²å¯¼å‡º ${ext.toUpperCase()} æ–¹æ¡ˆ`);
-}
-
-function stopSpeech() { if (globalThis.speechSynthesis) speechSynthesis.cancel(); }
-function speak(text) {
-  if (!globalThis.speechSynthesis || !text) return;
-  stopSpeech(); const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'zh-CN'; utterance.rate = 1.05; speechSynthesis.speak(utterance);
-}
-function startTimer() {
-  if (!state.currentPlan) return;
-  const first = state.currentPlan.stages[0];
-  state.currentExecution = {
-    id: `execution-${crypto.randomUUID()}`,
-    startedAt: new Date().toISOString(),
-    finishedAt: '',
-    stageExecutions: [],
-    deviations: [],
-    notes: []
-  };
-  state.timer.stageIndex = 0; state.timer.remaining = Number(first.durationSec); state.timer.paused = false;
-  renderTimerDialog(); startTimerInterval();
-  speak(`ç¬¬ä¸€æ®µï¼Œ${first.name}ï¼Œæ³¨æ°´${Math.round(first.stageWaterG)}å…‹ï¼Œæ°´æ¸©${Math.round(first.temperatureC)}åº¦ï¼Œ${first.method}ã€‚${first.notice || ''}`);
-}
-
-function startTimerInterval() {
-  clearInterval(state.timer.interval);
-  state.timer.interval = setInterval(() => {
-    if (state.timer.paused) return;
-    state.timer.remaining -= 1;
-    const stages = state.currentPlan?.stages || [];
-    const next = stages[state.timer.stageIndex + 1];
-    if (state.timer.remaining === 8 && next) speak(next.advanceSpeech || `ä¸‹ä¸€æ®µï¼Œ${next.name}ï¼Œæ³¨æ°´${Math.round(next.stageWaterG)}å…‹ï¼Œæ°´æ¸©${Math.round(next.temperatureC)}åº¦ï¼Œ${next.method}`);
-    if ([3,2,1].includes(state.timer.remaining)) speak(String(state.timer.remaining));
-    if (state.timer.remaining <= 0) advanceTimerStage();
-    renderTimerValues();
-  }, 1000);
-}
-function renderTimerDialog() {
-  const stage = state.currentPlan.stages[state.timer.stageIndex];
-  const next = state.currentPlan.stages[state.timer.stageIndex+1];
-  const content = `<div class="timer-full"><div class="timer-top"><span id="timerStageCounter">${state.timer.stageIndex+1}/${state.currentPlan.stages.length}</span></div><div class="timer-stage-name" id="timerStageName">${esc(stage.name)}</div><div id="timerClock" class="timer-clock">${formatSeconds(state.timer.remaining)}</div><div class="timer-totals"><span>æ€»æ—¶é•¿ <strong id="timerTotal">${formatSeconds(state.currentPlan.totals?.targetTimeSec||0)}</strong></span><span>å·²è¿›è¡Œ <strong id="timerElapsed">00:00</strong></span><span>æ€»å‰©ä½™ <strong id="timerTotalRemaining">${formatSeconds(state.currentPlan.totals?.targetTimeSec||0)}</strong></span></div><div class="timer-stage-grid"><div><span>æœ¬æ®µ</span><strong id="timerStageWater">${Number(stage.stageWaterG).toFixed(0)}g</strong></div><div><span>ç´¯è®¡</span><strong id="timerCumulativeWater">${Number(stage.cumulativeWaterG).toFixed(0)}g</strong></div><div><span>æ°´æ¸©</span><strong id="timerTemperature">${Number(stage.temperatureC).toFixed(0)}Â°C</strong></div></div><p id="timerStageText">${esc(stage.method)}${stage.notice?`<small>${esc(stage.notice)}</small>`:''}</p><div id="timerNextCue" class="timer-next-cue">${next?`ä¸‹ä¸€æ®µï¼š${esc(next.name)} Â· ${Math.round(next.stageWaterG)}g Â· ${Math.round(next.temperatureC)}Â°C Â· ${esc(next.method)}`:'æœ€åä¸€æ®µ'}</div><div class="timer-progress"><span id="timerProgressFill"></span></div><div class="timer-actions four"><button id="timerPrevBtn" class="button" type="button">é€€</button><button id="timerPauseBtn" class="button active" type="button">é©»</button><button id="timerNextBtn" class="button" type="button">è¿›</button><button id="timerEndBtn" class="button" type="button">ç»ˆ</button></div></div>`;
-  showOverlay(content, { full: true, id: 'timer' });
-  $('#timerPauseBtn').addEventListener('click', () => { state.timer.paused = !state.timer.paused; $('#timerPauseBtn').textContent = state.timer.paused ? 'ç»­' : 'é©»'; $('#timerPauseBtn').classList.toggle('active', state.timer.paused); if (state.timer.paused) speak('å·²æš‚åœ'); });
-  $('#timerPrevBtn').addEventListener('click', () => moveTimerStage(-1));
-  $('#timerNextBtn').addEventListener('click', () => moveTimerStage(1));
-  $('#timerEndBtn').addEventListener('click', () => { clearInterval(state.timer.interval); stopSpeech(); state.timer.paused = true; state.currentExecution = null; closeOverlay(); switchPage('brew'); toast('æœ¬æ¬¡å†²ç…®å·²ä¸­æ­¢ï¼Œä¸æ‰£è±†ã€ä¸ä¿å­˜è®°å½•'); });
-  renderTimerValues();
-}
-
-function formatSeconds(seconds) { const value = Math.max(0, Number(seconds)||0); return `${Math.floor(value/60).toString().padStart(2,'0')}:${(value%60).toString().padStart(2,'0')}`; }
-function renderTimerValues() {
-  const clock = $('#timerClock'); if (!clock || !state.currentPlan) return;
-  const stages = state.currentPlan.stages;
-  const stage = stages[state.timer.stageIndex];
-  const next = stages[state.timer.stageIndex+1];
-  const elapsedBefore = stages.slice(0, state.timer.stageIndex).reduce((sum,item)=>sum+Number(item.durationSec||0),0);
-  const stageElapsed = Math.max(0, Number(stage.durationSec||0)-state.timer.remaining);
-  const elapsed = elapsedBefore + stageElapsed;
-  const total = Number(state.currentPlan.totals?.targetTimeSec || stages.reduce((sum,item)=>sum+Number(item.durationSec||0),0));
-  clock.textContent = formatSeconds(state.timer.remaining);
-  $('#timerElapsed').textContent = formatSeconds(elapsed); $('#timerTotalRemaining').textContent = formatSeconds(Math.max(0,total-elapsed));
-  $('#timerStageCounter').textContent = `${state.timer.stageIndex+1}/${stages.length}`; $('#timerStageName').textContent = stage.name;
-  $('#timerStageText').innerHTML = `${esc(stage.method)}${stage.notice?`<small>${esc(stage.notice)}</small>`:''}`;
-  $('#timerStageWater').textContent = `${Number(stage.stageWaterG).toFixed(0)}g`; $('#timerCumulativeWater').textContent = `${Number(stage.cumulativeWaterG).toFixed(0)}g`; $('#timerTemperature').textContent = `${Number(stage.temperatureC).toFixed(0)}Â°C`;
-  if ($('#timerNextCue')) $('#timerNextCue').textContent = next ? `ä¸‹ä¸€æ®µï¼š${next.name} Â· ${Math.round(next.stageWaterG)}g Â· ${Math.round(next.temperatureC)}Â°C Â· ${next.method}` : 'æœ€åä¸€æ®µ';
-  $('#timerProgressFill').style.width = `${clamp((1-state.timer.remaining/Math.max(1,Number(stage.durationSec)))*100,0,100)}%`;
-}
-
-function advanceTimerStage() { moveTimerStage(1, true); }
-function moveTimerStage(direction = 1, automatic = false) {
-  const next = state.timer.stageIndex + direction;
-  if (next < 0) return;
-  if (next >= state.currentPlan.stages.length) { clearInterval(state.timer.interval); promptRecordConsumption('complete'); return; }
-  state.timer.stageIndex = next; state.timer.remaining = Number(state.currentPlan.stages[next].durationSec); state.timer.paused = false;
-  const stage = state.currentPlan.stages[next];
-  if ($('#timerPauseBtn')) { $('#timerPauseBtn').textContent = 'é©»'; $('#timerPauseBtn').classList.remove('active'); }
-  renderTimerValues();
-  speak(`${automatic?'è¿›å…¥':'åˆ‡æ¢åˆ°'}ç¬¬${stage.index}æ®µï¼Œ${stage.name}ï¼Œæ³¨æ°´${Math.round(stage.stageWaterG)}å…‹ï¼Œæ°´æ¸©${Math.round(stage.temperatureC)}åº¦ï¼Œ${stage.method}ã€‚${stage.notice || ''}`);
-}
-
-function promptRecordConsumption(reason) {
-  clearInterval(state.timer.interval); stopSpeech(); state.timer.paused = true;
-  if (reason !== 'complete') { state.currentExecution = null; closeOverlay(); switchPage('brew'); return; }
-  const finishedAt = new Date().toISOString();
-  if (!state.currentExecution) state.currentExecution = { id: `execution-${crypto.randomUUID()}`, startedAt: finishedAt, stageExecutions: [], deviations: [], notes: [] };
-  state.currentExecution.finishedAt = finishedAt;
-  const bean = state.beans.find(item => item.id === state.selectedBeanId);
-  const dose = Number(state.currentPlan?.totals?.doseG || state.currentBrewInput?.brew?.doseG || 15);
-  const subtitle = bean ? `${codeName('countries', bean.countryCode, 'æœªå®šå›½å®¶')} Â· ${codeName('varieties', bean.varietyCode, 'æœªå®šè±†ç§')}` : 'å½“å‰è±†å¡';
-  const filterId = state.currentBrewInput?.brew?.filterPaperId || state.currentPlan?.input?.brew?.filterPaperId || state.settings.brew.filterPaperId || '';
-  const filter = gearFilters().find(item => item.id === filterId);
-  const filterText = filter ? `${[filter.brand, filter.type].filter(Boolean).join(' ')} Â· 1å¼ ` : 'æœªè®¾ç½®æ»¤çº¸åº“å­˜ï¼Œæœ¬æ¬¡æ— æ³•æ‰£å‡æ»¤çº¸';
-  const content = `<div class="consume-confirm">${dialogHeader('è®°å½•æœ¬æ¬¡æ¶ˆè€—', subtitle, { closable: false, centered: true })}<label class="field consume-dose-field"><span>æœ¬æ¬¡å®é™…ä½¿ç”¨è±†é‡</span><input id="actualDoseInput" class="control consume-dose" type="number" min="0.1" step="0.1" value="${dose.toFixed(1)}"></label><div class="consume-filter">åŒæ—¶æ‰£é™¤æ»¤çº¸ï¼š${esc(filterText)}</div><div class="consume-actions"><button id="recordConsumptionBtn" class="button primary" type="button">æ‰£é™¤å’–å•¡è±†ä¸æ»¤çº¸ï¼Œè¿›å…¥å“é‰´</button><button id="skipConsumptionBtn" class="button" type="button">ä¸è®°å½•åˆ™è¿”å›å°é…Œ</button></div></div>`;
-  const overlay = showOverlay(content, { id: 'consume-confirm', dialogClass: 'consume-dialog' });
-  $('#recordConsumptionBtn').addEventListener('click', async () => {
-    const actualDose = parseNumber($('#actualDoseInput')?.value, dose);
-    const button = $('#recordConsumptionBtn');
-    button.disabled = true; button.textContent = 'æ­£åœ¨ä¿å­˜â€¦';
-    try {
-      const execution = {
-        ...state.currentExecution,
-        actualTotalTimeSec: Math.max(0, Math.round((Date.parse(state.currentExecution.finishedAt) - Date.parse(state.currentExecution.startedAt)) / 1000)),
-        environment: {
-          ambientTemperatureC: Number(state.currentBrewInput?.environment?.ambientTemperatureC ?? 25),
-          relativeHumidityPct: state.currentBrewInput?.environment?.relativeHumidityPct ?? null,
-          initialBedTemperatureC: Number(state.currentBrewInput?.environment?.initialBedTemperatureC ?? state.currentBrewInput?.environment?.ambientTemperatureC ?? 25)
-        }
-      };
-      const analysisSnapshot = state.currentPlan.analysisSnapshot || await createLocalReferenceAnalysis(state.currentBrewInput, state.currentPlan, 'ä¸“ä¸šåˆ†æå¿«ç…§ç¼ºå¤±');
-      const saved = await commitCompletedBrew({
-        beanId: bean.id,
-        deductedWeightG: actualDose,
-        rawInput: state.currentBrewInput,
-        normalizedInput: analysisSnapshot.input || state.currentBrewInput,
-        analysisSnapshot,
-        execution,
-        providerVersions: analysisSnapshot.integrations?.sourceVersions || {},
-        idempotencyKey: state.currentExecution.id
-      });
-      const activeFilter = state.settings.gear.filters.find(item => item.id === filterId);
-      if (activeFilter) { activeFilter.quantity = Math.max(0, Number(activeFilter.quantity || 0) - 1); await saveSettings(); }
-      state.currentPlan = { ...state.currentPlan, id: saved.record.id, historyRecordId: saved.record.id };
-      state.currentExecution = null;
-      await refreshData();
-      state.selectedBeanId = bean.id;
-      state.pendingSensoryContext = { beanId: bean.id, brewSessionId: saved.record.id, source: 'completed-brew', planReference: authoritativePlanReference(state.currentPlan), profileId: String(state.currentPlan?.profile?.id || state.currentBrewInput?.brew?.profileId || '') };
-      state.evaluation = null;
-      closeOverlay(); switchPage('sensory', { preserveOverlay: true }); renderSensory();
-      toast(activeFilter ? `å·²æ‰£é™¤ ${actualDose.toFixed(1)}g å’–å•¡è±†ä¸æ»¤çº¸1å¼ ` : `å·²æ‰£é™¤ ${actualDose.toFixed(1)}g å’–å•¡è±†ï¼›æœªè®¾ç½®æ»¤çº¸åº“å­˜`, activeFilter ? 'status-good' : 'status-warn');
-    } catch (error) {
-      button.disabled = false; button.textContent = 'æ‰£é™¤å’–å•¡è±†ä¸æ»¤çº¸ï¼Œè¿›å…¥å“é‰´';
-      toast(error.message || 'ä¿å­˜å†²ç…®è®°å½•å¤±è´¥', 'status-bad');
-    }
-  });
-  $('#skipConsumptionBtn').addEventListener('click', () => { state.currentExecution = null; closeOverlay(); switchPage('brew'); toast('æœ¬æ¬¡å†²ç…®æœªæ‰£è±†ï¼Œæœªä¿å­˜è®°å½•'); });
-}
-
-function startEvaluation(beanId = state.selectedBeanId, options = {}) {
-  state.selectedBeanId = beanId;
-  const sessionId = String(options.brewSessionId || '');
-  const evaluationMode = options.evaluationMode === 'note' ? 'note' : 'player';
-  state.evaluation = {
-    id: uid('sensory'), beanId, brewSessionId: sessionId,
-    planReference: String(options.planReference || ''), profileId: String(options.profileId || ''), sensorySource: String(options.sensorySource || 'independent'),
-    engineVersion: state.currentPlan?.engineVersion || '', profileVersion: state.currentPlan?.profileVersion || '',
-    nodeIndex: 0, answers: { floral: { 1: ['æ— '] }, fruit: { 1: ['æ— '] }, other: { 1: ['æ— '], 2: ['æ— '], 3: ['æ— '] } },
-    autoScore: 0, subjectiveScore: evaluationMode === 'note' ? 80 : 0, scoreDelta: 0,
-    naturalNote: '', direct: Boolean(options.direct), evaluationMode,
-    sourceMode: options.sourceMode || (evaluationMode === 'note' ? 'independent-note-v125' : 'independent-player-v125'),
-    createdAt: new Date().toISOString()
-  };
-}
-
-function filteredSensoryRecords(limit = null) {
-  const filter = state.sensoryFilter;
-  let records = [...state.sensoryRecords];
-  if (filter.beanId) records = records.filter(record => record.beanId === filter.beanId);
-  if (filter.minScore !== '') records = records.filter(record => Number(record.score) >= Number(filter.minScore));
-  if (filter.maxScore !== '') records = records.filter(record => Number(record.score) <= Number(filter.maxScore));
-  if (filter.start) records = records.filter(record => String(record.createdAt).slice(0,10) >= filter.start);
-  if (filter.end) records = records.filter(record => String(record.createdAt).slice(0,10) <= filter.end);
-  records.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
-  return limit == null ? records : records.slice(0, limit);
-}
-
-function authoritativePlanReference(plan = state.currentPlan) {
-  return String(plan?.analysisFingerprint || plan?.trajectory?.planFingerprint || plan?.analysisRequestId || '');
-}
-
-function openSensoryModeChooser({ beanId, brewSessionId = '', source = 'independent', planReference = '', profileId = '' } = {}) {
-  const targetBeanId = String(beanId || state.selectedBeanId || '');
-  if (!targetBeanId || !state.beans.some(bean => bean.id === targetBeanId)) return;
-  state.selectedBeanId = targetBeanId;
-  state.evaluation = null;
-  state.pendingSensoryContext = {
-    beanId: targetBeanId,
-    brewSessionId: String(brewSessionId || ''),
-    source: String(source || 'independent'),
-    planReference: String(planReference || ''),
-    profileId: String(profileId || '')
-  };
-  switchPage('sensory');
-}
-
-function renderSensory() {
-  const container = $('#sensoryContent');
-  const recent = filteredSensoryRecords(5);
-  const current = state.evaluation;
-  const pending = state.pendingSensoryContext;
-  const activeSessionId = String(current?.brewSessionId || pending?.brewSessionId || '');
-  const activePlanReference = String(current?.planReference || pending?.planReference || '');
-  const activeProfileId = String(current?.profileId || pending?.profileId || '');
-  container.dataset.brewSessionId = activeSessionId;
-  container.dataset.planReference = activePlanReference;
-  container.dataset.profileId = activeProfileId;
-  container.dataset.sensoryOrigin = pending?.source || current?.sensorySource || (current?.direct ? 'independent' : '');
-  container.innerHTML = `<section class="panel sensory-history"><button id="sensoryHistoryToggle" class="history-toggle${state.sensoryHistoryOpen?' active':''}" type="button"><span>å¾€æ˜”â€¦â€¦</span><span>${state.sensoryHistoryOpen?'âŒƒ':'âŒ„'}</span></button>${state.sensoryHistoryOpen ? `<div class="record-list">${recent.length?recent.map(recordHtml).join(''):'<p class="muted small">å°šæ— å“é‰´è®°å½•</p>'}</div><button id="sensoryMoreBtn" class="button" type="button">æ›´å¤š</button>` : ''}</section>
-  ${current ? evaluationHtml(current) : `<section class="panel sensory-start-panel"><div class="panel-title centered"><div><h2>æœ¬æ¬¡å“é‰´</h2><p>${pending?.brewSessionId ? 'å†²ç…®è®°å½•å·²ä¿å­˜ï¼Œè¯·é€‰æ‹©ä¸€ç§ç‹¬ç«‹å“é‰´æ¨¡å¼' : pending?.planReference ? 'å†²ç…®æ–¹æ¡ˆå·²å…³è”ï¼Œè¯·é€‰æ‹©ä¸€ç§ç‹¬ç«‹å“é‰´æ¨¡å¼' : 'ä¸“ä¸šæ¯æµ‹ Â· ç©å®¶äº’åŠ¨ Â· æœ­è®°'}</p></div></div><label class="field centered-field"><span>é€‰æ‹©è±†å­</span><select id="sensoryBeanSelect" class="control">${state.beans.filter(bean=>!bean.archived).map(bean=>`<option value="${esc(bean.id)}"${bean.id===state.selectedBeanId?' selected':''}>${esc(beanDisplayName(bean))}</option>`).join('')}</select></label><div class="sensory-start-action" data-sensory-mode-host></div></section>`}`;
-  $('#sensoryHistoryToggle').addEventListener('click', () => { state.sensoryHistoryOpen = !state.sensoryHistoryOpen; renderSensory(); });
-  $('#sensoryMoreBtn')?.addEventListener('click', openSensoryRecordsPage);
-  $('#sensoryBeanSelect')?.addEventListener('change', event => {
-    state.selectedBeanId = event.target.value;
-    if (state.pendingSensoryContext?.beanId !== event.target.value) state.pendingSensoryContext = null;
-  });
-  bindEvaluationEvents(); bindControlStates(container);
-  document.dispatchEvent(new CustomEvent('luckybean:sensory-rendered', { detail: { hasEvaluation: Boolean(current), brewSessionId: activeSessionId } }));
-}
-
-function sensoryModeLabel(record = {}) {
-  if (record.evaluationMode === 'professional' || record.sourceMode === 'independent-cupping-v105') return 'æ¯æµ‹å“é‰´';
-  if (record.evaluationMode === 'note' || record.sourceMode === 'independent-note-v105') return 'æœ­è®°å“é‰´';
-  return 'ç©å®¶äº’åŠ¨å“é‰´';
-}
-
-function recordHtml(record) {
-  const bean = state.beans.find(item=>item.id===record.beanId);
-  const subjective = Number(record.subjectiveScore ?? record.score ?? 0);
-  const auto = Number(record.autoScore || 0);
-  const delta = Number(record.scoreDelta || 0);
-  return `<button class="record-item sensory-record-button" type="button" data-sensory-record="${esc(record.id)}"><span>${formatDate(record.createdAt)}</span><span>${esc(bean ? beanDisplayName(bean) : 'å·²åˆ é™¤è±†å¡')} Â· ${esc(sensoryModeLabel(record))}${record.naturalNote ? `<small>${esc(record.naturalNote)}</small>` : ''}</span><strong>${subjective.toFixed(1)}${Number.isFinite(auto) ? `<small>è‡ªåŠ¨ ${auto.toFixed(1)} Â· å·®${delta>=0?'+':''}${delta.toFixed(1)}</small>` : ''}</strong></button>`;
-}
-
-const RECORD_RADAR_LABELS = Object.freeze({
-  aroma: ['èŠ±é¦™','æœé¦™','èŒ¶æ„Ÿ','åšæœ','é…µæ„Ÿ'],
-  style: ['é£å‘³','ä½™éŸµ','é…¸è´¨','ç”œæ„Ÿ','é†‡åš','å¹²å‡€åº¦','ä¸€è‡´æ€§','å¹³è¡¡åº¦']
-});
-
-function sensoryRadarSvg(values = [], labels = [], title = '') {
-  if (!Array.isArray(values) || values.length < 3) return '';
-  const size = 300, center = 150, radius = 104, max = 10;
-  const point = (index, value = max) => {
-    const angle = -Math.PI / 2 + Math.PI * 2 * index / values.length;
-    const r = radius * clamp(Number(value) / max, 0, 1);
-    return `${(center + Math.cos(angle) * r).toFixed(1)},${(center + Math.sin(angle) * r).toFixed(1)}`;
-  };
-  const rings = [2,4,6,8,10].map(level => `<polygon points="${values.map((_, index) => point(index, level)).join(' ')}"></polygon>`).join('');
-  const axes = values.map((_, index) => `<line x1="${center}" y1="${center}" x2="${point(index, max).split(',')[0]}" y2="${point(index, max).split(',')[1]}"></line>`).join('');
-  const texts = labels.map((label, index) => {
-    const angle = -Math.PI / 2 + Math.PI * 2 * index / values.length;
-    const r = radius + 28;
-    const x = center + Math.cos(angle) * r, y = center + Math.sin(angle) * r;
-    return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="middle">${esc(label)} ${Number(values[index] || 0).toFixed(1)}</text>`;
-  }).join('');
-  return `<figure class="sensory-record-radar"><figcaption>${esc(title)}</figcaption><svg viewBox="0 0 ${size} ${size}" role="img" aria-label="${esc(title)}é›·è¾¾å›¾"><g class="grid">${rings}${axes}</g><polygon class="value" points="${values.map((value, index) => point(index, value)).join(' ')}"></polygon>${texts}</svg></figure>`;
-}
-
-function sensoryStructuredSections(record = {}) {
-  const sections = [];
-  for (const [nodeId, groups] of Object.entries(record.answers || {})) {
-    const label = SENSORY_NODES.find(node => node.id === nodeId)?.label || nodeId;
-    const values = Object.values(groups || {}).flat().filter(Boolean);
-    if (values.length) sections.push({ label, tags: values });
-  }
-  const professional = record.professionalData || {};
-  for (const [key, values] of Object.entries(professional.selections || {})) {
-    if (Array.isArray(values) && values.length) sections.push({ label: key, tags: values, intensity: professional.intensities?.[key] });
-  }
-  if (professional.defects?.major?.length) sections.push({ label: 'æ˜ç¼ºé™·', tags: professional.defects.major });
-  if (professional.defects?.minor?.length) sections.push({ label: 'æš—ç¼ºé™·', tags: professional.defects.minor });
-  return sections;
-}
-
-function openSensoryRecord(recordId, { edit = false } = {}) {
-  const record = state.sensoryRecords.find(item => item.id === recordId);
-  if (!record) return toast('å“é‰´è®°å½•ä¸å­˜åœ¨', 'status-bad');
-  const bean = state.beans.find(item => item.id === record.beanId);
-  const auto = Number(record.autoScore ?? 0), subjective = Number(record.subjectiveScore ?? record.score ?? 0);
-  const professional = record.professionalData || {};
-  const structured = sensoryStructuredSections(record);
-  const radar = [
-    sensoryRadarSvg(professional.radar?.aroma, RECORD_RADAR_LABELS.aroma, 'é¦™æ°”ç»“æ„'),
-    sensoryRadarSvg(professional.radar?.style, RECORD_RADAR_LABELS.style, 'æ¯æµ‹ç»“æ„')
-  ].filter(Boolean).join('');
-  const view = `<div class="sensory-record-view-shell"><div class="record-view-mode-label" aria-hidden="true">è®°å½•æŸ¥çœ‹æ¨¡å¼</div>${dialogHeader('å“é‰´è®°å½•', `${sensoryModeLabel(record)} Â· ${formatDate(record.createdAt)}`, { centered: true })}<section class="record-view-hero"><div><span>å’–å•¡è±†</span><strong>${esc(bean ? beanDisplayName(bean) : 'å·²åˆ é™¤è±†å¡')}</strong></div><div><span>ä¸»è§‚å¾—åˆ†</span><strong>${subjective.toFixed(1)}</strong></div><div><span>è‡ªåŠ¨å¾—åˆ†</span><strong>${auto.toFixed(1)}</strong></div><div><span>åˆ†å·®</span><strong>${record.scoreDelta>=0?'+':''}${Number(record.scoreDelta || subjective-auto).toFixed(1)}</strong></div>${Number.isFinite(Number(record.rawScore90 ?? record.professionalRaw90)) ? `<div><span>æ¯æµ‹åŸå§‹åˆ†</span><strong>${Number(record.rawScore90 ?? record.professionalRaw90).toFixed(1)} / 90</strong></div>` : ''}</section>${radar ? `<section class="record-view-radars">${radar}</section>` : ''}<section class="record-view-tags">${structured.length ? structured.map(section => `<div class="record-tag-group"><h3>${esc(section.label)}${section.intensity != null ? `<small>å¼ºåº¦ ${Number(section.intensity).toFixed(1)}</small>` : ''}</h3><div>${section.tags.map(tag => `<span class="tag">${esc(tag)}</span>`).join('')}</div></div>`).join('') : (record.summary || []).map(item => `<span class="tag">${esc(item)}</span>`).join('') || '<p class="muted">æœ¬è®°å½•æ²¡æœ‰ç»“æ„åŒ–æ ‡ç­¾ã€‚</p>'}</section>${Object.keys(professional.affective || {}).length ? `<section class="record-affective"><h3>æƒ…æ„Ÿè¯„åˆ†</h3>${Object.entries(professional.affective).map(([label,value]) => `<div><span>${esc(label)}</span><strong>${Number(value).toFixed(1)}</strong></div>`).join('')}</section>` : ''}<section class="record-note"><h3>æœ­è®°</h3><p>${record.naturalNote ? esc(record.naturalNote).replaceAll('\n','<br>') : '<span class="muted">æœªå¡«å†™æœ­è®°</span>'}</p></section><div class="row end"><button class="button" type="button" data-close-overlay>è¿”å›</button><button id="editSensoryRecordBtn" class="button primary" type="button">ç¼–è¾‘è®°å½•</button></div></div>`;
-  const editor = sensoryRecordEditorHtml(record, bean);
-  const overlay = showOverlay(edit ? editor : view, { full: true, id: 'sensory-record-view', dialogClass: 'sensory-record-view-dialog' });
-  bindClose(overlay);
-  $('#editSensoryRecordBtn')?.addEventListener('click', () => openSensoryRecord(recordId, { edit: true }));
-  $('#cancelSensoryRecordEditBtn')?.addEventListener('click', () => openSensoryRecord(recordId));
-  $('#saveSensoryRecordEditBtn')?.addEventListener('click', () => saveSensoryRecordEdit(recordId));
-}
-
-function sensoryRecordEditorHtml(record, bean) {
-  const professional = record.professionalData || {};
-  const answerEditors = Object.entries(record.answers || {}).flatMap(([nodeId, groups]) => Object.entries(groups || {}).map(([groupIndex, values]) => `<label class="field"><span>${esc(SENSORY_NODES.find(node => node.id===nodeId)?.label || nodeId)} Â· ç»„${Number(groupIndex)+1}</span><input class="control" data-edit-answer-node="${esc(nodeId)}" data-edit-answer-group="${esc(groupIndex)}" value="${esc((values || []).join('ã€'))}"></label>`)).join('');
-  const selectionEditors = Object.entries(professional.selections || {}).map(([key, values]) => `<label class="field"><span>${esc(key)}æ ‡ç­¾</span><input class="control" data-edit-prof-selection="${esc(key)}" value="${esc((values || []).join('ã€'))}"></label>`).join('');
-  const intensityEditors = Object.entries(professional.intensities || {}).map(([key, value]) => `<label class="field"><span>${esc(key)}å¼ºåº¦</span><input class="control" type="number" min="0" max="15" step="0.5" data-edit-prof-intensity="${esc(key)}" value="${Number(value)}"></label>`).join('');
-  const radarEditors = Object.entries(professional.radar || {}).flatMap(([key, values]) => (values || []).map((value,index) => `<label class="field"><span>${esc((RECORD_RADAR_LABELS[key] || [])[index] || `${key}${index+1}`)}</span><input class="control" type="number" min="0" max="10" step="0.5" data-edit-prof-radar="${esc(key)}" data-edit-prof-radar-index="${index}" value="${Number(value)}"></label>`)).join('');
-  return `<div class="sensory-record-view-shell edit"><div class="record-view-mode-label">è®°å½•ç¼–è¾‘æ¨¡å¼</div>${dialogHeader('ç¼–è¾‘å“é‰´è®°å½•', `${sensoryModeLabel(record)} Â· ${esc(bean ? beanDisplayName(bean) : 'å·²åˆ é™¤è±†å¡')}`, { centered:true })}<div class="form-grid"><label class="field"><span>è‡ªåŠ¨å¾—åˆ†</span><input id="editSensoryAutoScore" class="control" type="number" min="0" max="100" step="0.5" value="${Number(record.autoScore ?? 0)}"></label><label class="field"><span>ä¸»è§‚å¾—åˆ†</span><input id="editSensorySubjectiveScore" class="control" type="number" min="0" max="100" step="0.5" value="${Number(record.subjectiveScore ?? record.score ?? 0)}"></label><label class="field full"><span>æ‘˜è¦æ ‡ç­¾ï¼ˆæ¯è¡Œä¸€é¡¹ï¼‰</span><textarea id="editSensorySummary" class="control">${esc((record.summary || []).join('\n'))}</textarea></label>${answerEditors}${selectionEditors}${intensityEditors}${radarEditors}${professional.defects ? `<label class="field"><span>æ˜ç¼ºé™·</span><input id="editMajorDefects" class="control" value="${esc((professional.defects.major || []).join('ã€'))}"></label><label class="field"><span>æš—ç¼ºé™·</span><input id="editMinorDefects" class="control" value="${esc((professional.defects.minor || []).join('ã€'))}"></label>` : ''}${Object.entries(professional.affective || {}).map(([key,value]) => `<label class="field"><span>${esc(key)}</span><input class="control" type="number" min="0" max="10" step="0.5" data-edit-prof-affective="${esc(key)}" value="${Number(value)}"></label>`).join('')}<label class="field full"><span>æœ­è®°</span><textarea id="editSensoryNote" class="control natural-note" maxlength="1200">${esc(record.naturalNote || '')}</textarea></label></div><div class="row end"><button id="cancelSensoryRecordEditBtn" class="button" type="button">å–æ¶ˆ</button><button id="saveSensoryRecordEditBtn" class="button primary" type="button">ä¿å­˜ä¿®æ”¹</button></div></div>`;
-}
-
-function splitRecordTags(value) {
-  return String(value || '').split(/[ã€,ï¼Œ;ï¼›|/\n]+/).map(item => item.trim()).filter(Boolean);
-}
-
-async function saveSensoryRecordEdit(recordId) {
-  const original = state.sensoryRecords.find(item => item.id === recordId);
-  if (!original) return toast('å“é‰´è®°å½•ä¸å­˜åœ¨', 'status-bad');
-  const record = structuredClone(original);
-  record.autoScore = clamp(parseNumber($('#editSensoryAutoScore').value, 0), 0, 100);
-  record.subjectiveScore = clamp(parseNumber($('#editSensorySubjectiveScore').value, record.autoScore), 0, 100);
-  record.score = record.subjectiveScore;
-  record.scoreDelta = Number((record.subjectiveScore - record.autoScore).toFixed(1));
-  record.summary = String($('#editSensorySummary').value || '').split(/\n+/).map(value => value.trim()).filter(Boolean);
-  record.naturalNote = $('#editSensoryNote').value.trim();
-  record.answers ||= {};
-  $$('[data-edit-answer-node]').forEach(input => {
-    const node = input.dataset.editAnswerNode, group = input.dataset.editAnswerGroup;
-    record.answers[node] ||= {}; record.answers[node][group] = splitRecordTags(input.value);
-  });
-  if (record.professionalData) {
-    record.professionalData.selections ||= {}; record.professionalData.intensities ||= {}; record.professionalData.radar ||= {}; record.professionalData.affective ||= {};
-    $$('[data-edit-prof-selection]').forEach(input => { record.professionalData.selections[input.dataset.editProfSelection] = splitRecordTags(input.value); });
-    $$('[data-edit-prof-intensity]').forEach(input => { record.professionalData.intensities[input.dataset.editProfIntensity] = clamp(parseNumber(input.value,0),0,15); });
-    $$('[data-edit-prof-radar]').forEach(input => { const key=input.dataset.editProfRadar,index=Number(input.dataset.editProfRadarIndex); record.professionalData.radar[key] ||= []; record.professionalData.radar[key][index]=clamp(parseNumber(input.value,0),0,10); });
-    $$('[data-edit-prof-affective]').forEach(input => { record.professionalData.affective[input.dataset.editProfAffective]=clamp(parseNumber(input.value,0),0,10); });
-    if ($('#editMajorDefects')) record.professionalData.defects = { major: splitRecordTags($('#editMajorDefects').value), minor: splitRecordTags($('#editMinorDefects').value) };
-  }
-  record.updatedAt = new Date().toISOString();
-  await put('sensoryRecords', record);
-  const session = state.brewSessions.find(item => item.id === record.brewSessionId);
-  if (session) {
-    session.sensoryNote = record.naturalNote; session.autoScore = record.autoScore;
-    session.subjectiveScore = record.subjectiveScore; session.scoreDelta = record.scoreDelta;
-    await put('brewSessions', session);
-  }
-  await refreshData(); openSensoryRecord(recordId); toast('å“é‰´è®°å½•å·²æ›´æ–°', 'status-good');
-}
-
-function evaluationHtml(evaluation) {
-  if (evaluation.evaluationMode === 'note') return noteEvaluationHtml(evaluation);
-  const node = SENSORY_NODES[evaluation.nodeIndex];
-  const body = node.type === 'score' ? scoreNodeHtml(evaluation) : node.type === 'note' ? noteNodeHtml(evaluation) : node.groups.map((group,index)=>questionGroupHtml(node,group,index,evaluation.answers[node.id]||{})).join('');
-  const last = evaluation.nodeIndex === SENSORY_NODES.length - 1;
-  return `<section class="panel sensory-evaluation" data-sensory-mode="player"><div class="panel-title sensory-title-centered"><div><h2>${esc(node.label)}</h2><p>${esc(beanDisplayName(state.beans.find(b=>b.id===evaluation.beanId) || {}))}</p></div></div><div class="sensory-progress">${SENSORY_NODES.map((_,i)=>`<span class="${i<evaluation.nodeIndex?'done':i===evaluation.nodeIndex?'current':''}"></span>`).join('')}</div>${body}<div class="sensory-navigation"><button id="cancelEvaluationBtn" class="button subtle" type="button">å–æ¶ˆ</button><button id="prevSensoryNodeBtn" class="button" type="button"${evaluation.nodeIndex===0?' disabled':''}>é€€</button><button id="nextSensoryNodeBtn" class="button primary" type="button">${last?'å®Œæˆå“é‰´':node.type==='score'?'æœ­è®°':'è¿›'}</button></div></section>`;
-}
-
-function noteEvaluationHtml(evaluation) {
-  const score = clamp(Number(evaluation.subjectiveScore ?? 80), 0, 100);
-  return `<section class="panel sensory-evaluation sensory-note-editor" data-sensory-mode="note"><div class="panel-title sensory-title-centered"><div><h2>æœ­è®°</h2><p>${esc(beanDisplayName(state.beans.find(b=>b.id===evaluation.beanId) || {}))}</p></div></div><div class="question-group score-comparison note-score"><label class="field"><span>æœ¬æ¬¡è¯„åˆ† <output id="sensoryNoteScoreOutput">${score.toFixed(1)}</output></span><input id="sensoryNoteScore" type="range" min="0" max="100" step="0.5" value="${score}" aria-label="æœ¬æ¬¡æœ­è®°è¯„åˆ†"></label></div>${noteNodeHtml(evaluation)}<div class="sensory-navigation note-navigation"><button id="cancelEvaluationBtn" class="button subtle" type="button">å–æ¶ˆ</button><button id="saveSensoryNoteBtn" class="button primary" type="button">ä¿å­˜æœ­è®°</button></div></section>`;
-}
-
-function questionGroupHtml(node, group, groupIndex, answer) {
-  const selected = new Set(answer[groupIndex] || []);
-  return `<div class="question-group centered-question"><h4>${esc(group.label)}</h4><div class="sensory-options">${group.options.map(option=>`<button type="button" class="sensory-option${selected.has(option)?' selected':''}" data-sensory-option="${esc(option)}" data-group-index="${groupIndex}" data-single="${Boolean(group.single)}">${esc(option)}</button>`).join('')}</div></div>`;
-}
-function scoreNodeHtml(evaluation) {
-  const autoScore = computeAutomaticScore(evaluation.answers);
-  const delta = clamp(Number(evaluation.scoreDelta || 0), -10, 10);
-  const derivedScore = clamp(autoScore + delta, 0, 100);
-  return `<div class="question-group score-comparison delta-only"><div class="score-head-row"><span>è‡ªåŠ¨å¾—åˆ†</span><span>ä¸»è§‚åˆ†å·®</span></div><div class="score-value-row"><strong id="sensoryAutoScore">${autoScore.toFixed(1)}</strong><div class="subjective-delta-control"><strong id="sensoryScoreDelta">${delta>=0?'+':''}${delta.toFixed(1)}</strong><input id="sensoryDeltaWheel" class="subjective-delta-wheel" type="range" min="-10" max="10" step="0.5" value="${delta}" aria-label="ä¸Šä¸‹æ»‘åŠ¨è®¾ç½®ä¸»è§‚åˆ†å·®"></div></div><div class="score-derived-row"><small>æŠ˜ç®—æ€»åˆ†</small><small id="sensoryDerivedScore">${derivedScore.toFixed(1)}</small></div></div>`;
-}
-
-function noteNodeHtml(evaluation) {
-  return `<div class="question-group centered-question"><h4>è‡ªç„¶æ–‡å­—è®°å½•</h4><textarea id="sensoryNaturalNote" class="control natural-note" maxlength="1200" placeholder="æè¿°æœ¬æ¬¡å†²ç…®çš„é¦™æ°”ã€é…¸ç”œã€å£æ„Ÿã€é—®é¢˜åŠä¸‹ä¸€æ¬¡è°ƒæ•´æ–¹å‘â€¦â€¦">${esc(evaluation.naturalNote || '')}</textarea><div class="row menu-row sensory-note-actions"><button id="sensoryVoiceNoteBtn" class="button" type="button">è¯­è®°</button><span class="muted small">æ–‡å­—å°†å†™å…¥å“é‰´è®°å½•å’Œå¯¹åº”å†²ç…®è®°å½•ã€‚</span></div></div>`;
-}
-
-function bindEvaluationEvents() {
-  $('#cancelEvaluationBtn')?.addEventListener('click', () => { state.evaluation = null; renderSensory(); });
-  $$('.sensory-option').forEach(button => button.addEventListener('click', () => {
-    const node = SENSORY_NODES[state.evaluation.nodeIndex]; const groupIndex = Number(button.dataset.groupIndex);
-    state.evaluation.answers[node.id] ||= {}; state.evaluation.answers[node.id][groupIndex] ||= [];
-    let selected = state.evaluation.answers[node.id][groupIndex];
-    if (button.dataset.single === 'true') selected = selected.includes(button.dataset.sensoryOption) ? [] : [button.dataset.sensoryOption];
-    else selected = selected.includes(button.dataset.sensoryOption) ? selected.filter(v=>v!==button.dataset.sensoryOption) : [...selected, button.dataset.sensoryOption];
-    state.evaluation.answers[node.id][groupIndex] = selected; renderSensory();
-  }));
-  $('#sensoryDeltaWheel')?.addEventListener('input', event => {
-    const auto = computeAutomaticScore(state.evaluation.answers);
-    const delta = clamp(parseNumber(event.target.value, 0), -10, 10);
-    state.evaluation.autoScore = auto; state.evaluation.scoreDelta = delta; state.evaluation.subjectiveScore = clamp(auto + delta, 0, 100);
-    if ($('#sensoryScoreDelta')) $('#sensoryScoreDelta').textContent = `${delta>=0?'+':''}${delta.toFixed(1)}`;
-    if ($('#sensoryDerivedScore')) $('#sensoryDerivedScore').textContent = state.evaluation.subjectiveScore.toFixed(1);
-  });
-  $('#sensoryNoteScore')?.addEventListener('input', event => {
-    const score = clamp(parseNumber(event.target.value, 80), 0, 100);
-    state.evaluation.subjectiveScore = score;
-    if ($('#sensoryNoteScoreOutput')) $('#sensoryNoteScoreOutput').textContent = score.toFixed(1);
-  });
-  $('#sensoryNaturalNote')?.addEventListener('input', event => { state.evaluation.naturalNote = event.target.value; });
-  $('#sensoryVoiceNoteBtn')?.addEventListener('click', () => startSpeechRecognition('sensoryNaturalNote'));
-  $('#saveSensoryNoteBtn')?.addEventListener('click', async () => {
-    state.evaluation.subjectiveScore = clamp(parseNumber($('#sensoryNoteScore')?.value, state.evaluation.subjectiveScore || 80), 0, 100);
-    state.evaluation.naturalNote = $('#sensoryNaturalNote')?.value.trim() || '';
-    if (!state.evaluation.naturalNote) return toast('è¯·å…ˆå¡«å†™æœ­è®°å†…å®¹', 'status-warn');
-    await saveEvaluation();
-  });
-  $('#prevSensoryNodeBtn')?.addEventListener('click', () => { state.evaluation.nodeIndex = Math.max(0, state.evaluation.nodeIndex-1); renderSensory(); });
-  $('#nextSensoryNodeBtn')?.addEventListener('click', async () => {
-    const node = SENSORY_NODES[state.evaluation.nodeIndex];
-    if (node.type === 'note') {
-      state.evaluation.naturalNote = $('#sensoryNaturalNote')?.value.trim() || '';
-      await saveEvaluation(); return;
-    }
-    if (node.type === 'score') {
-      const auto = computeAutomaticScore(state.evaluation.answers);
-      const delta = clamp(parseNumber($('#sensoryDeltaWheel')?.value, state.evaluation.scoreDelta || 0), -10, 10);
-      const subjective = clamp(auto + delta, 0, 100);
-      state.evaluation.autoScore = auto; state.evaluation.subjectiveScore = subjective; state.evaluation.score = subjective; state.evaluation.scoreDelta = delta;
-      state.evaluation.nodeIndex += 1; renderSensory(); return;
-    }
-    const answers = state.evaluation.answers[node.id] || {};
-    const incomplete = node.groups.some((_, index) => !Array.isArray(answers[index]) || answers[index].length === 0);
-    if (incomplete) return toast(`è¯·å®Œæˆâ€œ${node.label}â€èŠ‚ç‚¹ï¼›æ²¡æœ‰æ„ŸçŸ¥æ—¶è¯·é€‰æ‹©â€œæ— â€`, 'status-warn');
-    state.evaluation.nodeIndex += 1; renderSensory();
-  });
-}
-
-async function saveProfessionalEvaluation(detail = {}) {
-  const beanId = String(detail.beanId || state.selectedBeanId || '');
-  if (!beanId || !state.beans.some(bean => bean.id === beanId)) return toast('æ¯æµ‹è®°å½•ç¼ºå°‘æœ‰æ•ˆè±†å¡', 'status-bad');
-  const now = new Date().toISOString();
-  const pending = state.pendingSensoryContext?.beanId === beanId ? state.pendingSensoryContext : {};
-  const score = clamp(Number(detail.score || 0), 0, 100);
-  const record = {
-    id: uid('sensory'),
-    beanId,
-    brewSessionId: String(detail.brewSessionId || pending.brewSessionId || ''),
-    planReference: String(detail.planReference || pending.planReference || ''),
-    profileId: String(detail.profileId || pending.profileId || ''),
-    sensorySource: String(detail.source || pending.source || 'independent'),
-    evaluationMode: 'professional',
-    sourceMode: 'independent-cupping-v120',
-    professionalData: structuredClone(detail.professionalData || {}),
-    summary: Array.isArray(detail.summary) ? detail.summary.map(String) : [],
-    autoScore: score,
-    subjectiveScore: score,
-    score,
-    scoreDelta: 0,
-    naturalNote: String(detail.naturalNote || '').trim(),
-    preferenceTags: [],
-    createdAt: now,
-    updatedAt: now
-  };
-  const session = state.brewSessions.find(item => item.id === record.brewSessionId);
-  if (session?.schemaVersion === 'brew-history/1.0') {
-    await attachSensoryToCompletedBrew({ recordId: session.id, sensoryRecord: record, nextPlanDraft: null });
-  } else {
-    await put('sensoryRecords', record);
-    if (session) {
-      session.sensoryRecordId = record.id;
-      session.sensoryNote = record.naturalNote;
-      session.autoScore = score;
-      session.subjectiveScore = score;
-      session.scoreDelta = 0;
-      await put('brewSessions', session);
-    }
-  }
-  await refreshData();
-  state.evaluation = null;
-  state.pendingSensoryContext = null;
-  switchPage('beans');
-  requestAnimationFrame(() => detailBean(beanId));
-  toast('ä¸“ä¸šæ¯æµ‹è®°å½•å·²ä¿å­˜', 'status-good');
-}
-
-document.addEventListener('luckybean:start-sensory-mode', event => {
-  const mode = event.detail?.mode === 'note' ? 'note' : 'player';
-  const beanId = String(event.detail?.beanId || state.selectedBeanId || '');
-  if (!beanId) return;
-  const pending = state.pendingSensoryContext?.beanId === beanId ? state.pendingSensoryContext : {};
-  startEvaluation(beanId, {
-    direct: true,
-    brewSessionId: String(event.detail?.brewSessionId || pending.brewSessionId || ''),
-    planReference: String(event.detail?.planReference || pending.planReference || ''),
-    profileId: String(event.detail?.profileId || pending.profileId || ''),
-    sensorySource: String(event.detail?.source || pending.source || 'independent'),
-    evaluationMode: mode,
-    sourceMode: mode === 'note' ? 'independent-note-v125' : 'independent-player-v125'
-  });
-  state.pendingSensoryContext = null;
-  renderSensory();
-});
-
-document.addEventListener('luckybean:professional-sensory-complete', event => {
-  saveProfessionalEvaluation(event.detail || {}).catch(error => toast(error.message || 'ä¸“ä¸šæ¯æµ‹ä¿å­˜å¤±è´¥', 'status-bad'));
-});
-
-async function saveEvaluation() {
-  const evaluation = state.evaluation; if (!evaluation) return;
-  const bean = state.beans.find(item => item.id === evaluation.beanId);
-  const summary = [];
-  for (const node of SENSORY_NODES.filter(item => !['score','note'].includes(item.type))) {
-    const values = Object.values(evaluation.answers[node.id] || {}).flat();
-    if (values.length && !values.every(value => value === 'æ— ')) summary.push(`${node.label}:${values.join('/')}`);
-  }
-  const noteOnly = evaluation.evaluationMode === 'note';
-  const autoScore = noteOnly ? clamp(Number(evaluation.subjectiveScore || 80), 0, 100) : Number(evaluation.autoScore || computeAutomaticScore(evaluation.answers));
-  const scoreDelta = noteOnly ? 0 : clamp(Number(evaluation.scoreDelta || 0), -10, 10);
-  const subjectiveScore = noteOnly ? autoScore : clamp(autoScore + scoreDelta, 0, 100);
-  const record = {
-    ...evaluation, summary, autoScore, subjectiveScore, score: subjectiveScore,
-    scoreDelta, naturalNote: String(evaluation.naturalNote || '').trim(),
-    preferenceTags: sensoryPreferenceTags({ ...evaluation, autoScore, subjectiveScore }, bean || {}), updatedAt: new Date().toISOString()
-  };
-  delete record.nodeIndex;
-
-  let correctionSaved = false;
-  const session = state.brewSessions.find(item => item.id === record.brewSessionId);
-  if (session?.schemaVersion === 'brew-history/1.0') {
-    let nextPlanDraft = null;
-    if (subjectiveScore < autoScore && (session.normalizedInput || session.rawInput)) {
-      const sourceInput = session.normalizedInput || session.rawInput;
-      const sourcePlan = session.analysisSnapshot?.plan || session;
-      const corrected = await buildCorrectedPlan(sourceInput, record, sourcePlan);
-      const hasIssue = Object.values(corrected.correction?.issues || {}).some(Boolean);
-      if (hasIssue) {
-        corrected.id = uid('draft');
-        corrected.beanId = record.beanId;
-        corrected.createdAt = new Date().toISOString();
-        corrected.sourceHistoryId = session.id;
-        corrected.input = corrected.input || sourceInput;
-        record.correctedPlanId = corrected.id;
-        nextPlanDraft = corrected;
-        correctionSaved = true;
-      }
-    }
-    await attachSensoryToCompletedBrew({ recordId: session.id, sensoryRecord: record, nextPlanDraft });
-  } else {
-    if (session) {
-      session.sensoryRecordId = record.id;
-      session.sensoryNote = record.naturalNote;
-      session.autoScore = autoScore;
-      session.subjectiveScore = subjectiveScore;
-      session.scoreDelta = record.scoreDelta;
-      await put('brewSessions', session);
-    }
-    await put('sensoryRecords', record);
-  }
-  await refreshData(); state.evaluation = null; state.pendingSensoryContext = null;
-  switchPage('beans'); requestAnimationFrame(()=>detailBean(record.beanId));
-  if (correctionSaved) toast('å“é‰´å·²ä¿å­˜ï¼Œå¹¶ç”Ÿæˆä¸‹ä¸€æ¬¡ä¿®æ­£è‰æ¡ˆ', 'status-warn');
-  else if (subjectiveScore < autoScore) toast('å“é‰´å·²ä¿å­˜ï¼›ä¸»è§‚åˆ†ä½äºè‡ªåŠ¨åˆ†ï¼Œå·²è®°å½•åˆ†å·®', 'status-warn');
-  else toast('å“é‰´ä¸ä¸ªäººåå¥½å·²ä¿å­˜', 'status-good');
-}
-
-function openSensoryRecordsPage() {
-  const limit = clamp(state.settings.sensoryRecentLimit || 50, 5, 200);
-  const records = filteredSensoryRecords(limit);
-  const overlay = showOverlay(`${dialogHeader('å“é‰´è®°å½•', `æ˜¾ç¤ºæœ€è¿‘ ${limit} æ¡ï¼Œè¾ƒæ—©è®°å½•å¯åœ¨è¯¹å‰ä¸­æŸ¥æ‰¾`)}<div class="row end"><button id="sensoryRecordSettingsBtn" class="button active" type="button">è®¾</button><button id="sensoryRecordFilterBtn" class="button" type="button">ç­›é€‰</button></div><div class="record-list">${records.length?records.map(recordHtml).join(''):'<p class="muted">å°šæ— è®°å½•</p>'}</div>`, { full: true, id: 'sensory-records' });
-  bindClose(overlay);
-  $('#sensoryRecordSettingsBtn').addEventListener('click', openSensoryRetentionSettings);
-  $('#sensoryRecordFilterBtn').addEventListener('click', openSensoryFilter);
-}
-function openSensoryRetentionSettings() {
-  const overlay = showOverlay(`${dialogHeader('è®°å½•ä¿ç•™æ˜¾ç¤ºæ•°', 'å¯è®¾ 5â€“200 æ¡ï¼›æ›´æ—©è®°å½•ä¸ä¼šåˆ é™¤ï¼Œç»Ÿä¸€è¿›å…¥è¯¹å‰')}<label class="field"><span>æ˜¾ç¤ºæ¡æ•°</span><input id="sensoryRecentLimitInput" class="control" type="number" min="5" max="200" step="5" value="${clamp(state.settings.sensoryRecentLimit || 50,5,200)}"></label><button id="saveSensoryLimitBtn" class="button primary" type="button">ä¿å­˜</button>`, { id: 'sensory-limit' });
-  bindClose(overlay);
-  $('#saveSensoryLimitBtn').addEventListener('click', async () => { state.settings.sensoryRecentLimit = clamp(parseNumber($('#sensoryRecentLimitInput').value,50),5,200); await saveSettings(); closeOverlay(); openSensoryRecordsPage(); });
-}
-function openSensoryFilter() {
-  const f = state.sensoryFilter;
-  const overlay = showOverlay(`${dialogHeader('ç­›é€‰å“é‰´è®°å½•')}<div class="form-grid"><label class="field"><span>å’–å•¡è±†</span><select id="filterSensoryBean" class="control"><option value="">å…¨éƒ¨è±†å¡</option>${state.beans.map(b=>`<option value="${esc(b.id)}"${f.beanId===b.id?' selected':''}>${esc(beanDisplayName(b))}</option>`).join('')}</select></label><label class="field"><span>æœ€ä½åˆ†</span><input id="filterMinScore" class="control" type="number" min="0" max="100" value="${esc(f.minScore)}"></label><label class="field"><span>æœ€é«˜åˆ†</span><input id="filterMaxScore" class="control" type="number" min="0" max="100" value="${esc(f.maxScore)}"></label><label class="field"><span>å¼€å§‹æ—¥æœŸ</span><input id="filterStartDate" class="control" type="date" value="${esc(f.start)}"></label><label class="field"><span>ç»“æŸæ—¥æœŸ</span><input id="filterEndDate" class="control" type="date" value="${esc(f.end)}"></label></div><div class="row end"><button id="resetSensoryFilter" class="button subtle" type="button">é‡ç½®</button><button id="applySensoryFilter" class="button primary" type="button">åº”ç”¨</button></div>`);
-  bindClose(overlay);
-  $('#resetSensoryFilter').addEventListener('click',()=>{state.sensoryFilter={beanId:'',minScore:'',maxScore:'',start:'',end:'',expanded:false};closeOverlay();renderSensory();});
-  $('#applySensoryFilter').addEventListener('click',()=>{state.sensoryFilter={...state.sensoryFilter,beanId:$('#filterSensoryBean').value,minScore:$('#filterMinScore').value,maxScore:$('#filterMaxScore').value,start:$('#filterStartDate').value,end:$('#filterEndDate').value};closeOverlay();renderSensory();});
-}
-
-async function ensureQrCodeLibrary() {
-  if (globalThis.QRCode) return globalThis.QRCode;
-  return new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';script.onload=()=>globalThis.QRCode?resolve(globalThis.QRCode):reject(new Error('äºŒç»´ç ç”Ÿæˆåº“åŠ è½½å¤±è´¥'));script.onerror=()=>reject(new Error('äºŒç»´ç ç”Ÿæˆåº“åŠ è½½å¤±è´¥'));document.head.append(script);});
-}
-function sharePayload(bean) {
-  const sessions = state.brewSessions.filter(session => session.beanId === bean.id);
-  const records = state.sensoryRecords.filter(record => record.beanId === bean.id);
-  return buildCompactSharePayload({
-    appVersion: APP_VERSION,
-    user: { publicId: state.settings.identity.publicId || '', nickname: state.settings.identity.nickname || 'åŒ¿å' },
-    bean,
-    brewSessions: sessions,
-    sensoryRecords: records,
-    names: { displayName: beanDisplayName(bean) }
-  });
-}
-
-async function encodeShare(payload) {
-  return encodeSharePayload(payload);
-}
-
-async function decodeShare(encoded) {
-  if (String(encoded).startsWith('LB8')) return decodeSharePayload(encoded);
-  const base64 = encoded.replaceAll('-','+').replaceAll('_','/')+'='.repeat((4-encoded.length%4)%4);
-  const binary = atob(base64);
-  const legacy = JSON.parse(new TextDecoder().decode(Uint8Array.from(binary, char => char.charCodeAt(0))));
-  return { ...legacy, brewSessions: legacy.plan ? [legacy.plan] : [], sensoryRecords: legacy.sensory ? [legacy.sensory] : [], legacy: true };
-}
-
-function shareHtmlDocument(payload) {
-  const bean = payload.bean || {};
-  const display = bean.name || [codeName('countries', bean.countryCode, ''), codeName('varieties', bean.varietyCode, '')].filter(Boolean).join(' Â· ') || 'åˆ†äº«è±†å¡';
-  const sessions = payload.brewSessions || (payload.plan ? [payload.plan] : []);
-  const sensory = payload.sensoryRecords || (payload.sensory ? [payload.sensory] : []);
-  const planBlocks = sessions.length ? sessions.map((plan, index) => `<section class="card"><h2>å†²ç…®è®°å½• ${index + 1}${plan.correction ? ' Â· ä¿®æ­£æ–¹æ¡ˆ' : ''}</h2><p class="muted">${esc(plan.profile?.label || plan.profileVersion || '')} Â· ${formatDate(plan.createdAt)}</p><ol>${(plan.stages || []).map(stage=>`<li>${Number(stage.durationSec).toFixed(0)}s / ${Number(stage.stageWaterG).toFixed(0)}g / ${esc(stage.methodCode || '')} / ${Number(stage.temperatureC).toFixed(0)}Â°C Â· ${esc(stage.method || '')}</li>`).join('')}</ol>${plan.correction?.changes ? `<p>${esc(plan.correction.changes.join('ï¼›'))}</p>` : ''}</section>`).join('') : '<section class="card"><h2>å†²ç…®è®°å½•</h2><p>æœªåˆ†äº«æ–¹æ¡ˆ</p></section>';
-  const sensoryBlocks = sensory.length ? sensory.map(record=>`<div class="record"><strong>${Number(record.subjectiveScore ?? record.score ?? 0).toFixed(1)}</strong><span>è‡ªåŠ¨ ${Number(record.autoScore || 0).toFixed(1)} Â· åˆ†å·® ${Number(record.scoreDelta || 0).toFixed(1)}</span><p>${esc((record.summary || []).join('ï¼›'))}</p>${record.naturalNote ? `<p>${esc(record.naturalNote)}</p>` : ''}</div>`).join('') : '<p>æœªåˆ†äº«å“é‰´è®°å½•</p>';
-  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(display)} Â· å¯Œè´µç›’å­</title><style>body{max-width:720px;margin:auto;padding:24px;background:#090a0a;color:#f4f2eb;font-family:system-ui;line-height:1.7}.card{padding:10px 0;margin:16px 0;background:#090a0a}.muted{color:#92928e}li{margin:8px 0}.record{padding:12px 0;border-bottom:1px dashed #665}.record strong{font-size:24px;margin-right:12px}.record span{color:#b6a47a}</style></head><body><h1>${esc(display)}</h1><p class="muted">ç”± ${esc(payload.user?.nickname || 'åŒ¿å')} åˆ†äº« Â· ${formatDate(payload.sharedAt)}</p><section class="card"><h2>è±†å¡</h2><p>${esc([codeName('countries',bean.countryCode,''),codeName('regions',bean.regionCode,''),codeName('varieties',bean.varietyCode,''),codeName('processes',bean.processCode,''),ROAST_NAME.get(bean.roastCode)||''].filter(Boolean).join(' Â· '))}</p><p>${esc((bean.flavorCodes||[]).map(code=>codeName('flavors',code,code)).join('ã€'))}</p></section>${planBlocks}<section class="card"><h2>å“é‰´</h2>${sensoryBlocks}</section><p class="muted">Lucky Bean compact share v0.8 Â· BrewIon code fields</p></body></html>`;
-}
-
-async function openShareDialog(bean) {
-  const compact = sharePayload(bean);
-  let encoded;
-  try { encoded = await encodeShare(compact); }
-  catch (error) { return toast(`åˆ†äº«ç¼–ç å¤±è´¥ï¼š${error.message}`, 'status-bad'); }
-  const payload = await decodeShare(encoded);
-  const link = `${location.origin}${location.pathname}#share=${encoded}`;
-  const tooLong = encoded.length > 8000;
-  const content = `${dialogHeader('åˆ†äº«è±†å¡', tooLong ? 'å†…å®¹è¶…è¿‡å®‰å…¨é“¾æ¥é•¿åº¦ï¼Œè¯·ä¿å­˜ç½‘é¡µæ–‡ä»¶' : `å·²å‹ç¼© ${payload.brewSessions?.length || 0} æ¡å†²ç…®å’Œ ${payload.sensoryRecords?.length || 0} æ¡å“é‰´`)}<div class="row menu-row"><button id="shareQrTab" class="button primary" type="button">äºŒç»´ç </button><button id="shareLinkTab" class="button" type="button">é“¾æ¥</button></div><div id="shareQrPanel"><div id="shareQrBox" class="qr-box"><span class="muted">æ­£åœ¨ç”ŸæˆäºŒç»´ç â€¦</span></div></div><div id="shareLinkPanel" class="hidden"><div class="share-link-row"><div class="control ellipsis">${esc(tooLong?'å†…å®¹è¿‡é•¿ï¼Œä¸ç”Ÿæˆ URL':link)}</div><button id="copyShareLinkBtn" class="button" type="button"${tooLong?' disabled':''}>å¤åˆ¶</button></div></div><div class="grid-2"><button id="saveQrBtn" class="button" type="button"${tooLong?' disabled':''}>ä¿å­˜äºŒç»´ç  PNG</button><button id="saveShareHtmlBtn" class="button" type="button">ä¿å­˜åˆ†äº«ç½‘é¡µ</button></div><label class="field"><span>æœ¬æœºå¤‡æ³¨ï¼ˆä¸ä¼šåŒæ­¥ç»™è®¿é—®è€…ï¼‰</span><textarea id="shareLocalNote" class="control" placeholder="ä»…ä¿å­˜åœ¨å½“å‰è®¾å¤‡"></textarea></label><p class="muted small">ç¼–ç å­—æ®µä½¿ç”¨ BrewIon å›½å®¶ã€è±†ç§ã€å¤„ç†æ³•ä¸é£å‘³ä»£ç ï¼›å†²ç…®é˜¶æ®µé‡‡ç”¨â€œæ—¶é—´/å…‹é‡/æ³¨æ°´æ³•ç¼–ç /æ¸©åº¦â€ç»“æ„ã€‚</p>`;
-  const overlay = showOverlay(content,{id:'share'});bindClose(overlay);
-  const showTab = tab => { $('#shareQrPanel').classList.toggle('hidden',tab!=='qr');$('#shareLinkPanel').classList.toggle('hidden',tab!=='link');$('#shareQrTab').classList.toggle('primary',tab==='qr');$('#shareLinkTab').classList.toggle('primary',tab==='link'); };
-  $('#shareQrTab').addEventListener('click',()=>showTab('qr'));$('#shareLinkTab').addEventListener('click',()=>showTab('link'));
-  $('#copyShareLinkBtn').addEventListener('click',async()=>{await navigator.clipboard.writeText(link);toast('å‹ç¼©åˆ†äº«é“¾æ¥å·²å¤åˆ¶');});
-  $('#saveShareHtmlBtn').addEventListener('click',()=>downloadBlob(`${beanDisplayName(bean)}_å¯Œè´µç›’å­åˆ†äº«.html`,shareHtmlDocument(payload),'text/html;charset=utf-8'));
-  get('shareDrafts', bean.id).then(draft => { if (draft?.note && $('#shareLocalNote')) $('#shareLocalNote').value = draft.note; }).catch(() => {});
-  $('#shareLocalNote').addEventListener('change', () => put('shareDrafts', { id: bean.id, note: $('#shareLocalNote').value.slice(0, 1000), updatedAt: new Date().toISOString() }));
-  if (!tooLong) ensureQrCodeLibrary().then(()=>{const box=$('#shareQrBox');box.innerHTML='';new QRCode(box,{text:link,width:220,height:220,correctLevel:QRCode.CorrectLevel.L});}).catch(error=>$('#shareQrBox').textContent=error.message);
-  $('#saveQrBtn').addEventListener('click',()=>{const canvas=$('#shareQrBox canvas');const image=$('#shareQrBox img');if(canvas)canvas.toBlob(blob=>downloadBlob(`${beanDisplayName(bean)}_åˆ†äº«äºŒç»´ç .png`,blob,'image/png'));else if(image)fetch(image.src).then(response=>response.blob()).then(blob=>downloadBlob(`${beanDisplayName(bean)}_åˆ†äº«äºŒç»´ç .png`,blob,'image/png'));else toast('äºŒç»´ç å°šæœªç”Ÿæˆ');});
-}
-
-function renderSharedPayload(payload) {
-  assertPlainObject(payload,'åˆ†äº«æ•°æ®');
-  $('#loginScreen')?.classList.add('hidden'); $('#appShell').classList.add('hidden');
-  document.body.innerHTML = shareHtmlDocument(payload).match(/<body[^>]*>([\s\S]*)<\/body>/i)?.[1] || '<p>åˆ†äº«æ•°æ®æ— æ•ˆ</p>';
-}
-
-function openHistory() {
-  const archived = state.beans.filter(bean=>bean.archived || Number(bean.remainingWeight)<=0);
-  const recentLimit = clamp(state.settings.sensoryRecentLimit || 50, 5, 200);
-  const oldSensory = [...state.sensoryRecords].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(recentLimit);
-  const oldBrews = [...state.brewSessions].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(recentLimit);
-  const content = `${dialogHeader('æ’·', 'è¯¹å‰ä¸­çš„è±†å¡ä¸è¾ƒæ—©è®°å½•', { closable: false })}<div class="history-scroll"><details class="details-block" open><summary>è±†å¡æ—§è— Â· ${archived.length}</summary><div class="details-content"><div class="bean-grid compact-grid">${archived.length?archived.map(beanCardHtml).join(''):'<p class="muted">æš‚æ— å½’æ¡£è±†å¡</p>'}</div></div></details><details class="details-block"><summary>æ—§å“é‰´ Â· ${oldSensory.length}</summary><div class="details-content record-list">${oldSensory.length?oldSensory.slice(0,200).map(recordHtml).join(''):'<p class="muted">æš‚æ— è¾ƒæ—©å“é‰´</p>'}</div></details><details class="details-block"><summary>æ—§å†²ç…® Â· ${oldBrews.length}</summary><div class="details-content record-list">${oldBrews.length?oldBrews.slice(0,200).map(sessionRecordHtml).join(''):'<p class="muted">æš‚æ— è¾ƒæ—©å†²ç…®</p>'}</div></details></div><button class="bottom-return" type="button" data-close-overlay>é€€</button>`;
-  const overlay = showOverlay(content,{id:'history',backdropClose:true,dialogClass:'history-sheet bottom-sheet'});bindClose(overlay);
-  overlay.addEventListener('click', event => {
-    const replay = event.target.closest('[data-replay-session]'); if (replay) return loadBrewSession(replay.dataset.replaySession);
-    const card = event.target.closest('[data-bean-id]'); if (card) detailBean(card.dataset.beanId);
-  });
-}
-
-function gearSubpageHtml({ kind, title, subtitle, count, listHtml, emptyText }) {
-  return `<details class="gear-subpage" data-gear-kind="${kind}"><summary><span><strong>${title}</strong><small>${subtitle}</small></span><b>${count}é¡¹</b></summary><div class="gear-subpage-body"><div class="gear-subpage-actions"><button class="button" type="button" data-add-gear="${kind}">æ·»åŠ ${title}</button></div><div class="gear-list">${listHtml || `<p class="muted small">${emptyText}</p>`}</div></div></details>`;
-}
-
-function gearManagerHtml() {
-  const gear = normalizeGearSettings(state.settings.gear);
-  const lowIds = new Set(gear.filters.filter(item => Number(item.quantity) < 10).map(item => item.id));
-  const filters = gear.filters.map(item=>`<button class="gear-item${lowIds.has(item.id)?' low-stock':''}" type="button" data-filter-item="${esc(item.id)}"><span><strong>${esc([item.brand,item.type].filter(Boolean).join(' '))}</strong><small>ä»·æ ¼ Â¥${Number(item.price||0).toFixed(2)}</small></span><b>${Math.floor(Number(item.quantity)||0)}å¼ </b></button>`).join('');
-  const drippers = gear.drippers.map(item=>`<button class="gear-item" type="button" data-dripper-item="${esc(item.id)}"><span><strong>${esc(item.name)}</strong><small>${esc(item.type)} Â· Â¥${Number(item.price||0).toFixed(2)}</small></span><b>ç¼–è¾‘</b></button>`).join('');
-  const grinders = gear.grinders.map(item=>`<button class="gear-item" type="button" data-grinder-item="${esc(item.id)}"><span><strong>${esc(item.name)}</strong><small>${esc(item.setting || 'æœªå¡«å†™åˆ»åº¦')} Â· Â¥${Number(item.price||0).toFixed(2)}</small></span><b>ç¼–è¾‘</b></button>`).join('');
-  return `<div class="gear-manager">${gearSubpageHtml({kind:'filter',title:'æ»¤çº¸',subtitle:'å“ç‰Œã€ç±»å‹ã€å¼ æ•°å’Œä»·æ ¼',count:gear.filters.length,listHtml:filters,emptyText:'å°šæœªæ·»åŠ æ»¤çº¸ã€‚å®Œæˆå†²ç…®åä¼šè‡ªåŠ¨æ‰£å‡æ‰€é€‰æ»¤çº¸ 1 å¼ ã€‚'})}${gearSubpageHtml({kind:'dripper',title:'æ»¤æ¯',subtitle:'åç§°ã€ç±»å‹å’Œä»·æ ¼',count:gear.drippers.length,listHtml:drippers,emptyText:'å°šæœªæ·»åŠ æ»¤æ¯ã€‚'})}${gearSubpageHtml({kind:'grinder',title:'ç£¨è±†æœº',subtitle:'åç§°ã€åˆ»åº¦å’Œä»·æ ¼',count:gear.grinders.length,listHtml:grinders,emptyText:'å°šæœªæ·»åŠ ç£¨è±†æœºã€‚'})}</div>`;
-}
-
-function openAddFilterDialog(existingId = '') {
-  state.settings.gear = normalizeGearSettings(state.settings.gear);
-  const existing = state.settings.gear.filters.find(item => item.id === existingId) || {};
-  const overlay = showOverlay(`${dialogHeader(existingId?'ç¼–è¾‘æ»¤çº¸':'æ·»åŠ æ»¤çº¸', 'ç±»å‹å’Œå¼ æ•°ä¸ºå¿…å¡«é¡¹', { centered:true })}<div class="grid-2"><label class="field"><span>å“ç‰Œ</span><input id="filterBrand" class="control" value="${esc(existing.brand||'')}"></label><label class="field"><span>ç±»å‹ *</span><input id="filterType" class="control" value="${esc(existing.type||'')}"></label><label class="field"><span>å¼ æ•° *</span><input id="filterQuantity" class="control" type="number" min="0" step="1" value="${Number(existing.quantity??0)}"></label><label class="field"><span>ä»·æ ¼</span><input id="filterPrice" class="control" type="number" min="0" step="0.01" value="${Number(existing.price||0)}"></label></div><div class="row end">${existingId?'<button id="deleteFilterBtn" class="button danger" type="button">åˆ é™¤</button>':''}<button id="saveFilterBtn" class="button primary" type="button">ç¡®å®š</button></div>`, { id:'filter-editor',backdropClose:true });
-  bindClose(overlay);
-  $('#saveFilterBtn').addEventListener('click',async()=>{const type=$('#filterType').value.trim();const quantity=Math.floor(parseNumber($('#filterQuantity').value,-1));if(!type)return toast('æ»¤çº¸ç±»å‹ä¸ºå¿…å¡«é¡¹','status-bad');if(quantity<0)return toast('æ»¤çº¸å¼ æ•°ä¸ºå¿…å¡«é¡¹ä¸”ä¸èƒ½å°äº0','status-bad');const record={id:existing.id||uid('filter'),brand:$('#filterBrand').value.trim(),type,quantity,price:Math.max(0,parseNumber($('#filterPrice').value,0)),createdAt:existing.createdAt||new Date().toISOString()};const index=state.settings.gear.filters.findIndex(item=>item.id===record.id);if(index>=0)state.settings.gear.filters[index]=record;else state.settings.gear.filters.push(record);state.settings.brew.filterPaperId ||= record.id;await saveSettings();closeOverlay();renderSettings();updateLowStockIndicator();});
-  $('#deleteFilterBtn')?.addEventListener('click',async()=>{state.settings.gear.filters=state.settings.gear.filters.filter(item=>item.id!==existingId);if(state.settings.brew.filterPaperId===existingId)state.settings.brew.filterPaperId=state.settings.gear.filters[0]?.id||'';await saveSettings();closeOverlay();renderSettings();updateLowStockIndicator();toast('æ»¤çº¸å·²åˆ é™¤');});
-}
-
-function openAddDripperDialog(existingId = '') {
-  state.settings.gear = normalizeGearSettings(state.settings.gear);
-  const existing = state.settings.gear.drippers.find(item => item.id === existingId) || {};
-  const overlay=showOverlay(`${dialogHeader(existingId?'ç¼–è¾‘æ»¤æ¯':'æ·»åŠ æ»¤æ¯','åç§°ã€ç±»å‹å’Œä»·æ ¼ç”¨äºç§å™¨ç®¡ç†',{centered:true})}<div class="grid-2"><label class="field"><span>åç§° *</span><input id="dripperName" class="control" value="${esc(existing.name||'')}"></label><label class="field"><span>ç±»å‹ *</span><select id="dripperType" class="control">${['å¹³åº•æ»¤æ¯','é”¥å½¢æ»¤æ¯','æ··åˆå¼æ»¤æ¯','ä½æ—è·¯æ»¤æ¯','æµ¸æ³¡å¼æ»¤æ¯'].map(type=>`<option${type===(existing.type||'å¹³åº•æ»¤æ¯')?' selected':''}>${type}</option>`).join('')}</select></label><label class="field"><span>ä»·æ ¼</span><input id="dripperPrice" class="control" type="number" min="0" step="0.01" value="${Number(existing.price||0)}"></label></div><div class="row end">${existingId?'<button id="deleteDripperBtn" class="button danger" type="button">åˆ é™¤</button>':''}<button id="saveDripperBtn" class="button primary" type="button">ç¡®å®š</button></div>`,{id:'dripper-editor',backdropClose:true});
-  bindClose(overlay);
-  $('#saveDripperBtn').addEventListener('click',async()=>{const name=$('#dripperName').value.trim();if(!name)return toast('æ»¤æ¯åç§°ä¸ºå¿…å¡«é¡¹','status-bad');const record={id:existing.id||uid('dripper'),name,type:$('#dripperType').value,price:Math.max(0,parseNumber($('#dripperPrice').value,0)),createdAt:existing.createdAt||new Date().toISOString()};const index=state.settings.gear.drippers.findIndex(item=>item.id===record.id);if(index>=0)state.settings.gear.drippers[index]=record;else state.settings.gear.drippers.push(record);if(!state.settings.brew.dripper)state.settings.brew.dripper=record.name;await saveSettings();closeOverlay();renderSettings();});
-  $('#deleteDripperBtn')?.addEventListener('click',async()=>{state.settings.gear.drippers=state.settings.gear.drippers.filter(item=>item.id!==existingId);state.settings.gear=normalizeGearSettings(state.settings.gear);if(existing.name===state.settings.brew.dripper)state.settings.brew.dripper=state.settings.gear.drippers[0].name;await saveSettings();closeOverlay();renderSettings();toast('æ»¤æ¯å·²åˆ é™¤');});
-}
-
-function openAddGrinderDialog(existingId = '') {
-  state.settings.gear = normalizeGearSettings(state.settings.gear);
-  const existing = state.settings.gear.grinders.find(item => item.id === existingId) || {};
-  const overlay=showOverlay(`${dialogHeader(existingId?'ç¼–è¾‘ç£¨è±†æœº':'æ·»åŠ ç£¨è±†æœº','åç§°ä¸ºå¿…å¡«é¡¹ï¼›åˆ»åº¦ä¿å­˜ä¸ºå½“å‰å¸¸ç”¨è®¾å®š',{centered:true})}<div class="grid-2"><label class="field"><span>åç§° *</span><input id="grinderName" class="control" value="${esc(existing.name||'')}" placeholder="ä¾‹å¦‚ Comandante C40"></label><label class="field"><span>å¸¸ç”¨åˆ»åº¦</span><input id="grinderSetting" class="control" value="${esc(existing.setting||'')}" placeholder="ä¾‹å¦‚ 22æ ¼"></label><label class="field"><span>ä»·æ ¼</span><input id="grinderPrice" class="control" type="number" min="0" step="0.01" value="${Number(existing.price||0)}"></label></div><div class="row end">${existingId?'<button id="deleteGrinderBtn" class="button danger" type="button">åˆ é™¤</button>':''}<button id="saveGrinderBtn" class="button primary" type="button">ç¡®å®š</button></div>`,{id:'grinder-editor',backdropClose:true});
-  bindClose(overlay);
-  $('#saveGrinderBtn').addEventListener('click',async()=>{const name=$('#grinderName').value.trim();if(!name)return toast('ç£¨è±†æœºåç§°ä¸ºå¿…å¡«é¡¹','status-bad');const record={id:existing.id||uid('grinder'),name,setting:$('#grinderSetting').value.trim(),price:Math.max(0,parseNumber($('#grinderPrice').value,0)),createdAt:existing.createdAt||new Date().toISOString()};const index=state.settings.gear.grinders.findIndex(item=>item.id===record.id);if(index>=0)state.settings.gear.grinders[index]=record;else state.settings.gear.grinders.push(record);if(!state.settings.brew.grinder||state.settings.brew.grinder.startsWith(existing.name||'\0'))state.settings.brew.grinder=[record.name,record.setting].filter(Boolean).join(' ');await saveSettings();closeOverlay();renderSettings();});
-  $('#deleteGrinderBtn')?.addEventListener('click',async()=>{state.settings.gear.grinders=state.settings.gear.grinders.filter(item=>item.id!==existingId);if(state.settings.brew.grinder.startsWith(existing.name||'\0'))state.settings.brew.grinder='';await saveSettings();closeOverlay();renderSettings();toast('ç£¨è±†æœºå·²åˆ é™¤');});
-}
-
-function renderSettings() {
-  const meta = state.codebookMeta || {};
-  state.settings.gear = normalizeGearSettings(state.settings.gear);
-  const low = lowStockFilters();
-  $('#settingsContent').innerHTML = `<div class="settings-categories">
-  <details class="settings-category" data-settings-key="account"><summary><span>è´¦æˆ·</span><small>ç™»å½•ã€äº‘ç«¯åŒæ­¥ã€æ¢å¤ä¸å¤šè®¾å¤‡è¿æ¥</small></summary><div class="settings-category-body" data-cloud-account-host></div></details>
-  <details class="settings-category" id="privateGearCategory"><summary><span>ç§å™¨${low.length?'<sup class="gear-low-star">*</sup>':''}</span><small>æ»¤çº¸ï¼Œæ»¤æ¯ï¼Œç£¨è±†æœºè®¾å®š</small></summary><div class="settings-category-body">${gearManagerHtml()}</div></details>
-  <details class="settings-category data-category"><summary><span>æ•°è—</span><small>æ•°æ®çš„å¯¼å…¥å¯¼å‡ºåŠå¤‡ä»½ï¼Œæ•°æ®æ¥å£</small></summary><div class="settings-category-body"><div class="text-actions data-actions"><button id="settingsExportBtn" class="button" type="button">å¯¼å‡ºå¤‡ä»½</button><button id="settingsImportBtn" class="button" type="button">å¯¼å…¥å¤‡ä»½</button><button id="clearAllDataBtn" class="button danger" type="button">æ¸…ç©ºæœ¬åœ°æ•°æ®</button></div><details class="nested-settings"><summary>æ•°æ®æºä¸æ¥å£ï¼ˆç‚¹å‡»å±•å¼€ï¼‰</summary><div class="nested-content"><div class="setting-row"><div><h3>æ•°æ®æº</h3><p>åå°æ ¡éªŒå¹¶åŸå­æ›´æ–°ï¼Œå¤±è´¥æ—¶ä¿ç•™æœ€åæœ‰æ•ˆç‰ˆæœ¬ã€‚</p></div><button id="updateCodebookBtn" class="button" type="button">æ›´æ–°å…¨éƒ¨æ•°æ®æº</button></div><div id="providerStatusPanel"></div><label class="field"><span>ç§æœ‰å†²ç…® API</span><input id="brewApiEndpoint" class="control" type="url" placeholder="HTTPS æœåŠ¡ç«¯åœ°å€" value="${esc(state.settings.brew.apiEndpoint||'')}"></label><button id="saveApiBtn" class="button" type="button">ä¿å­˜æ¥å£</button><label class="toggle"><input id="planVisualToggle" type="checkbox"${state.settings.ui.planVisualsExpanded?' checked':''}>é»˜è®¤æ˜¾ç¤ºå†²ç…®è½¨è¿¹å›¾</label></div></details></div></details>
-  <details class="settings-category"><summary><span>æœ¬ç‰©</span><small>å…³äºæœ¬å·¥å…·å’Œå¼€å‘å°å“¥çš„ä¸€åˆ‡</small></summary><div class="settings-category-body about-content"><h2>å¯Œè´µç›’å­</h2><p>å’–å•¡è±†ç®¡ç†ã€æ‹¾å‘³å†²ç…®è¾…åŠ©ã€å“é‰´è®°å½•ä¸æœ¬åœ°æ•°æ®å½’æ¡£å·¥å…·ã€‚</p><dl><dt>ç‰ˆæœ¬</dt><dd>${APP_VERSION}</dd><dt>æ•°æ®ç»“æ„</dt><dd>${SCHEMA_VERSION}</dd><dt>ç¦»çº¿å¼•æ“</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>æ•°æ®æº</dt><dd>å…¬å¼€ç¼–ç æ•°æ® ${esc(meta.version||state.codebook.version||'6')}</dd><dt>å¼€å‘ä¸ç»´æŠ¤</dt><dd>zjcrop</dd></dl></div></details>
-  </div>`;
-  renderProviderStatusPanel($('#providerStatusPanel')).catch(error => console.warn('æ•°æ®æºçŠ¶æ€è¯»å–å¤±è´¥', error));
-  $$('.settings-category').forEach(section=>section.addEventListener('toggle',()=>{if(!section.open)return;$$('.settings-category').forEach(other=>{if(other!==section)other.open=false;});}));
-  $('#updateCodebookBtn').addEventListener('click', updateCodebook);
-  $('#saveApiBtn').addEventListener('click',async()=>{state.settings.brew.apiEndpoint=$('#brewApiEndpoint').value.trim();await saveSettings();toast('æ¥å£åœ°å€å·²ä¿å­˜');});
-  $('#planVisualToggle').addEventListener('change',async event=>{state.settings.ui.planVisualsExpanded=event.target.checked;await saveSettings();});
-  $('[data-add-gear="filter"]')?.addEventListener('click',()=>openAddFilterDialog());
-  $('[data-add-gear="dripper"]')?.addEventListener('click',()=>openAddDripperDialog());
-  $('[data-add-gear="grinder"]')?.addEventListener('click',()=>openAddGrinderDialog());
-  $$('[data-filter-item]').forEach(button=>button.addEventListener('click',()=>openAddFilterDialog(button.dataset.filterItem)));
-  $$('[data-dripper-item]').forEach(button=>button.addEventListener('click',()=>openAddDripperDialog(button.dataset.dripperItem)));
-  $$('[data-grinder-item]').forEach(button=>button.addEventListener('click',()=>openAddGrinderDialog(button.dataset.grinderItem)));
-  $('#settingsExportBtn').addEventListener('click',exportData); $('#settingsImportBtn').addEventListener('click',()=>$('#importInput').click());
-  $('#clearAllDataBtn').addEventListener('click',confirmClearAll); bindControlStates($('#settingsContent'));
-}
-
-async function updateCodebook() {
-  const button=$('#updateCodebookBtn'); button.disabled=true; button.textContent='æ ¡éªŒæ›´æ–°ä¸­â€¦';
-  try {
-    const result = await globalThis.LuckyBeanProviders.refresh({ force: true });
-    await renderProviderStatusPanel($('#providerStatusPanel'));
-    const changed = Object.values(result.results || {}).filter(item => item?.updated).length;
-    button.disabled=false; button.textContent='æ›´æ–°å…¨éƒ¨æ•°æ®æº';
-    toast(changed ? ('å·²æ›´æ–°' + changed + 'ä¸ªæ•°æ®æº') : 'å…¨éƒ¨æ•°æ®æºå·²æ˜¯æœ€æ–°', 'status-good');
-  } catch(error) {
-    button.disabled=false; button.textContent='æ›´æ–°å…¨éƒ¨æ•°æ®æº';
-    toast('æ›´æ–°å¤±è´¥ï¼Œç»§ç»­ä½¿ç”¨æœ€åæœ‰æ•ˆç‰ˆæœ¬ï¼š' + error.message, 'status-bad');
-  }
-}
-async function exportData() {
-  try {
-    const { archive, mime } = await createPortableArchive();
-    downloadBlob(`LuckyBean_${todayISO()}.luckybean`, JSON.stringify(archive), mime);
-    toast('å®Œæ•´å¤‡ä»½å·²å¯¼å‡º', 'status-good');
-  } catch (error) {
-    toast(`å¯¼å‡ºå¤±è´¥ï¼š${error.message}`, 'status-bad');
-  }
-}
-async function importData(file) {
-  if (!file) return; if (file.size>MAX_ARCHIVE_BYTES) return toast('å¯¼å…¥æ–‡ä»¶ä¸èƒ½è¶…è¿‡ 64MB','status-bad');
-  try {
-    const payload=JSON.parse(await file.text());
-    const preview=await inspectPortableArchive(payload);
-    const countText=`è±†å¡ ${preview.counts.beans}ã€å†²ç…® ${preview.counts.brewSessions}ã€å“é‰´ ${preview.counts.sensoryRecords}ã€åº“å­˜å˜æ›´ ${preview.counts.inventoryEvents}`;
-    const overlay=showOverlay(`${dialogHeader('æ¢å¤å®Œæ•´å¤‡ä»½','æ ¡éªŒå·²ç»é€šè¿‡')}<p>${esc(countText)}</p><p class="status-bad">æ¢å¤åï¼Œæœ¬æœºç°æœ‰æ•°æ®å°†è¢«å¤‡ä»½å†…å®¹å®Œæ•´æ›¿æ¢ã€‚æœåŠ¡å™¨åŒæ­¥è´¦å·ä¸ä¼šä»å¤‡ä»½å¯¼å…¥ã€‚</p><div class="text-actions"><button id="cancelArchiveRestoreBtn" class="button" type="button">å–æ¶ˆ</button><button id="confirmArchiveRestoreBtn" class="button danger" type="button">ç¡®è®¤æ¢å¤</button></div>`);
-    bindClose(overlay);
-    $('#cancelArchiveRestoreBtn').addEventListener('click',closeOverlay);
-    $('#confirmArchiveRestoreBtn').addEventListener('click',async()=>{
-      const button=$('#confirmArchiveRestoreBtn');button.disabled=true;button.textContent='æ¢å¤ä¸­â€¦';
-      try { const result=await restorePortableArchive(payload);await loadSettings();await refreshData();renderBeans();renderSettings();closeOverlay();toast(result.migratedFrom?'æ—§ç‰ˆå¤‡ä»½å·²è¿ç§»å¹¶å®Œæ•´æ¢å¤':'å®Œæ•´å¤‡ä»½æ¢å¤å®Œæˆ','status-good'); }
-      catch(error){button.disabled=false;button.textContent='ç¡®è®¤æ¢å¤';toast(`æ¢å¤å¤±è´¥ï¼š${error.message}`,'status-bad');}
-    });
-  } catch(error){toast(`å¯¼å…¥å¤±è´¥ï¼š${error.message}`,'status-bad');} finally{$('#importInput').value='';}
-}
-function confirmClearAll() {
-  const overlay=showOverlay(`${dialogHeader('æ¸…ç©ºæœ¬åœ°æ•°æ®','æ­¤æ“ä½œä¸å¯æ’¤é”€')}<p class="status-bad">å°†åˆ é™¤è±†å¡ã€åº“å­˜ã€æ–¹æ¡ˆã€å“é‰´ã€è®¾ç½®å’Œæœ¬åœ°æ•°æ®ç¼“å­˜ã€‚</p><label class="field"><span>è¾“å…¥â€œæ¸…ç©ºâ€ç¡®è®¤</span><input id="clearConfirmInput" class="control"></label><button id="confirmClearBtn" class="button danger" type="button">æ°¸ä¹…æ¸…ç©º</button>`);bindClose(overlay);
-  $('#confirmClearBtn').addEventListener('click',async()=>{if($('#clearConfirmInput').value!=='æ¸…ç©º')return toast('è¯·è¾“å…¥â€œæ¸…ç©ºâ€');await clearAll();state.beans=[];state.brewSessions=[];state.sensoryRecords=[];state.inventoryEvents=[];state.currentPlan=null;state.currentBrewInput=null;state.currentExecution=null;state.settings=structuredClone(DEFAULT_SETTINGS);await saveSettings();closeOverlay();await refreshData();switchPage('beans');toast('æœ¬åœ°æ•°æ®å·²æ¸…ç©º','status-good');document.dispatchEvent(new CustomEvent('luckybean:local-data-cleared'));});
-}
-
-function openProfileDialog() { switchPage('settings'); }
-
-function dismissSplash() {
-  const splash = $('#splashScreen');
-  if (!splash || splash.classList.contains('hidden')) return;
-  splash.classList.add('splash-leave');
-  setTimeout(() => splash.classList.add('hidden'), 520);
-}
-
-function bindGlobalEvents() {
-  $('#splashScreen')?.addEventListener('click', dismissSplash);
-  $('#splashScreen')?.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') dismissSplash(); });
-  $('#bottomNav').addEventListener('click',event=>{const button=event.target.closest('[data-page-target]');if(button)switchPage(button.dataset.pageTarget);});
-  $('#beanGroups').addEventListener('click',event=>{
-    const boardBean = event.target.closest('[data-board-bean]'); if (boardBean) { const bean = state.beans.find(item => item.id === boardBean.dataset.boardBean); if (bean) focusRecommendedBean(bean, { openDetail: true, duration: 800 }); return; }
-    const board = event.target.closest('[data-open-recommend-board]'); if (board) return openRecommendationLeaderboard();
-    const group = event.target.closest('[data-open-group]');
-    if (group) { state.groupAnimationMode='manual'; state.recommendationExpandedAll=false; state.activeGroupKey = group.dataset.openGroup; renderBeans(); return; }
-    if (event.target.closest('[data-collapse-group]')) { state.groupAnimationMode='manual'; state.recommendationExpandedAll=false; state.activeGroupKey = null; renderBeans(); return; }
-    const brew=event.target.closest('[data-brew-bean]');if(brew){event.stopPropagation();state.selectedBeanId=brew.dataset.brewBean;state.currentPlan=null;switchPage('brew');return;}
-    const card=event.target.closest('[data-bean-id]');if(card){detailBean(card.dataset.beanId);return;}
-    const panel=event.target.closest('[data-active-group-panel]');
-    if(panel && !event.target.closest('[data-bean-id],[data-brew-bean],.active-group-title')){state.groupAnimationMode='manual';state.recommendationExpandedAll=false;state.activeGroupKey=null;renderBeans();}
-  });
-  $('#beanGroups').addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-bean-id]'))detailBean(event.target.dataset.beanId);});
-  $('#activeFilterBar').addEventListener('click',event=>{if(event.target.id==='clearActiveFilters'){state.filter={search:'',country:'',variety:'',process:'',flavors:[],sort:'freshness',dir:'asc'};state.activeGroupKey=null;renderBeans();}});
-  $('#groupBtn').addEventListener('click',openGroupMenu); $('#manageBtn').addEventListener('click',openManageMenu);
-  $('#fabSearchBtn').addEventListener('click',openSearchDialog); $('#fabRecommendBtn').addEventListener('click',openRecommendMenu); $('#fabHistoryBtn').addEventListener('click',()=>openHistoryScreen()); $('#fabAddBtn').addEventListener('click',openAddMenu);
-  document.addEventListener('luckybean:request-history-replay', event => loadBrewSession(event.detail?.recordId));
-document.addEventListener('click',event=>{
-    const deleteSession=event.target.closest('[data-delete-session]');if(deleteSession){event.preventDefault();event.stopPropagation();confirmDeleteBrewSession(deleteSession.dataset.deleteSession);return;}
-    const sensoryRecord=event.target.closest('[data-sensory-record]');if(sensoryRecord){event.preventDefault();openSensoryRecord(sensoryRecord.dataset.sensoryRecord);return;}
-    const manage=event.target.closest('[data-manage-action]');if(manage){const action=manage.dataset.manageAction;closePopups();if(action==='export')exportData();if(action==='import')$('#importInput').click();return;}
-    const add=event.target.closest('[data-add-mode]');if(add){const mode=add.dataset.addMode;closePopups();if(mode==='photo')$('#qrImageInput').click();if(mode==='qr')openCameraDialog();if(mode==='text')openTextRecognition();return;}
-    const recommend=event.target.closest('[data-recommend-mode]');if(recommend){recommendBean(recommend.dataset.recommendMode);return;}
-    if(!event.target.closest('.popup-menu,.recommend-menu,#groupBtn,#manageBtn,#fabRecommendBtn,#fabAddBtn'))closePopups();
-  });
-  $('#qrImageInput').addEventListener('change',event=>handleQrFile(event.target.files[0])); $('#importInput').addEventListener('change',event=>importData(event.target.files[0]));
-  window.addEventListener('pagehide',()=>state.cameraScanner?.stop()); document.addEventListener('visibilitychange',()=>{if(document.hidden)state.cameraScanner?.stop();});
-}
-
-async function handleSharedHash() {
-  if (!location.hash.startsWith('#share=')) return false;
-  try {
-    const encoded = location.hash.slice(7); if (encoded.length > 16000) throw new Error('åˆ†äº«æ•°æ®è¿‡é•¿');
-    const payload = await decodeShare(encoded); renderSharedPayload(payload); return true;
-  } catch(error) {
-    location.hash=''; toast(`åˆ†äº«æ•°æ®æ— æ•ˆï¼š${error.message}`,'status-bad'); return false;
-  }
-}
-
-async function init() {
-  state.db = await openDb();
-  await migrateLegacy().catch(error=>({error:error.message}));
-  await loadSettings();
-  const loaded = await loadCodebook(); state.codebook=loaded.data;state.codebookMeta=loaded.meta;state.codebookIndex=makeIndex(loaded.data);
-  if (await handleSharedHash()) return;
-  await refreshData(); await migrateLegacyFlavorCodes(); bindGlobalEvents();
-  enterApp();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
-}
-
-
-init().catch(error => {
-  console.error(error);
-  showInfoDialog('åˆå§‹åŒ–å¤±è´¥', error.message);
-});
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éíëµå:-jZ.¶›­–)Ş³V–×÷'B²õdU%4”ôâÂ44„TÔõdU%4”ôâÂBÂBBÂV–BÂW62Â6Æ×ÂFöF”•4òÂf÷&ÖDFFRÂg&W6†æW72Âg&W6†æW75&öf–ÆRÂF÷væÆöD&Æö"Â6fT§6öå'6RÂ76W'EÆ–äö&¦V7BÂ76W'E6fT§6öâÂ'&÷w6W%F—FÆRÂ'6TçVÖ&W"Òg&öÒrâ÷WF–Ç2æ§2s°¦–×÷'B²÷VäF"ÂÆÂÂvWBÂWBÂ&VÖ÷fRÂ'VÆµWBÂvWE6WGF–ærÂ6WE6WGF–ærÂ6ÆV$ÆÂÂÖ–w&FTÆVv7’Òg&öÒrâöF"æ§2s°¦–×÷'B²ÆöD6öFV&öö²ÂÖ¶T–æFW‚ÂF—7Æ”æÖRÂ÷F–öç4‡FÖÂÂ&VÆFVE&÷w2Â'6TæGW&ÄÆæwVvRÂ$TÔõDUô4ôDT$ôôµõU$ÂÒg&öÒrâö6öFV&öö²æ§2s°¦–×÷'B²6ÖW&66ææW"Â66å$f–ÆRÂFV6öFT§5%&W7VÇBÒg&öÒrâ÷"æ§2s°¦–×÷'B²6ö×WFTfÆÆ&6µÆâÂ&WVW7E&—fFUÆâÂfÆ–FFUÆâÂdÄÄ$4µôTät”äUõdU%4”ôâÂ'V–ÆD6÷'&V7FVEÆâÂÆ—7D'&Wu&öf–ÆW2Òg&öÒrâö'&WrÖVæv–æRæ§2s°¦–×÷'B²'&Wu&öf–ÆT6FÆöu7FGW2Òg&öÒrâ÷6W'f–6W2ö'&Wr×&öf–ÆRÖ6FÆör×6W'f–6Ræ§2s°¦–×÷'B²Æ—7EvFW%&öf–ÆW2Â–æfW%vFW%&öf–ÆRÒg&öÒrâ÷vFW"×&öf–ÆW2æ§2s°¦–×÷'B²'V–ÆD6ö×7E6†&U–ÆöBÂVæ6öFU6†&U–ÆöBÂFV6öFU6†&U–ÆöBÒg&öÒrâ÷6†&RÖ6öFV2æ§2s°¦–×÷'B²6ö×WFTWFöÖF–566÷&RÂ6Vç6÷'•&VfW&Væ6UFw2Â'V–ÆE&VfW&Væ6TÖöFVÂÂ&V6öÖÖVæFVD&Vä–G2Òg&öÒrâ÷&VfW&Væ6RÖÖöFVÂæ§2s°¦–×÷'B²6öÖÖ—D6ö×ÆWFVD'&WrÂW&ÖæVçFÇ”FVÆWFT'&Wu&V6÷&G2Òg&öÒrâöFöÖ–âö†—7F÷'’ö†—7F÷'’×6W'f–6Ræ§2s°¦–×÷'B²GF6…6Vç6÷'•Fô6ö×ÆWFVD'&WrÒg&öÒrâöFöÖ–âö†—7F÷'’ö†—7F÷'’×6Vç6÷'’×6W'f–6Ræ§2s°¦–×÷'B²7&VFTÆö6Å&VfW&Væ6TæÇ—6—2Òg&öÒrâ÷6W'f–6W2öÆö6Â×&VfW&Væ6RÖæÇ—6—2æ§2s°¦–×÷'B²FDWF†÷&—FF—fUÆâÒg&öÒrâ÷6W'f–6W2ö'&WrÖæÇ—6—2×6W'f–6Ræ§2s°¦–×÷'Brâ÷&VæFW&W'2ö'&Wr×7F–ÂÖ6öçG&öÆÆW"æ§2s°¦–×÷'Brâ÷V’ö'&Wr×G&VæB×æVÂæ§2s°¦–×÷'B²÷Vä†—7F÷'•67&VVâÒg&öÒrâ÷V’ö†—7F÷'’ö†—7F÷'’×67&VVâæ§2s°¦–×÷'B²Ö–w&FTÆVv7”'&Wt†—7F÷'’Òg&öÒrâöFöÖ–âö†—7F÷'’ö†—7F÷'’ÖÖ–w&F–öâæ§2s°¦–×÷'Brâ÷6W'f–6W2÷&÷f–FW"Ö&ö÷G7G&Ö6öçG&öÆÆW"æ§2s°¦–×÷'B²&VæFW%&÷f–FW%7FGW5æVÂÒg&öÒrâ÷V’÷&÷f–FW"×7FGW2×æVÂæ§2s°¦–×÷'Brâ÷6Vç6÷'’×&öfW76–öæÂÖ6öçG&öÆÆW"æ§2s°¦–×÷'B²7&VFU÷'F&ÆT&6†—fRÂ–ç7V7E÷'F&ÆT&6†—fRÂ&W7F÷&U÷'F&ÆT&6†—fRÂÔ…ô$4„•dUô%•DU2Òg&öÒrâöFöÖ–âö&6†—fRöÇV6·–&VâÖ&6†—fR×6W'f–6Ræ§2s°¦–×÷'B²&V6övæ—F–öäFö7VÖVçDg&öÕFW‡BÒg&öÒrâöFöÖ–â÷&V6övæ—F–öâ÷&V6övæ—F–öâÖFö7VÖVçBæ§2s°¦–×÷'B²6Æ76–g•&V6övæ—F–öäFFW2Òg&öÒrâöFöÖ–â÷&V6övæ—F–öâ÷&V6övæ—F–öâÖFFRÖ6Æ76–f–W"æ§2s°¦–×÷'B²'V–ÆDFFU&Wf–WtÖöFVÂÂ&W6öÇfTFFU&Wf–Wu6VÆV7F–öç2Òg&öÒrâöFöÖ–â÷&V6övæ—F–öâ÷&V6övæ—F–öâÖFFR×&Wf–Wræ§2s° ¦6öç7BtUôÔUDÒ°¢&Vç3¢²æc¢~‰xòrÂF—FÆS¢~‹n‰xòrÂ'&÷w6W#¢~‹n‰xòrÒÀ¢'&Ws¢²æc¢~˜XÂrÂF—FÆS¢~[ş˜XÂrÂ'&÷w6W#¢~[ş˜XÂrÒÀ¢6Vç6÷'“¢²æc¢~˜›BrÂF—FÆS¢~Y8˜›BrÂ'&÷w6W#¢~Y8˜›BrÒÀ¢6WGF–æw3¢²æc¢~Yš‚rÂF—FÆS¢~YšŠëârÂ'&÷w6W#¢~YšŠëârĞ§Ó° ¦6öç7B$ô5E2Ò°¢²u$ÂÔÃrÂ~ièkX^x9‚uÒÂ²u$ÂÔÃrÂ~kX^x9‚uÒÂ²u$ÂÔÃ"rÂ~kX^KŠŞx9‚uÒÂ²u$ÂÔÃ2rÂ~KŠŞx9‚uÒÀ¢²u$ÂÔÃBrÂ~KŠŞk{x9‚uÒÂ²u$ÂÔÃRrÂ~k{x9‚uÒÂ²u$ÂÔÃbrÂ~ièk{x9‚uĞ¥Ó°¦6öç7B$ô5EôäÔRÒæWrÖ…$ô5E2“°¦6öç7B5DEU5ô4ôÄõ"Ò²&W7F–æs¢r3Vc†s2rÂV³¢r6FS–C"rÂvööC¢r6&3†CSRrÂFV6Æ–æS¢r3sss3f2rÂW&vVçC¢r3SsSsSrrÓ°¦6öç7BDTdTÅEõ4UED”äu2Ò°¢V“¢²Æåf—7VÇ4W‡æFVC¢G'VRÂFV×÷&'•f—7VÄ÷Vã¢fÇ6RÂG&—W$Æ—7D÷Vã¢fÇ6RÒÀ¢'&Ws¢°¢”VæGö–çC¢rrÂÖöFS¢w6–×ÆRrÂÖWF†öC¢w÷W&÷fW"rÂF÷6Ts¢RÂ&F–ó¢RãRÀ¢&öf–ÆT–C¢w&V6öÖÖVæFVBrÂ6VvÖVçDÖöFS¢vWFòrÂ6VvÖVçG3¢2ÂÆ÷uFV×f—'7C¢G'VRÀ¢G&—W#¢~[›>[©^kºNiÚòrÂf–ÇFW%W$–C¢rrÂw&–æFW#¢rrÂvFW%&öf–ÆT–C¢vWFòrÂvFW%föÇVÖTÃ¢RÀ¢7W7FöÕvFW#¢²æÖS¢~h‰y¨NkNYè²rÂFG3¢ƒRÂFVæFVæ7“¢²fÆ÷&Ã¢Â6–F—G“¢Â7vVWFæW73¢Â&öG“¢Â&—GFW&æW73¢Â7G&–ævVæ7“¢ÒÂæ÷FS¢rrÒÂfÆf÷%F&vWG3¢²6–F—G“¢ãRÂfÆ÷&Ã¢"Âg'V—G“¢"Â7vVWFæW73¢"Â&—GFW&æW73¢"Â7G&–ævVæ7“¢"ÒÀ¢f—'7D6ööÆ–ætÖöFS¢vWFòrÂf—'7EFV×W&GW&T3¢ƒrÂF–Ä6ööÆ–ætÖöFS¢vWFòrÂF–ÅFV×W&GW&T3¢ƒbÀ¢FV×W&GW&UGVæS¢Âw&–æEGVæS¢Â&ÆööÕGVæS¢Â&WVF&–Æ—G“¢fÇ6RÀ¢Vçf—&öæÖVçC¢²Ö&–VçEFV×W&GW&T3¢#RÂ&VÆF—fT‡VÖ–F—G•7C¢çVÆÂÂ–æ—F–Ä&VEFV×W&GW&T3¢#RĞ¢ÒÀ¢–FVçF—G“¢²ÖöFS¢vwVW7BrÂæ–6¶æÖS¢~ŠëşZê"rÂV&Æ–4–C¢rrÂ–E6ÇC¢rrÂfW&–f–VC¢fÇ6RÂVÖ–Ã¢rrÂ†öæS¢rrÂvV6†C¢rrÂ¢rrÒÀ¢vV#¢²f–ÇFW'3¢µÒÂG&—W'3¢·²–C¢vG&—W%öfÆBrÂæÖS¢~[›>[©^kºNiÚòrÂG—S¢~[›>[©^kºNiÚòrÕÒÂw&–æFW'3¢µÒÒÀ¢6Vç6÷'•&V6VçDÆ–Ö—C¢SÀ¢6†&U&V6÷&DÆ–Ö—C¢RÀ¢w&÷WÖWF†öC¢v6÷VçG'’p§Ó°¦6öç7B4Tå4õ%•ôäôDU2Ò°¢²–C¢vfÆ÷&ÂrÂÆ&VÃ¢~ˆ«ši’rÂG—S¢v×VÇF’rÂw&÷W3¢·²Æ&VÃ¢~šik	BrÂ÷F–öç3¢²~izrÂ~y›Şˆ«rÂ~ˆÈˆè’rÂ~xê¾yrÂ~j™ˆ«rÂ~{J¾{Ù~X[rÂ~kH¾yIˆø¢uÒÒÂ²Æ&VÃ¢~š8îY>[Ë®[ªbrÂ6–ævÆS¢G'VRÂ–çFVç6—G“¢G'VRÂ÷F–öç3¢²~izrÂ~KØârÂ~KŠÒrÂ~[Ë¢uÒÕÒÒÀ¢²–C¢vg'V—BrÂÆ&VÃ¢~iéÎši’rÂG—S¢v×VÇF’rÂw&÷W3¢·²Æ&VÃ¢~iéÎši’rÂ÷F–öç3¢²~izrÂ~iùj™‚rÂ~ˆé>iéÂrÂ~j>ZÙrÂ~ˆ»iéÂrÂ~‰‰BrÂ~x:Ş[ŠnkNiéÂrÂ~[›.iéÂuÒÒÂ²Æ&VÃ¢~š8îY>[Ë®[ªbrÂ6–ævÆS¢G'VRÂ–çFVç6—G“¢G'VRÂ÷F–öç3¢²~izrÂ~KØârÂ~KŠÒrÂ~[Ë¢uÒÕÒÒÀ¢²–C¢v÷F†W"rÂÆ&VÃ¢~X[nK¹brÂG—S¢v×VÇF’rÂw&÷W3¢·²Æ&VÃ¢~X[nK¹nš8îY2rÂ÷F–öç3¢²~izrÂ~ˆËnhIòrÂ~šiii’rÂ~YÙ®iéÂrÂ~[z~XX¾X©²rÂ~˜Y.ši’rÂ~ˆØiÊÂrÂ~‹nˆYş‹nY2uÒÒÂ²Æ&VÃ¢~š8îY>[Ë®[ªbrÂ6–ævÆS¢G'VRÂ–çFVç6—G“¢G'VRÂ÷F–öç3¢²~izrÂ~KØârÂ~KŠÒrÂ~[Ë¢uÒÒÂ²Æ&VÃ¢~˜[^hIş[Ë®[ªbrÂ6–ævÆS¢G'VRÂ–çFVç6—G“¢G'VRÂ÷F–öç3¢²~izrÂ~KØârÂ~KŠÒrÂ~[Ë¢uÒÒÂ²Æ&VÃ¢~Z)îY>[Ë®[ªbrÂ6–ævÆS¢G'VRÂ–çFVç6—G“¢G'VRÂ÷F–öç3¢²~izrÂ~KØârÂ~KŠÒrÂ~[Ë¢uÒÕÒÒÀ¢²–C¢w7vVWBrÂÆ&VÃ¢~yIÂrÂG—S¢vw&÷WVBrÂw&÷W3¢°¢²Æ&VÃ¢~š8îY>XîY	rÂ6–ævÆS¢fÇ6RÂ÷F–öç3¢²~‰È.‰ÉÂrÂ~‰I~{9brÂ~{ª.{9brÂ~xJn{9brÂ~iê¾{9brÂ~{9nkXbrÂ~ZJ®Zh>{9buÒÒÀ¢²Æ&VÃ¢~š8îY>[Ë®[ªbrÂ6–ævÆS¢G'VRÂ÷F–öç3¢²~izrÂ~KØârÂ~˜.KŠÒrÂ~š¹‚uÒĞ¢ÒÒÀ¢²–C¢v6–BrÂÆ&VÃ¢~˜[‚rÂG—S¢vw&÷WVBrÂw&÷W3¢°¢²Æ&VÃ¢~š8îY>XîY	òhÈ~Y	h
+rrÂ6–ævÆS¢fÇ6RÂ÷F–öç3¢²~iùj™‚rÂ~˜h¾˜[‚rÂ~iújªÂrÂ~˜h¾j	rrÂ~ˆ»iéÂrÂ~‰‰BuÒÒÀ¢²Æ&VÃ¢~š8îY>[Ë®[ªbrÂ6–ævÆS¢G'VRÂ÷F–öç3¢²~izrÂ~[êî˜[‚rÂ~YÈnkjnˆ‰.˜"rÂ~[	n™IuÒĞ¢ÒÒÀ¢²–C¢v&—GFW"rÂÆ&VÃ¢~ˆºbrÂG—S¢w6–ævÆRrÂw&÷W3¢·²Æ&VÃ¢~ˆºnhIòrÂ6–ævÆS¢G'VRÂ÷F–öç3¢²~izrÂ~KØârÂ~˜.KŠÒrÂ~Xşš¹‚rÂ~xJnˆºbuÒÕÒÒÀ¢²–C¢vÖ÷WF†fVVÂrÂÆ&VÃ¢~Xú>hIòrÂG—S¢v×VÇF’rÂw&÷W3¢·²Æ&VÃ¢~‹JYËrÂ÷F–öç3¢²~‹Û¾y¸‚rÂ~š®k¹rÂ~YÈnkjbrÂ~Z[nk+hIòrÂ~Xé®˜xÒrÂ~[›.kj’rÂ~iKniY²uÒÕÒÒÀ¢²–C¢væVvF—fRrÂÆ&VÃ¢~‹Iş™Ú"rÂG—S¢v×VÇF’rÂw&÷W3¢·²Æ&VÃ¢~‹Iş™Ú.š8îY2rÂ÷F–öç3¢²~izrÂ~{«Y2rÂ~iÊ‹J‚rÂ~YÉşY2rÂ~™ÈY2rÂ~Xù˜[^‹ø~[ªbrÂ~ˆÚşhIòrÂ~jšˆ;brÂ~˜y[îhIòuÒÕÒÒÀ¢²–C¢w66÷&RrÂÆ&VÃ¢~h¾XˆbrÂG—S¢w66÷&RrÂw&÷W3¢µÒÒÀ¢²–C¢væ÷FRrÂÆ&VÃ¢~iÊŞŠërÂG—S¢væ÷FRrÂw&÷W3¢µÒĞ¥Ó° ¦6öç7B7FFRÒ°¢F#¢çVÆÂÂ6öFV&öö³¢çVÆÂÂ6öFV&öö´–æFWƒ¢çVÆÂÂ6öFV&öö´ÖWF¢çVÆÂÀ¢&Vç3¢µÒÂ'&Wu6W76–öç3¢µÒÂ6Vç6÷'•&V6÷&G3¢µÒÂ–çfVçF÷'”WfVçG3¢µÒÂ&VfW&Væ6TÖöFVÃ¢çVÆÂÂ&V6öÖÖVæFVD–G3¢æWr6WB‚’À¢6WGF–æw3¢7G'V7GW&VD6ÆöæR„DTdTÅEõ4UED”äu2’ÂvS¢v&Vç2rÂ6VÆV7FVD&Vä–C¢çVÆÂÀ¢f–ÇFW#¢²6V&6ƒ¢rrÂ6÷VçG'“¢rrÂf&–WG“¢rrÂ&ö6W73¢rrÂfÆf÷'3¢µÒÂ6÷'C¢vg&W6†æW72rÂF—#¢v62rÒÀ¢&V6öÖÖVæFVD&Vä–C¢çVÆÂÂ7W'&VçEÆã¢çVÆÂÂ7W'&VçD'&Wt–çWC¢çVÆÂÀ¢&Väf÷&Õ6÷W&6S¢çVÆÂÂ&Väf÷&ÔG&gC¢çVÆÂÂ6ÖW&66ææW#¢çVÆÂÀ¢F–ÖW#¢²–çFW'fÃ¢çVÆÂÂW6VC¢fÇ6RÂ7FvT–æFWƒ¢Â&VÖ–æ–æs¢ÒÂ7W'&VçDW†V7WF–öã¢çVÆÂÀ¢7F—fTw&÷W¶W“¢çVÆÂÂw&÷Wæ–ÖF–öäÖöFS¢vÖçVÂrÂ&V6öÖÖVæFF–öåF–ÖW#¢çVÆÂÂ&V6öÖÖVæFF–öå'Vã¢fÇ6RÂ&V6öÖÖVæFF–öäW‡æFVDÆÃ¢fÇ6RÂ&V6öÖÖVæFF–öå&ö×DÖVÖ÷'“¢·ÒÂ&VfW&Væ6T&ö&D÷Vã¢fÇ6RÂ6WGF–æw4fö7W4f–ÇFW$–C¢rrÀ¢WfÇVF–öã¢çVÆÂÂVæF–æu6Vç6÷'”6öçFW‡C¢çVÆÂÂ6Vç6÷'”†—7F÷'”÷Vã¢fÇ6RÂ6Vç6÷'”f–ÇFW#¢²&Vä–C¢rrÂÖ–å66÷&S¢rrÂÖ…66÷&S¢rrÂ7F'C¢rrÂVæC¢rrÂW‡æFVC¢fÇ6RĞ§Ó° ¦ÆWBFö7EF–ÖW#°¦ÆWBFö7D6ÆVçWF–ÖW#°¦gVæ7F–öâFö7B†ÖW76vRÂ¶–æBÒrr’°¢6öç7BæöFRÒB‚r7Fö7Br“°¢6ÆV%F–ÖV÷WB‡Fö7EF–ÖW"“°¢6ÆV%F–ÖV÷WB‡Fö7D6ÆVçWF–ÖW"“°¢æöFRçFW‡D6öçFVçBÒÖW76vS°¢–b†¶–æBÓÓÒw&V6öÖÖVæFF–öâr’°¢æöFRæ6Æ74æÖRÒwFö7B&V6öÖÖVæFF–öâs°¢&WVW7Dæ–ÖF–öäg&ÖR‚‚’Óâ&WVW7Dæ–ÖF–öäg&ÖR‚‚’ÓâæöFRæ6Æ74Æ—7BæFB‚w6†÷rr’’“°¢Fö7EF–ÖW"Ò6WEF–ÖV÷WB‚‚’ÓâæöFRæ6Æ74Æ—7Bç&VÖ÷fR‚w6†÷rr’Âc“°¢Fö7D6ÆVçWF–ÖW"Ò6WEF–ÖV÷WB‚‚’Óâ²æöFRæ6Æ74æÖRÒwFö7Bs²ÒÂs“°¢&WGW&ã°¢Ğ¢æöFRæ6Æ74æÖRÒFö7B6†÷rG¶¶–æGÖ°¢Fö7EF–ÖW"Ò6WEF–ÖV÷WB‚‚’ÓâæöFRæ6Æ74æÖRÒwFö7BrÂ#c“°§Ğ ¦gVæ7F–öâ6†÷t÷fW&Æ’†6öçFVçBÂ²gVÆÂÒfÇ6RÂ–BÒvF–ÆörrÂ&6¶G&÷6Æ÷6RÒfÇ6RÂF–Æöt6Æ72ÒrrÒÒ·Ò’°¢6öç7B&ö÷BÒB‚r6÷fW&Æ•&ö÷Br“°¢&ö÷Bæ–ææW$…DÔÂÒÆF—b6Æ73Ò&÷fW&Æ’G¶gVÆÂòrgVÆÂr¢rwÒ"FFÖ÷fW&Æ“Ò"G¶W62†–B—Ò#ãÆF—b6Æ73Ò&F–ÆörG¶F–Æöt6Æ72òG¶W62†F–Æöt6Æ72—Ö¢rwÒ#âG¶6öçFVçGÓÂöF—cãÂöF—cæ°¢6öç7B÷fW&Æ’Ò&ö÷Bæf—'7DVÆVÖVçD6†–ÆC°¢–b†&6¶G&÷6Æ÷6R’÷fW&Æ’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂWfVçBÓâ²–b†WfVçBçF&vWBÓÓÒ÷fW&Æ’’6Æ÷6T÷fW&Æ’‚“²Ò“°¢&WVW7Dæ–ÖF–öäg&ÖR‚‚’Óâ&–æD6öçG&öÅ7FFW2†÷fW&Æ’’“°¢&WGW&â÷fW&Æ“°§Ğ ¦gVæ7F–öâ6Æ÷6T÷fW&Æ’‚’°¢7FFRæ6ÖW&66ææW#òç7F÷‚“°¢7FFRæ6ÖW&66ææW"ÒçVÆÃ°¢B‚r6÷fW&Æ•&ö÷Br’æ–ææW$…DÔÂÒrs°§Ğ¦gVæ7F–öâF–Æöt†VFW"‡F—FÆRÂ7V'F—FÆRÒrrÂ²6Æ÷6&ÆRÒG'VRÂ6VçFW&VBÒfÇ6RÒÒ·Ò’°¢&WGW&âÆF—b6Æ73Ò&F–ÆörÖ†VFW"G¶6VçFW&VBòr6VçFW&VBr¢rwÒ#ãÆF—cãÆƒ#âG¶W62‡F—FÆR—ÓÂöƒ#âG·7V'F—FÆRòÇâG¶W62‡7V'F—FÆR—ÓÂ÷æ¢rwÓÂöF—câG¶6Æ÷6&ÆRòsÆ'WGFöâ6Æ73Ò&6Æ÷6RÖ'WGFöâ"G—SÒ&'WGFöâ"FFÖ6Æ÷6RÖ÷fW&Æ’&–ÖÆ&VÃÒ.X[>™zÒ#ì9sÂö'WGFöãâr¢rwÓÂöF—cæ°§Ğ ¦gVæ7F–öâ&–æD6Æ÷6R‡&ö÷BÒFö7VÖVçB’²BB‚u¶FFÖ6Æ÷6RÖ÷fW&Æ•ÒrÂ&ö÷B’æf÷$V6‚†'FâÓâ'FâæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ6Æ÷6T÷fW&Æ’’“²Ğ ¦7–æ2gVæ7F–öâÆöE6WGF–æw2‚’°¢6öç7B6fVBÒv—BvWE6WGF–ær‚vç6WGF–æw2rÂçVÆÂ“°¢7FFRç6WGF–æw2Ò°¢ââç7G'V7GW&VD6ÆöæR„DTdTÅEõ4UED”äu2’Ââââ‡6fVBÇÂ·Ò’À¢V“¢²ââäDTdTÅEõ4UED”äu2çV’Ââââ‡6fVCòçV’ÇÂ·Ò’ÒÀ¢'&Ws¢°¢ââäDTdTÅEõ4UED”äu2æ'&WrÂâââ‡6fVCòæ'&WrÇÂ·Ò’À¢7W7FöÕvFW#¢²ââäDTdTÅEõ4UED”äu2æ'&Wræ7W7FöÕvFW"Ââââ‡6fVCòæ'&Wsòæ7W7FöÕvFW"ÇÂ·Ò’ÂFVæFVæ7“¢²ââäDTdTÅEõ4UED”äu2æ'&Wræ7W7FöÕvFW"çFVæFVæ7’Ââââ‡6fVCòæ'&Wsòæ7W7FöÕvFW#òçFVæFVæ7’ÇÂ·Ò’ÒÒÀ¢Vçf—&öæÖVçC¢²ââäDTdTÅEõ4UED”äu2æ'&WræVçf—&öæÖVçBÂâââ‡6fVCòæ'&WsòæVçf—&öæÖVçBÇÂ·Ò’ÒÀ¢fÆf÷%F&vWG3¢²ââäDTdTÅEõ4UED”äu2æ'&WræfÆf÷%F&vWG2Ââââ‡6fVCòæ'&WsòæfÆf÷%F&vWG2ÇÂ·Ò’Ğ¢ÒÀ¢–FVçF—G“¢²ââäDTdTÅEõ4UED”äu2æ–FVçF—G’Ââââ‡6fVCòæ–FVçF—G’ÇÂ·Ò’ÒÀ¢vV#¢æ÷&ÖÆ—¦TvV%6WGF–æw2‡6fVCòævV"ÇÂDTdTÅEõ4UED”äu2ævV"¢Ó°¢7FFRç6WGF–æw2ç6Vç6÷'•&V6VçDÆ–Ö—BÒ6Æ×‡7FFRç6WGF–æw2ç6Vç6÷'•&V6VçDÆ–Ö—BÇÂSÂRÂ#“°§Ğ ¦7–æ2gVæ7F–öâ6fU6WGF–æw2‚’²v—B6WE6WGF–ær‚vç6WGF–æw2rÂ7FFRç6WGF–æw2“²Ğ ¦Ö–w&FTÆVv7”'&Wt†—7F÷'’‚’æ6F6‚†W'&÷"Óâ6öç6öÆRæW'&÷"‚~Xk.xZîXènXû.‹øz{¾ZK‹JRrÂW'&÷"’“° ¦Fö7VÖVçBæFDWfVçDÆ—7FVæW"‚vÇV6·–&Vã¦6öFV&öö²×&÷f–FW"Ö7F—fFVBrÂWfVçBÓâ°¢6öç7BFFÒWfVçBæFWF–ÃòæFF°¢–b‚FF’&WGW&ã°¢7FFRæ6öFV&öö²ÒFF°¢7FFRæ6öFV&öö´–æFW‚ÒÖ¶T–æFW‚†FF“°¢7FFRæ6öFV&öö´ÖWFÒWfVçBæFWF–ÃòæÖWFÇÂ7FFRæ6öFV&öö´ÖWF°¢–b‡7FFRçvRÓÓÒv&Vç2r’&VæFW$&Vç2‚“°¢–b‡7FFRçvRÓÓÒv'&Wrr’&VæFW$'&Wr‚“°§Ò“° ¦Fö7VÖVçBæFDWfVçDÆ—7FVæW"‚vÇV6·–&Vã¦'&Wr×&öf–ÆRÖ6FÆör×WFFVBrÂ‚’Óâ°¢–b‡7FFRçvRÓÓÒv'&Wrr’&VæFW$'&Wr‚“°§Ò“° ¦Fö7VÖVçBæFDWfVçDÆ—7FVæW"‚vÇV6·–&Vã§&WVW7BÖ×&Vg&W6‚rÂ7–æ2WfVçBÓâ°¢v—B&Vg&W6„FF‚“°¢–b‡7FFRçvRÓÓÒv&Vç2r’&VæFW$&Vç2‚“°¢VÇ6R–b‡7FFRçvRÓÓÒv'&Wrr’&VæFW$'&Wr‚“°¢VÇ6R–b‡7FFRçvRÓÓÒw6Vç6÷'’r’&VæFW%6Vç6÷'’‚“°¢VÇ6R–b‡7FFRçvRÓÓÒw6WGF–æw2r’&VæFW%6WGF–æw2‚“°¢Fö7VÖVçBæF—7F6„WfVçB†æWr7W7FöÔWfVçB‚vÇV6·–&Vã¦×&Vg&W6†VBrÂ²FWF–Ã¢WfVçBæFWF–ÂÇÂ·ÒÒ’“°§Ò“° ¦7–æ2gVæ7F–öâ&Vg&W6„FF‚’°¢·7FFRæ&Vç2Â7FFRæ'&Wu6W76–öç2Â7FFRç6Vç6÷'•&V6÷&G2Â7FFRæ–çfVçF÷'”WfVçG5ÒÒv—B&öÖ—6RæÆÂ…°¢ÆÂ‚v&Vç2r’ÂÆÂ‚v'&Wu6W76–öç2r’ÂÆÂ‚w6Vç6÷'•&V6÷&G2r’ÂÆÂ‚v–çfVçF÷'”WfVçG2r¢Ò“°¢6öç7B&W—&VBÒµÓ°¢7FFRæ&Vç2Ò7FFRæ&Vç2æÖ†&VâÓâ°¢6öç7Bæ÷&ÖÆ—¦VBÒæ÷&ÖÆ—¦T&VäF—7Æ”FF†&Vâ“°¢–b†æ÷&ÖÆ—¦VBæ6†ævVB’&W—&VBçW6‚†æ÷&ÖÆ—¦VBæ&Vâ“°¢&WGW&âæ÷&ÖÆ—¦VBæ&Vã°¢Ò“°¢–b‡&W—&VBæÆVæwF‚’v—B'VÆµWB‚v&Vç2rÂ&W—&VB’æ6F6‚‚‚’Óâ·Ò“°¢7FFRæ&Vç2ç6÷'B‚†Â"’Óâ7G&–ær†"çWFFVDBÇÂrr’æÆö6ÆT6ö×&R…7G&–ær†çWFFVDBÇÂrr’’“°¢6öç7B7F—fT&Vç2Ò7FFRæ&Vç2æf–ÇFW"†&VâÓâ&Vâæ&6†—fVBbbçVÖ&W"†&Vâç&VÖ–æ–æuvV–v‡B’â“°¢7FFRç&VfW&Væ6TÖöFVÂÒ'V–ÆE&VfW&Væ6TÖöFVÂ†7F—fT&Vç2Â7FFRç6Vç6÷'•&V6÷&G2“°¢7FFRç&V6öÖÖVæFVD–G2Ò&V6öÖÖVæFVD&Vä–G2†7F—fT&Vç2Â7FFRç6Vç6÷'•&V6÷&G2“°¢WFFTÆ÷u7Fö6´–æF–6F÷"‚“°§Ğ ¦7–æ2gVæ7F–öâÖ–w&FTÆVv7”fÆf÷$6öFW2‚’°¢6öç7BFöæRÒv—BvWE6WGF–ær‚vÖ–w&F–öâæfÆf÷'2æ'&Wv–öâçcrÂfÇ6R“°¢–b†FöæR’&WGW&â²Ö–w&FVC¢ÂVæÖVC¢Ó°¢ÆWBÖ–ærÒ·Ó°¢G'’°¢6öç7B&W7öç6RÒv—BfWF6‚‚râ÷V&Æ–2öÆVv7’ÖfÆf÷"ÖÖæ§6öâr“°¢–b‡&W7öç6Ræö²’Ö–ærÒ†v—B&W7öç6Ræ§6öâ‚’’æÖ–ærÇÂ·Ó°¢Ò6F6‚²ò¢KùŞyYXéşKº>zûÈÎzˆŞYîXúşXhŞjÊ‹øz{²¢òĞ¢–b‚ö&¦V7Bæ¶W—2†Ö–ær’æÆVæwF‚’&WGW&â²Ö–w&FVC¢ÂVæÖVC¢Ó°¢ÆWBÖ–w&FVBÒÂVæÖVBÒ°¢f÷"†6öç7B&Vâöb7FFRæ&Vç2’°¢6öç7B÷&–v–æÂÒ'&’æ—4'&’†&VâæfÆf÷$6öFW2’ò&VâæfÆf÷$6öFW2¢µÓ°¢6öç7BÆVv7’Ò÷&–v–æÂæf–ÇFW"†6öFRÓâ7G&–ær†6öFR’ç7F'G5v—F‚‚tdÂÒr’“°¢–b‚ÆVv7’æÆVæwF‚’6öçF–çVS°¢6öç7BÖVBÒÆVv7’æÖ†6öFRÓâÖ–æu¶6öFUÒ’æf–ÇFW"„&ööÆVâ“°¢6öç7BÖ—76–ærÒÆVv7’æf–ÇFW"†6öFRÓâÖ–æu¶6öFUÒ“°¢&VâæfÆf÷$6öFW2Ò²ââææWr6WB…²ââæ÷&–v–æÂæf–ÇFW"†6öFRÓâ7G&–ær†6öFR’ç7F'G5v—F‚‚tdÂÒr’’ÂââæÖVEÒ•Ó°¢–b†Ö—76–æræÆVæwF‚’²&VâæÆVv7”fÆf÷$6öFW2Ò²ââææWr6WB…²âââ†&VâæÆVv7”fÆf÷$6öFW2ÇÂµÒ’ÂââæÖ—76–æuÒ•Ó²VæÖVB³ÒÖ—76–æræÆVæwFƒ²Ğ¢&VâçWFFVDBÒæWrFFR‚’çFô•4õ7G&–ær‚“°¢v—BWB‚v&Vç2rÂ&Vâ“²Ö–w&FVB³Ò°¢Ğ¢v—B6WE6WGF–ær‚vÖ–w&F–öâæfÆf÷'2æ'&Wv–öâçcrÂG'VR“°¢–b†Ö–w&FVB’v—B&Vg&W6„FF‚“°¢&WGW&â²Ö–w&FVBÂVæÖVBÓ°§Ğ ¦gVæ7F–öâvTVÆVÖVçB‡vR’²&WGW&âB†7vRG·vU³ÒçFõWW$66R‚—ÒG·vRç6Æ–6Rƒ—Ö“²Ğ¦gVæ7F–öâ7v—F6…vR‡vRÂ²&W6W'fT÷fW&Æ’ÒfÇ6RÒÒ·Ò’°¢–b‚tUôÔUD·vUÒ’&WGW&ã°¢–b‚&W6W'fT÷fW&Æ’’6Æ÷6T÷fW&Æ’‚“°¢7FFRçvRÒvS°¢BB‚rçvRr’æf÷$V6‚†æöFRÓâæöFRæ6Æ74Æ—7BçFövvÆR‚v7F—fRrÂæöFRæFF6WBçvRÓÓÒvR’“°¢BB‚rææbÖ'WGFöâr’æf÷$V6‚†'WGFöâÓâ°¢6öç7B7F—fRÒ'WGFöâæFF6WBçvUF&vWBÓÓÒvS°¢'WGFöâæ6Æ74Æ—7BçFövvÆR‚v7F—fRrÂ7F—fR“°¢7F—fRò'WGFöâç6WDGG&–'WFR‚v&–Ö7W'&VçBrÂwvRr’¢'WGFöâç&VÖ÷fTGG&–'WFR‚v&–Ö7W'&VçBr“°¢Ò“°¢B‚r6f%w&r’æ6Æ74Æ—7BçFövvÆR‚v†–FFVârÂvRÓÒv&Vç2r“°¢'&÷w6W%F—FÆR…tUôÔUD·vUÒæ'&÷w6W"“°¢–b‡vRÓÓÒv&Vç2r’&VæFW$&Vç2‚“°¢–b‡vRÓÓÒv'&Wrr’&VæFW$'&Wr‚“°¢–b‡vRÓÓÒw6Vç6÷'’r’&VæFW%6Vç6÷'’‚“°¢–b‡vRÓÓÒw6WGF–æw2r’&VæFW%6WGF–æw2‚“°¢v–æF÷rç67&öÆÅFò‡²F÷¢Â&V†f–÷#¢w6Öö÷F‚rÒ“°§Ğ ¦gVæ7F–öâVçFW$‚’°¢B‚r6Æöv–å67&VVâr“òæ6Æ74Æ—7BæFB‚v†–FFVâr“°¢B‚r66†VÆÂr’æ6Æ74Æ—7Bç&VÖ÷fR‚v†–FFVâr“°¢7v—F6…vR‚v&Vç2r“°¢&–æD6öçG&öÅ7FFW2†Fö7VÖVçB“°§Ğ ¦gVæ7F–öâ6†÷t–æfôF–Æör‡F—FÆRÂÖW76vR’°¢6öç7B÷fW&Æ’Ò6†÷t÷fW&Æ’†G¶F–Æöt†VFW"‡F—FÆR—ÓÇ6Æ73Ò&×WFVB#âG¶W62†ÖW76vR—ÓÂ÷ãÆF—b6Æ73Ò'&÷rVæB#ãÆ'WGFöâ6Æ73Ò&'WGFöâ&–Ö'’"FFÖ6Æ÷6RÖ÷fW&Æ’G—SÒ&'WGFöâ#îyú^˜>K¨cÂö'WGFöããÂöF—cæ“°¢&–æD6Æ÷6R†÷fW&Æ’“°§Ğ ¦7–æ2gVæ7F–öâ6VVDFVÖò‚’°¢–b‡7FFRæ&Vç2æÆVæwF‚’&WGW&ã°¢6öç7BFöF’ÒæWrFFR‚“°¢6öç7BFVÖòÒ°¢²~ˆ«YºŞyZHòrÂt4òÕrÂudÔtRrÂu"ÕtrÂu$ÂÔÃrÂrÂSÂ3‚Â²tebÓrÂte‚Ó"rÂtebÓ“2uÕÒÀ¢²~XúNYiz^i™"rÂt4òÔTrÂudÔT‚rÂu"ÔärÂu$ÂÔÃrÂ2Â#ÂS‚Â²tebÓ’rÂtebÓrrÂtebÓ“buÕÒÀ¢²~hZ~X[kNkIrrÂt4òÔ4òrÂudÔ4BrÂu"ÕtrÂu$ÂÔÃ"rÂ#Â#SÂ#‚Â²tebÓRrÂtebÓ“rÂtebÓƒbuÕÒÀ¢²~ˆ*ş[ÎK©¤rÂt4òÔ´RrÂudÕ4Ã#‚rÂu"ÕtrÂu$ÂÔÃrÂ#‚Â#Â‚Â²tebÓ#rÂtebÓ#RrÂtebÓ“uÕÒÀ¢²~i»Îx›ZèrÂt4òÔ”BrÂudÕE’rÂu"Õt‚rÂu$ÂÔÃBrÂ‚Â#SÂ“bÂ²tebÓƒ"rÂtebÓƒrrÂtebÓs’uÕÒÀ¢²~[{NŠ[ş›¸Nk:.ixrÂt4òÔ%"rÂudÔ$õRrÂu"ÔärÂu$ÂÔÃ2rÂ3"Â#SÂ#‚Â²tebÓƒBrÂtebÓ“"rÂtebÓƒbuÕÒÀ¢²~K©XÙ~XèÎk
+rrÂt4òÔ4ârÂudÔ4BrÂu"ÔârÂu$ÂÔÃ"rÂÂSÂsRÂ²tebÓ3brÂtebÓrrÂtebÓ“2uÕĞ¢ÒæÖ‚‡&÷rÂ’’Óâ°¢6öç7BFFRÒæWrFFR‡FöF’“²FFRç6WDFFR†FFRævWDFFR‚’Ò&÷u³UÒ“°¢&WGW&â°¢–C¢V–B‚v&Vâr’ÂæÖS¢&÷u³ÒÂ6÷VçG'”6öFS¢&÷u³ÒÂf&–WG”6öFS¢&÷u³%ÒÂ&ö6W746öFS¢&÷u³5ÒÂ&ö7D6öFS¢&÷u³EÒÀ¢&ö7DFFS¢FFRçFô•4õ7G&–ær‚’ç6Æ–6RƒÂ’Â–æ—F–ÅvV–v‡C¢&÷u³eÒÂ&VÖ–æ–æuvV–v‡C¢&÷u³uÒÀ¢&–6S¢ƒ‚²’¢’Â&ö7FW$æÖS¢~zK®Kè¾x9xIYXbrÂ&Vg&–vW&FVC¢’ÓÓÒ2ÂfÆf÷$6öFW3¢&÷u³…ÒÀ¢&6†—fVC¢fÇ6RÂ6÷W&6S¢vFVÖòrÂ7&VFVDC¢æWrFFR‚’çFô•4õ7G&–ær‚’ÂWFFVDC¢æWrFFR‚’çFô•4õ7G&–ær‚¢Ó°¢Ò“°¢v—B'VÆµWB‚v&Vç2rÂFVÖò“°¢v—B&Vg&W6„FF‚“°§Ğ ¦gVæ7F–öâ6öFTæÖR‡F&ÆRÂ6öFRÂfÆÆ&6²Ò~(	Br’²&WGW&âF—7Æ”æÖR‡7FFRæ6öFV&öö´–æFW‚ÂF&ÆRÂ6öFRÂfÆÆ&6²“²Ğ¦gVæ7F–öâ&VäF—7Æ”æÖR†&Vâ’°¢&WGW&âG¶6öFTæÖR‚v6÷VçG&–W2rÂ&Vâæ6÷VçG'”6öFRÂ~iÊ®Zé®Y»ŞZëbr—Ò+rG¶6öFTæÖR‚wf&–WF–W2rÂ&Vâçf&–WG”6öFRÂ~iÊ®Zé®‹nzxÒr—Ö°§Ğ ¦gVæ7F–öâæ÷&ÖÆ—¦TvV%6WGF–æw2†vV"Ò·Ò’°¢6öç7Bæ÷rÒæWrFFR‚’çFô•4õ7G&–ær‚“°¢6öç7Bf–ÇFW'2Ò'&’æ—4'&’†vV"æf–ÇFW'2¢òvV"æf–ÇFW'2æÖ†—FVÒÓâ‡°¢–C¢7G&–ær†—FVÒæ–BÇÂV–B‚vf–ÇFW"r’’Â'&æC¢7G&–ær†—FVÒæ'&æBÇÂrr’çG&–Ò‚’À¢G—S¢7G&–ær†—FVÒçG—RÇÂ—FVÒææÖRÇÂrr’çG&–Ò‚’ÂVçF—G“¢ÖF‚æÖ‚ƒÂÖF‚æfÆö÷"„çVÖ&W"†—FVÒçVçF—G’óò—FVÒçG’óò’ÇÂ’’À¢&–6S¢ÖF‚æÖ‚ƒÂçVÖ&W"†—FVÒç&–6RÇÂ’’Â7&VFVDC¢—FVÒæ7&VFVDBÇÂæ÷p¢Ò’’æf–ÇFW"†—FVÒÓâ—FVÒçG—R¢¢7G&–ær†vV"æf–ÇFW%G—W2ÇÂrr’ç7Æ—B‚õ¾8ÎûÈÅÆåÒò’æÖ‡fÇVRÓâfÇVRçG&–Ò‚’’æf–ÇFW"„&ööÆVâ’æÖ‚‡G—RÂ–æFW‚’Óâ‡°¢–C¢ÆVv7•öf–ÇFW%òG¶–æFW‡ÖÂ'&æC¢rrÂG—RÀ¢VçF—G“¢–æFW‚ÓÓÒòÖF‚æÖ‚ƒÂÖF‚æfÆö÷"„çVÖ&W"†vV"æf–ÇFW%7Fö6²ÇÂ’ÇÂ’’¢À¢&–6S¢Â7&VFVDC¢æ÷p¢Ò’“°¢6öç7BG&—W'2Ò'&’æ—4'&’†vV"æG&—W'2¢òvV"æG&—W'2æÖ†—FVÒÓâG—Vöb—FVÒÓÓÒw7G&–ærp¢ò²–C¢V–B‚vG&—W"r’ÂæÖS¢—FVÒçG&–Ò‚’ÂG—S¢—FVÒçG&–Ò‚’Â&–6S¢Â7&VFVDC¢æ÷rĞ¢¢‡²–C¢7G&–ær†—FVÒæ–BÇÂV–B‚vG&—W"r’’ÂæÖS¢7G&–ær†—FVÒææÖRÇÂ—FVÒçG—RÇÂrr’çG&–Ò‚’ÂG—S¢7G&–ær†—FVÒçG—RÇÂ—FVÒææÖRÇÂrr’çG&–Ò‚’Â&–6S¢ÖF‚æÖ‚ƒÂçVÖ&W"†—FVÒç&–6RÇÂ’’Â7&VFVDC¢—FVÒæ7&VFVDBÇÂæ÷rÒ’¢æf–ÇFW"†—FVÒÓâ—FVÒææÖR¢¢7G&–ær†vV"æG&—W'2ÇÂ~[›>[©^kºNiÚòr’ç7Æ—B‚õ¾8ÎûÈÅÆåÒò’æÖ‡fÇVRÓâfÇVRçG&–Ò‚’’æf–ÇFW"„&ööÆVâ’æÖ‚†æÖRÂ–æFW‚’Óâ‡²–C¢ÆVv7•öG&—W%òG¶–æFW‡ÖÂæÖRÂG—S¢æÖRÂ&–6S¢Â7&VFVDC¢æ÷rÒ’“°¢6öç7BÆVv7”w&–æFW'2Ò'&’æ—4'&’†vV"æw&–æFW'2¢òvV"æw&–æFW'0¢¢7G&–ær†vV"æw&–æFW'2ÇÂvV"æw&–æFW"ÇÂrr’ç7Æ—B‚õµÆî8ÎûÈÅÒò’æÖ‡fÇVRÓâfÇVRçG&–Ò‚’’æf–ÇFW"„&ööÆVâ“°¢6öç7Bw&–æFW'2ÒÆVv7”w&–æFW'2æÖ‚†—FVÒÂ–æFW‚’Óâ°¢–b‡G—Vöb—FVÒÓÓÒw7G&–ærr’&WGW&â²–C¢ÆVv7•öw&–æFW%òG¶–æFW‡ÖÂæÖS¢—FVÒÂ6WGF–æs¢rrÂ&–6S¢Â7&VFVDC¢æ÷rÓ°¢&WGW&â°¢–C¢7G&–ær†—FVÒæ–BÇÂV–B‚vw&–æFW"r’’À¢æÖS¢7G&–ær†—FVÒææÖRÇÂ—FVÒæÖöFVÂÇÂrr’çG&–Ò‚’À¢6WGF–æs¢7G&–ær†—FVÒç6WGF–ærÇÂ—FVÒç66ÆRÇÂrr’çG&–Ò‚’À¢&–6S¢ÖF‚æÖ‚ƒÂçVÖ&W"†—FVÒç&–6RÇÂ’’À¢7&VFVDC¢—FVÒæ7&VFVDBÇÂæ÷p¢Ó°¢Ò’æf–ÇFW"†—FVÒÓâ—FVÒææÖR“°¢&WGW&â°¢f–ÇFW'2À¢G&—W'3¢G&—W'2æÆVæwF‚òG&—W'2¢·²–C¢vG&—W%öfÆBrÂæÖS¢~[›>[©^kºNiÚòrÂG—S¢~[›>[©^kºNiÚòrÂ&–6S¢Â7&VFVDC¢æ÷rÕÒÀ¢w&–æFW'0¢Ó°§Ğ ¦gVæ7F–öâ&W6öÇfT¶æ÷vä6öFR‡F&ÆRÂfÇVRÂ&VçD6öFRÒrr’°¢6öç7B&rÒ7G&–ær‡fÇVRÇÂrr’çG&–Ò‚“°¢–b‚&r’&WGW&ârs°¢–b‡7FFRæ6öFV&öö´–æFWƒòå·F&ÆUÓòæ†2‡&r’’°¢6öç7B&÷rÒ7FFRæ6öFV&öö´–æFW…·F&ÆUÒævWB‡&r’ç&÷s°¢–b‚‡F&ÆRÓÓÒw&Vv–öç2rÇÂF&ÆRÓÓÒvVçF—F–W2r’bb&VçD6öFRbb&÷u³ÒÓÒ&VçD6öFR’&WGW&ârs°¢&WGW&â&s°¢Ğ¢6öç7B¶W’Ò&rçFôÆö6ÆTÆ÷vW$66R‚w¦‚Ô4âr“°¢6öç7BÖF6†W2Ò7FFRæ6öFV&öö´–æFWƒòæÆ–6W3òævWB†¶W’’ÇÂµÓ°¢6öç7BÖF6‚ÒÖF6†W2æf–æB†—FVÒÓâ—FVÒçF&ÆRÓÓÒF&ÆRbb‚&VçD6öFRÇÂ²w&Vv–öç2rÂvVçF—F–W2uÒæ–æ6ÇVFW2‡F&ÆR’ÇÂ—FVÒç&÷u³ÒÓÓÒ&VçD6öFR’“°¢&WGW&âÖF6ƒòæ6öFRÇÂrs°§Ğ ¦gVæ7F–öâf—6–&ÆTfÆf÷$6öFW2†&VâÒ·Ò’°¢&WGW&â²ââææWr6WB‚„'&’æ—4'&’†&VâæfÆf÷$6öFW2’ò&VâæfÆf÷$6öFW2¢µÒ¢æÖ‡fÇVRÓâ&W6öÇfT¶æ÷vä6öFR‚vfÆf÷'2rÂfÇVR’¢æf–ÇFW"†6öFRÓâ6öFRbb6öFTæÖR‚vfÆf÷'2rÂ6öFRÂrr’bb6öFTæÖR‚vfÆf÷'2rÂ6öFRÂrr’ÓÒ~(	Br’•Ó°§Ğ ¦gVæ7F–öâæ÷&ÖÆ—¦T&VäF—7Æ”FF†÷&–v–æÂÒ·Ò’°¢6öç7B&VâÒ²ââæ÷&–v–æÂÓ°¢ÆWB6†ævVBÒfÇ6S°¢f÷"†6öç7B¶f–VÆBÂF&ÆUÒöbµ²v6÷VçG'”6öFRrÂv6÷VçG&–W2uÒÅ²wf&–WG”6öFRrÂwf&–WF–W2uÒÅ²w&ö6W746öFRrÂw&ö6W76W2uÕÒ’°¢6öç7BæW‡BÒ&W6öÇfT¶æ÷vä6öFR‡F&ÆRÂ&Vå¶f–VÆEÒ“°¢–b†æW‡BbbæW‡BÓÒ&Vå¶f–VÆEÒ’²&Vå¶f–VÆEÒÒæW‡C²6†ævVBÒG'VS²Ğ¢Ğ¢6öç7B&Vv–öâÒ&W6öÇfT¶æ÷vä6öFR‚w&Vv–öç2rÂ&Vâç&Vv–öä6öFRÂ&Vâæ6÷VçG'”6öFR“°¢–b†&Vâç&Vv–öä6öFRbb&Vv–öâÓÒ&Vâç&Vv–öä6öFR’²&VâæÆVv7•&Vv–öåfÇVRÒ&VâæÆVv7•&Vv–öåfÇVRÇÂ&Vâç&Vv–öä6öFS²&Vâç&Vv–öä6öFRÒ&Vv–öã²6†ævVBÒG'VS²Ğ¢6öç7BVçF—G’Ò&W6öÇfT¶æ÷vä6öFR‚vVçF—F–W2rÂ&VâæVçF—G”6öFRÂ&Vâæ6÷VçG'”6öFR“°¢–b†&VâæVçF—G”6öFRbbVçF—G’ÓÒ&VâæVçF—G”6öFR’²&VâæÆVv7”VçF—G•fÇVRÒ&VâæÆVv7”VçF—G•fÇVRÇÂ&VâæVçF—G”6öFS²&VâæVçF—G”6öFRÒVçF—G“²6†ævVBÒG'VS²Ğ¢6öç7B&tfÆf÷'2Ò'&’æ—4'&’†&VâæfÆf÷$6öFW2’ò&VâæfÆf÷$6öFW2¢µÓ°¢6öç7BÆVv7”fÆf÷'2Ò&tfÆf÷'2æf–ÇFW"†6öFRÓâ7G&–ær†6öFR’ç7F'G5v—F‚‚tdÂÒr’“°¢6öç7BfÆf÷'2Ò²ââææWr6WB…²ââçf—6–&ÆTfÆf÷$6öFW2†&Vâ’ÂââæÆVv7”fÆf÷'5Ò•Ó°¢–b„¥4ôâç7G&–æv–g’†fÆf÷'2’ÓÒ¥4ôâç7G&–æv–g’‡&tfÆf÷'2’’°¢&VâæÆVv7”fÆf÷$6öFW2Ò²ââææWr6WB…²âââ†&VâæÆVv7”fÆf÷$6öFW2ÇÂµÒ’Âââç&tfÆf÷'2æf–ÇFW"†6öFRÓâfÆf÷'2æ–æ6ÇVFW2†6öFR’•Ò•Ó°¢&VâæfÆf÷$6öFW2ÒfÆf÷'3²6†ævVBÒG'VS°¢Ğ¢–b†6†ævVB’&VâçWFFVDBÒ&VâçWFFVDBÇÂæWrFFR‚’çFô•4õ7G&–ær‚“°¢&WGW&â²&VâÂ6†ævVBÓ°§Ğ ¦gVæ7F–öâvV$f–ÇFW'2‚’²&WGW&âæ÷&ÖÆ—¦TvV%6WGF–æw2‡7FFRç6WGF–æw3òævV"ÇÂ·Ò’æf–ÇFW'3²Ğ¦gVæ7F–öâvV$G&—W'2‚’²&WGW&âæ÷&ÖÆ—¦TvV%6WGF–æw2‡7FFRç6WGF–æw3òævV"ÇÂ·Ò’æG&—W'3²Ğ¦gVæ7F–öâvV$w&–æFW'2‚’²&WGW&âæ÷&ÖÆ—¦TvV%6WGF–æw2‡7FFRç6WGF–æw3òævV"ÇÂ·Ò’æw&–æFW'3²Ğ¦gVæ7F–öâÆ÷u7Fö6´f–ÇFW'2‚’²&WGW&âvV$f–ÇFW'2‚’æf–ÇFW"†—FVÒÓâçVÖ&W"†—FVÒçVçF—G’’Â“²Ğ¦gVæ7F–öâWFFTÆ÷u7Fö6´–æF–6F÷"‚’°¢6öç7B'WGFöâÒFö7VÖVçBçVW'•6VÆV7F÷"‚u¶FF×vR×F&vWCÒ'6WGF–æw2%Ò7âr“°¢–b‚'WGFöâ’&WGW&ã°¢6öç7BÆ÷rÒÆ÷u7Fö6´f–ÇFW'2‚’æÆVæwF‚â°¢'WGFöâæ–ææW$…DÔÂÒYš‚G¶Æ÷ròsÇ7W6Æ73Ò&vV"ÖÆ÷r×7F""&–ÖÆ&VÃÒ.kºN{«[©>ZÙKØâ#â£Â÷7Wâr¢rwÖ°§Ğ¦gVæ7F–öâ6VÆV7FVDf–ÇFW$—FVÒ‚’°¢6öç7B–BÒB‚r6'&Wtf–ÇFW%W"r“òçfÇVRÇÂ7FFRç6WGF–æw2æ'&Wræf–ÇFW%W$–BÇÂrs°¢&WGW&âvV$f–ÇFW'2‚’æf–æB†—FVÒÓâ—FVÒæ–BÓÓÒ–B’ÇÂçVÆÃ°§Ğ¦gVæ7F–öâ&ö7Dg&öÔ6öÆ÷"‡fÇVR’°¢6öç7B6öÆ÷"ÒçVÖ&W"‡fÇVR“°¢–b‚çVÖ&W"æ—4f–æ—FR†6öÆ÷"’ÇÂ6öÆ÷"ÃÒ’&WGW&ârs°¢–b†6öÆ÷"ãÒ“R’&WGW&âu$ÂÔÃs°¢–b†6öÆ÷"ãÒƒR’&WGW&âu$ÂÔÃs°¢–b†6öÆ÷"ãÒsR’&WGW&âu$ÂÔÃ"s°¢–b†6öÆ÷"ãÒcR’&WGW&âu$ÂÔÃ2s°¢–b†6öÆ÷"ãÒSR’&WGW&âu$ÂÔÃBs°¢–b†6öÆ÷"ãÒCR’&WGW&âu$ÂÔÃRs°¢&WGW&âu$ÂÔÃbs°§Ğ¦gVæ7F–öâVæ—VU&÷w4g&öÔ&Vç2‡F&ÆRÂf–VÆBÂ&Vç2Ò7FFRæ&Vç2æf–ÇFW"†&VâÓâ&Vâæ&6†—fVB’’°¢6öç7B6öFW2ÒæWr6WB†&Vç2æÖ†&VâÓâ&Vå¶f–VÆEÒ’æf–ÇFW"„&ööÆVâ’“°¢&WGW&â‡7FFRæ6öFV&öö³òå·F&ÆUÒÇÂµÒ’æf–ÇFW"‡&÷rÓâ6öFW2æ†2‡&÷u³Ò’“°§Ğ¦gVæ7F–öâf–Æ&ÆTfÆf÷%&÷w2†&Vç2Ò7FFRæ&Vç2æf–ÇFW"†&VâÓâ&Vâæ&6†—fVB’’°¢6öç7B6öFW2ÒæWr6WB†&Vç2æfÆDÖ†&VâÓâ&VâæfÆf÷$6öFW2ÇÂµÒ’æf–ÇFW"„&ööÆVâ’“°¢&WGW&â‡7FFRæ6öFV&öö³òæfÆf÷'2ÇÂµÒ’æf–ÇFW"‡&÷rÓâ6öFW2æ†2‡&÷u³Ò’“°§Ğ¦gVæ7F–öâ&Vg&W6„6öçG&öÅ7FFR†6öçG&öÂ’°¢–b‚6öçG&öÃòæ6Æ74Æ—7Còæ6öçF–ç2‚v6öçG&öÂr’’&WGW&ã°¢6öç7BV×G’Ò7G&–ær†6öçG&öÂçfÇVRóòrr’çG&–Ò‚“°¢6öçG&öÂæ6Æ74Æ—7BçFövvÆR‚v—2ÖV×G’rÂV×G’“°¢6öçG&öÂæ6Æ74Æ—7BçFövvÆR‚v—2Öf–ÆÆVBrÂV×G’“°§Ğ¦gVæ7F–öâ&–æD6öçG&öÅ7FFW2‡&ö÷BÒFö7VÖVçB’°¢BB‚v–çWBæ6öçG&öÂÇ6VÆV7Bæ6öçG&öÂÇFW‡F&Væ6öçG&öÂrÂ&ö÷B’æf÷$V6‚†6öçG&öÂÓâ°¢&Vg&W6„6öçG&öÅ7FFR†6öçG&öÂ“°¢–b‚6öçG&öÂæFF6WBç7FFT&÷VæB’°¢6öçG&öÂæFF6WBç7FFT&÷VæBÒss°¢6öçG&öÂæFDWfVçDÆ—7FVæW"‚v–çWBrÂ‚’Óâ&Vg&W6„6öçG&öÅ7FFR†6öçG&öÂ’“°¢6öçG&öÂæFDWfVçDÆ—7FVæW"‚v6†ævRrÂ‚’Óâ&Vg&W6„6öçG&öÅ7FFR†6öçG&öÂ’“°¢Ğ¢Ò“°§Ğ¦7–æ2gVæ7F–öâFW&—fUV&Æ–4–B†–FVçF—G’’°¢6öç7B6ÇBÒ–FVçF—G’æ–E6ÇBÇÂ7'—Fòç&æFöÕUT”Còâ‚’ÇÂG´FFRææ÷r‚—ÒÒG´ÖF‚ç&æFöÒ‚—Ö°¢6öç7B6VVBÒ·6ÇBÂ–FVçF—G’ææ–6¶æÖRÂ–FVçF—G’æVÖ–ÂÂ–FVçF—G’ç†öæRÂ–FVçF—G’çvV6†BÂ–FVçF—G’çÂ–FVçF—G’æÖöFUÒæÖ‡fÇVRÓâ7G&–ær‡fÇVRÇÂrr’çG&–Ò‚’çFôÆö6ÆTÆ÷vW$66R‚w¦‚Ô4âr’’æ¦ö–â‚wÂr“°¢ÆWBFö¶VâÒrs°¢–b†7'—Fóòç7V'FÆR’°¢6öç7BF–vW7BÒv—B7'—Fòç7V'FÆRæF–vW7B‚u4„Ó#SbrÂæWrFW‡DVæ6öFW"‚’æVæ6öFR‡6VVB’“°¢Fö¶VâÒ²ââææWrV–çC„'&’†F–vW7B•Òç6Æ–6RƒÂb’æÖ‡fÇVRÓâfÇVRçFõ7G&–ærƒb’çE7F'Bƒ"Âsr’’æ¦ö–â‚rr’çFõWW$66R‚“°¢ÒVÇ6RFö¶VâÒÖF‚æ'2…²ââç6VVEÒç&VGV6R‚††6‚Â6†"’Óâ‚††6‚ÃÂR’Ò†6‚²6†"æ6†$6öFTBƒ’’ÂÂ’’çFõ7G&–ærƒ3b’çFõWW$66R‚’çE7F'BƒÂsr’ç6Æ–6RƒÂ"“°¢&WGW&â²V&Æ–4–C¢Ä"ÒG·Fö¶VçÖÂ–E6ÇC¢6ÇBÓ°§Ğ¦gVæ7F–öâ&W6öÇfVE6VvÖVçD6÷VçB†&VâÂÖöFRÒvWFòr’°¢–b†ÖöFRÓÒvWFòr’&WGW&â6Æ×„çVÖ&W"†ÖöFR’ÇÂçVÖ&W"‡7FFRç6WGF–æw2æ'&Wrç6VvÖVçG2’ÇÂBÂ"ÂR“°¢6öç7B&ö7BÒçVÖ&W"…7G&–ær†&Vãòç&ö7D6öFRÇÂu$ÂÔÃ"r’ç&WÆ6R‚õÄBörÂrr’’ÇÂ#°¢6öç7BF÷6RÒ'6TçVÖ&W"‚B‚r6'&WtF÷6Rr“òçfÇVRÂ7FFRç6WGF–æw2æ'&WræF÷6TrÇÂR“°¢–b‡&ö7BÃÒbbF÷6RãÒ‚’&WGW&âS°¢–b‡&ö7BãÒB’&WGW&â3°¢&WGW&âC°§Ğ¦gVæ7F–öâG&¦V7F÷'•7fr‡Æâ’°¢6öç7BÖöFVÂÒ7G'V7GW&VD6ÆöæR‡ÆâçG&¦V7F÷'”ÖöFVÂÇÂÆâç&öfW76–öæÃòçG&¦V7F÷'”ÖöFVÂÇÂ·Ò“°¢6öç7Bö–çG2ÒÖöFVÂçö–çG2ÇÂµÓ°¢–b‚ö–çG2æÆVæwF‚’°¢6öç7BÆVv7’Ò'&’æ—4'&’‡ÆâçG&¦V7F÷'’’òÆâçG&¦V7F÷'’¢µÓ°¢–b‚ÆVv7’æÆVæwF‚’&WGW&âsÇ6Æ73Ò&×WFVB6ÖÆÂG&¦V7F÷'’ÖV×G’#î[Ù>X˜Şikjk*iÈ‹Ú‹ûi[hÚîûÈÎŠû~˜xŞikyIşh‰ikj8#Â÷âs°¢ÖöFVÂçö–çG2ÒÆVv7’æÖ‡ö–çBÓâ‡²ƒ¢ö–çBç‚Â7V×VÆF—fTã¢ö–çBç’ÂFV×W&GW&Tã¢ö–çBç’ÂfÆ÷tã¢ö–çBç’ÂfÆ÷&Ã¢ö–çBç’Â6–F—G“¢ö–çBç’Â7vVWFæW73¢ö–çBç’Â&—GFW%&—6³¢ÖF‚æÖ‚ƒÂö–çBç‚Òãr’Ò’“°¢Ğ¢6öç7BFFÒÖöFVÂçö–çG3°¢6öç7Bv–GF‚Òs#Â†V–v‡BÒ33ÂÆVgBÒC"Â&–v‡BÒ‚ÂF÷Ò#BÂ&÷GFöÒÒ3ƒ°¢6öç7BÆ÷ErÒv–GF‚ÒÆVgBÒ&–v‡BÂÆ÷D‚Ò†V–v‡BÒF÷Ò&÷GFöÓ°¢6öç7BfÇVTf÷"Ò‡ö–çBÂ¶W’’Óâ°¢–b„çVÖ&W"æ—4f–æ—FR„çVÖ&W"‡ö–çE¶¶W•Ò’’’&WGW&â6Æ×„çVÖ&W"‡ö–çE¶¶W•Ò’ÂÂ“°¢–b†¶W’ÓÓÒvg'V—Br’&WGW&â6Æ×‚„çVÖ&W"‡ö–çBæfÆ÷&ÂÇÂ’¢ãC"’²„çVÖ&W"‡ö–çBæ6–F—G’ÇÂ’¢ãS‚’ÂÂ“°¢–b†¶W’ÓÓÒv&—GFW"r’&WGW&â6Æ×„çVÖ&W"‡ö–çBæ&—GFW%&—6²ÇÂ’ÂÂ“°¢–b†¶W’ÓÓÒv7G&–ævVæ7’r’&WGW&â6Æ×„çVÖ&W"‡ö–çBæ7G&–ævVæ7’óòö–çBæ&—GFW%&—6²óò’¢ãƒ"²çVÖ&W"‡ö–çBæfÆ÷tâÇÂ’¢ã‚ÂÂ“°¢&WGW&â°¢Ó°¢6öç7B‡’Ò‡ö–çBÂ¶W’’Óâ‡²ƒ¢ÆVgB²6Æ×‡ö–çBç‚ÂÂ’¢Æ÷ErÂ“¢F÷²ƒÒfÇVTf÷"‡ö–çBÂ¶W’’’¢Æ÷D‚Ò“°¢6öç7BÆ–æRÒ¶W’ÓâFFæÖ‚‡ö–çBÂ–æFW‚’Óâ²6öç7B÷2Ò‡’‡ö–çBÂ¶W’“²&WGW&âG¶–æFW‚òtÂr¢tÒwÒG·÷2ç‚çFôf—†VBƒ—ÒÂG·÷2ç’çFôf—†VBƒ—Ö²Ò’æ¦ö–â‚rr“°¢6öç7Bv–æF÷w2Ò†ÖöFVÂçv–æF÷w2ÇÂµÒ’æÖ‡v–æF÷rÓâ°¢6öç7B‚ÒÆVgB²6Æ×‡v–æF÷rç7F'BÂÂ’¢Æ÷Es°¢6öç7BrÒÖF‚æÖ‚ƒÂ6Æ×‡v–æF÷ræVæBÂÂ’Ò6Æ×‡v–æF÷rç7F'BÂÂ’’¢Æ÷Es°¢&WGW&âÆr6Æ73Ò'G&¦V7F÷'’×v–æF÷rG·v–æF÷ræ¶–æBÓÓÒw&—6²ròw&—6²r¢w÷6—F—fRwÒ#ãÇ&V7BƒÒ"G·‚çFôf—†VBƒ—Ò"“Ò"G·F÷Ò"v–GFƒÒ"G·rçFôf—†VBƒ—Ò"†V–v‡CÒ"G·Æ÷D‡Ò"'ƒÒ#b#ãÂ÷&V7CãÇFW‡BƒÒ"G²‡‚³b’çFôf—†VBƒ—Ò"“Ò"G·F÷³WÒ#âG¶W62‡v–æF÷ræÆ&VÂ—ÓÂ÷FW‡CãÂösæ°¢Ò’æ¦ö–â‚rr“°¢6öç7BV´FVf–æ—F–öç2Ò°¢²vfÆ÷&ÂrÂ~ˆ«ši’rÂvfÆ÷&ÂuÒÂ²w7vVWFæW72rÂ~yIÂrÂw7vVWFæW72uÒÂ²v6–F—G’rÂ~˜[‚rÂv6–F—G’uÒÀ¢²vg'V—BrÂ~iéÎši’rÂvg'V—BuÒÂ²v&—GFW"rÂ~ˆºbrÂv&—GFW"uÒÂ²v7G&–ævVæ7’rÂ~kj’rÂv7G&–ævVæ7’uĞ¢Ó°¢6öç7BV´&Æö6·2ÒV´FVf–æ—F–öç2æÖ‚…¶¶W’ÂÆ&VÂÂ6Æ74æÖUÒ’Óâ°¢ÆWBV²ÒFF³ÒÂVµfÇVRÒÓ°¢f÷"†6öç7Bö–çBöbFF’°¢6öç7BfÇVRÒfÇVTf÷"‡ö–çBÂ¶W’“°¢–b‡fÇVRâVµfÇVR’²V²Òö–çC²VµfÇVRÒfÇVS²Ğ¢Ğ¢6öç7B6VçFW"Ò6Æ×„çVÖ&W"‡V³òç‚ÇÂ’ÂÂ“°¢6öç7B7F'BÒ6Æ×†6VçFW"ÒãSRÂÂ“°¢6öç7BVæBÒ6Æ×†6VçFW"²ãSRÂÂ“°¢6öç7B‚ÒÆVgB²7F'B¢Æ÷Es°¢6öç7BrÒÖF‚æÖ‚ƒ‚Â†VæBÒ7F'B’¢Æ÷Er“°¢6öç7B’ÒF÷²ƒÒ6Æ×‡VµfÇVRÂÂ’’¢Æ÷Dƒ°¢&WGW&âÆr6Æ73Ò'G&¦V7F÷'’×V²G¶6Æ74æÖWÒ#ãÇ&V7BƒÒ"G·‚çFôf—†VBƒ—Ò"“Ò"G´ÖF‚æÖ‚‡F÷Â’Ó‚’çFôf—†VBƒ—Ò"v–GFƒÒ"G·rçFôf—†VBƒ—Ò"†V–v‡CÒ"G´ÖF‚æÖ–âƒ3BÂ†V–v‡BÖ&÷GFöÒÔÖF‚æÖ‚‡F÷Ç’Ó‚’’çFôf—†VBƒ—Ò"'ƒÒ#R#ãÂ÷&V7CãÇFW‡BƒÒ"G²‡‚·ró"’çFôf—†VBƒ—Ò"“Ò"G´ÖF‚æÖ‚‡F÷³"Ç’ÓR’çFôf—†VBƒ—Ò"FW‡BÖæ6†÷#Ò&Ö–FFÆR#âG¶Æ&VÇÓÂ÷FW‡CãÂösæ°¢Ò’æ¦ö–â‚rr“°¢6öç7B†6W2Ò†ÖöFVÂç†6W2ÇÂµÒ’æÖ‡†6RÓâ°¢6öç7B‚ÒÆVgB²6Æ×‡†6Rç7F'BÂÂ’¢Æ÷Es°¢&WGW&âÆr6Æ73Ò'G&¦V7F÷'’×†6R#ãÆÆ–æRƒÒ"G·‚çFôf—†VBƒ—Ò"“Ò"G·F÷Ò"ƒ#Ò"G·‚çFôf—†VBƒ—Ò"“#Ò"G¶†V–v‡BÖ&÷GFö×Ò#ãÂöÆ–æSãÇFW‡BƒÒ"G²‡‚³B’çFôf—†VBƒ—Ò"“Ò"G¶†V–v‡BÓ'Ò#âG¶W62…7G&–ær‡†6Ræ–æFW‚’—ÓÂ÷FW‡CãÂösæ°¢Ò’æ¦ö–â‚rr“°¢6öç7Bw&–BÒ³Âã#RÂãRÂãsRÃÒæÖ‡fÇVRÓâ²6öç7B’ÒF÷²ƒ×fÇVR’§Æ÷Dƒ²&WGW&âÆÆ–æR6Æ73Ò'G&¦V7F÷'’Öw&–B"ƒÒ"G¶ÆVgGÒ"“Ò"G·—Ò"ƒ#Ò"G·v–GF‚×&–v‡GÒ"“#Ò"G·—Ò#ãÂöÆ–æSãÇFW‡B6Æ73Ò'G&¦V7F÷'’×F–6²"ƒÒ"G¶ÆVgBÓ‡Ò"“Ò"G·’³GÒ"FW‡BÖæ6†÷#Ò&VæB#âG´ÖF‚ç&÷VæB‡fÇVR£—ÓÂ÷FW‡Cæ²Ò’æ¦ö–â‚rr“°¢&WGW&âÆF—b6Æ73Ò'G&¦V7F÷'’×6†VÆÂ#ãÇ7fr6Æ73Ò'G&¦V7F÷'’Ö6†'BFWF–ÆVB"f–Wt&÷ƒÒ#G·v–GF‡ÒG¶†V–v‡GÒ"&öÆSÒ&–Ör"&–ÖÆ&VÃÒ.Xk.xZîkŠ[ªn8kX˜xş8{JşŠêkN˜xşY(Îš8îY>z©~Xú>h¹şYY»â#à¢G·v–æF÷w7ÒG·V´&Æö6·7ÒG¶w&–GÒG·†6W7Ğ¢ÇF‚6Æ73Ò'G&¦V7F÷'’×6W&–W2FV×W&GW&R"CÒ"G¶Æ–æR‚wFV×W&GW&Târ—Ò#ãÂ÷Fƒà¢ÇF‚6Æ73Ò'G&¦V7F÷'’×6W&–W2fÆ÷r"CÒ"G¶Æ–æR‚vfÆ÷târ—Ò#ãÂ÷Fƒà¢ÇF‚6Æ73Ò'G&¦V7F÷'’×6W&–W2vFW""CÒ"G¶Æ–æR‚v7V×VÆF—fTâr—Ò#ãÂ÷Fƒà¢ÇF‚6Æ73Ò'G&¦V7F÷'’×6W&–W2fÆ÷&Â"CÒ"G¶Æ–æR‚vfÆ÷&Âr—Ò#ãÂ÷Fƒà¢ÇF‚6Æ73Ò'G&¦V7F÷'’×6W&–W26–F—G’"CÒ"G¶Æ–æR‚v6–F—G’r—Ò#ãÂ÷Fƒà¢ÇF‚6Æ73Ò'G&¦V7F÷'’×6W&–W27vVWFæW72"CÒ"G¶Æ–æR‚w7vVWFæW72r—Ò#ãÂ÷Fƒà¢ÇF‚6Æ73Ò'G&¦V7F÷'’×6W&–W2&—6²"CÒ"G¶Æ–æR‚v&—GFW%&—6²r—Ò#ãÂ÷Fƒà¢ÇFW‡B6Æ73Ò'G&¦V7F÷'’Ö†—2ÖÆ&VÂ"ƒÒ"G¶ÆVgGÒ"“Ò#R#îy»Zû[Ë®[ªbòSÂ÷FW‡CãÇFW‡B6Æ73Ò'G&¦V7F÷'’Ö†—2ÖÆ&VÂ"ƒÒ"G·v–GF‚×&–v‡GÒ"“Ò"G¶†V–v‡BÓ—Ò"FW‡BÖæ6†÷#Ò&VæB#îi{n™{B(i#Â÷FW‡Cà¢Â÷7fsãÆF—b6Æ73Ò'G&¦V7F÷'’ÖÆVvVæB#ãÇ7â6Æ73Ò'FV×W&GW&R#îkŠ[ªcÂ÷7ããÇ7â6Æ73Ò&fÆ÷r#îkX˜xóÂ÷7ããÇ7â6Æ73Ò'vFW"#î{JşŠêkN˜xóÂ÷7ããÇ7â6Æ73Ò&fÆ÷&Â#îˆ«ši“Â÷7ããÇ7â6Æ73Ò&6–F—G’#î˜[ƒÂ÷7ããÇ7â6Æ73Ò'7vVWFæW72#îyIÃÂ÷7ããÇ7â6Æ73Ò'&—6²#îˆºnkjš8î™š“Â÷7ããÂöF—cãÂöF—cæ°§Ğ¦gVæ7F–öâ&VäæÖU7VÖÖ'’†&Vâ’°¢&WGW&â¶6öFTæÖR‚w&Vv–öç2rÂ&Vâç&Vv–öä6öFRÂrr’Â6öFTæÖR‚w&ö6W76W2rÂ&Vâç&ö6W746öFRÂrr•Òæf–ÇFW"„&ööÆVâ’æ¦ö–â‚r+rr’ÇÂ~Kª~XË®KˆîZHNynk9^iÊ®Šë[ÙRs°§Ğ ¦gVæ7F–öâ66÷&Tf÷$&Vâ†&Vä–B’°¢6öç7B&V6÷&G2Ò7FFRç6Vç6÷'•&V6÷&G2æf–ÇFW"‡&V6÷&BÓâ&V6÷&Bæ&Vä–BÓÓÒ&Vä–BbbçVÖ&W"æ—4f–æ—FR„çVÖ&W"‡&V6÷&Bç7V&¦V7F—fU66÷&Róò&V6÷&Bç66÷&R’’“°¢–b‚&V6÷&G2æÆVæwF‚’&WGW&â°¢&WGW&â&V6÷&G2ç&VGV6R‚‡7VÒÂ&V6÷&B’Óâ7VÒ²çVÖ&W"‡&V6÷&Bç7V&¦V7F—fU66÷&Róò&V6÷&Bç66÷&R’Â’ò&V6÷&G2æÆVæwFƒ°§Ğ ¦gVæ7F–öâ7W'&VçE&VfW&Væ6TÖöFVÂ‚’°¢&WGW&â7FFRç&VfW&Væ6TÖöFVÂÇÂ'V–ÆE&VfW&Væ6TÖöFVÂ‡7FFRæ&Vç2æf–ÇFW"†&VâÓâ&Vâæ&6†—fVB’Â7FFRç6Vç6÷'•&V6÷&G2“°§Ğ ¦gVæ7F–öâ7W'&VçE&V6öÖÖVæFVD–G2‚’°¢&WGW&â7FFRç&V6öÖÖVæFVD–G2ÇÂæWr6WB‚“°§Ğ ¦gVæ7F–öâ&V6öÖÖVæFF–öå66÷&R†&Vâ’°¢6öç7B6Vç6÷'’Ò66÷&Tf÷$&Vâ†&Vâæ–B’ÇÂs°¢6öç7B&VfW&Væ6RÒ7W'&VçE&VfW&Væ6TÖöFVÂ‚’æ&Vå7FG2ævWB†&Vâæ–B“òç&VfW&Væ6U66÷&RÇÂ°¢6öç7Bg&W6‚Òg&W6†æW72†&Vâ“°¢6öç7Bg&W6†æW75vV–v‡BÒ²&W7F–æs¢CRÂV³¢ÂvööC¢ƒ"ÂFV6Æ–æS¢cBÂW&vVçC¢S"Õ¶g&W6‚æ¶W•ÒÇÂS°¢6öç7B–æ—F–ÂÒÖF‚æÖ‚ƒÂçVÖ&W"†&Vâæ–æ—F–ÅvV–v‡B’ÇÂçVÖ&W"†&Vâç&VÖ–æ–æuvV–v‡B’ÇÂ“°¢6öç7BW6U&–÷&—G’Ò6Æ×ƒÒ„çVÖ&W"†&Vâç&VÖ–æ–æuvV–v‡B’ÇÂ’ò–æ—F–ÂÂÂ’¢°¢&WGW&â6Vç6÷'’¢ã3B²&VfW&Væ6R¢ã3B²g&W6†æW75vV–v‡B¢ã#"²W6U&–÷&—G’¢ã°§Ğ ¦gVæ7F–öâf–ÇFW&VD&Vç2‡²–æ6ÇVFT&6†—fVBÒfÇ6RÒÒ·Ò’°¢ÆWB&Vç2Ò7FFRæ&Vç2æf–ÇFW"†&VâÓâ–æ6ÇVFT&6†—fVBò&ööÆVâ†&Vâæ&6†—fVB’¢&Vâæ&6†—fVBbbçVÖ&W"†&Vâç&VÖ–æ–æuvV–v‡B’â“°¢6öç7BVW'’Ò7FFRæf–ÇFW"ç6V&6‚çG&–Ò‚’çFôÆö6ÆTÆ÷vW$66R‚w¦‚Ô4âr“°¢–b‡VW'’’&Vç2Ò&Vç2æf–ÇFW"†&VâÓâ¶&VäF—7Æ”æÖR†&Vâ’Â&Vâç&ö7FW$æÖRÂ&Vâææ÷FW2Â6öFTæÖR‚w&Vv–öç2rÂ&Vâç&Vv–öä6öFRÂrr’Â6öFTæÖR‚vVçF—F–W2rÂ&VâæVçF—G”6öFRÂrr’Â6öFTæÖR‚w&ö6W76W2rÂ&Vâç&ö6W746öFRÂrr’Ââââ†&VâæfÆf÷$6öFW2ÇÂµÒ’æÖ†6öFRÓâ6öFTæÖR‚vfÆf÷'2rÂ6öFRÂrr’•Òæ¦ö–â‚rr’çFôÆö6ÆTÆ÷vW$66R‚w¦‚Ô4âr’æ–æ6ÇVFW2‡VW'’’“°¢–b‡7FFRæf–ÇFW"æ6÷VçG'’’&Vç2Ò&Vç2æf–ÇFW"†&VâÓâ&Vâæ6÷VçG'”6öFRÓÓÒ7FFRæf–ÇFW"æ6÷VçG'’“°¢–b‡7FFRæf–ÇFW"çf&–WG’’&Vç2Ò&Vç2æf–ÇFW"†&VâÓâ&Vâçf&–WG”6öFRÓÓÒ7FFRæf–ÇFW"çf&–WG’“°¢–b‡7FFRæf–ÇFW"ç&ö6W72’&Vç2Ò&Vç2æf–ÇFW"†&VâÓâ&Vâç&ö6W746öFRÓÓÒ7FFRæf–ÇFW"ç&ö6W72“°¢–b‡7FFRæf–ÇFW"æfÆf÷'3òæÆVæwF‚’&Vç2Ò&Vç2æf–ÇFW"†&VâÓâ7FFRæf–ÇFW"æfÆf÷'2ç6öÖR†6öFRÓâ†&VâæfÆf÷$6öFW2ÇÂµÒ’æ–æ6ÇVFW2†6öFR’’“°¢6öç7BF—&V7F–öâÒ7FFRæf–ÇFW"æF—"ÓÓÒvFW62ròÓ¢°¢6öç7BfÇVRÒ&VâÓâ°¢–b‡7FFRæf–ÇFW"ç6÷'BÓÓÒvæÖRr’&WGW&â&VäF—7Æ”æÖR†&Vâ“°¢–b‡7FFRæf–ÇFW"ç6÷'BÓÓÒw&ö7DFFRr’&WGW&â&Vâç&ö7DFFRÇÂrs°¢–b‡7FFRæf–ÇFW"ç6÷'BÓÓÒw&VÖ–æ–ærr’&WGW&âçVÖ&W"†&Vâç&VÖ–æ–æuvV–v‡B’ÇÂ°¢–b‡7FFRæf–ÇFW"ç6÷'BÓÓÒw&–6Rr’&WGW&âçVÖ&W"†&Vâç&–6R’ÇÂ°¢–b‡7FFRæf–ÇFW"ç6÷'BÓÓÒw66÷&Rr’&WGW&â66÷&Tf÷$&Vâ†&Vâæ–B“°¢–b‡7FFRæf–ÇFW"ç6÷'BÓÓÒw&V6öÖÖVæFVBr’&WGW&â&V6öÖÖVæFF–öå66÷&R†&Vâ“°¢&WGW&âg&W6†æW72†&Vâ’ç&VÖ–æ–æs°¢Ó°¢&Vç2ç6÷'B‚†Â"’Óâ°¢6öç7BbÒfÇVR†’Â'bÒfÇVR†"“°¢&WGW&âG—VöbbÓÓÒw7G&–ærròbæÆö6ÆT6ö×&R†'bÂw¦‚Ô4âr’¢F—&V7F–öâ¢†bÒ'b’¢F—&V7F–öã°¢Ò“°¢&WGW&â&Vç3°§Ğ ¦gVæ7F–öâw&÷W¶W’†&VâÂÖWF†öB’°¢–b†ÖWF†öBÓÓÒwf&–WG’r’&WGW&â6öFTæÖR‚wf&–WF–W2rÂ&Vâçf&–WG”6öFRÂ~iÊ®Šë[Ù^‹nzxÒr“°¢–b†ÖWF†öBÓÓÒw&ö7Br’&WGW&â$ô5EôäÔRævWB†&Vâç&ö7D6öFR’ÇÂ~iÊ®Šë[Ù^x9xI[ªbs°¢–b†ÖWF†öBÓÓÒw&ö6W72r’&WGW&â6öFTæÖR‚w&ö6W76W2rÂ&Vâç&ö6W746öFRÂ~iÊ®Šë[Ù^[z^k9Rr“°¢&WGW&â6öFTæÖR‚v6÷VçG&–W2rÂ&Vâæ6÷VçG'”6öFRÂ~iÊ®Šë[Ù^Y»ŞZëbr“°§Ğ¦gVæ7F–öâ&Vä6&D‡FÖÂ†&Vâ’°¢6öç7B66÷&RÒ66÷&Tf÷$&Vâ†&Vâæ–B“°¢6öç7B&V6öÖÖVæFVBÒ7W'&VçE&V6öÖÖVæFVD–G2‚’æ†2†&Vâæ–B“°¢6öç7B&ö6W72Ò6öFTæÖR‚w&ö6W76W2rÂ&Vâç&ö6W746öFRÂ~ZHNynk9^iÊ®Šër“°¢6öç7Bg&W6‚Òg&W6†æW75&öf–ÆR†&Vâ“°¢6öç7B&öw&W72ÒÖF‚ç&÷VæB†g&W6‚ç&öw&W72¢“°¢&WGW&âÆ'F–6ÆR6Æ73Ò&&VâÖ6&B6ö×7BG¶&Vâæ–BÓÓÒ7FFRç&V6öÖÖVæFVD&Vä–Bòr&V6öÖÖVæFVBr¢rwÒG¶&Vâæ&6†—fVBòr&6†—fVBr¢rwÒ"FFÖ&VâÖ–CÒ"G¶W62†&Vâæ–B—Ò"F&–æFWƒÒ##à¢ÆF—b6Æ73Ò&6ö×7BÖ&VâÖ6÷’#ãÆƒ3âG¶W62†&VäF—7Æ”æÖR†&Vâ’—ÓÂöƒ3ãÇ6ÖÆÃâG¶W62‡&ö6W72—ÓÂ÷6ÖÆÃãÆF—b6Æ73Ò&6ö×7BÖ&Vâ×&÷r#ãÇ7G&öær6Æ73Ò"G¶&Vâç&Vg&–vW&FVBòvg&÷¦Vâ×vV–v‡Br¢rwÒ#âG´çVÖ&W"†&Vâç&VÖ–æ–æuvV–v‡BÇÂ’çFôf—†VBƒ—ÖrG¶&Vâç&Vg&–vW&FVBòsÇ6ÖÆÂ6Æ73Ò&g&÷¦VâÖÖ&²"&–ÖÆ&VÃÒ.Xk~‰xò#î)ØNûˆóÂ÷6ÖÆÃâr¢rwÓÂ÷7G&öæsãÇ7â6Æ73Ò&6ö×7B×66÷&R#âG·66÷&RòG·66÷&RçFôf—†VBƒ—ŞXˆf¢~iÊ®ŠøNXˆbwÒG·&V6öÖÖVæFVBòsÆVÓîˆÙÂöVÓâr¢rwÓÂ÷7ããÂöF—cãÂöF—cà¢Æ'WGFöâ6Æ73Ò&7WÖ7F–öâ6ö×7B×–6²"G—SÒ&'WGFöâ"FFÖ'&WrÖ&VãÒ"G¶W62†&Vâæ–B—Ò"&–ÖÆ&VÃÒ.yJ‹ùXú®‹n[ş˜XÂ#î˜XÃÂö'WGFöãà¢ÆF—b6Æ73Ò&&VâÖg&W6†æW72×&öw&W72"&–ÖÆ&VÃÒ"G¶W62†g&W6‚æÆ&VÂ—ŞûÈÎš8îY2G¶W62†g&W6‚çG&VæB—ŞûÈÎ‹ù¾[ªbG·&öw&W77ÒR#ãÇ7â6Æ73Ò&&VâÖg&W6†æW72×6öÆ–B"7G–ÆSÒ'v–GFƒ¢G·&öw&W77ÒS¶&6¶w&÷VæC¢G¶g&W6‚æ6öÆ÷'Ò#ãÂ÷7ããÇ7â6Æ73Ò&&VâÖg&W6†æW72ÖF6†VB"7G–ÆSÒ&ÆVgC¢G·&öw&W77ÒR#ãÂ÷7ããÂöF—cà¢Âö'F–6ÆSæ°§Ğ ¦gVæ7F–öâw&÷W6&D‡FÖÂ†Æ&VÂÂ—FV×2’°¢6öç7BF÷FÅvV–v‡BÒ—FV×2ç&VGV6R‚‡7VÒÂ&Vâ’Óâ7VÒ²çVÖ&W"†&Vâç&VÖ–æ–æuvV–v‡BÇÂ’Â“°¢&WGW&âÆ'WGFöâ6Æ73Ò&w&÷WÖ6&B"G—SÒ&'WGFöâ"FFÖ÷VâÖw&÷WÒ"G¶W62†Æ&VÂ—Ò#ãÇ7ãâG¶W62†Æ&VÂ—ÓÂ÷7ããÇ6ÖÆÃâG¶—FV×2æÆVæwF‡ŞXú¢+rG·F÷FÅvV–v‡BçFôf—†VBƒ—ÖsÂ÷6ÖÆÃãÂö'WGFöãæ°§Ğ ¦gVæ7F–öâ&V6öÖÖVæFF–öäÆVFW&&ö&E&÷w2†Æ–Ö—BÒ2’°¢6öç7BÖöFVÂÒ7W'&VçE&VfW&Væ6TÖöFVÂ‚“°¢&WGW&â7FFRæ&Vç2æf–ÇFW"†&VâÓâ&Vâæ&6†—fVBbbçVÖ&W"†&Vâç&VÖ–æ–æuvV–v‡B’â¢æÖ†&VâÓâ‡²&VâÂ66÷&S¢ÖöFVÂæ&Vå7FG2ævWB†&Vâæ–B“òç&VfW&Væ6U66÷&RÇÂÂ6Vç6÷'“¢66÷&Tf÷$&Vâ†&Vâæ–B’Ò’¢ç6÷'B‚†Â"’Óâ"ç66÷&RÒç66÷&R¢ç6Æ–6RƒÂÆ–Ö—B“°§Ğ ¦6öç7BÄTDU$$ô$Eõ$äµ2Ò²~šØšibrÂ~jiÎyËÂrÂ~hê.ˆ«uÓ°¦gVæ7F–öâ&V6öÖÖVæFF–öäÆVFW&&ö&D‡FÖÂ‚’°¢6öç7B&÷w2Ò&V6öÖÖVæFF–öäÆVFW&&ö&E&÷w2ƒ2“°¢–b‚7FFRç6Vç6÷'•&V6÷&G2æÆVæwF‚ÇÂ&÷w2æÆVæwF‚’&WGW&ârs°¢&WGW&âÆF—b6Æ73Ò'&VfW&Væ6RÖ&ö&B×7G&—#ãÆ'WGFöâ6Æ73Ò'&VfW&Væ6RÖ&ö&B×F—FÆR"G—SÒ&'WGFöâ"FFÖ÷Vâ×&V6öÖÖVæBÖ&ö&CîjiÃÂö'WGFöããÆF—b6Æ73Ò'&VfW&Væ6RÖ&ö&B×F÷2#âG·&÷w2æÖ‚‡&÷rÂ–æFW‚’ÓâÆ'WGFöâG—SÒ&'WGFöâ"FFÖ&ö&BÖ&VãÒ"G¶W62‡&÷ræ&Vâæ–B—Ò#ãÇ6ÖÆÃâG´ÄTDU$$ô$Eõ$äµ5¶–æFW…×ÓÂ÷6ÖÆÃãÇ7âF—FÆSÒ"G¶W62†&VäF—7Æ”æÖR‡&÷ræ&Vâ’—Ò#âG¶W62†&VäF—7Æ”æÖR‡&÷ræ&Vâ’—ÓÂ÷7ããÂö'WGFöãæ’æ¦ö–â‚rr—ÓÂöF—cãÂöF—cæ°§Ğ ¦gVæ7F–öâ÷Vå&V6öÖÖVæFF–öäÆVFW&&ö&B‚’°¢6öç7B&÷w2Ò&V6öÖÖVæFF–öäÆVFW&&ö&E&÷w2ƒ2“°¢6öç7B6öçFVçBÒG¶F–Æöt†VFW"‚~jiÂrÂ~K¸^X‰~KŠ®K«®ˆÙjiÎX˜ŞKˆYÒrÂ²6Æ÷6&ÆS¢fÇ6RÒ—ÓÆF—b6Æ73Ò'&V6öÖÖVæFF–öâÖ&ö&BF÷×F‡&VR#âG·&÷w2æÆVæwF‚ò&÷w2æÖ‚‡&÷rÂ–æFW‚’ÓâÆ'WGFöâG—SÒ&'WGFöâ"FFÖ&ö&BÖ&VãÒ"G¶W62‡&÷ræ&Vâæ–B—Ò#ãÇ7ãâG´ÄTDU$$ô$Eõ$äµ5¶–æFW…×ÓÂ÷7ããÇ7G&öæsâG¶W62†&VäF—7Æ”æÖR‡&÷ræ&Vâ’—ÓÂ÷7G&öæsãÇ6ÖÆÃâG·&÷rç66÷&RçFôf—†VBƒ—Ò+rY8˜›BG·&÷rç6Vç6÷'’ò&÷rç6Vç6÷'’çFôf—†VBƒ’¢~(	BwÓÂ÷6ÖÆÃãÂö'WGFöãæ’æ¦ö–â‚rr’¢sÇ6Æ73Ò&×WFVB#îZèÎh‰Y8˜›NYîyIşh‰KŠ®K«®jiÎ8#Â÷âwÓÂöF—cãÆ'WGFöâ6Æ73Ò&&÷GFöÒ×&WGW&â"G—SÒ&'WGFöâ"FFÖ6Æ÷6RÖ÷fW&Æ“î˜Âö'WGFöãæ°¢6öç7B÷fW&Æ’Ò6†÷t÷fW&Æ’†6öçFVçBÂ²–C¢w&V6öÖÖVæFF–öâÖ&ö&BrÂ&6¶G&÷6Æ÷6S¢G'VRÂF–Æöt6Æ73¢v&÷GFöÒ×6†VWBrÒ“°¢&–æD6Æ÷6R†÷fW&Æ’“°¢÷fW&Æ’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂWfVçBÓâ²6öç7B'WGFöâÒWfVçBçF&vWBæ6Æ÷6W7B‚u¶FFÖ&ö&BÖ&VåÒr“²–b‚'WGFöâ’&WGW&ã²6öç7B&VâÒ7FFRæ&Vç2æf–æB†—FVÒÓâ—FVÒæ–BÓÓÒ'WGFöâæFF6WBæ&ö&D&Vâ“²6Æ÷6T÷fW&Æ’‚“²–b†&Vâ’fö7W5&V6öÖÖVæFVD&Vâ†&VâÂ²÷VäFWF–Ã¢G'VRÂGW&F–öã¢ƒÒ“²Ò“°§Ğ ¦gVæ7F–öâ&VæFW$&Vç2‚’°¢6öç7B6öçF–æW"ÒB‚r6&Väw&÷W2r“°¢6öç7B&Vç2Òf–ÇFW&VD&Vç2‚“°¢6öç7Bf–ÇFW%'G2ÒµÓ°¢–b‡7FFRæf–ÇFW"ç6V&6‚’f–ÇFW%'G2çW6‚†X[>™JîŠøŞûÉ¢G·7FFRæf–ÇFW"ç6V&6‡Ö“°¢–b‡7FFRæf–ÇFW"æ6÷VçG'’’f–ÇFW%'G2çW6‚†Y»ŞZënûÉ¢G¶6öFTæÖR‚v6÷VçG&–W2rÂ7FFRæf–ÇFW"æ6÷VçG'’—Ö“°¢–b‡7FFRæf–ÇFW"çf&–WG’’f–ÇFW%'G2çW6‚†‹nzxŞûÉ¢G¶6öFTæÖR‚wf&–WF–W2rÂ7FFRæf–ÇFW"çf&–WG’—Ö“°¢–b‡7FFRæf–ÇFW"ç&ö6W72’f–ÇFW%'G2çW6‚†[z^k9^ûÉ¢G¶6öFTæÖR‚w&ö6W76W2rÂ7FFRæf–ÇFW"ç&ö6W72—Ö“°¢–b‡7FFRæf–ÇFW"æfÆf÷'3òæÆVæwF‚’f–ÇFW%'G2çW6‚†š8îY>ûÉ¢G·7FFRæf–ÇFW"æfÆf÷'2æÆVæwF‡Şš–“°¢6öç7B&"ÒB‚r67F—fTf–ÇFW$&"r“°¢&"æ6Æ74Æ—7BçFövvÆR‚v†–FFVârÂf–ÇFW%'G2æÆVæwF‚“°¢&"æ–ææW$…DÔÂÒf–ÇFW%'G2æÆVæwF‚òG¶f–ÇFW%'G2æÖ‡fÇVRÓâÇ7â6Æ73Ò'Fr#âG¶W62‡fÇVR—ÓÂ÷7ãæ’æ¦ö–â‚rr—ÓÆ'WGFöâ6Æ73Ò&'WGFöâ7V'FÆR6ÖÆÂ"–CÒ&6ÆV$7F—fTf–ÇFW'2"G—SÒ&'WGFöâ#îkˆ^™šCÂö'WGFöãæ¢rs°¢–b‚&Vç2æÆVæwF‚’°¢7FFRæ7F—fTw&÷W¶W’ÒçVÆÃ°¢7FFRç&V6öÖÖVæFF–öäW‡æFVDÆÂÒfÇ6S°¢6öçF–æW"æ–ææW$…DÔÂÒÆF—b6Æ73Ò&V×G’×7FFR#ãÇ7G&öæsîk*iÈzÊnYiÚK»ny¨N‹nXÚÂ÷7G&öæsãÇîx+X{¾(	Îk{¾Kˆ(	Ş[Ù^XZ^ûÈÎh‰nK¸î(	Îi	Î{J.(	Ş‹>i[NiÚK»n8#Â÷ãÂöF—cæ°¢&WGW&ã°¢Ğ¢6öç7B&ö&BÒ&V6öÖÖVæFF–öäÆVFW&&ö&D‡FÖÂ‚“°¢–b†&Vç2æÆVæwF‚ÃÒb’°¢7FFRæ7F—fTw&÷W¶W’ÒçVÆÃ°¢6öçF–æW"æ–ææW$…DÔÂÒG¶&ö&GÓÆF—b6Æ73Ò&&VâÖw&–B6ö×7BÖw&–B&VâÖw&–BÖæ–ÖFVBG·7FFRæw&÷Wæ–ÖF–öäÖöFRÓÓÒvWFòròvWFòÖÖ÷F–öâr¢vÖçVÂÖÖ÷F–öâwÒ#âG¶&Vç2æÖ†&Vä6&D‡FÖÂ’æ¦ö–â‚rr—ÓÂöF—cæ°¢&WGW&ã°¢Ğ¢6öç7Bw&÷WÖWF†öBÒ7FFRç6WGF–æw2æw&÷WÖWF†öBÇÂv6÷VçG'’s°¢6öç7Bw&÷W2ÒæWrÖ‚“°¢f÷"†6öç7B&Vâöb&Vç2’°¢6öç7B¶W’Òw&÷W¶W’†&VâÂw&÷WÖWF†öB“°¢–b‚w&÷W2æ†2†¶W’’’w&÷W2ç6WB†¶W’ÂµÒ“°¢w&÷W2ævWB†¶W’’çW6‚†&Vâ“°¢Ğ¢–b‡7FFRæ7F—fTw&÷W¶W’bbw&÷W2æ†2‡7FFRæ7F—fTw&÷W¶W’’’7FFRæ7F—fTw&÷W¶W’ÒçVÆÃ°¢–b‡7FFRç&V6öÖÖVæFF–öäW‡æFVDÆÂ’°¢6öçF–æW"æ–ææW$…DÔÂÒG¶&ö&GÓÆF—b6Æ73Ò'&V6öÖÖVæFF–öâÖÆÂÖw&÷W2"FFÖÆÂÖw&÷W3âGµ²ââæw&÷W2æVçG&–W2‚•ÒæÖ‚…¶Æ&VÂÂ—FV×5ÒÂ–æFW‚’ÓâÇ6V7F–öâ6Æ73Ò'&V6öÖÖVæFF–öâÖw&÷W"7G–ÆSÒ"ÒÖw&÷WÖ÷&FW#¢G¶–æFW‡Ò#ãÆF—b6Æ73Ò&7F—fRÖw&÷W×F—FÆR#ãÇ7ãâG¶W62†Æ&VÂ—ÓÂ÷7ããÇ6ÖÆÃâG¶—FV×2æÆVæwF‡ŞXú£Â÷6ÖÆÃãÂöF—cãÆF—b6Æ73Ò&&VâÖw&–B6ö×7BÖw&–BfW'F–6Â×&V6öÖÖVæFF–öâÖw&–B#âG¶—FV×2æÖ†&Vä6&D‡FÖÂ’æ¦ö–â‚rr—ÓÂöF—cãÂ÷6V7F–öãæ’æ¦ö–â‚rr—ÓÆF—b6Æ73Ò&w&÷WÖ6öÆÆ6R×¦öæR"FFÖ6öÆÆ6RÖw&÷WãÆ'WGFöâ6Æ73Ò&w&÷WÖ6öÆÆ6R"G—SÒ&'WGFöâ#îiKcÂö'WGFöããÂöF—cãÂöF—cæ°¢&WGW&ã°¢Ğ¢–b‚7FFRæ7F—fTw&÷W¶W’’°¢6öçF–æW"æ–ææW$…DÔÂÒG¶&ö&GÓÆF—b6Æ73Ò&&VâÖw&–B6ö×7BÖw&–Bw&÷WÖw&–B&VâÖw&–BÖæ–ÖFVBG·7FFRæw&÷Wæ–ÖF–öäÖöFRÓÓÒvWFòròvWFòÖÖ÷F–öâr¢vÖçVÂÖÖ÷F–öâwÒ#âGµ²ââæw&÷W2æVçG&–W2‚•ÒæÖ‚…¶Æ&VÂÂ—FV×5Ò’Óâw&÷W6&D‡FÖÂ†Æ&VÂÂ—FV×2’’æ¦ö–â‚rr—ÓÂöF—cæ°¢&WGW&ã°¢Ğ¢6öç7B—FV×2Òw&÷W2ævWB‡7FFRæ7F—fTw&÷W¶W’’ÇÂµÓ°¢6öçF–æW"æ–ææW$…DÔÂÒG¶&ö&GÓÇ6V7F–öâ6Æ73Ò&7F—fRÖw&÷W×æVÂG·7FFRæw&÷Wæ–ÖF–öäÖöFRÓÓÒvWFòròvWFòÖÖ÷F–öâr¢vÖçVÂÖÖ÷F–öâwÒ"FFÖ7F—fRÖw&÷W×æVÃãÆF—b6Æ73Ò&7F—fRÖw&÷W×F—FÆR#ãÇ7ãâG¶W62‡7FFRæ7F—fTw&÷W¶W’—ÓÂ÷7ããÇ6ÖÆÃâG¶—FV×2æÆVæwF‡ŞXú£Â÷6ÖÆÃãÂöF—cãÆF—b6Æ73Ò&&VâÖw&–B6ö×7BÖw&–B#âG¶—FV×2æÖ†&Vä6&D‡FÖÂ’æ¦ö–â‚rr—ÓÂöF—cãÆF—b6Æ73Ò&w&÷WÖ6öÆÆ6R×¦öæR"FFÖ6öÆÆ6RÖw&÷WãÆ'WGFöâ6Æ73Ò&w&÷WÖ6öÆÆ6R"G—SÒ&'WGFöâ#îiKcÂö'WGFöããÂöF—cãÂ÷6V7F–öãæ°§Ğ ¦gVæ7F–öâ÷6—F–öå÷W†æ6†÷"Â÷WÂ²&÷fRÒfÇ6RÒÒ·Ò’°¢6öç7B&V7BÒæ6†÷"ævWD&÷VæF–æt6Æ–VçE&V7B‚“°¢–b†&÷fR’°¢÷Wç7G–ÆRç&–v‡BÒG´ÖF‚æÖ‚ƒ"Âv–æF÷ræ–ææW%v–GF‚Ò&V7Bç&–v‡B—×†°¢÷Wç7G–ÆRæ&÷GFöÒÒG´ÖF‚æÖ‚ƒ“Âv–æF÷ræ–ææW$†V–v‡BÒ&V7BçF÷²‚—×†°¢ÒVÇ6R°¢÷Wç7G–ÆRç&–v‡BÒG´ÖF‚æÖ‚ƒ"Âv–æF÷ræ–ææW%v–GF‚Ò&V7Bç&–v‡B—×†°¢÷Wç7G–ÆRçF÷ÒG·&V7Bæ&÷GFöÒ²g×†°¢Ğ§Ğ¦gVæ7F–öâ6Æ÷6U÷W2‚’²BB‚rç÷WÖÖVçRÂç&V6öÖÖVæBÖÖVçRr’æf÷$V6‚†æöFRÓâæöFRç&VÖ÷fR‚’“²Ğ¦gVæ7F–öâ÷Väw&÷WÖVçR‚’°¢6Æ÷6U÷W2‚“°¢6öç7B÷WÒFö7VÖVçBæ7&VFTVÆVÖVçB‚vF—br“°¢÷Wæ6Æ74æÖRÒw÷WÖÖVçRs°¢÷Wæ–ææW$…DÔÂÒµ²v6÷VçG'’rÂ~hÈY»ŞZëbuÒÂ²wf&–WG’rÂ~hÈ‹nzxÒuÒÂ²w&ö7BrÂ~hÈx9xI[ªbuÒÂ²w&ö6W72rÂ~hÈZHNyn[z^k9RuÕÒæÖ‚…·fÇVRÂÆ&VÅÒ’ÓâÆ'WGFöâG—SÒ&'WGFöâ"FFÖw&÷WÖÖWF†öCÒ"G·fÇVWÒ#âG¶Æ&VÇÒG·7FFRç6WGF–æw2æw&÷WÖWF†öBÓÓÒfÇVRòr)É2r¢rwÓÂö'WGFöãæ’æ¦ö–â‚rr“°¢Fö7VÖVçBæ&öG’æVæB‡÷W“²÷6—F–öå÷W‚B‚r6w&÷W'Fâr’Â÷W“°¢÷WæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ7–æ2WfVçBÓâ°¢6öç7B'WGFöâÒWfVçBçF&vWBæ6Æ÷6W7B‚u¶FFÖw&÷WÖÖWF†öEÒr“²–b‚'WGFöâ’&WGW&ã°¢7FFRç6WGF–æw2æw&÷WÖWF†öBÒ'WGFöâæFF6WBæw&÷WÖWF†öC²7FFRæ7F—fTw&÷W¶W’ÒçVÆÃ°¢v—B6fU6WGF–æw2‚“²6Æ÷6U÷W2‚“²&VæFW$&Vç2‚“°¢Ò“°§Ğ ¦gVæ7F–öâ÷VäÖævTÖVçR‚’°¢6Æ÷6U÷W2‚“°¢6öç7B÷WÒFö7VÖVçBæ7&VFTVÆVÖVçB‚vF—br“²÷Wæ6Æ74æÖRÒw÷WÖÖVçRs°¢÷Wæ–ææW$…DÔÂÒÆ'WGFöâG—SÒ&'WGFöâ"FFÖÖævRÖ7F–öãÒ&W‡÷'B#îZûÎX{®i[hÚãÂö'WGFöããÆ'WGFöâG—SÒ&'WGFöâ"FFÖÖævRÖ7F–öãÒ&–×÷'B#îZûÎXZ^i[hÚãÂö'WGFöãæ°¢Fö7VÖVçBæ&öG’æVæB‡÷W“²÷6—F–öå÷W‚B‚r6ÖævT'Fâr’Â÷W“°§Ğ ¦gVæ7F–öâ÷Vå6V&6„F–Æör‚’°¢6Æ÷6U÷W2‚“°¢6öç7B7F—fT&Vç2Ò7FFRæ&Vç2æf–ÇFW"†&VâÓâ&Vâæ&6†—fVBbbçVÖ&W"†&Vâç&VÖ–æ–æuvV–v‡B’â“°¢6öç7B6÷VçG'•&÷w2ÒVæ—VU&÷w4g&öÔ&Vç2‚v6÷VçG&–W2rÂv6÷VçG'”6öFRrÂ7F—fT&Vç2“°¢6öç7Bf&–WG•&÷w2ÒVæ—VU&÷w4g&öÔ&Vç2‚wf&–WF–W2rÂwf&–WG”6öFRrÂ7F—fT&Vç2“°¢6öç7B&ö6W75&÷w2ÒVæ—VU&÷w4g&öÔ&Vç2‚w&ö6W76W2rÂw&ö6W746öFRrÂ7F—fT&Vç2“°¢6öç7BfÆf÷%&÷w2Òf–Æ&ÆTfÆf÷%&÷w2†7F—fT&Vç2“°¢6öç7B6VÆV7FVDfÆf÷'2ÒæWr6WB‡7FFRæf–ÇFW"æfÆf÷'2ÇÂµÒ“°¢6öç7B6öçFVçBÒG¶F–Æöt†VFW"‚~Zû²rÂ~˜šXú®iÚ^ˆz®[Ù>X˜Ş‹n‰xşKŠŞy¨N‹nXÚrÂ²6Æ÷6&ÆS¢fÇ6RÒ—Ğ¢ÆF—b6Æ73Ò&f÷&ÒÖw&–B6V&6‚Öw&–B#à¢ÆF—b6Æ73Ò&f÷&ÒÖf–VÆB#ãÆÆ&VÃîX[>™JîŠøÓÂöÆ&VÃãÆ–çWB–CÒ'6V&6„–çWB"6Æ73Ò&6öçG&öÂ"fÇVSÒ"G¶W62‡7FFRæf–ÇFW"ç6V&6‚—Ò"Æ6V†öÆFW#Ò.Kª~XË®8x9xIYXn8š8îY>zØ’#ãÂöF—cà¢ÆF—b6Æ73Ò&f÷&ÒÖf–VÆB#ãÆÆ&VÃîY»ŞZëcÂöÆ&VÃãÇ6VÆV7B–CÒ'6V&6„6÷VçG'’"6Æ73Ò&6öçG&öÂ#âG¶÷F–öç4‡FÖÂ†6÷VçG'•&÷w2Â7FFRæf–ÇFW"æ6÷VçG'’ÂÂ~XZ˜:xëiÈY»ŞZëbr—ÓÂ÷6VÆV7CãÂöF—cà¢ÆF—b6Æ73Ò&f÷&ÒÖf–VÆB#ãÆÆ&VÃî‹nzxÓÂöÆ&VÃãÇ6VÆV7B–CÒ'6V&6…f&–WG’"6Æ73Ò&6öçG&öÂ#âG¶÷F–öç4‡FÖÂ‡f&–WG•&÷w2Â7FFRæf–ÇFW"çf&–WG’ÂÂ~XZ˜:xëiÈ‹nzxÒr—ÓÂ÷6VÆV7CãÂöF—cà¢ÆF—b6Æ73Ò&f÷&ÒÖf–VÆB#ãÆÆ&VÃîZHNynk9SÂöÆ&VÃãÇ6VÆV7B–CÒ'6V&6…&ö6W72"6Æ73Ò&6öçG&öÂ#âG¶÷F–öç4‡FÖÂ‡&ö6W75&÷w2Â7FFRæf–ÇFW"ç&ö6W72ÂÂ~XZ˜:xëiÈZHNynk9Rr—ÓÂ÷6VÆV7CãÂöF—cà¢ÆF—b6Æ73Ò&f÷&ÒÖf–VÆB#ãÆÆ&VÃîhé.[¨óÂöÆ&VÃãÇ6VÆV7B–CÒ'6V&6…6÷'B"6Æ73Ò&6öçG&öÂ#âGµµ²w&V6öÖÖVæFVBrÂ~hêˆÙuÒÅ²vg&W6†æW72rÂ~‹XşY2uÒÅ²væÖRrÂ~YŞz{uÒÅ²w&ö7DFFRrÂ~x9xIiz^iÉòuÒÅ²w&VÖ–æ–ærrÂ~XšKÙXX¾˜xÒuÒÅ²w&–6RrÂ~K»~jÂuÒÅ²w66÷&RrÂ~Y8˜›N[é~XˆbuÕÒæÖ‚…·fÇVRÆÆ&VÅÒ“ÓæÆ÷F–öâfÇVSÒ"G·fÇVWÒ"G·7FFRæf–ÇFW"ç6÷'CÓÓ×fÇVSòr6VÆV7FVBs¢rwÓâG¶Æ&VÇÓÂö÷F–öãæ’æ¦ö–â‚rr—ÓÂ÷6VÆV7CãÂöF—cà¢ÆF—b6Æ73Ò&f÷&ÒÖf–VÆB#ãÆÆ&VÃîikY	ÂöÆ&VÃãÇ6VÆV7B–CÒ'6V&6„F—""6Æ73Ò&6öçG&öÂ#ãÆ÷F–öâfÇVSÒ&62"G·7FFRæf–ÇFW"æF—#ÓÓÒv62sòr6VÆV7FVBs¢rwÓîXØ~[¨óÂö÷F–öããÆ÷F–öâfÇVSÒ&FW62"G·7FFRæf–ÇFW"æF—#ÓÓÒvFW62sòr6VÆV7FVBs¢rwÓî™˜Ş[¨óÂö÷F–öããÂ÷6VÆV7CãÂöF—cà¢ÂöF—cà¢ÆFWF–Ç26Æ73Ò&FWF–Ç2Ö&Æö6²"G·6VÆV7FVDfÆf÷'2ç6—¦Ròr÷Vâr¢rwÓãÇ7VÖÖ'“îxëiÈš8îY3Â÷7VÖÖ'“ãÆF—b6Æ73Ò&FWF–Ç2Ö6öçFVçB#ãÆF—b6Æ73Ò&fÆf÷"Öw&–B6ö×7B#âG¶fÆf÷%&÷w2æÆVæwF‚òfÆf÷%&÷w2æÖ‡&÷sÓæÆ'WGFöâG—SÒ&'WGFöâ"6Æ73Ò&fÆf÷"Ö'WGFöâf–ÇFW"ÖfÆf÷"G·6VÆV7FVDfÆf÷'2æ†2‡&÷u³Ò“òr6VÆV7FVBs¢rwÒ"FFÖf–ÇFW"ÖfÆf÷#Ò"G¶W62‡&÷u³Ò—Ò#âG¶W62‡&÷u³Ò—ÓÂö'WGFöãæ’æ¦ö–â‚rr’¢sÇ7â6Æ73Ò&×WFVB6ÖÆÂ#î[Ù>X˜Ş‹nXÚ[	®izš8îY>j~zÛãÂ÷7ãâwÓÂöF—cãÂöF—cãÂöFWF–Ç3à¢ÆF—b6Æ73Ò'&÷rÖVçR×&÷r#ãÆ'WGFöâ–CÒ'&W6WE6V&6„'Fâ"6Æ73Ò&'WGFöâ7V'FÆR"G—SÒ&'WGFöâ#î˜xŞ{ÚãÂö'WGFöããÆ'WGFöâ–CÒ&Ç•6V&6„'Fâ"6Æ73Ò&'WGFöâ&–Ö'’"G—SÒ&'WGFöâ#îzîŠêCÂö'WGFöããÂöF—cæ°¢6öç7B÷fW&Æ’Ò6†÷t÷fW&Æ’†6öçFVçBÂ²–C¢v&Vâ×6V&6‚rÂ&6¶G&÷6Æ÷6S¢G'VRÂF–Æöt6Æ73¢v&÷GFöÒ×6†VWBrÒ“°¢÷fW&Æ’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂWfVçBÓâ°¢6öç7B'WGFöâÒWfVçBçF&vWBæ6Æ÷6W7B‚u¶FFÖf–ÇFW"ÖfÆf÷%Òr“°¢–b†'WGFöâ’'WGFöâæ6Æ74Æ—7BçFövvÆR‚w6VÆV7FVBr“°¢Ò“°¢B‚r7&W6WE6V&6„'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ°¢7FFRæf–ÇFW"Ò²6V&6ƒ¢rrÂ6÷VçG'“¢rrÂf&–WG“¢rrÂ&ö6W73¢rrÂfÆf÷'3¢µÒÂ6÷'C¢vg&W6†æW72rÂF—#¢v62rÓ²7FFRæ7F—fTw&÷W¶W’ÒçVÆÃ²6Æ÷6T÷fW&Æ’‚“²&VæFW$&Vç2‚“°¢Ò“°¢B‚r6Ç•6V&6„'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ°¢7FFRæf–ÇFW"Ò°¢6V&6ƒ¢B‚r76V&6„–çWBr’çfÇVRçG&–Ò‚’Â6÷VçG'“¢B‚r76V&6„6÷VçG'’r’çfÇVRÂf&–WG“¢B‚r76V&6…f&–WG’r’çfÇVRÂ&ö6W73¢B‚r76V&6…&ö6W72r’çfÇVRÀ¢fÆf÷'3¢BB‚u¶FFÖf–ÇFW"ÖfÆf÷%Òç6VÆV7FVBrÂ÷fW&Æ’’æÖ†'WGFöâÓâ'WGFöâæFF6WBæf–ÇFW$fÆf÷"’À¢6÷'C¢B‚r76V&6…6÷'Br’çfÇVRÂF—#¢B‚r76V&6„F—"r’çfÇVP¢Ó°¢7FFRæ7F—fTw&÷W¶W’ÒçVÆÃ²6Æ÷6T÷fW&Æ’‚“²&VæFW$&Vç2‚“°¢Ò“°§Ğ ¦6öç7B$T4ôÔÔTäDD”ôåõ$ôÕE2Òö&¦V7Bæg&VW¦R‡°¢ÆVFW&&ö&C¢°¢~y»NXùnjiÎšinûÈÎKˆŞ™zîX[nKÙ8"rÂ~KéŞjiÎ{J.šØûÈÎ[ø^[é~KÛ>Y>8"rÂ~jiÎXÙ^YÊX˜ŞûÈÎK¸®iÉŞK‰NŠù^ZKNzÛ8"rÀ¢~jiÎšØ[{.Zé®ûÈÎjÚNXú®š8îY>{+î{¹ŞûÈÎKˆŞ‹IşKÉ~iÉ¾8"rÂ~KˆK‹îišØûÈÎh˜
+.jÚN‹nš8îY>jÚ>˜Z>8"rÀ¢~KÉ~˜xÎZû¾Zè>ûÈÎ{¸[é~jiÎšinûÈÎZéÎ{¸n{¸nY8K˜¾8"rÂ~xZ~jiÎx+[nûÈÎK‰>hÉ˜*>KŠ®zÊÎKˆYŞûÈp¢ÒÀ¢g&W6†æW73¢°¢~jÚNXú®š8îY>{+î{¹ŞûÈÎY	¾iz.˜KŠŞûÈÎyI®iŠşZj^[Ù>8"rÂ~jÚ>˜
+.jÚNXú®š8îY>iÈy¹¾ûÈÎh*‹ùKˆ˜ûÈÎXhŞZ[ŞKˆŞ‹ø~8"rÀ¢~jÚNXú®jÚ>XÎš8îY>{+îZiZHNûÈÎiz.[{.˜Zé®ûÈÎKëşiŠşˆšş˜XŞ8"rÂ~jÚNXú®jÚ>[é~hHşi{nûÈÎhŠ*¾Y	¾yËÎy»KŠŞûÈÎyËÎXXKˆŞ[zî8"p¢ÒÀ¢&–6S¢°¢~jÚNXú®K»~XjŠû‹nûÈÎ‹k>ŠxY	¾K˜¾hZ~yËÎxºÎ™)ş8"rÂ~jÚNXú®K˜>KÉ~‹nK˜¾šØûÈÎh›şY	¾™Ù.yÙûÈÎ‹ª¾K»~ˆz®š¹8"rÀ¢~jÚNXú®KØŞX‰~šin[ŠŞûÈÎK»~Kªniˆ.ûÈÎYJşY	¾Z
+®˜XŞjÚNY>8"rÂ~iz.hºjÚNXú®š8îšªûÈÎ[Ù>yú^KÉ~‹nK˜¾KŠŞûÈÎKº^jÚNiÈK‹®yùÎ‹K^8"p¢ÒÀ¢&VÖ–æ–æs¢°¢~KÙ{).izZI®ûÈÎZéÎ‹hX[NšZî[ŞûÈÎK‹®jÚN‹nKÙÎ{¹>8"rÂ~h˜XšXzKÙ^ûÈÎ[Ù>Xø®i{nYYÎšZîûÈÎKˆŞ‹IşjÚN‹nš8îXØî8"rÀ¢~jè¾‹n[n[ŞûÈÎ˜	şšZîK˜¾ûÈÎZ[ŞKˆîjÚNXú®K¸îZëKÙÎXŠ¾8"rÂ~jÚN‹nŠx[©^YZnûÈÎ‹hš8îY>iÊ®iZ>ûÈÎ[ú¾[ú¾šZî[ŞiKnYË®ûÈp¢ÒÀ¢&æFöÓ¢°¢~™zŞyºîh¸zÛîûÈÎK»¾X[nˆz®xKn8"rÂ~Kúh˜¾h¸zÛîûÈÎKº^Zé®K¸®iz^K˜¾˜8"rÂ~K‰NXzŞKˆzÛîûÈÎXk>jÚN‹n[Ù.‹8"rÀ¢~KˆzÛî‰ŞYËûÈÎjÚNXú®[Ù>[Ù.K¨îY	¾8"rÂ~zÛîhÈ~jÚNXú®ûÈÎš8îY>jÚ>˜Z>ûÈÎY	¾XúşZè[ø>Kª¾K˜¾8"rÀ¢~[é~jÚNzÛîûÈÎh˜
+.KÙ{).izXzûÈÎ{ÉXˆnK™ş8"rÂ~KËh˜¾h¸KˆzÛîûÈÎyÈ¾ZJhHş˜Y:®Xú®ûÈp¢Ğ§Ò“° ¦gVæ7F–öâ&V6öÖÖVæFF–öå&ö×B†ÖöFR’°¢6öç7BööÂÒ$T4ôÔÔTäDD”ôåõ$ôÕE5¶ÖöFUÒÇÂµÓ°¢–b‚ööÂæÆVæwF‚’&WGW&ârs°¢6öç7B&Wf–÷W2Ò7FFRç&V6öÖÖVæFF–öå&ö×DÖVÖ÷'•¶ÖöFUÒÇÂrs°¢6öç7B6†ö–6W2ÒööÂæf–ÇFW"‡fÇVRÓâfÇVRÓÒ&Wf–÷W2“°¢6öç7B6VÆV7FVBÒ6†ö–6W5´ÖF‚æfÆö÷"„ÖF‚ç&æFöÒ‚’¢6†ö–6W2æÆVæwF‚•ÒÇÂööÅ³Ó°¢7FFRç&V6öÖÖVæFF–öå&ö×DÖVÖ÷'•¶ÖöFUÒÒ6VÆV7FVC°¢&WGW&â6VÆV7FVC°§Ğ ¦gVæ7F–öâ÷Vå&V6öÖÖVæDÖVçR‚’°¢6Æ÷6U÷W2‚“°¢6öç7B÷WÒFö7VÖVçBæ7&VFTVÆVÖVçB‚vF—br“²÷Wæ6Æ74æÖRÒw&V6öÖÖVæBÖÖVçRs°¢6öç7B—FV×2Ò°¢²vÆVFW&&ö&BrÂ~jiÎšØrÂr63–CVbrÂfÇ6UÒÂ²vg&W6†æW72rÂ~Y>y¹²rÂr3VS–c‚rÂfÇ6UÒÀ¢²w&–6RrÂ~K»~XjrÂr63–CVbrÂfÇ6UÒÂ²w&VÖ–æ–ærrÂ~h»îKÙ’rÂr6ccVBrÂfÇ6UÒÂ²w&æFöÒrÂ~h¸zÛârÂr6Sƒ†#6BrÂG'VUĞ¢Ó°¢÷Wæ–ææW$…DÔÂÒ—FV×2æÖ‚…¶ÖöFRÂÆ&VÂÂ6öÆ÷"ÂÆ&vUÒ’ÓâÆ'WGFöâG—SÒ&'WGFöâ"6Æ73Ò'&V6öÖÖVæBÖ÷F–öâ"FF×&V6öÖÖVæBÖÖöFSÒ"G¶ÖöFWÒ"&–ÖÆ&VÃÒ"G¶Æ&VÇÒ#ãÇ7â6Æ73Ò'&V6öÖÖVæBÖÆ&VÂ#âG¶Æ&VÇÓÂ÷7ããÇ7â6Æ73Ò'&V6öÖÖVæBÖF÷BG¶Æ&vSòr&æFöÒs¢rwÒ"7G–ÆSÒ&&6¶w&÷VæC¢G¶6öÆ÷'Ò#ãÂ÷7ããÂö'WGFöãæ’æ¦ö–â‚rr“°¢Fö7VÖVçBæ&öG’æVæB‡÷W“²÷6—F–öå÷W‚B‚r6f%&V6öÖÖVæD'Fâr’Â÷WÂ²&÷fS¢G'VRÒ“°§Ğ ¦7–æ2gVæ7F–öâ&V6öÖÖVæD&Vâ†ÖöFR’°¢6Æ÷6U÷W2‚“°¢6öç7B&Vç2Òf–ÇFW&VD&Vç2‚“°¢–b‚&Vç2æÆVæwF‚’&WGW&âFö7B‚~k*iÈXúşhêˆÙy¨N‹nXÚr“°¢–b‡7FFRç&V6öÖÖVæFF–öå'Vâ’&WGW&ã°¢7FFRç&V6öÖÖVæFF–öå'VâÒG'VS°¢7FFRç&V6öÖÖVæFF–öäW‡æFVDÆÂÒ&Vç2æÆVæwF‚âc°¢7FFRæ7F—fTw&÷W¶W’ÒçVÆÃ°¢7FFRæw&÷Wæ–ÖF–öäÖöFRÒvWFòs°¢&VæFW$&Vç2‚“°¢v—BæWr&öÖ—6R‡&W6öÇfRÓâ&WVW7Dæ–ÖF–öäg&ÖR‚‚’Óâ&WVW7Dæ–ÖF–öäg&ÖR‡&W6öÇfR’’“°¢ÆWB6VÆV7FVC°¢G'’°¢–b†ÖöFRÓÓÒvÆVFW&&ö&Br’6VÆV7FVBÒ²ââæ&Vç5Òç6÷'B‚†Æ"“Óç&V6öÖÖVæFF–öå66÷&R†"’×&V6öÖÖVæFF–öå66÷&R†’•³Ó°¢VÇ6R–b†ÖöFRÓÓÒvg&W6†æW72r’6VÆV7FVBÒ²ââæ&Vç5Òç6÷'B‚†Æ"“Óæg&W6†æW75&öf–ÆR†"’æfÆf÷%66÷&RÖg&W6†æW75&öf–ÆR†’æfÆf÷%66÷&R•³Ó°¢VÇ6R–b†ÖöFRÓÓÒw&–6Rr’6VÆV7FVBÒ²ââæ&Vç5Òç6÷'B‚†Æ"“Óâ„çVÖ&W"†"ç&–6R—ÇÃ’Ò„çVÖ&W"†ç&–6R—ÇÃ’•³Ó°¢VÇ6R–b†ÖöFRÓÓÒw&VÖ–æ–ærr’6VÆV7FVBÒ²ââæ&Vç5Òç6÷'B‚†Æ"“Óâ„çVÖ&W"†ç&VÖ–æ–æuvV–v‡B—ÇÃ’Ò„çVÖ&W"†"ç&VÖ–æ–æuvV–v‡B—ÇÃ’•³Ó°¢VÇ6R°¢6öç7B&÷VæG2ÒÖF‚æfÆö÷"„ÖF‚ç&æFöÒ‚’¢b’²C°¢ÆWB&Wf–÷W4–BÒrs°¢f÷"†ÆWB–æFW‚Ò²–æFW‚Â&÷VæG3²–æFW‚³Ò’°¢6öç7Bf–Æ&ÆRÒ&Vç2æÆVæwF‚âò&Vç2æf–ÇFW"†&VâÓâ&Vâæ–BÓÒ&Wf–÷W4–B’¢&Vç3°¢6öç7B&VâÒf–Æ&ÆU´ÖF‚æfÆö÷"„ÖF‚ç&æFöÒ‚’¢f–Æ&ÆRæÆVæwF‚•Ó°¢&Wf–÷W4–BÒ&Vâæ–C°¢6VÆV7FVBÒ&Vã°¢v—Bfö7W5&V6öÖÖVæFVD&Vâ†&VâÂ²WFöÖF–3¢G'VRÂ6WGFÆS¢G'VRÂGW&F–öã¢ƒÒ“°¢Ğ¢Ğ¢–b†ÖöFRÓÒw&æFöÒr’v—Bfö7W5&V6öÖÖVæFVD&Vâ‡6VÆV7FVBÂ²WFöÖF–3¢G'VRÂ6WGFÆS¢G'VRÂGW&F–öã¢ƒÒ“°¢6öç7B&ö×BÒ&V6öÖÖVæFF–öå&ö×B†ÖöFR“°¢Fö7B‡&ö×BÇÂ[{.˜ûÉ¢G¶&VäF—7Æ”æÖR‡6VÆV7FVB—ÖÂw&V6öÖÖVæFF–öâr“°¢Òf–æÆÇ’°¢7FFRç&V6öÖÖVæFF–öå'VâÒfÇ6S°¢Ğ§Ğ ¦7–æ2gVæ7F–öâfö7W5&V6öÖÖVæFVD&Vâ†&VâÂ²WFöÖF–2ÒG'VRÂ6WGFÆRÒG'VRÂ÷VäFWF–ÂÒfÇ6RÂGW&F–öâÒƒÒÒ·Ò’°¢–b‚&Vâ’&WGW&ã°¢7FFRæw&÷Wæ–ÖF–öäÖöFRÒWFöÖF–2òvWFòr¢vÖçVÂs°¢6öç7Bf—6–&ÆRÒf–ÇFW&VD&Vç2‚“°¢7FFRç&V6öÖÖVæFF–öäW‡æFVDÆÂÒf—6–&ÆRæÆVæwF‚âc°¢7FFRæ7F—fTw&÷W¶W’ÒçVÆÃ°¢7FFRç&V6öÖÖVæFVD&Vä–BÒ&Vâæ–C°¢&VæFW$&Vç2‚“°¢v—BæWr&öÖ—6R‡&W6öÇfRÓâ&WVW7Dæ–ÖF–öäg&ÖR‚‚’Óâ&WVW7Dæ–ÖF–öäg&ÖR‡&W6öÇfR’’“°¢6öç7B6&BÒFö7VÖVçBçVW'•6VÆV7F÷"†¶FFÖ&VâÖ–CÒ"G´552æW66R†&Vâæ–B—Ò%Ö“°¢–b†6&B’°¢6&Bæ6Æ74Æ—7Bç&VÖ÷fR‚w&V6öÖÖVæB×7FWr“°¢fö–B6&Bæöfg6WEv–GFƒ°¢6&Bç67&öÆÄ–çFõf–Wr‡²&V†f–÷#¢WFöÖF–2òw6Öö÷F‚r¢vWFòrÂ&Æö6³¢v6VçFW"rÒ“°¢6&Bæ6Æ74Æ—7BæFB‚w&V6öÖÖVæB×7FWr“°¢v—BæWr&öÖ—6R‡&W6öÇfRÓâ6WEF–ÖV÷WB‡&W6öÇfRÂÖF‚æÖ‚ƒ#ÂGW&F–öâ’’“°¢–b‡6WGFÆR’6&Bæ6Æ74Æ—7Bç&VÖ÷fR‚w&V6öÖÖVæB×7FWr“°¢ÒVÇ6Rv—BæWr&öÖ—6R‡&W6öÇfRÓâ6WEF–ÖV÷WB‡&W6öÇfRÂÖF‚æÖ‚ƒ#ÂGW&F–öâ’’“°¢–b†÷VäFWF–Â’FWF–Ä&Vâ†&Vâæ–B“°§Ğ ¦gVæ7F–öâ÷VäFDÖVçR‚’°¢6Æ÷6U÷W2‚“°¢6öç7B÷WÒFö7VÖVçBæ7&VFTVÆVÖVçB‚vF—br“²÷Wæ6Æ74æÖRÒw÷WÖÖVçRs°¢÷Wæ–ææW$…DÔÂÒÆ'WGFöâG—SÒ&'WGFöâ"FFÖFBÖÖöFSÒ'†÷Fò#îh¸ŞxZ~ŠønXŠ³Âö'WGFöããÆ'WGFöâG—SÒ&'WGFöâ"FFÖFBÖÖöFSÒ'"#îK¨Î{»NzŠønXŠ³Âö'WGFöããÆ'WGFöâG—SÒ&'WGFöâ"FFÖFBÖÖöFSÒ'FW‡B#îih~ZÙ~ŠønXŠ³Âö'WGFöãæ°¢Fö7VÖVçBæ&öG’æVæB‡÷W“²÷6—F–öå÷W‚B‚r6f$FD'Fâr’Â÷WÂ²&÷fS¢G'VRÒ“°§Ğ ¦gVæ7F–öâ6VÆV7D÷F–öç2‡&÷w2Â6VÆV7FVBÂÆ&VÄ–æFW‚ÒÂ&Ææ²Ò~Šû~˜hº’r’²&WGW&â÷F–öç4‡FÖÂ‡&÷w2Â6VÆV7FVBÂÆ&VÄ–æFW‚Â&Ææ²“²Ğ¦gVæ7F–öâf÷&ÕfÇVR†–B’²&WGW&âB†2G¶–GÖ“òçfÇVSòçG&–Óòâ‚’óòrs²Ğ¦gVæ7F–öâ6VÆV7FVDfÆf÷$6öFW2‡&ö÷BÒFö7VÖVçB’²&WGW&âBB‚u¶FFÖfÆf÷"Ö6öFUÒç6VÆV7FVBrÂ&ö÷B’æÖ†'WGFöâÓâ'WGFöâæFF6WBæfÆf÷$6öFR“²Ğ ¦gVæ7F–öâ&Väf÷&Ô‡FÖÂ†&VâÒ·ÒÂ6÷W&6RÒ·Ò’°¢6öç7B&Vv–öç2Ò&VÆFVE&÷w2‡7FFRæ6öFV&öö²Âw&Vv–öç2rÂ&Vâæ6÷VçG'”6öFR“°¢6öç7BVçF—F–W2Ò&VÆFVE&÷w2‡7FFRæ6öFV&öö²ÂvVçF—F–W2rÂ&Vâæ6÷VçG'”6öFR“°¢6öç7BfÆf÷'2Òf—6–&ÆTfÆf÷$6öFW2†&Vâ“°¢6öç7B6öÆ÷%fÇVRÒ&Vâç&ö7D6öÆ÷"ÇÂrs°¢6öç7B&ö7EfÇVRÒ6öÆ÷%fÇVRò&ö7Dg&öÔ6öÆ÷"†6öÆ÷%fÇVR’¢†&Vâç&ö7D6öFRÇÂrr“°¢&WGW&âG¶F–Æöt†VFW"†&Vâæ–Bò~{Én‹é‹nXÚr¢~ikZ)î‹nXÚrÂiÚ^k©ûÉ¢G·6÷W&6RçG—RÇÂ&Vâç6÷W&6RÇÂ~h˜¾[z^[Ù^XZRwÖ—Ğ¢Æf÷&Ò–CÒ&&Väf÷&Ò"æ÷fÆ–FFSà¢ÆF—b6Æ73Ò&f÷&ÒÖw&–B#à¢G¶f–VÆD‡FÖÂ‚v&Vä6÷VçG'’rÂ~Y»ŞZëbrÆÇ6VÆV7B–CÒ&&Vä6÷VçG'’"6Æ73Ò&6öçG&öÂ#âG·6VÆV7D÷F–öç2‡7FFRæ6öFV&öö²æ6÷VçG&–W2Æ&Vâæ6÷VçG'”6öFR—ÓÂ÷6VÆV7CæÂw&WV—&VBr—Ğ¢G¶f–VÆD‡FÖÂ‚v&Vå&Vv–öârÂ~Kª~XË¢rÆÇ6VÆV7B–CÒ&&Vå&Vv–öâ"6Æ73Ò&6öçG&öÂ#âG·6VÆV7D÷F–öç2‡&Vv–öç2Æ&Vâç&Vv–öä6öFRÃ"Æ&Vâæ6÷VçG'”6öFSò~Šû~˜hºKª~XË¢s¢~XX˜hºY»ŞZëbr—ÓÂ÷6VÆV7Cæ—Ğ¢G¶f–VÆD‡FÖÂ‚v&VäVçF—G’rÂ~[¨NYºÒòZHNynz¹’rÆÇ6VÆV7B–CÒ&&VäVçF—G’"6Æ73Ò&6öçG&öÂ#âG·6VÆV7D÷F–öç2†VçF—F–W2Æ&VâæVçF—G”6öFRÃ2Æ&Vâæ6÷VçG'”6öFSò~Šû~˜hº[¨NYºÒòZHNynz¹’s¢~XX˜hºY»ŞZëbr—ÓÂ÷6VÆV7Cæ—Ğ¢G¶f–VÆD‡FÖÂ‚v&Våf&–WG’rÂ~‹nzxÒrÆÇ6VÆV7B–CÒ&&Våf&–WG’"6Æ73Ò&6öçG&öÂ#âG·6VÆV7D÷F–öç2‡7FFRæ6öFV&öö²çf&–WF–W2Æ&Vâçf&–WG”6öFR—ÓÂ÷6VÆV7CæÂw&WV—&VBr—Ğ¢G¶f–VÆD‡FÖÂ‚v&Vå&ö6W72rÂ~ZHNynk9RrÆÇ6VÆV7B–CÒ&&Vå&ö6W72"6Æ73Ò&6öçG&öÂ#âG·6VÆV7D÷F–öç2‡7FFRæ6öFV&öö²ç&ö6W76W2Æ&Vâç&ö6W746öFR—ÓÂ÷6VÆV7CæÂw&WV—&VBr—Ğ¢G¶f–VÆD‡FÖÂ‚v&Vå&ö7D6öÆ÷"rÂ~x9xIˆ›.XÂrÆÆ–çWB–CÒ&&Vå&ö7D6öÆ÷""6Æ73Ò&6öçG&öÂ"G—SÒ&çVÖ&W""Ö–ãÒ##"ÖƒÒ##"7FWÒ#"fÇVSÒ"G¶W62†6öÆ÷%fÇVR—Ò"Æ6V†öÆFW#Ò$wG&öâ#(	3##æÂw&V6öÖÖVæFVBr—Ğ¢G¶f–VÆD‡FÖÂ‚v&Vå&ö7BrÂ~x9xI[ªbrÆÇ6VÆV7B–CÒ&&Vå&ö7B"6Æ73Ò&6öçG&öÂ#ãÆ÷F–öâfÇVSÒ"#îZ¾Xiˆ›.XÎˆz®XªyIşh‰Âö÷F–öãâGµ$ô5E2æÖ‚…·fÇVRÆÆ&VÅÒ“ÓæÆ÷F–öâfÇVSÒ"G·fÇVWÒ"G·&ö7EfÇVSÓÓ×fÇVSòr6VÆV7FVBs¢rwÓâG¶Æ&VÇÓÂö÷F–öãæ’æ¦ö–â‚rr—ÓÂ÷6VÆV7CæÂw&WV—&VBr—Ğ¢G¶f–VÆD‡FÖÂ‚v&Vå&ö7DFFRrÂ~x9xIiz^iÉòrÆÆ–çWB–CÒ&&Vå&ö7DFFR"6Æ73Ò&6öçG&öÂ"G—SÒ&FFR"fÇVSÒ"G¶W62†&Vâç&ö7DFFRÇÂ‡6÷W&6RçG—RÓÓÒvÖçVÂròFöF”•4ò‚’¢rr’—Ò#æÂw&WV—&VBr—Ğ¢G¶f–VÆD‡FÖÂ‚v&Vä–æ—F–ÅvV–v‡BrÂ~X‰ŞZx¾XX¾˜xÒrÆÆ–çWB–CÒ&&Vä–æ—F–ÅvV–v‡B"6Æ73Ò&6öçG&öÂ"G—SÒ&çVÖ&W""Ö–ãÒ#"ÖƒÒ#"7FWÒ#ã"fÇVSÒ"G¶W62†&Vâæ–æ—F–ÅvV–v‡BÇÂrr—Ò#æÂw&WV—&VBr—Ğ¢G¶f–VÆD‡FÖÂ‚v&Vå&Vg&–vW&FVBrÂ~iŠşY
+nXk~‰xòrÆÇ6VÆV7B–CÒ&&Vå&Vg&–vW&FVB"6Æ73Ò&6öçG&öÂ#ãÆ÷F–öâfÇVSÒ&fÇ6R"G²&Vâç&Vg&–vW&FVCòr6VÆV7FVBs¢rwÓîY
+cÂö÷F–öããÆ÷F–öâfÇVSÒ'G'VR"G¶&Vâç&Vg&–vW&FVCòr6VÆV7FVBs¢rwÓîiŠóÂö÷F–öããÂ÷6VÆV7CæÂw&V6öÖÖVæFVBr—Ğ¢G¶f–VÆD‡FÖÂ‚v&Vå&–6RrÂ~‹JŞK›K»~jÂrÆÆ–çWB–CÒ&&Vå&–6R"6Æ73Ò&6öçG&öÂ"G—SÒ&çVÖ&W""Ö–ãÒ#"7FWÒ#ã"fÇVSÒ"G¶W62†&Vâç&–6RÇÂrr—Ò#æÂw&V6öÖÖVæFVBr—Ğ¢G¶f–VÆD‡FÖÂ‚v&Vå&ö7FW"rÂ~x9xIYXbrÆÆ–çWB–CÒ&&Vå&ö7FW""6Æ73Ò&6öçG&öÂ"Ö†ÆVæwFƒÒ#c"fÇVSÒ"G¶W62†&Vâç&ö7FW$æÖRÇÂ&Vâç&ö7FW"ÇÂrr—Ò#æÂw&V6öÖÖVæFVBr—Ğ¢G¶f–VÆD‡FÖÂ‚v&VäÇF—GVFRrÂ~k[~h¹BrÆÆ–çWB–CÒ&&VäÇF—GVFR"6Æ73Ò&6öçG&öÂ"G—SÒ&çVÖ&W""Ö–ãÒ#"ÖƒÒ#S"fÇVSÒ"G¶W62†&VâæÇF—GVFRÇÂrr—Ò#æ—Ğ¢G¶f–VÆD‡FÖÂ‚v&Väæ÷FW2rÂ~ZH~k:‚rÆÆ–çWB–CÒ&&Väæ÷FW2"6Æ73Ò&6öçG&öÂ"Ö†ÆVæwFƒÒ#3"fÇVSÒ"G¶W62†&Vâææ÷FW2ÇÂrr—Ò#æ—Ğ¢ÂöF—cà¢Ç6V7F–öâ6Æ73Ò'æVÂ#ãÆF—b6Æ73Ò'æVÂ×F—FÆR#ãÆF—cãÆƒ3îš8îY>j~zÛãÂöƒ3ãÇâG·7FFRæ6öFV&öö²æfÆf÷'3òæÆVæwF‚ÇÂŞšXúşyJƒÂ÷ãÂöF—cãÆ'WGFöâ–CÒ&VF—DfÆf÷'4'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ#î{Én‹éÂö'WGFöããÂöF—cãÆF—b–CÒ&f÷&ÔfÆf÷%7VÖÖ'’"6Æ73Ò&fÆf÷"×7VÖÖ'’#âG¶fÆf÷'2æÖ†6öFSÓæÇ7â6Æ73Ò'Fr"FF×7VÖÖ'’Ö6öFSÒ"G¶W62†6öFR—Ò#âG¶W62†6öFTæÖR‚vfÆf÷'2rÆ6öFRÆ6öFR’—ÓÂ÷7ãæ’æ¦ö–â‚rr’ÇÂsÇ7â6Æ73Ò&×WFVB6ÖÆÂ#î[	®iÊ®˜hº“Â÷7ãâwÓÂöF—cãÂ÷6V7F–öãà¢G·6÷W&6RæWf–FVæ6RòWf–FVæ6T‡FÖÂ‡6÷W&6RæWf–FVæ6RÂ6÷W&6Ræ6öæf–FVæ6R’¢rwĞ¢ÆF—b6Æ73Ò'&÷r#ãÆ'WGFöâ–CÒ&&Väf÷&Ô&6´'Fâ"6Æ73Ò&'WGFöâ7V'FÆR"G—SÒ&'WGFöâ#î‹ùNY¹ãÂö'WGFöããÇ7â6Æ73Ò&w&÷r#ãÂ÷7ããÆ'WGFöâ6Æ73Ò&'WGFöâ&–Ö'’"G—SÒ'7V&Ö—B#îKùŞZÙƒÂö'WGFöããÂöF—cà¢Âöf÷&Óæ°§Ğ ¦gVæ7F–öâf–VÆD‡FÖÂ†–BÂÆ&VÂÂ6öçG&öÂÂÆWfVÂÒrr’°¢6öç7B&FvRÒÆWfVÂÓÓÒw&WV—&VBròsÇ7â6Æ73Ò&&FvR&WV—&VB#î[ø^Z³Â÷7ãâr¢†ÆWfVÂÓÓÒw&V6öÖÖVæFVBròsÇ7â6Æ73Ò&&FvR#î[»®ŠêãÂ÷7ãâr¢rr“°¢&WGW&âÆF—b6Æ73Ò&f÷&ÒÖf–VÆBG¶ÆWfVÂÓÓÒw&WV—&VBròr&WV—&VBr¢rwÒG¶ÆWfVÂÓÓÒw&V6öÖÖVæFVBròr—2×&V6öÖÖVæFVBr¢rwÒ"FFÖf–VÆCÒ"G¶–GÒ#ãÆÆ&VÂf÷#Ò"G¶–GÒ#ãÇ7ãâG¶Æ&VÇÓÂ÷7ãâG¶&FvWÓÂöÆ&VÃâG¶6öçG&öÇÓÂöF—cæ°§Ğ ¦gVæ7F–öâWf–FVæ6T‡FÖÂ†Wf–FVæ6RÒ·ÒÂ6öæf–FVæ6RÒ·Ò’°¢6öç7BÆ&VÇ2Ò²6÷VçG'”6öFS¢~Y»ŞZëbrÇ&Vv–öä6öFS¢~Kª~XË¢rÆVçF—G”6öFS¢~[¨NYºÒşZHNynz¹’rÇf&–WG”6öFS¢~‹nzxÒrÇ&ö6W746öFS¢~ZHNynk9RrÇ&ö7D6öFS¢~x9xI[ªbrÇ&ö7DFFS¢~x9xIiz^iÉòrÆ†'fW7E–V#¢~Kª~ZÚ2rÇ&ö7D6öÆ÷#¢~x9xIˆ›.XÂrÇ&ö7FW$æÖS¢~x9xIYXbrÆÇF—GVFS¢~k[~h¹BrÆ–æ—F–ÅvV–v‡C¢~X‰ŞZx¾XX¾˜xÒrÇ&–6S¢~K»~jÂrÓ°¢6öç7B&÷w2Òö&¦V7BæVçG&–W2†Wf–FVæ6R’æÖ‚…¶¶W’ÂfÇVUÒ’ÓâÆF—b6Æ73Ò&Wf–FVæ6R×&÷r#ãÇ7ãâG¶W62†Æ&VÇ5¶¶W•×ÇÆ¶W’—ÓÂ÷7ããÇ7ãâG¶W62‡fÇVR—ÓÂ÷7ããÇ7ãâG´ÖF‚ç&÷VæB‚†6öæf–FVæ6U¶¶W•×ÇÃ’£—ÒSÂ÷7ããÂöF—cæ’æ¦ö–â‚rr“°¢&WGW&â&÷w2òÇ6V7F–öâ6Æ73Ò'æVÂ#ãÆF—b6Æ73Ò'æVÂ×F—FÆR#ãÆF—cãÆƒ3îŠønXŠ¾ŠøhÚãÂöƒ3ãÇîKØî{ÚîKú[ªnZÙ~jë^Šû~K«®[z^zîŠêCÂ÷ãÂöF—cãÂöF—cãÆF—b6Æ73Ò'FW‡BÖWf–FVæ6R#âG·&÷w7ÓÂöF—cãÂ÷6V7F–öãæ¢rs°§Ğ ¦gVæ7F–öâ÷Vä&Väf÷&Ò†&VâÒ·ÒÂ6÷W&6RÒ²G—S¢vÖçVÂrÒ’°¢7FFRæ&Väf÷&Õ6÷W&6RÒ6÷W&6S°¢7FFRæ&Väf÷&ÔG&gBÒ7G'V7GW&VD6ÆöæR†&Vâ“°¢6öç7B÷fW&Æ’Ò6†÷t÷fW&Æ’†&Väf÷&Ô‡FÖÂ†&VâÂ6÷W&6R’Â²gVÆÃ¢G'VRÂ–C¢v&VâÖf÷&ÒrÒ“²&–æD6Æ÷6R†÷fW&Æ’“°¢6öç7Bf÷&ÒÒB‚r6&Väf÷&Òr“°¢6öç7B7–æ5&ö7D6öÆ÷"Ò‚’Óâ°¢6öç7B6öÆ÷"Òf÷&ÕfÇVR‚v&Vå&ö7D6öÆ÷"r“°¢6öç7B6VÆV7BÒB‚r6&Vå&ö7Br“°¢–b†6öÆ÷"’°¢6VÆV7BçfÇVRÒ&ö7Dg&öÔ6öÆ÷"†6öÆ÷"“°¢6VÆV7BæFF6WBæWFôg&öÔ6öÆ÷"ÒwG'VRs°¢6VÆV7BæF—6&ÆVBÒG'VS°¢ÒVÇ6R–b‡6VÆV7BæFF6WBæWFôg&öÔ6öÆ÷"ÓÓÒwG'VRr’°¢6VÆV7BçfÇVRÒrs°¢FVÆWFR6VÆV7BæFF6WBæWFôg&öÔ6öÆ÷#°¢6VÆV7BæF—6&ÆVBÒfÇ6S°¢Ğ¢&Vg&W6„6öçG&öÅ7FFR‡6VÆV7B“°¢Ó°¢B‚r6&Vä6÷VçG'’r’æFDWfVçDÆ—7FVæW"‚v6†ævRrÂ‚’Óâ°¢6öç7B6÷VçG'’ÒB‚r6&Vä6÷VçG'’r’çfÇVS°¢B‚r6&Vå&Vv–öâr’æ–ææW$…DÔÂÒ6VÆV7D÷F–öç2‡&VÆFVE&÷w2‡7FFRæ6öFV&öö²Âw&Vv–öç2rÂ6÷VçG'’’ÂrrÂ"Â6÷VçG'’ò~Šû~˜hºKª~XË¢r¢~XX˜hºY»ŞZëbr“°¢B‚r6&VäVçF—G’r’æ–ææW$…DÔÂÒ6VÆV7D÷F–öç2‡&VÆFVE&÷w2‡7FFRæ6öFV&öö²ÂvVçF—F–W2rÂ6÷VçG'’’ÂrrÂ2Â6÷VçG'’ò~Šû~˜hº[¨NYºÒòZHNynz¹’r¢~XX˜hºY»ŞZëbr“°¢&–æD6öçG&öÅ7FFW2†f÷&Ò“°¢Ò“°¢B‚r6&Vå&ö7D6öÆ÷"r’æFDWfVçDÆ—7FVæW"‚v–çWBrÂ7–æ5&ö7D6öÆ÷"“°¢–b†f÷&ÕfÇVR‚v&Vå&ö7D6öÆ÷"r’’²B‚r6&Vå&ö7Br’æFF6WBæWFôg&öÔ6öÆ÷"ÒwG'VRs²7–æ5&ö7D6öÆ÷"‚“²Ğ¢B‚r6VF—DfÆf÷'4'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ÷VäfÆf÷$VF—F÷"‡6VÆV7FVE7VÖÖ'”6öFW2‚’Â&VâÂ6÷W&6R’“°¢B‚r6&Väf÷&Ô&6´'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ°¢–b‡6÷W&6RçG—RÓÓÒwFW‡Br’÷VåFW‡E&V6övæ—F–öâ‡6÷W&6RçFW‡BÇÂrrÂ6GW&T&Väf÷&ÔG&gB‚’“²VÇ6R6Æ÷6T÷fW&Æ’‚“°¢Ò“°¢f÷&ÒæFDWfVçDÆ—7FVæW"‚w7V&Ö—BrÂ7–æ2WfVçBÓâ°¢WfVçBç&WfVçDFVfVÇB‚“°¢6öç7B&WV—&VBÒµ²v&Vä6÷VçG'’rÂ~Y»ŞZëbuÒÅ²v&Våf&–WG’rÂ~‹nzxÒuÒÅ²v&Vå&ö6W72rÂ~ZHNynk9RuÒÅ²v&Vå&ö7BrÂ~x9xI[ªbuÒÅ²v&Vå&ö7DFFRrÂ~x9xIiz^iÉòuÒÅ²v&Vä–æ—F–ÅvV–v‡BrÂ~X‰ŞZx¾XX¾˜xÒuÕÓ°¢f÷"†6öç7B¶–BÆÆ&VÅÒöb&WV—&VB’–b‚f÷&ÕfÇVR†–B’’&WGW&âFö7B†Šû~Z¾Xi’G¶Æ&VÇÖÂw7FGW2Ö&Br“°¢6öç7B–æ—F–ÅvV–v‡BÒ'6TçVÖ&W"†f÷&ÕfÇVR‚v&Vä–æ—F–ÅvV–v‡Br’“°¢–b†–æ—F–ÅvV–v‡BÃÒ’&WGW&âFö7B‚~X‰ŞZx¾XX¾˜xŞ[ø^š¾ZJ~K¨ârÂw7FGW2Ö&Br“°¢6öç7B6÷VçG'”6öFRÒf÷&ÕfÇVR‚v&Vä6÷VçG'’r“°¢6öç7Bf&–WG”6öFRÒf÷&ÕfÇVR‚v&Våf&–WG’r“°¢6öç7Bæ÷rÒæWrFFR‚’çFô•4õ7G&–ær‚“°¢6öç7B&V6÷&BÒ°¢ââæ&VâÂ–C¢&Vâæ–BÇÂV–B‚v&Vâr’ÂæÖS¢G¶6öFTæÖR‚v6÷VçG&–W2rÂ6÷VçG'”6öFRÂ~iÊ®Zé®Y»ŞZëbr—Ò+rG¶6öFTæÖR‚wf&–WF–W2rÂf&–WG”6öFRÂ~iÊ®Zé®‹nzxÒr—ÖÀ¢6÷VçG'”6öFRÂ&Vv–öä6öFS¢f÷&ÕfÇVR‚v&Vå&Vv–öâr’ÂVçF—G”6öFS¢f÷&ÕfÇVR‚v&VäVçF—G’r’Âf&–WG”6öFRÂ&ö6W746öFS¢f÷&ÕfÇVR‚v&Vå&ö6W72r’À¢&ö7D6öÆ÷#¢'6TçVÖ&W"†f÷&ÕfÇVR‚v&Vå&ö7D6öÆ÷"r’Â’ÇÂrrÂ&ö7D6öFS¢f÷&ÕfÇVR‚v&Vå&ö7Br’Â&ö7DFFS¢f÷&ÕfÇVR‚v&Vå&ö7DFFRr’Â–æ—F–ÅvV–v‡BÀ¢&VÖ–æ–æuvV–v‡C¢&Vâæ–BòçVÖ&W"†&Vâç&VÖ–æ–æuvV–v‡B’¢–æ—F–ÅvV–v‡BÂ&Vg&–vW&FVC¢f÷&ÕfÇVR‚v&Vå&Vg&–vW&FVBr’ÓÓÒwG'VRrÂg&VW¦TFFS¢f÷&ÕfÇVR‚v&Vå&Vg&–vW&FVBr’ÓÓÒwG'VRrò†&Vâæg&VW¦TFFRÇÂFöF”•4ò‚’’¢rrÀ¢&–6S¢'6TçVÖ&W"†f÷&ÕfÇVR‚v&Vå&–6Rr’Â’Â&ö7FW$æÖS¢f÷&ÕfÇVR‚v&Vå&ö7FW"r’ÂÇF—GVFS¢'6TçVÖ&W"†f÷&ÕfÇVR‚v&VäÇF—GVFRr’Â’Âæ÷FW3¢f÷&ÕfÇVR‚v&Väæ÷FW2r’À¢fÆf÷$6öFW3¢6VÆV7FVE7VÖÖ'”6öFW2‚’Â&6†—fVC¢&ööÆVâ†&Vâæ&6†—fVB’Â6÷W&6S¢6÷W&6RçG—RÇÂ&Vâç6÷W&6RÇÂvÖçVÂrÀ¢6öFV&ööµ66†VÖfW'6–öã¢çVÖ&W"‡7FFRæ6öFV&öö²å÷66†VÖfW'6–öâÇÂ’Â6öFV&öö´FFfW'6–öã¢7G&–ær‡7FFRæ6öFV&öö²çfW'6–öâÇÂsbr’À¢&V6övæ—F–öäÖWFFF¢6÷W&6Rç'6TÖWFFFÇÂ&Vâç&V6övæ—F–öäÖWFFFÇÂçVÆÂÀ¢7&VFVDC¢&Vâæ7&VFVDBÇÂæ÷rÂWFFVDC¢æ÷p¢Ó°¢v—BWB‚v&Vç2rÂ&V6÷&B“²v—B&Vg&W6„FF‚“²6Æ÷6T÷fW&Æ’‚“²&VæFW$&Vç2‚“²Fö7B†&Vâæ–Bò~‹nXÚ[{.i»Nikr¢~‹nXÚ[{.XªXZ^‹n‰xòrÂw7FGW2ÖvööBr“°¢Ò“°¢&–æD6öçG&öÅ7FFW2†f÷&Ò“°§Ğ ¦gVæ7F–öâ6VÆV7FVE7VÖÖ'”6öFW2‚’²&WGW&âBB‚r6f÷&ÔfÆf÷%7VÖÖ'’¶FF×7VÖÖ'’Ö6öFUÒr’æÖ†æöFRÓâæöFRæFF6WBç7VÖÖ'”6öFR“²Ğ¦gVæ7F–öâ6GW&T&Väf÷&ÔG&gB‚’°¢&WGW&â²ââç7FFRæ&Väf÷&ÔG&gBÂ6÷VçG'”6öFS¢f÷&ÕfÇVR‚v&Vä6÷VçG'’r’Â&Vv–öä6öFS¢f÷&ÕfÇVR‚v&Vå&Vv–öâr’ÂVçF—G”6öFS¢f÷&ÕfÇVR‚v&VäVçF—G’r’Âf&–WG”6öFS¢f÷&ÕfÇVR‚v&Våf&–WG’r’Â&ö6W746öFS¢f÷&ÕfÇVR‚v&Vå&ö6W72r’Â&ö7D6öÆ÷#¢f÷&ÕfÇVR‚v&Vå&ö7D6öÆ÷"r’Â&ö7D6öFS¢f÷&ÕfÇVR‚v&Vå&ö7Br’Â&ö7DFFS¢f÷&ÕfÇVR‚v&Vå&ö7DFFRr’Â–æ—F–ÅvV–v‡C¢f÷&ÕfÇVR‚v&Vä–æ—F–ÅvV–v‡Br’Â&Vg&–vW&FVC¢f÷&ÕfÇVR‚v&Vå&Vg&–vW&FVBr’ÓÓÒwG'VRrÂ&–6S¢f÷&ÕfÇVR‚v&Vå&–6Rr’Â&ö7FW$æÖS¢f÷&ÕfÇVR‚v&Vå&ö7FW"r’ÂÇF—GVFS¢f÷&ÕfÇVR‚v&VäÇF—GVFRr’Âæ÷FW3¢f÷&ÕfÇVR‚v&Väæ÷FW2r’ÂfÆf÷$6öFW3¢6VÆV7FVE7VÖÖ'”6öFW2‚’Ó°§Ğ ¦gVæ7F–öâfÆf÷$w&÷WÆ&VÂ†æÖRÒrr’°¢6öç7BfÇVRÒ7G&–ær†æÖR“°¢–b‚şˆ«ÎˆÈˆè—Îxê¾yÎ{J¾{Ù~X[ÎkH¾yIˆø¢òçFW7B‡fÇVR’’&WGW&â~ˆ«ši’s°¢–b‚şiéÇÎˆé7ÎiùÎj™‡ÎiújªÇÎj7Îˆ»iéÇÎ‰‰GÎˆ©.iéÇÎˆú‰	ÒòçFW7B‡fÇVR’’&WGW&â~iéÎši’s°¢–b‚ş‰È.‰ÉÇÎ{9gÎxJn{9gÎyIÇÎZJ®Zh2òçFW7B‡fÇVR’’&WGW&â~yIÎhIòs°¢–b‚şˆËgÎK˜Î›é’òçFW7B‡fÇVR’’&WGW&â~ˆËnhIòs°¢–b‚şšiii—Îˆ(j'ÎKˆši—Îˆ:jI"òçFW7B‡fÇVR’’&WGW&â~šiii’s°¢–b‚şYÙ®iéÇÎXúşXú÷Î[z~XX¾X©·ÎiØşK¸Îji¾ZÙòçFW7B‡fÇVR’’&WGW&â~YÙ®iéÎXúşXúòs°¢–b‚ş{«‡ÎiÊ‡ÎYÉ÷Î™È—ÎˆÚ÷Îjšˆ;gÎ˜y[çÎxJn{8§Î™Ù.ˆØ’òçFW7B‡fÇVR’’&WGW&â~‹Iş™Ú"s°¢&WGW&â~X[nK¹bs°§Ğ ¦gVæ7F–öâ÷VäfÆf÷$VF—F÷"‡6VÆV7FVBÂ&VâÂ6÷W&6R’°¢6öç7BG&gBÒ6GW&T&Väf÷&ÔG&gB‚“°¢6öç7B6WBÒæWr6WB‚‡6VÆV7FVBÇÂµÒ’æf–ÇFW"†6öFRÓâ7FFRæ6öFV&öö´–æFWƒòæfÆf÷'3òæ†2†6öFR’’“°¢6öç7B&÷w2Ò‡7FFRæ6öFV&öö²æfÆf÷'2ÇÂµÒ’æf–ÇFW"‡&÷rÓâ&÷sòå³Òbb7G&–ær‡&÷ræÆVæwF‚ãÒ’ò&÷u³EÒ¢&÷u³ÒÇÂrr’çG&–Ò‚’“°¢6öç7Bw&÷W2ÒæWrÖ‚“°¢&÷w2æf÷$V6‚‡&÷rÓâ²6öç7BæÖRÒ&÷ræÆVæwF‚ãÒ’ò&÷u³EÒ¢&÷u³Ó²6öç7BÆ&VÂÒfÆf÷$w&÷WÆ&VÂ†æÖRÇÂ&÷u³%ÒÇÂ&÷u³Ò“²–b‚w&÷W2æ†2†Æ&VÂ’’w&÷W2ç6WB†Æ&VÂÂµÒ“²w&÷W2ævWB†Æ&VÂ’çW6‚‡&÷r“²Ò“°¢6öç7B6öçFVçBÒG¶F–Æöt†VFW"‚~š8îY>j~zÛârÂKŠŞih~j~zÛâG·&÷w2æÆVæwF‡ÒšûÈÎiÈZI®˜hº’"š–Â²6Æ÷6&ÆS¢fÇ6RÒ—ÓÆF—b6Æ73Ò&fÆf÷"Öw&÷W2#âGµ²ââæw&÷W2æVçG&–W2‚•ÒæÖ‚…¶Æ&VÂÂ—FV×5Ò’ÓâÇ6V7F–öâ6Æ73Ò&fÆf÷"Öw&÷W#ãÆƒ3âG¶W62†Æ&VÂ—ÓÂöƒ3ãÆF—b6Æ73Ò&fÆf÷"Öw&–B#âG¶—FV×2æÖ‡&÷sÓæÆ'WGFöâG—SÒ&'WGFöâ"6Æ73Ò&fÆf÷"Ö'WGFöâG·6WBæ†2‡&÷u³Ò“òr6VÆV7FVBs¢rwÒ"FFÖfÆf÷"Ö6öFSÒ"G¶W62‡&÷u³Ò—Ò#âG¶W62…7G&–ær‡&÷ræÆVæwF‚ãÒ’ò&÷u³EÒ¢&÷u³Ò’çG&–Ò‚’—ÓÂö'WGFöãæ’æ¦ö–â‚rr—ÓÂöF—cãÂ÷6V7F–öãæ’æ¦ö–â‚rr—ÓÂöF—cãÆF—b6Æ73Ò'&÷rVæB#ãÆ'WGFöâ–CÒ&&6´fÆf÷'4'Fâ"6Æ73Ò&'WGFöâ7V'FÆR"G—SÒ&'WGFöâ#î‹ùNY¹ãÂö'WGFöããÆ'WGFöâ–CÒ&6ÆV$fÆf÷'4'Fâ"6Æ73Ò&'WGFöâ7V'FÆR"G—SÒ&'WGFöâ#îkˆ^z›£Âö'WGFöããÆ'WGFöâ–CÒ&6öæf—&ÔfÆf÷'4'Fâ"6Æ73Ò&'WGFöâ&–Ö'’"G—SÒ&'WGFöâ#îzîZé£Âö'WGFöããÂöF—cæ°¢6öç7B÷fW&Æ’Ò6†÷t÷fW&Æ’†6öçFVçBÂ²gVÆÃ¢G'VRÂ–C¢vfÆf÷'2rÒ“²&–æD6Æ÷6R†÷fW&Æ’“°¢÷fW&Æ’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂWfVçBÓâ°¢6öç7B'WGFöâÒWfVçBçF&vWBæ6Æ÷6W7B‚u¶FFÖfÆf÷"Ö6öFUÒr“²–b‚'WGFöâ’&WGW&ã°¢–b‚'WGFöâæ6Æ74Æ—7Bæ6öçF–ç2‚w6VÆV7FVBr’bbBB‚ræfÆf÷"Ö'WGFöâç6VÆV7FVBrÂ÷fW&Æ’’æÆVæwF‚ãÒ"’&WGW&âFö7B‚~š8îY>j~zÛîiÈZI®˜hº’"š’r“°¢'WGFöâæ6Æ74Æ—7BçFövvÆR‚w6VÆV7FVBr“°¢Ò“°¢B‚r6&6´fÆf÷'4'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ÷Vä&Väf÷&Ò†G&gBÂ6÷W&6R’“°¢B‚r66ÆV$fÆf÷'4'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’ÓâBB‚ræfÆf÷"Ö'WGFöâç6VÆV7FVBrÂ÷fW&Æ’’æf÷$V6‚†'WGFöâÓâ'WGFöâæ6Æ74Æ—7Bç&VÖ÷fR‚w6VÆV7FVBr’’“°¢B‚r66öæf—&ÔfÆf÷'4'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ²G&gBæfÆf÷$6öFW2Ò6VÆV7FVDfÆf÷$6öFW2†÷fW&Æ’“²÷Vä&Väf÷&Ò†G&gBÂ6÷W&6R“²Ò“°§Ğ ¦gVæ7F–öâf–æ—6…&V6övæ—F–öå'6R‡²'6VBÂ6÷W&6UFW‡BÂW†—7F–ætG&gBÂ÷fW'w&—FRÂFFTFV6—6–öâÂ&Wf–Wu&W6öÇWF–öâÒçVÆÂÒ’°¢6öç7BW†—7F–ærÒW†—7F–ætG&gBÇÂ·Ó°¢–b‡&Wf–Wu&W6öÇWF–öâ’°¢–b‡&Wf–Wu&W6öÇWF–öâç&ö7DFFR’°¢6öç7B6öæf—&ÖVBÒ&Wf–Wu&W6öÇWF–öâæ6öæf—&ÖVE&ö7DFFS°¢'6VBç&ö7DFFRÒ&Wf–Wu&W6öÇWF–öâç&ö7DFFS°¢'6VBæ6öæf–FVæ6Rç&ö7DFFRÒ6öæf—&ÖVCòç6÷W&6T6öæf–FVæ6RÇÂ°¢'6VBæWf–FVæ6Rç&ö7DFFRÒ°¢yJh‹~zîŠêNûÉ¢G·&Wf–Wu&W6öÇWF–öâç&ö7DFFWÖÀ¢6öæf—&ÖVCòæÆ&VÄWf–FVæ6RÀ¢6öæf—&ÖVCòæ–ÖvU&öÆRòiÚ^k©ûÉ¢G¶6öæf—&ÖVBæ–ÖvU&öÆWÒòG¶6öæf—&ÖVBæ–ÖvT–BÇÂ6öæf—&ÖVBæ&Æö6´–GÖ¢rp¢Òæf–ÇFW"„&ööÆVâ’æ¦ö–â‚r+rr“°¢ÒVÇ6R°¢FVÆWFR'6VBç&ö7DFFS°¢FVÆWFR'6VBæ6öæf–FVæ6Rç&ö7DFFS°¢FVÆWFR'6VBæWf–FVæ6Rç&ö7DFFS°¢Ğ¢ÒVÇ6R–b†FFTFV6—6–öâç&ö7DFFR’°¢'6VBç&ö7DFFRÒFFTFV6—6–öâç&ö7DFFS°¢6öç7B6†÷6VâÒFFTFV6—6–öâæ6æF–FFW2æf–æB†6æF–FFRÓâ6æF–FFRææ÷&ÖÆ—¦VEfÇVRÓÓÒFFTFV6—6–öâç&ö7DFFRbb6æF–FFRæFV6—6–öâÓÓÒvWFòÖf–ÆÂr“°¢'6VBæ6öæf–FVæ6Rç&ö7DFFRÒ6†÷6Vãòæ6öæf–FVæ6RÇÂã“ƒ°¢'6VBæWf–FVæ6Rç&ö7DFFRÒ6†÷6VãòæÆ&VÄWf–FVæ6RÇÂ6†÷6Vãòç&ufÇVRÇÂFFTFV6—6–öâç&ö7DFFS°¢ÒVÇ6R°¢FVÆWFR'6VBç&ö7DFFS°¢FVÆWFR'6VBæ6öæf–FVæ6Rç&ö7DFFS°¢FVÆWFR'6VBæWf–FVæ6Rç&ö7DFFS°¢Ğ¢'6VBç'6TÖWFFFæFFTFV6—6–öâÒFFTFV6—6–öã°¢'6VBç'6TÖWFFFæFFU&Wf–WrÒ&Wf–Wu&W6öÇWF–öâò°¢ââç&Wf–Wu&W6öÇWF–öâÀ¢6öæf—&ÖVDC¢æWrFFR‚’çFô•4õ7G&–ær‚¢Ò¢çVÆÃ°¢6öç7BÖW&vVBÒ÷fW'w&—FRò²ââæW†—7F–ærÂââç'6VBÒ¢²ââç'6VBÂââäö&¦V7Bæg&öÔVçG&–W2„ö&¦V7BæVçG&–W2†W†—7F–ær’æf–ÇFW"‚…²ÂfÇVUÒ’ÓâfÇVRÓÒrrbbfÇVRÓÒçVÆÂbbfÇVRÓÒVæFVf–æVB’’Ó°¢ÖW&vVBææÖRÒÖW&vVBææÖRÇÂ¶6öFTæÖR‚v6÷VçG&–W2rÂÖW&vVBæ6÷VçG'”6öFRÂrr’Â6öFTæÖR‚wf&–WF–W2rÂÖW&vVBçf&–WG”6öFRÂrr•Òæf–ÇFW"„&ööÆVâ’æ¦ö–â‚rr’ÇÂ~ik‹nXÚs°¢÷Vä&Väf÷&Ò†ÖW&vVBÂ²G—S¢wFW‡BrÂFW‡C¢6÷W&6UFW‡BÂWf–FVæ6S¢'6VBæWf–FVæ6RÂ6öæf–FVæ6S¢'6VBæ6öæf–FVæ6RÂ'6TÖWFFF¢'6VBç'6TÖWFFFÒ“°§Ğ ¦gVæ7F–öâ÷Vå&V6övæ—F–öäFFU&Wf–Wr‡²'6VBÂ6÷W&6UFW‡BÂW†—7F–ætG&gBÂ÷fW'w&—FRÂFFTFV6—6–öâÂ&V6övæ—F–öäFö7VÖVçBÒ’°¢6öç7B&Wf–WtÖöFVÂÒ'V–ÆDFFU&Wf–WtÖöFVÂ†FFTFV6—6–öâ“°¢6öç7B&÷w2Ò&Wf–WtÖöFVÂæÖ†6æF–FFRÓâ°¢6öç7BfÇVW2Ò6æF–FFRçfÇVW3°¢6öç7BfÇVT÷F–öç2ÒfÇVW2æÖ‡fÇVRÓâÆ÷F–öâfÇVSÒ"G¶W62‡fÇVR—Ò#âG¶W62‡fÇVR—ÓÂö÷F–öãæ’æ¦ö–â‚rr“°¢6öç7BFVfVÇEG—RÒ6æF–FFRæFVfVÇEG—S°¢&WGW&âÆ'F–6ÆR6Æ73Ò&FFR×&Wf–Wr×&÷r"FFÖFFRÖ6æF–FFSÒ"G¶W62†6æF–FFRæ6æF–FFT–B—Ò#ãÆF—cãÇ7G&öæsâG¶W62†6æF–FFRç&ufÇVR—ÓÂ÷7G&öæsãÇ6ÖÆÃâG¶W62†6æF–FFRæf–VÆDÆ&VÂ—Ò+rG¶W62†6æF–FFRæ–ÖvU&öÆRÇÂ~ih~ZÙrr—ÓÂ÷6ÖÆÃãÂöF—cãÇ6VÆV7B6Æ73Ò&6öçG&öÂFFR×&Wf–Wr×G—R#ãÆ÷F–öâfÇVSÒ&–væ÷&R"G¶FVfVÇEG—RÓÓÒv–væ÷&Rròr6VÆV7FVBr¢rwÓî[ûŞyZRşi¨.KˆŞzîZé£Âö÷F–öããÆ÷F–öâfÇVSÒ'&ö7DFFR"G¶FVfVÇEG—RÓÓÒw&ö7DFFRròr6VÆV7FVBr¢rwÓîx9xIiz^iÉóÂö÷F–öããÆ÷F–öâfÇVSÒ'&öGV7F–öäFFR"G¶FVfVÇEG—RÓÓÒw&öGV7F–öäFFRròr6VÆV7FVBr¢rwÓîyIşKª~iz^iÉóÂö÷F–öããÆ÷F–öâfÇVSÒ'6´FFR"G¶FVfVÇEG—RÓÓÒw6´FFRròr6VÆV7FVBr¢rwÓîXÈ^Š8^iz^iÉóÂö÷F–öããÆ÷F–öâfÇVSÒ&&W7D&Vf÷&R"G¶FVfVÇEG—RÓÓÒv&W7D&Vf÷&Rròr6VÆV7FVBr¢rwÓîiÈKÛ>‹XşY>iÉóÂö÷F–öããÆ÷F–öâfÇVSÒ&W‡—'”FFR"G¶FVfVÇEG—RÓÓÒvW‡—'”FFRròr6VÆV7FVBr¢rwÓîX‹iÉşiz^iÉóÂö÷F–öããÂ÷6VÆV7CãÇ6VÆV7B6Æ73Ò&6öçG&öÂFFR×&Wf–Wr×fÇVR#âG·fÇVT÷F–öç7ÓÂ÷6VÆV7CâG¶6æF–FFRçv&æ–æw3òæÆVæwF‚òÇâG¶6æF–FFRçv&æ–æw2æÖ†W62’æ¦ö–â‚rr—ÓÂ÷æ¢rwÓÂö'F–6ÆSæ°¢Ò’æ¦ö–â‚rr“°¢6öç7B6öçFVçBÒG¶F–Æöt†VFW"‚~zîŠêNiz^iÉş[Ù.[ârÂ~{;¾{¹şKˆŞKÉ®h¨®iÊ®zîŠêNiz^iÉş™Ù›¹XiXZ^x9xIiz^iÉòr—ÓÆF—b6Æ73Ò&FFR×&Wf–WrÖÆ—7B#âG·&÷w7ÓÂöF—cãÆF—b6Æ73Ò'&÷r#ãÆ'WGFöâ–CÒ&FFU&Wf–Wt&6´'Fâ"6Æ73Ò&'WGFöâ7V'FÆR"G—SÒ&'WGFöâ#î‹ùNY¹îih~ZÙsÂö'WGFöããÇ7â6Æ73Ò&w&÷r#ãÂ÷7ããÆ'WGFöâ–CÒ&FFU&Wf–Wt6öçF–çVT'Fâ"6Æ73Ò&'WGFöâ&–Ö'’"G—SÒ&'WGFöâ#îzîŠêN[›n{º~{ºÓÂö'WGFöããÂöF—cæ°¢6öç7B÷fW&Æ’Ò6†÷t÷fW&Æ’†6öçFVçBÂ²gVÆÃ¢G'VRÂ–C¢vFFR×&Wf–WrrÒ“²&–æD6Æ÷6R†÷fW&Æ’“°¢B‚r6FFU&Wf–Wt&6´'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ÷VåFW‡E&V6övæ—F–öâ‡6÷W&6UFW‡BÂW†—7F–ætG&gBÂ&V6övæ—F–öäFö7VÖVçB’“°¢BB‚ræFFR×&Wf–Wr×G—RrÂ÷fW&Æ’’æf÷$V6‚†6öçG&öÂÓâ6öçG&öÂæFDWfVçDÆ—7FVæW"‚v6†ævRrÂ‚’Óâ°¢–b†6öçG&öÂçfÇVRÓÒw&ö7DFFRr’&WGW&ã°¢BB‚ræFFR×&Wf–Wr×G—RrÂ÷fW&Æ’’æf–ÇFW"†÷F†W"Óâ÷F†W"ÓÒ6öçG&öÂbb÷F†W"çfÇVRÓÓÒw&ö7DFFRr’æf÷$V6‚†÷F†W"Óâ²÷F†W"çfÇVRÒv–væ÷&Rs²Ò“°¢Ò’“°¢B‚r6FFU&Wf–Wt6öçF–çVT'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ°¢6öç7B6VÆV7F–öç2ÒBB‚ræFFR×&Wf–Wr×&÷rrÂ÷fW&Æ’’æÖ‡&÷rÓâ‡²6æF–FFT–C¢&÷ræFF6WBæFFT6æF–FFRÂG—S¢B‚ræFFR×&Wf–Wr×G—RrÂ&÷r’çfÇVRÂfÇVS¢B‚ræFFR×&Wf–Wr×fÇVRrÂ&÷r’çfÇVRÒ’“°¢6öç7B&Wf–Wu&W6öÇWF–öâÒ&W6öÇfTFFU&Wf–Wu6VÆV7F–öç2†FFTFV6—6–öâÂ6VÆV7F–öç2“°¢–b‚&Wf–Wu&W6öÇWF–öâæö²’&WGW&âFö7B‡&Wf–Wu&W6öÇWF–öâæW'&÷'5³ÒÂw7FGW2Ö&Br“°¢f–æ—6…&V6övæ—F–öå'6R‡²'6VBÂ6÷W&6UFW‡BÂW†—7F–ætG&gBÂ÷fW'w&—FRÂFFTFV6—6–öâÂ&Wf–Wu&W6öÇWF–öâÒ“°¢Ò“°§Ğ ¦gVæ7F–öâ÷VåFW‡E&V6övæ—F–öâ‡FW‡BÒrrÂW†—7F–ætG&gBÒçVÆÂÂ7WÆ–VDFö7VÖVçBÒçVÆÂ’°¢–b†W†—7F–ætG&gB’7FFRæ&Väf÷&ÔG&gBÒ7G'V7GW&VD6ÆöæR†W†—7F–ætG&gB“°¢6öç7BVæF–ætFö7VÖVçBÒ7WÆ–VDFö7VÖVçBÇÂvÆö&ÅF†—2äÇV6·”&VåVæF–æu&V6övæ—F–öäFö7VÖVçC°¢–b‡VæF–ætFö7VÖVçB’FVÆWFRvÆö&ÅF†—2äÇV6·”&VåVæF–æu&V6övæ—F–öäFö7VÖVçC°¢6öç7B6öçFVçBÒG¶F–Æöt†VFW"‚~ih~ZÙ~ŠønXŠ²rÂ~{)‹KN‹nŠ(¾ih~ZÙ~ûÈÎ{;¾{¹şhÈ’'&Wt–öâŠøŞŠhùXùnZÙ~jëRr—ÓÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãî‹nŠ(¾ih~ZÙsÂ÷7ããÇFW‡F&V–CÒ'&V6övæ—F–öåFW‡B"6Æ73Ò&6öçG&öÂ"Æ6V†öÆFW#Ò.Kè¾Zh.ûÉ®Yø>ZîKøNjùNK©¢XúNY’iz^i™"†V—&ÆööŞûÈÎkX^x9ûÈÃ##bÓrÓ#ûÈÎk[~h¹C#ŞûÈÎXx˜xÓS~ûÈÎˆÈˆè8‰9Şˆé>8‰È.‰ÉÂ#âG¶W62‡FW‡B—ÓÂ÷FW‡F&VãÂöÆ&VÃãÆÆ&VÂ6Æ73Ò'FövvÆR#ãÆ–çWB–CÒ&÷fW'w&—FU&V6övæ—¦VDf–VÆG2"G—SÒ&6†V6¶&÷‚"6†V6¶VCîŠønXŠ¾{¹>iéÎŠhny¹n[{.iÈŠXÙ^ZÙ~jëSÂöÆ&VÃãÇ6Æ73Ò&×WFVB6ÖÆÂ#îŠúŞ™û>ŠønXŠ¾Xúşˆ;ŞyKkXşŠxYšˆN{ÙiÈŞXªZHNynûÉ¾ŠønXŠ¾ŠøhÚîY(Î{ÚîKú[ªnKÉ®YÊŠXÙ^KŠŞi‹îzK®8#Â÷ãÆF—b6Æ73Ò'&÷r#ãÆ'WGFöâ–CÒ'7VV6…FW‡D'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ#îŠúŞ™û>‹é>XZSÂö'WGFöããÆ'WGFöâ–CÒ&6ÆV%&V6övæ—F–öåFW‡D'Fâ"6Æ73Ò&'WGFöâ7V'FÆR"G—SÒ&'WGFöâ#îkˆ^z›£Âö'WGFöããÆ'WGFöâ–CÒ&ÖçVÄ&Väf÷&Ô'Fâ"6Æ73Ò&'WGFöâ7V'FÆR"G—SÒ&'WGFöâ#îy»Nhê^Z¾ŠƒÂö'WGFöããÇ7â6Æ73Ò&w&÷r#ãÂ÷7ããÆ'WGFöâ–CÒ''6UFW‡D'Fâ"6Æ73Ò&'WGFöâ&–Ö'’"G—SÒ&'WGFöâ#îŠønXŠ¾[›nZ¾ŠƒÂö'WGFöããÂöF—cæ°¢6öç7B÷fW&Æ’Ò6†÷t÷fW&Æ’†6öçFVçBÂ²gVÆÃ¢G'VRÂ–C¢wFW‡B×&V6övæ—F–öârÒ“²&–æD6Æ÷6R†÷fW&Æ’“°¢B‚r66ÆV%&V6övæ—F–öåFW‡D'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ²B‚r7&V6övæ—F–öåFW‡Br’çfÇVRÒrs²B‚r7&V6övæ—F–öåFW‡Br’æfö7W2‚“²Ò“°¢B‚r6ÖçVÄ&Väf÷&Ô'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ÷Vä&Väf÷&Ò†W†—7F–ætG&gBÇÂ·ÒÂ²G—S¢vÖçVÂrÒ’“°¢B‚r7'6UFW‡D'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ°¢6öç7B6÷W&6UFW‡BÒB‚r7&V6övæ—F–öåFW‡Br’çfÇVRçG&–Ò‚“°¢–b‚6÷W&6UFW‡B’&WGW&âFö7B‚~Šû~XX‹é>XZ^ih~ZÙrr“°¢6öç7B'6VBÒ'6TæGW&ÄÆæwVvR‡6÷W&6UFW‡BÂ7FFRæ6öFV&öö²“°¢6öç7B÷fW'w&—FRÒB‚r6÷fW'w&—FU&V6övæ—¦VDf–VÆG2r’æ6†V6¶VC°¢6öç7B&V6övæ—F–öäFö7VÖVçBÒVæF–ætFö7VÖVçCòægVÆÅFW‡BÓÓÒ6÷W&6UFW‡BòVæF–ætFö7VÖVçB¢&V6övæ—F–öäFö7VÖVçDg&öÕFW‡B‡6÷W&6UFW‡B“°¢6öç7BFFTFV6—6–öâÒ6Æ76–g•&V6övæ—F–öäFFW2‡&V6övæ—F–öäFö7VÖVçB“°¢–b†FFTFV6—6–öâç&Wf–Wu&WV—&VB’&WGW&â÷Vå&V6övæ—F–öäFFU&Wf–Wr‡²'6VBÂ6÷W&6UFW‡BÂW†—7F–ætG&gBÂ÷fW'w&—FRÂFFTFV6—6–öâÂ&V6övæ—F–öäFö7VÖVçBÒ“°¢f–æ—6…&V6övæ—F–öå'6R‡²'6VBÂ6÷W&6UFW‡BÂW†—7F–ætG&gBÂ÷fW'w&—FRÂFFTFV6—6–öâÒ“°¢Ò“°¢B‚r77VV6…FW‡D'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ7F'E7VV6…&V6övæ—F–öâ‚w&V6övæ—F–öåFW‡Br’“°§Ğ ¦gVæ7F–öâ7F'E7VV6…&V6övæ—F–öâ‡F&vWD–BÒw&V6övæ—F–öåFW‡Br’°¢6öç7B&V6övæ—F–öâÒvÆö&ÅF†—2å7VV6…&V6övæ—F–öâÇÂvÆö&ÅF†—2çvV&¶—E7VV6…&V6övæ—F–öã°¢–b‚&V6övæ—F–öâ’&WGW&âFö7B‚~[Ù>X˜ŞkXşŠxYšKˆŞiJşhÈŠúŞ™û>ŠønXŠ²r“°¢6öç7BF&vWBÒB†2G·F&vWD–GÖ“²–b‚F&vWB’&WGW&âFö7B‚~iÊ®h›îX‹ih~ZÙ~‹é>XZ^XË®Yùòr“°¢6öç7B&V6övæ—F–öâÒæWr&V6övæ—F–öâ‚“²&V6övæ—F–öâæÆærÒw¦‚Ô4âs²&V6övæ—F–öâæ–çFW&–Õ&W7VÇG2ÒfÇ6S°¢&V6övæ—F–öâæöç&W7VÇBÒWfVçBÓâ²F&vWBçfÇVR³ÒG·F&vWBçfÇVRòrr¢rwÒG¶WfVçBç&W7VÇG5³Õ³ÒçG&ç67&—GÖ²F&vWBæF—7F6„WfVçB†æWrWfVçB‚v–çWBrÂ²'V&&ÆW3¢G'VRÒ’“²Ó°¢&V6övæ—F–öâæöæW'&÷"Ò‚’ÓâFö7B‚~ŠúŞ™û>ŠønXŠ¾ZK‹JRr“²&V6övæ—F–öâç7F'B‚“²Fö7B‚~Šû~[ÈZx¾ŠûNŠùÒr“°§Ğ ¦gVæ7F–öâ÷Vä6ÖW&F–Æör‚’°¢6öç7B6öçFVçBÒG¶F–Æöt†VFW"‚~K¨Î{»NzŠønXŠ²rÂ~Zéîi{nhš¾høò'&Wt–öâK¨Î{»Nzr—ÓÇf–FVò–CÒ&6ÖW&f–FVò"6Æ73Ò&6ÖW&×f–FVò"Æ—6–æÆ–æR×WFVCãÂ÷f–FVóãÇ–CÒ&6ÖW&7FGW2"6Æ73Ò&×WFVB6ÖÆÂ#îjÚ>YÊyK>Šû~y»iË®iØ>™™(
+cÂ÷ãÆF—b6Æ73Ò'&÷rVæB#ãÆ'WGFöâ–CÒ&6ÖW&f–ÆT'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ#îiKyJY»îx˜sÂö'WGFöããÂöF—cæ°¢6öç7B÷fW&Æ’Ò6†÷t÷fW&Æ’†6öçFVçBÂ²gVÆÃ¢G'VRÂ–C¢v6ÖW&rÒ“²&–æD6Æ÷6R†÷fW&Æ’“°¢7FFRæ6ÖW&66ææW"ÒæWr6ÖW&66ææW"‚B‚r66ÖW&f–FVòr’Â&W7VÇBÓâ†æFÆU%&W7VÇB‡&W7VÇB’Â7FGW2ÓâB‚r66ÖW&7FGW2r’çFW‡D6öçFVçBÒ7FGW2“°¢7FFRæ6ÖW&66ææW"ç7F'B‚’æ6F6‚†W'&÷"Óâ²B‚r66ÖW&7FGW2r’çFW‡D6öçFVçBÒW'&÷"æÖW76vS²Ò“°¢B‚r66ÖW&f–ÆT'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’ÓâB‚r7$–ÖvT–çWBr’æ6Æ–6²‚’“°§Ğ¦7–æ2gVæ7F–öâ†æFÆU%&W7VÇB‡&W7VÇB’°¢G'’°¢6öç7BFV6öFVBÒFV6öFT§5%&W7VÇB‡&W7VÇBÂ7FFRæ6öFV&öö²“°¢FV6öFVBææÖRÒ¶6öFTæÖR‚v6÷VçG&–W2rÂFV6öFVBæ6÷VçG'”6öFRÂrr’Â6öFTæÖR‚wf&–WF–W2rÂFV6öFVBçf&–WG”6öFRÂrr•Òæf–ÇFW"„&ööÆVâ’æ¦ö–â‚rr’ÇÂ~hš¾z‹nXÚs°¢FV6öFVBææ÷FW2Ò¶hš¾zŠønXŠ¶ÂFV6öFVBæwG&öâòwG&öâG¶FV6öFVBæwG&öçÖ¢rrÂFV6öFVBæ†'fW7E–V"òKª~ZÚ2G¶FV6öFVBæ†'fW7E–V'Ö¢ruÒæf–ÇFW"„&ööÆVâ’æ¦ö–â‚~ûÉ²r“°¢÷Vä&Väf÷&Ò†FV6öFVBÂ²G—S¢w"rÒ“²Fö7B‚~K¨Î{»NzŠz>zh‰X©òrÂw7FGW2ÖvööBr“°¢Ò6F6‚†W'&÷"’²Fö7B†W'&÷"æÖW76vRÂw7FGW2Ö&Br“²Ğ§Ğ¦7–æ2gVæ7F–öâ†æFÆU$f–ÆR†f–ÆR’°¢–b‚f–ÆR’&WGW&ã°¢G'’²6öç7B&W7VÇBÒv—B66å$f–ÆR†f–ÆR“²yÛ^m¢G§²ÚîÆ­y×"†f—'7BæGW&F–öå6V2“²7FFRçF–ÖW"çW6VBÒfÇ6S°¢&VæFW%F–ÖW$F–Æör‚“²7F'EF–ÖW$–çFW'fÂ‚“°¢7V²†zÊÎKˆjë^ûÈÂG¶f—'7BææÖWŞûÈÎk:kBG´ÖF‚ç&÷VæB†f—'7Bç7FvUvFW$r—ŞXX¾ûÈÎkNkŠ’G´ÖF‚ç&÷VæB†f—'7BçFV×W&GW&T2—Ş[ªnûÈÂG¶f—'7BæÖWF†öGŞ8"G¶f—'7Bææ÷F–6RÇÂrwÖ“°§Ğ ¦gVæ7F–öâ7F'EF–ÖW$–çFW'fÂ‚’°¢6ÆV$–çFW'fÂ‡7FFRçF–ÖW"æ–çFW'fÂ“°¢7FFRçF–ÖW"æ–çFW'fÂÒ6WD–çFW'fÂ‚‚’Óâ°¢–b‡7FFRçF–ÖW"çW6VB’&WGW&ã°¢7FFRçF–ÖW"ç&VÖ–æ–ærÓÒ°¢6öç7B7FvW2Ò7FFRæ7W'&VçEÆãòç7FvW2ÇÂµÓ°¢6öç7BæW‡BÒ7FvW5·7FFRçF–ÖW"ç7FvT–æFW‚²Ó°¢–b‡7FFRçF–ÖW"ç&VÖ–æ–ærÓÓÒ‚bbæW‡B’7V²†æW‡BæGfæ6U7VV6‚ÇÂKˆ¾Kˆjë^ûÈÂG¶æW‡BææÖWŞûÈÎk:kBG´ÖF‚ç&÷VæB†æW‡Bç7FvUvFW$r—ŞXX¾ûÈÎkNkŠ’G´ÖF‚ç&÷VæB†æW‡BçFV×W&GW&T2—Ş[ªnûÈÂG¶æW‡BæÖWF†öGÖ“°¢–b…³2Ã"ÃÒæ–æ6ÇVFW2‡7FFRçF–ÖW"ç&VÖ–æ–ær’’7V²…7G&–ær‡7FFRçF–ÖW"ç&VÖ–æ–ær’“°¢–b‡7FFRçF–ÖW"ç&VÖ–æ–ærÃÒ’Gfæ6UF–ÖW%7FvR‚“°¢&VæFW%F–ÖW%fÇVW2‚“°¢ÒÂ“°§Ğ¦gVæ7F–öâ&VæFW%F–ÖW$F–Æör‚’°¢6öç7B7FvRÒ7FFRæ7W'&VçEÆâç7FvW5·7FFRçF–ÖW"ç7FvT–æFW…Ó°¢6öç7BæW‡BÒ7FFRæ7W'&VçEÆâç7FvW5·7FFRçF–ÖW"ç7FvT–æFW‚³Ó°¢6öç7B6öçFVçBÒÆF—b6Æ73Ò'F–ÖW"ÖgVÆÂ#ãÆF—b6Æ73Ò'F–ÖW"×F÷#ãÇ7â–CÒ'F–ÖW%7FvT6÷VçFW"#âG·7FFRçF–ÖW"ç7FvT–æFW‚³ÒòG·7FFRæ7W'&VçEÆâç7FvW2æÆVæwF‡ÓÂ÷7ããÂöF—cãÆF—b6Æ73Ò'F–ÖW"×7FvRÖæÖR"–CÒ'F–ÖW%7FvTæÖR#âG¶W62‡7FvRææÖR—ÓÂöF—cãÆF—b–CÒ'F–ÖW$6Æö6²"6Æ73Ò'F–ÖW"Ö6Æö6²#âG¶f÷&ÖE6V6öæG2‡7FFRçF–ÖW"ç&VÖ–æ–ær—ÓÂöF—cãÆF—b6Æ73Ò'F–ÖW"×F÷FÇ2#ãÇ7ãîh¾i{n™[òÇ7G&öær–CÒ'F–ÖW%F÷FÂ#âG¶f÷&ÖE6V6öæG2‡7FFRæ7W'&VçEÆâçF÷FÇ3òçF&vWEF–ÖU6V7ÇÃ—ÓÂ÷7G&öæsãÂ÷7ããÇ7ãî[{.‹ù¾ŠÂÇ7G&öær–CÒ'F–ÖW$VÆ6VB#ã£Â÷7G&öæsãÂ÷7ããÇ7ãîh¾XšKÙ’Ç7G&öær–CÒ'F–ÖW%F÷FÅ&VÖ–æ–ær#âG¶f÷&ÖE6V6öæG2‡7FFRæ7W'&VçEÆâçF÷FÇ3òçF&vWEF–ÖU6V7ÇÃ—ÓÂ÷7G&öæsãÂ÷7ããÂöF—cãÆF—b6Æ73Ò'F–ÖW"×7FvRÖw&–B#ãÆF—cãÇ7ãîiÊÎjëSÂ÷7ããÇ7G&öær–CÒ'F–ÖW%7FvUvFW"#âG´çVÖ&W"‡7FvRç7FvUvFW$r’çFôf—†VBƒ—ÖsÂ÷7G&öæsãÂöF—cãÆF—cãÇ7ãî{JşŠêÂ÷7ããÇ7G&öær–CÒ'F–ÖW$7V×VÆF—fUvFW"#âG´çVÖ&W"‡7FvRæ7V×VÆF—fUvFW$r’çFôf—†VBƒ—ÖsÂ÷7G&öæsãÂöF—cãÆF—cãÇ7ãîkNkŠ“Â÷7ããÇ7G&öær–CÒ'F–ÖW%FV×W&GW&R#âG´çVÖ&W"‡7FvRçFV×W&GW&T2’çFôf—†VBƒ—Ü+3Â÷7G&öæsãÂöF—cãÂöF—cãÇ–CÒ'F–ÖW%7FvUFW‡B#âG¶W62‡7FvRæÖWF†öB—ÒG·7FvRææ÷F–6SöÇ6ÖÆÃâG¶W62‡7FvRææ÷F–6R—ÓÂ÷6ÖÆÃæ¢rwÓÂ÷ãÆF—b–CÒ'F–ÖW$æW‡D7VR"6Æ73Ò'F–ÖW"ÖæW‡BÖ7VR#âG¶æW‡CöKˆ¾Kˆjë^ûÉ¢G¶W62†æW‡BææÖR—Ò+rG´ÖF‚ç&÷VæB†æW‡Bç7FvUvFW$r—Ör+rG´ÖF‚ç&÷VæB†æW‡BçFV×W&GW&T2—Ü+2+rG¶W62†æW‡BæÖWF†öB—Ö¢~iÈYîKˆjëRwÓÂöF—cãÆF—b6Æ73Ò'F–ÖW"×&öw&W72#ãÇ7â–CÒ'F–ÖW%&öw&W74f–ÆÂ#ãÂ÷7ããÂöF—cãÆF—b6Æ73Ò'F–ÖW"Ö7F–öç2f÷W"#ãÆ'WGFöâ–CÒ'F–ÖW%&Wd'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ#î˜Âö'WGFöããÆ'WGFöâ–CÒ'F–ÖW%W6T'Fâ"6Æ73Ò&'WGFöâ7F—fR"G—SÒ&'WGFöâ#îš›³Âö'WGFöããÆ'WGFöâ–CÒ'F–ÖW$æW‡D'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ#î‹ù³Âö'WGFöããÆ'WGFöâ–CÒ'F–ÖW$VæD'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ#î{¸ƒÂö'WGFöããÂöF—cãÂöF—cæ°¢6†÷t÷fW&Æ’†6öçFVçBÂ²gVÆÃ¢G'VRÂ–C¢wF–ÖW"rÒ“°¢B‚r7F–ÖW%W6T'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ²7FFRçF–ÖW"çW6VBÒ7FFRçF–ÖW"çW6VC²B‚r7F–ÖW%W6T'Fâr’çFW‡D6öçFVçBÒ7FFRçF–ÖW"çW6VBò~{ºÒr¢~š›²s²B‚r7F–ÖW%W6T'Fâr’æ6Æ74Æ—7BçFövvÆR‚v7F—fRrÂ7FFRçF–ÖW"çW6VB“²–b‡7FFRçF–ÖW"çW6VB’7V²‚~[{.i¨.XÂr“²Ò“°¢B‚r7F–ÖW%&Wd'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’ÓâÖ÷fUF–ÖW%7FvR‚Ó’“°¢B‚r7F–ÖW$æW‡D'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’ÓâÖ÷fUF–ÖW%7FvRƒ’“°¢B‚r7F–ÖW$VæD'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ²6ÆV$–çFW'fÂ‡7FFRçF–ÖW"æ–çFW'fÂ“²7F÷7VV6‚‚“²7FFRçF–ÖW"çW6VBÒG'VS²7FFRæ7W'&VçDW†V7WF–öâÒçVÆÃ²6Æ÷6T÷fW&Æ’‚“²7v—F6…vR‚v'&Wrr“²Fö7B‚~iÊÎjÊXk.xZî[{.KŠŞjÚ.ûÈÎKˆŞhš>‹n8KˆŞKùŞZÙŠë[ÙRr“²Ò“°¢&VæFW%F–ÖW%fÇVW2‚“°§Ğ ¦gVæ7F–öâf÷&ÖE6V6öæG2‡6V6öæG2’²6öç7BfÇVRÒÖF‚æÖ‚ƒÂçVÖ&W"‡6V6öæG2—ÇÃ“²&WGW&âG´ÖF‚æfÆö÷"‡fÇVRóc’çFõ7G&–ær‚’çE7F'Bƒ"Âsr—Ó¢G²‡fÇVRSc’çFõ7G&–ær‚’çE7F'Bƒ"Âsr—Ö²Ğ¦gVæ7F–öâ&VæFW%F–ÖW%fÇVW2‚’°¢6öç7B6Æö6²ÒB‚r7F–ÖW$6Æö6²r“²–b‚6Æö6²ÇÂ7FFRæ7W'&VçEÆâ’&WGW&ã°¢6öç7B7FvW2Ò7FFRæ7W'&VçEÆâç7FvW3°¢6öç7B7FvRÒ7FvW5·7FFRçF–ÖW"ç7FvT–æFW…Ó°¢6öç7BæW‡BÒ7FvW5·7FFRçF–ÖW"ç7FvT–æFW‚³Ó°¢6öç7BVÆ6VD&Vf÷&RÒ7FvW2ç6Æ–6RƒÂ7FFRçF–ÖW"ç7FvT–æFW‚’ç&VGV6R‚‡7VÒÆ—FVÒ“Óç7VÒ´çVÖ&W"†—FVÒæGW&F–öå6V7ÇÃ’Ã“°¢6öç7B7FvTVÆ6VBÒÖF‚æÖ‚ƒÂçVÖ&W"‡7FvRæGW&F–öå6V7ÇÃ’×7FFRçF–ÖW"ç&VÖ–æ–ær“°¢6öç7BVÆ6VBÒVÆ6VD&Vf÷&R²7FvTVÆ6VC°¢6öç7BF÷FÂÒçVÖ&W"‡7FFRæ7W'&VçEÆâçF÷FÇ3òçF&vWEF–ÖU6V2ÇÂ7FvW2ç&VGV6R‚‡7VÒÆ—FVÒ“Óç7VÒ´çVÖ&W"†—FVÒæGW&F–öå6V7ÇÃ’Ã’“°¢6Æö6²çFW‡D6öçFVçBÒf÷&ÖE6V6öæG2‡7FFRçF–ÖW"ç&VÖ–æ–ær“°¢B‚r7F–ÖW$VÆ6VBr’çFW‡D6öçFVçBÒf÷&ÖE6V6öæG2†VÆ6VB“²B‚r7F–ÖW%F÷FÅ&VÖ–æ–ærr’çFW‡D6öçFVçBÒf÷&ÖE6V6öæG2„ÖF‚æÖ‚ƒÇF÷FÂÖVÆ6VB’“°¢B‚r7F–ÖW%7FvT6÷VçFW"r’çFW‡D6öçFVçBÒG·7FFRçF–ÖW"ç7FvT–æFW‚³ÒòG·7FvW2æÆVæwF‡Ö²B‚r7F–ÖW%7FvTæÖRr’çFW‡D6öçFVçBÒ7FvRææÖS°¢B‚r7F–ÖW%7FvUFW‡Br’æ–ææW$…DÔÂÒG¶W62‡7FvRæÖWF†öB—ÒG·7FvRææ÷F–6SöÇ6ÖÆÃâG¶W62‡7FvRææ÷F–6R—ÓÂ÷6ÖÆÃæ¢rwÖ°¢B‚r7F–ÖW%7FvUvFW"r’çFW‡D6öçFVçBÒG´çVÖ&W"‡7FvRç7FvUvFW$r’çFôf—†VBƒ—Öv²B‚r7F–ÖW$7V×VÆF—fUvFW"r’çFW‡D6öçFVçBÒG´çVÖ&W"‡7FvRæ7V×VÆF—fUvFW$r’çFôf—†VBƒ—Öv²B‚r7F–ÖW%FV×W&GW&Rr’çFW‡D6öçFVçBÒG´çVÖ&W"‡7FvRçFV×W&GW&T2’çFôf—†VBƒ—Ü+6°¢–b‚B‚r7F–ÖW$æW‡D7VRr’’B‚r7F–ÖW$æW‡D7VRr’çFW‡D6öçFVçBÒæW‡BòKˆ¾Kˆjë^ûÉ¢G¶æW‡BææÖWÒ+rG´ÖF‚ç&÷VæB†æW‡Bç7FvUvFW$r—Ör+rG´ÖF‚ç&÷VæB†æW‡BçFV×W&GW&T2—Ü+2+rG¶æW‡BæÖWF†öGÖ¢~iÈYîKˆjëRs°¢B‚r7F–ÖW%&öw&W74f–ÆÂr’ç7G–ÆRçv–GF‚ÒG¶6Æ×‚ƒ×7FFRçF–ÖW"ç&VÖ–æ–ærôÖF‚æÖ‚ƒÄçVÖ&W"‡7FvRæGW&F–öå6V2’’’£ÃÃ—ÒV°§Ğ ¦gVæ7F–öâGfæ6UF–ÖW%7FvR‚’²Ö÷fUF–ÖW%7FvRƒÂG'VR“²Ğ¦gVæ7F–öâÖ÷fUF–ÖW%7FvR†F—&V7F–öâÒÂWFöÖF–2ÒfÇ6R’°¢6öç7BæW‡BÒ7FFRçF–ÖW"ç7FvT–æFW‚²F—&V7F–öã°¢–b†æW‡BÂ’&WGW&ã°¢–b†æW‡BãÒ7FFRæ7W'&VçEÆâç7FvW2æÆVæwF‚’²6ÆV$–çFW'fÂ‡7FFRçF–ÖW"æ–çFW'fÂ“²&ö×E&V6÷&D6öç7V×F–öâ‚v6ö×ÆWFRr“²&WGW&ã²Ğ¢7FFRçF–ÖW"ç7FvT–æFW‚ÒæW‡C²7FFRçF–ÖW"ç&VÖ–æ–ærÒçVÖ&W"‡7FFRæ7W'&VçEÆâç7FvW5¶æW‡EÒæGW&F–öå6V2“²7FFRçF–ÖW"çW6VBÒfÇ6S°¢6öç7B7FvRÒ7FFRæ7W'&VçEÆâç7FvW5¶æW‡EÓ°¢–b‚B‚r7F–ÖW%W6T'Fâr’’²B‚r7F–ÖW%W6T'Fâr’çFW‡D6öçFVçBÒ~š›²s²B‚r7F–ÖW%W6T'Fâr’æ6Æ74Æ—7Bç&VÖ÷fR‚v7F—fRr“²Ğ¢&VæFW%F–ÖW%fÇVW2‚“°¢7V²†G¶WFöÖF–3ò~‹ù¾XZRs¢~Xˆ~hÚ.X‹wŞzÊÂG·7FvRæ–æFW‡Şjë^ûÈÂG·7FvRææÖWŞûÈÎk:kBG´ÖF‚ç&÷VæB‡7FvRç7FvUvFW$r—ŞXX¾ûÈÎkNkŠ’G´ÖF‚ç&÷VæB‡7FvRçFV×W&GW&T2—Ş[ªnûÈÂG·7FvRæÖWF†öGŞ8"G·7FvRææ÷F–6RÇÂrwÖ“°§Ğ ¦gVæ7F–öâ&ö×E&V6÷&D6öç7V×F–öâ‡&V6öâ’°¢6ÆV$–çFW'fÂ‡7FFRçF–ÖW"æ–çFW'fÂ“²7F÷7VV6‚‚“²7FFRçF–ÖW"çW6VBÒG'VS°¢–b‡&V6öâÓÒv6ö×ÆWFRr’²7FFRæ7W'&VçDW†V7WF–öâÒçVÆÃ²6Æ÷6T÷fW&Æ’‚“²7v—F6…vR‚v'&Wrr“²&WGW&ã²Ğ¢6öç7Bf–æ—6†VDBÒæWrFFR‚’çFô•4õ7G&–ær‚“°¢–b‚7FFRæ7W'&VçDW†V7WF–öâ’7FFRæ7W'&VçDW†V7WF–öâÒ²–C¢W†V7WF–öâÒG¶7'—Fòç&æFöÕUT”B‚—ÖÂ7F'FVDC¢f–æ—6†VDBÂ7FvTW†V7WF–öç3¢µÒÂFWf–F–öç3¢µÒÂæ÷FW3¢µÒÓ°¢7FFRæ7W'&VçDW†V7WF–öâæf–æ—6†VDBÒf–æ—6†VDC°¢6öç7B&VâÒ7FFRæ&Vç2æf–æB†—FVÒÓâ—FVÒæ–BÓÓÒ7FFRç6VÆV7FVD&Vä–B“°¢6öç7BF÷6RÒçVÖ&W"‡7FFRæ7W'&VçEÆãòçF÷FÇ3òæF÷6TrÇÂ7FFRæ7W'&VçD'&Wt–çWCòæ'&WsòæF÷6TrÇÂR“°¢6öç7B7V'F—FÆRÒ&VâòG¶6öFTæÖR‚v6÷VçG&–W2rÂ&Vâæ6÷VçG'”6öFRÂ~iÊ®Zé®Y»ŞZëbr—Ò+rG¶6öFTæÖR‚wf&–WF–W2rÂ&Vâçf&–WG”6öFRÂ~iÊ®Zé®‹nzxÒr—Ö¢~[Ù>X˜Ş‹nXÚs°¢6öç7Bf–ÇFW$–BÒ7FFRæ7W'&VçD'&Wt–çWCòæ'&Wsòæf–ÇFW%W$–BÇÂ7FFRæ7W'&VçEÆãòæ–çWCòæ'&Wsòæf–ÇFW%W$–BÇÂ7FFRç6WGF–æw2æ'&Wræf–ÇFW%W$–BÇÂrs°¢6öç7Bf–ÇFW"ÒvV$f–ÇFW'2‚’æf–æB†—FVÒÓâ—FVÒæ–BÓÓÒf–ÇFW$–B“°¢6öç7Bf–ÇFW%FW‡BÒf–ÇFW"òGµ¶f–ÇFW"æ'&æBÂf–ÇFW"çG—UÒæf–ÇFW"„&ööÆVâ’æ¦ö–â‚rr—Ò+r[Ê¢~iÊ®Šëî{ÚîkºN{«[©>ZÙûÈÎiÊÎjÊizk9^hš>XxşkºN{«‚s°¢6öç7B6öçFVçBÒÆF—b6Æ73Ò&6öç7VÖRÖ6öæf—&Ò#âG¶F–Æöt†VFW"‚~Šë[Ù^iÊÎjÊkhˆ	rrÂ7V'F—FÆRÂ²6Æ÷6&ÆS¢fÇ6RÂ6VçFW&VC¢G'VRÒ—ÓÆÆ&VÂ6Æ73Ò&f–VÆB6öç7VÖRÖF÷6RÖf–VÆB#ãÇ7ãîiÊÎjÊZéî™˜^KÛşyJ‹n˜xóÂ÷7ããÆ–çWB–CÒ&7GVÄF÷6T–çWB"6Æ73Ò&6öçG&öÂ6öç7VÖRÖF÷6R"G—SÒ&çVÖ&W""Ö–ãÒ#ã"7FWÒ#ã"fÇVSÒ"G¶F÷6RçFôf—†VBƒ—Ò#ãÂöÆ&VÃãÆF—b6Æ73Ò&6öç7VÖRÖf–ÇFW"#îYÎi{nhš>™šNkºN{«ûÉ¢G¶W62†f–ÇFW%FW‡B—ÓÂöF—cãÆF—b6Æ73Ò&6öç7VÖRÖ7F–öç2#ãÆ'WGFöâ–CÒ'&V6÷&D6öç7V×F–öä'Fâ"6Æ73Ò&'WGFöâ&–Ö'’"G—SÒ&'WGFöâ#îhš>™šNY)nYZ‹nKˆîkºN{«ûÈÎ‹ù¾XZ^Y8˜›CÂö'WGFöããÆ'WGFöâ–CÒ'6¶—6öç7V×F–öä'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ#îKˆŞŠë[Ù^X‰‹ùNY¹î[ş˜XÃÂö'WGFöããÂöF—cãÂöF—cæ°¢6öç7B÷fW&Æ’Ò6†÷t÷fW&Æ’†6öçFVçBÂ²–C¢v6öç7VÖRÖ6öæf—&ÒrÂF–Æöt6Æ73¢v6öç7VÖRÖF–ÆörrÒ“°¢B‚r7&V6÷&D6öç7V×F–öä'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ7–æ2‚’Óâ°¢6öç7B7GVÄF÷6RÒ'6TçVÖ&W"‚B‚r67GVÄF÷6T–çWBr“òçfÇVRÂF÷6R“°¢6öç7B'WGFöâÒB‚r7&V6÷&D6öç7V×F–öä'Fâr“°¢'WGFöâæF—6&ÆVBÒG'VS²'WGFöâçFW‡D6öçFVçBÒ~jÚ>YÊKùŞZÙ(
+bs°¢G'’°¢6öç7BW†V7WF–öâÒ°¢ââç7FFRæ7W'&VçDW†V7WF–öâÀ¢7GVÅF÷FÅF–ÖU6V3¢ÖF‚æÖ‚ƒÂÖF‚ç&÷VæB‚„FFRç'6R‡7FFRæ7W'&VçDW†V7WF–öâæf–æ—6†VDB’ÒFFRç'6R‡7FFRæ7W'&VçDW†V7WF–öâç7F'FVDB’’ò’’À¢Vçf—&öæÖVçC¢°¢Ö&–VçEFV×W&GW&T3¢çVÖ&W"‡7FFRæ7W'&VçD'&Wt–çWCòæVçf—&öæÖVçCòæÖ&–VçEFV×W&GW&T2óò#R’À¢&VÆF—fT‡VÖ–F—G•7C¢7FFRæ7W'&VçD'&Wt–çWCòæVçf—&öæÖVçCòç&VÆF—fT‡VÖ–F—G•7BóòçVÆÂÀ¢–æ—F–Ä&VEFV×W&GW&T3¢çVÖ&W"‡7FFRæ7W'&VçD'&Wt–çWCòæVçf—&öæÖVçCòæ–æ—F–Ä&VEFV×W&GW&T2óò7FFRæ7W'&VçD'&Wt–çWCòæVçf—&öæÖVçCòæÖ&–VçEFV×W&GW&T2óò#R¢Ğ¢Ó°¢6öç7BæÇ—6—56æ6†÷BÒ7FFRæ7W'&VçEÆâææÇ—6—56æ6†÷BÇÂv—B7&VFTÆö6Å&VfW&Væ6TæÇ—6—2‡7FFRæ7W'&VçD'&Wt–çWBÂ7FFRæ7W'&VçEÆâÂ~K‰>K‰®Xˆnié[ú¾xZ~{Ë®ZKr“°¢6öç7B6fVBÒv—B6öÖÖ—D6ö×ÆWFVD'&Wr‡°¢&Vä–C¢&Vâæ–BÀ¢FVGV7FVEvV–v‡Ds¢7GVÄF÷6RÀ¢&t–çWC¢7FFRæ7W'&VçD'&Wt–çWBÀ¢æ÷&ÖÆ—¦VD–çWC¢æÇ—6—56æ6†÷Bæ–çWBÇÂ7FFRæ7W'&VçD'&Wt–çWBÀ¢æÇ—6—56æ6†÷BÀ¢W†V7WF–öâÀ¢&÷f–FW%fW'6–öç3¢æÇ—6—56æ6†÷Bæ–çFVw&F–öç3òç6÷W&6UfW'6–öç2ÇÂ·ÒÀ¢–FV×÷FVæ7”¶W“¢7FFRæ7W'&VçDW†V7WF–öâæ–@¢Ò“°¢6öç7B7F—fTf–ÇFW"Ò7FFRç6WGF–æw2ævV"æf–ÇFW'2æf–æB†—FVÒÓâ—FVÒæ–BÓÓÒf–ÇFW$–B“°¢–b†7F—fTf–ÇFW"’²7F—fTf–ÇFW"çVçF—G’ÒÖF‚æÖ‚ƒÂçVÖ&W"†7F—fTf–ÇFW"çVçF—G’ÇÂ’Ò“²v—B6fU6WGF–æw2‚“²Ğ¢7FFRæ7W'&VçEÆâÒ²ââç7FFRæ7W'&VçEÆâÂ–C¢6fVBç&V6÷&Bæ–BÂ†—7F÷'•&V6÷&D–C¢6fVBç&V6÷&Bæ–BÓ°¢7FFRæ7W'&VçDW†V7WF–öâÒçVÆÃ°¢v—B&Vg&W6„FF‚“°¢7FFRç6VÆV7FVD&Vä–BÒ&Vâæ–C°¢7FFRçVæF–æu6Vç6÷'”6öçFW‡BÒ²&Vä–C¢&Vâæ–BÂ'&Wu6W76–öä–C¢6fVBç&V6÷&Bæ–BÂ6÷W&6S¢v6ö×ÆWFVBÖ'&WrrÂÆå&VfW&Væ6S¢WF†÷&—FF—fUÆå&VfW&Væ6R‡7FFRæ7W'&VçEÆâ’Â&öf–ÆT–C¢7G&–ær‡7FFRæ7W'&VçEÆãòç&öf–ÆSòæ–BÇÂ7FFRæ7W'&VçD'&Wt–çWCòæ'&Wsòç&öf–ÆT–BÇÂrr’Ó°¢7FFRæWfÇVF–öâÒçVÆÃ°¢6Æ÷6T÷fW&Æ’‚“²7v—F6…vR‚w6Vç6÷'’rÂ²&W6W'fT÷fW&Æ“¢G'VRÒ“²&VæFW%6Vç6÷'’‚“°¢Fö7B†7F—fTf–ÇFW"ò[{.hš>™šBG¶7GVÄF÷6RçFôf—†VBƒ—ÖrY)nYZ‹nKˆîkºN{«ƒ[Ê¢[{.hš>™šBG¶7GVÄF÷6RçFôf—†VBƒ—ÖrY)nYZ‹nûÉ¾iÊ®Šëî{ÚîkºN{«[©>ZÙ†Â7F—fTf–ÇFW"òw7FGW2ÖvööBr¢w7FGW2×v&âr“°¢Ò6F6‚†W'&÷"’°¢'WGFöâæF—6&ÆVBÒfÇ6S²'WGFöâçFW‡D6öçFVçBÒ~hš>™šNY)nYZ‹nKˆîkºN{«ûÈÎ‹ù¾XZ^Y8˜›Bs°¢Fö7B†W'&÷"æÖW76vRÇÂ~KùŞZÙXk.xZîŠë[Ù^ZK‹JRrÂw7FGW2Ö&Br“°¢Ğ¢Ò“°¢B‚r76¶—6öç7V×F–öä'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ²7FFRæ7W'&VçDW†V7WF–öâÒçVÆÃ²6Æ÷6T÷fW&Æ’‚“²7v—F6…vR‚v'&Wrr“²Fö7B‚~iÊÎjÊXk.xZîiÊ®hš>‹nûÈÎiÊ®KùŞZÙŠë[ÙRr“²Ò“°§Ğ ¦gVæ7F–öâ7F'DWfÇVF–öâ†&Vä–BÒ7FFRç6VÆV7FVD&Vä–BÂ÷F–öç2Ò·Ò’°¢7FFRç6VÆV7FVD&Vä–BÒ&Vä–C°¢6öç7B6W76–öä–BÒ7G&–ær†÷F–öç2æ'&Wu6W76–öä–BÇÂrr“°¢6öç7BWfÇVF–öäÖöFRÒ÷F–öç2æWfÇVF–öäÖöFRÓÓÒvæ÷FRròvæ÷FRr¢wÆ–W"s°¢7FFRæWfÇVF–öâÒ°¢–C¢V–B‚w6Vç6÷'’r’Â&Vä–BÂ'&Wu6W76–öä–C¢6W76–öä–BÀ¢Æå&VfW&Væ6S¢7G&–ær†÷F–öç2çÆå&VfW&Væ6RÇÂrr’Â&öf–ÆT–C¢7G&–ær†÷F–öç2ç&öf–ÆT–BÇÂrr’Â6Vç6÷'•6÷W&6S¢7G&–ær†÷F–öç2ç6Vç6÷'•6÷W&6RÇÂv–æFWVæFVçBr’À¢Væv–æUfW'6–öã¢7FFRæ7W'&VçEÆãòæVæv–æUfW'6–öâÇÂrrÂ&öf–ÆUfW'6–öã¢7FFRæ7W'&VçEÆãòç&öf–ÆUfW'6–öâÇÂrrÀ¢æöFT–æFWƒ¢Âç7vW'3¢²fÆ÷&Ã¢²¢²~izuÒÒÂg'V—C¢²¢²~izuÒÒÂ÷F†W#¢²¢²~izuÒÂ#¢²~izuÒÂ3¢²~izuÒÒÒÀ¢WFõ66÷&S¢Â7V&¦V7F—fU66÷&S¢WfÇVF–öäÖöFRÓÓÒvæ÷FRròƒ¢Â66÷&TFVÇF¢À¢æGW&Äæ÷FS¢rrÂF—&V7C¢&ööÆVâ†÷F–öç2æF—&V7B’ÂWfÇVF–öäÖöFRÀ¢6÷W&6TÖöFS¢÷F–öç2ç6÷W&6TÖöFRÇÂ†WfÇVF–öäÖöFRÓÓÒvæ÷FRròv–æFWVæFVçBÖæ÷FR×c#Rr¢v–æFWVæFVçB×Æ–W"×c#Rr’À¢7&VFVDC¢æWrFFR‚’çFô•4õ7G&–ær‚¢Ó°§Ğ ¦gVæ7F–öâf–ÇFW&VE6Vç6÷'•&V6÷&G2†Æ–Ö—BÒçVÆÂ’°¢6öç7Bf–ÇFW"Ò7FFRç6Vç6÷'”f–ÇFW#°¢ÆWB&V6÷&G2Ò²ââç7FFRç6Vç6÷'•&V6÷&G5Ó°¢–b†f–ÇFW"æ&Vä–B’&V6÷&G2Ò&V6÷&G2æf–ÇFW"‡&V6÷&BÓâ&V6÷&Bæ&Vä–BÓÓÒf–ÇFW"æ&Vä–B“°¢–b†f–ÇFW"æÖ–å66÷&RÓÒrr’&V6÷&G2Ò&V6÷&G2æf–ÇFW"‡&V6÷&BÓâçVÖ&W"‡&V6÷&Bç66÷&R’ãÒçVÖ&W"†f–ÇFW"æÖ–å66÷&R’“°¢–b†f–ÇFW"æÖ…66÷&RÓÒrr’&V6÷&G2Ò&V6÷&G2æf–ÇFW"‡&V6÷&BÓâçVÖ&W"‡&V6÷&Bç66÷&R’ÃÒçVÖ&W"†f–ÇFW"æÖ…66÷&R’“°¢–b†f–ÇFW"ç7F'B’&V6÷&G2Ò&V6÷&G2æf–ÇFW"‡&V6÷&BÓâ7G&–ær‡&V6÷&Bæ7&VFVDB’ç6Æ–6RƒÃ’ãÒf–ÇFW"ç7F'B“°¢–b†f–ÇFW"æVæB’&V6÷&G2Ò&V6÷&G2æf–ÇFW"‡&V6÷&BÓâ7G&–ær‡&V6÷&Bæ7&VFVDB’ç6Æ–6RƒÃ’ÃÒf–ÇFW"æVæB“°¢&V6÷&G2ç6÷'B‚†Æ"“Óå7G&–ær†"æ7&VFVDB’æÆö6ÆT6ö×&R…7G&–ær†æ7&VFVDB’’“°¢&WGW&âÆ–Ö—BÓÒçVÆÂò&V6÷&G2¢&V6÷&G2ç6Æ–6RƒÂÆ–Ö—B“°§Ğ ¦gVæ7F–öâWF†÷&—FF—fUÆå&VfW&Væ6R‡ÆâÒ7FFRæ7W'&VçEÆâ’°¢&WGW&â7G&–ær‡ÆãòææÇ—6—4f–ævW'&–çBÇÂÆãòçG&¦V7F÷'“òçÆäf–ævW'&–çBÇÂÆãòææÇ—6—5&WVW7D–BÇÂrr“°§Ğ ¦gVæ7F–öâ÷Vå6Vç6÷'”ÖöFT6†ö÷6W"‡²&Vä–BÂ'&Wu6W76–öä–BÒrrÂ6÷W&6RÒv–æFWVæFVçBrÂÆå&VfW&Væ6RÒrrÂ&öf–ÆT–BÒrrÒÒ·Ò’°¢6öç7BF&vWD&Vä–BÒ7G&–ær†&Vä–BÇÂ7FFRç6VÆV7FVD&Vä–BÇÂrr“°¢–b‚F&vWD&Vä–BÇÂ7FFRæ&Vç2ç6öÖR†&VâÓâ&Vâæ–BÓÓÒF&vWD&Vä–B’’&WGW&ã°¢7FFRç6VÆV7FVD&Vä–BÒF&vWD&Vä–C°¢7FFRæWfÇVF–öâÒçVÆÃ°¢7FFRçVæF–æu6Vç6÷'”6öçFW‡BÒ°¢&Vä–C¢F&vWD&Vä–BÀ¢'&Wu6W76–öä–C¢7G&–ær†'&Wu6W76–öä–BÇÂrr’À¢6÷W&6S¢7G&–ær‡6÷W&6RÇÂv–æFWVæFVçBr’À¢Æå&VfW&Væ6S¢7G&–ær‡Æå&VfW&Væ6RÇÂrr’À¢&öf–ÆT–C¢7G&–ær‡&öf–ÆT–BÇÂrr¢Ó°¢7v—F6…vR‚w6Vç6÷'’r“°§Ğ ¦gVæ7F–öâ&VæFW%6Vç6÷'’‚’°¢6öç7B6öçF–æW"ÒB‚r76Vç6÷'”6öçFVçBr“°¢6öç7B&V6VçBÒf–ÇFW&VE6Vç6÷'•&V6÷&G2ƒR“°¢6öç7B7W'&VçBÒ7FFRæWfÇVF–öã°¢6öç7BVæF–ærÒ7FFRçVæF–æu6Vç6÷'”6öçFW‡C°¢6öç7B7F—fU6W76–öä–BÒ7G&–ær†7W'&VçCòæ'&Wu6W76–öä–BÇÂVæF–æsòæ'&Wu6W76–öä–BÇÂrr“°¢6öç7B7F—fUÆå&VfW&Væ6RÒ7G&–ær†7W'&VçCòçÆå&VfW&Væ6RÇÂVæF–æsòçÆå&VfW&Væ6RÇÂrr“°¢6öç7B7F—fU&öf–ÆT–BÒ7G&–ær†7W'&VçCòç&öf–ÆT–BÇÂVæF–æsòç&öf–ÆT–BÇÂrr“°¢6öçF–æW"æFF6WBæ'&Wu6W76–öä–BÒ7F—fU6W76–öä–C°¢6öçF–æW"æFF6WBçÆå&VfW&Væ6RÒ7F—fUÆå&VfW&Væ6S°¢6öçF–æW"æFF6WBç&öf–ÆT–BÒ7F—fU&öf–ÆT–C°¢6öçF–æW"æFF6WBç6Vç6÷'”÷&–v–âÒVæF–æsòç6÷W&6RÇÂ7W'&VçCòç6Vç6÷'•6÷W&6RÇÂ†7W'&VçCòæF—&V7Bòv–æFWVæFVçBr¢rr“°¢6öçF–æW"æ–ææW$…DÔÂÒÇ6V7F–öâ6Æ73Ò'æVÂ6Vç6÷'’Ö†—7F÷'’#ãÆ'WGFöâ–CÒ'6Vç6÷'”†—7F÷'•FövvÆR"6Æ73Ò&†—7F÷'’×FövvÆRG·7FFRç6Vç6÷'”†—7F÷'”÷Vãòr7F—fRs¢rwÒ"G—SÒ&'WGFöâ#ãÇ7ãî[èi‰N(
+n(
+cÂ÷7ããÇ7ãâG·7FFRç6Vç6÷'”†—7F÷'”÷Vãò~(È2s¢~(ÈBwÓÂ÷7ããÂö'WGFöãâG·7FFRç6Vç6÷'”†—7F÷'”÷VâòÆF—b6Æ73Ò'&V6÷&BÖÆ—7B#âG·&V6VçBæÆVæwFƒ÷&V6VçBæÖ‡&V6÷&D‡FÖÂ’æ¦ö–â‚rr“¢sÇ6Æ73Ò&×WFVB6ÖÆÂ#î[	®izY8˜›NŠë[ÙSÂ÷âwÓÂöF—cãÆ'WGFöâ–CÒ'6Vç6÷'”Ö÷&T'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ#îi»NZI£Âö'WGFöãæ¢rwÓÂ÷6V7F–öãà¢G¶7W'&VçBòWfÇVF–öä‡FÖÂ†7W'&VçB’¢Ç6V7F–öâ6Æ73Ò'æVÂ6Vç6÷'’×7F'B×æVÂ#ãÆF—b6Æ73Ò'æVÂ×F—FÆR6VçFW&VB#ãÆF—cãÆƒ#îiÊÎjÊY8˜›CÂöƒ#ãÇâG·VæF–æsòæ'&Wu6W76–öä–Bò~Xk.xZîŠë[Ù^[{.KùŞZÙûÈÎŠû~˜hºKˆzxŞxºÎz¸¾Y8˜›NjŠ[Èòr¢VæF–æsòçÆå&VfW&Væ6Rò~Xk.xZîikj[{.X[>ˆNûÈÎŠû~˜hºKˆzxŞxºÎz¸¾Y8˜›NjŠ[Èòr¢~K‰>K‰®iÚşkX²+rxêZënK©.Xª‚+riÊŞŠëwÓÂ÷ãÂöF—cãÂöF—cãÆÆ&VÂ6Æ73Ò&f–VÆB6VçFW&VBÖf–VÆB#ãÇ7ãî˜hº‹nZÙÂ÷7ããÇ6VÆV7B–CÒ'6Vç6÷'”&Vå6VÆV7B"6Æ73Ò&6öçG&öÂ#âG·7FFRæ&Vç2æf–ÇFW"†&VãÓâ&Vâæ&6†—fVB’æÖ†&VãÓæÆ÷F–öâfÇVSÒ"G¶W62†&Vâæ–B—Ò"G¶&Vâæ–CÓÓ×7FFRç6VÆV7FVD&Vä–Còr6VÆV7FVBs¢rwÓâG¶W62†&VäF—7Æ”æÖR†&Vâ’—ÓÂö÷F–öãæ’æ¦ö–â‚rr—ÓÂ÷6VÆV7CãÂöÆ&VÃãÆF—b6Æ73Ò'6Vç6÷'’×7F'BÖ7F–öâ"FF×6Vç6÷'’ÖÖöFRÖ†÷7CãÂöF—cãÂ÷6V7F–öãæÖ°¢B‚r76Vç6÷'”†—7F÷'•FövvÆRr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ²7FFRç6Vç6÷'”†—7F÷'”÷VâÒ7FFRç6Vç6÷'”†—7F÷'”÷Vã²&VæFW%6Vç6÷'’‚“²Ò“°¢B‚r76Vç6÷'”Ö÷&T'Fâr“òæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ÷Vå6Vç6÷'•&V6÷&G5vR“°¢B‚r76Vç6÷'”&Vå6VÆV7Br“òæFDWfVçDÆ—7FVæW"‚v6†ævRrÂWfVçBÓâ°¢7FFRç6VÆV7FVD&Vä–BÒWfVçBçF&vWBçfÇVS°¢–b‡7FFRçVæF–æu6Vç6÷'”6öçFW‡Còæ&Vä–BÓÒWfVçBçF&vWBçfÇVR’7FFRçVæF–æu6Vç6÷'”6öçFW‡BÒçVÆÃ°¢Ò“°¢&–æDWfÇVF–öäWfVçG2‚“²&–æD6öçG&öÅ7FFW2†6öçF–æW"“°¢Fö7VÖVçBæF—7F6„WfVçB†æWr7W7FöÔWfVçB‚vÇV6·–&Vã§6Vç6÷'’×&VæFW&VBrÂ²FWF–Ã¢²†4WfÇVF–öã¢&ööÆVâ†7W'&VçB’Â'&Wu6W76–öä–C¢7F—fU6W76–öä–BÒÒ’“°§Ğ ¦gVæ7F–öâ6Vç6÷'”ÖöFTÆ&VÂ‡&V6÷&BÒ·Ò’°¢–b‡&V6÷&BæWfÇVF–öäÖöFRÓÓÒw&öfW76–öæÂrÇÂ&V6÷&Bç6÷W&6TÖöFRÓÓÒv–æFWVæFVçBÖ7W–ær×cRr’&WGW&â~iÚşkX¾Y8˜›Bs°¢–b‡&V6÷&BæWfÇVF–öäÖöFRÓÓÒvæ÷FRrÇÂ&V6÷&Bç6÷W&6TÖöFRÓÓÒv–æFWVæFVçBÖæ÷FR×cRr’&WGW&â~iÊŞŠëY8˜›Bs°¢&WGW&â~xêZënK©.XªY8˜›Bs°§Ğ ¦gVæ7F–öâ&V6÷&D‡FÖÂ‡&V6÷&B’°¢6öç7B&VâÒ7FFRæ&Vç2æf–æB†—FVÓÓæ—FVÒæ–CÓÓ×&V6÷&Bæ&Vä–B“°¢6öç7B7V&¦V7F—fRÒçVÖ&W"‡&V6÷&Bç7V&¦V7F—fU66÷&Róò&V6÷&Bç66÷&Róò“°¢6öç7BWFòÒçVÖ&W"‡&V6÷&BæWFõ66÷&RÇÂ“°¢6öç7BFVÇFÒçVÖ&W"‡&V6÷&Bç66÷&TFVÇFÇÂ“°¢&WGW&âÆ'WGFöâ6Æ73Ò'&V6÷&BÖ—FVÒ6Vç6÷'’×&V6÷&BÖ'WGFöâ"G—SÒ&'WGFöâ"FF×6Vç6÷'’×&V6÷&CÒ"G¶W62‡&V6÷&Bæ–B—Ò#ãÇ7ãâG¶f÷&ÖDFFR‡&V6÷&Bæ7&VFVDB—ÓÂ÷7ããÇ7ãâG¶W62†&Vâò&VäF—7Æ”æÖR†&Vâ’¢~[{.XŠ™šN‹nXÚr—Ò+rG¶W62‡6Vç6÷'”ÖöFTÆ&VÂ‡&V6÷&B’—ÒG·&V6÷&BææGW&Äæ÷FRòÇ6ÖÆÃâG¶W62‡&V6÷&BææGW&Äæ÷FR—ÓÂ÷6ÖÆÃæ¢rwÓÂ÷7ããÇ7G&öæsâG·7V&¦V7F—fRçFôf—†VBƒ—ÒG´çVÖ&W"æ—4f–æ—FR†WFò’òÇ6ÖÆÃîˆz®Xª‚G¶WFòçFôf—†VBƒ—Ò+r[zâG¶FVÇFãÓòr²s¢rwÒG¶FVÇFçFôf—†VBƒ—ÓÂ÷6ÖÆÃæ¢rwÓÂ÷7G&öæsãÂö'WGFöãæ°§Ğ ¦6öç7B$T4õ$Eõ$D%ôÄ$TÅ2Òö&¦V7Bæg&VW¦R‡°¢&öÖ¢²~ˆ«ši’rÂ~iéÎši’rÂ~ˆËnhIòrÂ~YÙ®iéÂrÂ~˜[^hIòuÒÀ¢7G–ÆS¢²~š8îY2rÂ~KÙ™ûRrÂ~˜[‹J‚rÂ~yIÎhIòrÂ~˜h~Xé¢rÂ~[›.Xx[ªbrÂ~Kˆˆ{Nh
+rrÂ~[›>Š[ªbuĞ§Ò“° ¦gVæ7F–öâ6Vç6÷'•&F%7fr‡fÇVW2ÒµÒÂÆ&VÇ2ÒµÒÂF—FÆRÒrr’°¢–b‚'&’æ—4'&’‡fÇVW2’ÇÂfÇVW2æÆVæwF‚Â2’&WGW&ârs°¢6öç7B6—¦RÒ3Â6VçFW"ÒSÂ&F—W2ÒBÂÖ‚Ò°¢6öç7Bö–çBÒ†–æFW‚ÂfÇVRÒÖ‚’Óâ°¢6öç7BævÆRÒÔÖF‚å’ò"²ÖF‚å’¢"¢–æFW‚òfÇVW2æÆVæwFƒ°¢6öç7B"Ò&F—W2¢6Æ×„çVÖ&W"‡fÇVR’òÖ‚ÂÂ“°¢&WGW&âG²†6VçFW"²ÖF‚æ6÷2†ævÆR’¢"’çFôf—†VBƒ—ÒÂG²†6VçFW"²ÖF‚ç6–â†ævÆR’¢"’çFôf—†VBƒ—Ö°¢Ó°¢6öç7B&–æw2Ò³"ÃBÃbÃ‚ÃÒæÖ†ÆWfVÂÓâÇöÇ–vöâö–çG3Ò"G·fÇVW2æÖ‚…òÂ–æFW‚’Óâö–çB†–æFW‚ÂÆWfVÂ’’æ¦ö–â‚rr—Ò#ãÂ÷öÇ–vöãæ’æ¦ö–â‚rr“°¢6öç7B†W2ÒfÇVW2æÖ‚…òÂ–æFW‚’ÓâÆÆ–æRƒÒ"G¶6VçFW'Ò"“Ò"G¶6VçFW'Ò"ƒ#Ò"G·ö–çB†–æFW‚ÂÖ‚’ç7Æ—B‚rÂr•³×Ò"“#Ò"G·ö–çB†–æFW‚ÂÖ‚’ç7Æ—B‚rÂr•³×Ò#ãÂöÆ–æSæ’æ¦ö–â‚rr“°¢6öç7BFW‡G2ÒÆ&VÇ2æÖ‚†Æ&VÂÂ–æFW‚’Óâ°¢6öç7BævÆRÒÔÖF‚å’ò"²ÖF‚å’¢"¢–æFW‚òfÇVW2æÆVæwFƒ°¢6öç7B"Ò&F—W2²#ƒ°¢6öç7B‚Ò6VçFW"²ÖF‚æ6÷2†ævÆR’¢"Â’Ò6VçFW"²ÖF‚ç6–â†ævÆR’¢#°¢&WGW&âÇFW‡BƒÒ"G·‚çFôf—†VBƒ—Ò"“Ò"G·’çFôf—†VBƒ—Ò"FW‡BÖæ6†÷#Ò&Ö–FFÆR"FöÖ–æçBÖ&6VÆ–æSÒ&Ö–FFÆR#âG¶W62†Æ&VÂ—ÒG´çVÖ&W"‡fÇVW5¶–æFW…ÒÇÂ’çFôf—†VBƒ—ÓÂ÷FW‡Cæ°¢Ò’æ¦ö–â‚rr“°¢&WGW&âÆf–wW&R6Æ73Ò'6Vç6÷'’×&V6÷&B×&F"#ãÆf–v6F–öãâG¶W62‡F—FÆR—ÓÂöf–v6F–öããÇ7frf–Wt&÷ƒÒ#G·6—¦WÒG·6—¦WÒ"&öÆSÒ&–Ör"&–ÖÆ&VÃÒ"G¶W62‡F—FÆR—Ş™»~‹ëîY»â#ãÆr6Æ73Ò&w&–B#âG·&–æw7ÒG¶†W7ÓÂösãÇöÇ–vöâ6Æ73Ò'fÇVR"ö–çG3Ò"G·fÇVW2æÖ‚‡fÇVRÂ–æFW‚’Óâö–çB†–æFW‚ÂfÇVR’’æ¦ö–â‚rr—Ò#ãÂ÷öÇ–vöãâG·FW‡G7ÓÂ÷7fsãÂöf–wW&Sæ°§Ğ ¦gVæ7F–öâ6Vç6÷'•7G'V7GW&VE6V7F–öç2‡&V6÷&BÒ·Ò’°¢6öç7B6V7F–öç2ÒµÓ°¢f÷"†6öç7B¶æöFT–BÂw&÷W5Òöbö&¦V7BæVçG&–W2‡&V6÷&Bæç7vW'2ÇÂ·Ò’’°¢6öç7BÆ&VÂÒ4Tå4õ%•ôäôDU2æf–æB†æöFRÓâæöFRæ–BÓÓÒæöFT–B“òæÆ&VÂÇÂæöFT–C°¢6öç7BfÇVW2Òö&¦V7BçfÇVW2†w&÷W2ÇÂ·Ò’æfÆB‚’æf–ÇFW"„&ööÆVâ“°¢–b‡fÇVW2æÆVæwF‚’6V7F–öç2çW6‚‡²Æ&VÂÂFw3¢fÇVW2Ò“°¢Ğ¢6öç7B&öfW76–öæÂÒ&V6÷&Bç&öfW76–öæÄFFÇÂ·Ó°¢f÷"†6öç7B¶¶W’ÂfÇVW5Òöbö&¦V7BæVçG&–W2‡&öfW76–öæÂç6VÆV7F–öç2ÇÂ·Ò’’°¢–b„'&’æ—4'&’‡fÇVW2’bbfÇVW2æÆVæwF‚’6V7F–öç2çW6‚‡²Æ&VÃ¢¶W’ÂFw3¢fÇVW2Â–çFVç6—G“¢&öfW76–öæÂæ–çFVç6—F–W3òå¶¶W•ÒÒ“°¢Ğ¢–b‡&öfW76–öæÂæFVfV7G3òæÖ¦÷#òæÆVæwF‚’6V7F–öç2çW6‚‡²Æ&VÃ¢~iˆî{Ë®™›rrÂFw3¢&öfW76–öæÂæFVfV7G2æÖ¦÷"Ò“°¢–b‡&öfW76–öæÂæFVfV7G3òæÖ–æ÷#òæÆVæwF‚’6V7F–öç2çW6‚‡²Æ&VÃ¢~i©~{Ë®™›rrÂFw3¢&öfW76–öæÂæFVfV7G2æÖ–æ÷"Ò“°¢&WGW&â6V7F–öç3°§Ğ ¦gVæ7F–öâ÷Vå6Vç6÷'•&V6÷&B‡&V6÷&D–B’°¢6öç7B&V6÷&BÒ7FFRç6Vç6÷'•&V6÷&G2æf–æB†—FVÒÓâ—FVÒæ–BÓÓÒ&V6÷&D–B“°¢–b‚&V6÷&B’&WGW&âFö7B‚~Y8˜›NŠë[Ù^KˆŞZÙYÊ‚rÂw7FGW2Ö&Br“°¢6öç7B&VâÒ7FFRæ&Vç2æf–æB†—FVÒÓâ—FVÒæ–BÓÓÒ&V6÷&Bæ&Vä–B“°¢6öç7BWFòÒçVÖ&W"‡&V6÷&BæWFõ66÷&Róò’Â7V&¦V7F—fRÒçVÖ&W"‡&V6÷&Bç7V&¦V7F—fU66÷&Róò&V6÷&Bç66÷&Róò“°¢6öç7B&öfW76–öæÂÒ&V6÷&Bç&öfW76–öæÄFFÇÂ·Ó°¢6öç7B7G'V7GW&VBÒ6Vç6÷'•7G'V7GW&VE6V7F–öç2‡&V6÷&B“°¢6öç7B&F"Ò°¢6Vç6÷'•&F%7fr‡&öfW76–öæÂç&F#òæ&öÖÂ$T4õ$Eõ$D%ôÄ$TÅ2æ&öÖÂ~šik	N{¹>ièBr’À¢6Vç6÷'•&F%7fr‡&öfW76–öæÂç&F#òç7G–ÆRÂ$T4õ$Eõ$D%ôÄ$TÅ2ç7G–ÆRÂ~iÚşkX¾{¹>ièBr¢Òæf–ÇFW"„&ööÆVâ’æ¦ö–â‚rr“°¢6öç7Bf–WrÒÆF—b6Æ73Ò'6Vç6÷'’×&V6÷&B×f–Wr×6†VÆÂ#ãÆF—b6Æ73Ò'&V6÷&B×f–WrÖÖöFRÖÆ&VÂ"&–Ö†–FFVãÒ'G'VR#îŠë[Ù^iú^yÈ¾jŠ[ÈóÂöF—câG¶F–Æöt†VFW"‚~Y8˜›NŠë[ÙRrÂG·6Vç6÷'”ÖöFTÆ&VÂ‡&V6÷&B—Ò+rG¶f÷&ÖDFFR‡&V6÷&Bæ7&VFVDB—ÖÂ²6VçFW&VC¢G'VRÒ—ÓÇ6V7F–öâ6Æ73Ò'&V6÷&B×f–WrÖ†W&ò#ãÆF—cãÇ7ãîY)nYZ‹cÂ÷7ããÇ7G&öæsâG¶W62†&Vâò&VäF—7Æ”æÖR†&Vâ’¢~[{.XŠ™šN‹nXÚr—ÓÂ÷7G&öæsãÂöF—cãÆF—cãÇ7ãîK‹¾Šx.[é~XˆcÂ÷7ããÇ7G&öæsâG·7V&¦V7F—fRçFôf—†VBƒ—ÓÂ÷7G&öæsãÂöF—cãÆF—cãÇ7ãîˆz®Xª[é~XˆcÂ÷7ããÇ7G&öæsâG¶WFòçFôf—†VBƒ—ÓÂ÷7G&öæsãÂöF—cãÆF—cãÇ7ãîXˆn[zãÂ÷7ããÇ7G&öæsâG·&V6÷&Bç66÷&TFVÇFãÓòr²s¢rwÒG´çVÖ&W"‡&V6÷&Bç66÷&TFVÇFÇÂ7V&¦V7F—fRÖWFò’çFôf—†VBƒ—ÓÂ÷7G&öæsãÂöF—câG´çVÖ&W"æ—4f–æ—FR„çVÖ&W"‡&V6÷&Bç&u66÷&S“óò&V6÷&Bç&öfW76–öæÅ&s“’’òÆF—cãÇ7ãîiÚşkX¾XéşZx¾XˆcÂ÷7ããÇ7G&öæsâG´çVÖ&W"‡&V6÷&Bç&u66÷&S“óò&V6÷&Bç&öfW76–öæÅ&s“’çFôf—†VBƒ—Òò“Â÷7G&öæsãÂöF—cæ¢rwÓÂ÷6V7F–öãâG·&F"òÇ6V7F–öâ6Æ73Ò'&V6÷&B×f–Wr×&F'2#âG·&F'ÓÂ÷6V7F–öãæ¢rwÓÇ6V7F–öâ6Æ73Ò'&V6÷&B×f–Wr×Fw2#âG·7G'V7GW&VBæÆVæwF‚ò7G'V7GW&VBæÖ‡6V7F–öâÓâÆF—b6Æ73Ò'&V6÷&B×FrÖw&÷W#ãÆƒ3âG¶W62‡6V7F–öâæÆ&VÂ—ÒG·6V7F–öâæ–çFVç6—G’ÒçVÆÂòÇ6ÖÆÃî[Ë®[ªbG´çVÖ&W"‡6V7F–öâæ–çFVç6—G’’çFôf—†VBƒ—ÓÂ÷6ÖÆÃæ¢rwÓÂöƒ3ãÆF—câG·6V7F–öâçFw2æÖ‡FrÓâÇ7â6Æ73Ò'Fr#âG¶W62‡Fr—ÓÂ÷7ãæ’æ¦ö–â‚rr—ÓÂöF—cãÂöF—cæ’æ¦ö–â‚rr’¢‡&V6÷&Bç7VÖÖ'’ÇÂµÒ’æÖ†—FVÒÓâÇ7â6Æ73Ò'Fr#âG¶W62†—FVÒ—ÓÂ÷7ãæ’æ¦ö–â‚rr’ÇÂsÇ6Æ73Ò&×WFVB#îiÊÎŠë[Ù^k*iÈ{¹>ièNXÉnj~zÛî8#Â÷âwÓÂ÷6V7F–öãâG´ö&¦V7Bæ¶W—2‡&öfW76–öæÂæffV7F—fRÇÂ·Ò’æÆVæwF‚òÇ6V7F–öâ6Æ73Ò'&V6÷&BÖffV7F—fR#ãÆƒ3îh8^hIşŠøNXˆcÂöƒ3âG´ö&¦V7BæVçG&–W2‡&öfW76–öæÂæffV7F—fR’æÖ‚…¶Æ&VÂÇfÇVUÒ’ÓâÆF—cãÇ7ãâG¶W62†Æ&VÂ—ÓÂ÷7ããÇ7G&öæsâG´çVÖ&W"‡fÇVR’çFôf—†VBƒ—ÓÂ÷7G&öæsãÂöF—cæ’æ¦ö–â‚rr—ÓÂ÷6V7F–öãæ¢rwÓÇ6V7F–öâ6Æ73Ò'&V6÷&BÖæ÷FR#ãÆƒ3îiÊŞŠëÂöƒ3ãÇâG·&V6÷&BææGW&Äæ÷FRòW62‡&V6÷&BææGW&Äæ÷FR’ç&WÆ6TÆÂ‚uÆârÂsÆ'#âr’¢sÇ7â6Æ73Ò&×WFVB#îiÊ®Z¾XiiÊŞŠëÂ÷7ãâwÓÂ÷ãÂ÷6V7F–öããÆF—b6Æ73Ò'&÷rVæB#ãÆ'WGFöâ6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ"FFÖ6Æ÷6RÖ÷fW&Æ“î‹ùNY¹ãÂö'WGFöããÆ'WGFöâ–CÒ&VF—E6Vç6÷'•&V6÷&D'Fâ"6Æ73Ò&'WGFöâ&–Ö'’"G—SÒ&'WGFöâ#î{Én‹éŠë[ÙSÂö'WGFöããÂöF—cãÂöF—cæ°¢6öç7B÷fW&Æ’Ò6†÷t÷fW&Æ’‡f–WrÂ²gVÆÃ¢G'VRÂ–C¢w6Vç6÷'’×&V6÷&B×f–WrrÂF–Æöt6Æ73¢w6Vç6÷'’×&V6÷&B×f–WrÖF–ÆörrÒ“°¢&–æD6Æ÷6R†÷fW&Æ’“°¢B‚r6VF—E6Vç6÷'•&V6÷&D'Fâr“òæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’ÓâVF—E6Vç6÷'•&V6÷&D–äfÆ÷r‡&V6÷&D–B’“°§Ğ ¦gVæ7F–öâVF—E6Vç6÷'•&V6÷&D–äfÆ÷r‡&V6÷&D–B’°¢6öç7B&V6÷&BÒ7FFRç6Vç6÷'•&V6÷&G2æf–æB†—FVÒÓâ—FVÒæ–BÓÓÒ&V6÷&D–B“°¢–b‚&V6÷&B’&WGW&âFö7B‚~Y8˜›NŠë[Ù^KˆŞZÙYÊ‚rÂw7FGW2Ö&Br“°¢6Æ÷6T÷fW&Æ’‚“°¢7FFRç6VÆV7FVD&Vä–BÒ&V6÷&Bæ&Vä–C°¢7FFRçVæF–æu6Vç6÷'”6öçFW‡BÒçVÆÃ°¢7v—F6…vR‚w6Vç6÷'’r“°¢–b‡&V6÷&BæWfÇVF–öäÖöFRÓÓÒw&öfW76–öæÂr’°¢7FFRæWfÇVF–öâÒçVÆÃ°¢&VæFW%6Vç6÷'’‚“°¢Fö7VÖVçBæF—7F6„WfVçB†æWr7W7FöÔWfVçB‚vÇV6·–&Vã¦VF—B×&öfW76–öæÂ×6Vç6÷'’rÂ²FWF–Ã¢²&V6÷&C¢7G'V7GW&VD6ÆöæR‡&V6÷&B’ÒÒ’“°¢&WGW&ã°¢Ğ¢7FFRæWfÇVF–öâÒ°¢ââç7G'V7GW&VD6ÆöæR‡&V6÷&B’À¢æöFT–æFWƒ¢À¢ç7vW'3¢7G'V7GW&VD6ÆöæR‡&V6÷&Bæç7vW'2ÇÂ·Ò’À¢VF—E&V6÷&D–C¢&V6÷&Bæ–BÀ¢F—&V7C¢G'VP¢Ó°¢&VæFW%6Vç6÷'’‚“°§Ğ ¦gVæ7F–öâWfÇVF–öä‡FÖÂ†WfÇVF–öâ’°¢–b†WfÇVF–öâæWfÇVF–öäÖöFRÓÓÒvæ÷FRr’&WGW&âæ÷FTWfÇVF–öä‡FÖÂ†WfÇVF–öâ“°¢6öç7BæöFRÒ4Tå4õ%•ôäôDU5¶WfÇVF–öâææöFT–æFW…Ó°¢6öç7B&öG’ÒæöFRçG—RÓÓÒw66÷&Rrò66÷&TæöFT‡FÖÂ†WfÇVF–öâ’¢æöFRçG—RÓÓÒvæ÷FRròæ÷FTæöFT‡FÖÂ†WfÇVF–öâ’¢æöFRæw&÷W2æÖ‚†w&÷WÆ–æFW‚“ÓçVW7F–öäw&÷W‡FÖÂ†æöFRÆw&÷WÆ–æFW‚ÆWfÇVF–öâæç7vW'5¶æöFRæ–E×ÇÇ·Ò’’æ¦ö–â‚rr“°¢6öç7BÆ7BÒWfÇVF–öâææöFT–æFW‚ÓÓÒ4Tå4õ%•ôäôDU2æÆVæwF‚Ò°¢&WGW&âÇ6V7F–öâ6Æ73Ò'æVÂ6Vç6÷'’ÖWfÇVF–öâ"FF×6Vç6÷'’ÖÖöFSÒ'Æ–W"#ãÆF—b6Æ73Ò'æVÂ×F—FÆR6Vç6÷'’×F—FÆRÖ6VçFW&VB#ãÆF—cãÆƒ#âG¶W62†æöFRæÆ&VÂ—ÓÂöƒ#ãÇâG¶W62†&VäF—7Æ”æÖR‡7FFRæ&Vç2æf–æB†#Óæ"æ–CÓÓÖWfÇVF–öâæ&Vä–B’ÇÂ·Ò’—ÓÂ÷ãÂöF—cãÂöF—cãÆF—b6Æ73Ò'6Vç6÷'’×&öw&W72#âGµ4Tå4õ%•ôäôDU2æÖ‚…òÆ’“ÓæÇ7â6Æ73Ò"G¶“ÆWfÇVF–öâææöFT–æFWƒòvFöæRs¦“ÓÓÖWfÇVF–öâææöFT–æFWƒòv7W'&VçBs¢rwÒ#ãÂ÷7ãæ’æ¦ö–â‚rr—ÓÂöF—câG¶&öG—ÓÆF—b6Æ73Ò'6Vç6÷'’Öæf–vF–öâ#ãÆ'WGFöâ–CÒ&6æ6VÄWfÇVF–öä'Fâ"6Æ73Ò&'WGFöâ7V'FÆR"G—SÒ&'WGFöâ#îXùnkhƒÂö'WGFöããÆ'WGFöâ–CÒ'&We6Vç6÷'”æöFT'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ"G¶WfÇVF–öâææöFT–æFWƒÓÓÓòrF—6&ÆVBs¢rwÓî˜Âö'WGFöããÆ'WGFöâ–CÒ&æW‡E6Vç6÷'”æöFT'Fâ"6Æ73Ò&'WGFöâ&–Ö'’"G—SÒ&'WGFöâ#âG¶Æ7Cò~ZèÎh‰Y8˜›Bs¦æöFRçG—SÓÓÒw66÷&Rsò~iÊŞŠës¢~‹ù²wÓÂö'WGFöããÂöF—cãÂ÷6V7F–öãæ°§Ğ ¦gVæ7F–öâæ÷FTWfÇVF–öä‡FÖÂ†WfÇVF–öâ’°¢6öç7B66÷&RÒ6Æ×„çVÖ&W"†WfÇVF–öâç7V&¦V7F—fU66÷&Róòƒ’ÂÂ“°¢&WGW&âÇ6V7F–öâ6Æ73Ò'æVÂ6Vç6÷'’ÖWfÇVF–öâ6Vç6÷'’Öæ÷FRÖVF—F÷""FF×6Vç6÷'’ÖÖöFSÒ&æ÷FR#ãÆF—b6Æ73Ò'æVÂ×F—FÆR6Vç6÷'’×F—FÆRÖ6VçFW&VB#ãÆF—cãÆƒ#îiÊŞŠëÂöƒ#ãÇâG¶W62†&VäF—7Æ”æÖR‡7FFRæ&Vç2æf–æB†#Óæ"æ–CÓÓÖWfÇVF–öâæ&Vä–B’ÇÂ·Ò’—ÓÂ÷ãÂöF—cãÂöF—cãÆF—b6Æ73Ò'VW7F–öâÖw&÷W66÷&RÖ6ö×&—6öâæ÷FR×66÷&R#ãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãîiÊÎjÊŠøNXˆbÆ÷WGWB–CÒ'6Vç6÷'”æ÷FU66÷&T÷WGWB#âG·66÷&RçFôf—†VBƒ—ÓÂö÷WGWCãÂ÷7ããÆ–çWB–CÒ'6Vç6÷'”æ÷FU66÷&R"G—SÒ'&ævR"Ö–ãÒ#"ÖƒÒ#"7FWÒ#ãR"fÇVSÒ"G·66÷&WÒ"&–ÖÆ&VÃÒ.iÊÎjÊiÊŞŠëŠøNXˆb#ãÂöÆ&VÃãÂöF—câG¶æ÷FTæöFT‡FÖÂ†WfÇVF–öâ—ÓÆF—b6Æ73Ò'6Vç6÷'’Öæf–vF–öâæ÷FRÖæf–vF–öâ#ãÆ'WGFöâ–CÒ&6æ6VÄWfÇVF–öä'Fâ"6Æ73Ò&'WGFöâ7V'FÆR"G—SÒ&'WGFöâ#îXùnkhƒÂö'WGFöããÆ'WGFöâ–CÒ'6fU6Vç6÷'”æ÷FT'Fâ"6Æ73Ò&'WGFöâ&–Ö'’"G—SÒ&'WGFöâ#îKùŞZÙiÊŞŠëÂö'WGFöããÂöF—cãÂ÷6V7F–öãæ°§Ğ ¦gVæ7F–öâVW7F–öäw&÷W‡FÖÂ†æöFRÂw&÷WÂw&÷W–æFW‚Âç7vW"’°¢6öç7B6VÆV7FVBÒæWr6WB†ç7vW%¶w&÷W–æFW…ÒÇÂµÒ“°¢&WGW&âÆF—b6Æ73Ò'VW7F–öâÖw&÷W6VçFW&VB×VW7F–öâ#ãÆƒCâG¶W62†w&÷WæÆ&VÂ—ÓÂöƒCãÆF—b6Æ73Ò'6Vç6÷'’Ö÷F–öç2#âG¶w&÷Wæ÷F–öç2æÖ†÷F–öãÓæÆ'WGFöâG—SÒ&'WGFöâ"6Æ73Ò'6Vç6÷'’Ö÷F–öâG·6VÆV7FVBæ†2†÷F–öâ“òr6VÆV7FVBs¢rwÒ"FF×6Vç6÷'’Ö÷F–öãÒ"G¶W62†÷F–öâ—Ò"FFÖw&÷WÖ–æFWƒÒ"G¶w&÷W–æFW‡Ò"FF×6–ævÆSÒ"G´&ööÆVâ†w&÷Wç6–ævÆR—Ò#âG¶W62†÷F–öâ—ÓÂö'WGFöãæ’æ¦ö–â‚rr—ÓÂöF—cãÂöF—cæ°§Ğ¦gVæ7F–öâ66÷&TæöFT‡FÖÂ†WfÇVF–öâ’°¢6öç7BWFõ66÷&RÒ6ö×WFTWFöÖF–566÷&R†WfÇVF–öâæç7vW'2“°¢6öç7BFVÇFÒ6Æ×„çVÖ&W"†WfÇVF–öâç66÷&TFVÇFÇÂ’ÂÓÂ“°¢6öç7BFW&—fVE66÷&RÒ6Æ×†WFõ66÷&R²FVÇFÂÂ“°¢&WGW&âÆF—b6Æ73Ò'VW7F–öâÖw&÷W66÷&RÖ6ö×&—6öâFVÇFÖöæÇ’#ãÆF—b6Æ73Ò'66÷&RÖ†VB×&÷r#ãÇ7ãîˆz®Xª[é~XˆcÂ÷7ããÇ7ãîK‹¾Šx.Xˆn[zãÂ÷7ããÂöF—cãÆF—b6Æ73Ò'66÷&R×fÇVR×&÷r#ãÇ7G&öær–CÒ'6Vç6÷'”WFõ66÷&R#âG¶WFõ66÷&RçFôf—†VBƒ—ÓÂ÷7G&öæsãÆF—b6Æ73Ò'7V&¦V7F—fRÖFVÇFÖ6öçG&öÂ#ãÇ7G&öær–CÒ'6Vç6÷'•66÷&TFVÇF#âG¶FVÇFãÓòr²s¢rwÒG¶FVÇFçFôf—†VBƒ—ÓÂ÷7G&öæsãÆ–çWB–CÒ'6Vç6÷'”FVÇFv†VVÂ"6Æ73Ò'7V&¦V7F—fRÖFVÇF×v†VVÂ"G—SÒ'&ævR"Ö–ãÒ"Ó"ÖƒÒ#"7FWÒ#ãR"fÇVSÒ"G¶FVÇFÒ"&–ÖÆ&VÃÒ.Kˆ®Kˆ¾k¹XªŠëî{ÚîK‹¾Šx.Xˆn[zâ#ãÂöF—cãÂöF—cãÆF—b6Æ73Ò'66÷&RÖFW&—fVB×&÷r#ãÇ6ÖÆÃîh©zé~h¾XˆcÂ÷6ÖÆÃãÇ6ÖÆÂ–CÒ'6Vç6÷'”FW&—fVE66÷&R#âG¶FW&—fVE66÷&RçFôf—†VBƒ—ÓÂ÷6ÖÆÃãÂöF—cãÂöF—cæ°§Ğ ¦gVæ7F–öâæ÷FTæöFT‡FÖÂ†WfÇVF–öâ’°¢&WGW&âÆF—b6Æ73Ò'VW7F–öâÖw&÷W6VçFW&VB×VW7F–öâ#ãÆƒCîˆz®xKnih~ZÙ~Šë[ÙSÂöƒCãÇFW‡F&V–CÒ'6Vç6÷'”æGW&Äæ÷FR"6Æ73Ò&6öçG&öÂæGW&ÂÖæ÷FR"Ö†ÆVæwFƒÒ##"Æ6V†öÆFW#Ò.høş‹ûiÊÎjÊXk.xZîy¨Nšik	N8˜[yIÎ8Xú>hIş8™zîš)Xø®Kˆ¾KˆjÊ‹>i[NikY	(
+n(
+b#âG¶W62†WfÇVF–öâææGW&Äæ÷FRÇÂrr—ÓÂ÷FW‡F&VãÆF—b6Æ73Ò'&÷rÖVçR×&÷r6Vç6÷'’Öæ÷FRÖ7F–öç2#ãÆ'WGFöâ–CÒ'6Vç6÷'•fö–6Tæ÷FT'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ#îŠúŞŠëÂö'WGFöããÇ7â6Æ73Ò&×WFVB6ÖÆÂ#îih~ZÙ~[nXiXZ^Y8˜›NŠë[Ù^Y(ÎZû[©NXk.xZîŠë[Ù^8#Â÷7ããÂöF—cãÂöF—cæ°§Ğ ¦gVæ7F–öâ&–æDWfÇVF–öäWfVçG2‚’°¢B‚r66æ6VÄWfÇVF–öä'Fâr“òæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ²7FFRæWfÇVF–öâÒçVÆÃ²&VæFW%6Vç6÷'’‚“²Ò“°¢BB‚rç6Vç6÷'’Ö÷F–öâr’æf÷$V6‚†'WGFöâÓâ'WGFöâæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ°¢6öç7BæöFRÒ4Tå4õ%•ôäôDU5·7FFRæWfÇVF–öâææöFT–æFW…Ó²6öç7Bw&÷W–æFW‚ÒçVÖ&W"†'WGFöâæFF6WBæw&÷W–æFW‚“°¢7FFRæWfÇVF–öâæç7vW'5¶æöFRæ–EÒÇÃÒ·Ó²7FFRæWfÇVF–öâæç7vW'5¶æöFRæ–EÕ¶w&÷W–æFW…ÒÇÃÒµÓ°¢ÆWB6VÆV7FVBÒ7FFRæWfÇVF–öâæç7vW'5¶æöFRæ–EÕ¶w&÷W–æFW…Ó°¢–b†'WGFöâæFF6WBç6–ævÆRÓÓÒwG'VRr’6VÆV7FVBÒ6VÆV7FVBæ–æ6ÇVFW2†'WGFöâæFF6WBç6Vç6÷'”÷F–öâ’òµÒ¢¶'WGFöâæFF6WBç6Vç6÷'”÷F–öåÓ°¢VÇ6R6VÆV7FVBÒ6VÆV7FVBæ–æ6ÇVFW2†'WGFöâæFF6WBç6Vç6÷'”÷F–öâ’ò6VÆV7FVBæf–ÇFW"‡cÓçbÓÖ'WGFöâæFF6WBç6Vç6÷'”÷F–öâ’¢²ââç6VÆV7FVBÂ'WGFöâæFF6WBç6Vç6÷'”÷F–öåÓ°¢7FFRæWfÇVF–öâæç7vW'5¶æöFRæ–EÕ¶w&÷W–æFW…ÒÒ6VÆV7FVC²&VæFW%6Vç6÷'’‚“°¢Ò’“°¢B‚r76Vç6÷'”FVÇFv†VVÂr“òæFDWfVçDÆ—7FVæW"‚v–çWBrÂWfVçBÓâ°¢6öç7BWFòÒ6ö×WFTWFöÖF–566÷&R‡7FFRæWfÇVF–öâæç7vW'2“°¢6öç7BFVÇFÒ6Æ×‡'6TçVÖ&W"†WfVçBçF&vWBçfÇVRÂ’ÂÓÂ“°¢7FFRæWfÇVF–öâæWFõ66÷&RÒWFó²7FFRæWfÇVF–öâç66÷&TFVÇFÒFVÇF²7FFRæWfÇVF–öâç7V&¦V7F—fU66÷&RÒ6Æ×†WFò²FVÇFÂÂ“°¢–b‚B‚r76Vç6÷'•66÷&TFVÇFr’’B‚r76Vç6÷'•66÷&TFVÇFr’çFW‡D6öçFVçBÒG¶FVÇFãÓòr²s¢rwÒG¶FVÇFçFôf—†VBƒ—Ö°¢–b‚B‚r76Vç6÷'”FW&—fVE66÷&Rr’’B‚r76Vç6÷'”FW&—fVE66÷&Rr’çFW‡D6öçFVçBÒ7FFRæWfÇVF–öâç7V&¦V7F—fU66÷&RçFôf—†VBƒ“°¢Ò“°¢B‚r76Vç6÷'”æ÷FU66÷&Rr“òæFDWfVçDÆ—7FVæW"‚v–çWBrÂWfVçBÓâ°¢6öç7B66÷&RÒ6Æ×‡'6TçVÖ&W"†WfVçBçF&vWBçfÇVRÂƒ’ÂÂ“°¢7FFRæWfÇVF–öâç7V&¦V7F—fU66÷&RÒ66÷&S°¢–b‚B‚r76Vç6÷'”æ÷FU66÷&T÷WGWBr’’B‚r76Vç6÷'”æ÷FU66÷&T÷WGWBr’çFW‡D6öçFVçBÒ66÷&RçFôf—†VBƒ“°¢Ò“°¢B‚r76Vç6÷'”æGW&Äæ÷FRr“òæFDWfVçDÆ—7FVæW"‚v–çWBrÂWfVçBÓâ²7FFRæWfÇVF–öâææGW&Äæ÷FRÒWfVçBçF&vWBçfÇVS²Ò“°¢B‚r76Vç6÷'•fö–6Tæ÷FT'Fâr“òæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ7F'E7VV6…&V6övæ—F–öâ‚w6Vç6÷'”æGW&Äæ÷FRr’“°¢B‚r76fU6Vç6÷'”æ÷FT'Fâr“òæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ7–æ2‚’Óâ°¢7FFRæWfÇVF–öâç7V&¦V7F—fU66÷&RÒ6Æ×‡'6TçVÖ&W"‚B‚r76Vç6÷'”æ÷FU66÷&Rr“òçfÇVRÂ7FFRæWfÇVF–öâç7V&¦V7F—fU66÷&RÇÂƒ’ÂÂ“°¢7FFRæWfÇVF–öâææGW&Äæ÷FRÒB‚r76Vç6÷'”æGW&Äæ÷FRr“òçfÇVRçG&–Ò‚’ÇÂrs°¢–b‚7FFRæWfÇVF–öâææGW&Äæ÷FR’&WGW&âFö7B‚~Šû~XXZ¾XiiÊŞŠëXh^Zë’rÂw7FGW2×v&âr“°¢v—B6fTWfÇVF–öâ‚“°¢Ò“°¢B‚r7&We6Vç6÷'”æöFT'Fâr“òæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚’Óâ²7FFRæWfÇVF–öâææöFT–æFW‚ÒÖF‚æÖ‚ƒÂ7FFRæWfÇVF–öâææöFT–æFW‚Ó“²&VæFW%6Vç6÷'’‚“²Ò“°¢B‚r6æW‡E6Vç6÷'”æöFT'Fâr“òæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ7–æ2‚’Óâ°¢6öç7BæöFRÒ4Tå4õ%•ôäôDU5·7FFRæWfÇVF–öâææöFT–æFW…Ó°¢–b†æöFRçG—RÓÓÒvæ÷FRr’°¢7FFRæWfÇVF–öâææGW&Äæ÷FRÒB‚r76Vç6÷'”æGW&Äæ÷FRr“òçfÇVRçG&–Ò‚’ÇÂrs°¢v—B6fTWfÇVF–öâ‚“²&WGW&ã°¢Ğ¢–b†æöFRçG—RÓÓÒw66÷&Rr’°¢6öç7BWFòÒ6ö×WFTWFöÖF–566÷&R‡7FFRæWfÇVF–öâæç7vW'2“°¢6öç7BFVÇFÒ6Æ×‡'6TçVÖ&W"‚B‚r76Vç6÷'”FVÇFv†VVÂr“òçfÇVRÂ7FFRæWfÇVF–öâç66÷&TFVÇFÇÂ’ÂÓÂ“°¢6öç7B7V&¦V7F—fRÒ6Æ×†WFò²FVÇFÂÂ“°¢7FFRæWfÇVF–öâæWFõ66÷&RÒWFó²7FFRæWfÇVF–öâç7V&¦V7F—fU66÷&RÒ7V&¦V7F—fS²7FFRæWfÇVF–öâç66÷&RÒ7V&¦V7F—fS²7FFRæWfÇVF–öâç66÷&TFVÇFÒFVÇF°¢7FFRæWfÇVF–öâææöFT–æFW‚³Ò²&VæFW%6Vç6÷'’‚“²&WGW&ã°¢Ğ¢6öç7Bç7vW'2Ò7FFRæWfÇVF–öâæç7vW'5¶æöFRæ–EÒÇÂ·Ó°¢6öç7B–æ6ö×ÆWFRÒæöFRæw&÷W2ç6öÖR‚…òÂ–æFW‚’Óâ'&’æ—4'&’†ç7vW'5¶–æFW…Ò’ÇÂç7vW'5¶–æFW…ÒæÆVæwF‚ÓÓÒ“°¢–b†–æ6ö×ÆWFR’&WGW&âFö7B†Šû~ZèÎh‰(	ÂG¶æöFRæÆ&VÇŞ(	Şˆ¨.x+ûÉ¾k*iÈhIşyú^i{nŠû~˜hº(	Îiz(	ÖÂw7FGW2×v&âr“°¢7FFRæWfÇVF–öâææöFT–æFW‚³Ò²&VæFW%6Vç6÷'’‚“°¢Ò“°§Ğ ¦7–æ2gVæ7F–öâ6fU&öfW76–öæÄWfÇVF–öâ†FWF–ÂÒ·Ò’°¢6öç7B&Vä–BÒ7G&–ær†FWF–Âæ&Vä–BÇÂ7FFRç6VÆV7FVD&Vä–BÇÂrr“°¢–b‚&Vä–BÇÂ7FFRæ&Vç2ç6öÖR†&VâÓâ&Vâæ–BÓÓÒ&Vä–B’’&WGW&âFö7B‚~iÚşkX¾Šë[Ù^{Ë®[	iÈiX‹nXÚrÂw7FGW2Ö&Br“°¢6öç7Bæ÷rÒæWrFFR‚’çFô•4õ7G&–ær‚“°¢6öç7BVæF–ærÒ7FFRçVæF–æu6Vç6÷'”6öçFW‡Còæ&Vä–BÓÓÒ&Vä–Bò7FFRçVæF–æu6Vç6÷'”6öçFW‡B¢·Ó°¢6öç7BW†—7F–ærÒ7FFRç6Vç6÷'•&V6÷&G2æf–æB†—FVÒÓâ—FVÒæ–BÓÓÒFWF–Âç&V6÷&D–B“°¢6öç7BWFõ66÷&RÒ6Æ×„çVÖ&W"†FWF–ÂæWFõ66÷&RóòFWF–Âç66÷&Róò’ÂÂ“°¢6öç7B66÷&RÒ6Æ×„çVÖ&W"†FWF–Âç66÷&RóòWFõ66÷&R’ÂÂ“°¢6öç7B66÷&TFVÇFÒ6Æ×„çVÖ&W"†FWF–Âç66÷&TFVÇFóò66÷&RÒWFõ66÷&R’ÂÓÂ“°¢6öç7B&V6÷&BÒ°¢âââ†W†—7F–ærò7G'V7GW&VD6ÆöæR†W†—7F–ær’¢·Ò’À¢–C¢W†—7F–æsòæ–BÇÂV–B‚w6Vç6÷'’r’À¢&Vä–BÀ¢'&Wu6W76–öä–C¢7G&–ær†FWF–Âæ'&Wu6W76–öä–BÇÂVæF–æræ'&Wu6W76–öä–BÇÂrr’À¢Æå&VfW&Væ6S¢7G&–ær†FWF–ÂçÆå&VfW&Væ6RÇÂVæF–ærçÆå&VfW&Væ6RÇÂrr’À¢&öf–ÆT–C¢7G&–ær†FWF–Âç&öf–ÆT–BÇÂVæF–ærç&öf–ÆT–BÇÂrr’À¢6Vç6÷'•6÷W&6S¢7G&–ær†FWF–Âç6÷W&6RÇÂVæF–ærç6÷W&6RÇÂv–æFWVæFVçBr’À¢WfÇVF–öäÖöFS¢w&öfW76–öæÂrÀ¢6÷W&6TÖöFS¢v–æFWVæFVçBÖ7W–ær×c#rÀ¢&öfW76–öæÄFF¢7G'V7GW&VD6ÆöæR†FWF–Âç&öfW76–öæÄFFÇÂ·Ò’À¢7VÖÖ'“¢'&’æ—4'&’†FWF–Âç7VÖÖ'’’òFWF–Âç7VÖÖ'’æÖ…7G&–ær’¢µÒÀ¢WFõ66÷&RÀ¢7V&¦V7F—fU66÷&S¢66÷&RÀ¢66÷&RÀ¢66÷&TFVÇFÀ¢æGW&Äæ÷FS¢7G&–ær†FWF–ÂææGW&Äæ÷FRÇÂrr’çG&–Ò‚’À¢&VfW&Væ6UFw3¢µÒÀ¢7&VFVDC¢W†—7F–æsòæ7&VFVDBÇÂæ÷rÀ¢WFFVDC¢æ÷p¢Ó°¢6öç7B6W76–öâÒ7FFRæ'&Wu6W76–öç2æf–æB†—FVÒÓâ—FVÒæ–BÓÓÒ&V6÷&Bæ'&Wu6W76–öä–B“°¢–b‡6W76–öãòç66†VÖfW'6–öâÓÓÒv'&WrÖ†—7F÷'’óãr’°¢v—BGF6…6Vç6÷'•Fô6ö×ÆWFVD'&Wr‡²&V6÷&D–C¢6W76–öâæ–BÂ6Vç6÷'•&V6÷&C¢&V6÷&BÂæW‡EÆäG&gC¢çVÆÂÒ“°¢ÒVÇ6R°¢v—BWB‚w6Vç6÷'•&V6÷&G2rÂ&V6÷&B“°¢–b‡6W76–öâ’°¢6W76–öâç6Vç6÷'•&V6÷&D–BÒ&V6÷&Bæ–C°¢6W76–öâç6Vç6÷'”æ÷FRÒ&V6÷&BææGW&Äæ÷FS°¢6W76–öâæWFõ66÷&RÒWFõ66÷&S°¢6W76–öâç7V&¦V7F—fU66÷&RÒ66÷&S°¢6W76–öâç66÷&TFVÇFÒ66÷&TFVÇF°¢v—BWB‚v'&Wu6W76–öç2rÂ6W76–öâ“°¢Ğ¢Ğ¢v—B&Vg&W6„FF‚“°¢7FFRæWfÇVF–öâÒçVÆÃ°¢7FFRçVæF–æu6Vç6÷'”6öçFW‡BÒçVÆÃ°¢7v—F6…vR‚v&Vç2r“°¢&WVW7Dæ–ÖF–öäg&ÖR‚‚’ÓâFWF–Ä&Vâ†&Vä–B’“°¢Fö7B‚~K‰>K‰®iÚşkX¾Šë[Ù^[{.KùŞZÙ‚rÂw7FGW2ÖvööBr“°§Ğ ¦Fö7VÖVçBæFDWfVçDÆ—7FVæW"‚vÇV6·–&Vã§7F'B×6Vç6÷'’ÖÖöFRrÂWfVçBÓâ°¢6öç7BÖöFRÒWfVçBæFWF–ÃòæÖöFRÓÓÒvæ÷FRròvæ÷FRr¢wÆ–W"s°¢6öç7B&Vä–BÒ7G&–ær†WfVçBæFWF–Ãòæ&Vä–BÇÂ7FFRç6VÆV7FVD&Vä–BÇÂrr“°¢–b‚&Vä–B’&WGW&ã°¢6öç7BVæF–ærÒ7FFRçVæF–æu6Vç6÷'”6öçFW‡Còæ&Vä–BÓÓÒ&Vä–Bò7FFRçVæF–æu6Vç6÷'”6öçFW‡B¢·Ó°¢7F'DWfÇVF–öâ†&Vä–BÂ°¢F—&V7C¢G'VRÀ¢'&Wu6W76–öä–C¢7G&–ær†WfVçBæFWF–Ãòæ'&Wu6W76–öä–BÇÂVæF–æræ'&Wu6W76–öä–BÇÂrr’À¢Æå&VfW&Væ6S¢7G&–ær†WfVçBæFWF–ÃòçÆå&VfW&Væ6RÇÂVæF–ærçÆå&VfW&Væ6RÇÂrr’À¢&öf–ÆT–C¢7G&–ær†WfVçBæFWF–Ãòç&öf–ÆT–BÇÂVæF–ærç&öf–ÆT–BÇÂrr’À¢6Vç6÷'•6÷W&6S¢7G&–ær†WfVçBæFWF–Ãòç6÷W&6RÇÂVæF–ærç6÷W&6RÇÂv–æFWVæFVçBr’À¢WfÇVF–öäÖöFS¢ÖöFRÀ¢6÷W&6TÖöFS¢ÖöFRÓÓÒvæ÷FRròv–æFWVæFVçBÖæ÷FR×c#Rr¢v–æFWVæFVçB×Æ–W"×c#Rp¢Ò“°¢7FFRçVæF–æu6Vç6÷'”6öçFW‡BÒçVÆÃ°¢&VæFW%6Vç6÷'’‚“°§Ò“° ¦Fö7VÖVçBæFDWfVçDÆ—7FVæW"‚vÇV6·–&Vã§&öfW76–öæÂ×6Vç6÷'’Ö6ö×ÆWFRrÂWfVçBÓâ°¢6fU&öfW76–öæÄWfÇVF–öâ†WfVçBæFWF–ÂÇÂ·Ò’æ6F6‚†W'&÷"ÓâFö7B†W'&÷"æÖW76vRÇÂ~K‰>K‰®iÚşkX¾KùŞZÙZK‹JRrÂw7FGW2Ö&Br’“°§Ò“° ¦7–æ2gVæ7F–öâ6fTWfÇVF–öâ‚’°¢6öç7BWfÇVF–öâÒ7FFRæWfÇVF–öã²–b‚WfÇVF–öâ’&WGW&ã°¢6öç7B&VâÒ7FFRæ&Vç2æf–æB†—FVÒÓâ—FVÒæ–BÓÓÒWfÇVF–öâæ&Vä–B“°¢6öç7B7VÖÖ'’ÒµÓ°¢f÷"†6öç7BæöFRöb4Tå4õ%•ôäôDU2æf–ÇFW"†—FVÒÓâ²w66÷&RrÂvæ÷FRuÒæ–æ6ÇVFW2†—FVÒçG—R’’’°¢6öç7BfÇVW2Òö&¦V7BçfÇVW2†WfÇVF–öâæç7vW'5¶æöFRæ–EÒÇÂ·Ò’æfÆB‚“°¢–b‡fÇVW2æÆVæwF‚bbfÇVW2æWfW'’‡fÇVRÓâfÇVRÓÓÒ~izr’’7VÖÖ'’çW6‚†G¶æöFRæÆ&VÇÓ¢G·fÇVW2æ¦ö–â‚ròr—Ö“°¢Ğ¢6öç7Bæ÷FTöæÇ’ÒWfÇVF–öâæWfÇVF–öäÖöFRÓÓÒvæ÷FRs°¢6öç7BWFõ66÷&RÒæ÷FTöæÇ’ò6Æ×„çVÖ&W"†WfÇVF–öâç7V&¦V7F—fU66÷&RÇÂƒ’ÂÂ’¢çVÖ&W"†WfÇVF–öâæWFõ66÷&RÇÂ6ö×WFTWFöÖF–566÷&R†WfÇVF–öâæç7vW'2’“°¢6öç7B66÷&TFVÇFÒæ÷FTöæÇ’ò¢6Æ×„çVÖ&W"†WfÇVF–öâç66÷&TFVÇFÇÂ’ÂÓÂ“°¢6öç7B7V&¦V7F—fU66÷&RÒæ÷FTöæÇ’òWFõ66÷&R¢6Æ×†WFõ66÷&R²66÷&TFVÇFÂÂ“°¢6öç7B&V6÷&BÒ°¢ââæWfÇVF–öâÂ7VÖÖ'’ÂWFõ66÷&RÂ7V&¦V7F—fU66÷&RÂ66÷&S¢7V&¦V7F—fU66÷&RÀ¢66÷&TFVÇFÂæGW&Äæ÷FS¢7G&–ær†WfÇVF–öâææGW&Äæ÷FRÇÂrr’çG&–Ò‚’À¢&VfW&Væ6UFw3¢6Vç6÷'•&VfW&Væ6UFw2‡²ââæWfÇVF–öâÂWFõ66÷&RÂ7V&¦V7F—fU66÷&RÒÂ&VâÇÂ·Ò’ÂWFFVDC¢æWrFFR‚’çFô•4õ7G&–ær‚¢Ó°¢FVÆWFR&V6÷&BææöFT–æFWƒ° ¢ÆWB6÷'&V7F–öå6fVBÒfÇ6S°¢6öç7B6W76–öâÒ7FFRæ'&Wu6W76–öç2æf–æB†—FVÒÓâ—FVÒæ–BÓÓÒ&V6÷&Bæ'&Wu6W76–öä–B“°¢–b‡6W76–öãòç66†VÖfW'6–öâÓÓÒv'&WrÖ†—7F÷'’óãr’°¢ÆWBæW‡EÆäG&gBÒçVÆÃ°¢–b‡7V&¦V7F—fU66÷&RÂWFõ66÷&Rbb‡6W76–öâææ÷&ÖÆ—¦VD–çWBÇÂ6W76–öâç&t–çWB’’°¢6öç7B6÷W&6T–çWBÒ6W76–öâææ÷&ÖÆ—¦VD–çWBÇÂ6W76–öâç&t–çWC°¢6öç7B6÷W&6UÆâÒ6W76–öâææÇ—6—56æ6†÷CòçÆâÇÂ6W76–öã°¢6öç7B6÷'&V7FVBÒv—B'V–ÆD6÷'&V7FVEÆâ‡6÷W&6T–çWBÂ&V6÷&BÂ6÷W&6UÆâ“°¢6öç7B†4—77VRÒö&¦V7BçfÇVW2†6÷'&V7FVBæ6÷'&V7F–öãòæ—77VW2ÇÂ·Ò’ç6öÖR„&ööÆVâ“°¢–b††4—77VR’°¢6÷'&V7FVBæ–BÒV–B‚vG&gBr“°¢6÷'&V7FVBæ&Vä–BÒ&V6÷&Bæ&Vä–C°¢6÷'&V7FVBæ7&VFVDBÒæWrFFR‚’çFô•4õ7G&–ær‚“°¢6÷'&V7FVBç6÷W&6T†—7F÷'”–BÒ6W76–öâæ–C°¢6÷'&V7FVBæ–çWBÒ6÷'&V7FVBæ–çWBÇÂ6÷W&6T–çWC°¢&V6÷&Bæ6÷'&V7FVEÆä–BÒ6÷'&V7FVBæ–C°¢æW‡EÆäG&gBÒ6÷'&V7FVC°¢6÷'&V7F–öå6fVBÒG'VS°¢Ğ¢Ğ¢v—BGF6…6Vç6÷'•Fô6ö×ÆWFVD'&Wr‡²&V6÷&D–C¢6W76–öâæ–BÂ6Vç6÷'•&V6÷&C¢&V6÷&BÂæW‡EÆäG&gBÒ“°¢ÒVÇ6R°¢–b‡6W76–öâ’°¢6W76–öâç6Vç6÷'•&V6÷&D–BÒ&V6÷&Bæ–C°¢6W76–öâç6Vç6÷'”æ÷FRÒ&V6÷&BææGW&Äæ÷FS°¢6W76–öâæWFõ66÷&RÒWFõ66÷&S°¢6W76–öâç7V&¦V7F—fU66÷&RÒ7V&¦V7F—fU66÷&S°¢6W76–öâç66÷&TFVÇFÒ&V6÷&Bç66÷&TFVÇF°¢v—BWB‚v'&Wu6W76–öç2rÂ6W76–öâ“°¢Ğ¢v—BWB‚w6Vç6÷'•&V6÷&G2rÂ&V6÷&B“°¢Ğ¢v—B&Vg&W6„FF‚“²7FFRæWfÇVF–öâÒçVÆÃ²7FFRçVæF–æu6Vç6÷'”6öçFW‡BÒçVÆÃ°¢7v—F6…vR‚v&Vç2r“²&WVW7Dæ–ÖF–öäg&ÖR‚‚“ÓæFWF–Ä&Vâ‡&V6÷&Bæ&Vä–B’“°¢–b†WfÇVF–öâæVF—E&V6÷&D–B’Fö7B‚~Y8˜›NŠë[Ù^[{.hÈXéşjŠ[ÈşZèÎh‰KúîiK’rÂw7FGW2ÖvööBr“°¢VÇ6R–b†6÷'&V7F–öå6fVB’Fö7B‚~Y8˜›N[{.KùŞZÙûÈÎ[›nyIşh‰Kˆ¾KˆjÊKúîjÚ>ˆØj‚rÂw7FGW2×v&âr“°¢VÇ6R–b‡7V&¦V7F—fU66÷&RÂWFõ66÷&R’Fö7B‚~Y8˜›N[{.KùŞZÙûÉ¾K‹¾Šx.XˆnKØîK¨îˆz®XªXˆnûÈÎ[{.Šë[Ù^Xˆn[zârÂw7FGW2×v&âr“°¢VÇ6RFö7B‚~Y8˜›NKˆîKŠ®K«®XşZ[Ş[{.KùŞZÙ‚rÂw7FGW2ÖvööBr“°§Ğ ¦gVæ7F–öâ÷Vå6Vç6÷'•&V6÷&G5vR‚’°¢6öç7BÆ–Ö—BÒ6Æ×‡7FFRç6WGF–æw2ç6Vç6÷'•&V6VçDÆ–Ö—BÇÂSÂRÂ#“°¢6öç7B&V6÷&G2Òf–ÇFW&VE6Vç6÷'•&V6÷&G2†Æ–Ö—B“°¢6öç7B÷fW&Æ’Ò6†÷t÷fW&Æ’†G¶F–Æöt†VFW"‚~Y8˜›NŠë[ÙRrÂi‹îzK®iÈ‹ùG¶Æ–Ö—GÒiÚûÈÎ‹è>izŠë[Ù^XúşYÊŠûYKŠŞiú^h›æ—ÓÆF—b6Æ73Ò'&÷rVæB#ãÆ'WGFöâ–CÒ'6Vç6÷'•&V6÷&E6WGF–æw4'Fâ"6Æ73Ò&'WGFöâ7F—fR"G—SÒ&'WGFöâ#îŠëãÂö'WGFöããÆ'WGFöâ–CÒ'6Vç6÷'•&V6÷&Df–ÇFW$'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ#îzÙ¾˜“Âö'WGFöããÂöF—cãÆF—b6Æ73Ò'&V6÷&BÖÆ—7B#âG·&V6÷&G2æÆVæwFƒ÷&V6÷&G2æÖ‡&V6÷&D‡FÖÂ’æ¦ö–â‚rr“¢sÇ6Æ73Ò&×WFVB#î[	®izŠë[ÙSÂ÷âwÓÂöF—cæÂ²gVÆÃ¢G'VRÂ–C¢w6Vç6÷'’×&V6÷&G2rÒ“°¢&–æD6Æ÷6R†÷fW&Æ’“°¢B‚r76Vç6÷'•&V6÷&E6WGF–æw4'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ÷Vå6Vç6÷'•&WFVçF–öå6WGF–æw2“°¢B‚r76Vç6÷'•&V6÷&Df–ÇFW$'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ÷Vå6Vç6÷'”f–ÇFW"“°§Ğ¦gVæ7F–öâ÷Vå6Vç6÷'•&WFVçF–öå6WGF–æw2‚’°¢6öç7B÷fW&Æ’Ò6†÷t÷fW&Æ’†G¶F–Æöt†VFW"‚~Šë[Ù^KùŞyYi‹îzK®i[rÂ~XúşŠëâ^(	3#iÚûÉ¾i»NizŠë[Ù^KˆŞKÉ®XŠ™šNûÈÎ{¹şKˆ‹ù¾XZ^ŠûY’r—ÓÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãîi‹îzK®iÚi[Â÷7ããÆ–çWB–CÒ'6Vç6÷'•&V6VçDÆ–Ö—D–çWB"6Æ73Ò&6öçG&öÂ"G—SÒ&çVÖ&W""Ö–ãÒ#R"ÖƒÒ##"7FWÒ#R"fÇVSÒ"G¶6Æ×‡7FFRç6WGF–æw2ç6Vç6÷'•&V6VçDÆ–Ö—BÇÂSÃRÃ#—Ò#ãÂöÆ&VÃãÆ'WGFöâ–CÒ'6fU6Vç6÷'”Æ–Ö—D'Fâ"6Æ73Ò&'WGFöâ&–Ö'’"G—SÒ&'WGFöâ#îKùŞZÙƒÂö'WGFöãæÂ²–C¢w6Vç6÷'’ÖÆ–Ö—BrÒ“°¢&–æD6Æ÷6R†÷fW&Æ’“°¢B‚r76fU6Vç6÷'”Æ–Ö—D'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ7–æ2‚’Óâ²7FFRç6WGF–æw2ç6Vç6÷'•&V6VçDÆ–Ö—BÒ6Æ×‡'6TçVÖ&W"‚B‚r76Vç6÷'•&V6VçDÆ–Ö—D–çWBr’çfÇVRÃS’ÃRÃ#“²v—B6fU6WGF–æw2‚“²6Æ÷6T÷fW&Æ’‚“²÷Vå6Vç6÷'•&V6÷&G5vR‚“²Ò“°§Ğ¦gVæ7F–öâ÷Vå6Vç6÷'”f–ÇFW"‚’°¢6öç7BbÒ7FFRç6Vç6÷'”f–ÇFW#°¢6öç7B÷fW&Æ’Ò6†÷t÷fW&Æ’†G¶F–Æöt†VFW"‚~zÙ¾˜Y8˜›NŠë[ÙRr—ÓÆF—b6Æ73Ò&f÷&ÒÖw&–B#ãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãîY)nYZ‹cÂ÷7ããÇ6VÆV7B–CÒ&f–ÇFW%6Vç6÷'”&Vâ"6Æ73Ò&6öçG&öÂ#ãÆ÷F–öâfÇVSÒ"#îXZ˜:‹nXÚÂö÷F–öãâG·7FFRæ&Vç2æÖ†#ÓæÆ÷F–öâfÇVSÒ"G¶W62†"æ–B—Ò"G¶bæ&Vä–CÓÓÖ"æ–Còr6VÆV7FVBs¢rwÓâG¶W62†&VäF—7Æ”æÖR†"’—ÓÂö÷F–öãæ’æ¦ö–â‚rr—ÓÂ÷6VÆV7CãÂöÆ&VÃãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãîiÈKØîXˆcÂ÷7ããÆ–çWB–CÒ&f–ÇFW$Ö–å66÷&R"6Æ73Ò&6öçG&öÂ"G—SÒ&çVÖ&W""Ö–ãÒ#"ÖƒÒ#"fÇVSÒ"G¶W62†bæÖ–å66÷&R—Ò#ãÂöÆ&VÃãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãîiÈš¹XˆcÂ÷7ããÆ–çWB–CÒ&f–ÇFW$Ö…66÷&R"6Æ73Ò&6öçG&öÂ"G—SÒ&çVÖ&W""Ö–ãÒ#"ÖƒÒ#"fÇVSÒ"G¶W62†bæÖ…66÷&R—Ò#ãÂöÆ&VÃãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãî[ÈZx¾iz^iÉóÂ÷7ããÆ–çWB–CÒ&f–ÇFW%7F'DFFR"6Æ73Ò&6öçG&öÂ"G—SÒ&FFR"fÇVSÒ"G¶W62†bç7F'B—Ò#ãÂöÆ&VÃãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãî{¹>iÙşiz^iÉóÂ÷7ããÆ–çWB–CÒ&f–ÇFW$VæDFFR"6Æ73Ò&6öçG&öÂ"G—SÒ&FFR"fÇVSÒ"G¶W62†bæVæB—Ò#ãÂöÆ&VÃãÂöF—cãÆF—b6Æ73Ò'&÷rVæB#ãÆ'WGFöâ–CÒ'&W6WE6Vç6÷'”f–ÇFW""6Æ73Ò&'WGFöâ7V'FÆR"G—SÒ&'WGFöâ#î˜xŞ{ÚãÂö'WGFöããÆ'WGFöâ–CÒ&Ç•6Vç6÷'”f–ÇFW""6Æ73Ò&'WGFöâ&–Ö'’"G—SÒ&'WGFöâ#î[©NyJƒÂö'WGFöããÂöF—cæ“°¢&–æD6Æ÷6R†÷fW&Æ’“°¢B‚r7&W6WE6Vç6÷'”f–ÇFW"r’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚“Óç·7FFRç6Vç6÷'”f–ÇFW#×¶&Vä–C¢rrÆÖ–å66÷&S¢rrÆÖ…66÷&S¢rrÇ7F'C¢rrÆVæC¢rrÆW‡æFVC¦fÇ6WÓ¶6Æ÷6T÷fW&Æ’‚“·&VæFW%6Vç6÷'’‚“·Ò“°¢B‚r6Ç•6Vç6÷'”f–ÇFW"r’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚“Óç·7FFRç6Vç6÷'”f–ÇFW#×²ââç7FFRç6Vç6÷'”f–ÇFW"Æ&Vä–C¢B‚r6f–ÇFW%6Vç6÷'”&Vâr’çfÇVRÆÖ–å66÷&S¢B‚r6f–ÇFW$Ö–å66÷&Rr’çfÇVRÆÖ…66÷&S¢B‚r6f–ÇFW$Ö…66÷&Rr’çfÇVRÇ7F'C¢B‚r6f–ÇFW%7F'DFFRr’çfÇVRÆVæC¢B‚r6f–ÇFW$VæDFFRr’çfÇVWÓ¶6Æ÷6T÷fW&Æ’‚“·&VæFW%6Vç6÷'’‚“·Ò“°§Ğ ¦7–æ2gVæ7F–öâVç7W&U$6öFTÆ–'&'’‚’°¢–b†vÆö&ÅF†—2å$6öFR’&WGW&âvÆö&ÅF†—2å$6öFS°¢&WGW&âæWr&öÖ—6R‚‡&W6öÇfRÇ&V¦V7B“Óç¶6öç7B67&—CÖFö7VÖVçBæ7&VFTVÆVÖVçB‚w67&—Br“·67&—Bç7&3Òv‡GG3¢òö6Fâæ§6FVÆ—g"ææWBöçÒ÷&6öFV§4ãã÷&6öFRæÖ–âæ§2s·67&—BæöæÆöCÒ‚“ÓævÆö&ÅF†—2å$6öFS÷&W6öÇfR†vÆö&ÅF†—2å$6öFR“§&V¦V7B†æWrW'&÷"‚~K¨Î{»NzyIşh‰[©>Xª‹ÛŞZK‹JRr’“·67&—BæöæW'&÷#Ò‚“Óç&V¦V7B†æWrW'&÷"‚~K¨Î{»NzyIşh‰[©>Xª‹ÛŞZK‹JRr’“¶Fö7VÖVçBæ†VBæVæB‡67&—B“·Ò“°§Ğ¦gVæ7F–öâ6†&U–ÆöB†&Vâ’°¢6öç7B6W76–öç2Ò7FFRæ'&Wu6W76–öç2æf–ÇFW"‡6W76–öâÓâ6W76–öâæ&Vä–BÓÓÒ&Vâæ–B“°¢6öç7B&V6÷&G2Ò7FFRç6Vç6÷'•&V6÷&G2æf–ÇFW"‡&V6÷&BÓâ&V6÷&Bæ&Vä–BÓÓÒ&Vâæ–B“°¢&WGW&â'V–ÆD6ö×7E6†&U–ÆöB‡°¢fW'6–öã¢õdU%4”ôâÀ¢W6W#¢²V&Æ–4–C¢7FFRç6WGF–æw2æ–FVçF—G’çV&Æ–4–BÇÂrrÂæ–6¶æÖS¢7FFRç6WGF–æw2æ–FVçF—G’ææ–6¶æÖRÇÂ~XËşYÒrÒÀ¢&VâÀ¢'&Wu6W76–öç3¢6W76–öç2À¢6Vç6÷'•&V6÷&G3¢&V6÷&G2À¢æÖW3¢²F—7Æ”æÖS¢&VäF—7Æ”æÖR†&Vâ’Ğ¢Ò“°§Ğ ¦7–æ2gVæ7F–öâVæ6öFU6†&R‡–ÆöB’°¢&WGW&âVæ6öFU6†&U–ÆöB‡–ÆöB“°§Ğ ¦7–æ2gVæ7F–öâFV6öFU6†&R†Væ6öFVB’°¢–b…7G&–ær†Væ6öFVB’ç7F'G5v—F‚‚tÄ#‚r’’&WGW&âFV6öFU6†&U–ÆöB†Væ6öFVB“°¢6öç7B&6ScBÒVæ6öFVBç&WÆ6TÆÂ‚rÒrÂr²r’ç&WÆ6TÆÂ‚uòrÂròr’²sÒrç&WVB‚ƒBÖVæ6öFVBæÆVæwF‚SB’SB“°¢6öç7B&–æ'’ÒFö"†&6ScB“°¢6öç7BÆVv7’Ò¥4ôâç'6R†æWrFW‡DFV6öFW"‚’æFV6öFR…V–çC„'&’æg&öÒ†&–æ'’Â6†"Óâ6†"æ6†$6öFTBƒ’’’“°¢&WGW&â²ââæÆVv7’Â'&Wu6W76–öç3¢ÆVv7’çÆâò¶ÆVv7’çÆåÒ¢µÒÂ6Vç6÷'•&V6÷&G3¢ÆVv7’ç6Vç6÷'’ò¶ÆVv7’ç6Vç6÷'•Ò¢µÒÂÆVv7“¢G'VRÓ°§Ğ ¦gVæ7F–öâ6†&T‡FÖÄFö7VÖVçB‡–ÆöB’°¢6öç7B&VâÒ–ÆöBæ&VâÇÂ·Ó°¢6öç7BF—7Æ’Ò&VâææÖRÇÂ¶6öFTæÖR‚v6÷VçG&–W2rÂ&Vâæ6÷VçG'”6öFRÂrr’Â6öFTæÖR‚wf&–WF–W2rÂ&Vâçf&–WG”6öFRÂrr•Òæf–ÇFW"„&ööÆVâ’æ¦ö–â‚r+rr’ÇÂ~XˆnKª¾‹nXÚs°¢6öç7B6W76–öç2Ò–ÆöBæ'&Wu6W76–öç2ÇÂ‡–ÆöBçÆâò·–ÆöBçÆåÒ¢µÒ“°¢6öç7B6Vç6÷'’Ò–ÆöBç6Vç6÷'•&V6÷&G2ÇÂ‡–ÆöBç6Vç6÷'’ò·–ÆöBç6Vç6÷'•Ò¢µÒ“°¢6öç7BÆä&Æö6·2Ò6W76–öç2æÆVæwF‚ò6W76–öç2æÖ‚‡ÆâÂ–æFW‚’ÓâÇ6V7F–öâ6Æ73Ò&6&B#ãÆƒ#îXk.xZîŠë[ÙRG¶–æFW‚²ÒG·Æâæ6÷'&V7F–öâòr+rKúîjÚ>ikj‚r¢rwÓÂöƒ#ãÇ6Æ73Ò&×WFVB#âG¶W62‡Æâç&öf–ÆSòæÆ&VÂÇÂÆâç&öf–ÆUfW'6–öâÇÂrr—Ò+rG¶f÷&ÖDFFR‡Æâæ7&VFVDB—ÓÂ÷ãÆöÃâG²‡Æâç7FvW2ÇÂµÒ’æÖ‡7FvSÓæÆÆ“âG´çVÖ&W"‡7FvRæGW&F–öå6V2’çFôf—†VBƒ—×2òG´çVÖ&W"‡7FvRç7FvUvFW$r’çFôf—†VBƒ—ÖròG¶W62‡7FvRæÖWF†öD6öFRÇÂrr—ÒòG´çVÖ&W"‡7FvRçFV×W&GW&T2’çFôf—†VBƒ—Ü+2+rG¶W62‡7FvRæÖWF†öBÇÂrr—ÓÂöÆ“æ’æ¦ö–â‚rr—ÓÂööÃâG·Æâæ6÷'&V7F–öãòæ6†ævW2òÇâG¶W62‡Æâæ6÷'&V7F–öâæ6†ævW2æ¦ö–â‚~ûÉ²r’—ÓÂ÷æ¢rwÓÂ÷6V7F–öãæ’æ¦ö–â‚rr’¢sÇ6V7F–öâ6Æ73Ò&6&B#ãÆƒ#îXk.xZîŠë[ÙSÂöƒ#ãÇîiÊ®XˆnKª¾ikjƒÂ÷ãÂ÷6V7F–öãâs°¢6öç7B6Vç6÷'”&Æö6·2Ò6Vç6÷'’æÆVæwF‚ò6Vç6÷'’æÖ‡&V6÷&CÓæÆF—b6Æ73Ò'&V6÷&B#ãÇ7G&öæsâG´çVÖ&W"‡&V6÷&Bç7V&¦V7F—fU66÷&Róò&V6÷&Bç66÷&Róò’çFôf—†VBƒ—ÓÂ÷7G&öæsãÇ7ãîˆz®Xª‚G´çVÖ&W"‡&V6÷&BæWFõ66÷&RÇÂ’çFôf—†VBƒ—Ò+rXˆn[zâG´çVÖ&W"‡&V6÷&Bç66÷&TFVÇFÇÂ’çFôf—†VBƒ—ÓÂ÷7ããÇâG¶W62‚‡&V6÷&Bç7VÖÖ'’ÇÂµÒ’æ¦ö–â‚~ûÉ²r’—ÓÂ÷âG·&V6÷&BææGW&Äæ÷FRòÇâG¶W62‡&V6÷&BææGW&Äæ÷FR—ÓÂ÷æ¢rwÓÂöF—cæ’æ¦ö–â‚rr’¢sÇîiÊ®XˆnKª¾Y8˜›NŠë[ÙSÂ÷âs°¢&WGW&âÂFö7G—R‡FÖÃãÆ‡FÖÂÆæsÒ'¦‚Ô4â#ãÆ†VCãÆÖWF6†'6WCÒ'WFbÓ‚#ãÆÖWFæÖSÒ'f–Ww÷'B"6öçFVçCÒ'v–GFƒÖFWf–6R×v–GF‚Æ–æ—F–Â×66ÆSÓ#ãÇF—FÆSâG¶W62†F—7Æ’—Ò+rZøÎ‹K^y¹.ZÙÂ÷F—FÆSãÇ7G–ÆSæ&öG—¶Ö‚×v–GFƒ£s#ƒ¶Ö&v–ã¦WFó·FF–æs£#Gƒ¶&6¶w&÷VæC¢3“¶6öÆ÷#¢6cFc&V#¶föçBÖfÖ–Ç“§7—7FVÒ×V“¶Æ–æRÖ†V–v‡C£ãwÒæ6&G·FF–æs£‚¶Ö&v–ã£g‚¶&6¶w&÷VæC¢3“Òæ×WFVG¶6öÆ÷#¢3“#“#†WÖÆ—¶Ö&v–ã£‡‚Òç&V6÷&G·FF–æs£'‚¶&÷&FW"Ö&÷GFöÓ£‚F6†VB3ccWÒç&V6÷&B7G&öæw¶föçB×6—¦S£#Gƒ¶Ö&v–â×&–v‡C£'‡Òç&V6÷&B7ç¶6öÆ÷#¢6#fCvÓÂ÷7G–ÆSãÂö†VCãÆ&öG“ãÆƒâG¶W62†F—7Æ’—ÓÂöƒãÇ6Æ73Ò&×WFVB#îyKG¶W62‡–ÆöBçW6W#òææ–6¶æÖRÇÂ~XËşYÒr—ÒXˆnKª²+rG¶f÷&ÖDFFR‡–ÆöBç6†&VDB—ÓÂ÷ãÇ6V7F–öâ6Æ73Ò&6&B#ãÆƒ#î‹nXÚÂöƒ#ãÇâG¶W62…¶6öFTæÖR‚v6÷VçG&–W2rÆ&Vâæ6÷VçG'”6öFRÂrr’Æ6öFTæÖR‚w&Vv–öç2rÆ&Vâç&Vv–öä6öFRÂrr’Æ6öFTæÖR‚wf&–WF–W2rÆ&Vâçf&–WG”6öFRÂrr’Æ6öFTæÖR‚w&ö6W76W2rÆ&Vâç&ö6W746öFRÂrr’Å$ô5EôäÔRævWB†&Vâç&ö7D6öFR—ÇÂruÒæf–ÇFW"„&ööÆVâ’æ¦ö–â‚r+rr’—ÓÂ÷ãÇâG¶W62‚†&VâæfÆf÷$6öFW7ÇÅµÒ’æÖ†6öFSÓæ6öFTæÖR‚vfÆf÷'2rÆ6öFRÆ6öFR’’æ¦ö–â‚~8r’—ÓÂ÷ãÂ÷6V7F–öãâG·Æä&Æö6·7ÓÇ6V7F–öâ6Æ73Ò&6&B#ãÆƒ#îY8˜›CÂöƒ#âG·6Vç6÷'”&Æö6·7ÓÂ÷6V7F–öããÇ6Æ73Ò&×WFVB#äÇV6·’&Vâ6ö×7B6†&Rcã‚+r'&Wt–öâ6öFRf–VÆG3Â÷ãÂö&öG“ãÂö‡FÖÃæ°§Ğ ¦7–æ2gVæ7F–öâ÷Vå6†&TF–Æör†&Vâ’°¢6öç7B6ö×7BÒ6†&U–ÆöB†&Vâ“°¢ÆWBVæ6öFVC°¢G'’²Væ6öFVBÒv—BVæ6öFU6†&R†6ö×7B“²Ğ¢6F6‚†W'&÷"’²&WGW&âFö7B†XˆnKª¾{ÉnzZK‹J^ûÉ¢G¶W'&÷"æÖW76vWÖÂw7FGW2Ö&Br“²Ğ¢6öç7B–ÆöBÒv—BFV6öFU6†&R†Væ6öFVB“°¢6öç7BÆ–æ²ÒG¶Æö6F–öâæ÷&–v–çÒG¶Æö6F–öâçF†æÖWÒ76†&SÒG¶Væ6öFVGÖ°¢6öç7BFöôÆöærÒVæ6öFVBæÆVæwF‚âƒ°¢6öç7B6öçFVçBÒG¶F–Æöt†VFW"‚~XˆnKª¾‹nXÚrÂFöôÆöærò~Xh^Zë‹h^‹ø~ZèXZ™;îhê^™[ş[ªnûÈÎŠû~KùŞZÙ{Ùš^ih~K»br¢[{.Xè¾{Ê’G·–ÆöBæ'&Wu6W76–öç3òæÆVæwF‚ÇÂÒiÚXk.xZîY(ÂG·–ÆöBç6Vç6÷'•&V6÷&G3òæÆVæwF‚ÇÂÒiÚY8˜›F—ÓÆF—b6Æ73Ò'&÷rÖVçR×&÷r#ãÆ'WGFöâ–CÒ'6†&U%F""6Æ73Ò&'WGFöâ&–Ö'’"G—SÒ&'WGFöâ#îK¨Î{»NzÂö'WGFöããÆ'WGFöâ–CÒ'6†&TÆ–æµF""6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ#î™;îhêSÂö'WGFöããÂöF—cãÆF—b–CÒ'6†&U%æVÂ#ãÆF—b–CÒ'6†&U$&÷‚"6Æ73Ò'"Ö&÷‚#ãÇ7â6Æ73Ò&×WFVB#îjÚ>YÊyIşh‰K¨Î{»Nz(
+cÂ÷7ããÂöF—cãÂöF—cãÆF—b–CÒ'6†&TÆ–æµæVÂ"6Æ73Ò&†–FFVâ#ãÆF—b6Æ73Ò'6†&RÖÆ–æ²×&÷r#ãÆF—b6Æ73Ò&6öçG&öÂVÆÆ—6—2#âG¶W62‡FöôÆöæsò~Xh^Zë‹ø~™[şûÈÎKˆŞyIşh‰U$Âs¦Æ–æ²—ÓÂöF—cãÆ'WGFöâ–CÒ&6÷•6†&TÆ–æ´'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ"G·FöôÆöæsòrF—6&ÆVBs¢rwÓîZHŞX‹cÂö'WGFöããÂöF—cãÂöF—cãÆF—b6Æ73Ò&w&–BÓ"#ãÆ'WGFöâ–CÒ'6fU$'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ"G·FöôÆöæsòrF—6&ÆVBs¢rwÓîKùŞZÙK¨Î{»NzäsÂö'WGFöããÆ'WGFöâ–CÒ'6fU6†&T‡FÖÄ'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ#îKùŞZÙXˆnKª¾{ÙšSÂö'WGFöããÂöF—cãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãîiÊÎiË®ZH~k:ûÈKˆŞKÉ®YÎjÚ^{¹Šëş™zîˆ^ûÈ“Â÷7ããÇFW‡F&V–CÒ'6†&TÆö6Äæ÷FR"6Æ73Ò&6öçG&öÂ"Æ6V†öÆFW#Ò.K¸^KùŞZÙYÊ[Ù>X˜ŞŠëîZHr#ãÂ÷FW‡F&VãÂöÆ&VÃãÇ6Æ73Ò&×WFVB6ÖÆÂ#î{ÉnzZÙ~jë^KÛşyJ‚'&Wt–öâY»ŞZën8‹nzxŞ8ZHNynk9^Kˆîš8îY>Kº>zûÉ¾Xk.xZî™‹një^˜x~yJ(	Îi{n™{BşXX¾˜xÒşk:kNk9^{ÉnzşkŠ[ªn(	Ş{¹>ièN8#Â÷æ°¢6öç7B÷fW&Æ’Ò6†÷t÷fW&Æ’†6öçFVçBÇ¶–C¢w6†&RwÒ“¶&–æD6Æ÷6R†÷fW&Æ’“°¢6öç7B6†÷uF"ÒF"Óâ²B‚r76†&U%æVÂr’æ6Æ74Æ—7BçFövvÆR‚v†–FFVârÇF"ÓÒw"r“²B‚r76†&TÆ–æµæVÂr’æ6Æ74Æ—7BçFövvÆR‚v†–FFVârÇF"ÓÒvÆ–æ²r“²B‚r76†&U%F"r’æ6Æ74Æ—7BçFövvÆR‚w&–Ö'’rÇF#ÓÓÒw"r“²B‚r76†&TÆ–æµF"r’æ6Æ74Æ—7BçFövvÆR‚w&–Ö'’rÇF#ÓÓÒvÆ–æ²r“²Ó°¢B‚r76†&U%F"r’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚“Óç6†÷uF"‚w"r’“²B‚r76†&TÆ–æµF"r’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚“Óç6†÷uF"‚vÆ–æ²r’“°¢B‚r66÷•6†&TÆ–æ´'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆ7–æ2‚“Óç¶v—Bæf–vF÷"æ6Æ—&ö&Bçw&—FUFW‡B†Æ–æ²“·Fö7B‚~Xè¾{ÊXˆnKª¾™;îhê^[{.ZHŞX‹br“·Ò“°¢B‚r76fU6†&T‡FÖÄ'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚“ÓæF÷væÆöD&Æö"†G¶&VäF—7Æ”æÖR†&Vâ—ÕşZøÎ‹K^y¹.ZÙXˆnKª²æ‡FÖÆÇ6†&T‡FÖÄFö7VÖVçB‡–ÆöB’ÂwFW‡Bö‡FÖÃ¶6†'6WC×WFbÓ‚r’“°¢vWB‚w6†&TG&gG2rÂ&Vâæ–B’çF†Vâ†G&gBÓâ²–b†G&gCòææ÷FRbbB‚r76†&TÆö6Äæ÷FRr’’B‚r76†&TÆö6Äæ÷FRr’çfÇVRÒG&gBææ÷FS²Ò’æ6F6‚‚‚’Óâ·Ò“°¢B‚r76†&TÆö6Äæ÷FRr’æFDWfVçDÆ—7FVæW"‚v6†ævRrÂ‚’ÓâWB‚w6†&TG&gG2rÂ²–C¢&Vâæ–BÂæ÷FS¢B‚r76†&TÆö6Äæ÷FRr’çfÇVRç6Æ–6RƒÂ’ÂWFFVDC¢æWrFFR‚’çFô•4õ7G&–ær‚’Ò’“°¢–b‚FöôÆöær’Vç7W&U$6öFTÆ–'&'’‚’çF†Vâ‚‚“Óç¶6öç7B&÷ƒÒB‚r76†&U$&÷‚r“¶&÷‚æ–ææW$…DÔÃÒrs¶æWr$6öFR†&÷‚Ç·FW‡C¦Æ–æ²Çv–GFƒ£##Æ†V–v‡C£##Æ6÷'&V7DÆWfVÃ¥$6öFRä6÷'&V7DÆWfVÂäÇÒ“·Ò’æ6F6‚†W'&÷#ÓâB‚r76†&U$&÷‚r’çFW‡D6öçFVçCÖW'&÷"æÖW76vR“°¢B‚r76fU$'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚“Óç¶6öç7B6çf3ÒB‚r76†&U$&÷‚6çf2r“¶6öç7B–ÖvSÒB‚r76†&U$&÷‚–Örr“¶–b†6çf2–6çf2çFô&Æö"†&Æö#ÓæF÷væÆöD&Æö"†G¶&VäF—7Æ”æÖR†&Vâ—ÕşXˆnKª¾K¨Î{»NzçævÆ&Æö"Âv–ÖvR÷ærr’“¶VÇ6R–b†–ÖvR–fWF6‚†–ÖvRç7&2’çF†Vâ‡&W7öç6SÓç&W7öç6Ræ&Æö"‚’’çF†Vâ†&Æö#ÓæF÷væÆöD&Æö"†G¶&VäF—7Æ”æÖR†&Vâ—ÕşXˆnKª¾K¨Î{»NzçævÆ&Æö"Âv–ÖvR÷ærr’“¶VÇ6RFö7B‚~K¨Î{»Nz[	®iÊ®yIşh‰r“·Ò“°§Ğ ¦gVæ7F–öâ&VæFW%6†&VE–ÆöB‡–ÆöB’°¢76W'EÆ–äö&¦V7B‡–ÆöBÂ~XˆnKª¾i[hÚâr“°¢B‚r6Æöv–å67&VVâr“òæ6Æ74Æ—7BæFB‚v†–FFVâr“²B‚r66†VÆÂr’æ6Æ74Æ—7BæFB‚v†–FFVâr“°¢Fö7VÖVçBæ&öG’æ–ææW$…DÔÂÒ6†&T‡FÖÄFö7VÖVçB‡–ÆöB’æÖF6‚‚óÆ&öG•µãåÒ£â…µÇ5Å5Ò¢“ÅÂö&öG“âö’“òå³ÒÇÂsÇîXˆnKª¾i[hÚîiziXƒÂ÷âs°§Ğ ¦gVæ7F–öâ÷Vä†—7F÷'’‚’°¢6öç7B&6†—fVBÒ7FFRæ&Vç2æf–ÇFW"†&VãÓæ&Vâæ&6†—fVBÇÂçVÖ&W"†&Vâç&VÖ–æ–æuvV–v‡B“ÃÓ“°¢6öç7B&V6VçDÆ–Ö—BÒ6Æ×‡7FFRç6WGF–æw2ç6Vç6÷'•&V6VçDÆ–Ö—BÇÂSÂRÂ#“°¢6öç7BöÆE6Vç6÷'’Ò²ââç7FFRç6Vç6÷'•&V6÷&G5Òç6÷'B‚†Æ"“Óå7G&–ær†"æ7&VFVDB’æÆö6ÆT6ö×&R…7G&–ær†æ7&VFVDB’’’ç6Æ–6R‡&V6VçDÆ–Ö—B“°¢6öç7BöÆD'&Ww2Ò²ââç7FFRæ'&Wu6W76–öç5Òç6÷'B‚†Æ"“Óå7G&–ær†"æ7&VFVDB’æÆö6ÆT6ö×&R…7G&–ær†æ7&VFVDB’’’ç6Æ–6R‡&V6VçDÆ–Ö—B“°¢6öç7B6öçFVçBÒG¶F–Æöt†VFW"‚~i+rrÂ~ŠûYKŠŞy¨N‹nXÚKˆî‹è>izŠë[ÙRrÂ²6Æ÷6&ÆS¢fÇ6RÒ—ÓÆF—b6Æ73Ò&†—7F÷'’×67&öÆÂ#ãÆFWF–Ç26Æ73Ò&FWF–Ç2Ö&Æö6²"÷VããÇ7VÖÖ'“î‹nXÚiz~‰xò+rG¶&6†—fVBæÆVæwF‡ÓÂ÷7VÖÖ'“ãÆF—b6Æ73Ò&FWF–Ç2Ö6öçFVçB#ãÆF—b6Æ73Ò&&VâÖw&–B6ö×7BÖw&–B#âG¶&6†—fVBæÆVæwFƒö&6†—fVBæÖ†&Vä6&D‡FÖÂ’æ¦ö–â‚rr“¢sÇ6Æ73Ò&×WFVB#îi¨.iz[Ù.j>‹nXÚÂ÷âwÓÂöF—cãÂöF—cãÂöFWF–Ç3ãÆFWF–Ç26Æ73Ò&FWF–Ç2Ö&Æö6²#ãÇ7VÖÖ'“îiz~Y8˜›B+rG¶öÆE6Vç6÷'’æÆVæwF‡ÓÂ÷7VÖÖ'“ãÆF—b6Æ73Ò&FWF–Ç2Ö6öçFVçB&V6÷&BÖÆ—7B#âG¶öÆE6Vç6÷'’æÆVæwFƒööÆE6Vç6÷'’ç6Æ–6RƒÃ#’æÖ‡&V6÷&D‡FÖÂ’æ¦ö–â‚rr“¢sÇ6Æ73Ò&×WFVB#îi¨.iz‹è>izY8˜›CÂ÷âwÓÂöF—cãÂöFWF–Ç3ãÆFWF–Ç26Æ73Ò&FWF–Ç2Ö&Æö6²#ãÇ7VÖÖ'“îiz~Xk.xZâ+rG¶öÆD'&Ww2æÆVæwF‡ÓÂ÷7VÖÖ'“ãÆF—b6Æ73Ò&FWF–Ç2Ö6öçFVçB&V6÷&BÖÆ—7B#âG¶öÆD'&Ww2æÆVæwFƒööÆD'&Ww2ç6Æ–6RƒÃ#’æÖ‡6W76–öå&V6÷&D‡FÖÂ’æ¦ö–â‚rr“¢sÇ6Æ73Ò&×WFVB#îi¨.iz‹è>izXk.xZãÂ÷âwÓÂöF—cãÂöFWF–Ç3ãÂöF—cãÆ'WGFöâ6Æ73Ò&&÷GFöÒ×&WGW&â"G—SÒ&'WGFöâ"FFÖ6Æ÷6RÖ÷fW&Æ“î˜Âö'WGFöãæ°¢6öç7B÷fW&Æ’Ò6†÷t÷fW&Æ’†6öçFVçBÇ¶–C¢v†—7F÷'’rÆ&6¶G&÷6Æ÷6S§G'VRÆF–Æöt6Æ73¢v†—7F÷'’×6†VWB&÷GFöÒ×6†VWBwÒ“¶&–æD6Æ÷6R†÷fW&Æ’“°¢÷fW&Æ’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂWfVçBÓâ°¢6öç7B&WÆ’ÒWfVçBçF&vWBæ6Æ÷6W7B‚u¶FF×&WÆ’×6W76–öåÒr“²–b‡&WÆ’’&WGW&âÆöD'&Wu6W76–öâ‡&WÆ’æFF6WBç&WÆ•6W76–öâ“°¢6öç7B6&BÒWfVçBçF&vWBæ6Æ÷6W7B‚u¶FFÖ&VâÖ–EÒr“²–b†6&B’FWF–Ä&Vâ†6&BæFF6WBæ&Vä–B“°¢Ò“°§Ğ ¦gVæ7F–öâvV%7V'vT‡FÖÂ‡²¶–æBÂF—FÆRÂ7V'F—FÆRÂ6÷VçBÂÆ—7D‡FÖÂÂV×G•FW‡BÒ’°¢&WGW&âÆFWF–Ç26Æ73Ò&vV"×7V'vR"FFÖvV"Ö¶–æCÒ"G¶¶–æGÒ#ãÇ7VÖÖ'“ãÇ7ããÇ7G&öæsâG·F—FÆWÓÂ÷7G&öæsãÇ6ÖÆÃâG·7V'F—FÆWÓÂ÷6ÖÆÃãÂ÷7ããÆ#âG¶6÷VçGŞš“Âö#ãÂ÷7VÖÖ'“ãÆF—b6Æ73Ò&vV"×7V'vRÖ&öG’#ãÆF—b6Æ73Ò&vV"×7V'vRÖ7F–öç2#ãÆ'WGFöâ6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ"FFÖFBÖvV#Ò"G¶¶–æGÒ#îk{¾XªG·F—FÆWÓÂö'WGFöããÂöF—cãÆF—b6Æ73Ò&vV"ÖÆ—7B#âG¶Æ—7D‡FÖÂÇÂÇ6Æ73Ò&×WFVB6ÖÆÂ#âG¶V×G•FW‡GÓÂ÷æÓÂöF—cãÂöF—cãÂöFWF–Ç3æ°§Ğ ¦gVæ7F–öâvV$ÖævW$‡FÖÂ‚’°¢6öç7BvV"Òæ÷&ÖÆ—¦TvV%6WGF–æw2‡7FFRç6WGF–æw2ævV"“°¢6öç7BÆ÷t–G2ÒæWr6WB†vV"æf–ÇFW'2æf–ÇFW"†—FVÒÓâçVÖ&W"†—FVÒçVçF—G’’Â’æÖ†—FVÒÓâ—FVÒæ–B’“°¢6öç7Bf–ÇFW'2ÒvV"æf–ÇFW'2æÖ†—FVÓÓæÆ'WGFöâ6Æ73Ò&vV"Ö—FVÒG¶Æ÷t–G2æ†2†—FVÒæ–B“òrÆ÷r×7Fö6²s¢rwÒ"G—SÒ&'WGFöâ"FFÖf–ÇFW"Ö—FVÓÒ"G¶W62†—FVÒæ–B—Ò#ãÇ7ããÇ7G&öæsâG¶W62…¶—FVÒæ'&æBÆ—FVÒçG—UÒæf–ÇFW"„&ööÆVâ’æ¦ö–â‚rr’—ÓÂ÷7G&öæsãÇ6ÖÆÃîK»~jÂ*RG´çVÖ&W"†—FVÒç&–6WÇÃ’çFôf—†VBƒ"—ÓÂ÷6ÖÆÃãÂ÷7ããÆ#âG´ÖF‚æfÆö÷"„çVÖ&W"†—FVÒçVçF—G’—ÇÃ—Ş[ÊÂö#ãÂö'WGFöãæ’æ¦ö–â‚rr“°¢6öç7BG&—W'2ÒvV"æG&—W'2æÖ†—FVÓÓæÆ'WGFöâ6Æ73Ò&vV"Ö—FVÒ"G—SÒ&'WGFöâ"FFÖG&—W"Ö—FVÓÒ"G¶W62†—FVÒæ–B—Ò#ãÇ7ããÇ7G&öæsâG¶W62†—FVÒææÖR—ÓÂ÷7G&öæsãÇ6ÖÆÃâG¶W62†—FVÒçG—R—Ò+r*RG´çVÖ&W"†—FVÒç&–6WÇÃ’çFôf—†VBƒ"—ÓÂ÷6ÖÆÃãÂ÷7ããÆ#î{Én‹éÂö#ãÂö'WGFöãæ’æ¦ö–â‚rr“°¢6öç7Bw&–æFW'2ÒvV"æw&–æFW'2æÖ†—FVÓÓæÆ'WGFöâ6Æ73Ò&vV"Ö—FVÒ"G—SÒ&'WGFöâ"FFÖw&–æFW"Ö—FVÓÒ"G¶W62†—FVÒæ–B—Ò#ãÇ7ããÇ7G&öæsâG¶W62†—FVÒææÖR—ÓÂ÷7G&öæsãÇ6ÖÆÃâG¶W62†—FVÒç6WGF–ærÇÂ~iÊ®Z¾XiX‹¾[ªbr—Ò+r*RG´çVÖ&W"†—FVÒç&–6WÇÃ’çFôf—†VBƒ"—ÓÂ÷6ÖÆÃãÂ÷7ããÆ#î{Én‹éÂö#ãÂö'WGFöãæ’æ¦ö–â‚rr“°¢&WGW&âÆF—b6Æ73Ò&vV"ÖÖævW"#âG¶vV%7V'vT‡FÖÂ‡¶¶–æC¢vf–ÇFW"rÇF—FÆS¢~kºN{«‚rÇ7V'F—FÆS¢~Y8x˜Î8{¾Yè¾8[Êi[Y(ÎK»~jÂrÆ6÷VçC¦vV"æf–ÇFW'2æÆVæwF‚ÆÆ—7D‡FÖÃ¦f–ÇFW'2ÆV×G•FW‡C¢~[	®iÊ®k{¾XªkºN{«8.ZèÎh‰Xk.xZîYîKÉ®ˆz®Xªhš>Xxşh˜˜kºN{«‚[Ê8"wÒ—ÒG¶vV%7V'vT‡FÖÂ‡¶¶–æC¢vG&—W"rÇF—FÆS¢~kºNiÚòrÇ7V'F—FÆS¢~YŞz{8{¾Yè¾Y(ÎK»~jÂrÆ6÷VçC¦vV"æG&—W'2æÆVæwF‚ÆÆ—7D‡FÖÃ¦G&—W'2ÆV×G•FW‡C¢~[	®iÊ®k{¾XªkºNiÚş8"wÒ—ÒG¶vV%7V'vT‡FÖÂ‡¶¶–æC¢vw&–æFW"rÇF—FÆS¢~z:‹niË¢rÇ7V'F—FÆS¢~YŞz{8X‹¾[ªnY(ÎK»~jÂrÆ6÷VçC¦vV"æw&–æFW'2æÆVæwF‚ÆÆ—7D‡FÖÃ¦w&–æFW'2ÆV×G•FW‡C¢~[	®iÊ®k{¾Xªz:‹niË®8"wÒ—ÓÂöF—cæ°§Ğ ¦gVæ7F–öâ÷VäFDf–ÇFW$F–Æör†W†—7F–æt–BÒrr’°¢7FFRç6WGF–æw2ævV"Òæ÷&ÖÆ—¦TvV%6WGF–æw2‡7FFRç6WGF–æw2ævV"“°¢6öç7BW†—7F–ærÒ7FFRç6WGF–æw2ævV"æf–ÇFW'2æf–æB†—FVÒÓâ—FVÒæ–BÓÓÒW†—7F–æt–B’ÇÂ·Ó°¢6öç7B÷fW&Æ’Ò6†÷t÷fW&Æ’†G¶F–Æöt†VFW"†W†—7F–æt–Cò~{Én‹ékºN{«‚s¢~k{¾XªkºN{«‚rÂ~{¾Yè¾Y(Î[Êi[K‹®[ø^Z¾š’rÂ²6VçFW&VC§G'VRÒ—ÓÆF—b6Æ73Ò&w&–BÓ"#ãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãîY8x˜ÃÂ÷7ããÆ–çWB–CÒ&f–ÇFW$'&æB"6Æ73Ò&6öçG&öÂ"fÇVSÒ"G¶W62†W†—7F–æræ'&æGÇÂrr—Ò#ãÂöÆ&VÃãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãî{¾Yè²£Â÷7ããÆ–çWB–CÒ&f–ÇFW%G—R"6Æ73Ò&6öçG&öÂ"fÇVSÒ"G¶W62†W†—7F–ærçG—WÇÂrr—Ò#ãÂöÆ&VÃãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãî[Êi[£Â÷7ããÆ–çWB–CÒ&f–ÇFW%VçF—G’"6Æ73Ò&6öçG&öÂ"G—SÒ&çVÖ&W""Ö–ãÒ#"7FWÒ#"fÇVSÒ"G´çVÖ&W"†W†—7F–ærçVçF—G“óó—Ò#ãÂöÆ&VÃãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãîK»~jÃÂ÷7ããÆ–çWB–CÒ&f–ÇFW%&–6R"6Æ73Ò&6öçG&öÂ"G—SÒ&çVÖ&W""Ö–ãÒ#"7FWÒ#ã"fÇVSÒ"G´çVÖ&W"†W†—7F–ærç&–6WÇÃ—Ò#ãÂöÆ&VÃãÂöF—cãÆF—b6Æ73Ò'&÷rVæB#âG¶W†—7F–æt–CòsÆ'WGFöâ–CÒ&FVÆWFTf–ÇFW$'Fâ"6Æ73Ò&'WGFöâFævW""G—SÒ&'WGFöâ#îXŠ™šCÂö'WGFöãâs¢rwÓÆ'WGFöâ–CÒ'6fTf–ÇFW$'Fâ"6Æ73Ò&'WGFöâ&–Ö'’"G—SÒ&'WGFöâ#îzîZé£Âö'WGFöããÂöF—cæÂ²–C¢vf–ÇFW"ÖVF—F÷"rÆ&6¶G&÷6Æ÷6S§G'VRÒ“°¢&–æD6Æ÷6R†÷fW&Æ’“°¢B‚r76fTf–ÇFW$'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆ7–æ2‚“Óç¶6öç7BG—SÒB‚r6f–ÇFW%G—Rr’çfÇVRçG&–Ò‚“¶6öç7BVçF—G“ÔÖF‚æfÆö÷"‡'6TçVÖ&W"‚B‚r6f–ÇFW%VçF—G’r’çfÇVRÂÓ’“¶–b‚G—R—&WGW&âFö7B‚~kºN{«{¾Yè¾K‹®[ø^Z¾š’rÂw7FGW2Ö&Br“¶–b‡VçF—G“Ã—&WGW&âFö7B‚~kºN{«[Êi[K‹®[ø^Z¾šK‰NKˆŞˆ;Ş[şK¨ãrÂw7FGW2Ö&Br“¶6öç7B&V6÷&C×¶–C¦W†—7F–æræ–GÇÇV–B‚vf–ÇFW"r’Æ'&æC¢B‚r6f–ÇFW$'&æBr’çfÇVRçG&–Ò‚’ÇG—RÇVçF—G’Ç&–6S¤ÖF‚æÖ‚ƒÇ'6TçVÖ&W"‚B‚r6f–ÇFW%&–6Rr’çfÇVRÃ’’Æ7&VFVDC¦W†—7F–æræ7&VFVDGÇÆæWrFFR‚’çFô•4õ7G&–ær‚—Ó¶6öç7B–æFWƒ×7FFRç6WGF–æw2ævV"æf–ÇFW'2æf–æD–æFW‚†—FVÓÓæ—FVÒæ–CÓÓ×&V6÷&Bæ–B“¶–b†–æFWƒãÓ—7FFRç6WGF–æw2ævV"æf–ÇFW'5¶–æFW…Ó×&V6÷&C¶VÇ6R7FFRç6WGF–æw2ævV"æf–ÇFW'2çW6‚‡&V6÷&B“·7FFRç6WGF–æw2æ'&Wræf–ÇFW%W$–BÇÃÒ&V6÷&Bæ–C¶v—B6fU6WGF–æw2‚“¶6Æ÷6T÷fW&Æ’‚“·&VæFW%6WGF–æw2‚“·WFFTÆ÷u7Fö6´–æF–6F÷"‚“·Ò“°¢B‚r6FVÆWFTf–ÇFW$'Fâr“òæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆ7–æ2‚“Óç·7FFRç6WGF–æw2ævV"æf–ÇFW'3×7FFRç6WGF–æw2ævV"æf–ÇFW'2æf–ÇFW"†—FVÓÓæ—FVÒæ–BÓÖW†—7F–æt–B“¶–b‡7FFRç6WGF–æw2æ'&Wræf–ÇFW%W$–CÓÓÖW†—7F–æt–B—7FFRç6WGF–æw2æ'&Wræf–ÇFW%W$–C×7FFRç6WGF–æw2ævV"æf–ÇFW'5³Óòæ–GÇÂrs¶v—B6fU6WGF–æw2‚“¶6Æ÷6T÷fW&Æ’‚“·&VæFW%6WGF–æw2‚“·WFFTÆ÷u7Fö6´–æF–6F÷"‚“·Fö7B‚~kºN{«[{.XŠ™šBr“·Ò“°§Ğ ¦gVæ7F–öâ÷VäFDG&—W$F–Æör†W†—7F–æt–BÒrr’°¢7FFRç6WGF–æw2ævV"Òæ÷&ÖÆ—¦TvV%6WGF–æw2‡7FFRç6WGF–æw2ævV"“°¢6öç7BW†—7F–ærÒ7FFRç6WGF–æw2ævV"æG&—W'2æf–æB†—FVÒÓâ—FVÒæ–BÓÓÒW†—7F–æt–B’ÇÂ·Ó°¢6öç7B÷fW&Æ“×6†÷t÷fW&Æ’†G¶F–Æöt†VFW"†W†—7F–æt–Cò~{Én‹ékºNiÚòs¢~k{¾XªkºNiÚòrÂ~YŞz{8{¾Yè¾Y(ÎK»~jÎyJK¨îzxYšzêybrÇ¶6VçFW&VC§G'VWÒ—ÓÆF—b6Æ73Ò&w&–BÓ"#ãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãîYŞz{£Â÷7ããÆ–çWB–CÒ&G&—W$æÖR"6Æ73Ò&6öçG&öÂ"fÇVSÒ"G¶W62†W†—7F–ærææÖWÇÂrr—Ò#ãÂöÆ&VÃãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãî{¾Yè²£Â÷7ããÇ6VÆV7B–CÒ&G&—W%G—R"6Æ73Ò&6öçG&öÂ#âGµ²~[›>[©^kºNiÚòrÂ~™J^[Ú.kºNiÚòrÂ~k{~Y[ÈşkºNiÚòrÂ~KØîix‹zşkºNiÚòrÂ~k[k:[ÈşkºNiÚòuÒæÖ‡G—SÓæÆ÷F–öâG·G—SÓÓÒ†W†—7F–ærçG—WÇÂ~[›>[©^kºNiÚòr“òr6VÆV7FVBs¢rwÓâG·G—WÓÂö÷F–öãæ’æ¦ö–â‚rr—ÓÂ÷6VÆV7CãÂöÆ&VÃãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãîK»~jÃÂ÷7ããÆ–çWB–CÒ&G&—W%&–6R"6Æ73Ò&6öçG&öÂ"G—SÒ&çVÖ&W""Ö–ãÒ#"7FWÒ#ã"fÇVSÒ"G´çVÖ&W"†W†—7F–ærç&–6WÇÃ—Ò#ãÂöÆ&VÃãÂöF—cãÆF—b6Æ73Ò'&÷rVæB#âG¶W†—7F–æt–CòsÆ'WGFöâ–CÒ&FVÆWFTG&—W$'Fâ"6Æ73Ò&'WGFöâFævW""G—SÒ&'WGFöâ#îXŠ™šCÂö'WGFöãâs¢rwÓÆ'WGFöâ–CÒ'6fTG&—W$'Fâ"6Æ73Ò&'WGFöâ&–Ö'’"G—SÒ&'WGFöâ#îzîZé£Âö'WGFöããÂöF—cæÇ¶–C¢vG&—W"ÖVF—F÷"rÆ&6¶G&÷6Æ÷6S§G'VWÒ“°¢&–æD6Æ÷6R†÷fW&Æ’“°¢B‚r76fTG&—W$'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆ7–æ2‚“Óç¶6öç7BæÖSÒB‚r6G&—W$æÖRr’çfÇVRçG&–Ò‚“¶–b‚æÖR—&WGW&âFö7B‚~kºNiÚşYŞz{K‹®[ø^Z¾š’rÂw7FGW2Ö&Br“¶6öç7B&V6÷&C×¶–C¦W†—7F–æræ–GÇÇV–B‚vG&—W"r’ÆæÖRÇG—S¢B‚r6G&—W%G—Rr’çfÇVRÇ&–6S¤ÖF‚æÖ‚ƒÇ'6TçVÖ&W"‚B‚r6G&—W%&–6Rr’çfÇVRÃ’’Æ7&VFVDC¦W†—7F–æræ7&VFVDGÇÆæWrFFR‚’çFô•4õ7G&–ær‚—Ó¶6öç7B–æFWƒ×7FFRç6WGF–æw2ævV"æG&—W'2æf–æD–æFW‚†—FVÓÓæ—FVÒæ–CÓÓ×&V6÷&Bæ–B“¶–b†–æFWƒãÓ—7FFRç6WGF–æw2ævV"æG&—W'5¶–æFW…Ó×&V6÷&C¶VÇ6R7FFRç6WGF–æw2ævV"æG&—W'2çW6‚‡&V6÷&B“¶–b‚7FFRç6WGF–æw2æ'&WræG&—W"—7FFRç6WGF–æw2æ'&WræG&—W#×&V6÷&BææÖS¶v—B6fU6WGF–æw2‚“¶6Æ÷6T÷fW&Æ’‚“·&VæFW%6WGF–æw2‚“·Ò“°¢B‚r6FVÆWFTG&—W$'Fâr“òæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆ7–æ2‚“Óç·7FFRç6WGF–æw2ævV"æG&—W'3×7FFRç6WGF–æw2ævV"æG&—W'2æf–ÇFW"†—FVÓÓæ—FVÒæ–BÓÖW†—7F–æt–B“·7FFRç6WGF–æw2ævV#Öæ÷&ÖÆ—¦TvV%6WGF–æw2‡7FFRç6WGF–æw2ævV"“¶–b†W†—7F–ærææÖSÓÓ×7FFRç6WGF–æw2æ'&WræG&—W"—7FFRç6WGF–æw2æ'&WræG&—W#×7FFRç6WGF–æw2ævV"æG&—W'5³ÒææÖS¶v—B6fU6WGF–æw2‚“¶6Æ÷6T÷fW&Æ’‚“·&VæFW%6WGF–æw2‚“·Fö7B‚~kºNiÚş[{.XŠ™šBr“·Ò“°§Ğ ¦gVæ7F–öâ÷VäFDw&–æFW$F–Æör†W†—7F–æt–BÒrr’°¢7FFRç6WGF–æw2ævV"Òæ÷&ÖÆ—¦TvV%6WGF–æw2‡7FFRç6WGF–æw2ævV"“°¢6öç7BW†—7F–ærÒ7FFRç6WGF–æw2ævV"æw&–æFW'2æf–æB†—FVÒÓâ—FVÒæ–BÓÓÒW†—7F–æt–B’ÇÂ·Ó°¢6öç7B÷fW&Æ“×6†÷t÷fW&Æ’†G¶F–Æöt†VFW"†W†—7F–æt–Cò~{Én‹éz:‹niË¢s¢~k{¾Xªz:‹niË¢rÂ~YŞz{K‹®[ø^Z¾šûÉ¾X‹¾[ªnKùŞZÙK‹®[Ù>X˜Ş[‹yJŠëîZé¢rÇ¶6VçFW&VC§G'VWÒ—ÓÆF—b6Æ73Ò&w&–BÓ"#ãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãîYŞz{£Â÷7ããÆ–çWB–CÒ&w&–æFW$æÖR"6Æ73Ò&6öçG&öÂ"fÇVSÒ"G¶W62†W†—7F–ærææÖWÇÂrr—Ò"Æ6V†öÆFW#Ò.Kè¾Zh"6öÖæFçFR3C#ãÂöÆ&VÃãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãî[‹yJX‹¾[ªcÂ÷7ããÆ–çWB–CÒ&w&–æFW%6WGF–ær"6Æ73Ò&6öçG&öÂ"fÇVSÒ"G¶W62†W†—7F–ærç6WGF–æwÇÂrr—Ò"Æ6V†öÆFW#Ò.Kè¾Zh"#.jÂ#ãÂöÆ&VÃãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãîK»~jÃÂ÷7ããÆ–çWB–CÒ&w&–æFW%&–6R"6Æ73Ò&6öçG&öÂ"G—SÒ&çVÖ&W""Ö–ãÒ#"7FWÒ#ã"fÇVSÒ"G´çVÖ&W"†W†—7F–ærç&–6WÇÃ—Ò#ãÂöÆ&VÃãÂöF—cãÆF—b6Æ73Ò'&÷rVæB#âG¶W†—7F–æt–CòsÆ'WGFöâ–CÒ&FVÆWFTw&–æFW$'Fâ"6Æ73Ò&'WGFöâFævW""G—SÒ&'WGFöâ#îXŠ™šCÂö'WGFöãâs¢rwÓÆ'WGFöâ–CÒ'6fTw&–æFW$'Fâ"6Æ73Ò&'WGFöâ&–Ö'’"G—SÒ&'WGFöâ#îzîZé£Âö'WGFöããÂöF—cæÇ¶–C¢vw&–æFW"ÖVF—F÷"rÆ&6¶G&÷6Æ÷6S§G'VWÒ“°¢&–æD6Æ÷6R†÷fW&Æ’“°¢B‚r76fTw&–æFW$'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆ7–æ2‚“Óç¶6öç7BæÖSÒB‚r6w&–æFW$æÖRr’çfÇVRçG&–Ò‚“¶–b‚æÖR—&WGW&âFö7B‚~z:‹niË®YŞz{K‹®[ø^Z¾š’rÂw7FGW2Ö&Br“¶6öç7B&V6÷&C×¶–C¦W†—7F–æræ–GÇÇV–B‚vw&–æFW"r’ÆæÖRÇ6WGF–æs¢B‚r6w&–æFW%6WGF–ærr’çfÇVRçG&–Ò‚’Ç&–6S¤ÖF‚æÖ‚ƒÇ'6TçVÖ&W"‚B‚r6w&–æFW%&–6Rr’çfÇVRÃ’’Æ7&VFVDC¦W†—7F–æræ7&VFVDGÇÆæWrFFR‚’çFô•4õ7G&–ær‚—Ó¶6öç7B–æFWƒ×7FFRç6WGF–æw2ævV"æw&–æFW'2æf–æD–æFW‚†—FVÓÓæ—FVÒæ–CÓÓ×&V6÷&Bæ–B“¶–b†–æFWƒãÓ—7FFRç6WGF–æw2ævV"æw&–æFW'5¶–æFW…Ó×&V6÷&C¶VÇ6R7FFRç6WGF–æw2ævV"æw&–æFW'2çW6‚‡&V6÷&B“¶–b‚7FFRç6WGF–æw2æ'&Wræw&–æFW'ÇÇ7FFRç6WGF–æw2æ'&Wræw&–æFW"ç7F'G5v—F‚†W†—7F–ærææÖWÇÂuÃr’—7FFRç6WGF–æw2æ'&Wræw&–æFW#Õ·&V6÷&BææÖRÇ&V6÷&Bç6WGF–æuÒæf–ÇFW"„&ööÆVâ’æ¦ö–â‚rr“¶v—B6fU6WGF–æw2‚“¶6Æ÷6T÷fW&Æ’‚“·&VæFW%6WGF–æw2‚“·Ò“°¢B‚r6FVÆWFTw&–æFW$'Fâr“òæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆ7–æ2‚“Óç·7FFRç6WGF–æw2ævV"æw&–æFW'3×7FFRç6WGF–æw2ævV"æw&–æFW'2æf–ÇFW"†—FVÓÓæ—FVÒæ–BÓÖW†—7F–æt–B“¶–b‡7FFRç6WGF–æw2æ'&Wræw&–æFW"ç7F'G5v—F‚†W†—7F–ærææÖWÇÂuÃr’—7FFRç6WGF–æw2æ'&Wræw&–æFW#Òrs¶v—B6fU6WGF–æw2‚“¶6Æ÷6T÷fW&Æ’‚“·&VæFW%6WGF–æw2‚“·Fö7B‚~z:‹niË®[{.XŠ™šBr“·Ò“°§Ğ ¦gVæ7F–öâ&VæFW%6WGF–æw2‚’°¢6öç7BÖWFÒ7FFRæ6öFV&öö´ÖWFÇÂ·Ó°¢7FFRç6WGF–æw2ævV"Òæ÷&ÖÆ—¦TvV%6WGF–æw2‡7FFRç6WGF–æw2ævV"“°¢6öç7BÆ÷rÒÆ÷u7Fö6´f–ÇFW'2‚“°¢B‚r76WGF–æw46öçFVçBr’æ–ææW$…DÔÂÒÆF—b6Æ73Ò'6WGF–æw2Ö6FVv÷&–W2#à¢ÆFWF–Ç26Æ73Ò'6WGF–æw2Ö6FVv÷'’"FF×6WGF–æw2Ö¶W“Ò&66÷VçB#ãÇ7VÖÖ'“ãÇ7ãî‹Jnh‹sÂ÷7ããÇ6ÖÆÃîy›¾[Ù^8K©zºşYÎjÚ^8h.ZHŞKˆîZI®ŠëîZH~‹ùîhêSÂ÷6ÖÆÃãÂ÷7VÖÖ'“ãÆF—b6Æ73Ò'6WGF–æw2Ö6FVv÷'’Ö&öG’"FFÖ6Æ÷VBÖ66÷VçBÖ†÷7CãÂöF—cãÂöFWF–Ç3à¢ÆFWF–Ç26Æ73Ò'6WGF–æw2Ö6FVv÷'’"–CÒ'&—fFTvV$6FVv÷'’#ãÇ7VÖÖ'“ãÇ7ãîzxYš‚G¶Æ÷ræÆVæwFƒòsÇ7W6Æ73Ò&vV"ÖÆ÷r×7F"#â£Â÷7Wâs¢rwÓÂ÷7ããÇ6ÖÆÃîkºN{«ûÈÎkºNiÚşûÈÎz:‹niË®ŠëîZé£Â÷6ÖÆÃãÂ÷7VÖÖ'“ãÆF—b6Æ73Ò'6WGF–æw2Ö6FVv÷'’Ö&öG’#âG¶vV$ÖævW$‡FÖÂ‚—ÓÂöF—cãÂöFWF–Ç3à¢ÆFWF–Ç26Æ73Ò'6WGF–æw2Ö6FVv÷'’FFÖ6FVv÷'’#ãÇ7VÖÖ'“ãÇ7ãîi[‰xóÂ÷7ããÇ6ÖÆÃîi[hÚîy¨NZûÎXZ^ZûÎX{®Xø®ZH~K»ŞûÈÎi[hÚîhê^Xú3Â÷6ÖÆÃãÂ÷7VÖÖ'“ãÆF—b6Æ73Ò'6WGF–æw2Ö6FVv÷'’Ö&öG’#ãÆF—b6Æ73Ò'FW‡BÖ7F–öç2FFÖ7F–öç2#ãÆ'WGFöâ–CÒ'6WGF–æw4W‡÷'D'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ#îZûÎX{®ZH~K»ÓÂö'WGFöããÆ'WGFöâ–CÒ'6WGF–æw4–×÷'D'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ#îZûÎXZ^ZH~K»ÓÂö'WGFöããÆ'WGFöâ–CÒ&6ÆV$ÆÄFF'Fâ"6Æ73Ò&'WGFöâFævW""G—SÒ&'WGFöâ#îkˆ^z›®iÊÎYËi[hÚãÂö'WGFöããÂöF—cãÆFWF–Ç26Æ73Ò&æW7FVB×6WGF–æw2#ãÇ7VÖÖ'“îi[hÚîk©Kˆîhê^Xú>ûÈx+X{¾[^[ÈûÈ“Â÷7VÖÖ'“ãÆF—b6Æ73Ò&æW7FVBÖ6öçFVçB#ãÆF—b6Æ73Ò'6WGF–ær×&÷r#ãÆF—cãÆƒ3îi[hÚîk©Âöƒ3ãÇîYîXûj
+š¨Î[›nXéşZÙi»NikûÈÎZK‹J^i{nKùŞyYiÈYîiÈiXx˜iÊÎ8#Â÷ãÂöF—cãÆ'WGFöâ–CÒ'WFFT6öFV&öö´'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ#îi»NikXZ˜:i[hÚîk©Âö'WGFöããÂöF—cãÆF—b–CÒ'&÷f–FW%7FGW5æVÂ#ãÂöF—cãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãîzxiÈXk.xZâ“Â÷7ããÆ–çWB–CÒ&'&Wt”VæGö–çB"6Æ73Ò&6öçG&öÂ"G—SÒ'W&Â"Æ6V†öÆFW#Ò$…EE2iÈŞXªzºşYËYØ"fÇVSÒ"G¶W62‡7FFRç6WGF–æw2æ'&Wræ”VæGö–çGÇÂrr—Ò#ãÂöÆ&VÃãÆ'WGFöâ–CÒ'6fT”'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ#îKùŞZÙhê^Xú3Âö'WGFöããÆÆ&VÂ6Æ73Ò'FövvÆR#ãÆ–çWB–CÒ'Æåf—7VÅFövvÆR"G—SÒ&6†V6¶&÷‚"G·7FFRç6WGF–æw2çV’çÆåf—7VÇ4W‡æFVCòr6†V6¶VBs¢rwÓî›¹ŠêNi‹îzK®Xk.xZî‹Ú‹ûY»ãÂöÆ&VÃãÂöF—cãÂöFWF–Ç3ãÂöF—cãÂöFWF–Ç3à¢ÆFWF–Ç26Æ73Ò'6WGF–æw2Ö6FVv÷'’#ãÇ7VÖÖ'“ãÇ7ãîiÊÎxš“Â÷7ããÇ6ÖÆÃîX[>K¨îiÊÎ[z^X[~Y(Î[ÈXù[şY:^y¨NKˆXˆsÂ÷6ÖÆÃãÂ÷7VÖÖ'“ãÆF—b6Æ73Ò'6WGF–æw2Ö6FVv÷'’Ö&öG’&÷WBÖ6öçFVçB#ãÆƒ#îZøÎ‹K^y¹.ZÙÂöƒ#ãÇîY)nYZ‹nzêyn8h»îY>Xk.xZî‹è^Xª8Y8˜›NŠë[Ù^KˆîiÊÎYËi[hÚî[Ù.j>[z^X[~8#Â÷ãÆFÃãÆGCîx˜iÊÃÂöGCãÆFCâG´õdU%4”ôçÓÂöFCãÆGCîi[hÚî{¹>ièCÂöGCãÆFCâGµ44„TÔõdU%4”ôçÓÂöFCãÆGCîzk¾{«ş[É^i8ãÂöGCãÆFCâG¶W62„dÄÄ$4µôTät”äUõdU%4”ôâ—ÓÂöFCãÆGCîi[hÚîk©ÂöGCãÆFCîXZÎ[È{Énzi[hÚâG¶W62†ÖWFçfW'6–öçÇÇ7FFRæ6öFV&öö²çfW'6–öçÇÂsbr—ÓÂöFCãÆGCî[ÈXùKˆî{»NhªCÂöGCãÆFCç¦¦7&÷ÂöFCãÂöFÃãÂöF—cãÂöFWF–Ç3à¢ÂöF—cæ°¢&VæFW%&÷f–FW%7FGW5æVÂ‚B‚r7&÷f–FW%7FGW5æVÂr’’æ6F6‚†W'&÷"Óâ6öç6öÆRçv&â‚~i[hÚîk©x«nhŠû¾XùnZK‹JRrÂW'&÷"’“°¢BB‚rç6WGF–æw2Ö6FVv÷'’r’æf÷$V6‚‡6V7F–öãÓç6V7F–öâæFDWfVçDÆ—7FVæW"‚wFövvÆRrÂ‚“Óç¶–b‚6V7F–öâæ÷Vâ—&WGW&ã²BB‚rç6WGF–æw2Ö6FVv÷'’r’æf÷$V6‚†÷F†W#Óç¶–b†÷F†W"Ó×6V7F–öâ–÷F†W"æ÷VãÖfÇ6S·Ò“·Ò’“°¢B‚r7WFFT6öFV&öö´'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂWFFT6öFV&öö²“°¢B‚r76fT”'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆ7–æ2‚“Óç·7FFRç6WGF–æw2æ'&Wræ”VæGö–çCÒB‚r6'&Wt”VæGö–çBr’çfÇVRçG&–Ò‚“¶v—B6fU6WGF–æw2‚“·Fö7B‚~hê^Xú>YËYØ[{.KùŞZÙ‚r“·Ò“°¢B‚r7Æåf—7VÅFövvÆRr’æFDWfVçDÆ—7FVæW"‚v6†ævRrÆ7–æ2WfVçCÓç·7FFRç6WGF–æw2çV’çÆåf—7VÇ4W‡æFVCÖWfVçBçF&vWBæ6†V6¶VC¶v—B6fU6WGF–æw2‚“·Ò“°¢B‚u¶FFÖFBÖvV#Ò&f–ÇFW"%Òr“òæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚“Óæ÷VäFDf–ÇFW$F–Æör‚’“°¢B‚u¶FFÖFBÖvV#Ò&G&—W"%Òr“òæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚“Óæ÷VäFDG&—W$F–Æör‚’“°¢B‚u¶FFÖFBÖvV#Ò&w&–æFW"%Òr“òæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚“Óæ÷VäFDw&–æFW$F–Æör‚’“°¢BB‚u¶FFÖf–ÇFW"Ö—FVÕÒr’æf÷$V6‚†'WGFöãÓæ'WGFöâæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚“Óæ÷VäFDf–ÇFW$F–Æör†'WGFöâæFF6WBæf–ÇFW$—FVÒ’’“°¢BB‚u¶FFÖG&—W"Ö—FVÕÒr’æf÷$V6‚†'WGFöãÓæ'WGFöâæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚“Óæ÷VäFDG&—W$F–Æör†'WGFöâæFF6WBæG&—W$—FVÒ’’“°¢BB‚u¶FFÖw&–æFW"Ö—FVÕÒr’æf÷$V6‚†'WGFöãÓæ'WGFöâæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚“Óæ÷VäFDw&–æFW$F–Æör†'WGFöâæFF6WBæw&–æFW$—FVÒ’’“°¢B‚r76WGF–æw4W‡÷'D'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆW‡÷'DFF“²B‚r76WGF–æw4–×÷'D'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚“ÓâB‚r6–×÷'D–çWBr’æ6Æ–6²‚’“°¢B‚r66ÆV$ÆÄFF'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆ6öæf—&Ô6ÆV$ÆÂ“²&–æD6öçG&öÅ7FFW2‚B‚r76WGF–æw46öçFVçBr’“°§Ğ ¦7–æ2gVæ7F–öâWFFT6öFV&öö²‚’°¢6öç7B'WGFöãÒB‚r7WFFT6öFV&öö´'Fâr“²'WGFöâæF—6&ÆVC×G'VS²'WGFöâçFW‡D6öçFVçCÒ~j
+š¨Îi»NikKŠŞ(
+bs°¢G'’°¢6öç7B&W7VÇBÒv—BvÆö&ÅF†—2äÇV6·”&Vå&÷f–FW'2ç&Vg&W6‚‡²f÷&6S¢G'VRÒ“°¢v—B&VæFW%&÷f–FW%7FGW5æVÂ‚B‚r7&÷f–FW%7FGW5æVÂr’“°¢6öç7B6†ævVBÒö&¦V7BçfÇVW2‡&W7VÇBç&W7VÇG2ÇÂ·Ò’æf–ÇFW"†—FVÒÓâ—FVÓòçWFFVB’æÆVæwFƒ°¢'WGFöâæF—6&ÆVCÖfÇ6S²'WGFöâçFW‡D6öçFVçCÒ~i»NikXZ˜:i[hÚîk©s°¢Fö7B†6†ævVBò‚~[{.i»Nikr²6†ævVB²~KŠ®i[hÚîk©r’¢~XZ˜:i[hÚîk©[{.iŠşiÈikrÂw7FGW2ÖvööBr“°¢Ò6F6‚†W'&÷"’°¢'WGFöâæF—6&ÆVCÖfÇ6S²'WGFöâçFW‡D6öçFVçCÒ~i»NikXZ˜:i[hÚîk©s°¢Fö7B‚~i»NikZK‹J^ûÈÎ{º~{ºŞKÛşyJiÈYîiÈiXx˜iÊÎûÉ¢r²W'&÷"æÖW76vRÂw7FGW2Ö&Br“°¢Ğ§Ğ¦7–æ2gVæ7F–öâW‡÷'DFF‚’°¢G'’°¢6öç7B²&6†—fRÂÖ–ÖRÒÒv—B7&VFU÷'F&ÆT&6†—fR‚“°¢F÷væÆöD&Æö"†ÇV6·”&VåòG·FöF”•4ò‚—ÒæÇV6·–&VæÂ¥4ôâç7G&–æv–g’†&6†—fR’ÂÖ–ÖR“°¢Fö7B‚~ZèÎi[NZH~K»Ş[{.ZûÎX{¢rÂw7FGW2ÖvööBr“°¢Ò6F6‚†W'&÷"’°¢Fö7B†ZûÎX{®ZK‹J^ûÉ¢G¶W'&÷"æÖW76vWÖÂw7FGW2Ö&Br“°¢Ğ§Ğ¦7–æ2gVæ7F–öâ–×÷'DFF†f–ÆR’°¢–b‚f–ÆR’&WGW&ã²–b†f–ÆRç6—¦SäÔ…ô$4„•dUô%•DU2’&WGW&âFö7B‚~ZûÎXZ^ih~K»nKˆŞˆ;Ş‹h^‹ørcDÔ"rÂw7FGW2Ö&Br“°¢G'’°¢6öç7B–ÆöCÔ¥4ôâç'6R†v—Bf–ÆRçFW‡B‚’“°¢6öç7B&Wf–WsÖv—B–ç7V7E÷'F&ÆT&6†—fR‡–ÆöB“°¢6öç7B6÷VçEFW‡CÖ‹nXÚG·&Wf–Wræ6÷VçG2æ&Vç7Ş8Xk.xZâG·&Wf–Wræ6÷VçG2æ'&Wu6W76–öç7Ş8Y8˜›BG·&Wf–Wræ6÷VçG2ç6Vç6÷'•&V6÷&G7Ş8[©>ZÙXùi»BG·&Wf–Wræ6÷VçG2æ–çfVçF÷'”WfVçG7Ö°¢6öç7B÷fW&Æ“×6†÷t÷fW&Æ’†G¶F–Æöt†VFW"‚~h.ZHŞZèÎi[NZH~K»ÒrÂ~j
+š¨Î[{.{¸ş˜	®‹ørr—ÓÇâG¶W62†6÷VçEFW‡B—ÓÂ÷ãÇ6Æ73Ò'7FGW2Ö&B#îh.ZHŞYîûÈÎiÊÎiË®xëiÈi[hÚî[nŠ*¾ZH~K»ŞXh^ZëZèÎi[Ni»şhÚ.8.iÈŞXªYšYÎjÚ^‹JnXû~KˆŞKÉ®K¸îZH~K»ŞZûÎXZ^8#Â÷ãÆF—b6Æ73Ò'FW‡BÖ7F–öç2#ãÆ'WGFöâ–CÒ&6æ6VÄ&6†—fU&W7F÷&T'Fâ"6Æ73Ò&'WGFöâ"G—SÒ&'WGFöâ#îXùnkhƒÂö'WGFöããÆ'WGFöâ–CÒ&6öæf—&Ô&6†—fU&W7F÷&T'Fâ"6Æ73Ò&'WGFöâFævW""G—SÒ&'WGFöâ#îzîŠêNh.ZHÓÂö'WGFöããÂöF—cæ“°¢&–æD6Æ÷6R†÷fW&Æ’“°¢B‚r66æ6VÄ&6†—fU&W7F÷&T'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆ6Æ÷6T÷fW&Æ’“°¢B‚r66öæf—&Ô&6†—fU&W7F÷&T'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆ7–æ2‚“Óç°¢6öç7B'WGFöãÒB‚r66öæf—&Ô&6†—fU&W7F÷&T'Fâr“¶'WGFöâæF—6&ÆVC×G'VS¶'WGFöâçFW‡D6öçFVçCÒ~h.ZHŞKŠŞ(
+bs°¢G'’²6öç7B&W7VÇCÖv—B&W7F÷&U÷'F&ÆT&6†—fR‡–ÆöB“¶v—BÆöE6WGF–æw2‚“¶v—B&Vg&W6„FF‚“·&VæFW$&Vç2‚“·&VæFW%6WGF–æw2‚“¶6Æ÷6T÷fW&Æ’‚“·Fö7B‡&W7VÇBæÖ–w&FVDg&öÓò~iz~x˜ZH~K»Ş[{.‹øz{¾[›nZèÎi[Nh.ZHÒs¢~ZèÎi[NZH~K»Şh.ZHŞZèÎh‰rÂw7FGW2ÖvööBr“²Ğ¢6F6‚†W'&÷"—¶'WGFöâæF—6&ÆVCÖfÇ6S¶'WGFöâçFW‡D6öçFVçCÒ~zîŠêNh.ZHÒs·Fö7B†h.ZHŞZK‹J^ûÉ¢G¶W'&÷"æÖW76vWÖÂw7FGW2Ö&Br“·Ğ¢Ò“°¢Ò6F6‚†W'&÷"—·Fö7B†ZûÎXZ^ZK‹J^ûÉ¢G¶W'&÷"æÖW76vWÖÂw7FGW2Ö&Br“·Òf–æÆÇ—²B‚r6–×÷'D–çWBr’çfÇVSÒrs·Ğ§Ğ¦gVæ7F–öâ6öæf—&Ô6ÆV$ÆÂ‚’°¢6öç7B÷fW&Æ“×6†÷t÷fW&Æ’†G¶F–Æöt†VFW"‚~kˆ^z›®iÊÎYËi[hÚârÂ~jÚNi8ŞKÙÎKˆŞXúşi*N™Hr—ÓÇ6Æ73Ò'7FGW2Ö&B#î[nXŠ™šN‹nXÚ8[©>ZÙ8ikj8Y8˜›N8Šëî{ÚîY(ÎiÊÎYËi[hÚî{É>ZÙ8#Â÷ãÆÆ&VÂ6Æ73Ò&f–VÆB#ãÇ7ãî‹é>XZ^(	Îkˆ^z›®(	ŞzîŠêCÂ÷7ããÆ–çWB–CÒ&6ÆV$6öæf—&Ô–çWB"6Æ73Ò&6öçG&öÂ#ãÂöÆ&VÃãÆ'WGFöâ–CÒ&6öæf—&Ô6ÆV$'Fâ"6Æ73Ò&'WGFöâFævW""G—SÒ&'WGFöâ#îkK˜^kˆ^z›£Âö'WGFöãæ“¶&–æD6Æ÷6R†÷fW&Æ’“°¢B‚r66öæf—&Ô6ÆV$'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆ7–æ2‚“Óç¶–b‚B‚r66ÆV$6öæf—&Ô–çWBr’çfÇVRÓÒ~kˆ^z›¢r—&WGW&âFö7B‚~Šû~‹é>XZ^(	Îkˆ^z›®(	Òr“¶v—B6ÆV$ÆÂ‚“·7FFRæ&Vç3ÕµÓ·7FFRæ'&Wu6W76–öç3ÕµÓ·7FFRç6Vç6÷'•&V6÷&G3ÕµÓ·7FFRæ–çfVçF÷'”WfVçG3ÕµÓ·7FFRæ7W'&VçEÆãÖçVÆÃ·7FFRæ7W'&VçD'&Wt–çWCÖçVÆÃ·7FFRæ7W'&VçDW†V7WF–öãÖçVÆÃ·7FFRç6WGF–æw3×7G'V7GW&VD6ÆöæR„DTdTÅEõ4UED”äu2“¶v—B6fU6WGF–æw2‚“¶6Æ÷6T÷fW&Æ’‚“¶v—B&Vg&W6„FF‚“·7v—F6…vR‚v&Vç2r“·Fö7B‚~iÊÎYËi[hÚî[{.kˆ^z›¢rÂw7FGW2ÖvööBr“¶Fö7VÖVçBæF—7F6„WfVçB†æWr7W7FöÔWfVçB‚vÇV6·–&Vã¦Æö6ÂÖFFÖ6ÆV&VBr’“·Ò“°§Ğ ¦gVæ7F–öâ÷Vå&öf–ÆTF–Æör‚’²7v—F6…vR‚w6WGF–æw2r“²Ğ ¦gVæ7F–öâF—6Ö—757Æ6‚‚’°¢6öç7B7Æ6‚ÒB‚r77Æ6…67&VVâr“°¢–b‚7Æ6‚ÇÂ7Æ6‚æ6Æ74Æ—7Bæ6öçF–ç2‚v†–FFVâr’’&WGW&ã°¢7Æ6‚æ6Æ74Æ—7BæFB‚w7Æ6‚ÖÆVfRr“°¢6WEF–ÖV÷WB‚‚’Óâ7Æ6‚æ6Æ74Æ—7BæFB‚v†–FFVâr’ÂS#“°§Ğ ¦gVæ7F–öâ&–æDvÆö&ÄWfVçG2‚’°¢B‚r77Æ6…67&VVâr“òæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂF—6Ö—757Æ6‚“°¢B‚r77Æ6…67&VVâr“òæFDWfVçDÆ—7FVæW"‚v¶W–F÷vârÂWfVçBÓâ²–b†WfVçBæ¶W’ÓÓÒtVçFW"rÇÂWfVçBæ¶W’ÓÓÒrr’F—6Ö—757Æ6‚‚“²Ò“°¢B‚r6&÷GFöÔæbr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆWfVçCÓç¶6öç7B'WGFöãÖWfVçBçF&vWBæ6Æ÷6W7B‚u¶FF×vR×F&vWEÒr“¶–b†'WGFöâ—7v—F6…vR†'WGFöâæFF6WBçvUF&vWB“·Ò“°¢B‚r6&Väw&÷W2r’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆWfVçCÓç°¢6öç7B&ö&D&VâÒWfVçBçF&vWBæ6Æ÷6W7B‚u¶FFÖ&ö&BÖ&VåÒr“²–b†&ö&D&Vâ’²6öç7B&VâÒ7FFRæ&Vç2æf–æB†—FVÒÓâ—FVÒæ–BÓÓÒ&ö&D&VâæFF6WBæ&ö&D&Vâ“²–b†&Vâ’fö7W5&V6öÖÖVæFVD&Vâ†&VâÂ²÷VäFWF–Ã¢G'VRÂGW&F–öã¢ƒÒ“²&WGW&ã²Ğ¢6öç7B&ö&BÒWfVçBçF&vWBæ6Æ÷6W7B‚u¶FFÖ÷Vâ×&V6öÖÖVæBÖ&ö&EÒr“²–b†&ö&B’&WGW&â÷Vå&V6öÖÖVæFF–öäÆVFW&&ö&B‚“°¢6öç7Bw&÷WÒWfVçBçF&vWBæ6Æ÷6W7B‚u¶FFÖ÷VâÖw&÷WÒr“°¢–b†w&÷W’²7FFRæw&÷Wæ–ÖF–öäÖöFSÒvÖçVÂs²7FFRç&V6öÖÖVæFF–öäW‡æFVDÆÃÖfÇ6S²7FFRæ7F—fTw&÷W¶W’Òw&÷WæFF6WBæ÷Väw&÷W²&VæFW$&Vç2‚“²&WGW&ã²Ğ¢–b†WfVçBçF&vWBæ6Æ÷6W7B‚u¶FFÖ6öÆÆ6RÖw&÷WÒr’’²7FFRæw&÷Wæ–ÖF–öäÖöFSÒvÖçVÂs²7FFRç&V6öÖÖVæFF–öäW‡æFVDÆÃÖfÇ6S²7FFRæ7F—fTw&÷W¶W’ÒçVÆÃ²&VæFW$&Vç2‚“²&WGW&ã²Ğ¢6öç7B'&WsÖWfVçBçF&vWBæ6Æ÷6W7B‚u¶FFÖ'&WrÖ&VåÒr“¶–b†'&Wr—¶WfVçBç7F÷&÷vF–öâ‚“·7FFRç6VÆV7FVD&Vä–CÖ'&WræFF6WBæ'&Wt&Vã·7FFRæ7W'&VçEÆãÖçVÆÃ·7v—F6…vR‚v'&Wrr“·&WGW&ã·Ğ¢6öç7B6&CÖWfVçBçF&vWBæ6Æ÷6W7B‚u¶FFÖ&VâÖ–EÒr“¶–b†6&B—¶FWF–Ä&Vâ†6&BæFF6WBæ&Vä–B“·&WGW&ã·Ğ¢6öç7BæVÃÖWfVçBçF&vWBæ6Æ÷6W7B‚u¶FFÖ7F—fRÖw&÷W×æVÅÒr“°¢–b‡æVÂbbWfVçBçF&vWBæ6Æ÷6W7B‚u¶FFÖ&VâÖ–EÒÅ¶FFÖ'&WrÖ&VåÒÂæ7F—fRÖw&÷W×F—FÆRr’—·7FFRæw&÷Wæ–ÖF–öäÖöFSÒvÖçVÂs·7FFRç&V6öÖÖVæFF–öäW‡æFVDÆÃÖfÇ6S·7FFRæ7F—fTw&÷W¶W“ÖçVÆÃ·&VæFW$&Vç2‚“·Ğ¢Ò“°¢B‚r6&Väw&÷W2r’æFDWfVçDÆ—7FVæW"‚v¶W–F÷vârÆWfVçCÓç¶–b‚†WfVçBæ¶W“ÓÓÒtVçFW"wÇÆWfVçBæ¶W“ÓÓÒrr’bfWfVçBçF&vWBæÖF6†W2‚u¶FFÖ&VâÖ–EÒr’–FWF–Ä&Vâ†WfVçBçF&vWBæFF6WBæ&Vä–B“·Ò“°¢B‚r67F—fTf–ÇFW$&"r’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆWfVçCÓç¶–b†WfVçBçF&vWBæ–CÓÓÒv6ÆV$7F—fTf–ÇFW'2r—·7FFRæf–ÇFW#×·6V&6ƒ¢rrÆ6÷VçG'“¢rrÇf&–WG“¢rrÇ&ö6W73¢rrÆfÆf÷'3¥µÒÇ6÷'C¢vg&W6†æW72rÆF—#¢v62wÓ·7FFRæ7F—fTw&÷W¶W“ÖçVÆÃ·&VæFW$&Vç2‚“·×Ò“°¢B‚r6w&÷W'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆ÷Väw&÷WÖVçR“²B‚r6ÖævT'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆ÷VäÖævTÖVçR“°¢B‚r6f%6V&6„'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆ÷Vå6V&6„F–Æör“²B‚r6f%&V6öÖÖVæD'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆ÷Vå&V6öÖÖVæDÖVçR“²B‚r6f$†—7F÷'”'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÂ‚“Óæ÷Vä†—7F÷'•67&VVâ‚’“²B‚r6f$FD'Fâr’æFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆ÷VäFDÖVçR“°¢Fö7VÖVçBæFDWfVçDÆ—7FVæW"‚vÇV6·–&Vã§&WVW7BÖ†—7F÷'’×&WÆ’rÂWfVçBÓâÆöD'&Wu6W76–öâ†WfVçBæFWF–Ãòç&V6÷&D–B’“°¦Fö7VÖVçBæFDWfVçDÆ—7FVæW"‚v6Æ–6²rÆWfVçCÓç°¢6öç7BFVÆWFU6W76–öãÖWfVçBçF&vWBæ6Æ÷6W7B‚u¶FFÖFVÆWFR×6W76–öåÒr“¶–b†FVÆWFU6W76–öâ—¶WfVçBç&WfVçDFVfVÇB‚“¶WfVçBç7F÷&÷vF–öâ‚“¶6öæf—&ÔFVÆWFT'&Wu6W76–öâ†FVÆWFU6W76–öâæFF6WBæFVÆWFU6W76–öâ“·&WGW&ã·Ğ¢6öç7B6Vç6÷'•&V6÷&CÖWfVçBçF&vWBæ6Æ÷6W7B‚u¶FF×6Vç6÷'’×&V6÷&EÒr“¶–b‡6Vç6÷'•&V6÷&B—¶WfVçBç&WfVçDFVfVÇB‚“¶÷Vå6Vç6÷'•&V6÷&B‡6Vç6÷'•&V6÷&BæFF6WBç6Vç6÷'•&V6÷&B“·&WGW&ã·Ğ¢6öç7BÖævSÖWfVçBçF&vWBæ6Æ÷6W7B‚u¶FFÖÖævRÖ7F–öåÒr“¶–b†ÖævR—¶6öç7B7F–öãÖÖævRæFF6WBæÖævT7F–öã¶6Æ÷6U÷W2‚“¶–b†7F–öãÓÓÒvW‡÷'Br–W‡÷'DFF‚“¶–b†7F–öãÓÓÒv–×÷'Br’B‚r6–×÷'D–çWBr’æ6Æ–6²‚“·&WGW&ã·Ğ¢6öç7BFCÖWfVçBçF&vWBæ6Æ÷6W7B‚u¶FFÖFBÖÖöFUÒr“¶–b†FB—¶6öç7BÖöFSÖFBæFF6WBæFDÖöFS¶6Æ÷6U÷W2‚“¶–b†ÖöFSÓÓÒw†÷Fòr’B‚r7$–ÖvT–çWBr’æ6Æ–6²‚“¶–b†ÖöFSÓÓÒw"r–÷Vä6ÖW&F–Æör‚“¶–b†ÖöFSÓÓÒwFW‡Br–÷VåFW‡E&V6övæ—F–öâ‚“·&WGW&ã·Ğ¢6öç7B&V6öÖÖVæCÖWfVçBçF&vWBæ6Æ÷6W7B‚u¶FF×&V6öÖÖVæBÖÖöFUÒr“¶–b‡&V6öÖÖVæB—·&V6öÖÖVæD&Vâ‡&V6öÖÖVæBæFF6WBç&V6öÖÖVæDÖöFR“·&WGW&ã·Ğ¢–b‚WfVçBçF&vWBæ6Æ÷6W7B‚rç÷WÖÖVçRÂç&V6öÖÖVæBÖÖVçRÂ6w&÷W'FâÂ6ÖævT'FâÂ6f%&V6öÖÖVæD'FâÂ6f$FD'Fâr’–6Æ÷6U÷W2‚“°¢Ò“°¢B‚r7$–ÖvT–çWBr’æFDWfVçDÆ—7FVæW"‚v6†ævRrÆWfVçCÓæ†æFÆU$f–ÆR†WfVçBçF&vWBæf–ÆW5³Ò’“²B‚r6–×÷'D–çWBr’æFDWfVçDÆ—7FVæW"‚v6†ævRrÆWfVçCÓæ–×÷'DFF†WfVçBçF&vWBæf–ÆW5³Ò’“°¢v–æF÷ræFDWfVçDÆ—7FVæW"‚wvV†–FRrÂ‚“Óç7FFRæ6ÖW&66ææW#òç7F÷‚’“²Fö7VÖVçBæFDWfVçDÆ—7FVæW"‚wf—6–&–Æ—G–6†ævRrÂ‚“Óç¶–b†Fö7VÖVçBæ†–FFVâ—7FFRæ6ÖW&66ææW#òç7F÷‚“·Ò“°§Ğ ¦7–æ2gVæ7F–öâ†æFÆU6†&VD†6‚‚’°¢–b‚Æö6F–öâæ†6‚ç7F'G5v—F‚‚r76†&SÒr’’&WGW&âfÇ6S°¢G'’°¢6öç7BVæ6öFVBÒÆö6F–öâæ†6‚ç6Æ–6Rƒr“²–b†Væ6öFVBæÆVæwF‚âc’F‡&÷ræWrW'&÷"‚~XˆnKª¾i[hÚî‹ø~™[òr“°¢6öç7B–ÆöBÒv—BFV6öFU6†&R†Væ6öFVB“²&VæFW%6†&VE–ÆöB‡–ÆöB“²&WGW&âG'VS°¢Ò6F6‚†W'&÷"’°¢Æö6F–öâæ†6ƒÒrs²Fö7B†XˆnKª¾i[hÚîiziXûÉ¢G¶W'&÷"æÖW76vWÖÂw7FGW2Ö&Br“²&WGW&âfÇ6S°¢Ğ§Ğ ¦7–æ2gVæ7F–öâ–æ—B‚’°¢7FFRæF"Òv—B÷VäF"‚“°¢v—BÖ–w&FTÆVv7’‚’æ6F6‚†W'&÷#Óâ‡¶W'&÷#¦W'&÷"æÖW76vWÒ’“°¢v—BÆöE6WGF–æw2‚“°¢6öç7BÆöFVBÒv—BÆöD6öFV&öö²‚“²7FFRæ6öFV&öö³ÖÆöFVBæFF·7FFRæ6öFV&öö´ÖWFÖÆöFVBæÖWF·7FFRæ6öFV&öö´–æFWƒÖÖ¶T–æFW‚†ÆöFVBæFF“°¢–b†v—B†æFÆU6†&VD†6‚‚’’&WGW&ã°¢v—B&Vg&W6„FF‚“²v—BÖ–w&FTÆVv7”fÆf÷$6öFW2‚“²&–æDvÆö&ÄWfVçG2‚“°¢VçFW$‚“°¢–b‚w6W'f–6Uv÷&¶W"r–âæf–vF÷"’æf–vF÷"ç6W'f–6Uv÷&¶W"ç&Vv—7FW"‚râ÷7ræ§2r’æ6F6‚‚‚’Óâ·Ò“°§Ğ  ¦–æ—B‚’æ6F6‚†W'&÷"Óâ°¢6öç6öÆRæW'&÷"†W'&÷"“°¢6†÷t–æfôF–Æör‚~X‰ŞZx¾XÉnZK‹JRrÂW'&÷"æÖW76vR“°§Ò“° 
