@@ -243,15 +243,6 @@ function enforceNoteLimit() {
   }
 }
 
-function enterSensoryChoice(event) {
-  const button = event.target.closest?.('#directSensoryBtn, #planToSensoryBtn');
-  if (!button) return;
-  event.preventDefault();
-  event.stopPropagation();
-  event.stopImmediatePropagation();
-  queueMicrotask(() => $('[data-page-target="sensory"]')?.click());
-}
-
 function radarPoints(values, center = 44, radius = 31) {
   const safe = values.length === 5 ? values : [5, 5, 5, 5, 5];
   return safe.map((value, index) => {
@@ -356,7 +347,6 @@ function queueSync() {
 
 document.addEventListener('click', captureProfessionalProgress, true);
 document.addEventListener('click', resetProfessionalDraft, true);
-document.addEventListener('click', enterSensoryChoice, true);
 document.addEventListener('luckybean:data-changed', () => { dataPromise = null; queueSync(); });
 {
   const integrityObserver1 = new MutationObserver(queueSync);
