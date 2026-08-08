@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://zjcrop.github.io/LuckyBean/contracts/luckybean-brew-data.schema.json",
+  "$id": "https://zjcrop.github.io/luckybean/contracts/luckybean-brew-data.schema.json",
   "title": "LuckyBean Stable Brew Data",
   "type": "object",
   "required": [

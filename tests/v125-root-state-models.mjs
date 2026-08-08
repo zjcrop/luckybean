@@ -8,6 +8,8 @@ const integrity = read('src/integrity-ui-controller.js');
 const account = read('src/ui/account-sync-panel.js');
 const runtime = read('src/features/runtime-features.js');
 const sw = read('sw.js');
+const androidBuild = read('android/app/build.gradle');
+const dataContract = JSON.parse(read('contracts/luckybean-brew-data.schema.json'));
 
 assert.match(app, /pendingSensoryContext/);
 assert.match(app, /data-sensory-mode="note"/);
@@ -45,5 +47,11 @@ assert.doesNotMatch(professional, /skipNativeToScore|injectProfessionalNote|star
 assert.match(account, /<span>账户<\/span><small>唯一的登录与自动同步入口<\/small>/);
 assert.doesNotMatch(runtime, /postbrew-sensory/);
 assert.doesNotMatch(sw, /postbrew-sensory-controller/);
+assert.match(androidBuild, /applicationId 'com\.luckybean\.app'/);
+assert.match(androidBuild, /versionCode 102300/);
+assert.match(androidBuild, /versionName '1\.2\.3-main-test'/);
+assert.match(androidBuild, /https:\/\/zjcrop\.github\.io\/luckybean\//);
+assert.doesNotMatch(androidBuild, /zjcrop\.github\.io\/(?:BrewIon\/luckybean|LuckyBean)\//);
+assert.equal(dataContract.$id, 'https://zjcrop.github.io/luckybean/contracts/luckybean-brew-data.schema.json');
 
 console.log('v1.2.5 independent sensory state machines and unified private gear model passed');

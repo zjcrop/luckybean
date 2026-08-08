@@ -47,13 +47,20 @@ jobs:
       - name: Verify Android package contract
         shell: bash
         run: |
+          grep -q "applicationId 'com.luckybean.app'" android/app/build.gradle
           grep -q "versionCode 102300" android/app/build.gradle
           grep -q "versionName '1.2.3-main-test'" android/app/build.gradle
           test -f android/app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android/app/build/outputs/apk/debug/app-debug.apk | grep -q "package: name='com.luckybean.app' versionCode='102300' versionName='1.2.3-main-test'"
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/index.html'
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/src/services/brew-profile-catalog-service.js'
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/src/services/brew-analysis-service.js'
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/web-cache/src/renderers/brew-spatial-controller.js'
+          unzip -p android/app/build/outputs/apk/debug/app-debug.apk assets/web-cache/native-bridge.js | grep -Fq 'https://zjcrop.github.io/luckybean/'
+          if unzip -p android/app/build/outputs/apk/debug/app-debug.apk assets/web-cache/native-bridge.js | grep -aFq 'https://zjcrop.github.io/BrewIon/luckybean/'; then
+            echo 'Retired Android share URL found in APK'
+            exit 1
+          fi
           if unzip -p android/app/build/outputs/apk/debug/app-debug.apk | grep -aEq 'sb_secret_|SUPABASE_SERVICE_ROLE_KEY'; then
             echo 'Server secret material found in APK'
             exit 1

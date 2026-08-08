@@ -28,7 +28,7 @@ tasks.register('syncLuckyBeanWebAssets') {
         }
 
         File nativeBridge = new File(webCache, 'native-bridge.js')
-        nativeBridge.write("globalThis.__LUCKYBEAN_ANDROID__ = true;\nglobalThis.__LUCKYBEAN_PUBLIC_URL__ = 'https://zjcrop.github.io/BrewIon/luckybean/';\n", 'UTF-8')
+        nativeBridge.write("globalThis.__LUCKYBEAN_ANDROID__ = true;\nglobalThis.__LUCKYBEAN_PUBLIC_URL__ = 'https://zjcrop.github.io/luckybean/';\n", 'UTF-8')
 
         File indexFile = new File(webCache, 'index.html')
         String indexHtml = indexFile.getText('UTF-8')
