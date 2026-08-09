@@ -28,7 +28,7 @@ const headers = {
   'x-request-id': crypto.randomUUID()
 };
 
-function buildBrewInput(profileId = 'recommended') {
+function buildBrewInput(profileId = 'recommended', dripperMaterial = 'plastic') {
   return {
     bean: {
       countryCode: 'PA',
@@ -47,6 +47,7 @@ function buildBrewInput(profileId = 'recommended') {
       segmentMode: 'auto',
       segments: 4,
       dripperCode: 'cone',
+      dripperMaterial,
       filterPaper: 'fast',
       grinder: 'test-grinder',
       firstCoolingMode: 'auto',
@@ -63,6 +64,18 @@ function buildBrewInput(profileId = 'recommended') {
     environment: { ambientTemperatureC: 25, relativeHumidityPct: 50, initialBedTemperatureC: 25 },
     targets: { ...expectedTargets }
   };
+}
+
+for (const material of ['glass', 'ceramic', 'plastic', 'titanium']) {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { ...headers, 'x-request-id': crypto.randomUUID() },
+    body: JSON.stringify(buildBrewInput('recommended', material))
+  });
+  const analysis = await response.json();
+  assert.equal(response.status, 200, `${material}: ${JSON.stringify(analysis)}`);
+  assert.equal(analysis.input.brew.dripperMaterial, material);
+  assert.equal(analysis.plan.input.brew.dripperMaterial, material);
 }
 
 const invalidKeyResponse = await fetch(`${endpoint}?mode=profiles`, {
@@ -140,4 +153,4 @@ for (const profileId of catalogVersions.keys()) {
   for (const id of targetIds) assert.ok(returnedTargets.has(id), `${profileId}: missing target ${id}`);
 }
 
-console.log(`Verified strict authentication, version-free input and all ${catalogVersions.size} workbook profiles.`);
+console.log(`Verified strict authentication, all four dripper materials, version-free input and all ${catalogVersions.size} workbook profiles.`);

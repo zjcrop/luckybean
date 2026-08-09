@@ -85,8 +85,13 @@ function relationshipAllowed(table, row, context = {}) {
 
 function evidenceFragments(value) {
   const text = String(value || '').normalize('NFKC');
-  const fragments = text.split(/[\n\r|；;，,。:：]+/).map(item => item.trim()).filter(Boolean);
-  return [...new Set([text.trim(), ...fragments].filter(Boolean))];
+  const fragments = text.split(/[\n\r|；;，,。:：/／、]+/).map(item => item.trim()).filter(Boolean);
+  const tokens = fragments.flatMap(fragment => fragment
+    .split(/\s+/)
+    .flatMap(token => token.match(/[A-Za-z]+\s*\d+(?:\.\d+)?|\d{3,6}|[\p{L}]{2,}/gu) || [])
+    .map(token => token.replace(/\s+/g, ''))
+    .filter(Boolean));
+  return [...new Set([text.trim(), ...fragments, ...tokens].filter(Boolean))];
 }
 
 export function codebookCandidates(field, evidence, book, context = {}, limit = 5) {

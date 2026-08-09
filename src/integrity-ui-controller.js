@@ -99,7 +99,13 @@ function roastCandidates(evidence) {
     [/极深|法式|very\s*dark/, 'RL-L6', '极深烘'],
     [/深烘|深度|\bdark\b/, 'RL-L5', '深烘']
   ];
-  return rows.filter(([regex]) => regex.test(text)).map(([, value, label]) => ({ field: 'roastCode', value, code: value, label, score: 0.96 }));
+  const matched = rows.filter(([regex]) => regex.test(text)).map(([, value, label]) => ({ field: 'roastCode', value, code: value, label, score: 0.96 }));
+  if (matched.length) return matched;
+  const numeric = text.match(/(?:^|\b)(?:rl[-\s]?)?l(?:evel)?[-\s]?([0-6])(?:\b|$)/i) || text.match(/^\s*([0-6])(?:\.0)?\s*$/);
+  if (!numeric) return [];
+  const level = Number(numeric[1]);
+  const labels = ['极浅烘', '浅烘', '浅中烘', '中烘', '中深烘', '深烘', '极深烘'];
+  return [{ field: 'roastCode', value: `RL-L${level}`, code: `RL-L${level}`, label: labels[level], score: 0.995 }];
 }
 
 function candidateList(field, evidence, book) {
@@ -135,10 +141,12 @@ async function enhanceEvidence(force = false) {
   });
   if (!sourceRows.length) return;
   container.dataset.integrityEvidence = '1';
-  container.innerHTML = `<div class="evidence-table-head"><span>字段</span><span>当前值 / 候选</span><span>置信度</span><span>原始证据</span></div>${sourceRows.map(row => {
+  const visibleRows = sourceRows.map(row => {
     const field = EVIDENCE_FIELDS[row.label];
     const control = field ? $(`#${FIELD_CONTROLS[field]}`) : null;
     const candidates = field ? candidateList(field, row.evidence, book) : [];
+    const current = controlDisplay(control);
+    if (/^(?:未填入|未选择|请选择|先选择|填写.*自动)/.test(current) && !candidates.length) return '';
     const candidateHtml = candidates.length
       ? `<div class="evidence-candidates">${candidates.map(candidate => {
           const value = candidate.code ?? candidate.value ?? '';
@@ -146,8 +154,13 @@ async function enhanceEvidence(force = false) {
           return `<button type="button" data-evidence-field="${esc(field)}" data-evidence-value="${esc(value)}" data-evidence-label="${esc(candidate.label || value)}"><strong>${esc(candidate.label || value)}</strong><small>${score || '—'}%</small></button>`;
         }).join('')}</div>`
       : '<small class="muted">没有可靠候选，请手工选择</small>';
-    return `<div class="evidence-row evidence-row-v2"><strong>${esc(row.label)}</strong><div><span class="evidence-current">${esc(controlDisplay(control))}</span>${candidateHtml}</div><span class="evidence-confidence">${esc(row.confidence)}</span><code>${esc(row.evidence || '—')}</code></div>`;
-  }).join('')}`;
+    return `<div class="evidence-row evidence-row-v2"><strong>${esc(row.label)}</strong><div><span class="evidence-current">${esc(current)}</span>${candidateHtml}</div><span class="evidence-confidence">${esc(row.confidence)}</span><code>${esc(row.evidence || '—')}</code></div>`;
+  }).filter(Boolean);
+  if (!visibleRows.length) {
+    container.closest('.panel')?.remove();
+    return;
+  }
+  container.innerHTML = `<div class="evidence-table-head"><span>字段</span><span>当前值 / 候选</span><span>置信度</span><span>原始证据</span></div>${visibleRows.join('')}`;
   $$('[data-evidence-field]', container).forEach(button => button.addEventListener('click', () => {
     applyCandidate(button.dataset.evidenceField, button.dataset.evidenceValue, button.dataset.evidenceLabel);
   }));

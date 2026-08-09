@@ -10,7 +10,8 @@ const styles = read('styles.css');
 
 assert.match(read('src/utils.js'), /APP_VERSION = '1\.23D'/, 'the locked app version must remain 1.23D');
 
-assert.match(appearance, /theme === 'dark' \? '🌙' : '☀️'/, 'theme control must use the requested emoji logos');
+assert.match(appearance, /theme === 'dark' \? '☀️' : '🌙'/, 'dark mode must offer the sun action and light mode the moon action');
+assert.match(appearance, /screen\.dataset\.splashVariant = normalized/, 'the persisted splash choice must restore its matching background after refresh');
 assert.match(appearance, /function enforceSingleOpen[\s\S]*other\.open = false/, 'dynamic appearance settings must join single-open behavior');
 const chooseSplash = appearance.match(/function chooseSplash\(value\) \{[\s\S]*?\n\}/)?.[0] || '';
 assert.doesNotMatch(chooseSplash, /queueSettingsPanel|renderSettingsPanel/, 'choosing a splash must not rebuild and collapse its panel');
@@ -29,5 +30,9 @@ assert.match(app, /luckybean:edit-professional-sensory/, 'professional records m
 assert.doesNotMatch(app, /sensoryRecordEditorHtml/, 'the flat result-only editor must stay removed');
 
 assert.match(styles, /\.v095-tag-grid,[\s\S]*column-gap:\s*1em;[\s\S]*row-gap:\s*\.5em;/, 'cupping tags must use one-em columns and half-em rows');
+assert.match(styles, /\.v095-score-stage \[data-v095-score-delta-input\][\s\S]*width:\s*100% !important;[\s\S]*writing-mode:\s*horizontal-tb !important;/, 'professional subjective score axis must be a wide horizontal control');
+assert.match(app, /dripperMaterial:\s*normalizeDripperMaterial\(/, 'LuckyBean must send the selected dripper material to BrewProfiles');
+assert.match(app, /data-add-bean-option="regions"/, 'region must retain a local add-option action');
+assert.match(app, /data-add-bean-option="entities"/, 'estate and processing-station must retain a local add-option action');
 
 console.log('LuckyBean 1.23D settings and sensory regression contracts passed');

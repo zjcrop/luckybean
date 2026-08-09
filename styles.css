@@ -3617,6 +3617,38 @@ html body #splashScreen.splash-screen > span {
   z-index: 2 !important;
 }
 
+/* 1.23D compatibility fixes: persistent custom selectors and usable score axis. */
+.select-with-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+.select-with-add .add-select-option {
+  min-height: 42px;
+  padding-inline: 12px;
+  white-space: nowrap;
+}
+.v095-score-stage .subjective-delta-control {
+  width: min(50vw, 420px) !important;
+  max-width: 100% !important;
+  grid-template-columns: 56px minmax(0, 1fr) !important;
+  align-items: center !important;
+  justify-self: center;
+}
+.v095-score-stage [data-v095-score-delta-input] {
+  width: 100% !important;
+  height: 32px !important;
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+  cursor: pointer !important;
+}
+@media (max-width: 640px) {
+  .select-with-add { grid-template-columns: 1fr; }
+  .select-with-add .add-select-option { justify-self: start; min-height: 36px; }
+  .v095-score-stage .subjective-delta-control { width: 50vw !important; }
+}
+
 html.v099p-settings-active,
 html.v099p-settings-active body,
 html.v099p-settings-active .app-shell,

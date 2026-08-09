@@ -37,6 +37,9 @@ export function toStableBrewData(input = {}) {
   data.brew.profileId = data.brew.profileId || data.brew.brewStyle || data.brew.style || 'recommended';
   data.brew.doseG = finite(data.brew.doseG, 15);
   data.brew.ratio = finite(data.brew.ratio, 15.5);
+  data.brew.dripperMaterial = ['glass', 'ceramic', 'plastic', 'titanium'].includes(String(data.brew.dripperMaterial))
+    ? String(data.brew.dripperMaterial)
+    : 'plastic';
   data.water.recipeVolumeL = finite(data.water.recipeVolumeL, 5);
   data.environment.ambientTemperatureC = finite(data.environment.ambientTemperatureC, 25);
   data.environment.initialBedTemperatureC = finite(data.environment.initialBedTemperatureC, 25);

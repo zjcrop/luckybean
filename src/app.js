@@ -35,20 +35,32 @@ const ROASTS = [
   ['RL-L4', '中深烘'], ['RL-L5', '深烘'], ['RL-L6', '极深烘']
 ];
 const ROAST_NAME = new Map(ROASTS);
+const DRIPPER_MATERIALS = Object.freeze([
+  ['glass', '玻璃'], ['ceramic', '陶瓷'], ['plastic', '塑料'], ['titanium', '钛']
+]);
+const DRIPPER_MATERIAL_LABEL = new Map(DRIPPER_MATERIALS);
+function normalizeDripperMaterial(value) {
+  const key = String(value || '').toLowerCase();
+  return DRIPPER_MATERIAL_LABEL.has(key) ? key : 'plastic';
+}
+function dripperMaterialOptions(selected = 'plastic') {
+  const normalized = normalizeDripperMaterial(selected);
+  return DRIPPER_MATERIALS.map(([value, label]) => `<option value="${value}"${value === normalized ? ' selected' : ''}>${label}</option>`).join('');
+}
 const STATUS_COLOR = { resting: '#5f8a73', peak: '#de9a42', good: '#bc8d55', decline: '#77736c', urgent: '#575757' };
 const DEFAULT_SETTINGS = {
   ui: { planVisualsExpanded: true, temporaryVisualOpen: false, dripperListOpen: false },
   brew: {
     apiEndpoint: '', mode: 'simple', method: 'pourover', doseG: 15, ratio: 15.5,
     profileId: 'recommended', segmentMode: 'auto', segments: 3, lowTempFirst: true,
-    dripper: '平底滤杯', filterPaperId: '', grinder: '', waterProfileId: 'auto', waterVolumeL: 5,
+    dripper: '平底滤杯', dripperMaterial: 'plastic', filterPaperId: '', grinder: '', waterProfileId: 'auto', waterVolumeL: 5,
     customWater: { name: '我的水型', tds: 85, tendency: { floral: 0, acidity: 0, sweetness: 0, body: 0, bitterness: 0, astringency: 0 }, note: '' }, flavorTargets: { acidity: 1.5, floral: 2, fruity: 2, sweetness: 2, bitterness: 2, astringency: 2 },
     firstCoolingMode: 'auto', firstTemperatureC: 87, tailCoolingMode: 'auto', tailTemperatureC: 86,
     temperatureTune: 0, grindTune: 0, bloomTune: 0, repeatability: false,
     environment: { ambientTemperatureC: 25, relativeHumidityPct: null, initialBedTemperatureC: 25 }
   },
   identity: { mode: 'guest', nickname: '访客', publicId: '', idSalt: '', verified: false, email: '', phone: '', wechat: '', qq: '' },
-  gear: { filters: [], drippers: [{ id: 'dripper_flat', name: '平底滤杯', type: '平底滤杯' }], grinders: [] },
+  gear: { filters: [], drippers: [{ id: 'dripper_flat', name: '平底滤杯', type: '平底滤杯', material: 'plastic' }], grinders: [] },
   sensoryRecentLimit: 50,
   shareRecordLimit: 5,
   groupMethod: 'country'
@@ -286,10 +298,10 @@ function normalizeGearSettings(gear = {}) {
       }));
   const drippers = Array.isArray(gear.drippers)
     ? gear.drippers.map(item => typeof item === 'string'
-        ? { id: uid('dripper'), name: item.trim(), type: item.trim(), price: 0, createdAt: now }
-        : ({ id: String(item.id || uid('dripper')), name: String(item.name || item.type || '').trim(), type: String(item.type || item.name || '').trim(), price: Math.max(0, Number(item.price || 0)), createdAt: item.createdAt || now }))
+        ? { id: uid('dripper'), name: item.trim(), type: item.trim(), material: 'plastic', price: 0, createdAt: now }
+        : ({ id: String(item.id || uid('dripper')), name: String(item.name || item.type || '').trim(), type: String(item.type || item.name || '').trim(), material: normalizeDripperMaterial(item.material || item.dripperMaterial), price: Math.max(0, Number(item.price || 0)), createdAt: item.createdAt || now }))
       .filter(item => item.name)
-    : String(gear.drippers || '平底滤杯').split(/[、,，\n]/).map(value => value.trim()).filter(Boolean).map((name, index) => ({ id: `legacy_dripper_${index}`, name, type: name, price: 0, createdAt: now }));
+    : String(gear.drippers || '平底滤杯').split(/[、,，\n]/).map(value => value.trim()).filter(Boolean).map((name, index) => ({ id: `legacy_dripper_${index}`, name, type: name, material: 'plastic', price: 0, createdAt: now }));
   const legacyGrinders = Array.isArray(gear.grinders)
     ? gear.grinders
     : String(gear.grinders || gear.grinder || '').split(/[\n、,，]/).map(value => value.trim()).filter(Boolean);
@@ -305,7 +317,7 @@ function normalizeGearSettings(gear = {}) {
   }).filter(item => item.name);
   return {
     filters,
-    drippers: drippers.length ? drippers : [{ id: 'dripper_flat', name: '平底滤杯', type: '平底滤杯', price: 0, createdAt: now }],
+    drippers: drippers.length ? drippers : [{ id: 'dripper_flat', name: '平底滤杯', type: '平底滤杯', material: 'plastic', price: 0, createdAt: now }],
     grinders
   };
 }
@@ -355,6 +367,10 @@ function normalizeBeanDisplayData(original = {}) {
 function gearFilters() { return normalizeGearSettings(state.settings?.gear || {}).filters; }
 function gearDrippers() { return normalizeGearSettings(state.settings?.gear || {}).drippers; }
 function gearGrinders() { return normalizeGearSettings(state.settings?.gear || {}).grinders; }
+function selectedDripperItem(value = $('#brewDripper')?.value || state.settings.brew.dripper || '') {
+  const drippers = gearDrippers();
+  return drippers.find(item => item.id === value || item.type === value || item.name === value) || drippers[0] || null;
+}
 function lowStockFilters() { return gearFilters().filter(item => Number(item.quantity) < 10); }
 function updateLowStockIndicator() {
   const button = document.querySelector('[data-page-target="settings"] span');
@@ -815,8 +831,8 @@ function beanFormHtml(bean = {}, source = {}) {
     <form id="beanForm" novalidate>
       <div class="form-grid">
         ${fieldHtml('beanCountry','国家',`<select id="beanCountry" class="control">${selectOptions(state.codebook.countries,bean.countryCode)}</select>`,'required')}
-        ${fieldHtml('beanRegion','产区',`<select id="beanRegion" class="control">${selectOptions(regions,bean.regionCode,2,bean.countryCode?'请选择产区':'先选择国家')}</select>`)}
-        ${fieldHtml('beanEntity','庄园 / 处理站',`<select id="beanEntity" class="control">${selectOptions(entities,bean.entityCode,3,bean.countryCode?'请选择庄园 / 处理站':'先选择国家')}</select>`)}
+        ${fieldHtml('beanRegion','产区',`<div class="select-with-add"><select id="beanRegion" class="control">${selectOptions(regions,bean.regionCode,2,bean.countryCode?'请选择产区':'先选择国家')}</select><button class="button subtle add-select-option" type="button" data-add-bean-option="regions">新增选项</button></div>`)}
+        ${fieldHtml('beanEntity','庄园 / 处理站',`<div class="select-with-add"><select id="beanEntity" class="control">${selectOptions(entities,bean.entityCode,3,bean.countryCode?'请选择庄园 / 处理站':'先选择国家')}</select><button class="button subtle add-select-option" type="button" data-add-bean-option="entities">新增选项</button></div>`)}
         ${fieldHtml('beanVariety','豆种',`<select id="beanVariety" class="control">${selectOptions(state.codebook.varieties,bean.varietyCode)}</select>`,'required')}
         ${fieldHtml('beanProcess','处理法',`<select id="beanProcess" class="control">${selectOptions(state.codebook.processes,bean.processCode)}</select>`,'required')}
         ${fieldHtml('beanRoastColor','烘焙色值',`<input id="beanRoastColor" class="control" type="number" min="20" max="120" step="1" value="${esc(colorValue)}" placeholder="Agtron 20–120">`,'recommended')}
@@ -846,6 +862,40 @@ function evidenceHtml(evidence = {}, confidence = {}) {
   return rows ? `<section class="panel"><div class="panel-title"><div><h3>识别证据</h3><p>低置信度字段请人工确认</p></div></div><div class="text-evidence">${rows}</div></section>` : '';
 }
 
+function customCodeRow(record) {
+  if (record.table === 'regions') return [record.code, record.countryCode, record.name, record.name];
+  return [record.code, record.countryCode, record.regionCode || '', record.name, record.name];
+}
+
+function openAddBeanOptionDialog(table) {
+  const countryCode = formValue('beanCountry');
+  if (!countryCode) return toast('请先选择国家', 'status-warn');
+  const isRegion = table === 'regions';
+  const title = isRegion ? '新增产区' : '新增庄园 / 处理站';
+  const overlay = showOverlay(`${dialogHeader(title, '自定义项目仅保存在本地，后续可与正式编码表归并', { centered: true })}<label class="field"><span>名称 *</span><input id="customBeanOptionName" class="control" maxlength="80" autocomplete="off"></label><div class="row end"><button id="saveCustomBeanOptionBtn" class="button primary" type="button">确定</button></div>`, { id: 'custom-bean-option', backdropClose: true });
+  bindClose(overlay);
+  $('#customBeanOptionName')?.focus();
+  $('#saveCustomBeanOptionBtn')?.addEventListener('click', async () => {
+    const name = $('#customBeanOptionName').value.trim();
+    if (!name) return toast('名称不能为空', 'status-bad');
+    const regionCode = formValue('beanRegion');
+    const record = {
+      code: uid(isRegion ? 'custom_region' : 'custom_entity'), table, name, label: name,
+      countryCode, regionCode: isRegion ? '' : regionCode,
+      status: 'custom_active', createdAt: new Date().toISOString()
+    };
+    await put('customCodes', record);
+    state.codebook[table] ||= [];
+    state.codebook[table].push(customCodeRow(record));
+    state.codebookIndex = makeIndex(state.codebook);
+    const draft = currentBeanDraftFromForm();
+    if (isRegion) draft.regionCode = record.code;
+    else draft.entityCode = record.code;
+    closeOverlay();
+    openBeanForm(draft, state.beanFormSource || { type: 'manual' });
+  });
+}
+
 function openBeanForm(bean = {}, source = { type: 'manual' }) {
   state.beanFormSource = source;
   state.beanFormDraft = structuredClone(bean);
@@ -871,6 +921,7 @@ function openBeanForm(bean = {}, source = { type: 'manual' }) {
     $('#beanEntity').innerHTML = selectOptions(relatedRows(state.codebook, 'entities', country), '', 3, country ? '请选择庄园 / 处理站' : '先选择国家');
     bindControlStates(form);
   });
+  $$('[data-add-bean-option]', form).forEach(button => button.addEventListener('click', () => openAddBeanOptionDialog(button.dataset.addBeanOption)));
   $('#beanRoastColor').addEventListener('input', syncRoastColor);
   if (formValue('beanRoastColor')) { $('#beanRoast').dataset.autoFromColor = 'true'; syncRoastColor(); }
   $('#editFlavorsBtn').addEventListener('click', () => openFlavorEditor(selectedSummaryCodes(), bean, source));
@@ -1179,12 +1230,13 @@ function buildBrewInput(bean) {
   const resolvedWater = waterSelection === 'auto' ? inferWaterProfile(bean) : waterSelection;
   const targets = state.settings.brew.flavorTargets || DEFAULT_SETTINGS.brew.flavorTargets;
   const customWater = state.settings.brew.customWater || DEFAULT_SETTINGS.brew.customWater;
+  const dripper = selectedDripperItem($('#brewDripper')?.value);
   return {
     bean: { countryCode: bean.countryCode, regionCode: bean.regionCode, entityCode: bean.entityCode, varietyCode: bean.varietyCode, processCode: bean.processCode, roastCode: bean.roastCode, roastColor: bean.roastColor || null, roastDate: bean.roastDate, altitude: bean.altitude || null },
     brew: {
       mode: 'professional', method: 'pourover', doseG: parseNumber($('#brewDose')?.value, 15), ratio: parseNumber($('#brewRatio')?.value, 15.5),
       profileId: $('#brewProfile')?.value || 'recommended', segmentMode, segments,
-      dripperCode: $('#brewDripper')?.value || '平底滤杯', filterPaper: selectedFilterItem()?.type || '', filterPaperId: $('#brewFilterPaper')?.value || '', grinder: state.settings.brew.grinder || '',
+      dripperId: dripper?.id || '', dripperCode: dripper?.type || '平底滤杯', dripperMaterial: normalizeDripperMaterial($('#brewDripperMaterial')?.value || dripper?.material), filterPaper: selectedFilterItem()?.type || '', filterPaperId: $('#brewFilterPaper')?.value || '', grinder: state.settings.brew.grinder || '',
       firstCoolingMode: $('#firstCoolingMode')?.value || state.settings.brew.firstCoolingMode || 'auto', firstTemperatureC: Number(state.settings.brew.firstTemperatureC),
       tailCoolingMode: $('#tailCoolingMode')?.value || state.settings.brew.tailCoolingMode || 'auto', tailTemperatureC: Number(state.settings.brew.tailTemperatureC),
       lowTempFirst: ($('#firstCoolingMode')?.value || state.settings.brew.firstCoolingMode) !== 'off',
@@ -1208,6 +1260,8 @@ function renderBrew() {
   const inferredWater = selected ? inferWaterProfile(selected) : 'custom';
   const currentWater = settings.waterProfileId || 'auto';
   const drippers = gearDrippers();
+  const activeDripper = selectedDripperItem(settings.dripper);
+  const activeDripperMaterial = normalizeDripperMaterial(activeDripper?.material || settings.dripperMaterial);
   const filters = gearFilters();
   const selectedFilterId = settings.filterPaperId || filters[0]?.id || '';
   const brewProfiles = listBrewProfiles();
@@ -1220,7 +1274,7 @@ function renderBrew() {
   if (heading) heading.innerHTML = `<select id="brewBean" class="control brew-bean-heading" aria-label="选择豆子">${activeBeans.map(bean=>`<option value="${esc(bean.id)}"${bean.id===state.selectedBeanId?' selected':''}>${esc(beanDisplayName(bean))}</option>`).join('')}</select>`;
   const customWaterLabel = currentWater === 'custom' ? `${settings.customWater?.name || '自定义'} · TDS ${Number(settings.customWater?.tds || 85)}` : '';
   container.innerHTML = `<section class="panel brew-form"><div class="brew-compact-grid">
-    <div class="brew-row three"><label class="field"><span>粉量</span><input id="brewDose" class="control" type="number" min="5" max="40" step="0.1" value="${settings.doseG}"></label><label class="field"><span>粉水比</span><select id="brewRatio" class="control">${[14,14.5,15,15.5,16,16.5,17,18].map(value=>`<option value="${value}"${Number(settings.ratio)===value?' selected':''}>1:${value}</option>`).join('')}</select></label><label class="field"><span>滤杯</span><select id="brewDripper" class="control">${drippers.map(item=>`<option value="${esc(item.type)}"${settings.dripper===item.type?' selected':''}>${esc(item.name)}</option>`).join('')}</select><select id="brewFilterPaper" class="control sub-control" aria-label="滤纸">${filters.length?filters.map(item=>`<option value="${esc(item.id)}"${selectedFilterId===item.id?' selected':''}>${esc([item.brand,item.type].filter(Boolean).join(' '))} · ${item.quantity}张</option>`).join(''):'<option value="">未设滤纸</option>'}</select></label></div>
+    <div class="brew-row three"><label class="field"><span>粉量</span><input id="brewDose" class="control" type="number" min="5" max="40" step="0.1" value="${settings.doseG}"></label><label class="field"><span>粉水比</span><select id="brewRatio" class="control">${[14,14.5,15,15.5,16,16.5,17,18].map(value=>`<option value="${value}"${Number(settings.ratio)===value?' selected':''}>1:${value}</option>`).join('')}</select></label><label class="field"><span>滤杯</span><select id="brewDripper" class="control">${drippers.map(item=>`<option value="${esc(item.id)}"${activeDripper?.id===item.id?' selected':''}>${esc(item.name)}</option>`).join('')}</select><select id="brewDripperMaterial" class="control sub-control" aria-label="滤杯材质">${dripperMaterialOptions(activeDripperMaterial)}</select><select id="brewFilterPaper" class="control sub-control" aria-label="滤纸">${filters.length?filters.map(item=>`<option value="${esc(item.id)}"${selectedFilterId===item.id?' selected':''}>${esc([item.brand,item.type].filter(Boolean).join(' '))} · ${item.quantity}张</option>`).join(''):'<option value="">未设滤纸</option>'}</select></label></div>
     <div class="brew-row two"><label class="field"><span>冲煮法</span><select id="brewProfile" class="control">${brewProfiles.map(profile=>`<option value="${esc(profile.id)}"${settings.profileId===profile.id?' selected':''}>${esc(profile.label)}</option>`).join('')}</select><small class="profile-catalog-status">${esc(catalogLabel)}</small></label><label class="field"><span>分段方式</span><select id="brewSegments" class="control"><option value="auto"${settings.segmentMode==='auto'?' selected':''}>模型推荐：${recommendedSegments+1}段</option>${[1,2,3,4,5].map(value=>`<option value="${value}"${String(settings.segmentMode)===String(value)?' selected':''}>${value+1}段（含首段）</option>`).join('')}</select></label></div>
     <div class="brew-row two"><label class="field"><span>调水方案</span><select id="brewWaterProfile" class="control${currentWater==='auto'?' model-recommended':' custom-selected'}"><option value="auto"${currentWater==='auto'?' selected':''}>模型推荐：${esc(waterProfiles.find(item=>item.id===inferredWater)?.name || inferredWater)}</option>${waterProfiles.filter(profile=>profile.id!=='custom').map(profile=>`<option value="${profile.id}"${currentWater===profile.id?' selected':''}>${esc(profile.name)}</option>`).join('')}<option value="custom"${currentWater==='custom'?' selected':''}>自定义</option></select>${customWaterLabel?'<small class="custom-summary">自定义</small>':''}</label><div class="field"><span>风味设定</span><button id="openFlavorTargetBtn" class="control control-button" type="button">风味设定</button></div></div>
     <div class="brew-row three"><div class="field"><span>微调</span><button id="openBrewTuneBtn" class="control control-button" type="button">微调</button></div><label class="field"><span>首段降温</span><select id="firstCoolingMode" class="control ${settings.firstCoolingMode==='auto'?'model-recommended':'custom-selected'}"><option value="auto"${settings.firstCoolingMode==='auto'?' selected':''}>模型推荐</option><option value="custom"${settings.firstCoolingMode==='custom'?' selected':''}>自定义 ${Number(settings.firstTemperatureC||87)}°C</option><option value="off"${settings.firstCoolingMode==='off'?' selected':''}>不开启</option></select></label><label class="field"><span>尾段降温</span><select id="tailCoolingMode" class="control ${settings.tailCoolingMode==='auto'?'model-recommended':'custom-selected'}"><option value="auto"${settings.tailCoolingMode==='auto'?' selected':''}>模型推荐</option><option value="custom"${settings.tailCoolingMode==='custom'?' selected':''}>自定义 ${Number(settings.tailTemperatureC||86)}°C</option><option value="off"${settings.tailCoolingMode==='off'?' selected':''}>不开启</option></select></label></div>
@@ -1241,6 +1295,23 @@ function renderBrew() {
   }));
   $('#generatePlanBtn')?.addEventListener('click', generatePlan);
   $('#brewProfile')?.addEventListener('change', async event => { state.settings.brew.profileId = event.target.value; await saveSettings(); });
+  $('#brewDripper')?.addEventListener('change', async event => {
+    const dripper = selectedDripperItem(event.target.value);
+    state.settings.brew.dripper = event.target.value;
+    state.settings.brew.dripperMaterial = normalizeDripperMaterial(dripper?.material);
+    await saveSettings();
+    renderBrew();
+  });
+  $('#brewDripperMaterial')?.addEventListener('change', async event => {
+    const material = normalizeDripperMaterial(event.target.value);
+    const dripper = selectedDripperItem();
+    if (dripper) {
+      const stored = state.settings.gear.drippers.find(item => item.id === dripper.id);
+      if (stored) stored.material = material;
+    }
+    state.settings.brew.dripperMaterial = material;
+    await saveSettings();
+  });
   $('#directSensoryBtn')?.addEventListener('click', () => openSensoryModeChooser({ beanId: state.selectedBeanId, source: 'direct-brew' }));
   $('#openFlavorTargetBtn')?.addEventListener('click', openFlavorTargetDialog);
   $('#openBrewTuneBtn')?.addEventListener('click', openBrewTuneDialog);
@@ -1347,7 +1418,7 @@ async function generatePlan() {
     state.settings.brew = {
       ...state.settings.brew, method: input.brew.method, doseG: input.brew.doseG, ratio: input.brew.ratio,
       profileId: input.brew.profileId, segmentMode: input.brew.segmentMode, segments: input.brew.segments, lowTempFirst: input.brew.lowTempFirst,
-      dripper: input.brew.dripperCode, filterPaper: input.brew.filterPaper, filterPaperId: input.brew.filterPaperId, grinder: input.brew.grinder,
+      dripper: input.brew.dripperId || input.brew.dripperCode, dripperMaterial: input.brew.dripperMaterial, filterPaper: input.brew.filterPaper, filterPaperId: input.brew.filterPaperId, grinder: input.brew.grinder,
       waterProfileId: $('#brewWaterProfile')?.value || 'auto', waterVolumeL: input.water.recipeVolumeL,
       firstCoolingMode: input.brew.firstCoolingMode, firstTemperatureC: input.brew.firstTemperatureC,
       tailCoolingMode: input.brew.tailCoolingMode, tailTemperatureC: input.brew.tailTemperatureC,
@@ -2031,9 +2102,9 @@ function gearManagerHtml() {
   const gear = normalizeGearSettings(state.settings.gear);
   const lowIds = new Set(gear.filters.filter(item => Number(item.quantity) < 10).map(item => item.id));
   const filters = gear.filters.map(item=>`<button class="gear-item${lowIds.has(item.id)?' low-stock':''}" type="button" data-filter-item="${esc(item.id)}"><span><strong>${esc([item.brand,item.type].filter(Boolean).join(' '))}</strong><small>价格 ¥${Number(item.price||0).toFixed(2)}</small></span><b>${Math.floor(Number(item.quantity)||0)}张</b></button>`).join('');
-  const drippers = gear.drippers.map(item=>`<button class="gear-item" type="button" data-dripper-item="${esc(item.id)}"><span><strong>${esc(item.name)}</strong><small>${esc(item.type)} · ¥${Number(item.price||0).toFixed(2)}</small></span><b>编辑</b></button>`).join('');
+  const drippers = gear.drippers.map(item=>`<button class="gear-item" type="button" data-dripper-item="${esc(item.id)}"><span><strong>${esc(item.name)}</strong><small>${esc(item.type)} · ${esc(DRIPPER_MATERIAL_LABEL.get(normalizeDripperMaterial(item.material)))} · ¥${Number(item.price||0).toFixed(2)}</small></span><b>编辑</b></button>`).join('');
   const grinders = gear.grinders.map(item=>`<button class="gear-item" type="button" data-grinder-item="${esc(item.id)}"><span><strong>${esc(item.name)}</strong><small>${esc(item.setting || '未填写刻度')} · ¥${Number(item.price||0).toFixed(2)}</small></span><b>编辑</b></button>`).join('');
-  return `<div class="gear-manager">${gearSubpageHtml({kind:'filter',title:'滤纸',subtitle:'品牌、类型、张数和价格',count:gear.filters.length,listHtml:filters,emptyText:'尚未添加滤纸。完成冲煮后会自动扣减所选滤纸 1 张。'})}${gearSubpageHtml({kind:'dripper',title:'滤杯',subtitle:'名称、类型和价格',count:gear.drippers.length,listHtml:drippers,emptyText:'尚未添加滤杯。'})}${gearSubpageHtml({kind:'grinder',title:'磨豆机',subtitle:'名称、刻度和价格',count:gear.grinders.length,listHtml:grinders,emptyText:'尚未添加磨豆机。'})}</div>`;
+  return `<div class="gear-manager">${gearSubpageHtml({kind:'filter',title:'滤纸',subtitle:'品牌、类型、张数和价格',count:gear.filters.length,listHtml:filters,emptyText:'尚未添加滤纸。完成冲煮后会自动扣减所选滤纸 1 张。'})}${gearSubpageHtml({kind:'dripper',title:'滤杯',subtitle:'名称、类型、材质和价格',count:gear.drippers.length,listHtml:drippers,emptyText:'尚未添加滤杯。'})}${gearSubpageHtml({kind:'grinder',title:'磨豆机',subtitle:'名称、刻度和价格',count:gear.grinders.length,listHtml:grinders,emptyText:'尚未添加磨豆机。'})}</div>`;
 }
 
 function openAddFilterDialog(existingId = '') {
@@ -2048,10 +2119,10 @@ function openAddFilterDialog(existingId = '') {
 function openAddDripperDialog(existingId = '') {
   state.settings.gear = normalizeGearSettings(state.settings.gear);
   const existing = state.settings.gear.drippers.find(item => item.id === existingId) || {};
-  const overlay=showOverlay(`${dialogHeader(existingId?'编辑滤杯':'添加滤杯','名称、类型和价格用于私器管理',{centered:true})}<div class="grid-2"><label class="field"><span>名称 *</span><input id="dripperName" class="control" value="${esc(existing.name||'')}"></label><label class="field"><span>类型 *</span><select id="dripperType" class="control">${['平底滤杯','锥形滤杯','混合式滤杯','低旁路滤杯','浸泡式滤杯'].map(type=>`<option${type===(existing.type||'平底滤杯')?' selected':''}>${type}</option>`).join('')}</select></label><label class="field"><span>价格</span><input id="dripperPrice" class="control" type="number" min="0" step="0.01" value="${Number(existing.price||0)}"></label></div><div class="row end">${existingId?'<button id="deleteDripperBtn" class="button danger" type="button">删除</button>':''}<button id="saveDripperBtn" class="button primary" type="button">确定</button></div>`,{id:'dripper-editor',backdropClose:true});
+  const overlay=showOverlay(`${dialogHeader(existingId?'编辑滤杯':'添加滤杯','名称、类型、材质和价格用于私器管理；材质会进入 BrewProfiles 热模型',{centered:true})}<div class="grid-2"><label class="field"><span>名称 *</span><input id="dripperName" class="control" value="${esc(existing.name||'')}"></label><label class="field"><span>类型 *</span><select id="dripperType" class="control">${['平底滤杯','锥形滤杯','混合式滤杯','低旁路滤杯','浸泡式滤杯'].map(type=>`<option${type===(existing.type||'平底滤杯')?' selected':''}>${type}</option>`).join('')}</select></label><label class="field"><span>材质 *</span><select id="dripperMaterial" class="control">${dripperMaterialOptions(existing.material)}</select></label><label class="field"><span>价格</span><input id="dripperPrice" class="control" type="number" min="0" step="0.01" value="${Number(existing.price||0)}"></label></div><div class="row end">${existingId?'<button id="deleteDripperBtn" class="button danger" type="button">删除</button>':''}<button id="saveDripperBtn" class="button primary" type="button">确定</button></div>`,{id:'dripper-editor',backdropClose:true});
   bindClose(overlay);
-  $('#saveDripperBtn').addEventListener('click',async()=>{const name=$('#dripperName').value.trim();if(!name)return toast('滤杯名称为必填项','status-bad');const record={id:existing.id||uid('dripper'),name,type:$('#dripperType').value,price:Math.max(0,parseNumber($('#dripperPrice').value,0)),createdAt:existing.createdAt||new Date().toISOString()};const index=state.settings.gear.drippers.findIndex(item=>item.id===record.id);if(index>=0)state.settings.gear.drippers[index]=record;else state.settings.gear.drippers.push(record);if(!state.settings.brew.dripper)state.settings.brew.dripper=record.name;await saveSettings();closeOverlay();renderSettings();});
-  $('#deleteDripperBtn')?.addEventListener('click',async()=>{state.settings.gear.drippers=state.settings.gear.drippers.filter(item=>item.id!==existingId);state.settings.gear=normalizeGearSettings(state.settings.gear);if(existing.name===state.settings.brew.dripper)state.settings.brew.dripper=state.settings.gear.drippers[0].name;await saveSettings();closeOverlay();renderSettings();toast('滤杯已删除');});
+  $('#saveDripperBtn').addEventListener('click',async()=>{const name=$('#dripperName').value.trim();if(!name)return toast('滤杯名称为必填项','status-bad');const record={id:existing.id||uid('dripper'),name,type:$('#dripperType').value,material:normalizeDripperMaterial($('#dripperMaterial').value),price:Math.max(0,parseNumber($('#dripperPrice').value,0)),createdAt:existing.createdAt||new Date().toISOString()};const index=state.settings.gear.drippers.findIndex(item=>item.id===record.id);if(index>=0)state.settings.gear.drippers[index]=record;else state.settings.gear.drippers.push(record);if(!state.settings.brew.dripper)state.settings.brew.dripper=record.id;if([existing.id,existing.type,existing.name,record.id,record.type].includes(state.settings.brew.dripper))state.settings.brew.dripperMaterial=record.material;await saveSettings();closeOverlay();renderSettings();});
+  $('#deleteDripperBtn')?.addEventListener('click',async()=>{state.settings.gear.drippers=state.settings.gear.drippers.filter(item=>item.id!==existingId);state.settings.gear=normalizeGearSettings(state.settings.gear);if([existing.id,existing.type,existing.name].includes(state.settings.brew.dripper)){state.settings.brew.dripper=state.settings.gear.drippers[0].id;state.settings.brew.dripperMaterial=state.settings.gear.drippers[0].material;}await saveSettings();closeOverlay();renderSettings();toast('滤杯已删除');});
 }
 
 function openAddGrinderDialog(existingId = '') {

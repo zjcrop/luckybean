@@ -11,7 +11,7 @@ const source = {
   schemaVersion: 2,
   appVersion: '1.2.3-main-test',
   bean: { countryCode: 'CO' },
-  brew: { brewStyle: 'two-pulse', doseG: '15', ratio: '15.5' },
+  brew: { brewStyle: 'two-pulse', doseG: '15', ratio: '15.5', dripperMaterial: 'ceramic' },
   water: { recipeVolumeL: '5' },
   environment: { ambientTemperatureC: '25', initialBedTemperatureC: '25' },
   targets: {
@@ -32,6 +32,7 @@ for (const key of ['schemaVersion', 'appVersion', 'engineVersion', 'profileVersi
 }
 assert.equal(stable.brew.profileId, 'two-pulse');
 assert.equal(stable.brew.doseG, 15);
+assert.equal(stable.brew.dripperMaterial, 'ceramic');
 assert.equal(stable.environment.ambientTemperatureC, 25);
 assert.equal(stable.extensions.futureProjectField, true);
 assert.equal(Object.hasOwn(stable.targets, 'body'), false);
@@ -47,5 +48,6 @@ assert.deepEqual(schema.required, ['bean', 'brew', 'water', 'environment', 'targ
 assert.deepEqual(schema.properties.targets.required, [...STABLE_TARGET_IDS]);
 assert.equal(schema.properties.targets.not.required[0], 'body');
 assert.equal(schema.not.anyOf[0].required[0], 'schemaVersion');
+assert.deepEqual(schema.properties.brew.properties.dripperMaterial.enum, ['glass', 'ceramic', 'plastic', 'titanium']);
 
 console.log('Stable cross-project brew data is version-independent and uses the fixed six-target contract.');

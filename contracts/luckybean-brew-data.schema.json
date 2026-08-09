@@ -34,6 +34,11 @@
         "profileId": {
           "type": "string",
           "minLength": 1
+        },
+        "dripperMaterial": {
+          "type": "string",
+          "enum": ["glass", "ceramic", "plastic", "titanium"],
+          "description": "Filter-cup material consumed by the BrewProfiles thermal model."
         }
       },
       "additionalProperties": true

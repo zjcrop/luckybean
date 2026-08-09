@@ -1,4 +1,4 @@
-import { get, put, activateCodebook } from './db.js';
+import { get, put, all, activateCodebook } from './db.js';
 import { sha256Hex } from './utils.js';
 
 export const REMOTE_CODEBOOK_URL = 'https://raw.githubusercontent.com/zjcrop/BrewIon/main/coffee-qr-codebook/coffee_qr_codebook_v6.json';
@@ -6,6 +6,29 @@ export const REMOTE_LABEL_LEXICON_URL = 'https://raw.githubusercontent.com/zjcro
 export const FALLBACK_CODEBOOK_URL = './public/fallback-codebook.json';
 
 const REQUIRED_TABLES = ['countries', 'regions', 'entities', 'varieties', 'processes', 'flavors'];
+
+function customCodeRow(record) {
+  const table = String(record?.table || '');
+  const name = String(record?.name || record?.label || '').trim();
+  if (!record?.code || !name || record.status === 'merged_to_official') return null;
+  if (table === 'regions') return [record.code, record.countryCode || '', name, name];
+  if (table === 'entities') return [record.code, record.countryCode || '', record.regionCode || '', name, name];
+  if (table === 'countries' || table === 'varieties' || table === 'processes' || table === 'flavors') return [record.code, name, name];
+  return null;
+}
+
+async function appendLocalCustomCodes(book) {
+  const merged = structuredClone(book);
+  const records = await all('customCodes').catch(() => []);
+  for (const record of records) {
+    const table = String(record?.table || '');
+    const row = customCodeRow(record);
+    if (!row || !REQUIRED_TABLES.includes(table)) continue;
+    merged[table] ||= [];
+    if (!merged[table].some(item => item?.[0] === row[0])) merged[table].push(row);
+  }
+  return validateCodebook(merged);
+}
 
 export function validateCodebook(book) {
   if (!book || typeof book !== 'object' || Array.isArray(book)) throw new Error('编码表不是对象');
@@ -108,13 +131,13 @@ export async function loadCodebook() {
   const cached = await get('codebookCache', 'active').catch(() => null);
   if (cached?.data) {
     try {
-      const data = mergeCodebooks(cached.data, fallback);
+      const data = await appendLocalCustomCodes(mergeCodebooks(cached.data, fallback));
       const record = { ...cached, data, checkedAt: cached.checkedAt || new Date().toISOString() };
       if (JSON.stringify(data) !== JSON.stringify(cached.data)) await put('codebookCache', record).catch(() => {});
       return { data, source: 'cache', meta: record };
     } catch { /* 使用内置回退表 */ }
   }
-  const data = fallback;
+  const data = await appendLocalCustomCodes(fallback);
   const hash = await sha256Hex(JSON.stringify(data));
   const record = { id: 'active', data, source: 'embedded', hash, version: String(data.version || data._version || '6'), updatedAt: data.updatedAt || '', checkedAt: new Date().toISOString() };
   await put('codebookCache', record).catch(() => {});
@@ -129,6 +152,7 @@ export async function checkCodebookUpdate({ force = false } = {}) {
   ]);
   let data = mergeCodebooks(remote.data, fallbackResponse.data);
   if (labelLexiconResponse?.data) data = attachLabelLexicon(data, labelLexiconResponse.data);
+  data = await appendLocalCustomCodes(data);
   const hash = await sha256Hex(JSON.stringify(data));
   const active = await get('codebookCache', 'active').catch(() => null);
   if (active?.hash === hash) {
@@ -235,9 +259,19 @@ function bestTableMatch(value, rows) {
   const source = normalizeLabelValue(value);
   if (!source) return null;
   const normalizedCodes = normalizeCodeSource(source);
-  const direct = directCodeMatch(normalizedCodes, rows);
-  if (direct) return direct;
+  const directMatches = (rows || []).map(row => directCodeMatch(normalizedCodes, [row])).filter(Boolean);
+  if (directMatches.length === 1) return directMatches[0];
+  if (directMatches.length > 1) return null;
   const lower = source.toLocaleLowerCase('zh-CN');
+  const exactFragments = lower.split(/[\/、,，;；|]+/).map(item => item.trim()).filter(Boolean);
+  const exactMatches = [];
+  for (const row of rows || []) {
+    const aliases = row.slice(1).filter(item => typeof item === 'string').map(item => item.toLocaleLowerCase('zh-CN').trim()).filter(Boolean);
+    const alias = aliases.find(item => exactFragments.includes(item));
+    if (alias) exactMatches.push({ code: row[0], alias, row, direct: false });
+  }
+  if (exactMatches.length === 1) return exactMatches[0];
+  if (exactMatches.length > 1) return null;
   let best = null;
   for (const row of rows || []) {
     const aliases = row.slice(1)
@@ -356,6 +390,8 @@ export function parseNaturalLanguage(text, book) {
         result[customField] = labeledValue;
         result.confidence[customField] = 0.86;
         result.evidence[customField] = labeledValue;
+        result.confidence[field] = 0.45;
+        result.evidence[field] = labeledValue;
       }
       continue;
     }

@@ -253,7 +253,7 @@ function directScalarCandidate(field, source, explicitlyLabeled = false) {
   return null;
 }
 
-function localRoastCandidate(text) {
+export function localRoastCandidate(text, explicitlyLabeled = false) {
   const value = String(text || '').toLocaleLowerCase('zh-CN');
   const rows = [
     [/极浅|ultra\s*light|lightest/, 'RL-L0', '极浅烘'],
@@ -265,7 +265,14 @@ function localRoastCandidate(text) {
     [/深烘|深度|\bdark\b/, 'RL-L5', '深烘']
   ];
   const match = rows.find(([pattern]) => pattern.test(value));
-  return match ? { field: 'roastCode', value: match[1], code: match[1], label: match[2], score: 0.98 } : null;
+  if (match) return { field: 'roastCode', value: match[1], code: match[1], label: match[2], score: 0.98 };
+  if (!explicitlyLabeled) return null;
+  const numeric = value.match(/(?:^|\b)(?:rl[-\s]?)?l(?:evel)?[-\s]?([0-6])(?:\b|$)/i)
+    || value.match(/^\s*([0-6])(?:\.0)?\s*$/);
+  if (!numeric) return null;
+  const level = Number(numeric[1]);
+  const labels = ['极浅烘', '浅烘', '浅中烘', '中烘', '中深烘', '深烘', '极深烘'];
+  return { field: 'roastCode', value: `RL-L${level}`, code: `RL-L${level}`, label: labels[level], score: 0.995 };
 }
 
 function textCandidate(field, evidence) {
@@ -359,7 +366,7 @@ export async function autoFillRecognition(text, { overwrite = true } = {}) {
     if (field === 'roasterName') {
       candidate = labeled ? textCandidate(field, evidence) : null;
     } else if (field === 'roastCode') {
-      candidate = localRoastCandidate(labeled ? evidence : normalized);
+      candidate = localRoastCandidate(labeled ? evidence : normalized, labeled);
     } else if (['roastDate', 'altitude', 'initialWeight', 'roastColor', 'price'].includes(field)) {
       candidate = directScalarCandidate(field, labeled ? evidence : normalized, labeled);
       if (!candidate && (labeled || field !== 'price')) {

@@ -213,6 +213,50 @@ test('settings splash previews keep their red and white backgrounds', async ({ p
   await expect(white.locator('img')).toBeVisible();
   expect(await red.locator('img').evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
   expect(await white.locator('img').evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
+  await white.click();
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#splashScreen')).toHaveAttribute('data-splash-variant', 'white');
+  await expect(page.locator('#splashScreen')).toHaveCSS('background-color', 'rgb(251, 251, 249)');
+});
+
+test('bean recognition splits numeric varieties, maps labeled roast levels and hides unsupported empty evidence', async ({ page }) => {
+  await openApp(page, 'requirements-recognition-fields=1');
+  await page.locator('#fabAddBtn').click();
+  await page.locator('[data-add-mode="text"]').click();
+  await page.locator('#recognitionText').fill([
+    'COUNTRY: Ethiopia',
+    'REGION: XQZ UNKNOWN REGION',
+    'VARIETAL: 74110 / 74112',
+    'PROCESS: Washed',
+    'ROAST LEVEL: L2',
+    'ROAST DATE: 2026-08-02',
+    'NET WEIGHT: 150 g'
+  ].join('\n'));
+  await page.locator('#parseTextBtn').click();
+  await expect(page.locator('[data-overlay="bean-form"]')).toBeVisible();
+  await expect(page.locator('#beanRoast')).toHaveValue('RL-L2');
+  await expect(page.locator('#beanVariety')).toHaveValue('');
+  await expect(page.locator('[data-evidence-field="varietyCode"][data-evidence-value="VA-JA10"]')).toBeVisible();
+  await expect(page.locator('[data-evidence-field="varietyCode"][data-evidence-value="VA-JA12"]')).toBeVisible();
+  await expect(page.locator('.evidence-row-v2').filter({ hasText: '产区' })).toHaveCount(0);
+});
+
+test('region and estate selectors retain local add-option actions', async ({ page }) => {
+  await openApp(page, 'requirements-custom-bean-options=1');
+  await page.locator('#fabAddBtn').click();
+  await page.locator('[data-add-mode="text"]').click();
+  await page.locator('#manualBeanFormBtn').click();
+  await page.locator('#beanCountry').selectOption('CO-ET');
+  await page.locator('[data-add-bean-option="regions"]').click();
+  await page.locator('#customBeanOptionName').fill('测试自定义产区');
+  await page.locator('#saveCustomBeanOptionBtn').click();
+  await expect(page.locator('#beanRegion option:checked')).toHaveText('测试自定义产区');
+  await page.locator('[data-add-bean-option="entities"]').click();
+  await page.locator('#customBeanOptionName').fill('测试自定义处理站');
+  await page.locator('#saveCustomBeanOptionBtn').click();
+  await expect(page.locator('#beanEntity option:checked')).toHaveText('测试自定义处理站');
+  await expect(page.locator('[data-add-bean-option="regions"]')).toHaveText('新增选项');
+  await expect(page.locator('[data-add-bean-option="entities"]')).toHaveText('新增选项');
 });
 
 
@@ -261,12 +305,16 @@ test('private gear uses three closed, aligned list editors', async ({ page }) =>
   await page.locator('[data-gear-kind="dripper"] > summary').click();
   await page.locator('[data-add-gear="dripper"]').click();
   await page.locator('#dripperName').fill('测试滤杯');
+  await page.locator('#dripperMaterial').selectOption('ceramic');
   await page.locator('#saveDripperBtn').click();
   await expect(page.locator('[data-overlay="dripper-editor"]')).toHaveCount(0);
 
   await page.locator('#privateGearCategory > summary').click();
   await page.locator('[data-gear-kind="dripper"] > summary').click();
   await expect(page.locator('[data-dripper-item]').filter({ hasText: '测试滤杯' })).toHaveCount(1);
+  await page.locator('[data-dripper-item]').filter({ hasText: '测试滤杯' }).click();
+  await expect(page.locator('#dripperMaterial')).toHaveValue('ceramic');
+  await page.locator('[data-close-overlay]').click();
 
   await page.reload({ waitUntil: 'domcontentloaded' });
   const splash = page.locator('#splashScreen');

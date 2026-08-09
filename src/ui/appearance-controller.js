@@ -35,7 +35,8 @@ function writePreference(next) {
   return normalized;
 }
 
-function icon(theme) { return theme === 'dark' ? '🌙' : '☀️'; }
+// The icon describes the action available to the user, not the active theme.
+function icon(theme) { return theme === 'dark' ? '☀️' : '🌙'; }
 
 function applyTheme(theme = readPreference().theme) {
   const normalized = theme === 'light' ? 'light' : 'dark';
@@ -59,6 +60,8 @@ function applyTheme(theme = readPreference().theme) {
 
 function applySplash(splash = readPreference().splash) {
   const normalized = splash === 'white' ? 'white' : 'red';
+  const screen = document.querySelector('#splashScreen');
+  if (screen) screen.dataset.splashVariant = normalized;
   const image = document.querySelector('#splashImage');
   if (!image) return;
   const expected = SPLASH[normalized];
