@@ -1,6 +1,6 @@
 import { all } from './db.js';
 import { loadCodebook, makeIndex, displayName } from './codebook.js';
-import { fieldCandidates, normalizeEvidenceValue } from './recognition-candidates.js';
+import { fieldCandidates, normalizeEvidenceValue, reliableCandidates } from './recognition-candidates.js';
 import { sensoryTagLabels } from './sensory-codec-v096.js';
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -109,8 +109,8 @@ function roastCandidates(evidence) {
 }
 
 function candidateList(field, evidence, book) {
-  if (field === 'roastCode') return roastCandidates(evidence);
-  return fieldCandidates(field, evidence, book, currentEvidenceContext(), 5);
+  if (field === 'roastCode') return reliableCandidates(field, roastCandidates(evidence));
+  return reliableCandidates(field, fieldCandidates(field, evidence, book, currentEvidenceContext(), 5));
 }
 
 function applyCandidate(field, value, label) {

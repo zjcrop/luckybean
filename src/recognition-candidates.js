@@ -164,6 +164,16 @@ export function fieldCandidates(field, evidence, book, context = {}, limit = 5) 
   return codebookCandidates(field, evidence, book, context, limit);
 }
 
+export function reliableCandidates(field, candidates = []) {
+  const minimum = {
+    countryCode: 0.80, regionCode: 0.82, entityCode: 0.84,
+    varietyCode: 0.80, processCode: 0.80,
+    roastCode: 0.90, roastDate: 0.90, roastColor: 0.90,
+    altitude: 0.90, initialWeight: 0.90, price: 0.82
+  }[field] ?? 0.90;
+  return candidates.filter(candidate => Number(candidate?.score || 0) >= minimum);
+}
+
 export function normalizeEvidenceValue(value) {
   return String(value || '')
     .normalize('NFKC')

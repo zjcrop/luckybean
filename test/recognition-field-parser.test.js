@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { fieldCandidates } from '../src/recognition-candidates.js';
+import { fieldCandidates, reliableCandidates } from '../src/recognition-candidates.js';
 import { bestCandidateDecision, extractRecognitionEvidence, localRoastCandidate } from '../src/ui-layout-controller.js';
 import { parseNaturalLanguage } from '../src/codebook.js';
 
@@ -43,4 +43,10 @@ test('equally exact codebook candidates remain a manual choice', () => {
   assert.equal(candidates[0].score, candidates[1].score);
   assert.notEqual(candidates[0].code, candidates[1].code);
   assert.equal(bestCandidateDecision(candidates, { minimum: 0.8, margin: 0.055 }), null);
+});
+
+test('unsupported region evidence has no reliable candidates', () => {
+  const candidates = fieldCandidates('regionCode', 'XQZ UNKNOWN REGION', book, { countryCode: 'CO-EA' }, 5);
+  assert.ok(candidates.length > 0, 'the fuzzy matcher should expose its raw low-score results for diagnostics');
+  assert.deepEqual(reliableCandidates('regionCode', candidates), []);
 });
