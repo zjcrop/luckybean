@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { fieldCandidates } from '../src/recognition-candidates.js';
-import { extractRecognitionEvidence, localRoastCandidate } from '../src/ui-layout-controller.js';
+import { bestCandidateDecision, extractRecognitionEvidence, localRoastCandidate } from '../src/ui-layout-controller.js';
 import { parseNaturalLanguage } from '../src/codebook.js';
 
 const book = JSON.parse(await readFile(new URL('../public/fallback-codebook.json', import.meta.url), 'utf8'));
@@ -36,4 +36,11 @@ test('mixed label layouts preserve separate variety and roast evidence', () => {
   const parsed = extractRecognitionEvidence('VARIETAL 74110 / 74112\nROAST LEVEL L1');
   assert.deepEqual(parsed.fields.varietyCode, ['74110 / 74112']);
   assert.deepEqual(parsed.fields.roastCode, ['L1']);
+});
+
+test('equally exact codebook candidates remain a manual choice', () => {
+  const candidates = fieldCandidates('varietyCode', '74110 / 74112', book, {}, 8);
+  assert.equal(candidates[0].score, candidates[1].score);
+  assert.notEqual(candidates[0].code, candidates[1].code);
+  assert.equal(bestCandidateDecision(candidates, { minimum: 0.8, margin: 0.055 }), null);
 });

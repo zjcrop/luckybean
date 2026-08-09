@@ -870,6 +870,7 @@ function customCodeRow(record) {
 function openAddBeanOptionDialog(table) {
   const countryCode = formValue('beanCountry');
   if (!countryCode) return toast('请先选择国家', 'status-warn');
+  const beanDraft = captureBeanFormDraft();
   const isRegion = table === 'regions';
   const title = isRegion ? '新增产区' : '新增庄园 / 处理站';
   const overlay = showOverlay(`${dialogHeader(title, '自定义项目仅保存在本地，后续可与正式编码表归并', { centered: true })}<label class="field"><span>名称 *</span><input id="customBeanOptionName" class="control" maxlength="80" autocomplete="off"></label><div class="row end"><button id="saveCustomBeanOptionBtn" class="button primary" type="button">确定</button></div>`, { id: 'custom-bean-option', backdropClose: true });
@@ -878,7 +879,7 @@ function openAddBeanOptionDialog(table) {
   $('#saveCustomBeanOptionBtn')?.addEventListener('click', async () => {
     const name = $('#customBeanOptionName').value.trim();
     if (!name) return toast('名称不能为空', 'status-bad');
-    const regionCode = formValue('beanRegion');
+    const regionCode = beanDraft.regionCode;
     const record = {
       code: uid(isRegion ? 'custom_region' : 'custom_entity'), table, name, label: name,
       countryCode, regionCode: isRegion ? '' : regionCode,
@@ -888,7 +889,7 @@ function openAddBeanOptionDialog(table) {
     state.codebook[table] ||= [];
     state.codebook[table].push(customCodeRow(record));
     state.codebookIndex = makeIndex(state.codebook);
-    const draft = currentBeanDraftFromForm();
+    const draft = structuredClone(beanDraft);
     if (isRegion) draft.regionCode = record.code;
     else draft.entityCode = record.code;
     closeOverlay();

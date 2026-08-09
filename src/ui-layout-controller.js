@@ -210,14 +210,14 @@ export function extractRecognitionEvidence(text) {
   return { ...parsed, evidence };
 }
 
-function bestCandidateDecision(candidates, { minimum = 0.9, margin = 0.07 } = {}) {
+export function bestCandidateDecision(candidates, { minimum = 0.9, margin = 0.07 } = {}) {
   const sorted = [...(candidates || [])].sort((left, right) => Number(right.score || 0) - Number(left.score || 0));
   const best = sorted[0];
   if (!best || Number(best.score || 0) < minimum) return null;
   const second = sorted[1];
   if (second
-      && Number(best.score || 0) - Number(second.score || 0) < margin
-      && Number(best.score || 0) < 0.985) return null;
+      && String(second.code ?? second.value ?? '') !== String(best.code ?? best.value ?? '')
+      && Number(best.score || 0) - Number(second.score || 0) < margin) return null;
   return best;
 }
 

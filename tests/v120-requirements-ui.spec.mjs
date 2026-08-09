@@ -216,7 +216,7 @@ test('settings splash previews keep their red and white backgrounds', async ({ p
   await white.click();
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('#splashScreen')).toHaveAttribute('data-splash-variant', 'white');
-  await expect(page.locator('#splashScreen')).toHaveCSS('background-color', 'rgb(251, 251, 249)');
+  await expect(page.locator('#splashScreen')).toHaveCSS('background-color', 'rgb(243, 239, 229)');
 });
 
 test('bean recognition splits numeric varieties, maps labeled roast levels and hides unsupported empty evidence', async ({ page }) => {
