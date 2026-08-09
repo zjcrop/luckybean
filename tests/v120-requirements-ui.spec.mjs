@@ -171,6 +171,9 @@ test('professional tags sort and radar nodes select and drag; note mode opens di
   expect(after).not.toBe(before);
 
   await page.locator('[data-v095-next]').click();
+  await expect(page.locator('.v095-score-stage')).toBeVisible();
+  await expect(page.locator('.v095-score-stage')).toContainText('打分总结');
+  await page.locator('[data-v095-next]').click();
   const professionalNote = page.locator('[data-v095-professional-note]');
   await expect(professionalNote).toBeVisible();
   await professionalNote.fill('高温花香清晰，低温甜感延续；下一次降低尾段扰动。');
