@@ -1,7 +1,7 @@
 import { sha256Hex } from '../utils.js';
 
 const ANALYSIS_CONTRACT = 'brew-analysis/2.0';
-const SPATIAL_CONTRACT = 'brew-spatial/1.1';
+const SPATIAL_CONTRACT = 'brew-spatial/1.2';
 
 function number(value, fallback = 0) {
   const result = Number(value);

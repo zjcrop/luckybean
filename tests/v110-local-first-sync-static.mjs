@@ -75,7 +75,7 @@ assert.doesNotMatch(appearance, /new MutationObserver\([^\n]*document\.documentE
 assert.match(fab, /LuckyBeanFabController/);
 
 assert.match(analysis, /brew-analysis\/2\.0/);
-assert.match(analysis, /brew-spatial\/1\.1/);
+assert.match(analysis, /brew-spatial\/1\.2/);
 assert.match(analysis, /clientAdjusted:\s*false/);
 assert.match(history, /commitCompletedBrew/);
 assert.match(history, /inventoryEventId/);

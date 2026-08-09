@@ -26,7 +26,7 @@ const sw = read('sw.js');
 
 // Authoritative engine and integrated spatial contract.
 assert.match(analysis, /BREW_ANALYSIS_CONTRACT\s*=\s*'brew-analysis\/2\.0'/);
-assert.match(analysis, /BREW_SPATIAL_CONTRACT\s*=\s*'brew-spatial\/1\.1'/);
+assert.match(analysis, /BREW_SPATIAL_CONTRACT\s*=\s*'brew-spatial\/1\.2'/);
 assert.match(analysis, /brewApiJson/);
 assert.match(analysis, /clientAdjusted:\s*false/);
 assert.match(analysis, /analysisSnapshot:\s*structuredClone\(analysis\)/);
@@ -61,7 +61,7 @@ assert.ok(historySchema.not.anyOf.some(item => item.required?.includes('status')
 
 // Formal 3D renderer consumes structured spatial data and owns gestures directly.
 assert.match(spatial, /class BrewSpatialView/);
-assert.match(spatial, /schemaVersion !== 'brew-spatial\/1\.1'/);
+assert.match(spatial, /SUPPORTED_SPATIAL_CONTRACTS\.has\(scene\.schemaVersion\)/);
 assert.match(spatial, /pointerdown/);
 assert.match(spatial, /this\.pointers\.size === 2/);
 assert.match(spatial, /this\.zoom/);

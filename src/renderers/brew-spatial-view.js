@@ -16,6 +16,7 @@ const DEFAULT_AXES = Object.freeze({
   y: { label: '粉床温度', unit: '°C', id: 'bed_temperature_c' },
   z: { label: '累计注水量', unit: 'g', id: 'cumulative_water_g' }
 });
+const SUPPORTED_SPATIAL_CONTRACTS = new Set(['brew-spatial/1.1', 'brew-spatial/1.2']);
 const clamp = (value, min, max) => Math.min(max, Math.max(min, Number(value)));
 const lerp = (a, b, t) => a + (b - a) * t;
 const mixRgb = (a, b, t) => a.map((value, index) => Math.round(lerp(value, b[index], t)));
@@ -57,7 +58,7 @@ function boundsOf(scene) {
   return { min, max };
 }
 function normalizeScene(scene) {
-  if (!scene || scene.schemaVersion !== 'brew-spatial/1.1' || !Array.isArray(scene.path) || scene.path.length < 2) return null;
+  if (!scene || !SUPPORTED_SPATIAL_CONTRACTS.has(scene.schemaVersion) || !Array.isArray(scene.path) || scene.path.length < 2) return null;
   return { ...structuredClone(scene), bounds: boundsOf(scene) };
 }
 

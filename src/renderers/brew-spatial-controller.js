@@ -1,9 +1,10 @@
 import { brewSpatialView } from './brew-spatial-view.js';
 
 const REQUIRED_TARGET_IDS = Object.freeze(['acidity', 'floral', 'fruity', 'sweetness', 'bitterness', 'astringency']);
+const SUPPORTED_SPATIAL_CONTRACTS = new Set(['brew-spatial/1.1', 'brew-spatial/1.2']);
 
 function isProfessionalScene(scene) {
-  if (!scene || scene.schemaVersion !== 'brew-spatial/1.1' || !Array.isArray(scene.path) || scene.path.length < 2) return false;
+  if (!scene || !SUPPORTED_SPATIAL_CONTRACTS.has(scene.schemaVersion) || !Array.isArray(scene.path) || scene.path.length < 2) return false;
   if (!Array.isArray(scene.targets)) return false;
   const byId = new Map(scene.targets.map(target => [String(target?.id || ''), target]));
   return REQUIRED_TARGET_IDS.every(id => {
@@ -16,7 +17,7 @@ function sceneFromPlan(plan) {
   if (!plan || plan.executionSource === 'local-reference') return null;
   const candidates = [
     plan.visualization3d,
-    plan.trajectory?.schemaVersion === 'brew-spatial/1.1' ? plan.trajectory : null,
+    SUPPORTED_SPATIAL_CONTRACTS.has(plan.trajectory?.schemaVersion) ? plan.trajectory : null,
     plan.analysisSnapshot?.trajectory
   ];
   return candidates.find(isProfessionalScene) || null;

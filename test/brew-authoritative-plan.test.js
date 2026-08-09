@@ -43,7 +43,7 @@ test('production analysis envelope adapts into a plan accepted by the page valid
       totals: { waterG: 100 }
     },
     trajectory: {
-      schemaVersion: 'brew-spatial/1.1',
+      schemaVersion: 'brew-spatial/1.2',
       planFingerprint: 'sha256:test-plan',
       path: [[0, 88, 0], [60, 92, 100]],
       targets: ['acidity', 'floral', 'fruity', 'sweetness', 'bitterness', 'astringency']

@@ -3,7 +3,7 @@ import { sha256Hex } from '../utils.js';
 import { BREW_API_ENDPOINT, brewApiJson } from './brew-api-client.js';
 
 export const BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.0';
-export const BREW_SPATIAL_CONTRACT = 'brew-spatial/1.1';
+export const BREW_SPATIAL_CONTRACT = 'brew-spatial/1.2';
 export const BREW_ANALYSIS_ENDPOINT = BREW_API_ENDPOINT;
 export const BREW_ANALYSIS_SERVICE_VERSION = 'luckybean-analysis-client/1.3.0';
 

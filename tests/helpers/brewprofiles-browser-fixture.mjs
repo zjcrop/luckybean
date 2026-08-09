@@ -70,7 +70,7 @@ function analysisFor(input) {
       ]), extractionStages: [1, 2, 3], risk: 'fixture'
     }));
   const trajectory = {
-    schemaVersion: 'brew-spatial/1.1',
+    schemaVersion: 'brew-spatial/1.2',
     generatedBy: 'brewprofiles-browser-fixture/1.0.0',
     planFingerprint,
     axes: {

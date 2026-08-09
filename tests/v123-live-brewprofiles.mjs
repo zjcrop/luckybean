@@ -147,7 +147,7 @@ for (const profileId of catalogVersions.keys()) {
   assert.equal(analysis.plan.input.water.tds, 80);
   assert.equal(typeof analysis.plan.input.grinder, 'object');
   assert.equal(analysis.plan.models.environment.ambientTemperature, 25);
-  assert.equal(analysis.trajectory.schemaVersion, 'brew-spatial/1.1');
+  assert.equal(analysis.trajectory.schemaVersion, 'brew-spatial/1.2');
   assert.ok(analysis.trajectory.path.length > 20, `${profileId}: path too short`);
   const returnedTargets = new Set(analysis.trajectory.targets.map(target => target.id));
   for (const id of targetIds) assert.ok(returnedTargets.has(id), `${profileId}: missing target ${id}`);

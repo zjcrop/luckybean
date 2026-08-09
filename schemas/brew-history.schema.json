@@ -47,7 +47,7 @@
           "type": "object",
           "required": ["schemaVersion", "path", "targets"],
           "properties": {
-            "schemaVersion": { "const": "brew-spatial/1.1" },
+            "schemaVersion": { "enum": ["brew-spatial/1.1", "brew-spatial/1.2"] },
             "path": { "type": "array", "minItems": 2 },
             "targets": { "type": "array" }
           }
