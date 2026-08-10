@@ -6,7 +6,11 @@ import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Point;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -22,12 +26,26 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.Text;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import android.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
@@ -43,6 +61,8 @@ public final class MainActivity extends Activity {
     private PermissionRequest pendingWebPermission;
     private byte[] pendingExportBytes;
     private String pendingExportMime;
+    private TextRecognizer chineseTextRecognizer;
+    private TextRecognizer latinTextRecognizer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,6 +74,8 @@ public final class MainActivity extends Activity {
         webView.setBackgroundColor(Color.rgb(8, 9, 9));
         setContentView(webView);
 
+        chineseTextRecognizer = TextRecognition.getClient(new ChineseTextRecognizerOptions.Builder().build());
+        latinTextRecognizer = TextRecognition.getClient(new TextRecognizerOptions.Builder().build());
         configureWebView();
         if (savedInstanceState == null) {
             webView.loadUrl(APP_ORIGIN + "index.html");
@@ -134,6 +156,52 @@ public final class MainActivity extends Activity {
 
     private final class NativeFileBridge {
         @JavascriptInterface
+        public void recognizeImage(String requestId, String imageId, String imageRole, String dataUrl) {
+            Bitmap bitmap = null;
+            try {
+                String encoded = dataUrl == null ? "" : dataUrl;
+                int separator = encoded.indexOf(',');
+                if (separator >= 0) encoded = encoded.substring(separator + 1);
+                byte[] bytes = Base64.decode(encoded, Base64.DEFAULT);
+                bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                if (bitmap == null) throw new IllegalArgumentException("无法读取照片数据");
+
+                InputImage input = InputImage.fromBitmap(bitmap, 0);
+                Task<Text> chineseTask = chineseTextRecognizer.process(input);
+                Task<Text> latinTask = latinTextRecognizer.process(input);
+                Bitmap decodedBitmap = bitmap;
+                Tasks.whenAllComplete(chineseTask, latinTask).addOnCompleteListener(ignored -> {
+                    try {
+                        LinkedHashMap<String, JSONObject> uniqueLines = new LinkedHashMap<>();
+                        if (chineseTask.isSuccessful()) appendRecognizedLines(uniqueLines, chineseTask.getResult(), imageId, imageRole);
+                        if (latinTask.isSuccessful()) appendRecognizedLines(uniqueLines, latinTask.getResult(), imageId, imageRole);
+                        if (uniqueLines.isEmpty()) {
+                            Exception failure = chineseTask.getException() != null ? chineseTask.getException() : latinTask.getException();
+                            throw new IllegalStateException(failure == null ? "未识别到清晰文字" : failure.getMessage(), failure);
+                        }
+                        JSONObject payload = new JSONObject();
+                        payload.put("engine", "android-mlkit-bundled-16.0.1");
+                        payload.put("blocks", new JSONArray(uniqueLines.values()));
+                        StringBuilder fullText = new StringBuilder();
+                        for (JSONObject line : uniqueLines.values()) {
+                            if (fullText.length() > 0) fullText.append('\n');
+                            fullText.append(line.optString("text"));
+                        }
+                        payload.put("fullText", fullText.toString());
+                        resolveRecognition(requestId, payload);
+                    } catch (Exception error) {
+                        rejectRecognition(requestId, error.getMessage());
+                    } finally {
+                        decodedBitmap.recycle();
+                    }
+                });
+            } catch (Exception error) {
+                if (bitmap != null) bitmap.recycle();
+                rejectRecognition(requestId, error.getMessage());
+            }
+        }
+
+        @JavascriptInterface
         public void saveFile(String base64, String filename, String mimeType) {
             runOnUiThread(() -> {
                 try {
@@ -151,6 +219,56 @@ public final class MainActivity extends Activity {
                 }
             });
         }
+    }
+
+    private static void appendRecognizedLines(Map<String, JSONObject> target, Text result,
+                                              String imageId, String imageRole) throws JSONException {
+        if (result == null) return;
+        for (Text.TextBlock block : result.getTextBlocks()) {
+            for (Text.Line line : block.getLines()) {
+                String value = line.getText() == null ? "" : line.getText().replaceAll("\\s+", " ").trim();
+                if (value.isEmpty()) continue;
+                String key = value.toLowerCase(Locale.ROOT).replaceAll("[\\s，,。.;；:：/_\\-·•]+", "");
+                if (key.isEmpty() || target.containsKey(key)) continue;
+                JSONObject item = new JSONObject();
+                item.put("text", value);
+                item.put("confidence", 0.86);
+                item.put("imageId", imageId == null ? "" : imageId);
+                item.put("imageRole", imageRole == null ? "" : imageRole);
+                item.put("polygon", polygon(line));
+                target.put(key, item);
+            }
+        }
+    }
+
+    private static JSONArray polygon(Text.Line line) throws JSONException {
+        JSONArray points = new JSONArray();
+        Point[] corners = line.getCornerPoints();
+        if (corners != null && corners.length > 0) {
+            for (Point corner : corners) points.put(new JSONArray().put(corner.x).put(corner.y));
+            return points;
+        }
+        Rect rect = line.getBoundingBox();
+        if (rect != null) {
+            points.put(new JSONArray().put(rect.left).put(rect.top));
+            points.put(new JSONArray().put(rect.right).put(rect.top));
+            points.put(new JSONArray().put(rect.right).put(rect.bottom));
+            points.put(new JSONArray().put(rect.left).put(rect.bottom));
+        }
+        return points;
+    }
+
+    private void resolveRecognition(String requestId, JSONObject payload) {
+        String script = "globalThis.LuckyBeanNativeRecognition&&globalThis.LuckyBeanNativeRecognition.resolve("
+            + JSONObject.quote(requestId == null ? "" : requestId) + "," + payload + ");";
+        runOnUiThread(() -> webView.evaluateJavascript(script, null));
+    }
+
+    private void rejectRecognition(String requestId, String message) {
+        String script = "globalThis.LuckyBeanNativeRecognition&&globalThis.LuckyBeanNativeRecognition.reject("
+            + JSONObject.quote(requestId == null ? "" : requestId) + ","
+            + JSONObject.quote(message == null || message.isEmpty() ? "Android 本地 OCR 失败" : message) + ");";
+        runOnUiThread(() -> webView.evaluateJavascript(script, null));
     }
 
     private static String sanitizeFilename(String value) {
@@ -295,6 +413,8 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (chineseTextRecognizer != null) chineseTextRecognizer.close();
+        if (latinTextRecognizer != null) latinTextRecognizer.close();
         if (webView != null) {
             webView.loadUrl("about:blank");
             webView.stopLoading();

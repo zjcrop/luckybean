@@ -42,7 +42,7 @@ assert.doesNotMatch(startup, /ensureLocalIdentity|LB-LOCAL-|getSetting|setSettin
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v123d-'/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES = \['luckybean-main-v123-', 'luckybean-v120-test-', 'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-'/);
 assert.match(sw, /1\.23D/);
-assert.match(startup, /serviceWorker\.register\('\.\/sw\.js\?v=1\.23D-main-sync\.2', \{ updateViaCache: 'none' \}\)/);
+assert.match(startup, /serviceWorker\.register\('\.\/sw\.js\?v=1\.23D-main-sync\.3', \{ updateViaCache: 'none' \}\)/);
 assert.match(spatial, /#brewSpatialMount/);
 assert.match(sensory, /data-v120-radar-node/);
 assert.match(sensory, /pointermove/);

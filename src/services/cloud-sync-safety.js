@@ -30,11 +30,26 @@ export function packetUnitEntries(packet = {}) {
     return entries;
   }
   if (packet.k === 'settings') {
+    entries.set('settings:app.settings', { kind: 'settings', value: packet.s || null });
     (packet.c || []).forEach((row, index) => {
       entries.set(customCodeIdentity(row, index), { kind: 'custom-code', value: row });
     });
   }
   return entries;
+}
+
+export function packetUnitKeySet(packets = new Map()) {
+  const keys = new Set();
+  const values = packets instanceof Map ? packets.values() : packets;
+  for (const packet of values || []) {
+    for (const key of packetUnitEntries(packet).keys()) keys.add(key);
+  }
+  return keys;
+}
+
+export function deletedBaselineUnitKeys(localPackets = new Map(), baselineKeys = []) {
+  const localKeys = packetUnitKeySet(localPackets);
+  return new Set((baselineKeys || []).filter(key => !localKeys.has(key)));
 }
 
 export function mergePacketPreservingRemote(localPacket = {}, remotePacket = {}) {

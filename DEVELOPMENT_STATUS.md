@@ -2,12 +2,12 @@
 
 > 后续完整开发顺序、未关闭问题和验收门禁统一见 `docs/LuckyBean-1.23D-DEVELOPMENT-HANDBOOK.md`。本文件记录当前检查点，不代表历史业务问题已经全部关闭。
 
-日期：2026-08-08  
+日期：2026-08-10
 唯一主线：GitHub `zjcrop/luckybean` `main`
 
 当前部署：LuckyBean `1.23D`，唯一来源为 GitHub `main` 的最新成功部署提交。
 
-内部资源修订：`1.23D-main-sync.2`（仅用于清除旧 PWA/WebView 缓存，不是第二条版本线）
+内部资源修订：`1.23D-main-sync.3`（仅用于清除旧 PWA/WebView 缓存，不是第二条版本线）
 
 ## 当前版本边界
 
@@ -41,6 +41,12 @@
 16. 修复正式 `brew-analysis/2.0` 分析包络与旧方案 `schemaVersion` 校验冲突；正式分析仍要求统一计算指纹、引擎版本、方案版本、有效阶段和水量守恒。
 17. 修复设置页红色/白色启动图预览背景；HTML 属性、交互选择器和计算样式已统一。
 18. 更新 Service Worker 缓存名和全部资源查询修订号，已安装 PWA 与 Android WebView 不再复用修复前资源。
+19. 云同步改为双端并集合并；首次登录保留两端全部数据，建立同步基线后本地删除会传播到服务器。
+20. 同步分包改为内容寻址，Manifest 提交使用服务器完成时间条件更新，避免两个设备同时提交时静默覆盖。
+21. Supabase Manifest 新增服务器生成的 `sync_completed_at`，Manifest/Chunk 的 `uploaded_at` 也由数据库触发器写入；RLS 与四类用户级策略保持启用。
+22. Android 豆袋识别改为 APK 内置 ML Kit 中文与拉丁模型，不再依赖手机运行时动态加载 PaddleOCR CDN。
+23. 修复移动端杯测和品鉴雷达浮层的纵向滚动及底部安全区。
+24. 恢复“风味喜好数字测写”和“咖啡世界”，世界地图资源随 Web/PWA/Android 本地打包；“本物”插图改为透明背景、无边框并缩至页面宽度三分之一。
 
 ## 已通过验证
 
@@ -51,13 +57,16 @@
 - 全部 JavaScript 文件语法检查：通过。
 - 本地模块引用与 Service Worker 离线资源路径检查：通过。
 - HTTP 静态入口、manifest、归档模块与 JSON Schema 可访问性检查：通过。
-- 日期、归档与方案契约专项：52 项测试全部通过。
+- 日期、归档与方案契约专项：59 项测试全部通过。
 - Web 验收页、确认模块与分类器 HTTP 静态入口可访问；66 项离线资源路径完整。
 - GitHub Actions Chromium 已实际完成方案生成、3D 预览、红白背景计算样式与图片加载回归。
 - BrewProfiles 真实服务严格契约及 6 套竞赛方案通过。
 - Pages 已部署并核对 `version.json`、正式契约代码、预览资源和 Service Worker；提交指纹为 `d00edab22710113db24baeecd3e04805f101757a`。
 - Android APK 已由同一提交构建；内嵌 Web 资源包含本轮两项修复。
 - `npm audit --audit-level=high`：0 个漏洞。
+- `npm run test:static`：同步、部署、旧功能、移动滚动和识别契约全部通过。
+- Supabase 时间戳触发器已用事务内回滚更新验证：`uploaded_at` 为服务器当前时间，且 `sync_completed_at = uploaded_at`。
+- 当前工作环境未安装 Chromium 与 Gradle；浏览器端到端和 APK 编译由推送后的 GitHub Actions 执行，真机 OCR/滚动仍需安装新 APK 验收。
 
 ## 当前识别检查点验证
 

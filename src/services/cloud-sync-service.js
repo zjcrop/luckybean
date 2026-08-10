@@ -1,11 +1,12 @@
 import { get, put } from '../db.js';
 import {
   SYNC_FORMAT, CHUNK_FORMAT, SYNC_SCHEMA_VERSION,
-  buildLogicalPackets, encodePacket, decodePacket, compressBytes, decompressBytes, restorePackets
+  buildLogicalPackets, encodePacket, decodePacket, compressBytes, decompressBytes, mergeRemotePacketsIntoLocal
 } from '../cloud-codec.js';
 import {
-  analyzeRemoteDeletionRisk, deletionRiskFingerprintSource, mergePacketPreservingRemote
-} from './cloud-sync-safety.js?v=1.23D-main-sync.2';
+  analyzeRemoteDeletionRisk, deletedBaselineUnitKeys, deletionRiskFingerprintSource,
+  mergePacketPreservingRemote, packetUnitKeySet
+} from './cloud-sync-safety.js?v=1.23D-main-sync.3';
 
 const STATE_ID = 'cloud.sync.state.v3';
 const DEVICE_ID = 'cloud.device.id.v3';
@@ -58,10 +59,15 @@ async function stateRecord() {
     id: STATE_ID,
     lastRemoteRevision: '',
     lastSuccessfulSyncAt: '',
+    lastSyncedUnitKeys: [],
     lastStatus: 'never',
     preservedDeletionFingerprint: '',
     pendingDeletionFingerprint: ''
   };
+}
+
+function manifestRevision(manifest) {
+  return String(manifest?.sync_completed_at || manifest?.uploaded_at || manifest?.client_updated_at || '');
 }
 
 async function saveState(patch) {
@@ -91,7 +97,10 @@ async function digest(bytes) {
 }
 
 async function digestB64(bytes) { return bytesToB64(await digest(bytes)); }
-async function chunkId(logicalKey) { return b64Url(await digest(enc.encode(logicalKey))).slice(0, 32); }
+async function chunkId(logicalKey, packet) {
+  const contentHash = await digestB64(encodePacket(packet));
+  return b64Url(await digest(enc.encode(`${logicalKey}\n${contentHash}`))).slice(0, 32);
+}
 
 async function remoteManifest(userId) {
   const rows = await auth().apiRequest(`/rest/v1/luckybean_sync_manifests?user_id=eq.${encodeURIComponent(userId)}&select=*`, {
@@ -128,11 +137,34 @@ async function localPacketBundle(built) {
   const descriptors = new Map();
   const packets = new Map();
   for (const packetInfo of built.packets) {
-    const id = await chunkId(packetInfo.logicalKey);
+    const id = await chunkId(packetInfo.logicalKey, packetInfo.packet);
     descriptors.set(id, { id, logicalKey: packetInfo.logicalKey, packet: packetInfo.packet });
     packets.set(id, packetInfo.packet);
   }
   return { descriptors, packets };
+}
+
+async function commitManifest(userId, manifest, existing) {
+  if (existing) {
+    const expected = manifestRevision(existing);
+    const rows = await auth().apiRequest(
+      `/rest/v1/luckybean_sync_manifests?user_id=eq.${encodeURIComponent(userId)}&sync_completed_at=eq.${encodeURIComponent(expected)}&select=*`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=representation' },
+        body: manifest,
+        timeoutMs: 10000
+      }
+    );
+    return rows?.[0] || null;
+  }
+  const rows = await auth().apiRequest('/rest/v1/luckybean_sync_manifests?on_conflict=user_id&select=*', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=ignore-duplicates,return=representation' },
+    body: manifest,
+    timeoutMs: 10000
+  });
+  return rows?.[0] || null;
 }
 
 async function riskFingerprint(risk) {
@@ -189,7 +221,6 @@ async function prepareUploadRows({ built, localBundle, remoteBundle, existing, p
       cipher_bytes: compressed.bytes.byteLength,
       source_device_id: device,
       client_updated_at: now,
-      uploaded_at: now
     });
     nextChunks.push({
       chunk_id: id,
@@ -218,21 +249,19 @@ async function prepareUploadRows({ built, localBundle, remoteBundle, existing, p
   };
 }
 
-async function upload({ reason = 'auto', forceMigration = false, deletionPolicy = '', expectedFingerprint = '' } = {}) {
+async function upload({ reason = 'auto', forceMigration = false, deletionPolicy = '', expectedFingerprint = '', expectedRemoteRevision = '' } = {}) {
   const active = auth()?.getSession?.();
   if (!active?.user?.id) throw new Error('请先登录云端账号');
   const userId = active.user.id;
   const existing = await remoteManifest(userId);
   const localState = await stateRecord();
   const device = await deviceId();
-  const remoteRevision = String(existing?.client_updated_at || '');
-  const remoteChangedElsewhere = Boolean(
-    existing && localState.lastRemoteRevision && remoteRevision !== localState.lastRemoteRevision && existing.source_device_id !== device
-  );
-  if (remoteChangedElsewhere && !forceMigration) {
-    await saveState({ lastStatus: 'conflict', conflictRemoteRevision: remoteRevision });
-    emit('conflict', { message: '云端存在其他设备的新数据，已停止自动覆盖' });
-    return { conflict: true };
+  const remoteRevision = manifestRevision(existing);
+  if (expectedRemoteRevision && remoteRevision !== expectedRemoteRevision) {
+    return { staleRemote: true, expectedRemoteRevision, remoteRevision };
+  }
+  if (!expectedRemoteRevision && existing && remoteRevision !== localState.lastRemoteRevision) {
+    return mergeAndUpload(existing, readDirty(), { reason: `${reason}-late-remote`, interactive: false });
   }
 
   emit('comparing', { reason });
@@ -290,14 +319,12 @@ async function upload({ reason = 'auto', forceMigration = false, deletionPolicy 
     chunks: prepared.nextChunks,
     source_device_id: device,
     client_updated_at: now,
-    uploaded_at: now
   };
-  await auth().apiRequest('/rest/v1/luckybean_sync_manifests?on_conflict=user_id', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: manifest,
-    timeoutMs: 10000
-  });
+  const committedManifest = await commitManifest(userId, manifest, existing);
+  if (!committedManifest) {
+    return { staleRemote: true, expectedRemoteRevision: remoteRevision, remoteRevision: manifestRevision(await remoteManifest(userId)) };
+  }
+  const completedRevision = manifestRevision(committedManifest);
 
   for (const id of prepared.staleChunkIds) {
     await auth().apiRequest(`/rest/v1/luckybean_sync_chunks?user_id=eq.${encodeURIComponent(userId)}&chunk_id=eq.${encodeURIComponent(id)}`, {
@@ -309,9 +336,11 @@ async function upload({ reason = 'auto', forceMigration = false, deletionPolicy 
   const preservedUnits = policy === 'preserve' ? risk.missingUnits : 0;
   const deletedUnits = policy === 'delete' ? risk.missingUnits : 0;
   const lastStatus = preservedUnits ? 'synced-preserved' : 'synced';
+  const baselineKeys = [...packetUnitKeySet(localBundle.packets)].sort();
   await saveState({
-    lastRemoteRevision: now,
-    lastSuccessfulSyncAt: now,
+    lastRemoteRevision: completedRevision,
+    lastSuccessfulSyncAt: completedRevision,
+    lastSyncedUnitKeys: baselineKeys,
     lastStatus,
     changedPackets: prepared.changedRows.length,
     deletedPackets: prepared.staleChunkIds.length,
@@ -359,11 +388,18 @@ async function download(manifest, { interactive = false, mergeBack = false } = {
   }
   globalThis.__LuckyBeanCloudRestoreActive = true;
   try {
-    const restored = await restorePackets(packets);
+    const localState = await stateRecord();
+    const dirty = readDirty();
+    const completedRevision = manifestRevision(manifest);
+    const restored = await mergeRemotePacketsIntoLocal(packets, {
+      remoteCompletedAt: completedRevision,
+      localChangedAt: dirty?.lastChangedAt || localState.lastSuccessfulSyncAt || ''
+    });
     clearDirty();
     await saveState({
-      lastRemoteRevision: String(manifest.client_updated_at || ''),
-      lastSuccessfulSyncAt: new Date().toISOString(),
+      lastRemoteRevision: completedRevision,
+      lastSuccessfulSyncAt: completedRevision || new Date().toISOString(),
+      lastSyncedUnitKeys: [...packetUnitKeySet(packets)].sort(),
       lastStatus: 'downloaded',
       restored,
       pendingDeletionFingerprint: '',
@@ -376,6 +412,39 @@ async function download(manifest, { interactive = false, mergeBack = false } = {
   } finally {
     globalThis.__LuckyBeanCloudRestoreActive = false;
   }
+}
+
+async function mergeAndUpload(manifest, dirty, { reason = 'merge', interactive = false } = {}) {
+  const active = auth()?.getSession?.();
+  if (!active?.user?.id) return { skipped: true, reason: 'signed-out' };
+  let currentManifest = manifest;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const localState = await stateRecord();
+    const remoteBundle = await remotePacketBundle(active.user.id, currentManifest);
+    const localBuilt = await buildLogicalPackets();
+    const localBundle = await localPacketBundle(localBuilt);
+    const deletedKeys = deletedBaselineUnitKeys(localBundle.packets, localState.lastSyncedUnitKeys || []);
+    globalThis.__LuckyBeanCloudRestoreActive = true;
+    try {
+      await mergeRemotePacketsIntoLocal([...remoteBundle.packets.values()], {
+        skipUnitKeys: deletedKeys,
+        remoteCompletedAt: manifestRevision(currentManifest),
+        localChangedAt: dirty?.lastChangedAt || localState.updatedAt || ''
+      });
+    } finally {
+      globalThis.__LuckyBeanCloudRestoreActive = false;
+    }
+    const result = await upload({
+      reason: `${reason}-union`,
+      deletionPolicy: 'delete',
+      expectedRemoteRevision: manifestRevision(currentManifest)
+    });
+    if (!result?.staleRemote) return result;
+    currentManifest = await remoteManifest(active.user.id);
+  }
+  const error = new Error('云端数据连续发生变化，本次已安全停止；稍后将自动重新合并');
+  if (interactive) throw error;
+  return { error: error.message };
 }
 
 async function reconcile({ reason = 'startup', interactive = false, forcePull = false, deletionPolicy = '', expectedFingerprint = '' } = {}) {
@@ -397,20 +466,15 @@ async function reconcile({ reason = 'startup', interactive = false, forcePull = 
     const manifest = await remoteManifest(active.user.id);
     const localState = await stateRecord();
     const dirty = readDirty();
-    const remoteRevision = String(manifest?.client_updated_at || '');
+    const remoteRevision = manifestRevision(manifest);
     const remoteChanged = Boolean(manifest && remoteRevision && remoteRevision !== localState.lastRemoteRevision);
 
     if (forcePull && manifest) return await download(manifest, { interactive: true, mergeBack: true });
     if (manifest && !localState.lastRemoteRevision) {
-      if (dirty) {
-        const merged = await upload({ reason: `${reason}-first-baseline`, deletionPolicy: 'preserve' });
-        if (merged?.confirmationRequired || merged?.conflict) return merged;
-        const mergedManifest = await remoteManifest(active.user.id);
-        return await download(mergedManifest, { interactive });
-      }
-      return await download(manifest, { interactive });
+      return await mergeAndUpload(manifest, dirty, { reason: `${reason}-first-baseline`, interactive });
     }
-    if (dirty || deletionPolicy) return await upload({ reason, deletionPolicy, expectedFingerprint });
+    if (dirty && manifest) return await mergeAndUpload(manifest, dirty, { reason, interactive });
+    if (dirty || deletionPolicy) return await upload({ reason, deletionPolicy: deletionPolicy || 'delete', expectedFingerprint });
     if (remoteChanged) return await download(manifest, { interactive });
 
     await saveState({ lastStatus: 'idle', lastCheckedAt: new Date().toISOString(), lastRemoteRevision: remoteRevision || localState.lastRemoteRevision });
@@ -476,7 +540,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 globalThis.LuckyBeanCloudSync = {
-  revision: 'cloud-sync-service-v2-first-login-merge',
+  revision: 'cloud-sync-service-v3-server-time-union',
   reconcile,
   ensureAutomatic,
   resolveDeletionDecision,

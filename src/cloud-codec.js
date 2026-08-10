@@ -295,22 +295,119 @@ export async function decompressBytes(bytes, algorithm = 'gzip') {
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
-export async function restorePackets(packets = []) {
+function customCodeKey(row, index) {
+  return `custom:${String(row?.id || row?.code || row?.key || row?.name || `row-${index}`)}`;
+}
+
+export function materializePackets(packets = [], { skipUnitKeys = new Set() } = {}) {
+  const skipped = skipUnitKeys instanceof Set ? skipUnitKeys : new Set(skipUnitKeys || []);
   const data = { beans: [], brewSessions: [], sensoryRecords: [], inventoryEvents: [], customCodes: [], settings: null };
   for (const packet of packets) {
-    if (packet.k === 'bean-meta' && packet.b) data.beans.push(unpackBean(packet.b));
+    if (packet.k === 'bean-meta' && packet.b && !skipped.has(`bean:${String(packet.b[0] || 'unknown')}`)) {
+      data.beans.push(unpackBean(packet.b));
+    }
     if (packet.k === 'bean-records' || packet.k === 'orphan') {
       for (const [kind, row] of packet.x || []) {
+        if (skipped.has(`${String(kind || 'record')}:${String(row?.[0] || '')}`)) continue;
         if (kind === 'r') data.brewSessions.push(unpackBrew(row));
         if (kind === 's') data.sensoryRecords.push(unpackSensory(row));
         if (kind === 'i') data.inventoryEvents.push(unpackInventory(row));
       }
     }
     if (packet.k === 'settings') {
-      data.settings = packet.s || null;
-      data.customCodes.push(...(Array.isArray(packet.c) ? packet.c : []));
+      if (!skipped.has('settings:app.settings')) data.settings = packet.s || null;
+      data.customCodes.push(...(Array.isArray(packet.c) ? packet.c.filter((row, index) => !skipped.has(customCodeKey(row, index))) : []));
     }
   }
+  return data;
+}
+
+function timestampMs(record = {}) {
+  for (const value of [record.updatedAt, record.completedAt, record.createdAt, record.roastDate]) {
+    const parsed = Date.parse(String(value || ''));
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+}
+
+function preferRemoteRecord(remote, local, remoteCompletedAt = '', localChangedAt = '') {
+  const remoteTime = timestampMs(remote);
+  const localTime = timestampMs(local);
+  if (remoteTime && localTime && Math.abs(remoteTime - localTime) >= 60000) return remoteTime > localTime;
+  const remoteSyncTime = Date.parse(String(remoteCompletedAt || ''));
+  const localSyncTime = Date.parse(String(localChangedAt || ''));
+  if (Number.isFinite(remoteSyncTime) && Number.isFinite(localSyncTime) && remoteSyncTime !== localSyncTime) {
+    return remoteSyncTime > localSyncTime;
+  }
+  return remoteTime > localTime;
+}
+
+function mergeGearRows(localRows = [], remoteRows = [], timing = {}) {
+  const merged = new Map(localRows.map((row, index) => [String(row?.id || row?.name || index), structuredClone(row)]));
+  remoteRows.forEach((row, index) => {
+    const key = String(row?.id || row?.name || index);
+    const current = merged.get(key);
+    if (!current || preferRemoteRecord(row, current, timing.remoteCompletedAt, timing.localChangedAt)) merged.set(key, structuredClone(row));
+  });
+  return [...merged.values()];
+}
+
+export async function mergeRemotePacketsIntoLocal(packets = [], options = {}) {
+  const data = materializePackets(packets, options);
+  const timing = {
+    remoteCompletedAt: options.remoteCompletedAt || '',
+    localChangedAt: options.localChangedAt || ''
+  };
+  const storeMap = [
+    ['beans', data.beans],
+    ['brewSessions', data.brewSessions],
+    ['sensoryRecords', data.sensoryRecords],
+    ['inventoryEvents', data.inventoryEvents],
+    ['customCodes', data.customCodes]
+  ];
+  const mergedCounts = {};
+  for (const [storeName, remoteRows] of storeMap) {
+    const localRows = await all(storeName);
+    const localById = new Map(localRows.map(row => [String(row?.id || row?.code || ''), row]));
+    const writes = remoteRows.filter(remote => {
+      const key = String(remote?.id || remote?.code || '');
+      const local = localById.get(key);
+      return !local || preferRemoteRecord(remote, local, timing.remoteCompletedAt, timing.localChangedAt);
+    });
+    if (writes.length) await bulkPut(storeName, writes);
+    mergedCounts[storeName] = writes.length;
+  }
+
+  if (data.settings) {
+    const local = await getSetting('app.settings', {});
+    const remoteWins = preferRemoteRecord(data.settings, local, timing.remoteCompletedAt, timing.localChangedAt);
+    const primary = remoteWins ? data.settings : local;
+    const secondary = remoteWins ? local : data.settings;
+    const merged = {
+      ...secondary,
+      ...primary,
+      identity: local?.identity || data.settings.identity,
+      ui: { ...(secondary?.ui || {}), ...(primary?.ui || {}) },
+      brew: { ...(secondary?.brew || {}), ...(primary?.brew || {}) },
+      gear: {
+        ...(secondary?.gear || {}),
+        ...(primary?.gear || {}),
+        filters: Array.isArray(local?.gear?.filters) ? local.gear.filters : [],
+        drippers: mergeGearRows(local?.gear?.drippers || [], data.settings.gear?.drippers || [], timing),
+        grinders: mergeGearRows(local?.gear?.grinders || [], data.settings.gear?.grinders || [], timing)
+      }
+    };
+    if (local?.brew?.apiEndpoint) merged.brew.apiEndpoint = local.brew.apiEndpoint;
+    await setSetting('app.settings', merged);
+    mergedCounts.settings = 1;
+  } else {
+    mergedCounts.settings = 0;
+  }
+  return mergedCounts;
+}
+
+export async function restorePackets(packets = []) {
+  const data = materializePackets(packets);
   if (data.beans.length) await bulkPut('beans', data.beans);
   if (data.brewSessions.length) await bulkPut('brewSessions', data.brewSessions);
   if (data.sensoryRecords.length) await bulkPut('sensoryRecords', data.sensoryRecords);

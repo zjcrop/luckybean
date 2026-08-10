@@ -26,3 +26,25 @@ img,
 video {
   max-width: 100%;
 }
+
+/* Android WebView must scroll the full professional cupping step, not only an
+   inner dialog whose height can become fixed before the radar is laid out. */
+@media (max-width: 680px) {
+  .v095-professional-overlay,
+  .v098-radar-return {
+    display: block !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(92px, calc(28px + env(safe-area-inset-bottom))) !important;
+  }
+
+  .v095-professional-overlay > .v095-professional-dialog,
+  .v098-radar-return > .v098-radar-dialog {
+    width: min(100%, 760px) !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 auto !important;
+    overflow: visible !important;
+  }
+}

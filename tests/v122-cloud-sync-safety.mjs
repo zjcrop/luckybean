@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import {
   analyzeRemoteDeletionRisk,
+  deletedBaselineUnitKeys,
   deletionRiskFingerprintSource,
   mergePacketPreservingRemote,
-  packetUnitEntries
+  packetUnitEntries,
+  packetUnitKeySet
 } from '../src/services/cloud-sync-safety.js';
 
 const remoteRecords = {
@@ -52,4 +54,8 @@ assert.equal(unknownBaseline.requiresConfirmation, true);
 assert.equal(unknownBaseline.baselineUnknown, true);
 assert.match(deletionRiskFingerprintSource(unknownBaseline), /baseline:unknown/);
 
-console.log('v1.2.2 cloud deletion guard and preserve-only merge checks passed');
+const syncedKeys = [...packetUnitKeySet(remote)];
+const deletedKeys = deletedBaselineUnitKeys(local, syncedKeys);
+assert.deepEqual([...deletedKeys].sort(), ['bean:bean-b', 'i:inventory-1', 's:sensory-1']);
+
+console.log('v1.23D cloud union baseline and deletion propagation checks passed');

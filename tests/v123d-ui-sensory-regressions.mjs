@@ -7,6 +7,7 @@ const voice = read('src/ui/voice-settings-controller.js');
 const sensory = read('src/sensory-professional-controller.js');
 const app = read('src/app.js');
 const styles = read('styles.css');
+const layoutGuard = read('src/ui/layout-guard.css');
 
 assert.match(read('src/utils.js'), /APP_VERSION = '1\.23D'/, 'the locked app version must remain 1.23D');
 
@@ -31,6 +32,8 @@ assert.doesNotMatch(app, /sensoryRecordEditorHtml/, 'the flat result-only editor
 
 assert.match(styles, /\.v095-tag-grid,[\s\S]*column-gap:\s*1em;[\s\S]*row-gap:\s*\.5em;/, 'cupping tags must use one-em columns and half-em rows');
 assert.match(styles, /\.v095-score-stage \[data-v095-score-delta-input\][\s\S]*width:\s*100% !important;[\s\S]*writing-mode:\s*horizontal-tb !important;/, 'professional subjective score axis must be a wide horizontal control');
+assert.match(layoutGuard, /\.v095-professional-overlay,[\s\S]*\.v098-radar-return[\s\S]*overflow-y:\s*auto !important/, 'mobile cupping and radar overlays must scroll vertically');
+assert.match(layoutGuard, /\.v098-radar-return > \.v098-radar-dialog[\s\S]*max-height:\s*none !important;[\s\S]*overflow:\s*visible !important/, 'radar dialog must expose its full content to the overlay scroller');
 assert.match(app, /dripperMaterial:\s*normalizeDripperMaterial\(/, 'LuckyBean must send the selected dripper material to BrewProfiles');
 assert.match(app, /data-add-bean-option="regions"/, 'region must retain a local add-option action');
 assert.match(app, /data-add-bean-option="entities"/, 'estate and processing-station must retain a local add-option action');

@@ -13,7 +13,7 @@ const STATUS_TEXT = {
   downloaded: '服务器数据已自动恢复',
   idle: '服务器数据已是最新',
   error: '自动同步失败，稍后将重试',
-  conflict: '检测到多设备冲突，已停止自动覆盖',
+  conflict: '检测到多设备更新，正在合并两端数据',
   'deletion-confirmation-required': '检测到云端数据可能被删除，等待确认',
   'waiting-for-login': '登录后自动同步',
   'legacy-encrypted': '检测到旧版加密服务器数据'
@@ -206,7 +206,7 @@ async function renderPanel() {
   section.dataset.singleSyncAccount = '1';
   section.innerHTML = signedIn
     ? `<div class="setting-row"><div><h3>服务器同步账户</h3><p class="cloud-sync-status-line" data-cloud-status><i class="cloud-sync-indicator" data-state="${esc(lastSyncState)}" aria-hidden="true"></i><span>${esc(info.main)}${info.email ? ` · ${esc(info.email)}` : ''}</span></p><small class="muted">上次完成：${esc(info.last)}${info.error ? ` · ${esc(info.error)}` : ''}</small></div></div>
-      <p class="muted small">自动同步始终启用：登录后会先下载并合并服务器数据；之后本机新变化约8秒后自动增量同步。也可随时手工核对或拉取合并。</p>
+      <p class="muted small">自动同步始终启用：登录后会合并本机与服务器数据，并以服务器记录的同步完成时间判断版本；之后本机新增、修改或删除会在约8秒后增量同步。</p>
       ${reviewRequired ? `<div class="cloud-deletion-warning"><p class="status-bad">${esc(deletionSummary(reviewDetail))}</p><button class="button primary" type="button" data-cloud-deletion-review>处理云端删除确认</button></div>` : ''}
       <p class="muted small" data-cloud-manual-message role="status"></p>
       <div class="text-actions data-actions"><button class="button" type="button" data-cloud-sync-now>立即同步</button><button class="button primary" type="button" data-cloud-pull>下载云端数据合并本地</button><button class="button subtle" type="button" data-cloud-logout>退出登录</button></div>`

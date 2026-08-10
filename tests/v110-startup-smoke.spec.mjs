@@ -142,7 +142,12 @@ test('local changes are saved first and batch-synced after debounce', async ({ p
     }
     if (url.pathname === '/rest/v1/luckybean_sync_manifests' && request.method() === 'POST') {
       requests.manifestWrites.push(body);
-      await route.fulfill({ status: 201, contentType: 'application/json', body: '[]' });
+      const completed = new Date().toISOString();
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify([{ ...body, uploaded_at: completed, sync_completed_at: completed }])
+      });
       return;
     }
     if (request.method() === 'DELETE') {

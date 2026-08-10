@@ -102,7 +102,7 @@ function render() {
         <div class="bag-capture-status"><strong>${captureState.images.length}/${MAX_IMAGES}</strong><span>${esc(statusMessage())}</span></div>
         <div class="bag-engine-status">
           <span>识别通道</span>
-          <b>${capabilities.native ? '原生 PP-OCR 桥接可用' : capabilities.webPaddle ? '网页 PP-OCR 可用' : capabilities.textDetector ? '浏览器文字检测可用' : '等待安装 PP-OCR 引擎'}</b>
+          <b>${capabilities.native ? 'Android 本地中英文 OCR 可用' : capabilities.webPaddle ? '网页 PP-OCR 可用' : capabilities.textDetector ? '浏览器文字检测可用' : '等待安装 PP-OCR 引擎'}</b>
         </div>
         <div class="bag-photo-list">${renderImageCards()}</div>
         <div class="bag-capture-actions">

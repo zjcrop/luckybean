@@ -9,6 +9,7 @@ const manifest = JSON.parse(read('manifest.webmanifest'));
 const sw = read('sw.js');
 const androidBuild = read('android/app/build.gradle');
 const androidActivity = read('android/app/src/main/java/com/luckybean/app/MainActivity.java');
+const androidBridge = read('android/native-bridge.js');
 const deployWorkflow = read('.github/workflows/deploy-main.yml');
 const buildWorkflow = read('.github/workflows/build-main.yml');
 
@@ -38,6 +39,13 @@ assert.match(androidBuild, /include 'index\.html', 'recognition-test\.html'/);
 assert.match(androidActivity, /addJavascriptInterface\(new NativeFileBridge\(\), "LuckyBeanNative"\)/);
 assert.match(androidActivity, /Intent\.ACTION_CREATE_DOCUMENT/);
 assert.match(androidActivity, /openOutputStream/);
+assert.match(androidBuild, /com\.google\.mlkit:text-recognition:16\.0\.1/);
+assert.match(androidBuild, /com\.google\.mlkit:text-recognition-chinese:16\.0\.1/);
+assert.match(androidActivity, /ChineseTextRecognizerOptions/);
+assert.match(androidActivity, /recognizeImage\(String requestId/);
+assert.match(androidBridge, /LuckyBeanRecognitionBridge/);
+assert.match(androidBridge, /android-mlkit-bundled-16\.0\.1/);
+assert.doesNotMatch(androidBridge, /cdn\.jsdelivr\.net|dynamic.*import/i);
 assert.match(read('src/utils.js'), /LuckyBeanNative\?\.saveFile/);
 
 assert.match(deployWorkflow, /recognition-test\.html/);

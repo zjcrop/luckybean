@@ -14,6 +14,7 @@ tasks.register('syncLuckyBeanWebAssets') {
         fileTree(new File(repositoryRoot, 'src')),
         fileTree(new File(repositoryRoot, 'public')),
         fileTree(new File(repositoryRoot, 'contracts')),
+        new File(repositoryRoot, 'android/native-bridge.js'),
         new File(repositoryRoot, 'recognition-test.html')
     )
     outputs.dir(generatedWebAssets)
@@ -29,8 +30,10 @@ tasks.register('syncLuckyBeanWebAssets') {
             into webCache
         }
 
-        File nativeBridge = new File(webCache, 'native-bridge.js')
-        nativeBridge.write("globalThis.__LUCKYBEAN_ANDROID__ = true;\nglobalThis.__LUCKYBEAN_PUBLIC_URL__ = 'https://zjcrop.github.io/luckybean/';\n", 'UTF-8')
+        copy {
+            from(new File(repositoryRoot, 'android/native-bridge.js'))
+            into webCache
+        }
 
         File indexFile = new File(webCache, 'index.html')
         String indexHtml = indexFile.getText('UTF-8')
@@ -101,4 +104,9 @@ android {
 
 tasks.named('preBuild').configure {
     dependsOn tasks.named('syncLuckyBeanWebAssets')
+}
+
+dependencies {
+    implementation 'com.google.mlkit:text-recognition:16.0.1'
+    implementation 'com.google.mlkit:text-recognition-chinese:16.0.1'
 }

@@ -9,6 +9,7 @@ const account = read('src/ui/account-sync-panel.js');
 const runtime = read('src/features/runtime-features.js');
 const sw = read('sw.js');
 const androidBuild = read('android/app/build.gradle');
+const androidBridge = read('android/native-bridge.js');
 const dataContract = JSON.parse(read('contracts/luckybean-brew-data.schema.json'));
 
 assert.match(app, /pendingSensoryContext/);
@@ -51,8 +52,8 @@ assert.doesNotMatch(sw, /postbrew-sensory-controller/);
 assert.match(androidBuild, /applicationId 'com\.luckybean\.app'/);
 assert.match(androidBuild, /versionCode 102304/);
 assert.match(androidBuild, /versionName '1\.23D'/);
-assert.match(androidBuild, /https:\/\/zjcrop\.github\.io\/luckybean\//);
-assert.doesNotMatch(androidBuild, /zjcrop\.github\.io\/(?:BrewIon\/luckybean|LuckyBean)\//);
+assert.match(androidBridge, /https:\/\/zjcrop\.github\.io\/luckybean\//);
+assert.doesNotMatch(androidBridge, /zjcrop\.github\.io\/(?:BrewIon\/luckybean|LuckyBean)\//);
 assert.equal(dataContract.$id, 'https://zjcrop.github.io/luckybean/contracts/luckybean-brew-data.schema.json');
 
 console.log('v1.2.5 independent sensory state machines and unified private gear model passed');

@@ -5,9 +5,9 @@ import { normalizeRecommendationScore } from './preference-model.js';
 if (!globalThis.__LuckyBeanV099gWorldMapLoaded) {
   globalThis.__LuckyBeanV099gWorldMapLoaded = true;
 
-  const CORE_URL = 'https://cdn.jsdelivr.net/npm/jsvectormap@1.7.0/dist/jsvectormap.min.js';
-  const MAP_URL = 'https://cdn.jsdelivr.net/npm/jsvectormap@1.7.0/dist/maps/world.js';
-  const CSS_URL = 'https://cdn.jsdelivr.net/npm/jsvectormap@1.7.0/dist/jsvectormap.min.css';
+  const CORE_URL = './public/vendor/jsvectormap/jsvectormap.min.js';
+  const MAP_URL = './public/vendor/jsvectormap/world.js';
+  const CSS_URL = './public/vendor/jsvectormap/jsvectormap.min.css';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const esc = value => String(value ?? '').replace(/[&<>\"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
