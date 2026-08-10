@@ -24,7 +24,7 @@ async function seedBean(page) {
   });
 }
 
-test('one server login remains one panel after authentication and automatic sync has no settings', async ({ page }) => {
+test('one server login keeps automatic sync and exposes manual sync recovery actions', async ({ page }) => {
   await openApp(page, 'requirements-account-brew=1');
   await page.locator('[data-page-target="settings"]').click();
   const cloudSection = page.locator('#settingsContent [data-settings-key="account"]');
@@ -43,10 +43,13 @@ test('one server login remains one panel after authentication and automatic sync
   await page.evaluate(() => {
     const original = globalThis.LuckyBeanCloudSync.ensureAutomatic;
     globalThis.__singleSyncCalls = [];
+    globalThis.__manualSyncCalls = [];
     globalThis.LuckyBeanCloudSync.ensureAutomatic = reason => {
       globalThis.__singleSyncCalls.push(reason);
       return original ? true : true;
     };
+    globalThis.LuckyBeanCloudSync.syncNow = async () => { globalThis.__manualSyncCalls.push('sync'); };
+    globalThis.LuckyBeanCloudSync.pullNow = async () => { globalThis.__manualSyncCalls.push('pull'); };
     localStorage.setItem('luckybean.supabase.session.v099d', JSON.stringify({
       user: { id: 'single-cloud-user', email: 'single@example.com' }
     }));
@@ -60,7 +63,13 @@ test('one server login remains one panel after authentication and automatic sync
   await expect(page.locator('[data-cloud-account-panel]')).toContainText('自动同步始终启用');
   await expect(page.locator('[data-cloud-login],[data-cloud-register]')).toHaveCount(0);
   await expect(page.locator('[data-cloud-logout]')).toHaveCount(1);
-  await expect(page.locator('[data-cloud-sync-toggle],[data-cloud-sync-now],[data-cloud-pull]')).toHaveCount(0);
+  await expect(page.locator('[data-cloud-sync-toggle]')).toHaveCount(0);
+  await expect(page.locator('[data-cloud-sync-now]')).toHaveText('立即同步');
+  await expect(page.locator('[data-cloud-pull]')).toHaveText('下载云端数据合并本地');
+  await expect(page.locator('.cloud-sync-indicator')).toHaveCount(1);
+  await page.locator('[data-cloud-sync-now]').click();
+  await page.locator('[data-cloud-pull]').click();
+  await expect.poll(() => page.evaluate(() => globalThis.__manualSyncCalls)).toEqual(['sync', 'pull']);
   await expect.poll(() => page.evaluate(() => globalThis.__singleSyncCalls.length)).toBeGreaterThan(0);
 
   await page.evaluate(() => {
