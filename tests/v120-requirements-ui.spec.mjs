@@ -113,6 +113,10 @@ test('one server login keeps automatic sync and exposes manual sync recovery act
   for (const selected of options) {
     await profile.selectOption(selected);
     await expect(profile).toHaveValue(selected);
+    await expect(profile).toBeVisible();
+    const segments = page.locator('#brewSegments');
+    const fixedSegments = await segments.isDisabled();
+    await expect(segments).toHaveAttribute('aria-hidden', fixedSegments ? 'true' : 'false');
     await generate.click();
     await expect(generate).toBeEnabled({ timeout: 20000 });
     await expect(page.locator('#generatedPlan')).toBeVisible({ timeout: 20000 });

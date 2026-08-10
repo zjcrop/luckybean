@@ -198,10 +198,10 @@ function syncBrewControls() {
   const profile = $('#brewProfile');
   const segments = $('#brewSegments');
   if (!profile || !segments) return;
-  const field = segments.closest('.field') || segments.parentElement;
   const fixedCount = fixedBrewStageCount(profile.value);
-  field?.classList.toggle('v098-segments-hidden', Boolean(fixedCount));
-  field?.setAttribute('aria-hidden', fixedCount ? 'true' : 'false');
+  segments.classList.toggle('v098-segments-hidden', Boolean(fixedCount));
+  segments.setAttribute('aria-hidden', fixedCount ? 'true' : 'false');
+  segments.disabled = Boolean(fixedCount);
   if (fixedCount && segments.value !== String(fixedCount)) segments.value = String(fixedCount);
 
   const labels = {
@@ -216,8 +216,6 @@ function syncBrewControls() {
     if (labels[option.value]) option.textContent = labels[option.value];
     if (option.value === '1') option.disabled = false;
   }
-  const helper = field?.querySelector('.helper,.muted,small');
-  if (helper) helper.textContent = '这里的段数为总段数，闷蒸计为第一段；仅在冲煮法未固定段数时显示。';
 }
 
 function radarValues(key) {
