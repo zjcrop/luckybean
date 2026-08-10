@@ -3963,17 +3963,18 @@ html.v099p-settings-active #settingsContent .settings-category-body {
   line-height: 1.7;
 }
 
-/* 1.23D main-sync: one canonical header geometry across all four pages. */
+/* 1.23D main-sync: one compact canonical header geometry across all four pages. */
 .page-heading.centered-page-heading {
   align-items: start !important;
-  min-height: 76px !important;
+  min-height: 42px !important;
+  margin-bottom: 10px !important;
   padding-top: 0 !important;
 }
 .page-heading.centered-page-heading > .page-seal-slot {
   display: flex !important;
   align-items: flex-start !important;
   justify-content: flex-start !important;
-  min-height: 76px !important;
+  min-height: 42px !important;
   padding-top: 0 !important;
   margin-top: 0 !important;
 }

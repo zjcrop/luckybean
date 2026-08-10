@@ -7,7 +7,7 @@
 
 当前部署：LuckyBean `1.23D`，唯一来源为 GitHub `main` 的最新成功部署提交。
 
-内部资源修订：`1.23D-main-sync.4`（仅用于清除旧 PWA/WebView 缓存，不是第二条版本线）
+内部资源修订：`1.23D-main-sync.5`（仅用于清除旧 PWA/WebView 缓存，不是第二条版本线）
 
 ## 当前版本边界
 

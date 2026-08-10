@@ -845,6 +845,17 @@ function openAddMenu() {
 }
 
 function selectOptions(rows, selected, labelIndex = 1, blank = '请选择') { return optionsHtml(rows, selected, labelIndex, blank); }
+const CUSTOM_BEAN_OPTION_VALUE = '__custom__';
+const CUSTOM_BEAN_FIELDS = Object.freeze({
+  countries: { field: 'countryCode', title: '自定义国家', prefix: 'custom_country' },
+  regions: { field: 'regionCode', title: '自定义产区', prefix: 'custom_region', requiresCountry: true },
+  entities: { field: 'entityCode', title: '自定义庄园 / 处理站', prefix: 'custom_entity', requiresCountry: true },
+  varieties: { field: 'varietyCode', title: '自定义豆种', prefix: 'custom_variety' },
+  processes: { field: 'processCode', title: '自定义处理法', prefix: 'custom_process' }
+});
+function beanSelectOptions(table, rows, selected, labelIndex = 1, blank = '请选择') {
+  return `${selectOptions(rows, selected, labelIndex, blank)}<option value="${CUSTOM_BEAN_OPTION_VALUE}">自定义</option>`;
+}
 function formValue(id) { return $(`#${id}`)?.value?.trim?.() ?? ''; }
 function selectedFlavorCodes(root = document) { return $$('[data-flavor-code].selected', root).map(button => button.dataset.flavorCode); }
 
@@ -857,11 +868,11 @@ function beanFormHtml(bean = {}, source = {}) {
   return `${dialogHeader(bean.id ? '编辑豆卡' : '新增豆卡', `来源：${source.type || bean.source || '手工录入'}`)}
     <form id="beanForm" novalidate>
       <div class="form-grid">
-        ${fieldHtml('beanCountry','国家',`<select id="beanCountry" class="control">${selectOptions(state.codebook.countries,bean.countryCode)}</select>`,'required')}
-        ${fieldHtml('beanRegion','产区',`<div class="select-with-add"><select id="beanRegion" class="control">${selectOptions(regions,bean.regionCode,2,bean.countryCode?'请选择产区':'先选择国家')}</select><button class="button subtle add-select-option" type="button" data-add-bean-option="regions">新增选项</button></div>`)}
-        ${fieldHtml('beanEntity','庄园 / 处理站',`<div class="select-with-add"><select id="beanEntity" class="control">${selectOptions(entities,bean.entityCode,3,bean.countryCode?'请选择庄园 / 处理站':'先选择国家')}</select><button class="button subtle add-select-option" type="button" data-add-bean-option="entities">新增选项</button></div>`)}
-        ${fieldHtml('beanVariety','豆种',`<select id="beanVariety" class="control">${selectOptions(state.codebook.varieties,bean.varietyCode)}</select>`,'required')}
-        ${fieldHtml('beanProcess','处理法',`<select id="beanProcess" class="control">${selectOptions(state.codebook.processes,bean.processCode)}</select>`,'required')}
+        ${fieldHtml('beanCountry','国家',`<select id="beanCountry" class="control">${beanSelectOptions('countries',state.codebook.countries,bean.countryCode)}</select>`,'required')}
+        ${fieldHtml('beanRegion','产区',`<div class="select-with-add"><select id="beanRegion" class="control">${beanSelectOptions('regions',regions,bean.regionCode,2,bean.countryCode?'请选择产区':'先选择国家')}</select><button class="button subtle add-select-option" type="button" data-add-bean-option="regions">新增选项</button></div>`)}
+        ${fieldHtml('beanEntity','庄园 / 处理站',`<div class="select-with-add"><select id="beanEntity" class="control">${beanSelectOptions('entities',entities,bean.entityCode,3,bean.countryCode?'请选择庄园 / 处理站':'先选择国家')}</select><button class="button subtle add-select-option" type="button" data-add-bean-option="entities">新增选项</button></div>`)}
+        ${fieldHtml('beanVariety','豆种',`<select id="beanVariety" class="control">${beanSelectOptions('varieties',state.codebook.varieties,bean.varietyCode)}</select>`,'required')}
+        ${fieldHtml('beanProcess','处理法',`<select id="beanProcess" class="control">${beanSelectOptions('processes',state.codebook.processes,bean.processCode)}</select>`,'required')}
         ${fieldHtml('beanRoastColor','烘焙色值',`<input id="beanRoastColor" class="control" type="number" min="20" max="120" step="1" value="${esc(colorValue)}" placeholder="Agtron 20–120">`,'recommended')}
         ${fieldHtml('beanRoast','烘焙度',`<select id="beanRoast" class="control"><option value="">填写色值自动生成</option>${ROASTS.map(([value,label])=>`<option value="${value}"${roastValue===value?' selected':''}>${label}</option>`).join('')}</select>`,'required')}
         ${fieldHtml('beanRoastDate','烘焙日期',`<input id="beanRoastDate" class="control" type="date" value="${esc(bean.roastDate || (source.type === 'manual' ? todayISO() : ''))}">`,'required')}
@@ -891,25 +902,26 @@ function evidenceHtml(evidence = {}, confidence = {}) {
 
 function customCodeRow(record) {
   if (record.table === 'regions') return [record.code, record.countryCode, record.name, record.name];
-  return [record.code, record.countryCode, record.regionCode || '', record.name, record.name];
+  if (record.table === 'entities') return [record.code, record.countryCode, record.regionCode || '', record.name, record.name];
+  return [record.code, record.name, record.name];
 }
 
-function openAddBeanOptionDialog(table) {
-  const countryCode = formValue('beanCountry');
-  if (!countryCode) return toast('请先选择国家', 'status-warn');
-  const beanDraft = captureBeanFormDraft();
-  const isRegion = table === 'regions';
-  const title = isRegion ? '新增产区' : '新增庄园 / 处理站';
-  const overlay = showOverlay(`${dialogHeader(title, '自定义项目仅保存在本地，后续可与正式编码表归并', { centered: true })}<label class="field"><span>名称 *</span><input id="customBeanOptionName" class="control" maxlength="80" autocomplete="off"></label><div class="row end"><button id="saveCustomBeanOptionBtn" class="button primary" type="button">确定</button></div>`, { id: 'custom-bean-option', backdropClose: true });
-  bindClose(overlay);
+function openAddBeanOptionDialog(table, capturedDraft = null) {
+  const config = CUSTOM_BEAN_FIELDS[table];
+  if (!config) return;
+  const beanDraft = capturedDraft || captureBeanFormDraft();
+  const countryCode = String(beanDraft.countryCode || '');
+  if (config.requiresCountry && !countryCode) return toast('请先选择国家', 'status-warn');
+  const overlay = showOverlay(`${dialogHeader(config.title, '自定义项目仅保存在本地，后续可与正式编码表归并', { centered: true, closable: false })}<label class="field"><span>名称 *</span><input id="customBeanOptionName" class="control" maxlength="80" autocomplete="off"></label><div class="row end"><button id="cancelCustomBeanOptionBtn" class="button subtle" type="button">返回</button><button id="saveCustomBeanOptionBtn" class="button primary" type="button">确定</button></div>`, { id: 'custom-bean-option' });
   $('#customBeanOptionName')?.focus();
+  $('#cancelCustomBeanOptionBtn')?.addEventListener('click', () => openBeanForm(beanDraft, state.beanFormSource || { type: 'manual' }));
   $('#saveCustomBeanOptionBtn')?.addEventListener('click', async () => {
     const name = $('#customBeanOptionName').value.trim();
     if (!name) return toast('名称不能为空', 'status-bad');
-    const regionCode = beanDraft.regionCode;
     const record = {
-      code: uid(isRegion ? 'custom_region' : 'custom_entity'), table, name, label: name,
-      countryCode, regionCode: isRegion ? '' : regionCode,
+      code: uid(config.prefix), table, name, label: name,
+      countryCode: table === 'regions' || table === 'entities' ? countryCode : '',
+      regionCode: table === 'entities' ? String(beanDraft.regionCode || '') : '',
       status: 'custom_active', createdAt: new Date().toISOString()
     };
     await put('customCodes', record);
@@ -917,9 +929,9 @@ function openAddBeanOptionDialog(table) {
     state.codebook[table].push(customCodeRow(record));
     state.codebookIndex = makeIndex(state.codebook);
     const draft = structuredClone(beanDraft);
-    if (isRegion) draft.regionCode = record.code;
-    else draft.entityCode = record.code;
-    closeOverlay();
+    draft[config.field] = record.code;
+    if (table === 'countries') { draft.regionCode = ''; draft.entityCode = ''; }
+    if (table === 'regions') draft.entityCode = '';
     openBeanForm(draft, state.beanFormSource || { type: 'manual' });
   });
 }
@@ -943,12 +955,31 @@ function openBeanForm(bean = {}, source = { type: 'manual' }) {
     }
     refreshControlState(select);
   };
-  $('#beanCountry').addEventListener('change', () => {
-    const country = $('#beanCountry').value;
-    $('#beanRegion').innerHTML = selectOptions(relatedRows(state.codebook, 'regions', country), '', 2, country ? '请选择产区' : '先选择国家');
-    $('#beanEntity').innerHTML = selectOptions(relatedRows(state.codebook, 'entities', country), '', 3, country ? '请选择庄园 / 处理站' : '先选择国家');
+  const bindCustomSelect = (id, table, onRegularChange = null) => {
+    const select = $(`#${id}`);
+    if (!select) return;
+    select.dataset.previousValue = select.value;
+    select.addEventListener('change', () => {
+      if (select.value === CUSTOM_BEAN_OPTION_VALUE) {
+        select.value = select.dataset.previousValue || '';
+        openAddBeanOptionDialog(table, captureBeanFormDraft());
+        return;
+      }
+      select.dataset.previousValue = select.value;
+      onRegularChange?.(select.value);
+    });
+  };
+  bindCustomSelect('beanCountry', 'countries', country => {
+    $('#beanRegion').innerHTML = beanSelectOptions('regions', relatedRows(state.codebook, 'regions', country), '', 2, country ? '请选择产区' : '先选择国家');
+    $('#beanEntity').innerHTML = beanSelectOptions('entities', relatedRows(state.codebook, 'entities', country), '', 3, country ? '请选择庄园 / 处理站' : '先选择国家');
+    bindCustomSelect('beanRegion', 'regions');
+    bindCustomSelect('beanEntity', 'entities');
     bindControlStates(form);
   });
+  bindCustomSelect('beanRegion', 'regions');
+  bindCustomSelect('beanEntity', 'entities');
+  bindCustomSelect('beanVariety', 'varieties');
+  bindCustomSelect('beanProcess', 'processes');
   $$('[data-add-bean-option]', form).forEach(button => button.addEventListener('click', () => openAddBeanOptionDialog(button.dataset.addBeanOption)));
   $('#beanRoastColor').addEventListener('input', syncRoastColor);
   if (formValue('beanRoastColor')) { $('#beanRoast').dataset.autoFromColor = 'true'; syncRoastColor(); }
@@ -1307,10 +1338,11 @@ function renderBrew() {
   if (heading) heading.innerHTML = `<select id="brewBean" class="control brew-bean-heading" aria-label="选择豆子">${activeBeans.map(bean=>`<option value="${esc(bean.id)}"${bean.id===state.selectedBeanId?' selected':''}>${esc(beanDisplayName(bean))}</option>`).join('')}</select>`;
   const customWaterLabel = currentWater === 'custom' ? `${settings.customWater?.name || '自定义'} · TDS ${Number(settings.customWater?.tds || 85)}` : '';
   container.innerHTML = `<section class="panel brew-form"><div class="brew-compact-grid">
-    <div class="brew-row three"><label class="field"><span>粉量</span><input id="brewDose" class="control" type="number" min="5" max="40" step="0.1" value="${settings.doseG}"></label><label class="field"><span>粉水比</span><select id="brewRatio" class="control${settings.ratioMode!=='manual'?' model-recommended':' custom-selected'}"><option value="auto"${settings.ratioMode!=='manual'?' selected':''}>方案推荐（生成后返回）</option>${[14,14.5,15,15.5,16,16.5,17,18].map(value=>`<option value="${value}"${settings.ratioMode==='manual'&&Number(settings.ratio)===value?' selected':''}>手工 1:${value}</option>`).join('')}</select></label><label class="field"><span>滤杯</span><select id="brewDripper" class="control">${drippers.map(item=>`<option value="${esc(item.id)}"${activeDripper?.id===item.id?' selected':''}>${esc(item.name)}</option>`).join('')}</select><select id="brewDripperMaterial" class="control sub-control" aria-label="滤杯材质">${dripperMaterialOptions(activeDripperMaterial)}</select><select id="brewFilterPaper" class="control sub-control" aria-label="滤纸">${filters.length?filters.map(item=>`<option value="${esc(item.id)}"${selectedFilterId===item.id?' selected':''}>${esc([item.brand,item.type].filter(Boolean).join(' '))} · ${item.quantity}张</option>`).join(''):'<option value="">未设滤纸</option>'}</select></label></div>
-    <div class="brew-row two"><label class="field"><span>冲煮法</span><select id="brewProfile" class="control">${brewProfiles.map(profile=>`<option value="${esc(profile.id)}"${settings.profileId===profile.id?' selected':''}>${esc(profile.label)}</option>`).join('')}</select><small class="profile-catalog-status">${esc(catalogLabel)}</small></label><label class="field"><span>分段方式</span><select id="brewSegments" class="control"><option value="auto"${settings.segmentMode==='auto'?' selected':''}>模型推荐：${recommendedSegments+1}段</option>${[1,2,3,4,5].map(value=>`<option value="${value}"${String(settings.segmentMode)===String(value)?' selected':''}>${value+1}段（含首段）</option>`).join('')}</select></label></div>
-    <div class="brew-row two"><label class="field"><span>调水方案</span><select id="brewWaterProfile" class="control${currentWater==='auto'?' model-recommended':' custom-selected'}"><option value="auto"${currentWater==='auto'?' selected':''}>模型推荐：${esc(waterProfiles.find(item=>item.id===inferredWater)?.name || inferredWater)}</option>${waterProfiles.filter(profile=>profile.id!=='custom').map(profile=>`<option value="${profile.id}"${currentWater===profile.id?' selected':''}>${esc(profile.name)}</option>`).join('')}<option value="custom"${currentWater==='custom'?' selected':''}>自定义</option></select>${customWaterLabel?'<small class="custom-summary">自定义</small>':''}</label><div class="field"><span>风味设定</span><button id="openFlavorTargetBtn" class="control control-button" type="button">风味设定</button></div></div>
-    <div class="brew-row three"><div class="field"><span>微调</span><button id="openBrewTuneBtn" class="control control-button" type="button">微调</button></div><label class="field"><span>首段降温</span><select id="firstCoolingMode" class="control ${settings.firstCoolingMode==='auto'?'model-recommended':'custom-selected'}"><option value="auto"${settings.firstCoolingMode==='auto'?' selected':''}>模型推荐</option><option value="custom"${settings.firstCoolingMode==='custom'?' selected':''}>自定义 ${Number(settings.firstTemperatureC||87)}°C</option><option value="off"${settings.firstCoolingMode==='off'?' selected':''}>不开启</option></select></label><label class="field"><span>尾段降温</span><select id="tailCoolingMode" class="control ${settings.tailCoolingMode==='auto'?'model-recommended':'custom-selected'}"><option value="auto"${settings.tailCoolingMode==='auto'?' selected':''}>模型推荐</option><option value="custom"${settings.tailCoolingMode==='custom'?' selected':''}>自定义 ${Number(settings.tailTemperatureC||86)}°C</option><option value="off"${settings.tailCoolingMode==='off'?' selected':''}>不开启</option></select></label></div>
+    <div class="brew-row two" data-brew-row="dose-ratio"><label class="field"><span>粉量</span><input id="brewDose" class="control" type="number" min="5" max="40" step="0.1" value="${settings.doseG}"></label><label class="field"><span>粉水比</span><select id="brewRatio" class="control${settings.ratioMode!=='manual'?' model-recommended':' custom-selected'}"><option value="auto"${settings.ratioMode!=='manual'?' selected':''}>方案推荐（生成后返回）</option>${[14,14.5,15,15.5,16,16.5,17,18].map(value=>`<option value="${value}"${settings.ratioMode==='manual'&&Number(settings.ratio)===value?' selected':''}>手工 1:${value}</option>`).join('')}</select></label></div>
+    <div class="brew-row three" data-brew-row="filter-gear"><label class="field"><span>滤杯</span><select id="brewDripper" class="control">${drippers.map(item=>`<option value="${esc(item.id)}"${activeDripper?.id===item.id?' selected':''}>${esc(item.name)}</option>`).join('')}</select></label><label class="field"><span>滤杯材质</span><select id="brewDripperMaterial" class="control">${dripperMaterialOptions(activeDripperMaterial)}</select></label><label class="field"><span>滤纸</span><select id="brewFilterPaper" class="control">${filters.length?filters.map(item=>`<option value="${esc(item.id)}"${selectedFilterId===item.id?' selected':''}>${esc([item.brand,item.type].filter(Boolean).join(' '))} · ${item.quantity}张</option>`).join(''):'<option value="">未设滤纸</option>'}</select></label></div>
+    <div class="brew-row two" data-brew-row="method-water"><label class="field"><span>冲煮法</span><select id="brewProfile" class="control">${brewProfiles.map(profile=>`<option value="${esc(profile.id)}"${settings.profileId===profile.id?' selected':''}>${esc(profile.label)}</option>`).join('')}</select><select id="brewSegments" class="control sub-control" aria-label="分段方式"><option value="auto"${settings.segmentMode==='auto'?' selected':''}>模型推荐：${recommendedSegments+1}段</option>${[1,2,3,4,5].map(value=>`<option value="${value}"${String(settings.segmentMode)===String(value)?' selected':''}>${value+1}段（含首段）</option>`).join('')}</select><small class="profile-catalog-status">${esc(catalogLabel)}</small></label><label class="field"><span>调水方案</span><select id="brewWaterProfile" class="control${currentWater==='auto'?' model-recommended':' custom-selected'}"><option value="auto"${currentWater==='auto'?' selected':''}>模型推荐：${esc(waterProfiles.find(item=>item.id===inferredWater)?.name || inferredWater)}</option>${waterProfiles.filter(profile=>profile.id!=='custom').map(profile=>`<option value="${profile.id}"${currentWater===profile.id?' selected':''}>${esc(profile.name)}</option>`).join('')}<option value="custom"${currentWater==='custom'?' selected':''}>自定义</option></select>${customWaterLabel?'<small class="custom-summary">自定义</small>':''}</label></div>
+    <div class="brew-row two" data-brew-row="tune-flavor"><div class="field"><span>微调</span><button id="openBrewTuneBtn" class="control control-button" type="button">微调</button></div><div class="field"><span>风味设定</span><button id="openFlavorTargetBtn" class="control control-button" type="button">风味设定</button></div></div>
+    <div class="brew-row two" data-brew-row="cooling"><label class="field"><span>首段降温</span><select id="firstCoolingMode" class="control ${settings.firstCoolingMode==='auto'?'model-recommended':'custom-selected'}"><option value="auto"${settings.firstCoolingMode==='auto'?' selected':''}>模型推荐</option><option value="custom"${settings.firstCoolingMode==='custom'?' selected':''}>自定义 ${Number(settings.firstTemperatureC||87)}°C</option><option value="off"${settings.firstCoolingMode==='off'?' selected':''}>不开启</option></select></label><label class="field"><span>尾段降温</span><select id="tailCoolingMode" class="control ${settings.tailCoolingMode==='auto'?'model-recommended':'custom-selected'}"><option value="auto"${settings.tailCoolingMode==='auto'?' selected':''}>模型推荐</option><option value="custom"${settings.tailCoolingMode==='custom'?' selected':''}>自定义 ${Number(settings.tailTemperatureC||86)}°C</option><option value="off"${settings.tailCoolingMode==='off'?' selected':''}>不开启</option></select></label></div>
     <details class="brew-environment-details"><summary>环境细节（默认25°C，可选）</summary><div class="brew-row three"><label class="field"><span>室温 °C</span><input id="ambientTemperatureC" class="control" type="number" min="5" max="40" step="0.5" value="${Number(settings.environment?.ambientTemperatureC ?? 25)}"></label><label class="field"><span>相对湿度 %</span><input id="relativeHumidityPct" class="control" type="number" min="0" max="100" step="1" placeholder="可留空" value="${settings.environment?.relativeHumidityPct == null ? '' : Number(settings.environment.relativeHumidityPct)}"></label><label class="field"><span>初始粉床温度 °C</span><input id="initialBedTemperatureC" class="control" type="number" min="5" max="40" step="0.5" value="${Number(settings.environment?.initialBedTemperatureC ?? 25)}"></label></div></details>
     <div class="brew-generate-row menu-row"><button id="generatePlanBtn" class="button primary" type="button"${selected?'':' disabled'}>生成方案</button><button id="directSensoryBtn" class="button" type="button"${selected?'':' disabled'}>直接品鉴</button></div>
   </div></section>
@@ -1355,8 +1387,26 @@ function renderBrew() {
   $('#openFlavorTargetBtn')?.addEventListener('click', openFlavorTargetDialog);
   $('#openBrewTuneBtn')?.addEventListener('click', openBrewTuneDialog);
   $('#brewWaterProfile')?.addEventListener('change', async event => { state.settings.brew.waterProfileId = event.target.value; await saveSettings(); if (event.target.value === 'custom') openCustomWaterDialog(); else renderBrew(); });
-  $('#firstCoolingMode')?.addEventListener('change', async event => { state.settings.brew.firstCoolingMode = event.target.value; await saveSettings(); if (event.target.value === 'custom') openCoolingDialog('first'); else renderBrew(); });
-  $('#tailCoolingMode')?.addEventListener('change', async event => { state.settings.brew.tailCoolingMode = event.target.value; await saveSettings(); if (event.target.value === 'custom') openCoolingDialog('tail'); else renderBrew(); });
+  const bindCoolingMode = (id, which, modeKey) => {
+    const select = $(`#${id}`);
+    if (!select) return;
+    const reopenCustom = event => {
+      if (select.value !== 'custom') return;
+      event.preventDefault();
+      if (!$('#overlayRoot [data-overlay="cooling"]')) openCoolingDialog(which);
+    };
+    select.addEventListener('pointerdown', reopenCustom);
+    select.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') reopenCustom(event); });
+    select.addEventListener('change', async event => {
+      state.settings.brew[modeKey] = event.target.value;
+      await saveSettings();
+      if (event.target.value === 'custom') {
+        if (!$('#overlayRoot [data-overlay="cooling"]')) openCoolingDialog(which);
+      } else renderBrew();
+    });
+  };
+  bindCoolingMode('firstCoolingMode', 'first', 'firstCoolingMode');
+  bindCoolingMode('tailCoolingMode', 'tail', 'tailCoolingMode');
   if (!container.dataset.brewActionsBound) {
     container.dataset.brewActionsBound = 'true';
     container.addEventListener('click', event => {

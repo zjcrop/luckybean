@@ -2,6 +2,8 @@
 
 LuckyBean 主线是咖啡冲煮应用与跨项目数据编排层。
 
+静态网页：[https://zjcrop.github.io/luckybean/](https://zjcrop.github.io/luckybean/)
+
 ## ⚠️ 跨项目稳定数据格式（后续开发强制规则）
 
 本节是后续接口接入、数据同步和测试的强制规则。

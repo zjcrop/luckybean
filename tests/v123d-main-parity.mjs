@@ -8,7 +8,19 @@ test('all pages use the same red seal slot geometry', async () => {
   const index = await read('index.html');
   assert.equal((index.match(/class="page-seal-slot"/g) || []).length, 4);
   const styles = await read('styles.css');
-  assert.match(styles, /one canonical header geometry/);
+  assert.match(styles, /one compact canonical header geometry/);
+  assert.match(styles, /\.page-heading\.centered-page-heading\s*\{[\s\S]*min-height:\s*42px !important;[\s\S]*margin-bottom:\s*10px !important;/);
+});
+
+test('bean custom fields and brew row order are locked to the current interaction contract', async () => {
+  const app = await read('src/app.js');
+  for (const table of ['countries', 'regions', 'entities', 'varieties', 'processes']) {
+    assert.match(app, new RegExp(`${table}: \\{ field:`));
+  }
+  assert.match(app, /CUSTOM_BEAN_OPTION_VALUE = '__custom__'/);
+  const rows = [...app.matchAll(/data-brew-row="([^"]+)"/g)].map(match => match[1]);
+  assert.deepEqual(rows.slice(0, 5), ['dose-ratio', 'filter-gear', 'method-water', 'tune-flavor', 'cooling']);
+  assert.match(app, /select\.addEventListener\('pointerdown', reopenCustom\)/);
 });
 
 test('about section contains the shipped illustration', async () => {

@@ -1,14 +1,14 @@
-// LuckyBean 1.23D main-sync.4: one main source for Web/PWA and Android.
+// LuckyBean 1.23D main-sync.5: one main source for Web/PWA and Android.
 const CACHE_PREFIX = 'luckybean-main-v123d-';
-const CACHE_NAME = `${CACHE_PREFIX}main-sync-4`;
+const CACHE_NAME = `${CACHE_PREFIX}main-sync-5`;
 const LEGACY_CACHE_PREFIXES = ['luckybean-main-v123-', 'luckybean-v120-test-', 'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-', 'luckybean-v123-brewprofiles-integration-test-', 'luckybean-v200-foundation-'];
 const CORE = [
   './',
   './index.html',
   './recognition-test.html',
-  './manifest.webmanifest?v=1.23D-main-sync.4',
-  './styles.css?v=1.23D-main-sync.4',
-  './src/app.js?v=1.23D-main-sync.4',
+  './manifest.webmanifest?v=1.23D-main-sync.5',
+  './styles.css?v=1.23D-main-sync.5',
+  './src/app.js?v=1.23D-main-sync.5',
   './src/domain/archive/luckybean-archive-codec.js?v=1.23D-main-sync.4',
   './src/domain/archive/luckybean-archive-service.js?v=1.23D-main-sync.4',
   './src/domain/beans/bean-consumption-summary.js',
@@ -19,7 +19,7 @@ const CORE = [
   './contracts/luckybean-archive-v1.schema.json',
   './contracts/recognition-document-v1.schema.json',
   './contracts/recognition-date-decision-v1.schema.json',
-  './src/core/startup-controller.js?v=1.23D-main-sync.4',
+  './src/core/startup-controller.js?v=1.23D-main-sync.5',
   './src/core/bootstrap.js?v=1.23D-main-sync.4',
   './src/services/cloud-auth-service.js?v=1.23D-main-sync.4',
   './src/services/cloud-sync-service.js?v=1.23D-main-sync.4',

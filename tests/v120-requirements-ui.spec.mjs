@@ -268,6 +268,57 @@ test('region and estate selectors retain local add-option actions', async ({ pag
   await expect(page.locator('[data-add-bean-option="entities"]')).toHaveText('新增选项');
 });
 
+test('all five origin fields expose and persist a custom option', async ({ page }) => {
+  await openApp(page, 'requirements-all-custom-bean-options=1');
+  await page.locator('#fabAddBtn').click();
+  await page.locator('[data-add-mode="text"]').click();
+  await page.locator('#manualBeanFormBtn').click();
+
+  for (const id of ['beanCountry', 'beanRegion', 'beanEntity', 'beanVariety', 'beanProcess']) {
+    await expect(page.locator(`#${id} option[value="__custom__"]`)).toHaveText('自定义');
+  }
+
+  const createCustom = async (id, name) => {
+    await page.locator(`#${id}`).selectOption('__custom__');
+    await expect(page.locator('[data-overlay="custom-bean-option"]')).toBeVisible();
+    await page.locator('#customBeanOptionName').fill(name);
+    await page.locator('#saveCustomBeanOptionBtn').click();
+    await expect(page.locator(`#${id} option:checked`)).toHaveText(name);
+  };
+
+  await createCustom('beanCountry', '测试自定义国家');
+  await createCustom('beanRegion', '测试自定义产区');
+  await createCustom('beanEntity', '测试自定义庄园');
+  await createCustom('beanVariety', '测试自定义豆种');
+  await createCustom('beanProcess', '测试自定义处理法');
+});
+
+test('brew form uses five requested rows and reopens saved cooling temperatures', async ({ page }) => {
+  await openApp(page, 'requirements-brew-five-rows=1');
+  await page.locator('[data-page-target="brew"]').click();
+
+  const expected = [
+    ['dose-ratio', ['brewDose', 'brewRatio']],
+    ['filter-gear', ['brewDripper', 'brewDripperMaterial', 'brewFilterPaper']],
+    ['method-water', ['brewProfile', 'brewWaterProfile']],
+    ['tune-flavor', ['openBrewTuneBtn', 'openFlavorTargetBtn']],
+    ['cooling', ['firstCoolingMode', 'tailCoolingMode']]
+  ];
+  await expect(page.locator('[data-brew-row]')).toHaveCount(5);
+  for (const [row, ids] of expected) {
+    const root = page.locator(`[data-brew-row="${row}"]`);
+    for (const id of ids) await expect(root.locator(`#${id}`)).toHaveCount(1);
+  }
+
+  await page.locator('#firstCoolingMode').selectOption('custom');
+  await page.locator('#coolingTemperature').fill('82');
+  await page.locator('#saveCoolingBtn').click();
+  await expect(page.locator('#firstCoolingMode')).toHaveValue('custom');
+  await page.locator('#firstCoolingMode').dispatchEvent('pointerdown');
+  await expect(page.locator('[data-overlay="cooling"]')).toBeVisible();
+  await expect(page.locator('#coolingTemperature')).toHaveValue('82');
+});
+
 
 
 test('private gear uses three closed, aligned list editors', async ({ page }) => {
