@@ -38,8 +38,8 @@ assert.match(startup, /ensureLocalDevice/);
 assert.doesNotMatch(startup, /ensureLocalIdentity|LB-LOCAL-/);
 assert.match(startup, /luckybean:local-app-ready/);
 assert.match(startup, /点击进入/);
-assert.match(startup, /navigator\.serviceWorker\.register\('\.\/sw\.js\?v=1\.23D-regression-fix\.1'/);
-assert.match(startup, /await ensureLocalDevice\(\)[\s\S]*await import\('\.\.\/app\.js\?v=1\.23D-regression-fix\.1'\)/);
+assert.match(startup, /navigator\.serviceWorker\.register\('\.\/sw\.js\?v=1\.23D-main-sync\.2'/);
+assert.match(startup, /await ensureLocalDevice\(\)[\s\S]*await import\('\.\.\/app\.js\?v=1\.23D-main-sync\.2'\)/);
 assert.doesNotMatch(startup, /fetch\s*\(/);
 
 assert.match(auth, /REMEMBER_MS\s*=\s*7\s*\*\s*24/);
@@ -59,6 +59,8 @@ assert.match(sync, /function ensureAutomatic/);
 assert.match(sync, /resolveDeletionDecision/);
 assert.match(sync, /deletion-confirmation-required/);
 assert.match(sync, /mergePacketPreservingRemote/);
+assert.match(sync, /manifest && !localState\.lastRemoteRevision/);
+assert.match(sync, /deletionPolicy: 'preserve'/);
 assert.doesNotMatch(sync, /ENABLE_KEY|setEnabled|getSetting|setSetting/);
 
 assert.match(db, /luckybean\.cloud\.dirty\.v3/);
@@ -68,6 +70,8 @@ assert.match(bootstrap, /requestIdleCallback/);
 assert.match(bootstrap, /reconcile/);
 assert.match(panel, /登录服务器同步/);
 assert.match(panel, /自动同步始终启用/);
+assert.match(panel, /下载云端数据合并本地/);
+assert.match(panel, /data-cloud-sync-indicator|cloud-sync-indicator/);
 assert.match(appearance, /splash-art-red\.webp/);
 assert.match(appearance, /splash-art-light\.webp/);
 assert.match(appearance, /LuckyBeanAppearanceController/);
@@ -92,7 +96,7 @@ assert.doesNotMatch(runtimeFeatures, /v109-history-management\.js|v099-trajector
 assert.doesNotMatch(runtimeFeatures, /v095-ui\.js|theme-bridge\.js/);
 
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v123d-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}regression-fix-1`/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-2`/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES = \['luckybean-main-v123-'/);
 assert.match(sw, /key\.startsWith\(CACHE_PREFIX\) && key !== CACHE_NAME/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES\.some/);

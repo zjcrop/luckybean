@@ -78,6 +78,45 @@ for (const material of ['glass', 'ceramic', 'plastic', 'titanium']) {
   assert.equal(analysis.plan.input.brew.dripperMaterial, material);
 }
 
+const androidPreflight = await fetch(endpoint, {
+  method: 'OPTIONS',
+  headers: {
+    Origin: 'https://app.luckybean.local',
+    'access-control-request-method': 'POST',
+    'access-control-request-headers': 'content-type,apikey,x-installation-id,x-request-id'
+  }
+});
+assert.equal(androidPreflight.status, 204, await androidPreflight.text());
+assert.equal(androidPreflight.headers.get('access-control-allow-origin'), '*');
+
+const autoCoolingInput = buildBrewInput('three-pulse');
+autoCoolingInput.brew.ratioMode = 'auto';
+const customCoolingInput = buildBrewInput('three-pulse');
+customCoolingInput.brew.ratio = 17;
+customCoolingInput.brew.ratioMode = 'manual';
+customCoolingInput.brew.tailCoolingMode = 'custom';
+customCoolingInput.brew.tailTemperatureC = 60;
+const [autoCoolingResponse, customCoolingResponse] = await Promise.all([
+  fetch(endpoint, {
+    method: 'POST', headers: { ...headers, Origin: 'https://app.luckybean.local', 'x-request-id': crypto.randomUUID() },
+    body: JSON.stringify(autoCoolingInput)
+  }),
+  fetch(endpoint, {
+    method: 'POST', headers: { ...headers, Origin: 'https://app.luckybean.local', 'x-request-id': crypto.randomUUID() },
+    body: JSON.stringify(customCoolingInput)
+  })
+]);
+const [autoCooling, customCooling] = await Promise.all([autoCoolingResponse.json(), customCoolingResponse.json()]);
+assert.equal(autoCoolingResponse.status, 200, JSON.stringify(autoCooling));
+assert.equal(customCoolingResponse.status, 200, JSON.stringify(customCooling));
+const customTail = customCooling.plan.stages.at(-1);
+assert.equal(Number(customTail.temperatureC ?? customTail.pourTemperature), 60);
+assert.equal(customCooling.plan.input.tailCoolingMode, 'custom');
+assert.equal(customCooling.plan.input.tailTemperatureC, 60);
+assert.equal(customCooling.plan.summary.ratio, 17);
+assert.notEqual(customCooling.metadata.planFingerprint, autoCooling.metadata.planFingerprint);
+assert.notDeepEqual(customCooling.trajectory.path, autoCooling.trajectory.path);
+
 const invalidKeyResponse = await fetch(`${endpoint}?mode=profiles`, {
   headers: { ...headers, apikey: 'not-a-valid-publishable-key', 'x-request-id': crypto.randomUUID() }
 });
@@ -153,4 +192,4 @@ for (const profileId of catalogVersions.keys()) {
   for (const id of targetIds) assert.ok(returnedTargets.has(id), `${profileId}: missing target ${id}`);
 }
 
-console.log(`Verified strict authentication, all four dripper materials, version-free input and all ${catalogVersions.size} workbook profiles.`);
+console.log(`Verified Android-origin CORS, absolute 60°C tail cooling, manual/auto ratio, all four dripper materials and all ${catalogVersions.size} workbook profiles.`);

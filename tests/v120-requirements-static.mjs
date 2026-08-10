@@ -31,7 +31,9 @@ assert.match(account, /removeLegacyAccountUi/);
 assert.match(account, /dataset\.singleSyncAccount/);
 assert.match(account, /登录服务器同步/);
 assert.match(account, /自动同步始终启用/);
-assert.doesNotMatch(account, /type=\"checkbox\"|data-cloud-register|\.setEnabled\?\.|\.syncNow\?\.|\.pullNow\?\./);
+assert.doesNotMatch(account, /type=\"checkbox\"|data-cloud-register|\.setEnabled\?\./);
+assert.match(account, /\.syncNow\?\./);
+assert.match(account, /\.pullNow\?\./);
 assert.doesNotMatch(auth, /persistIdentity|getSetting|setSetting/);
 assert.match(auth, /唯一的服务器同步账号/);
 assert.match(sync, /function ensureAutomatic/);
@@ -40,7 +42,7 @@ assert.doesNotMatch(startup, /ensureLocalIdentity|LB-LOCAL-|getSetting|setSettin
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v123d-'/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES = \['luckybean-main-v123-', 'luckybean-v120-test-', 'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-'/);
 assert.match(sw, /1\.23D/);
-assert.match(startup, /serviceWorker\.register\('\.\/sw\.js\?v=1\.23D-regression-fix\.1', \{ updateViaCache: 'none' \}\)/);
+assert.match(startup, /serviceWorker\.register\('\.\/sw\.js\?v=1\.23D-main-sync\.2', \{ updateViaCache: 'none' \}\)/);
 assert.match(spatial, /#brewSpatialMount/);
 assert.match(sensory, /data-v120-radar-node/);
 assert.match(sensory, /pointermove/);
@@ -63,6 +65,7 @@ const baseInput = {
 
 for (const profile of listBrewProfiles()) {
   if (profile.id === 'recommended') continue;
+  if (profile.tags?.includes('competition')) continue;
   const input = structuredClone(baseInput);
   input.brew.profileId = profile.id;
   const plan = await computeFallbackPlan(input);

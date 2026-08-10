@@ -3971,3 +3971,58 @@ html.v099p-settings-active #settingsContent .settings-category-body {
   white-space: pre-wrap;
   line-height: 1.7;
 }
+
+/* 1.23D main-sync: one canonical header geometry across all four pages. */
+.page-heading.centered-page-heading {
+  align-items: start !important;
+  min-height: 76px !important;
+  padding-top: 0 !important;
+}
+.page-heading.centered-page-heading > .page-seal-slot {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  min-height: 76px !important;
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+.page-heading.centered-page-heading .page-seal { margin-top: 0 !important; }
+.beans-page-heading .top-controls,
+.brew-page-heading .brew-heading-bean { align-self: start !important; }
+
+.about-illustration {
+  margin: 0 0 18px;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+.about-illustration img {
+  display: block;
+  width: min(100%, 360px);
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 18px;
+  border: 1px solid var(--muted-deep);
+}
+.about-illustration figcaption { color: var(--muted); font-size: 12px; letter-spacing: .18em; }
+
+.cloud-sync-status-line { display: flex; align-items: center; gap: 9px; }
+.cloud-sync-indicator {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 50%;
+  background: #8b8b87;
+  box-shadow: 0 0 0 4px color-mix(in srgb, #8b8b87 18%, transparent);
+}
+.cloud-sync-indicator[data-state="synced"],
+.cloud-sync-indicator[data-state="synced-preserved"],
+.cloud-sync-indicator[data-state="downloaded"],
+.cloud-sync-indicator[data-state="idle"] { background: #5f9b73; box-shadow: 0 0 0 4px color-mix(in srgb, #5f9b73 18%, transparent); }
+.cloud-sync-indicator[data-state="syncing"],
+.cloud-sync-indicator[data-state="downloading"],
+.cloud-sync-indicator[data-state="comparing"] { background: #c39145; animation: cloud-sync-pulse 1s ease-in-out infinite alternate; }
+.cloud-sync-indicator[data-state="error"],
+.cloud-sync-indicator[data-state="conflict"],
+.cloud-sync-indicator[data-state="deletion-confirmation-required"] { background: #a94c43; box-shadow: 0 0 0 4px color-mix(in srgb, #a94c43 18%, transparent); }
+@keyframes cloud-sync-pulse { to { opacity: .45; transform: scale(.82); } }

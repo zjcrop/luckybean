@@ -5,9 +5,9 @@
 日期：2026-08-08  
 唯一主线：GitHub `zjcrop/luckybean` `main`
 
-当前部署：LuckyBean `1.23D`，提交 `d00edab22710113db24baeecd3e04805f101757a`
+当前部署：LuckyBean `1.23D`，唯一来源为 GitHub `main` 的最新成功部署提交。
 
-内部资源修订：`1.23D-regression-fix.1`（仅用于清除旧 PWA/WebView 缓存，不是第二条版本线）
+内部资源修订：`1.23D-main-sync.2`（仅用于清除旧 PWA/WebView 缓存，不是第二条版本线）
 
 ## 当前版本边界
 

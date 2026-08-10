@@ -28,7 +28,13 @@ const EXTRA_PROFILES = Object.freeze([
   { id: 'lance-daily-two', label: 'Lance 日常两段法', tags: ['v60','fast','daily'], description: '充分闷蒸后一次完成主体注水，减少脉冲扰动，适合日常快速冲煮。', source: 'Lance Hedrick daily two-pour method' },
   { id: 'switch-hybrid-50-50', label: 'Switch 50/50 混合法', tags: ['immersion','hybrid','body'], description: '前半开放渗滤、后半关闭浸泡再释放，兼顾清晰度、甜感和醇厚。', source: 'Coffee Chronicler Hario Switch hybrid method' },
   { id: 'mugen-one-pour', label: 'Kasuya Mugen 一刀流', tags: ['one-pour','fast','mugen'], description: '单次连续注水完成全部水量，操作简洁、时间短，适合高流阻Mugen结构。', source: 'Hario / Tetsu Kasuya Mugen one-pour recipe' },
-  { id: 'onyx-center-spiral', label: 'Onyx 中心—绕圈法', tags: ['v60','bright','agitation'], description: '闷蒸后以中心注水建立流速，再用多段绕圈完成萃取，适合明亮果香型咖啡。', source: 'Onyx Coffee Lab V60 brew guide' }
+  { id: 'onyx-center-spiral', label: 'Onyx 中心—绕圈法', tags: ['v60','bright','agitation'], description: '闷蒸后以中心注水建立流速，再用多段绕圈完成萃取，适合明亮果香型咖啡。', source: 'Onyx Coffee Lab V60 brew guide' },
+  { id: 'cbrc-2026-01-zhong-jingjing', label: '2026 CBrC 冠军 · 钟静静', tags: ['competition','cbrc-2026'], description: 'BrewProfiles 2026 CBrC 获奖方案，本地启动目录保留入口。' },
+  { id: 'cbrc-2026-02-liang-baoyi', label: '2026 CBrC 亚军 · 梁宝怡', tags: ['competition','cbrc-2026'], description: 'BrewProfiles 2026 CBrC 获奖方案，本地启动目录保留入口。' },
+  { id: 'cbrc-2026-03-wu-minwei', label: '2026 CBrC 季军 · 吴敏薇', tags: ['competition','cbrc-2026'], description: 'BrewProfiles 2026 CBrC 获奖方案，本地启动目录保留入口。' },
+  { id: 'cbrc-2026-04-yang-xiao', label: '2026 CBrC 第四名 · 杨啸', tags: ['competition','cbrc-2026'], description: 'BrewProfiles 2026 CBrC 获奖方案，本地启动目录保留入口。' },
+  { id: 'cbrc-2026-05-zhang-xiaobo', label: '2026 CBrC 第五名 · 张晓博', tags: ['competition','cbrc-2026'], description: 'BrewProfiles 2026 CBrC 获奖方案，本地启动目录保留入口。' },
+  { id: 'cbrc-2026-06-qu-yongxiang', label: '2026 CBrC 第六名 · 区永翔', tags: ['competition','cbrc-2026'], description: 'BrewProfiles 2026 CBrC 获奖方案，本地启动目录保留入口。' }
 ]);
 const EXTRA_PROFILE_MAP = new Map(EXTRA_PROFILES.map(profile => [profile.id, profile]));
 

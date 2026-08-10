@@ -34,8 +34,8 @@ const LEGACY_CONTROL_SELECTOR = [
   '#saveCloudSettingsBtn',
   '#saveStorageSettingsBtn',
   '[data-cloud-sync-toggle]',
-  '[data-cloud-sync-now]',
-  '[data-cloud-pull]'
+  '[data-cloud-sync-now][data-legacy-control]',
+  '[data-cloud-pull][data-legacy-control]'
 ].join(',');
 
 const ACCOUNT_HEADING = /^(?:账号|账户|云端|服务器同步|个人信息与云端储存|个人信息与云端存储)$/;
@@ -205,16 +205,38 @@ async function renderPanel() {
   section.dataset.cloudAccountPanel = '1';
   section.dataset.singleSyncAccount = '1';
   section.innerHTML = signedIn
-    ? `<div class="setting-row"><div><h3>服务器同步账户</h3><p data-cloud-status>${esc(info.main)}${info.email ? ` · ${esc(info.email)}` : ''}</p><small class="muted">上次完成：${esc(info.last)}${info.error ? ` · ${esc(info.error)}` : ''}</small></div></div>
-      <p class="muted small">已登录。自动同步始终启用；数据先保存到本机，新变化约8秒后在后台增量同步，无需再次登录或另行设置。</p>
+    ? `<div class="setting-row"><div><h3>服务器同步账户</h3><p class="cloud-sync-status-line" data-cloud-status><i class="cloud-sync-indicator" data-state="${esc(lastSyncState)}" aria-hidden="true"></i><span>${esc(info.main)}${info.email ? ` · ${esc(info.email)}` : ''}</span></p><small class="muted">上次完成：${esc(info.last)}${info.error ? ` · ${esc(info.error)}` : ''}</small></div></div>
+      <p class="muted small">自动同步始终启用：登录后会先下载并合并服务器数据；之后本机新变化约8秒后自动增量同步。也可随时手工核对或拉取合并。</p>
       ${reviewRequired ? `<div class="cloud-deletion-warning"><p class="status-bad">${esc(deletionSummary(reviewDetail))}</p><button class="button primary" type="button" data-cloud-deletion-review>处理云端删除确认</button></div>` : ''}
-      <div class="text-actions data-actions"><button class="button subtle" type="button" data-cloud-logout>退出登录</button></div>`
+      <p class="muted small" data-cloud-manual-message role="status"></p>
+      <div class="text-actions data-actions"><button class="button" type="button" data-cloud-sync-now>立即同步</button><button class="button primary" type="button" data-cloud-pull>下载云端数据合并本地</button><button class="button subtle" type="button" data-cloud-logout>退出登录</button></div>`
     : `<div class="setting-row"><div><h3>服务器同步账户</h3><p data-cloud-status>${esc(STATUS_TEXT[lastAuthState] || STATUS_TEXT['signed-out'])}</p><small class="muted">本地功能无需登录</small></div></div>
       <p class="muted small">这是唯一的账户入口。登录后自动同步立即启用，不再需要服务器二次登录，也没有手动/自动同步或储存模式设置。</p>
       <div class="text-actions data-actions"><button class="button primary" type="button" data-cloud-login>登录服务器同步</button></div>`;
 
   body.replaceChildren(section);
   section.querySelector('[data-cloud-login]')?.addEventListener('click', () => globalThis.LuckyBeanCloudAuth?.openDialog?.('login'));
+  const runManual = async (button, action, pendingText, successText) => {
+    const message = section.querySelector('[data-cloud-manual-message]');
+    const buttons = section.querySelectorAll('[data-cloud-sync-now],[data-cloud-pull]');
+    buttons.forEach(node => { node.disabled = true; });
+    if (message) message.textContent = pendingText;
+    try {
+      await action();
+      if (message) message.textContent = successText;
+    } catch (error) {
+      if (message) message.textContent = error?.message || '同步失败，请稍后重试';
+    } finally {
+      buttons.forEach(node => { node.disabled = false; });
+      queueRender();
+    }
+  };
+  section.querySelector('[data-cloud-sync-now]')?.addEventListener('click', event => runManual(
+    event.currentTarget, () => globalThis.LuckyBeanCloudSync?.syncNow?.(), '正在核对本机与云端数据…', '同步完成'
+  ));
+  section.querySelector('[data-cloud-pull]')?.addEventListener('click', event => runManual(
+    event.currentTarget, () => globalThis.LuckyBeanCloudSync?.pullNow?.(), '正在下载云端数据并合并本地…', '云端数据已合并到本机'
+  ));
   section.querySelector('[data-cloud-logout]')?.addEventListener('click', async event => {
     event.currentTarget.disabled = true;
     await globalThis.LuckyBeanCloudAuth?.signOut?.();
@@ -304,7 +326,7 @@ if (document.readyState === 'loading') document.addEventListener('DOMContentLoad
 else bind();
 
 globalThis.LuckyBeanAccountSyncPanel = {
-  revision: 'single-account-safe-delete-v2',
+  revision: 'single-account-visible-sync-v3',
   renderNow: queueRender,
   openDeletionReview: openDeletionDialog
 };

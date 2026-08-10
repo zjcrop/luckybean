@@ -51,7 +51,7 @@ const STATUS_COLOR = { resting: '#5f8a73', peak: '#de9a42', good: '#bc8d55', dec
 const DEFAULT_SETTINGS = {
   ui: { planVisualsExpanded: true, temporaryVisualOpen: false, dripperListOpen: false },
   brew: {
-    apiEndpoint: '', mode: 'simple', method: 'pourover', doseG: 15, ratio: 15.5,
+    apiEndpoint: '', mode: 'simple', method: 'pourover', doseG: 15, ratio: 15.5, ratioMode: 'auto',
     profileId: 'recommended', segmentMode: 'auto', segments: 3, lowTempFirst: true,
     dripper: '平底滤杯', dripperMaterial: 'plastic', filterPaperId: '', grinder: '', waterProfileId: 'auto', waterVolumeL: 5,
     customWater: { name: '我的水型', tds: 85, tendency: { floral: 0, acidity: 0, sweetness: 0, body: 0, bitterness: 0, astringency: 0 }, note: '' }, flavorTargets: { acidity: 1.5, floral: 2, fruity: 2, sweetness: 2, bitterness: 2, astringency: 2 },
@@ -170,6 +170,7 @@ document.addEventListener('luckybean:brew-profile-catalog-updated', () => {
 });
 
 document.addEventListener('luckybean:request-app-refresh', async event => {
+  await loadSettings();
   await refreshData();
   if (state.page === 'beans') renderBeans();
   else if (state.page === 'brew') renderBrew();
@@ -1232,10 +1233,15 @@ function buildBrewInput(bean) {
   const targets = state.settings.brew.flavorTargets || DEFAULT_SETTINGS.brew.flavorTargets;
   const customWater = state.settings.brew.customWater || DEFAULT_SETTINGS.brew.customWater;
   const dripper = selectedDripperItem($('#brewDripper')?.value);
+  const ratioSelection = $('#brewRatio')?.value || state.settings.brew.ratioMode || 'auto';
+  const ratioMode = ratioSelection === 'auto' ? 'auto' : 'manual';
+  const ratio = ratioMode === 'auto'
+    ? Number(state.settings.brew.ratio || DEFAULT_SETTINGS.brew.ratio)
+    : parseNumber(ratioSelection, state.settings.brew.ratio || DEFAULT_SETTINGS.brew.ratio);
   return {
     bean: { countryCode: bean.countryCode, regionCode: bean.regionCode, entityCode: bean.entityCode, varietyCode: bean.varietyCode, processCode: bean.processCode, roastCode: bean.roastCode, roastColor: bean.roastColor || null, roastDate: bean.roastDate, altitude: bean.altitude || null },
     brew: {
-      mode: 'professional', method: 'pourover', doseG: parseNumber($('#brewDose')?.value, 15), ratio: parseNumber($('#brewRatio')?.value, 15.5),
+      mode: 'professional', method: 'pourover', doseG: parseNumber($('#brewDose')?.value, 15), ratio, ratioMode,
       profileId: $('#brewProfile')?.value || 'recommended', segmentMode, segments,
       dripperId: dripper?.id || '', dripperCode: dripper?.type || '平底滤杯', dripperMaterial: normalizeDripperMaterial($('#brewDripperMaterial')?.value || dripper?.material), filterPaper: selectedFilterItem()?.type || '', filterPaperId: $('#brewFilterPaper')?.value || '', grinder: state.settings.brew.grinder || '',
       firstCoolingMode: $('#firstCoolingMode')?.value || state.settings.brew.firstCoolingMode || 'auto', firstTemperatureC: Number(state.settings.brew.firstTemperatureC),
@@ -1275,7 +1281,7 @@ function renderBrew() {
   if (heading) heading.innerHTML = `<select id="brewBean" class="control brew-bean-heading" aria-label="选择豆子">${activeBeans.map(bean=>`<option value="${esc(bean.id)}"${bean.id===state.selectedBeanId?' selected':''}>${esc(beanDisplayName(bean))}</option>`).join('')}</select>`;
   const customWaterLabel = currentWater === 'custom' ? `${settings.customWater?.name || '自定义'} · TDS ${Number(settings.customWater?.tds || 85)}` : '';
   container.innerHTML = `<section class="panel brew-form"><div class="brew-compact-grid">
-    <div class="brew-row three"><label class="field"><span>粉量</span><input id="brewDose" class="control" type="number" min="5" max="40" step="0.1" value="${settings.doseG}"></label><label class="field"><span>粉水比</span><select id="brewRatio" class="control">${[14,14.5,15,15.5,16,16.5,17,18].map(value=>`<option value="${value}"${Number(settings.ratio)===value?' selected':''}>1:${value}</option>`).join('')}</select></label><label class="field"><span>滤杯</span><select id="brewDripper" class="control">${drippers.map(item=>`<option value="${esc(item.id)}"${activeDripper?.id===item.id?' selected':''}>${esc(item.name)}</option>`).join('')}</select><select id="brewDripperMaterial" class="control sub-control" aria-label="滤杯材质">${dripperMaterialOptions(activeDripperMaterial)}</select><select id="brewFilterPaper" class="control sub-control" aria-label="滤纸">${filters.length?filters.map(item=>`<option value="${esc(item.id)}"${selectedFilterId===item.id?' selected':''}>${esc([item.brand,item.type].filter(Boolean).join(' '))} · ${item.quantity}张</option>`).join(''):'<option value="">未设滤纸</option>'}</select></label></div>
+    <div class="brew-row three"><label class="field"><span>粉量</span><input id="brewDose" class="control" type="number" min="5" max="40" step="0.1" value="${settings.doseG}"></label><label class="field"><span>粉水比</span><select id="brewRatio" class="control${settings.ratioMode!=='manual'?' model-recommended':' custom-selected'}"><option value="auto"${settings.ratioMode!=='manual'?' selected':''}>方案推荐（生成后返回）</option>${[14,14.5,15,15.5,16,16.5,17,18].map(value=>`<option value="${value}"${settings.ratioMode==='manual'&&Number(settings.ratio)===value?' selected':''}>手工 1:${value}</option>`).join('')}</select></label><label class="field"><span>滤杯</span><select id="brewDripper" class="control">${drippers.map(item=>`<option value="${esc(item.id)}"${activeDripper?.id===item.id?' selected':''}>${esc(item.name)}</option>`).join('')}</select><select id="brewDripperMaterial" class="control sub-control" aria-label="滤杯材质">${dripperMaterialOptions(activeDripperMaterial)}</select><select id="brewFilterPaper" class="control sub-control" aria-label="滤纸">${filters.length?filters.map(item=>`<option value="${esc(item.id)}"${selectedFilterId===item.id?' selected':''}>${esc([item.brand,item.type].filter(Boolean).join(' '))} · ${item.quantity}张</option>`).join(''):'<option value="">未设滤纸</option>'}</select></label></div>
     <div class="brew-row two"><label class="field"><span>冲煮法</span><select id="brewProfile" class="control">${brewProfiles.map(profile=>`<option value="${esc(profile.id)}"${settings.profileId===profile.id?' selected':''}>${esc(profile.label)}</option>`).join('')}</select><small class="profile-catalog-status">${esc(catalogLabel)}</small></label><label class="field"><span>分段方式</span><select id="brewSegments" class="control"><option value="auto"${settings.segmentMode==='auto'?' selected':''}>模型推荐：${recommendedSegments+1}段</option>${[1,2,3,4,5].map(value=>`<option value="${value}"${String(settings.segmentMode)===String(value)?' selected':''}>${value+1}段（含首段）</option>`).join('')}</select></label></div>
     <div class="brew-row two"><label class="field"><span>调水方案</span><select id="brewWaterProfile" class="control${currentWater==='auto'?' model-recommended':' custom-selected'}"><option value="auto"${currentWater==='auto'?' selected':''}>模型推荐：${esc(waterProfiles.find(item=>item.id===inferredWater)?.name || inferredWater)}</option>${waterProfiles.filter(profile=>profile.id!=='custom').map(profile=>`<option value="${profile.id}"${currentWater===profile.id?' selected':''}>${esc(profile.name)}</option>`).join('')}<option value="custom"${currentWater==='custom'?' selected':''}>自定义</option></select>${customWaterLabel?'<small class="custom-summary">自定义</small>':''}</label><div class="field"><span>风味设定</span><button id="openFlavorTargetBtn" class="control control-button" type="button">风味设定</button></div></div>
     <div class="brew-row three"><div class="field"><span>微调</span><button id="openBrewTuneBtn" class="control control-button" type="button">微调</button></div><label class="field"><span>首段降温</span><select id="firstCoolingMode" class="control ${settings.firstCoolingMode==='auto'?'model-recommended':'custom-selected'}"><option value="auto"${settings.firstCoolingMode==='auto'?' selected':''}>模型推荐</option><option value="custom"${settings.firstCoolingMode==='custom'?' selected':''}>自定义 ${Number(settings.firstTemperatureC||87)}°C</option><option value="off"${settings.firstCoolingMode==='off'?' selected':''}>不开启</option></select></label><label class="field"><span>尾段降温</span><select id="tailCoolingMode" class="control ${settings.tailCoolingMode==='auto'?'model-recommended':'custom-selected'}"><option value="auto"${settings.tailCoolingMode==='auto'?' selected':''}>模型推荐</option><option value="custom"${settings.tailCoolingMode==='custom'?' selected':''}>自定义 ${Number(settings.tailTemperatureC||86)}°C</option><option value="off"${settings.tailCoolingMode==='off'?' selected':''}>不开启</option></select></label></div>
@@ -1295,6 +1301,12 @@ function renderBrew() {
     await saveSettings();
   }));
   $('#generatePlanBtn')?.addEventListener('click', generatePlan);
+  $('#brewRatio')?.addEventListener('change', async event => {
+    state.settings.brew.ratioMode = event.target.value === 'auto' ? 'auto' : 'manual';
+    if (state.settings.brew.ratioMode === 'manual') state.settings.brew.ratio = parseNumber(event.target.value, 15.5);
+    await saveSettings();
+    renderBrew();
+  });
   $('#brewProfile')?.addEventListener('change', async event => { state.settings.brew.profileId = event.target.value; await saveSettings(); });
   $('#brewDripper')?.addEventListener('change', async event => {
     const dripper = selectedDripperItem(event.target.value);
@@ -1393,7 +1405,8 @@ function openBrewTuneDialog() {
 function openCoolingDialog(which) {
   const first = which === 'first';
   const key = first ? 'firstTemperatureC' : 'tailTemperatureC';
-  const overlay = showOverlay(`${dialogHeader(first?'首段降温':'尾段降温', '模型推荐显示金色；手工温度显示白色', { centered:true })}<label class="field"><span>自定义目标温度 °C</span><input id="coolingTemperature" class="control" type="number" min="78" max="97" step="0.5" value="${Number(state.settings.brew[key] || (first?87:86))}"></label><div class="row end"><button id="saveCoolingBtn" class="button primary" type="button">确定</button></div>`, { id:'cooling', backdropClose:true });
+  const minimum = first ? 70 : 50;
+  const overlay = showOverlay(`${dialogHeader(first?'首段降温':'尾段降温', '模型推荐显示金色；手工温度显示白色，并参与热力轨迹计算', { centered:true })}<label class="field"><span>自定义目标温度 °C</span><input id="coolingTemperature" class="control" type="number" min="${minimum}" max="97" step="0.5" value="${Number(state.settings.brew[key] || (first?87:86))}"></label><div class="row end"><button id="saveCoolingBtn" class="button primary" type="button">确定</button></div>`, { id:'cooling', backdropClose:true });
   bindClose(overlay);
   $('#saveCoolingBtn').addEventListener('click', async()=>{state.settings.brew[key]=parseNumber($('#coolingTemperature').value,first?87:86);state.settings.brew[first?'firstCoolingMode':'tailCoolingMode']='custom';await saveSettings();closeOverlay();renderBrew();});
 }
@@ -1417,7 +1430,8 @@ async function generatePlan() {
     validatePlan(plan); state.currentPlan = plan;
     document.dispatchEvent(new CustomEvent('luckybean:plan-ready', { detail: { plan, input, source: plan.executionSource || 'brew-profiles-authoritative' } }));
     state.settings.brew = {
-      ...state.settings.brew, method: input.brew.method, doseG: input.brew.doseG, ratio: input.brew.ratio,
+      ...state.settings.brew, method: input.brew.method, doseG: input.brew.doseG,
+      ratio: Number(plan.totals?.ratio || input.brew.ratio), ratioMode: input.brew.ratioMode,
       profileId: input.brew.profileId, segmentMode: input.brew.segmentMode, segments: input.brew.segments, lowTempFirst: input.brew.lowTempFirst,
       dripper: input.brew.dripperId || input.brew.dripperCode, dripperMaterial: input.brew.dripperMaterial, filterPaper: input.brew.filterPaper, filterPaperId: input.brew.filterPaperId, grinder: input.brew.grinder,
       waterProfileId: $('#brewWaterProfile')?.value || 'auto', waterVolumeL: input.water.recipeVolumeL,
@@ -2143,7 +2157,7 @@ function renderSettings() {
   <details class="settings-category" data-settings-key="account"><summary><span>账户</span><small>登录、云端同步、恢复与多设备连接</small></summary><div class="settings-category-body" data-cloud-account-host></div></details>
   <details class="settings-category" id="privateGearCategory"><summary><span>私器${low.length?'<sup class="gear-low-star">*</sup>':''}</span><small>滤纸，滤杯，磨豆机设定</small></summary><div class="settings-category-body">${gearManagerHtml()}</div></details>
   <details class="settings-category data-category"><summary><span>数藏</span><small>数据的导入导出及备份，数据接口</small></summary><div class="settings-category-body"><div class="text-actions data-actions"><button id="settingsExportBtn" class="button" type="button">导出备份</button><button id="settingsImportBtn" class="button" type="button">导入备份</button><button id="clearAllDataBtn" class="button danger" type="button">清空本地数据</button></div><details class="nested-settings"><summary>数据源与接口（点击展开）</summary><div class="nested-content"><div class="setting-row"><div><h3>数据源</h3><p>后台校验并原子更新，失败时保留最后有效版本。</p></div><button id="updateCodebookBtn" class="button" type="button">更新全部数据源</button></div><div id="providerStatusPanel"></div><label class="field"><span>私有冲煮 API</span><input id="brewApiEndpoint" class="control" type="url" placeholder="HTTPS 服务端地址" value="${esc(state.settings.brew.apiEndpoint||'')}"></label><button id="saveApiBtn" class="button" type="button">保存接口</button><label class="toggle"><input id="planVisualToggle" type="checkbox"${state.settings.ui.planVisualsExpanded?' checked':''}>默认显示冲煮轨迹图</label></div></details></div></details>
-  <details class="settings-category"><summary><span>本物</span><small>关于本工具和开发小哥的一切</small></summary><div class="settings-category-body about-content"><h2>富贵盒子</h2><p>咖啡豆管理、拾味冲煮辅助、品鉴记录与本地数据归档工具。</p><dl><dt>版本</dt><dd>${APP_VERSION}</dd><dt>数据结构</dt><dd>${SCHEMA_VERSION}</dd><dt>离线引擎</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>数据源</dt><dd>公开编码数据 ${esc(meta.version||state.codebook.version||'6')}</dd><dt>开发与维护</dt><dd>zjcrop</dd></dl></div></details>
+  <details class="settings-category"><summary><span>本物</span><small>关于本工具和开发小哥的一切</small></summary><div class="settings-category-body about-content"><figure class="about-illustration"><img src="./public/settings-mascot.webp?v=1.23D-main-sync.2" alt="富贵盒子木盘中的猫咪插图" loading="lazy" decoding="async"><figcaption>富贵盒子</figcaption></figure><h2>富贵盒子</h2><p>咖啡豆管理、拾味冲煮辅助、品鉴记录与本地数据归档工具。</p><dl><dt>版本</dt><dd>${APP_VERSION}</dd><dt>数据结构</dt><dd>${SCHEMA_VERSION}</dd><dt>离线引擎</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>数据源</dt><dd>公开编码数据 ${esc(meta.version||state.codebook.version||'6')}</dd><dt>开发与维护</dt><dd>zjcrop</dd></dl></div></details>
   </div>`;
   renderProviderStatusPanel($('#providerStatusPanel')).catch(error => console.warn('数据源状态读取失败', error));
   $$('.settings-category').forEach(section=>section.addEventListener('toggle',()=>{if(!section.open)return;$$('.settings-category').forEach(other=>{if(other!==section)other.open=false;});}));

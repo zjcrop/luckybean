@@ -5,7 +5,7 @@ import {
 } from '../cloud-codec.js';
 import {
   analyzeRemoteDeletionRisk, deletionRiskFingerprintSource, mergePacketPreservingRemote
-} from './cloud-sync-safety.js?v=1.23D-regression-fix.1';
+} from './cloud-sync-safety.js?v=1.23D-main-sync.2';
 
 const STATE_ID = 'cloud.sync.state.v3';
 const DEVICE_ID = 'cloud.device.id.v3';
@@ -30,6 +30,20 @@ function readDirty() {
 }
 
 function clearDirty() { localStorage.removeItem(DIRTY_KEY); }
+
+function markMergeBackPending() {
+  const now = new Date().toISOString();
+  localStorage.setItem(DIRTY_KEY, JSON.stringify({
+    dirty: true,
+    firstChangedAt: now,
+    lastChangedAt: now,
+    stores: ['cloud-merge'],
+    operation: 'cloud-merge'
+  }));
+  document.dispatchEvent(new CustomEvent('luckybean:data-changed', {
+    detail: { store: 'cloud-merge', operation: 'cloud-merge', at: now }
+  }));
+}
 
 async function deviceId() {
   const record = await get('syncMetadata', DEVICE_ID);
@@ -319,7 +333,7 @@ async function upload({ reason = 'auto', forceMigration = false, deletionPolicy 
   return { changed: prepared.changedRows.length, deleted: prepared.staleChunkIds.length, deletedUnits, preservedUnits, packetCount: prepared.nextChunks.length };
 }
 
-async function download(manifest, { interactive = false } = {}) {
+async function download(manifest, { interactive = false, mergeBack = false } = {}) {
   const active = auth()?.getSession?.();
   if (!active?.user?.id || !manifest) return { skipped: true };
   emit('downloading');
@@ -357,6 +371,7 @@ async function download(manifest, { interactive = false } = {}) {
     });
     emit('downloaded', { restored });
     document.dispatchEvent(new CustomEvent('luckybean:cloud-data-restored', { detail: { restored } }));
+    if (mergeBack) markMergeBackPending();
     return { restored };
   } finally {
     globalThis.__LuckyBeanCloudRestoreActive = false;
@@ -385,7 +400,16 @@ async function reconcile({ reason = 'startup', interactive = false, forcePull = 
     const remoteRevision = String(manifest?.client_updated_at || '');
     const remoteChanged = Boolean(manifest && remoteRevision && remoteRevision !== localState.lastRemoteRevision);
 
-    if (forcePull && manifest) return await download(manifest, { interactive: true });
+    if (forcePull && manifest) return await download(manifest, { interactive: true, mergeBack: true });
+    if (manifest && !localState.lastRemoteRevision) {
+      if (dirty) {
+        const merged = await upload({ reason: `${reason}-first-baseline`, deletionPolicy: 'preserve' });
+        if (merged?.confirmationRequired || merged?.conflict) return merged;
+        const mergedManifest = await remoteManifest(active.user.id);
+        return await download(mergedManifest, { interactive });
+      }
+      return await download(manifest, { interactive });
+    }
     if (dirty || deletionPolicy) return await upload({ reason, deletionPolicy, expectedFingerprint });
     if (remoteChanged) return await download(manifest, { interactive });
 
@@ -452,7 +476,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 globalThis.LuckyBeanCloudSync = {
-  revision: 'cloud-sync-service-v2-safe-delete',
+  revision: 'cloud-sync-service-v2-first-login-merge',
   reconcile,
   ensureAutomatic,
   resolveDeletionDecision,
