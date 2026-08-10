@@ -21,17 +21,30 @@ test('about section contains the shipped illustration', async () => {
   assert.match(styles, /\.about-illustration img\s*\{[\s\S]*border:\s*0/);
 });
 
-test('bean collection restores coffee world and preference profile', async () => {
+test('settings data collection owns coffee world and preference profile', async () => {
   const app = await read('src/app.js');
   const upgrades = await read('src/ui-upgrade-controller.js');
   const originMap = await read('src/origin-map-controller.js');
-  assert.match(app, /data-v099f-preference/);
-  assert.match(app, /data-v099f-world/);
+  assert.match(app, /<span>数藏<\/span>[\s\S]*data-v099f-preference/);
+  assert.match(app, /<span>数藏<\/span>[\s\S]*data-v099f-world/);
+  assert.doesNotMatch(upgrades, /function ensureBeanModules/);
   assert.match(upgrades, /风味喜好数字测写/);
   assert.match(upgrades, /咖啡世界/);
   assert.match(originMap, /public\/vendor\/jsvectormap\/jsvectormap\.min\.js/);
   assert.match(originMap, /public\/vendor\/jsvectormap\/world\.js/);
   assert.doesNotMatch(originMap, /cdn\.jsdelivr\.net/);
+});
+
+test('bean page shows inventory and health digest above its leaderboard', async () => {
+  const app = await read('src/app.js');
+  const groups = await read('src/bean-groups-controller.js');
+  assert.match(app, /beanSummaryBlockHtml/);
+  assert.match(app, /bean-consumption-summary/);
+  assert.match(app, /今日已饮用/);
+  assert.match(app, /已经超量喽，可能影响身体健康/);
+  assert.match(app, /可能妨碍入睡，要不明天再喝/);
+  assert.match(app, /beanConsumptionSummaryHtml\(\).*recommendationLeaderboardHtml\(\)/s);
+  assert.match(groups, /querySelector\('\.bean-summary-block'\)/);
 });
 
 test('cloud panel exposes status and both recovery actions', async () => {

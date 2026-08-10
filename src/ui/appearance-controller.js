@@ -1,8 +1,8 @@
 const UI_KEY = 'luckybean.ui.v095';
 const LEGACY_UI_KEY = 'luckybean.ui.v094';
 const SPLASH = Object.freeze({
-  red: './public/splash-art-red.webp?v=1.23D-main-sync.3',
-  white: './public/splash-art-light.webp?v=1.23D-main-sync.3'
+  red: './public/splash-art-red.webp?v=1.23D-main-sync.4',
+  white: './public/splash-art-light.webp?v=1.23D-main-sync.4'
 });
 let renderQueued = false;
 

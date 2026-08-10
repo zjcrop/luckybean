@@ -9,6 +9,7 @@ import { buildCompactSharePayload, encodeSharePayload, decodeSharePayload } from
 import { computeAutomaticScore, sensoryPreferenceTags, buildPreferenceModel, recommendedBeanIds } from './preference-model.js';
 import { commitCompletedBrew, permanentlyDeleteBrewRecords } from './domain/history/history-service.js';
 import { attachSensoryToCompletedBrew } from './domain/history/history-sensory-service.js';
+import { buildBeanConsumptionSummary, DEFAULT_CAFFEINE_HEALTH_SETTINGS } from './domain/beans/bean-consumption-summary.js';
 import { createLocalReferenceAnalysis } from './services/local-reference-analysis.js';
 import { adaptAuthoritativePlan } from './services/brew-analysis-service.js';
 import './renderers/brew-spatial-controller.js';
@@ -61,6 +62,7 @@ const DEFAULT_SETTINGS = {
   },
   identity: { mode: 'guest', nickname: '访客', publicId: '', idSalt: '', verified: false, email: '', phone: '', wechat: '', qq: '' },
   gear: { filters: [], drippers: [{ id: 'dripper_flat', name: '平底滤杯', type: '平底滤杯', material: 'plastic' }], grinders: [] },
+  health: { ...DEFAULT_CAFFEINE_HEALTH_SETTINGS },
   sensoryRecentLimit: 50,
   shareRecordLimit: 5,
   groupMethod: 'country'
@@ -146,7 +148,8 @@ async function loadSettings() {
       flavorTargets: { ...DEFAULT_SETTINGS.brew.flavorTargets, ...(saved?.brew?.flavorTargets || {}) }
     },
     identity: { ...DEFAULT_SETTINGS.identity, ...(saved?.identity || {}) },
-    gear: normalizeGearSettings(saved?.gear || DEFAULT_SETTINGS.gear)
+    gear: normalizeGearSettings(saved?.gear || DEFAULT_SETTINGS.gear),
+    health: { ...DEFAULT_SETTINGS.health, ...(saved?.health || {}) }
   };
   state.settings.sensoryRecentLimit = clamp(state.settings.sensoryRecentLimit || 50, 5, 200);
 }
@@ -588,6 +591,29 @@ function recommendationLeaderboardHtml() {
   return `<div class="preference-board-strip"><button class="preference-board-title" type="button" data-open-recommend-board>榜</button><div class="preference-board-top3">${rows.map((row, index) => `<button type="button" data-board-bean="${esc(row.bean.id)}"><small>${LEADERBOARD_RANKS[index]}</small><span title="${esc(beanDisplayName(row.bean))}">${esc(beanDisplayName(row.bean))}</span></button>`).join('')}</div></div>`;
 }
 
+function beanConsumptionSummaryHtml() {
+  const summary = buildBeanConsumptionSummary({
+    beans: state.beans,
+    inventoryEvents: state.inventoryEvents,
+    healthSettings: state.settings.health
+  });
+  const stock = summary.totalRemainingKg >= 1
+    ? `${summary.totalRemainingKg.toFixed(2)}kg`
+    : `${summary.totalRemainingG.toFixed(1)}g`;
+  const allowance = summary.exceeded
+    ? `参考上限已超过约${(summary.estimatedCaffeineMg - summary.dailyLimitMg).toFixed(0)}mg咖啡因`
+    : `参考上限还可使用约${summary.remainingReferenceBeanG.toFixed(1)}g豆（阿拉比卡折算）`;
+  const warnings = [
+    summary.exceeded ? '<strong>已经超量喽，可能影响身体健康</strong>' : '',
+    summary.late ? '<strong>可能妨碍入睡，要不明天再喝？</strong>' : ''
+  ].filter(Boolean).join('<span aria-hidden="true"> · </span>');
+  return `<section class="bean-consumption-summary" aria-label="豆藏库存和今日咖啡摄入估算"><p>现有咖啡豆 ${stock}<span>/</span>今日已饮用 ${summary.consumedTodayG.toFixed(1)}g豆<span>/</span>${allowance}</p>${warnings ? `<div class="bean-health-warning">${warnings}</div>` : ''}<small>咖啡因按阿拉比卡约12mg/g豆保守估算；当前每日参考值${summary.dailyLimitMg.toFixed(0)}mg，其他来源咖啡因未计入。</small></section>`;
+}
+
+function beanSummaryBlockHtml() {
+  return `<div class="bean-summary-block">${beanConsumptionSummaryHtml()}${recommendationLeaderboardHtml()}</div>`;
+}
+
 function openRecommendationLeaderboard() {
   const rows = recommendationLeaderboardRows(3);
   const content = `${dialogHeader('榜', '仅列个人荐榜前三名', { closable: false })}<div class="recommendation-board top-three">${rows.length ? rows.map((row, index) => `<button type="button" data-board-bean="${esc(row.bean.id)}"><span>${LEADERBOARD_RANKS[index]}</span><strong>${esc(beanDisplayName(row.bean))}</strong><small>${row.score.toFixed(1)} · 品鉴${row.sensory ? row.sensory.toFixed(1) : '—'}</small></button>`).join('') : '<p class="muted">完成品鉴后生成个人榜。</p>'}</div><button class="bottom-return" type="button" data-close-overlay>退</button>`;
@@ -599,6 +625,7 @@ function openRecommendationLeaderboard() {
 function renderBeans() {
   const container = $('#beanGroups');
   const beans = filteredBeans();
+  const board = beanSummaryBlockHtml();
   const filterParts = [];
   if (state.filter.search) filterParts.push(`关键词：${state.filter.search}`);
   if (state.filter.country) filterParts.push(`国家：${codeName('countries', state.filter.country)}`);
@@ -611,10 +638,9 @@ function renderBeans() {
   if (!beans.length) {
     state.activeGroupKey = null;
     state.recommendationExpandedAll = false;
-    container.innerHTML = `<div class="empty-state"><strong>没有符合条件的豆卡</strong><p>点击“添丁”录入，或从“搜索”调整条件。</p></div>`;
+    container.innerHTML = `${board}<div class="empty-state"><strong>没有符合条件的豆卡</strong><p>点击“添丁”录入，或从“搜索”调整条件。</p></div>`;
     return;
   }
-  const board = recommendationLeaderboardHtml();
   if (beans.length <= 6) {
     state.activeGroupKey = null;
     container.innerHTML = `${board}<div class="bean-grid compact-grid bean-grid-animated ${state.groupAnimationMode === 'auto' ? 'auto-motion' : 'manual-motion'}">${beans.map(beanCardHtml).join('')}</div>`;
@@ -2156,14 +2182,15 @@ function renderSettings() {
   $('#settingsContent').innerHTML = `<div class="settings-categories">
   <details class="settings-category" data-settings-key="account"><summary><span>账户</span><small>登录、云端同步、恢复与多设备连接</small></summary><div class="settings-category-body" data-cloud-account-host></div></details>
   <details class="settings-category" id="privateGearCategory"><summary><span>私器${low.length?'<sup class="gear-low-star">*</sup>':''}</span><small>滤纸，滤杯，磨豆机设定</small></summary><div class="settings-category-body">${gearManagerHtml()}</div></details>
-  <details class="settings-category data-category"><summary><span>数藏</span><small>数据的导入导出、分析及备份</small></summary><div class="settings-category-body"><div class="text-actions data-actions"><button id="settingsExportBtn" class="button" type="button">导出备份</button><button id="settingsImportBtn" class="button" type="button">导入备份</button><button id="clearAllDataBtn" class="button danger" type="button">清空本地数据</button></div><section class="v099p-data-analysis" data-v099p-data-analysis><h3>数藏分析</h3><p class="muted small">从豆卡、冲煮与品鉴记录生成个人咖啡图谱。</p><div class="v099p-analysis-actions"><button type="button" data-v099f-preference>风味喜好数字测写</button><button type="button" data-v099f-world>咖啡世界</button></div></section><details class="nested-settings"><summary>数据源与接口（点击展开）</summary><div class="nested-content"><div class="setting-row"><div><h3>数据源</h3><p>后台校验并原子更新，失败时保留最后有效版本。</p></div><button id="updateCodebookBtn" class="button" type="button">更新全部数据源</button></div><div id="providerStatusPanel"></div><label class="field"><span>私有冲煮 API</span><input id="brewApiEndpoint" class="control" type="url" placeholder="HTTPS 服务端地址" value="${esc(state.settings.brew.apiEndpoint||'')}"></label><button id="saveApiBtn" class="button" type="button">保存接口</button><label class="toggle"><input id="planVisualToggle" type="checkbox"${state.settings.ui.planVisualsExpanded?' checked':''}>默认显示冲煮轨迹图</label></div></details></div></details>
-  <details class="settings-category"><summary><span>本物</span><small>关于本工具和开发小哥的一切</small></summary><div class="settings-category-body about-content"><figure class="about-illustration"><img src="./public/Luckybean-END.webp?v=1.23D-main-sync.3" alt="富贵盒子猫咪插图" loading="lazy" decoding="async"><figcaption>富贵盒子</figcaption></figure><h2>富贵盒子</h2><p>咖啡豆管理、冲煮辅助、品鉴记录与本地数据归档工具。</p><dl><dt>版本</dt><dd>${APP_VERSION}</dd><dt>数据结构</dt><dd>${SCHEMA_VERSION}</dd><dt>离线引擎</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>数据源</dt><dd>公开编码数据 ${esc(meta.version||state.codebook.version||'6')}</dd><dt>开发与维护</dt><dd>zjcrop</dd></dl></div></details>
+  <details class="settings-category data-category"><summary><span>数藏</span><small>数据的导入导出、分析及备份</small></summary><div class="settings-category-body"><section class="v099p-data-analysis" data-v099p-data-analysis><h3>数藏分析</h3><p class="muted small">从豆卡、冲煮与品鉴记录生成个人咖啡图谱。</p><div class="v099p-analysis-actions"><button type="button" data-v099f-preference>风味喜好数字测写</button><button type="button" data-v099f-world>咖啡世界</button></div></section><details class="nested-settings"><summary>健康提醒参数（点击展开）</summary><div class="nested-content"><div class="grid-2"><label class="field"><span>每日咖啡因参考上限</span><input id="dailyCaffeineLimitMg" class="control" type="number" min="50" max="400" step="10" value="${Math.min(400,Number(state.settings.health.dailyCaffeineLimitMg || 400))}"><small>mg；一般健康成人默认400mg，只允许向下调整</small></label><label class="field"><span>预计入睡时间</span><input id="bedtimeLocal" class="control" type="time" value="${esc(state.settings.health.bedtimeLocal || '23:00')}"></label><label class="field"><span>睡前停止咖啡因</span><input id="caffeineCutoffHours" class="control" type="number" min="1" max="12" step="1" value="${Number(state.settings.health.caffeineCutoffHours || 6)}"><small>小时；默认至少提前6小时</small></label></div><p class="muted small">克数为咖啡因估算，不是医学诊断。孕期、未成年人、对咖啡因敏感或有医嘱者不适用一般成人阈值。</p><button id="saveHealthSettingsBtn" class="button" type="button">保存健康提醒</button></div></details><div class="text-actions data-actions"><button id="settingsExportBtn" class="button" type="button">导出备份</button><button id="settingsImportBtn" class="button" type="button">导入备份</button><button id="clearAllDataBtn" class="button danger" type="button">清空本地数据</button></div><details class="nested-settings"><summary>数据源与接口（点击展开）</summary><div class="nested-content"><div class="setting-row"><div><h3>数据源</h3><p>后台校验并原子更新，失败时保留最后有效版本。</p></div><button id="updateCodebookBtn" class="button" type="button">更新全部数据源</button></div><div id="providerStatusPanel"></div><label class="field"><span>私有冲煮 API</span><input id="brewApiEndpoint" class="control" type="url" placeholder="HTTPS 服务端地址" value="${esc(state.settings.brew.apiEndpoint||'')}"></label><button id="saveApiBtn" class="button" type="button">保存接口</button><label class="toggle"><input id="planVisualToggle" type="checkbox"${state.settings.ui.planVisualsExpanded?' checked':''}>默认显示冲煮轨迹图</label></div></details></div></details>
+  <details class="settings-category"><summary><span>本物</span><small>关于本工具和开发小哥的一切</small></summary><div class="settings-category-body about-content"><figure class="about-illustration"><img src="./public/Luckybean-END.webp?v=1.23D-main-sync.4" alt="富贵盒子猫咪插图" loading="lazy" decoding="async"><figcaption>富贵盒子</figcaption></figure><h2>富贵盒子</h2><p>咖啡豆管理、冲煮辅助、品鉴记录与本地数据归档工具。</p><dl><dt>版本</dt><dd>${APP_VERSION}</dd><dt>数据结构</dt><dd>${SCHEMA_VERSION}</dd><dt>离线引擎</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>数据源</dt><dd>公开编码数据 ${esc(meta.version||state.codebook.version||'6')}</dd><dt>开发与维护</dt><dd>zjcrop</dd></dl></div></details>
   </div>`;
   renderProviderStatusPanel($('#providerStatusPanel')).catch(error => console.warn('数据源状态读取失败', error));
   $$('.settings-category').forEach(section=>section.addEventListener('toggle',()=>{if(!section.open)return;$$('.settings-category').forEach(other=>{if(other!==section)other.open=false;});}));
   $('#updateCodebookBtn').addEventListener('click', updateCodebook);
   $('#saveApiBtn').addEventListener('click',async()=>{state.settings.brew.apiEndpoint=$('#brewApiEndpoint').value.trim();await saveSettings();toast('接口地址已保存');});
   $('#planVisualToggle').addEventListener('change',async event=>{state.settings.ui.planVisualsExpanded=event.target.checked;await saveSettings();});
+  $('#saveHealthSettingsBtn').addEventListener('click',async()=>{state.settings.health={...state.settings.health,dailyCaffeineLimitMg:clamp(parseNumber($('#dailyCaffeineLimitMg').value,400),50,400),bedtimeLocal:$('#bedtimeLocal').value||'23:00',caffeineCutoffHours:clamp(parseNumber($('#caffeineCutoffHours').value,6),1,12)};await saveSettings();toast('健康提醒参数已保存','status-good');});
   $('[data-add-gear="filter"]')?.addEventListener('click',()=>openAddFilterDialog());
   $('[data-add-gear="dripper"]')?.addEventListener('click',()=>openAddDripperDialog());
   $('[data-add-gear="grinder"]')?.addEventListener('click',()=>openAddGrinderDialog());

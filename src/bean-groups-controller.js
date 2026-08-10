@@ -50,7 +50,7 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
   }
 
   function captureBoard(container = $('#beanGroups')) {
-    const board = container?.querySelector('.preference-board-strip');
+    const board = container?.querySelector('.bean-summary-block');
     if (board) boardHtmlCache = board.outerHTML;
     return boardHtmlCache;
   }

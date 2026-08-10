@@ -17,6 +17,7 @@ assert.match(read('src/utils.js'), /APP_VERSION = '1\.23D'/);
 assert.match(read('src/utils.js'), /SCHEMA_VERSION = 8/);
 assert.equal(manifest.version, '1.23D');
 assert.match(index, /application-version" content="1\.23D"/);
+assert.match(index, /release-revision" content="1\.23D-main-sync\.4"/);
 assert.match(index, /accept="\.luckybean,application\/vnd\.luckybean\.archive\+json,application\/json"/);
 
 assert.match(app, /createPortableArchive/);
@@ -30,6 +31,8 @@ assert.match(codebook, /const roastDateInput = labeled\.roastDate \|\| ''/);
 assert.doesNotMatch(codebook, /labeled\.roastDate \|\| labeled\.productionDate/);
 
 assert.match(sw, /recognition-test\.html/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-4`/);
+assert.match(sw, /domain\/beans\/bean-consumption-summary\.js'/);
 assert.match(sw, /luckybean-archive-v1\.schema\.json/);
 assert.match(sw, /cache\.put\(request, response\.clone\(\)\)/);
 assert.match(sw, /caches\.match\(request\).*caches\.match\('\.\/index\.html'\)/s);

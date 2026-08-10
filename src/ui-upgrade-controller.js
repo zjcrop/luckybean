@@ -45,7 +45,7 @@ if (!globalThis.__LuckyBeanV099fUiUpgradeLoaded) {
     enhanceQueued = true;
     requestAnimationFrame(() => requestAnimationFrame(async () => {
       enhanceQueued = false;
-      ensureBeanModules();
+      $('#v099fBeanModules')?.remove();
       enhanceGroupPopup();
       enhanceBeanForm();
       normalizeDialogPosition();
@@ -250,17 +250,6 @@ if (!globalThis.__LuckyBeanV099fUiUpgradeLoaded) {
       if (container) delete container.dataset.v099fFreshnessRendered;
       renderFreshnessGrouping();
     }
-  }
-
-  function ensureBeanModules() {
-    const page = $('#pageBeans');
-    const bar = $('#activeFilterBar');
-    if (!page || !bar || $('#v099fBeanModules')) return;
-    const modules = document.createElement('div');
-    modules.id = 'v099fBeanModules';
-    modules.className = 'v099f-bean-modules';
-    modules.innerHTML = `<button type="button" data-v099f-preference>风味喜好数字测写</button><button type="button" data-v099f-world>咖啡世界</button>`;
-    bar.insertAdjacentElement('afterend', modules);
   }
 
   function allRecordLabels(record = {}) {
