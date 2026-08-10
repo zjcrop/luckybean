@@ -317,10 +317,22 @@ test('brew form uses five requested rows and reopens saved cooling temperatures'
   await page.locator('#firstCoolingMode').selectOption('custom');
   await page.locator('#coolingTemperature').fill('82');
   await page.locator('#saveCoolingBtn').click();
+  await expect(page.locator('[data-overlay="cooling"]')).toHaveCount(0);
   await expect(page.locator('#firstCoolingMode')).toHaveValue('custom');
   await page.locator('#firstCoolingMode').dispatchEvent('pointerdown');
   await expect(page.locator('[data-overlay="cooling"]')).toBeVisible();
   await expect(page.locator('#coolingTemperature')).toHaveValue('82');
+  await page.locator('#saveCoolingBtn').click();
+  await expect(page.locator('[data-overlay="cooling"]')).toHaveCount(0);
+
+  await page.locator('#tailCoolingMode').selectOption('custom');
+  await page.locator('#coolingTemperature').fill('60');
+  await page.locator('#saveCoolingBtn').click();
+  await expect(page.locator('[data-overlay="cooling"]')).toHaveCount(0);
+  await expect(page.locator('#tailCoolingMode')).toHaveValue('custom');
+  await page.locator('#tailCoolingMode').dispatchEvent('pointerdown');
+  await expect(page.locator('[data-overlay="cooling"]')).toBeVisible();
+  await expect(page.locator('#coolingTemperature')).toHaveValue('60');
 });
 
 
