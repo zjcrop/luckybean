@@ -163,7 +163,7 @@ for (const profileId of catalogVersions.keys()) {
   });
   const analysis = await response.json();
   assert.equal(response.status, 200, `${profileId}: ${JSON.stringify(analysis)}`);
-  assert.equal(analysis.contract, 'brew-analysis/2.0');
+  assert.equal(analysis.contract, 'brew-analysis/2.1');
   assert.match(analysis.analysisFingerprint, /^sha256:[0-9a-f]{64}$/);
   assert.match(analysis.metadata.inputFingerprint, /^sha256:[0-9a-f]{64}$/);
   assert.equal(typeof analysis.metadata.planFingerprint, 'string');
@@ -186,10 +186,12 @@ for (const profileId of catalogVersions.keys()) {
   assert.equal(analysis.plan.input.water.tds, 80);
   assert.equal(typeof analysis.plan.input.grinder, 'object');
   assert.equal(analysis.plan.models.environment.ambientTemperature, 25);
-  assert.equal(analysis.trajectory.schemaVersion, 'brew-spatial/1.2');
+  assert.equal(analysis.trajectory.schemaVersion, 'brew-spatial/1.3');
+  assert.equal(analysis.trajectory.flavorState?.schemaVersion, 'brew-flavor-state/1.0');
+  assert.equal(analysis.trajectory.flavorState?.brewEffectVector?.length, 8);
   assert.ok(analysis.trajectory.path.length > 20, `${profileId}: path too short`);
   const returnedTargets = new Set(analysis.trajectory.targets.map(target => target.id));
   for (const id of targetIds) assert.ok(returnedTargets.has(id), `${profileId}: missing target ${id}`);
 }
 
-console.log(`Verified Android-origin CORS, absolute 60°C tail cooling, manual/auto ratio, all four dripper materials and all ${catalogVersions.size} workbook profiles.`);
+console.log(`Verified BrewProfiles 2.1 / spatial 1.3 / flavor-state 1.0, Android-origin CORS, absolute 60°C tail cooling, manual/auto ratio, all four dripper materials and all ${catalogVersions.size} workbook profiles.`);
