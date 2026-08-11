@@ -45,15 +45,23 @@ async function blobToDataUrl(blob) {
   });
 }
 
+async function imagePayloadForNative(image) {
+  const nativeSource = image?.nativeSource === true;
+  return {
+    id: image.id,
+    role: image.role,
+    mimeType: image.blob?.type || 'image/jpeg',
+    nativeSource,
+    // Android URI-backed photos must not be forced back through FileReader/WebView.
+    // The native bridge already owns the content:// URI and accepts an empty dataUrl.
+    dataUrl: nativeSource ? '' : await blobToDataUrl(image.blob)
+  };
+}
+
 async function nativeRecognize(images, options) {
   const bridge = globalThis.LuckyBeanRecognitionBridge || globalThis.LuckyBeanNative;
   if (typeof bridge?.recognizeCoffeeBag !== 'function') return null;
-  const payloadImages = await Promise.all(images.map(async image => ({
-    id: image.id,
-    role: image.role,
-    mimeType: image.blob.type || 'image/jpeg',
-    dataUrl: await blobToDataUrl(image.blob)
-  })));
+  const payloadImages = await Promise.all(images.map(imagePayloadForNative));
   const result = await bridge.recognizeCoffeeBag({ images: payloadImages, locale: options.locale || 'zh-CN' });
   return { ...result, engine: result?.engine || 'native-ppocr' };
 }
