@@ -1,47 +1,61 @@
-let queued = false;
+const QR_OVERLAY_SELECTOR = '[data-overlay="camera"]';
+const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
 
-function enhanceCameraOverlay() {
-  const overlay = document.querySelector('[data-overlay="camera"]');
-  const video = overlay?.querySelector('#cameraVideo');
-  if (!overlay || !video || overlay.dataset.qrUiEnhanced) return;
-  overlay.dataset.qrUiEnhanced = 'auto-capture-v1';
+function retryScanner(status) {
+  const scanner = globalThis.LuckyBeanQrScanner;
+  if (!scanner?.restart) {
+    status.textContent = '扫描器正在重新初始化…';
+    return;
+  }
+  scanner.restart().catch(error => {
+    status.textContent = `重新扫描失败：${error.message}`;
+  });
+}
 
-  const stage = document.createElement('div');
-  stage.className = 'v095-qr-stage';
-  video.before(stage);
-  stage.append(video);
-  stage.insertAdjacentHTML('beforeend', `
-    <div class="v095-qr-frame" aria-hidden="true">
-      <i></i><i></i><i></i><i></i><span></span>
-    </div>
-    <div class="v095-qr-live-badge"><b></b>自动捕捉中</div>
-  `);
+function decorateCameraOverlay(overlay) {
+  if (!overlay || overlay.dataset.lbQrDecorated === '1') return;
+  const video = $('#cameraVideo', overlay);
+  const status = $('#cameraStatus', overlay);
+  const fileButton = $('#cameraFileBtn', overlay);
+  if (!video || !status || !fileButton) return;
 
-  const status = overlay.querySelector('#cameraStatus');
-  if (status) {
-    status.classList.add('v095-qr-status');
-    status.insertAdjacentHTML('afterend', '<p class="v095-qr-help">无需按快门。将二维码完整、清晰地放入方框，识别成功后会自动进入豆卡确认。</p>');
+  overlay.dataset.lbQrDecorated = '1';
+  if (!video.parentElement?.classList.contains('v095-qr-stage')) {
+    const stage = document.createElement('div');
+    stage.className = 'v095-qr-stage';
+    video.parentElement.insertBefore(stage, video);
+    stage.append(video);
+    stage.insertAdjacentHTML('beforeend', '<span class="v095-qr-frame" aria-hidden="true"></span><span class="v095-qr-live">本地识别</span>');
   }
 
-  const fileButton = overlay.querySelector('#cameraFileBtn');
-  if (fileButton) fileButton.textContent = '自动识别困难时选择图片';
+  fileButton.textContent = '改用图片';
+  let retry = $('#cameraRetryBtn', overlay);
+  if (!retry) {
+    retry = document.createElement('button');
+    retry.id = 'cameraRetryBtn';
+    retry.className = 'button';
+    retry.type = 'button';
+    retry.textContent = '重新扫描';
+    fileButton.before(retry);
+  }
+  retry.disabled = false;
+  retry.style.pointerEvents = 'auto';
+  retry.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    retryScanner(status);
+  });
+
+  if (!overlay.querySelector('[data-lb-qr-help]')) {
+    status.insertAdjacentHTML('afterend', '<p class="muted small" data-lb-qr-help>保持二维码完整、平整并避免反光。识别失败时可直接重新扫描，或选择二维码图片。</p>');
+  }
 }
 
-function queueEnhance() {
-  if (queued) return;
-  queued = true;
-  requestAnimationFrame(() => {
-    queued = false;
-    enhanceCameraOverlay();
-  });
+function scan() {
+  const overlay = document.querySelector(QR_OVERLAY_SELECTOR);
+  if (overlay) decorateCameraOverlay(overlay);
 }
 
-{
-  const qrUiObserver1 = new MutationObserver(queueEnhance);
-  ["#overlayRoot"].forEach(selector => {
-    const root = document.querySelector(selector);
-    if (root) qrUiObserver1.observe(root, { childList: true, subtree: true });
-  });
-}
-document.addEventListener('DOMContentLoaded', queueEnhance, { once: true });
-queueEnhance();
+new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
+document.addEventListener('luckybean:app-refreshed', scan);
+scan();
