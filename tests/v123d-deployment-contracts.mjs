@@ -17,7 +17,7 @@ assert.match(read('src/utils.js'), /APP_VERSION = '1\.23D'/);
 assert.match(read('src/utils.js'), /SCHEMA_VERSION = 8/);
 assert.equal(manifest.version, '1.23D');
 assert.match(index, /application-version" content="1\.23D"/);
-assert.match(index, /release-revision" content="1\.23D-main-sync\.5"/);
+assert.match(index, /release-revision" content="1\.23D-main-sync\.6"/);
 assert.match(index, /accept="\.luckybean,application\/vnd\.luckybean\.archive\+json,application\/json"/);
 
 assert.match(app, /createPortableArchive/);
@@ -31,7 +31,8 @@ assert.match(codebook, /const roastDateInput = labeled\.roastDate \|\| ''/);
 assert.doesNotMatch(codebook, /labeled\.roastDate \|\| labeled\.productionDate/);
 
 assert.match(sw, /recognition-test\.html/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-5`/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-6`/);
+assert.match(sw, /gear-regression-fix-controller\.js/);
 assert.match(sw, /domain\/beans\/bean-consumption-summary\.js'/);
 assert.match(sw, /luckybean-archive-v1\.schema\.json/);
 assert.match(sw, /cache\.put\(request, response\.clone\(\)\)/);
@@ -46,6 +47,7 @@ assert.match(androidBuild, /com\.google\.mlkit:text-recognition:16\.0\.1/);
 assert.match(androidBuild, /com\.google\.mlkit:text-recognition-chinese:16\.0\.1/);
 assert.match(androidActivity, /ChineseTextRecognizerOptions/);
 assert.match(androidActivity, /recognizeImage\(String requestId/);
+assert.match(androidActivity, /InputImage\.fromFilePath\(MainActivity\.this, sourceUri\)/);
 assert.match(androidBridge, /LuckyBeanRecognitionBridge/);
 assert.match(androidBridge, /android-mlkit-bundled-16\.0\.1/);
 assert.doesNotMatch(androidBridge, /cdn\.jsdelivr\.net|dynamic.*import/i);
