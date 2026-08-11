@@ -16,6 +16,8 @@ const brewAnalysis = read('src/services/brew-analysis-service.js');
 const brewCore = read('src/brew-engine-core.js');
 const matchVector = read('src/domain/matching/flavor-vector.js');
 const freshnessTimeline = read('src/features/freshness-timeline-controller.js');
+const qr = read('src/qr.js');
+const interactionRepair = read('src/features/interaction-repair-controller.js');
 const deployWorkflow = read('.github/workflows/deploy-main.yml');
 const buildWorkflow = read('.github/workflows/build-main.yml');
 
@@ -23,8 +25,9 @@ assert.match(read('src/utils.js'), /APP_VERSION = '1\.23E'/);
 assert.match(read('src/utils.js'), /SCHEMA_VERSION = 8/);
 assert.equal(manifest.version, '1.23E');
 assert.match(index, /application-version" content="1\.23E"/);
-assert.match(index, /release-revision" content="1\.23E-main-sync\.1"/);
+assert.match(index, /release-revision" content="1\.23E-main-sync\.2"/);
 assert.match(index, /accept="\.luckybean,application\/vnd\.luckybean\.archive\+json,application\/json"/);
+assert.match(index, /interaction-repair-controller\.js\?v=1\.23E-main-sync\.2/);
 
 assert.match(app, /createPortableArchive/);
 assert.match(app, /inspectPortableArchive/);
@@ -38,16 +41,18 @@ assert.doesNotMatch(codebook, /labeled\.roastDate \|\| labeled\.productionDate/)
 
 assert.match(sw, /recognition-test\.html/);
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v123e-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-1`/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-2`/);
 assert.match(sw, /luckybean-main-v123d-/);
 assert.match(sw, /gear-regression-fix-controller\.js/);
 assert.match(sw, /freshness-timeline-controller\.js/);
+assert.match(sw, /interaction-repair-controller\.js/);
+assert.match(sw, /public\/vendor\/jsqr\/jsQR\.js/);
 assert.match(sw, /domain\/beans\/bean-consumption-summary\.js/);
 assert.match(sw, /luckybean-archive-v1\.schema\.json/);
 assert.match(sw, /cache\.put\(request, response\.clone\(\)\)/);
 assert.match(sw, /caches\.match\(request\).*caches\.match\('\.\/index\.html'\)/s);
 
-assert.match(androidBuild, /versionCode 102307/);
+assert.match(androidBuild, /versionCode 102308/);
 assert.match(androidBuild, /versionName '1\.23E'/);
 assert.match(androidBuild, /include 'index\.html', 'recognition-test\.html'/);
 assert.match(androidActivity, /addJavascriptInterface\(new NativeFileBridge\(\), "LuckyBeanNative"\)/);
@@ -69,6 +74,13 @@ assert.match(packageCapture, /bindAndroidImageSource\(id, nativeSource\)/);
 assert.match(packageCapture, /原生缩略预览/);
 assert.match(read('src/utils.js'), /LuckyBeanNative\?\.saveFile/);
 
+assert.match(qr, /public\/vendor\/jsqr\/jsQR\.js/);
+assert.doesNotMatch(qr, /cdn\.jsdelivr\.net/);
+assert.match(qr, /async restart\(\)/);
+assert.match(interactionRepair, /豆卡自动推荐/);
+assert.match(interactionRepair, /使用说明/);
+assert.match(interactionRepair, /flavorText: flavorNames\.join\(' '\)/);
+
 assert.match(brewAnalysis, /BREW_ANALYSIS_CONTRACT = 'brew-analysis\/2\.1'/);
 assert.match(brewAnalysis, /BREW_SPATIAL_CONTRACT = 'brew-spatial\/1\.3'/);
 assert.match(brewAnalysis, /BREW_FLAVOR_STATE_CONTRACT = 'brew-flavor-state\/1\.0'/);
@@ -78,12 +90,14 @@ assert.doesNotMatch(matchVector, /LMS1-FC1-D\$\{/);
 assert.match(freshnessTimeline, /const STAGES = \['养豆中', '味正盛', '味将尽'\]/);
 assert.match(freshnessTimeline, /freshnessProfile\(bean\)\.progress/);
 
-assert.match(deployWorkflow, /recognition-test\.html/);
-assert.match(deployWorkflow, /contracts\/luckybean-archive-v1\.schema\.json/);
+assert.match(deployWorkflow, /npm ci/);
+assert.match(deployWorkflow, /public\/vendor\/jsqr\/jsQR\.js/);
 assert.match(deployWorkflow, /LuckyBean-1\.23E-web\.zip/);
 assert.match(buildWorkflow, /LuckyBean-1\.23E-debug\.apk/);
-assert.match(buildWorkflow, /version_code=102307/);
+assert.match(buildWorkflow, /version_code=102308/);
 assert.match(buildWorkflow, /freshness-timeline-controller\.js/);
+assert.match(buildWorkflow, /interaction-repair-controller\.js/);
+assert.match(buildWorkflow, /public\/vendor\/jsqr\/jsQR\.js/);
 assert.match(buildWorkflow, /analysis_contract=brew-analysis\/2\.1/);
 
-console.log('LuckyBean 1.23E deployment, Android image URI, freshness timeline, BrewProfiles compatibility and archive contracts passed');
+console.log('LuckyBean 1.23E deployment, local QR, guide, matching, freshness, BrewProfiles and archive contracts passed');
