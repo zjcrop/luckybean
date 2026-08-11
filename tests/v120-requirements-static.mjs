@@ -39,10 +39,10 @@ assert.match(auth, /唯一的服务器同步账号/);
 assert.match(sync, /function ensureAutomatic/);
 assert.doesNotMatch(sync, /ENABLE_KEY|setEnabled|reason: 'disabled'|emit\('disabled'/);
 assert.doesNotMatch(startup, /ensureLocalIdentity|LB-LOCAL-|getSetting|setSetting/);
-assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v123d-'/);
-assert.match(sw, /LEGACY_CACHE_PREFIXES = \['luckybean-main-v123-', 'luckybean-v120-test-', 'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-'/);
-assert.match(sw, /1\.23D/);
-assert.match(startup, /serviceWorker\.register\('\.\/sw\.js\?v=1\.23D-main-sync\.5', \{ updateViaCache: 'none' \}\)/);
+assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v123e-'/);
+assert.match(sw, /LEGACY_CACHE_PREFIXES = \['luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-', 'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-'/);
+assert.match(sw, /1\.23E/);
+assert.match(startup, /serviceWorker\.register\('\.\/sw\.js\?v=1\.23E-main-sync\.1', \{ updateViaCache: 'none' \}\)/);
 assert.match(spatial, /#brewSpatialMount/);
 assert.match(sensory, /data-v120-radar-node/);
 assert.match(sensory, /pointermove/);
@@ -73,4 +73,4 @@ for (const profile of listBrewProfiles()) {
   assert.ok(Array.isArray(plan.stages) && plan.stages.length > 0, `profile generated no stages: ${profile.id}`);
 }
 
-console.log('v1.2.1 single server account, mandatory automatic sync and all-profile checks passed');
+console.log('LuckyBean 1.23E single server account, mandatory automatic sync and all-profile checks passed');
