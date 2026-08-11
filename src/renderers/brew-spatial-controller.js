@@ -1,7 +1,7 @@
 import { brewSpatialView } from './brew-spatial-view.js';
 
 const REQUIRED_TARGET_IDS = Object.freeze(['acidity', 'floral', 'fruity', 'sweetness', 'bitterness', 'astringency']);
-const SUPPORTED_SPATIAL_CONTRACTS = new Set(['brew-spatial/1.1', 'brew-spatial/1.2']);
+const SUPPORTED_SPATIAL_CONTRACTS = new Set(['brew-spatial/1.1', 'brew-spatial/1.2', 'brew-spatial/1.3']);
 
 function isProfessionalScene(scene) {
   if (!scene || !SUPPORTED_SPATIAL_CONTRACTS.has(scene.schemaVersion) || !Array.isArray(scene.path) || scene.path.length < 2) return false;
@@ -62,7 +62,7 @@ document.addEventListener('luckybean:open-spatial-scene', event => {
 });
 
 globalThis.LuckyBeanSpatial = {
-  revision: 'brew-spatial-view/1.3.0',
+  revision: 'brew-spatial-view/1.4.0',
   mount,
   clear,
   open(scene) { if (isProfessionalScene(scene) && brewSpatialView.setScene(scene)) brewSpatialView.open(); },
