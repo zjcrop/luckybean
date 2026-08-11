@@ -17,13 +17,19 @@ assert.ok(imageQuality.includes('androidNativeFallback'), 'Android must bypass W
 assert.ok(imageQuality.includes('nativeSource: true'), 'Android fallback must mark the image as URI/native backed');
 assert.ok(imageQuality.includes('Android 直接读取原始照片'), 'fallback must state that native Android reads the original image');
 
+const recognitionBridge = fs.readFileSync(new URL('../src/recognition-bridge.js', import.meta.url), 'utf8');
+assert.ok(recognitionBridge.includes("dataUrl: nativeSource ? '' : await blobToDataUrl(image.blob)"), 'Android URI-backed photos must skip WebView FileReader encoding');
+
 const packageCapture = fs.readFileSync(new URL('../src/package-capture-controller.js', import.meta.url), 'utf8');
-assert.ok(packageCapture.includes('Android 原图 · 本地 URI 直接读取'), 'capture UI must not present a zero-byte WebView blob as the image source');
-assert.ok(packageCapture.includes('previewAvailable: !nativeSource'), 'native-source fallback must suppress the broken WebView image preview');
+assert.ok(packageCapture.includes('bindAndroidImageSource(id, nativeSource)'), 'every Android-selected image must bind to its content URI in file order');
+assert.ok(packageCapture.includes('原生缩略预览'), 'capture UI must expose the native JPEG preview path');
+assert.ok(packageCapture.includes('previewAvailable: Boolean(previewUrl)'), 'native-source fallback must show a preview when Android returns a thumbnail');
 
 const activity = fs.readFileSync(new URL('../android/app/src/main/java/com/luckybean/app/MainActivity.java', import.meta.url), 'utf8');
 assert.ok(activity.includes('pendingRecognitionUris'), 'Android must retain selected content URIs for OCR');
 assert.ok(activity.includes('rememberRecognitionSources(result)'), 'file chooser results must be retained before handing them to WebView');
+assert.ok(activity.includes('bindImageSource(String imageId, boolean includePreview)'), 'WebView image ids must bind to native content URIs before OCR');
+assert.ok(activity.includes('ImageDecoder.createSource'), 'Android must generate a platform-decoded JPEG preview for WebView');
 assert.ok(activity.includes('InputImage.fromFilePath(MainActivity.this, sourceUri)'), 'native OCR must read content:// directly when WebView bytes are empty');
 
 const gearFix = fs.readFileSync(new URL('../src/features/gear-regression-fix-controller.js', import.meta.url), 'utf8');
@@ -31,4 +37,4 @@ assert.ok(gearFix.includes('滤杯角度'), 'matching gear UI must use dripper a
 assert.ok(!gearFix.includes('lbDripperShape'), 'canonical matching gear UI must not expose the obsolete shape selector');
 assert.ok(gearFix.includes("$$(BLOCK_SELECTOR, host).forEach(node => node.remove())"), 'matching gear UI must remove stale duplicate blocks before rendering');
 
-console.log('v127 screenshot regression static checks passed');
+console.log('v127 screenshot regression and 1.23E Android image pipeline static checks passed');
