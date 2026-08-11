@@ -130,7 +130,8 @@ function androidNativeFallback(file, error) {
     metrics: null,
     score: 65,
     status: 'usable',
-    warnings: ['WebView无法解码预览，已保留原图并直接交给 Android 本地 OCR 读取']
+    nativeSource: true,
+    warnings: ['WebView预览不可用；识别时由 Android 直接读取原始照片，不再依赖空 Blob']
   };
 }
 
@@ -172,6 +173,7 @@ export async function preparePackageImage(file, { maxEdge = DEFAULT_MAX_EDGE } =
     processedWidth: outputCanvas.width,
     processedHeight: outputCanvas.height,
     metrics,
+    nativeSource: false,
     ...quality
   };
 }
