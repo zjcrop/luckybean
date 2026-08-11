@@ -25,11 +25,15 @@ const historySchema = json('schemas/brew-history.schema.json');
 const sw = read('sw.js');
 
 // Authoritative engine and integrated spatial contract.
-assert.match(analysis, /BREW_ANALYSIS_CONTRACT\s*=\s*'brew-analysis\/2\.0'/);
-assert.match(analysis, /BREW_SPATIAL_CONTRACT\s*=\s*'brew-spatial\/1\.2'/);
+assert.match(analysis, /BREW_ANALYSIS_CONTRACT\s*=\s*'brew-analysis\/2\.1'/);
+assert.match(analysis, /BREW_SPATIAL_CONTRACT\s*=\s*'brew-spatial\/1\.3'/);
+assert.match(analysis, /BREW_FLAVOR_STATE_CONTRACT\s*=\s*'brew-flavor-state\/1\.0'/);
+assert.match(analysis, /SUPPORTED_ANALYSIS_CONTRACTS = new Set\(\['brew-analysis\/2\.0', BREW_ANALYSIS_CONTRACT\]\)/);
+assert.match(analysis, /SUPPORTED_SPATIAL_CONTRACTS = new Set\(\['brew-spatial\/1\.2', BREW_SPATIAL_CONTRACT\]\)/);
 assert.match(analysis, /brewApiJson/);
 assert.match(analysis, /clientAdjusted:\s*false/);
 assert.match(analysis, /analysisSnapshot:\s*structuredClone\(analysis\)/);
+assert.match(analysis, /flavorState/);
 assert.doesNotMatch(engine, /optimizeBrewPlan\(normalized, semanticPlan\)/);
 assert.match(engine, /executionSource\s*=\s*'brew-profiles-authoritative'/);
 
@@ -67,6 +71,9 @@ assert.match(spatial, /this\.pointers\.size === 2/);
 assert.match(spatial, /this\.zoom/);
 assert.match(spatial, /轻点路径或靶区查看三轴参数/);
 assert.doesNotMatch(spatial, /MutationObserver/);
+assert.match(spatialController, /brew-spatial\/1\.3/);
+assert.match(spatialController, /sourceSchemaVersion/);
+assert.match(spatialController, /adaptForView/);
 assert.match(spatialController, /luckybean:plan-ready/);
 assert.match(spatialController, /luckybean:history-plan-loaded/);
 assert.doesNotMatch(runtimeFeatures, /v099-trajectory-signal-bridge|v099i-trajectory-space|v109-history-management/);
