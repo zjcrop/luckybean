@@ -111,7 +111,7 @@ async function renderFreshnessGroups() {
     container.dataset.lbFreshnessGroup = '1';
 
     if (!active.length) {
-      container.innerHTML = '<div class="empty-state"><strong>没有可分组的豆卡</strong></div>';
+      container.innerHTML = '<div data-lb-freshness-root class="empty-state"><strong>没有可分组的豆卡</strong></div>';
       return;
     }
 
