@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import android.util.Base64;
+import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -66,6 +67,9 @@ public final class MainActivity extends Activity {
     private String pendingExportMime;
     private TextRecognizer chineseTextRecognizer;
     private TextRecognizer latinTextRecognizer;
+    private final Object recognitionSourceLock = new Object();
+    private final ArrayDeque<Uri> pendingRecognitionUris = new ArrayDeque<>();
+    private final Map<String, Uri> recognitionUriByImageId = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -199,19 +203,47 @@ public final class MainActivity extends Activity {
         else startService(intent);
     }
 
+    private void rememberRecognitionSources(Uri[] uris) {
+        if (uris == null || uris.length == 0) return;
+        synchronized (recognitionSourceLock) {
+            if (recognitionUriByImageId.size() > 64) recognitionUriByImageId.clear();
+            for (Uri uri : uris) if (uri != null) pendingRecognitionUris.addLast(uri);
+        }
+    }
+
+    private Uri claimRecognitionSource(String imageId) {
+        String key = imageId == null ? "" : imageId;
+        synchronized (recognitionSourceLock) {
+            Uri existing = recognitionUriByImageId.get(key);
+            if (existing != null) return existing;
+            Uri next = pendingRecognitionUris.pollFirst();
+            if (next != null && !key.isEmpty()) recognitionUriByImageId.put(key, next);
+            return next;
+        }
+    }
+
     private final class NativeFileBridge {
         @JavascriptInterface
         public void recognizeImage(String requestId, String imageId, String imageRole, String dataUrl) {
             Bitmap bitmap = null;
             try {
+                Uri sourceUri = claimRecognitionSource(imageId);
                 String encoded = dataUrl == null ? "" : dataUrl;
                 int separator = encoded.indexOf(',');
                 if (separator >= 0) encoded = encoded.substring(separator + 1);
-                byte[] bytes = Base64.decode(encoded, Base64.DEFAULT);
-                bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                if (bitmap == null) throw new IllegalArgumentException("无法读取照片数据");
+                byte[] bytes = encoded.isEmpty() ? new byte[0] : Base64.decode(encoded, Base64.DEFAULT);
+                if (bytes.length > 0) bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
 
-                InputImage input = InputImage.fromBitmap(bitmap, 0);
+                InputImage input;
+                if (bitmap != null) {
+                    input = InputImage.fromBitmap(bitmap, 0);
+                } else if (sourceUri != null) {
+                    // InputImage.fromFilePath reads content:// directly and honors image rotation metadata.
+                    input = InputImage.fromFilePath(MainActivity.this, sourceUri);
+                } else {
+                    throw new IllegalArgumentException("无法读取照片数据，Android 原图引用不可用");
+                }
+
                 Task<Text> chineseTask = chineseTextRecognizer.process(input);
                 Task<Text> latinTask = latinTextRecognizer.process(input);
                 Bitmap decodedBitmap = bitmap;
@@ -237,7 +269,7 @@ public final class MainActivity extends Activity {
                     } catch (Exception error) {
                         rejectRecognition(requestId, error.getMessage());
                     } finally {
-                        decodedBitmap.recycle();
+                        if (decodedBitmap != null) decodedBitmap.recycle();
                     }
                 });
             } catch (Exception error) {
@@ -472,6 +504,7 @@ public final class MainActivity extends Activity {
                 }
             }
         }
+        rememberRecognitionSources(result);
         filePathCallback.onReceiveValue(result);
         filePathCallback = null;
         cameraOutputUri = null;
@@ -494,6 +527,10 @@ public final class MainActivity extends Activity {
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         if (chineseTextRecognizer != null) chineseTextRecognizer.close();
         if (latinTextRecognizer != null) latinTextRecognizer.close();
+        synchronized (recognitionSourceLock) {
+            pendingRecognitionUris.clear();
+            recognitionUriByImageId.clear();
+        }
         if (webView != null) {
             webView.loadUrl("about:blank");
             webView.stopLoading();
