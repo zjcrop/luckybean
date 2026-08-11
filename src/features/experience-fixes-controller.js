@@ -234,6 +234,12 @@ document.addEventListener('luckybean:codebook-provider-activated', () => {
   queue();
 });
 document.addEventListener('click', event => {
-  if (event.target.closest('[data-page-target]')) setTimeout(queue, 0);
+  const nav = event.target.closest('[data-page-target]');
+  if (!nav) return;
+  if (nav.dataset.pageTarget !== 'beans') $('[data-lb-onboarding]')?.remove();
+  setTimeout(() => {
+    scopeOnboardingToBeanHome();
+    queue();
+  }, nav.dataset.pageTarget === 'beans' ? 0 : 900);
 }, true);
 queue();
