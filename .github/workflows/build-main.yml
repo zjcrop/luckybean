@@ -50,12 +50,13 @@ jobs:
           set -euo pipefail
           apk=android/app/build/outputs/apk/debug/app-debug.apk
           grep -q "applicationId 'com.luckybean.app'" android/app/build.gradle
-          grep -q "versionCode 102305" android/app/build.gradle
+          grep -q "versionCode 102306" android/app/build.gradle
           grep -q "versionName '1.23E'" android/app/build.gradle
           test -f "$apk"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102305' versionName='1.23E'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102306' versionName='1.23E'"
           unzip -l "$apk" | grep -q 'assets/web-cache/index.html'
           unzip -l "$apk" | grep -q 'assets/web-cache/src/services/brew-analysis-service.js'
+          unzip -l "$apk" | grep -q 'assets/web-cache/src/brew-engine-core.js'
           unzip -l "$apk" | grep -q 'assets/web-cache/src/recognition-bridge.js'
           unzip -l "$apk" | grep -q 'assets/web-cache/src/package-capture-controller.js'
           unzip -l "$apk" | grep -q 'assets/web-cache/native-bridge.js'
@@ -63,6 +64,7 @@ jobs:
           unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.1'"
           unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_SPATIAL_CONTRACT = 'brew-spatial/1.3'"
           unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_FLAVOR_STATE_CONTRACT = 'brew-flavor-state/1.0'"
+          unzip -p "$apk" assets/web-cache/src/brew-engine-core.js | grep -Fq "'brew-analysis/2.0', 'brew-analysis/2.1'"
           unzip -p "$apk" assets/web-cache/src/domain/matching/flavor-vector.js | grep -Fq "MATCH_CONTRACT = 'luckybean-match/1.1'"
           unzip -p "$apk" assets/web-cache/src/recognition-bridge.js | grep -Fq "dataUrl: nativeSource ? '' : await blobToDataUrl(image.blob)"
           unzip -p "$apk" assets/web-cache/src/package-capture-controller.js | grep -Fq 'bindAndroidImageSource(id, nativeSource)'
@@ -79,7 +81,7 @@ jobs:
           mkdir -p dist
           zip -qr dist/LuckyBean-1.23E-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts docs DEVELOPMENT_STATUS.md
           cp android/app/build/outputs/apk/debug/app-debug.apk dist/LuckyBean-1.23E-debug.apk
-          printf 'source_sha=%s\nversion=1.23E\nversion_code=102305\nanalysis_contract=brew-analysis/2.1\nspatial_contract=brew-spatial/1.3\nmatching_contract=luckybean-match/1.1\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
+          printf 'source_sha=%s\nversion=1.23E\nversion_code=102306\nanalysis_contract=brew-analysis/2.1\nspatial_contract=brew-spatial/1.3\nmatching_contract=luckybean-match/1.1\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
           sha256sum dist/LuckyBean-1.23E-web.zip dist/LuckyBean-1.23E-debug.apk > dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v7.0.1
         with:
