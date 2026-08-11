@@ -4,7 +4,7 @@ const BASE_URL = 'http://127.0.0.1:4173';
 
 test.beforeEach(async ({ page }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/, route => route.abort('failed'));
-  await page.goto(`${BASE_URL}/?v127-regressions=2`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${BASE_URL}/?v123e-regressions=1`, { waitUntil: 'domcontentloaded' });
   await page.locator('#splashScreen').click();
   await expect(page.locator('#appShell')).toBeVisible({ timeout: 15000 });
 });
@@ -28,7 +28,7 @@ test('edited legacy bean keeps readable country and variety in compact card', as
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     });
-    document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail: { source: 'v127-legacy-card' } }));
+    document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail: { source: 'v123e-legacy-card' } }));
   });
 
   const card = page.locator('.bean-card[data-bean-id="legacy-readable-bean"]');
@@ -38,7 +38,7 @@ test('edited legacy bean keeps readable country and variety in compact card', as
     return (await db.get('beans', 'legacy-readable-bean'))?.name || '';
   });
   expect(storedName).toBe('埃塞俄比亚 · Geisha');
-  await page.evaluate(() => document.dispatchEvent(new CustomEvent('luckybean:app-refreshed', { detail: { source: 'v127-force-display-repair' } })));
+  await page.evaluate(() => document.dispatchEvent(new CustomEvent('luckybean:app-refreshed', { detail: { source: 'v123e-force-display-repair' } })));
   await expect(card.locator('.lb-bean-primary')).toHaveText('埃塞/瑰夏');
   await expect(card.locator('.lb-bean-secondary')).toContainText('/浅/水洗/85g');
   await expect(card).not.toContainText('未定');
@@ -54,7 +54,7 @@ test('custom first and tail cooling keep exactly one inline editor each after re
     current.brew.tailCoolingMode = 'custom';
     current.brew.tailTemperatureC = 80;
     await db.setSetting('app.settings', current);
-    document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail: { source: 'v127-cooling' } }));
+    document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail: { source: 'v123e-cooling' } }));
   });
 
   await page.locator('[data-page-target="brew"]').click();
@@ -104,7 +104,7 @@ test('matching gear has one canonical angle bypass and paper-speed block after r
 test('Android image decode failure marks native URI fallback instead of pretending WebView bytes are valid', async ({ page }) => {
   const result = await page.evaluate(async () => {
     globalThis.__LUCKYBEAN_ANDROID__ = true;
-    const { preparePackageImage } = await import('/src/image-quality.js?v127-native-fallback-2');
+    const { preparePackageImage } = await import('/src/image-quality.js?v123e-native-fallback');
     const file = new File([new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7])], 'unsupported-photo.heic', { type: 'image/heic' });
     const prepared = await preparePackageImage(file);
     return {
@@ -120,4 +120,34 @@ test('Android image decode failure marks native URI fallback instead of pretendi
   expect(result.type).toBe('image/heic');
   expect(result.nativeSource).toBe(true);
   expect(result.warning).toContain('Android 直接读取原始照片');
+});
+
+test('Android URI-backed image reaches native OCR with empty dataUrl and no FileReader encoding', async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    globalThis.__LUCKYBEAN_ANDROID__ = true;
+    let captured = null;
+    globalThis.LuckyBeanRecognitionBridge = {
+      async recognizeCoffeeBag(payload) {
+        captured = payload.images[0];
+        return {
+          engine: 'android-test',
+          blocks: [{ text: 'ETHIOPIA', confidence: 0.9, imageId: captured.id, imageRole: captured.role }],
+          fullText: 'ETHIOPIA'
+        };
+      }
+    };
+    const { recognizeCoffeeBag } = await import('/src/recognition-bridge.js?v123e-uri-ocr');
+    const blob = new Blob([new Uint8Array([0, 1, 2, 3])], { type: 'image/heic' });
+    const response = await recognizeCoffeeBag([{
+      id: 'native-heic-1',
+      role: 'front',
+      roleLabel: '正面主体',
+      blob,
+      nativeSource: true
+    }]);
+    return { dataUrl: captured?.dataUrl, nativeSource: captured?.nativeSource, text: response.fullText };
+  });
+  expect(result.dataUrl).toBe('');
+  expect(result.nativeSource).toBe(true);
+  expect(result.text).toContain('ETHIOPIA');
 });
