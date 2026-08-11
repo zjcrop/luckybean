@@ -1,0 +1,62 @@
+name: LuckyBean integration Android
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: luckybean-integration-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v5.7.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4.0.1
+      - name: Install Android SDK components
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v6.3.0
+        with:
+          gradle-version: '8.9'
+      - name: Compile debug APK
+        run: gradle --no-daemon -p android :app:assembleDebug
+      - name: Verify native execution contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=android/app/build/outputs/apk/debug/app-debug.apk
+          test -f "$apk"
+          grep -q 'class BrewTimerService extends Service' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
+          grep -q 'SystemClock.elapsedRealtime()' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
+          grep -q 'synthesizeToFile' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
+          grep -q 'ExoPlayer' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
+          grep -q 'prepareBrewExecution' android/app/src/main/java/com/luckybean/app/MainActivity.java
+          grep -q 'FLAG_KEEP_SCREEN_ON' android/app/src/main/java/com/luckybean/app/MainActivity.java
+          grep -q 'FOREGROUND_SERVICE_MEDIA_PLAYBACK' android/app/src/main/AndroidManifest.xml
+          unzip -l "$apk" | grep -q 'assets/web-cache/src/features/full-integration-controller-v3.js'
+          unzip -l "$apk" | grep -q 'assets/web-cache/src/features/experience-fixes-controller.js'
+          unzip -l "$apk" | grep -q 'assets/web-cache/contracts/luckybean-match-v1.schema.json'
+          unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'globalThis.__LUCKYBEAN_ANDROID__ || !globalThis.speechSynthesis'
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app'"
+      - name: Package integration APK
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist/LuckyBean-1.23D-full-integration-debug.apk
+          sha256sum dist/LuckyBean-1.23D-full-integration-debug.apk > dist/SHA256SUMS.txt
+          printf 'source_sha=%s\nbranch=%s\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist/BUILD_PROVENANCE.txt
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: luckybean-full-integration-android-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
