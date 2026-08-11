@@ -83,12 +83,23 @@ export function buildBeanVector(bean = {}) {
   return { vector: vector.map(value => Math.round(clamp(value))), confidence };
 }
 
-function normalizeShape(value = '') {
-  const text = textOf(value);
-  if (/flat|平底/.test(text)) return 'flat_bottom';
-  if (/wide|大角|宽/.test(text)) return 'wide_cone';
-  if (/narrow|小角|窄/.test(text)) return 'narrow_cone';
-  return 'standard_cone';
+function angleCorrection(value) {
+  const angle = Number(value);
+  if (!Number.isFinite(angle) || angle < 25 || angle > 95) return Array(MATCH_DIM).fill(0);
+
+  // 60° is the neutral engineering reference only. Angle is deliberately a low-weight
+  // correction because ribs, hole geometry and bypass dominate many real drippers.
+  const x = Math.max(-1, Math.min(1, (angle - 60) / 30));
+  return [
+    -1.5 * x, // acidity
+     1.0 * x, // sweetness
+    -1.5 * x, // aroma
+     2.0 * x, // body
+    -0.5 * x, // bitterness
+     0.5 * x, // clean
+     0,
+     0.5 * x  // aftertaste
+  ];
 }
 
 export function buildGearCorrection(settings = {}, brewInput = {}) {
@@ -97,17 +108,10 @@ export function buildGearCorrection(settings = {}, brewInput = {}) {
   const paperId = String(brewInput?.brew?.filterPaperId || 'default');
   const dripper = matching.drippers?.[dripperId] || matching.defaultDripper || {};
   const paper = matching.papers?.[paperId] || matching.defaultPaper || {};
-  const shape = normalizeShape(dripper.shape || brewInput?.brew?.dripperCode);
   const bypass = String(dripper.bypass || 'medium');
   const speed = String(paper.speed || 'medium');
-  let vector = Array(MATCH_DIM).fill(0);
-  const shapeMap = {
-    narrow_cone: [2, 0, 2, -1, 1, 1, 0, 1],
-    standard_cone: [0, 0, 0, 0, 0, 0, 0, 0],
-    wide_cone: [-1, 1, -1, 2, 0, -1, 0, 0],
-    flat_bottom: [-1, 2, -1, 3, -1, 2, 0, 1]
-  };
-  vector = add(vector, shapeMap[shape] || shapeMap.standard_cone);
+  let vector = angleCorrection(dripper.angleDeg);
+
   const bypassMap = {
     none: [1, 1, 0, 3, 2, 1, 0, 1],
     low: [1, 1, 0, 2, 1, 1, 0, 1],
@@ -115,6 +119,7 @@ export function buildGearCorrection(settings = {}, brewInput = {}) {
     high: [-2, -1, -1, -3, -2, -1, 0, -1]
   };
   vector = add(vector, bypassMap[bypass] || bypassMap.medium);
+
   const speedMap = {
     low: [-1, 1, -1, 2, 2, -2, 0, 1],
     medium: Array(MATCH_DIM).fill(0),
@@ -166,7 +171,7 @@ export function buildMatchingEnvelope({ bean = {}, settings = {}, input = {}, us
     confidence: base.confidence,
     model_versions: {
       bean_model_ver: 'bean-vector/1.0',
-      gear_model_ver: 'gear-correction/1.0',
+      gear_model_ver: 'gear-correction/1.1',
       target_model_ver: 'target-vector/1.0'
     }
   };
