@@ -46,6 +46,8 @@ assert.ok(tunedTemps.some((value, index) => Math.abs(value - baseTemps[index]) >
 assert.notEqual(tuned.payload.metadata.planFingerprint, baseline.payload.metadata.planFingerprint);
 assert.notDeepEqual(tuned.payload.trajectory.path, baseline.payload.trajectory.path, 'temperatureTune must change the authoritative 3D trajectory');
 
+// Intentionally send the legacy 1.0 + D08 signature. The current service must accept it,
+// infer/validate the axis count and normalize the response to luckybean-match/1.1.
 const matchingInput = input('recommended', 0);
 matchingInput.matching = {
   contract: 'luckybean-match/1.0',
@@ -61,7 +63,7 @@ matchingInput.matching = {
 };
 const matched = await post(matchingInput);
 assert.equal(matched.response.status, 200, JSON.stringify(matched.payload));
-assert.equal(matched.payload.matching.contract, 'luckybean-match/1.0');
+assert.equal(matched.payload.matching.contract, 'luckybean-match/1.1');
 assert.equal(matched.payload.matching.selectedProfileId, matched.payload.metadata.effectiveProfileId);
 assert.equal(matched.payload.plan.matching.selectedProfileId, matched.payload.matching.selectedProfileId);
 assert.equal(matched.payload.matching.profileEffect.add.length, 8);
@@ -76,4 +78,4 @@ const rejected = await post(invalid);
 assert.equal(rejected.response.status, 400, JSON.stringify(rejected.payload));
 assert.equal(rejected.payload.error, 'MATCH_SIGNATURE_INVALID');
 
-console.log(`v126 live verified: temperature tune changed stages/3D; LMS1 selected ${matched.payload.matching.selectedProfileId} at score ${matched.payload.matching.score}.`);
+console.log(`v126 live verified: temperature tune changed stages/3D; legacy LMS1 1.0 normalized to 1.1 and selected ${matched.payload.matching.selectedProfileId} at score ${matched.payload.matching.score}.`);
