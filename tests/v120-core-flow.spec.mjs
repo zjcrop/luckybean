@@ -170,10 +170,13 @@ test('mobile UI keeps four-page layout and optional environment controls collaps
   }
 
   await page.locator('[data-page-target="brew"]').click();
-  await expect(page.locator('#brewEnvironmentDetails')).toBeVisible();
-  await expect(page.locator('#ambientTemperatureC')).not.toBeVisible();
-  await page.locator('#brewEnvironmentDetails summary').click();
-  await expect(page.locator('#ambientTemperatureC')).toBeVisible();
+  const details = page.locator('.brew-environment-details');
+  await expect(details).toBeVisible();
+  await expect(details).not.toHaveAttribute('open', '');
+  await details.locator('summary').click();
+  await expect(page.locator('#ambientTemperatureC')).toHaveValue('25');
+  await expect(page.locator('#initialBedTemperatureC')).toHaveValue('25');
+  await expect(page.locator('#relativeHumidityPct')).toHaveValue('');
 
   expect(diagnostics.errors).toEqual([]);
   expect(diagnostics.missing).toEqual([]);
