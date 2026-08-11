@@ -63,7 +63,6 @@ function ensureCoolingEditor(selectId, which, current) {
     return;
   }
 
-  // MutationObserver 可能在旧版本中留下重复节点；这里无条件收敛为一个实例。
   editors.slice(1).forEach(editor => editor.remove());
   const first = which === 'first';
   const value = Number(current.brew?.[first ? 'firstTemperatureC' : 'tailTemperatureC'] ?? (first ? 87 : 86));
@@ -71,7 +70,7 @@ function ensureCoolingEditor(selectId, which, current) {
   let wrap = editors[0] || null;
 
   if (!wrap) {
-    wrap = document.createElement('label');
+    wrap = document.createElement('div');
     wrap.className = 'lb-inline-cooling-editor';
     wrap.dataset.lbCoolingEditor = which;
     wrap.innerHTML = `<small>自定义目标</small><input class="control" type="number" min="${min}" max="97" step="0.5" value="${value}" aria-label="${first ? '首段' : '尾段'}自定义目标温度"><span>°C</span>`;
