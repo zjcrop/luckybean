@@ -59,10 +59,12 @@ assert.equal(matched.response.status, 200, JSON.stringify(matched.payload));
 assert.equal(matched.payload.matching.contract, 'luckybean-match/1.1');
 assert.equal(matched.payload.matching.selectedProfileId, matched.payload.metadata.effectiveProfileId);
 assert.equal(matched.payload.plan.matching.selectedProfileId, matched.payload.matching.selectedProfileId);
-assert.equal(matched.payload.matching.profileEffect.add.length, 8);
+assert.equal(matched.payload.matching.brewEffectVector.length, 8);
 assert.equal(matched.payload.matching.cupVector.length, 8);
+assert.equal(matched.payload.matching.targetVector.length, 8);
 assert.ok(Number.isFinite(matched.payload.matching.score));
 assert.ok(Array.isArray(matched.payload.matching.candidates) && matched.payload.matching.candidates.length >= 3);
+assert.ok(matched.payload.matching.candidates.every(item => Array.isArray(item.brewEffectVector) && item.brewEffectVector.length === 8));
 assert.ok(matched.payload.matching.candidates.every((item, index, list) => index === 0 || list[index - 1].score >= item.score));
 
 // Legacy D08 labels remain accepted, but the service normalizes the response to 1.1.
@@ -76,6 +78,7 @@ legacyInput.matching = {
 const legacyMatched = await post(legacyInput);
 assert.equal(legacyMatched.response.status, 200, JSON.stringify(legacyMatched.payload));
 assert.equal(legacyMatched.payload.matching.contract, 'luckybean-match/1.1');
+assert.equal(legacyMatched.payload.matching.brewEffectVector.length, 8);
 
 const invalid = input('recommended', 0);
 invalid.matching = { ...currentMatching, signature: 'LBS1-FC1-X564C58260C5C124B-Q82' };
