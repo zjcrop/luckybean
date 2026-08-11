@@ -33,14 +33,14 @@ jobs:
           cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
           cp -R src public contracts _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.23D"}\n' "$SOURCE_SHA" > _site/version.json
-          zip -qr LuckyBean-1.23D-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts docs DEVELOPMENT_STATUS.md
+          printf '{"commit":"%s","version":"1.23E","analysisContract":"brew-analysis/2.1","spatialContract":"brew-spatial/1.3","matchingContract":"luckybean-match/1.1"}\n' "$SOURCE_SHA" > _site/version.json
+          zip -qr LuckyBean-1.23E-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts docs DEVELOPMENT_STATUS.md
       - uses: actions/upload-artifact@v7.0.1
         with:
           name: luckybean-main-web-${{ env.SOURCE_SHA }}
           path: |
             _site/
-            LuckyBean-1.23D-web.zip
+            LuckyBean-1.23E-web.zip
           if-no-files-found: error
 
   deploy-pages:
@@ -61,7 +61,7 @@ jobs:
           cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
           cp -R src public contracts _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.23D"}\n' "$SOURCE_SHA" > _site/version.json
+          printf '{"commit":"%s","version":"1.23E","analysisContract":"brew-analysis/2.1","spatialContract":"brew-spatial/1.3","matchingContract":"luckybean-match/1.1"}\n' "$SOURCE_SHA" > _site/version.json
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
           path: _site
@@ -84,7 +84,12 @@ jobs:
             manifest_status=$(curl -L -sS -o /tmp/luckybean-manifest.json -w '%{http_code}' "$base/manifest.webmanifest")
             recognition_status=$(curl -L -sS -o /tmp/luckybean-recognition.html -w '%{http_code}' "$base/recognition-test.html")
             archive_status=$(curl -L -sS -o /tmp/luckybean-archive-schema.json -w '%{http_code}' "$base/contracts/luckybean-archive-v1.schema.json")
-            if [ "$index_status" = "200" ] && [ "$version_status" = "200" ] && [ "$app_status" = "200" ] && [ "$manifest_status" = "200" ] && [ "$recognition_status" = "200" ] && [ "$archive_status" = "200" ]               && grep -qi '<html' /tmp/luckybean-index.html               && grep -q "$SOURCE_SHA" /tmp/luckybean-version.json               && grep -q 'buildBrewInput' /tmp/luckybean-app.js               && grep -q '日期归属' /tmp/luckybean-recognition.html; then
+            if [ "$index_status" = "200" ] && [ "$version_status" = "200" ] && [ "$app_status" = "200" ] && [ "$manifest_status" = "200" ] && [ "$recognition_status" = "200" ] && [ "$archive_status" = "200" ] \
+              && grep -qi '<html' /tmp/luckybean-index.html \
+              && grep -q "$SOURCE_SHA" /tmp/luckybean-version.json \
+              && grep -q '"version":"1.23E"' /tmp/luckybean-version.json \
+              && grep -q 'buildBrewInput' /tmp/luckybean-app.js \
+              && grep -q '日期归属' /tmp/luckybean-recognition.html; then
               echo "LuckyBean Pages verified for $SOURCE_SHA"
               exit 0
             fi
