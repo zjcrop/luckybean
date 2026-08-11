@@ -13,6 +13,7 @@ const androidBridge = read('android/native-bridge.js');
 const recognitionBridge = read('src/recognition-bridge.js');
 const packageCapture = read('src/package-capture-controller.js');
 const brewAnalysis = read('src/services/brew-analysis-service.js');
+const brewCore = read('src/brew-engine-core.js');
 const matchVector = read('src/domain/matching/flavor-vector.js');
 const deployWorkflow = read('.github/workflows/deploy-main.yml');
 const buildWorkflow = read('.github/workflows/build-main.yml');
@@ -44,7 +45,7 @@ assert.match(sw, /luckybean-archive-v1\.schema\.json/);
 assert.match(sw, /cache\.put\(request, response\.clone\(\)\)/);
 assert.match(sw, /caches\.match\(request\).*caches\.match\('\.\/index\.html'\)/s);
 
-assert.match(androidBuild, /versionCode 102305/);
+assert.match(androidBuild, /versionCode 102306/);
 assert.match(androidBuild, /versionName '1\.23E'/);
 assert.match(androidBuild, /include 'index\.html', 'recognition-test\.html'/);
 assert.match(androidActivity, /addJavascriptInterface\(new NativeFileBridge\(\), "LuckyBeanNative"\)/);
@@ -69,6 +70,7 @@ assert.match(read('src/utils.js'), /LuckyBeanNative\?\.saveFile/);
 assert.match(brewAnalysis, /BREW_ANALYSIS_CONTRACT = 'brew-analysis\/2\.1'/);
 assert.match(brewAnalysis, /BREW_SPATIAL_CONTRACT = 'brew-spatial\/1\.3'/);
 assert.match(brewAnalysis, /BREW_FLAVOR_STATE_CONTRACT = 'brew-flavor-state\/1\.0'/);
+assert.match(brewCore, /'brew-analysis\/2\.0', 'brew-analysis\/2\.1'/);
 assert.match(matchVector, /MATCH_CONTRACT = 'luckybean-match\/1\.1'/);
 assert.doesNotMatch(matchVector, /LMS1-FC1-D\$\{/);
 
@@ -76,7 +78,7 @@ assert.match(deployWorkflow, /recognition-test\.html/);
 assert.match(deployWorkflow, /contracts\/luckybean-archive-v1\.schema\.json/);
 assert.match(deployWorkflow, /LuckyBean-1\.23E-web\.zip/);
 assert.match(buildWorkflow, /LuckyBean-1\.23E-debug\.apk/);
-assert.match(buildWorkflow, /version_code=102305/);
+assert.match(buildWorkflow, /version_code=102306/);
 assert.match(buildWorkflow, /analysis_contract=brew-analysis\/2\.1/);
 
 console.log('LuckyBean 1.23E deployment, Android image URI, BrewProfiles compatibility and archive contracts passed');
