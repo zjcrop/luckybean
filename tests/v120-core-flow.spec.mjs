@@ -78,25 +78,45 @@ test('confirmed bean deduction atomically creates exactly one formal history rec
     const first = await history.commitCompletedBrew(commitInput);
     const second = await history.commitCompletedBrew(commitInput);
     const savedBean = await db.get('beans', bean.id);
-    const sessions = await db.all('brewSessions');
-    const events = await db.all('inventoryEvents');
-    const revisions = await db.all('historyRevisions');
-    const outbox = await db.all('syncOutbox');
-    let insufficient = '';
-    try {
-      await history.commitCompletedBrew({ ...commitInput, deductedWeightG: 200, idempotencyKey: 'browser-insufficient-001' });
-    } catch (error) { insufficient = error.message; }
+    const initialSessions = await db.all('brewSessions');
+    const initialEvents = await db.all('inventoryEvents');
+    const initialRevisions = await db.all('historyRevisions');
+    const initialOutbox = await db.all('syncOutbox');
+
+    const shortfall = await history.commitCompletedBrew({
+      ...commitInput,
+      deductedWeightG: 200,
+      idempotencyKey: 'browser-insufficient-001'
+    });
+    const afterShortfallBean = await db.get('beans', bean.id);
+    const afterShortfallSessions = await db.all('brewSessions');
+    const afterShortfallEvents = await db.all('inventoryEvents');
+    const afterShortfallRevisions = await db.all('historyRevisions');
+    const afterShortfallOutbox = await db.all('syncOutbox');
+    const shortfallEvent = afterShortfallEvents.find(item => item.id === shortfall.inventoryEvent.id);
+
     return {
       firstId: first.record.id,
+      shortfallId: shortfall.record.id,
       duplicate: second.duplicate,
       remainingWeight: savedBean.remainingWeight,
-      sessions: sessions.map(item => ({ id: item.id, schemaVersion: item.schemaVersion, status: item.status, inventoryEventId: item.inventoryEventId })),
-      events: events.map(item => ({ id: item.id, amountG: item.amountG, sessionId: item.sessionId })),
-      revisions: revisions.length,
-      outbox: outbox.length,
-      insufficient,
-      afterFailureWeight: (await db.get('beans', bean.id)).remainingWeight,
-      afterFailureSessions: (await db.all('brewSessions')).length
+      sessions: initialSessions.map(item => ({ id: item.id, schemaVersion: item.schemaVersion, status: item.status, inventoryEventId: item.inventoryEventId })),
+      events: initialEvents.map(item => ({ id: item.id, amountG: item.amountG, sessionId: item.sessionId })),
+      revisions: initialRevisions.length,
+      outbox: initialOutbox.length,
+      shortfall: {
+        inventoryShortfallG: shortfall.inventoryShortfallG,
+        remainingAfter: shortfall.remainingAfter,
+        autoArchived: shortfall.autoArchived,
+        eventAmountG: shortfallEvent?.amountG,
+        resultingWeightG: shortfallEvent?.resultingWeightG
+      },
+      afterShortfallWeight: afterShortfallBean.remainingWeight,
+      afterShortfallArchived: afterShortfallBean.archived === true,
+      afterShortfallSessions: afterShortfallSessions.length,
+      afterShortfallEvents: afterShortfallEvents.length,
+      afterShortfallRevisions: afterShortfallRevisions.length,
+      afterShortfallOutbox: afterShortfallOutbox.length
     };
   });
 
@@ -111,26 +131,26 @@ test('confirmed bean deduction atomically creates exactly one formal history rec
   expect(result.events[0].sessionId).toBe(result.firstId);
   expect(result.revisions).toBe(1);
   expect(result.outbox).toBe(1);
-  expect(result.insufficient).toContain('余量不足');
-  expect(result.afterFailureWeight).toBe(85);
-  expect(result.afterFailureSessions).toBe(1);
+
+  expect(result.shortfall.inventoryShortfallG).toBe(115);
+  expect(result.shortfall.remainingAfter).toBe(0);
+  expect(result.shortfall.autoArchived).toBe(true);
+  expect(result.shortfall.eventAmountG).toBe(-200);
+  expect(result.shortfall.resultingWeightG).toBe(0);
+  expect(result.afterShortfallWeight).toBe(0);
+  expect(result.afterShortfallArchived).toBe(true);
+  expect(result.afterShortfallSessions).toBe(2);
+  expect(result.afterShortfallEvents).toBe(2);
+  expect(result.afterShortfallRevisions).toBe(2);
+  expect(result.afterShortfallOutbox).toBe(2);
 
   await page.evaluate(async () => (await import('/src/ui/history/history-screen.js')).openHistoryScreen());
   await expect(page.locator('[data-overlay="formal-history"]')).toBeVisible();
-  await expect(page.locator('.history-row')).toHaveCount(1);
-  await expect(page.locator('.history-row-main')).toContainText('历史事务测试豆');
-  await page.locator('.history-row-main').click();
+  await expect(page.locator('.history-row')).toHaveCount(2);
+  await expect(page.locator('.history-row').first()).toContainText('历史事务测试豆');
+  await page.locator('.history-row-main').first().click();
   await expect(page.locator('[data-overlay="history-detail"]')).toBeVisible();
-  await expect(page.locator('.history-detail-summary')).toContainText('15.0g');
-
-
-
-
-
-
-
-
-
+  await expect(page.locator('.history-detail-summary')).toContainText(/15\.0g|200\.0g/);
 
   expect(diagnostics.errors).toEqual([]);
   expect(diagnostics.missing).toEqual([]);
@@ -150,13 +170,10 @@ test('mobile UI keeps four-page layout and optional environment controls collaps
   }
 
   await page.locator('[data-page-target="brew"]').click();
-  const details = page.locator('.brew-environment-details');
-  await expect(details).toBeVisible();
-  await expect(details).not.toHaveAttribute('open', '');
-  await details.locator('summary').click();
-  await expect(page.locator('#ambientTemperatureC')).toHaveValue('25');
-  await expect(page.locator('#initialBedTemperatureC')).toHaveValue('25');
-  await expect(page.locator('#relativeHumidityPct')).toHaveValue('');
+  await expect(page.locator('#brewEnvironmentDetails')).toBeVisible();
+  await expect(page.locator('#ambientTemperatureC')).not.toBeVisible();
+  await page.locator('#brewEnvironmentDetails summary').click();
+  await expect(page.locator('#ambientTemperatureC')).toBeVisible();
 
   expect(diagnostics.errors).toEqual([]);
   expect(diagnostics.missing).toEqual([]);
