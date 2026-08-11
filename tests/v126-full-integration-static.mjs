@@ -71,7 +71,7 @@ const activity = fs.readFileSync(new URL('../android/app/src/main/java/com/lucky
 for (const text of ['FLAG_KEEP_SCREEN_ON', 'prepareBrewExecution', 'startBrewExecution', 'enterImmersiveMode']) assert.ok(activity.includes(text));
 
 const gradle = fs.readFileSync(new URL('../android/app/build.gradle', import.meta.url), 'utf8');
-assert.ok(gradle.includes('androidx.media3:media3-exoplayer:1.10.1'));
+assert.ok(gradle.includes('androidx.media3:media3-exoplayer:1.8.1'));
 assert.ok(gradle.includes('globalThis.__LUCKYBEAN_ANDROID__ || !globalThis.speechSynthesis'));
 
 const manifest = fs.readFileSync(new URL('../android/app/src/main/AndroidManifest.xml', import.meta.url), 'utf8');
