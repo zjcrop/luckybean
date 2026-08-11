@@ -217,6 +217,28 @@ function splitRows(rows, size = 24) {
   return result.length ? result : [[]];
 }
 
+function legacyGearRow(name, kind, index) {
+  const normalized = String(name || '').trim();
+  const id = `legacy_${kind}_${index}_${normalized.replace(/\s+/g, '_').slice(0, 40) || 'item'}`;
+  if (kind === 'filter') return { id, brand: '', type: normalized, quantity: 0, price: 0 };
+  if (kind === 'dripper') return { id, name: normalized, type: normalized, material: 'plastic', price: 0 };
+  return { id, name: normalized, setting: '', price: 0 };
+}
+
+export function normalizeGearRows(value, kind = 'gear') {
+  if (Array.isArray(value)) {
+    return value
+      .filter(item => item && (typeof item === 'object' || typeof item === 'string'))
+      .map((item, index) => typeof item === 'string' ? legacyGearRow(item, kind, index) : structuredClone(item));
+  }
+  const text = String(value || '').trim();
+  if (!text) return [];
+  // 1.23D/early 1.23E accidentally serialized an object array with String(array).
+  // Those placeholders contain no recoverable record fields and must never enter mergeGearRows.
+  if (/^(?:\[object Object\]\s*,?\s*)+$/.test(text)) return [];
+  return text.split(/[\n、,，]/).map(item => item.trim()).filter(Boolean).map((item, index) => legacyGearRow(item, kind, index));
+}
+
 export async function buildLogicalPackets() {
   const [beans, brews, sensory, inventory, customCodes, appSettings] = await Promise.all([
     all('beans'), all('brewSessions'), all('sensoryRecords'), all('inventoryEvents'), all('customCodes'), getSetting('app.settings', null)
@@ -265,8 +287,9 @@ export async function buildLogicalPackets() {
   if (safeSettings) {
     const sourceGear = appSettings?.gear || {};
     safeSettings.gear = {
-      drippers: structuredClone(Array.isArray(sourceGear.drippers) ? sourceGear.drippers : []),
-      grinders: String(sourceGear.grinders || '')
+      filters: normalizeGearRows(sourceGear.filters, 'filter'),
+      drippers: normalizeGearRows(sourceGear.drippers, 'dripper'),
+      grinders: normalizeGearRows(sourceGear.grinders, 'grinder')
     };
   }
   packets.push({ logicalKey: 'global:settings', packet: { v: SYNC_SCHEMA_VERSION, f: SYNC_FORMAT, cb: codebookVersion, k: 'settings', s: safeSettings, c: customCodes } });
@@ -342,10 +365,12 @@ function preferRemoteRecord(remote, local, remoteCompletedAt = '', localChangedA
   return remoteTime > localTime;
 }
 
-function mergeGearRows(localRows = [], remoteRows = [], timing = {}) {
-  const merged = new Map(localRows.map((row, index) => [String(row?.id || row?.name || index), structuredClone(row)]));
-  remoteRows.forEach((row, index) => {
-    const key = String(row?.id || row?.name || index);
+function mergeGearRows(localRows = [], remoteRows = [], timing = {}, kind = 'gear') {
+  const local = normalizeGearRows(localRows, kind);
+  const remote = normalizeGearRows(remoteRows, kind);
+  const merged = new Map(local.map((row, index) => [String(row?.id || row?.name || row?.type || index), structuredClone(row)]));
+  remote.forEach((row, index) => {
+    const key = String(row?.id || row?.name || row?.type || index);
     const current = merged.get(key);
     if (!current || preferRemoteRecord(row, current, timing.remoteCompletedAt, timing.localChangedAt)) merged.set(key, structuredClone(row));
   });
@@ -392,9 +417,9 @@ export async function mergeRemotePacketsIntoLocal(packets = [], options = {}) {
       gear: {
         ...(secondary?.gear || {}),
         ...(primary?.gear || {}),
-        filters: Array.isArray(local?.gear?.filters) ? local.gear.filters : [],
-        drippers: mergeGearRows(local?.gear?.drippers || [], data.settings.gear?.drippers || [], timing),
-        grinders: mergeGearRows(local?.gear?.grinders || [], data.settings.gear?.grinders || [], timing)
+        filters: mergeGearRows(local?.gear?.filters || [], data.settings.gear?.filters || [], timing, 'filter'),
+        drippers: mergeGearRows(local?.gear?.drippers || [], data.settings.gear?.drippers || [], timing, 'dripper'),
+        grinders: mergeGearRows(local?.gear?.grinders || [], data.settings.gear?.grinders || [], timing, 'grinder')
       }
     };
     if (local?.brew?.apiEndpoint) merged.brew.apiEndpoint = local.brew.apiEndpoint;
@@ -422,9 +447,10 @@ export async function restorePackets(packets = []) {
       brew: { ...(local?.brew || {}), ...(data.settings.brew || {}) },
       gear: {
         ...(local?.gear || {}),
-        drippers: Array.isArray(data.settings.gear?.drippers) ? data.settings.gear.drippers : (local?.gear?.drippers || []),
-        grinders: data.settings.gear?.grinders ?? local?.gear?.grinders ?? '',
-        filters: Array.isArray(local?.gear?.filters) ? local.gear.filters : []
+        ...(data.settings.gear || {}),
+        filters: mergeGearRows(local?.gear?.filters || [], data.settings.gear?.filters || [], {}, 'filter'),
+        drippers: mergeGearRows(local?.gear?.drippers || [], data.settings.gear?.drippers || [], {}, 'dripper'),
+        grinders: mergeGearRows(local?.gear?.grinders || [], data.settings.gear?.grinders || [], {}, 'grinder')
       }
     };
     await setSetting('app.settings', merged);
