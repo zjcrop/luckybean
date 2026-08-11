@@ -54,8 +54,24 @@ function root() {
   return document.querySelector('#overlayRoot');
 }
 
+function releasePreview(image) {
+  const url = String(image?.previewUrl || '');
+  if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+}
+
+function bindAndroidImageSource(imageId, includePreview) {
+  if (!globalThis.__LUCKYBEAN_ANDROID__) return '';
+  const native = globalThis.LuckyBeanNative;
+  if (typeof native?.bindImageSource !== 'function') return '';
+  try {
+    return String(native.bindImageSource(String(imageId || ''), Boolean(includePreview)) || '');
+  } catch {
+    return '';
+  }
+}
+
 function clearCapture({ keepOverlay = false } = {}) {
-  for (const image of captureState.images) if (image.previewUrl) URL.revokeObjectURL(image.previewUrl);
+  for (const image of captureState.images) releasePreview(image);
   captureState.images = [];
   captureState.busy = false;
   captureState.ocrText = '';
@@ -68,11 +84,13 @@ function previewHtml(image) {
   if (image.previewAvailable && image.previewUrl) {
     return `<img src="${esc(image.previewUrl)}" alt="${esc(image.roleLabel)}预览">`;
   }
-  return `<div class="bag-photo-native-preview" aria-label="Android 原图由本地识别通道直接读取" style="display:grid;place-items:center;min-height:132px;border-radius:14px;background:rgba(255,255,255,.04);color:#8f8b83;font-size:13px;letter-spacing:.06em">Android 原图</div>`;
+  return `<div class="bag-photo-native-preview" aria-label="Android 原图已绑定，缩略预览暂不可用" style="display:grid;place-items:center;min-height:132px;border-radius:14px;background:rgba(255,255,255,.04);color:#8f8b83;font-size:13px;letter-spacing:.06em;text-align:center;line-height:1.7">Android 原图<br>预览暂不可用</div>`;
 }
 
 function sourceInfo(image) {
-  if (image.nativeSource) return 'Android 原图 · 本地 URI 直接读取';
+  if (image.nativeSource) return image.previewAvailable
+    ? 'Android 原图 · 原生缩略预览 · 本地 URI 识别'
+    : 'Android 原图 · 本地 URI 识别';
   return `${image.processedWidth}×${image.processedHeight} px · ${Math.round(image.blob.size / 1024)} KB`;
 }
 
@@ -146,17 +164,23 @@ async function addFiles(fileList) {
       const role = nextRole();
       const id = `bag_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
       const nativeSource = Boolean(prepared.nativeSource);
+      // Bind every Android-selected file in order before OCR. This prevents a native-only
+      // preview from consuming the URI that belongs to an earlier WebView-decodable image.
+      const nativePreview = bindAndroidImageSource(id, nativeSource);
+      const previewUrl = nativeSource ? nativePreview : URL.createObjectURL(prepared.blob);
+      const warnings = [...(prepared.warnings || [])];
+      if (nativeSource && !nativePreview) warnings.push('Android 原图已绑定；缩略预览生成失败，但本地 OCR 仍可直接读取原图。');
       captureState.images.push({
         id,
         role,
         roleLabel: roleLabel(role),
         blob: prepared.blob,
-        previewUrl: nativeSource ? '' : URL.createObjectURL(prepared.blob),
-        previewAvailable: !nativeSource,
+        previewUrl,
+        previewAvailable: Boolean(previewUrl),
         nativeSource,
         score: prepared.score,
         status: prepared.status,
-        warnings: prepared.warnings,
+        warnings,
         processedWidth: prepared.processedWidth,
         processedHeight: prepared.processedHeight,
         metrics: prepared.metrics
@@ -262,7 +286,7 @@ function bindOverlay() {
   document.querySelectorAll('[data-bag-remove]').forEach(button => button.addEventListener('click', () => {
     const index = captureState.images.findIndex(image => image.id === button.dataset.bagRemove);
     if (index < 0) return;
-    if (captureState.images[index].previewUrl) URL.revokeObjectURL(captureState.images[index].previewUrl);
+    releasePreview(captureState.images[index]);
     captureState.images.splice(index, 1);
     render();
   }));
