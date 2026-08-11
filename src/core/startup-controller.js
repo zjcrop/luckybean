@@ -13,6 +13,26 @@ function setStatus(message) {
   if (node) node.textContent = message;
 }
 
+function isMobileBrowser() {
+  if (globalThis.__LUCKYBEAN_ANDROID__) return false;
+  const ua = navigator.userAgent || '';
+  const touch = Number(navigator.maxTouchPoints || 0) > 0;
+  const coarse = globalThis.matchMedia?.('(pointer: coarse)')?.matches === true;
+  const mobileUa = /Android|iPhone|iPad|iPod|Mobile|HarmonyOS/i.test(ua);
+  const compactViewport = Math.min(globalThis.innerWidth || 9999, globalThis.screen?.width || 9999) <= 1024;
+  return touch && coarse && (mobileUa || compactViewport);
+}
+
+function requestMobileFullscreenFromGesture() {
+  if (!isMobileBrowser() || document.fullscreenElement) return;
+  const target = document.documentElement;
+  const request = target.requestFullscreen || target.webkitRequestFullscreen;
+  try {
+    const result = request?.call(target, { navigationUI: 'hide' });
+    result?.catch?.(() => {});
+  } catch { /* 浏览器不支持时正常降级 */ }
+}
+
 async function deviceId() {
   const existing = await get('syncMetadata', DEVICE_RECORD_ID).catch(() => null);
   if (existing?.value) return existing.value;
@@ -37,6 +57,11 @@ function dismissSplash() {
   setTimeout(() => node.classList.add('hidden'), 520);
 }
 
+function enterFromUserGesture() {
+  requestMobileFullscreenFromGesture();
+  dismissSplash();
+}
+
 function bindEarlyEntry() {
   const node = splash();
   if (!node || node.dataset.startupBound === '1') return;
@@ -44,11 +69,11 @@ function bindEarlyEntry() {
   node.tabIndex = 0;
   node.setAttribute('role', 'button');
   node.setAttribute('aria-label', '点击进入富贵盒子');
-  node.addEventListener('click', dismissSplash);
+  node.addEventListener('click', enterFromUserGesture);
   node.addEventListener('keydown', event => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      dismissSplash();
+      enterFromUserGesture();
     }
   });
 }
@@ -90,7 +115,7 @@ function bindStatusEvents() {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=1.23D-main-sync.5', { updateViaCache: 'none' }).catch(() => {});
+  navigator.serviceWorker.register('./sw.js?v=1.23D-full-integration.1', { updateViaCache: 'none' }).catch(() => {});
 }
 
 document.documentElement.dataset.startup = 'booting';
@@ -101,7 +126,7 @@ setStatus('正在准备本地数据…');
 try {
   await ensureLocalDevice();
   document.dispatchEvent(new CustomEvent('luckybean:local-bootstrap-ready'));
-  await import('../app.js?v=1.23D-main-sync.5');
+  await import('../app.js?v=1.23D-full-integration.1');
   document.dispatchEvent(new CustomEvent('luckybean:app-module-loaded'));
   watchForShell();
 } catch (error) {
