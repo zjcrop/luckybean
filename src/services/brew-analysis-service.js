@@ -1,11 +1,12 @@
-import { get, put } from '../db.js';
+import { all, get, put, getSetting } from '../db.js';
 import { sha256Hex } from '../utils.js';
 import { BREW_API_ENDPOINT, brewApiJson } from './brew-api-client.js';
+import { buildMatchingEnvelope, MATCH_CONTRACT } from '../domain/matching/flavor-vector.js';
 
 export const BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.0';
 export const BREW_SPATIAL_CONTRACT = 'brew-spatial/1.2';
 export const BREW_ANALYSIS_ENDPOINT = BREW_API_ENDPOINT;
-export const BREW_ANALYSIS_SERVICE_VERSION = 'luckybean-analysis-client/1.3.0';
+export const BREW_ANALYSIS_SERVICE_VERSION = 'luckybean-analysis-client/1.4.0';
 
 const CACHE_PREFIX = 'brew.analysis.cache.v2.';
 const DEFAULT_TIMEOUT_MS = 12000;
@@ -75,6 +76,9 @@ function validateAnalysis(analysis, { expectedInputFingerprint = '' } = {}) {
   if (expectedInputFingerprint && metadata.inputFingerprint !== expectedInputFingerprint) {
     throw new Error('专业分析返回的输入指纹与本次请求不一致');
   }
+  if (analysis.input?.matching && analysis.input.matching.contract !== MATCH_CONTRACT) {
+    throw new Error('专业分析返回的匹配协议版本不兼容');
+  }
   return analysis;
 }
 
@@ -113,10 +117,7 @@ function mapStage(stage, index) {
   };
 }
 
-/**
- * Adds display aliases only. No stage value, recommendation, risk, profile
- * definition or target geometry is recalculated in LuckyBean.
- */
+/** Adds display aliases only. No stage value, recommendation, risk, profile definition or target geometry is recalculated in LuckyBean. */
 export function adaptAuthoritativePlan(analysis) {
   validateAnalysis(analysis);
   const source = structuredClone(analysis.plan);
@@ -132,25 +133,15 @@ export function adaptAuthoritativePlan(analysis) {
   return {
     ...source,
     engineVersion: String(source.engineVersion || source.metadata?.engineVersion || analysis.metadata?.engineVersion || ''),
-    profile: {
-      ...(source.profile || {}),
-      id: profileId,
-      version: profileVersion,
-      label: source.profile?.label || profileId
-    },
+    profile: { ...(source.profile || {}), id: profileId, version: profileVersion, label: source.profile?.label || profileId },
     profileVersion: profileVersion ? `${profileId}@${profileVersion}` : profileId,
     stages,
-    totals: {
-      ...(source.totals || {}),
-      doseG: dose,
-      waterG: totalWater,
-      ratio,
-      targetTimeSec: totalTime
-    },
+    totals: { ...(source.totals || {}), doseG: dose, waterG: totalWater, ratio, targetTimeSec: totalTime },
     warnings: [...new Set(warnings)],
     trajectory: structuredClone(analysis.trajectory),
     visualization3d: structuredClone(analysis.trajectory),
     prediction: structuredClone(analysis.prediction || analysis.trajectory.prediction || {}),
+    matching: structuredClone(analysis.matching || source.matching || null),
     integrations: structuredClone(analysis.integrations || {}),
     analysisContract: analysis.contract,
     analysisFingerprint: analysis.analysisFingerprint,
@@ -162,6 +153,31 @@ export function adaptAuthoritativePlan(analysis) {
   };
 }
 
+function sameBeanRecord(record = {}, inputBean = {}) {
+  const keys = ['countryCode', 'regionCode', 'entityCode', 'varietyCode', 'processCode', 'roastCode', 'roastDate'];
+  const comparable = keys.filter(key => inputBean[key]);
+  if (!comparable.length) return false;
+  return comparable.every(key => String(record[key] || '') === String(inputBean[key] || ''));
+}
+
+async function attachMatching(input) {
+  const next = structuredClone(input || {});
+  if (next.matching?.contract === MATCH_CONTRACT && next.matching?.signature_type === 'match_only') return next;
+  const [beans, settings] = await Promise.all([
+    all('beans').catch(() => []),
+    getSetting('app.settings', {}).catch(() => ({}))
+  ]);
+  const bean = beans.find(item => sameBeanRecord(item, next.bean || {})) || { ...(next.bean || {}) };
+  next.matching = buildMatchingEnvelope({
+    bean,
+    settings,
+    input: next,
+    userCorrection: settings?.matching?.userCorrection || [],
+    sessionCorrection: []
+  });
+  return next;
+}
+
 async function cached(input) {
   const id = await cacheKey(input);
   const expected = await inputFingerprint(input);
@@ -169,9 +185,7 @@ async function cached(input) {
   if (!record?.analysis) return null;
   try {
     return { analysis: validateAnalysis(record.analysis, { expectedInputFingerprint: expected }), cacheId: id, cached: true };
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 async function persistCache(input, analysis) {
@@ -193,33 +207,24 @@ async function persistCache(input, analysis) {
 async function fetchAnalysis(input, { endpoint = BREW_ANALYSIS_ENDPOINT, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
   const expected = await inputFingerprint(input);
   const { payload } = await brewApiJson('', {
-    method: 'POST',
-    body: input,
-    endpoint,
+    method: 'POST', body: input, endpoint,
     timeoutMs: Math.min(Math.max(Number(timeoutMs) || DEFAULT_TIMEOUT_MS, 2500), 20000)
   });
   return validateAnalysis(payload, { expectedInputFingerprint: expected });
 }
 
 export async function requestBrewAnalysis(input, options = {}) {
-  const cacheRecord = await cached(input);
+  const preparedInput = await attachMatching(input);
+  const cacheRecord = await cached(preparedInput);
   const online = globalThis.navigator?.onLine !== false;
   if (!online && cacheRecord) return { ...cacheRecord, plan: adaptAuthoritativePlan(cacheRecord.analysis), stale: true, offline: true };
   if (options.preferCache === true && cacheRecord) return { ...cacheRecord, plan: adaptAuthoritativePlan(cacheRecord.analysis) };
   try {
-    const analysis = await fetchAnalysis(input, options);
-    const cacheId = await persistCache(input, analysis);
+    const analysis = await fetchAnalysis(preparedInput, options);
+    const cacheId = await persistCache(preparedInput, analysis);
     return { analysis, plan: adaptAuthoritativePlan(analysis), cacheId, cached: false };
   } catch (error) {
-    if (cacheRecord) {
-      return {
-        ...cacheRecord,
-        plan: adaptAuthoritativePlan(cacheRecord.analysis),
-        stale: true,
-        networkError: error.message,
-        networkErrorCode: error.code || ''
-      };
-    }
+    if (cacheRecord) return { ...cacheRecord, plan: adaptAuthoritativePlan(cacheRecord.analysis), stale: true, networkError: error.message, networkErrorCode: error.code || '' };
     throw error;
   }
 }
