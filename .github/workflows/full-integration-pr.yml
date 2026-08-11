@@ -15,7 +15,7 @@ concurrency:
 jobs:
   android:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-java@v5.7.0
@@ -24,7 +24,7 @@ jobs:
           java-version: '17'
       - uses: android-actions/setup-android@v4.0.1
       - name: Install Android SDK components
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools' 'emulator' 'system-images;android-29;google_apis;x86_64'
       - uses: gradle/actions/setup-gradle@v6.3.0
         with:
           gradle-version: '8.9'
@@ -57,6 +57,39 @@ jobs:
           unzip -l "$apk" | grep -q 'assets/web-cache/contracts/luckybean-match-v1.schema.json'
           unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'globalThis.__LUCKYBEAN_ANDROID__ || !globalThis.speechSynthesis'
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app'"
+      - name: Android 10 runtime startup smoke
+        if: steps.compile.outputs.status == '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=android/app/build/outputs/apk/debug/app-debug.apk
+          echo no | avdmanager create avd -n luckybean-api29 -k 'system-images;android-29;google_apis;x86_64' --force
+          sudo chmod 666 /dev/kvm || true
+          nohup emulator -avd luckybean-api29 -no-window -noaudio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -wipe-data > android-emulator.log 2>&1 &
+          adb wait-for-device
+          for i in $(seq 1 120); do
+            if [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then break; fi
+            sleep 2
+          done
+          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1"
+          adb install -r "$apk"
+          adb logcat -c
+          set +e
+          adb shell am start -W -n com.luckybean.app/.MainActivity > android-start.txt 2>&1
+          start_status=$?
+          set -e
+          sleep 8
+          adb logcat -d -v threadtime > android-runtime.log
+          cat android-start.txt
+          if [ "$start_status" -ne 0 ] || ! adb shell pidof com.luckybean.app >/dev/null; then
+            echo 'LuckyBean process did not survive startup.' >&2
+            grep -n -E 'FATAL EXCEPTION|AndroidRuntime|com\.luckybean\.app|Caused by:' android-runtime.log | tail -n 200 >&2 || true
+            exit 1
+          fi
+          if grep -A40 -B10 'FATAL EXCEPTION: main' android-runtime.log | grep -q 'com.luckybean.app'; then
+            grep -A80 -B20 'FATAL EXCEPTION: main' android-runtime.log >&2 || true
+            exit 1
+          fi
       - name: Package integration APK
         if: steps.compile.outputs.status == '0'
         shell: bash
@@ -72,6 +105,9 @@ jobs:
           name: luckybean-full-integration-android-${{ github.sha }}
           path: |
             android-build.log
+            android-emulator.log
+            android-start.txt
+            android-runtime.log
             dist/
           if-no-files-found: warn
       - name: Fail if Android compile failed
