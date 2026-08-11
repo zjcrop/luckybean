@@ -15,6 +15,7 @@ const packageCapture = read('src/package-capture-controller.js');
 const brewAnalysis = read('src/services/brew-analysis-service.js');
 const brewCore = read('src/brew-engine-core.js');
 const matchVector = read('src/domain/matching/flavor-vector.js');
+const freshnessTimeline = read('src/features/freshness-timeline-controller.js');
 const deployWorkflow = read('.github/workflows/deploy-main.yml');
 const buildWorkflow = read('.github/workflows/build-main.yml');
 
@@ -40,12 +41,13 @@ assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v123e-'/);
 assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-1`/);
 assert.match(sw, /luckybean-main-v123d-/);
 assert.match(sw, /gear-regression-fix-controller\.js/);
+assert.match(sw, /freshness-timeline-controller\.js/);
 assert.match(sw, /domain\/beans\/bean-consumption-summary\.js/);
 assert.match(sw, /luckybean-archive-v1\.schema\.json/);
 assert.match(sw, /cache\.put\(request, response\.clone\(\)\)/);
 assert.match(sw, /caches\.match\(request\).*caches\.match\('\.\/index\.html'\)/s);
 
-assert.match(androidBuild, /versionCode 102306/);
+assert.match(androidBuild, /versionCode 102307/);
 assert.match(androidBuild, /versionName '1\.23E'/);
 assert.match(androidBuild, /include 'index\.html', 'recognition-test\.html'/);
 assert.match(androidActivity, /addJavascriptInterface\(new NativeFileBridge\(\), "LuckyBeanNative"\)/);
@@ -73,12 +75,15 @@ assert.match(brewAnalysis, /BREW_FLAVOR_STATE_CONTRACT = 'brew-flavor-state\/1\.
 assert.match(brewCore, /'brew-analysis\/2\.0', 'brew-analysis\/2\.1'/);
 assert.match(matchVector, /MATCH_CONTRACT = 'luckybean-match\/1\.1'/);
 assert.doesNotMatch(matchVector, /LMS1-FC1-D\$\{/);
+assert.match(freshnessTimeline, /const STAGES = \['养豆中', '味正盛', '味将尽'\]/);
+assert.match(freshnessTimeline, /freshnessProfile\(bean\)\.progress/);
 
 assert.match(deployWorkflow, /recognition-test\.html/);
 assert.match(deployWorkflow, /contracts\/luckybean-archive-v1\.schema\.json/);
 assert.match(deployWorkflow, /LuckyBean-1\.23E-web\.zip/);
 assert.match(buildWorkflow, /LuckyBean-1\.23E-debug\.apk/);
-assert.match(buildWorkflow, /version_code=102306/);
+assert.match(buildWorkflow, /version_code=102307/);
+assert.match(buildWorkflow, /freshness-timeline-controller\.js/);
 assert.match(buildWorkflow, /analysis_contract=brew-analysis\/2\.1/);
 
-console.log('LuckyBean 1.23E deployment, Android image URI, BrewProfiles compatibility and archive contracts passed');
+console.log('LuckyBean 1.23E deployment, Android image URI, freshness timeline, BrewProfiles compatibility and archive contracts passed');
