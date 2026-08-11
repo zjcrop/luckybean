@@ -61,11 +61,19 @@ function ensureGuestHint() {
   login.closest('.text-actions')?.before(hint);
 }
 
+function scopeOnboardingToBeanHome() {
+  const guide = $('[data-lb-onboarding]');
+  if (!guide) return;
+  const activePage = $('.page.active')?.dataset.page || '';
+  if (activePage !== 'beans') guide.remove();
+}
+
 async function reconcile() {
   queued = false;
   await ensureCoolingEditor('firstCoolingMode', 'first');
   await ensureCoolingEditor('tailCoolingMode', 'tail');
   ensureGuestHint();
+  scopeOnboardingToBeanHome();
 }
 
 function queue() {
@@ -77,4 +85,7 @@ function queue() {
 new MutationObserver(queue).observe(document.body, { childList: true, subtree: true });
 document.addEventListener('luckybean:app-refreshed', queue);
 document.addEventListener('luckybean:cloud-auth-state', queue);
+document.addEventListener('click', event => {
+  if (event.target.closest('[data-page-target]')) setTimeout(queue, 0);
+}, true);
 queue();
