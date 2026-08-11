@@ -38,13 +38,19 @@ jobs:
           status=${PIPESTATUS[0]}
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit 0
-      - name: Verify native execution contract
+      - name: Verify native execution and compatibility contracts
         if: steps.compile.outputs.status == '0'
         shell: bash
         run: |
           set -euo pipefail
           apk=android/app/build/outputs/apk/debug/app-debug.apk
           test -f "$apk"
+          grep -q "versionCode 102305" android/app/build.gradle
+          grep -q "versionName '1.23E'" android/app/build.gradle
+          grep -q 'bindImageSource(String imageId, boolean includePreview)' android/app/src/main/java/com/luckybean/app/MainActivity.java
+          grep -q 'ImageDecoder.createSource' android/app/src/main/java/com/luckybean/app/MainActivity.java
+          grep -q 'InputImage.fromFilePath' android/app/src/main/java/com/luckybean/app/MainActivity.java
+          grep -q 'LuckyBeanAndroid/1.23E' android/app/src/main/java/com/luckybean/app/MainActivity.java
           grep -q 'class BrewTimerService extends Service' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
           grep -q 'SystemClock.elapsedRealtime()' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
           grep -q 'synthesizeToFile' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
@@ -52,11 +58,13 @@ jobs:
           grep -q 'prepareBrewExecution' android/app/src/main/java/com/luckybean/app/MainActivity.java
           grep -q 'FLAG_KEEP_SCREEN_ON' android/app/src/main/java/com/luckybean/app/MainActivity.java
           grep -q 'FOREGROUND_SERVICE_MEDIA_PLAYBACK' android/app/src/main/AndroidManifest.xml
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/features/full-integration-controller-v3.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/features/experience-fixes-controller.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/contracts/luckybean-match-v1.schema.json'
-          unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'globalThis.__LUCKYBEAN_ANDROID__ || !globalThis.speechSynthesis'
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app'"
+          unzip -p "$apk" assets/web-cache/src/recognition-bridge.js | grep -Fq "dataUrl: nativeSource ? '' : await blobToDataUrl(image.blob)"
+          unzip -p "$apk" assets/web-cache/src/package-capture-controller.js | grep -Fq 'bindAndroidImageSource(id, nativeSource)'
+          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.1'"
+          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_SPATIAL_CONTRACT = 'brew-spatial/1.3'"
+          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_FLAVOR_STATE_CONTRACT = 'brew-flavor-state/1.0'"
+          unzip -p "$apk" assets/web-cache/src/domain/matching/flavor-vector.js | grep -Fq "MATCH_CONTRACT = 'luckybean-match/1.1'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102305' versionName='1.23E'"
       - name: Android 10 runtime startup smoke
         if: steps.compile.outputs.status == '0'
         shell: bash
@@ -113,9 +121,9 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/debug/app-debug.apk dist/LuckyBean-1.23D-full-integration-debug.apk
-          sha256sum dist/LuckyBean-1.23D-full-integration-debug.apk > dist/SHA256SUMS.txt
-          printf 'source_sha=%s\nbranch=%s\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist/BUILD_PROVENANCE.txt
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist/LuckyBean-1.23E-full-integration-debug.apk
+          sha256sum dist/LuckyBean-1.23E-full-integration-debug.apk > dist/SHA256SUMS.txt
+          printf 'source_sha=%s\nbranch=%s\nversion=1.23E\nversion_code=102305\nanalysis_contract=brew-analysis/2.1\nspatial_contract=brew-spatial/1.3\nmatching_contract=luckybean-match/1.1\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist/BUILD_PROVENANCE.txt
       - name: Upload Android build diagnostics
         if: always()
         uses: actions/upload-artifact@v7.0.1
