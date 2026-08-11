@@ -43,17 +43,17 @@ function speechTimeline(plan) {
         text: '三，二，一',
         validWindowMs: 1200
       });
+      events.push({
+        id: `stage-${index + 1}-start`,
+        atMs: stage.startMs,
+        text: `第${index + 1}段，${stage.name}，注水${Math.round(stage.waterG)}克，累计${Math.round(stage.cumulativeWaterG)}克，水温${Math.round(stage.temperatureC)}度`,
+        validWindowMs: 4500
+      });
     }
-    events.push({
-      id: `stage-${index + 1}-start`,
-      atMs: stage.startMs,
-      text: `第${index + 1}段，${stage.name}，注水${Math.round(stage.waterG)}克，累计${Math.round(stage.cumulativeWaterG)}克，水温${Math.round(stage.temperatureC)}度`,
-      validWindowMs: 4500
-    });
   });
   const totalMs = stages.at(-1)?.endMs || 0;
   events.push({ id: 'brew-complete', atMs: totalMs, text: '冲煮完成', validWindowMs: 5000 });
-  return { events, totalMs };
+  return { stages, events, totalMs };
 }
 
 function speakBrowser(text) {
@@ -94,6 +94,7 @@ function tickBrowserSpeech() {
     stopBrowserSpeechRun();
     return;
   }
+  clearTimeout(run.timer);
   run.timer = setTimeout(tickBrowserSpeech, 100);
 }
 
@@ -129,6 +130,22 @@ function resumeBrowserSpeech() {
   tickBrowserSpeech();
 }
 
+function currentStageIndex() {
+  const value = Number((document.querySelector('#timerStageCounter')?.textContent || '1').split('/')[0]);
+  return Number.isFinite(value) && value > 0 ? value - 1 : 0;
+}
+
+function realignBrowserSpeechToCurrentStage() {
+  const run = browserSpeechRun;
+  if (!run) return;
+  const stage = run.stages[currentStageIndex()];
+  if (!stage) return;
+  run.startedAt = performance.now() - stage.startMs - run.pausedTotalMs;
+  run.fired = new Set(run.events.filter(event => event.atMs < stage.startMs).map(event => event.id));
+  clearTimeout(run.timer);
+  if (!run.paused) tickBrowserSpeech();
+}
+
 function suppressLegacyTimerForThisStartClick() {
   const nativeSetInterval = globalThis.setInterval;
   const captured = [];
@@ -156,6 +173,10 @@ document.addEventListener('click', event => {
   if (event.target.closest('#timerPauseBtn') && browserSpeechRun) {
     if (browserSpeechRun.paused) resumeBrowserSpeech();
     else pauseBrowserSpeech();
+    return;
+  }
+  if (event.target.closest('#timerNextBtn,#timerPrevBtn') && browserSpeechRun) {
+    setTimeout(realignBrowserSpeechToCurrentStage, 0);
     return;
   }
   if (event.target.closest('#timerEndBtn')) {
