@@ -11,7 +11,7 @@ import {
   encodeMatchSignature
 } from '../src/domain/matching/flavor-vector.js';
 
-assert.equal(MATCH_CONTRACT, 'luckybean-match/1.0');
+assert.equal(MATCH_CONTRACT, 'luckybean-match/1.1');
 assert.equal(MATCH_AXIS_SET, 'flavor_core_v1');
 assert.equal(MATCH_DIM, 8);
 
@@ -41,7 +41,9 @@ assert.equal(gear.length, 8);
 assert.notDeepEqual(gear, neutralGear, 'dripper angle/bypass/paper speed must affect the gear correction vector');
 const match = combineMatchVector(bean.vector, gear);
 assert.notDeepEqual(match, bean.vector);
-assert.match(encodeMatchSignature(match, bean.confidence), /^LMS1-FC1-D08-X[0-9A-F]{16}-Q\d{1,3}$/);
+const signature = encodeMatchSignature(match, bean.confidence);
+assert.match(signature, /^LMS1-FC1-X[0-9A-F]{16}-Q\d{1,3}$/);
+assert.doesNotMatch(signature, /-D\d{2}-/, 'new LMS labels must not hard-code vector dimension');
 assert.equal(buildTargetVector({ acidity: 2, sweetness: 2, floral: 2, fruity: 2, bitterness: 1, astringency: 2 }).length, 8);
 
 const history = fs.readFileSync(new URL('../src/domain/history/history-service.js', import.meta.url), 'utf8');
