@@ -63,7 +63,12 @@ jobs:
         run: |
           set -euo pipefail
           apk=android/app/build/outputs/apk/debug/app-debug.apk
-          echo no | avdmanager create avd -n luckybean-api29 -k 'system-images;android-29;google_apis;x86_64' --force
+          export ANDROID_AVD_HOME="$RUNNER_TEMP/android-avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n luckybean-api29 -k 'system-images;android-29;google_apis;x86_64' --force
+          echo 'Available AVDs:'
+          "$ANDROID_HOME/emulator/emulator" -list-avds | tee android-avd-list.txt
+          grep -qx 'luckybean-api29' android-avd-list.txt
           accel_args=()
           if [ -e /dev/kvm ]; then
             sudo chmod 666 /dev/kvm || true
@@ -118,6 +123,7 @@ jobs:
           name: luckybean-full-integration-android-${{ github.sha }}
           path: |
             android-build.log
+            android-avd-list.txt
             android-emulator.log
             android-start.txt
             android-runtime.log
