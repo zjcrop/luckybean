@@ -29,8 +29,17 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Compile debug APK
-        run: gradle --no-daemon -p android :app:assembleDebug
+        id: compile
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          gradle --no-daemon -p android :app:assembleDebug 2>&1 | tee android-build.log
+          status=${PIPESTATUS[0]}
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
       - name: Verify native execution contract
+        if: steps.compile.outputs.status == '0'
         shell: bash
         run: |
           set -euo pipefail
@@ -49,14 +58,25 @@ jobs:
           unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'globalThis.__LUCKYBEAN_ANDROID__ || !globalThis.speechSynthesis'
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app'"
       - name: Package integration APK
+        if: steps.compile.outputs.status == '0'
         shell: bash
         run: |
           mkdir -p dist
           cp android/app/build/outputs/apk/debug/app-debug.apk dist/LuckyBean-1.23D-full-integration-debug.apk
           sha256sum dist/LuckyBean-1.23D-full-integration-debug.apk > dist/SHA256SUMS.txt
           printf 'source_sha=%s\nbranch=%s\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist/BUILD_PROVENANCE.txt
-      - uses: actions/upload-artifact@v7.0.1
+      - name: Upload Android build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: luckybean-full-integration-android-${{ github.sha }}
-          path: dist/
-          if-no-files-found: error
+          path: |
+            android-build.log
+            dist/
+          if-no-files-found: warn
+      - name: Fail if Android compile failed
+        if: steps.compile.outputs.status != '0'
+        shell: bash
+        run: |
+          echo 'Android compilation failed; see uploaded android-build.log.'
+          exit 1
