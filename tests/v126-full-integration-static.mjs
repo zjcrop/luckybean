@@ -25,13 +25,20 @@ const bean = buildBeanVector({
 assert.equal(bean.vector.length, 8);
 assert.ok(bean.vector.every(v => Number.isInteger(v) && v >= 0 && v <= 100));
 
+const neutralGear = buildGearCorrection({
+  matchingGear: {
+    defaultDripper: { angleDeg: 60, bypass: 'medium' },
+    defaultPaper: { speed: 'medium' }
+  }
+}, { brew: {} });
 const gear = buildGearCorrection({
   matchingGear: {
-    defaultDripper: { shape: 'flat_bottom', bypass: 'low' },
+    defaultDripper: { angleDeg: 90, bypass: 'low' },
     defaultPaper: { speed: 'high' }
   }
 }, { brew: {} });
 assert.equal(gear.length, 8);
+assert.notDeepEqual(gear, neutralGear, 'dripper angle/bypass/paper speed must affect the gear correction vector');
 const match = combineMatchVector(bean.vector, gear);
 assert.notDeepEqual(match, bean.vector);
 assert.match(encodeMatchSignature(match, bean.confidence), /^LMS1-FC1-D08-X[0-9A-F]{16}-Q\d{1,3}$/);
@@ -68,7 +75,7 @@ for (const text of [
 ]) assert.ok(service.includes(text), `missing ${text}`);
 
 const activity = fs.readFileSync(new URL('../android/app/src/main/java/com/luckybean/app/MainActivity.java', import.meta.url), 'utf8');
-for (const text of ['FLAG_KEEP_SCREEN_ON', 'prepareBrewExecution', 'startBrewExecution', 'enterImmersiveMode']) assert.ok(activity.includes(text));
+for (const text of ['FLAG_KEEP_SCREEN_ON', 'prepareBrewExecution', 'startBrewExecution', 'enterImmersiveMode', 'InputImage.fromFilePath(MainActivity.this, sourceUri)']) assert.ok(activity.includes(text));
 
 const gradle = fs.readFileSync(new URL('../android/app/build.gradle', import.meta.url), 'utf8');
 assert.ok(gradle.includes('androidx.media3:media3-exoplayer:1.8.1'));
@@ -79,6 +86,7 @@ for (const text of ['FOREGROUND_SERVICE_MEDIA_PLAYBACK', 'WAKE_LOCK', 'android.i
 
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 assert.ok(html.includes('full-integration-controller-v3.js'));
+assert.ok(html.includes('gear-regression-fix-controller.js'));
 assert.ok(html.includes('full-integration.css'));
 
 console.log('v126 full integration static checks passed');
