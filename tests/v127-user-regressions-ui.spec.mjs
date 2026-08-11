@@ -38,7 +38,6 @@ test('edited legacy bean keeps readable country and variety in compact card', as
     return (await db.get('beans', 'legacy-readable-bean'))?.name || '';
   });
   expect(storedName).toBe('埃塞俄比亚 · Geisha');
-  document.dispatchEvent;
   await page.evaluate(() => document.dispatchEvent(new CustomEvent('luckybean:app-refreshed', { detail: { source: 'v127-force-display-repair' } })));
   await expect(card.locator('.lb-bean-primary')).toHaveText('埃塞/瑰夏');
   await expect(card.locator('.lb-bean-secondary')).toContainText('/浅/水洗/85g');
