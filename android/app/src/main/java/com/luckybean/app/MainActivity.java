@@ -42,6 +42,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -58,6 +59,7 @@ public final class MainActivity extends Activity {
     private static final int FILE_CHOOSER_REQUEST = 2101;
     private static final int MEDIA_PERMISSION_REQUEST = 2102;
     private static final int SAVE_FILE_REQUEST = 2103;
+    private static final int IMAGE_PREVIEW_MAX_EDGE = 960;
 
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
@@ -138,7 +140,7 @@ public final class MainActivity extends Activity {
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
         settings.setSupportZoom(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " LuckyBeanAndroid/1.23D");
+        settings.setUserAgentString(settings.getUserAgentString() + " LuckyBeanAndroid/1.23E");
 
         webView.addJavascriptInterface(new NativeFileBridge(), "LuckyBeanNative");
 
@@ -222,7 +224,56 @@ public final class MainActivity extends Activity {
         }
     }
 
+    private Bitmap decodePreviewBitmap(Uri sourceUri) throws IOException {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            android.graphics.ImageDecoder.Source source = android.graphics.ImageDecoder.createSource(getContentResolver(), sourceUri);
+            return android.graphics.ImageDecoder.decodeBitmap(source, (decoder, info, src) ->
+                decoder.setAllocator(android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE));
+        }
+        try (InputStream input = getContentResolver().openInputStream(sourceUri)) {
+            if (input == null) throw new IOException("无法打开 Android 原图");
+            Bitmap bitmap = BitmapFactory.decodeStream(input);
+            if (bitmap == null) throw new IOException("无法生成 Android 原图预览");
+            return bitmap;
+        }
+    }
+
+    private String previewDataUrl(Uri sourceUri) {
+        Bitmap original = null;
+        Bitmap scaled = null;
+        try {
+            original = decodePreviewBitmap(sourceUri);
+            int width = original.getWidth();
+            int height = original.getHeight();
+            if (width <= 0 || height <= 0) return "";
+            float scale = Math.min(1f, IMAGE_PREVIEW_MAX_EDGE / (float) Math.max(width, height));
+            if (scale < 1f) {
+                int targetWidth = Math.max(1, Math.round(width * scale));
+                int targetHeight = Math.max(1, Math.round(height * scale));
+                scaled = Bitmap.createScaledBitmap(original, targetWidth, targetHeight, true);
+            } else {
+                scaled = original;
+            }
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            if (!scaled.compress(Bitmap.CompressFormat.JPEG, 82, output)) return "";
+            return "data:image/jpeg;base64," + Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP);
+        } catch (Exception error) {
+            android.util.Log.w("LuckyBeanImage", "Native preview unavailable", error);
+            return "";
+        } finally {
+            if (scaled != null && scaled != original && !scaled.isRecycled()) scaled.recycle();
+            if (original != null && !original.isRecycled()) original.recycle();
+        }
+    }
+
     private final class NativeFileBridge {
+        @JavascriptInterface
+        public String bindImageSource(String imageId, boolean includePreview) {
+            Uri sourceUri = claimRecognitionSource(imageId);
+            if (sourceUri == null) return "";
+            return includePreview ? previewDataUrl(sourceUri) : "";
+        }
+
         @JavascriptInterface
         public void recognizeImage(String requestId, String imageId, String imageRole, String dataUrl) {
             Bitmap bitmap = null;
