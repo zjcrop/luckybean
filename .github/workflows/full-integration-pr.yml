@@ -64,14 +64,27 @@ jobs:
           set -euo pipefail
           apk=android/app/build/outputs/apk/debug/app-debug.apk
           echo no | avdmanager create avd -n luckybean-api29 -k 'system-images;android-29;google_apis;x86_64' --force
-          sudo chmod 666 /dev/kvm || true
-          nohup emulator -avd luckybean-api29 -no-window -noaudio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -wipe-data > android-emulator.log 2>&1 &
-          adb wait-for-device
+          accel_args=()
+          if [ -e /dev/kvm ]; then
+            sudo chmod 666 /dev/kvm || true
+          else
+            accel_args=(-accel off)
+          fi
+          nohup emulator -avd luckybean-api29 -no-window -noaudio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -wipe-data "${accel_args[@]}" > android-emulator.log 2>&1 &
+          if ! timeout 180 adb wait-for-device; then
+            echo 'Android emulator did not expose adb within 180s.' >&2
+            tail -n 200 android-emulator.log >&2 || true
+            exit 1
+          fi
           for i in $(seq 1 120); do
             if [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then break; fi
             sleep 2
           done
-          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1"
+          if [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" != "1" ]; then
+            echo 'Android emulator did not finish booting.' >&2
+            tail -n 200 android-emulator.log >&2 || true
+            exit 1
+          fi
           adb install -r "$apk"
           adb logcat -c
           set +e
