@@ -51,6 +51,7 @@ const CORE = [
   './src/ui/fab-controller.js?v=1.23E-main-sync.1',
   './src/features/runtime-features.js?v=1.23E-main-sync.1',
   './src/features/full-integration-controller-v3.js?v=1.23E-main-sync.1',
+  './src/features/freshness-timeline-controller.js?v=1.23E-main-sync.1',
   './src/features/gear-regression-fix-controller.js?v=1.23E-main-sync.1',
   './src/features/legacy-timer-guard.js?v=1.23E-main-sync.1',
   './src/features/experience-fixes-controller.js?v=1.23E-main-sync.1',
