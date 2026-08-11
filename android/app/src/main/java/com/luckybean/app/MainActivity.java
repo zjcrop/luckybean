@@ -12,8 +12,13 @@ import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
+import android.view.WindowManager;
 import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
@@ -69,6 +74,7 @@ public final class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         getWindow().setStatusBarColor(Color.rgb(8, 9, 9));
         getWindow().setNavigationBarColor(Color.rgb(8, 9, 9));
+        enterImmersiveMode();
 
         webView = new WebView(this);
         webView.setBackgroundColor(Color.rgb(8, 9, 9));
@@ -82,6 +88,32 @@ public final class MainActivity extends Activity {
         } else {
             webView.restoreState(savedInstanceState);
         }
+    }
+
+    private void enterImmersiveMode() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            getWindow().setDecorFitsSystemWindows(false);
+            WindowInsetsController controller = getWindow().getInsetsController();
+            if (controller != null) {
+                controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            );
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) enterImmersiveMode();
     }
 
     private void configureWebView() {
@@ -154,6 +186,13 @@ public final class MainActivity extends Activity {
         }
     }
 
+    private void dispatchBrewService(String action, String payload, boolean foreground) {
+        Intent intent = new Intent(MainActivity.this, BrewTimerService.class).setAction(action);
+        if (payload != null) intent.putExtra(BrewTimerService.EXTRA_PAYLOAD, payload);
+        if (foreground && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent);
+        else startService(intent);
+    }
+
     private final class NativeFileBridge {
         @JavascriptInterface
         public void recognizeImage(String requestId, String imageId, String imageRole, String dataUrl) {
@@ -217,6 +256,39 @@ public final class MainActivity extends Activity {
                     pendingExportMime = null;
                     Toast.makeText(MainActivity.this, "准备导出文件失败", Toast.LENGTH_LONG).show();
                 }
+            });
+        }
+
+        @JavascriptInterface
+        public void prepareBrewExecution(String payload) {
+            runOnUiThread(() -> dispatchBrewService(BrewTimerService.ACTION_PREPARE, payload, false));
+        }
+
+        @JavascriptInterface
+        public void startBrewExecution(String payload) {
+            runOnUiThread(() -> dispatchBrewService(BrewTimerService.ACTION_START, payload, true));
+        }
+
+        @JavascriptInterface
+        public void pauseBrewExecution() {
+            runOnUiThread(() -> dispatchBrewService(BrewTimerService.ACTION_PAUSE, null, false));
+        }
+
+        @JavascriptInterface
+        public void resumeBrewExecution() {
+            runOnUiThread(() -> dispatchBrewService(BrewTimerService.ACTION_RESUME, null, false));
+        }
+
+        @JavascriptInterface
+        public void cancelBrewExecution() {
+            runOnUiThread(() -> dispatchBrewService(BrewTimerService.ACTION_CANCEL, null, false));
+        }
+
+        @JavascriptInterface
+        public void setBrewScreenAwake(boolean enabled) {
+            runOnUiThread(() -> {
+                if (enabled) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             });
         }
     }
@@ -413,6 +485,7 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         if (chineseTextRecognizer != null) chineseTextRecognizer.close();
         if (latinTextRecognizer != null) latinTextRecognizer.close();
         if (webView != null) {
@@ -435,6 +508,8 @@ public final class MainActivity extends Activity {
         if (lower.endsWith(".png")) return "image/png";
         if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
         if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".ogg")) return "audio/ogg";
+        if (lower.endsWith(".wav")) return "audio/wav";
         return "application/octet-stream";
     }
 }
