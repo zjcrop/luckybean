@@ -76,3 +76,22 @@ test('custom first and tail cooling keep exactly one inline editor each after re
   await expect(page.locator('[data-lb-cooling-editor="first"] input')).toHaveValue('90');
   await expect(page.locator('[data-lb-cooling-editor="tail"] input')).toHaveValue('80');
 });
+
+test('Android image decode failure keeps original blob for native OCR instead of aborting capture', async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    globalThis.__LUCKYBEAN_ANDROID__ = true;
+    const { preparePackageImage } = await import('/src/image-quality.js?v127-native-fallback');
+    const file = new File([new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7])], 'unsupported-photo.heic', { type: 'image/heic' });
+    const prepared = await preparePackageImage(file);
+    return {
+      status: prepared.status,
+      size: prepared.blob.size,
+      type: prepared.blob.type,
+      warning: prepared.warnings?.join(' ') || ''
+    };
+  });
+  expect(result.status).toBe('usable');
+  expect(result.size).toBe(8);
+  expect(result.type).toBe('image/heic');
+  expect(result.warning).toContain('Android 本地 OCR');
+});
