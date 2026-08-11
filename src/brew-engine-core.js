@@ -231,7 +231,6 @@ function buildStages(input, profileId, totalWater, temperature, level, targets) 
       add(tail ? '尾段收束' : `主萃 ${i + 1}`, water, tail ? Math.max(82, temperature - 1) : temperature, duration, tail ? '提高流量快速收尾，达到目标水量停止拖洗' : (i % 2 ? '中心向外稳定绕圈，控制液位' : '外圈向中心连续注水，减少段间停顿'), i % 2 ? 3 : 4, flowLevel);
     });
   }
-  // Correct rounding drift in a single place.
   const drift = totalWater - stages.reduce((sum, item) => sum + item.stageWaterG, 0);
   if (drift) {
     stages.at(-1).stageWaterG += drift;
@@ -474,7 +473,8 @@ export async function requestPrivatePlan(endpoint, input, timeoutMs = 9000) {
 
 export function validatePlan(plan) {
   if (!plan || typeof plan !== 'object') throw new Error('方案响应不是对象');
-  const authoritative = plan.analysisContract === 'brew-analysis/2.0';
+  const supportedAnalysisContracts = new Set(['brew-analysis/2.0', 'brew-analysis/2.1']);
+  const authoritative = supportedAnalysisContracts.has(plan.analysisContract);
   if (plan.analysisContract && !authoritative) throw new Error(`方案分析契约不兼容：${plan.analysisContract}`);
   if (!authoritative && ![1, 2, '1.0.1'].includes(plan.schemaVersion)) throw new Error('方案 Schema 版本不兼容');
   if (authoritative && !plan.analysisFingerprint) throw new Error('专业方案缺少统一计算指纹');
