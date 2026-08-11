@@ -1,4 +1,4 @@
-export const MATCH_CONTRACT = 'luckybean-match/1.0';
+export const MATCH_CONTRACT = 'luckybean-match/1.1';
 export const MATCH_SCHEMA_VERSION = 1;
 export const MATCH_AXIS_SET = 'flavor_core_v1';
 export const MATCH_AXES = Object.freeze(['acidity', 'sweetness', 'aroma', 'body', 'bitterness', 'clean', 'fermentation', 'aftertaste']);
@@ -86,20 +86,8 @@ export function buildBeanVector(bean = {}) {
 function angleCorrection(value) {
   const angle = Number(value);
   if (!Number.isFinite(angle) || angle < 25 || angle > 95) return Array(MATCH_DIM).fill(0);
-
-  // 60° is the neutral engineering reference only. Angle is deliberately a low-weight
-  // correction because ribs, hole geometry and bypass dominate many real drippers.
   const x = Math.max(-1, Math.min(1, (angle - 60) / 30));
-  return [
-    -1.5 * x, // acidity
-     1.0 * x, // sweetness
-    -1.5 * x, // aroma
-     2.0 * x, // body
-    -0.5 * x, // bitterness
-     0.5 * x, // clean
-     0,
-     0.5 * x  // aftertaste
-  ];
+  return [-1.5 * x, 1.0 * x, -1.5 * x, 2.0 * x, -0.5 * x, 0.5 * x, 0, 0.5 * x];
 }
 
 export function buildGearCorrection(settings = {}, brewInput = {}) {
@@ -111,7 +99,6 @@ export function buildGearCorrection(settings = {}, brewInput = {}) {
   const bypass = String(dripper.bypass || 'medium');
   const speed = String(paper.speed || 'medium');
   let vector = angleCorrection(dripper.angleDeg);
-
   const bypassMap = {
     none: [1, 1, 0, 3, 2, 1, 0, 1],
     low: [1, 1, 0, 2, 1, 1, 0, 1],
@@ -119,7 +106,6 @@ export function buildGearCorrection(settings = {}, brewInput = {}) {
     high: [-2, -1, -1, -3, -2, -1, 0, -1]
   };
   vector = add(vector, bypassMap[bypass] || bypassMap.medium);
-
   const speedMap = {
     low: [-1, 1, -1, 2, 2, -2, 0, 1],
     medium: Array(MATCH_DIM).fill(0),
@@ -151,7 +137,7 @@ export function combineMatchVector(beanVector, ...corrections) {
 export function encodeMatchSignature(matchVector, confidence = 75) {
   if (!Array.isArray(matchVector) || matchVector.length !== MATCH_DIM) throw new Error(`match_vector必须为${MATCH_DIM}维`);
   const hex = matchVector.map(value => Math.round(clamp(value)).toString(16).padStart(2, '0').toUpperCase()).join('');
-  return `LMS1-FC1-D${String(MATCH_DIM).padStart(2, '0')}-X${hex}-Q${Math.round(clamp(confidence))}`;
+  return `LMS1-FC1-X${hex}-Q${Math.round(clamp(confidence))}`;
 }
 
 export function buildMatchingEnvelope({ bean = {}, settings = {}, input = {}, userCorrection = [], sessionCorrection = [] } = {}) {
