@@ -1,157 +1,246 @@
 import * as core from './qr-core.js';
-import { decodeSharePayload } from './share-codec.js';
+import { decodeEncryptedShareEnvelope } from './share-codec.js';
+
+const LOCAL_JSQR_URL = new URL('../public/vendor/jsqr/jsQR.js', import.meta.url).href;
+let jsQrPromise = null;
 
 export * from './qr-core.js';
 
-const CORE_LEN = 32;
-const CRC_LEN = 2;
+function toUint8Array(value) {
+  if (value instanceof Uint8Array) return value;
+  if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+  if (value instanceof ArrayBuffer) return new Uint8Array(value);
+  if (Array.isArray(value)) return Uint8Array.from(value);
+  return new Uint8Array();
+}
 
-export function extractShareEncoded(text) {
-  const value = String(text || '').trim();
-  if (/^LB8E\.[RJ]\./.test(value)) return value;
-  if (/^LB8[RDGJ]\./.test(value)) return value;
-  const marker = value.indexOf('#share=');
-  if (marker >= 0) return value.slice(marker + 7).split(/[&#]/)[0];
+async function ensureLocalJsQR() {
+  if (typeof globalThis.jsQR === 'function') return globalThis.jsQR;
+  if (jsQrPromise) return jsQrPromise;
+  jsQrPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-luckybean-jsqr]');
+    if (existing) {
+      existing.addEventListener('load', () => typeof globalThis.jsQR === 'function' ? resolve(globalThis.jsQR) : reject(new Error('本地二维码引擎初始化失败')), { once: true });
+      existing.addEventListener('error', () => reject(new Error('本地二维码引擎加载失败')), { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = LOCAL_JSQR_URL;
+    script.async = true;
+    script.dataset.luckybeanJsqr = '1';
+    script.onload = () => typeof globalThis.jsQR === 'function' ? resolve(globalThis.jsQR) : reject(new Error('本地二维码引擎初始化失败'));
+    script.onerror = () => reject(new Error('本地二维码引擎加载失败'));
+    document.head.append(script);
+  }).catch(error => {
+    jsQrPromise = null;
+    throw error;
+  });
+  return jsQrPromise;
+}
+
+function qrResultFromJsQR(result) {
+  if (!result) return null;
+  const bytes = toUint8Array(result.binaryData);
+  return core.normalizeQrResult({
+    text: String(result.data || ''),
+    rawBytes: bytes,
+    rawBytesExact: bytes.length > 0,
+    source: 'jsqr-local'
+  });
+}
+
+function decodeImageData(imageData) {
+  if (typeof globalThis.jsQR !== 'function') return null;
+  return qrResultFromJsQR(globalThis.jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' }));
+}
+
+async function decodeBitmapSource(source, width, height) {
+  await ensureLocalJsQR();
+  const maxEdge = 1280;
+  const scale = Math.min(1, maxEdge / Math.max(width || 1, height || 1));
+  const targetWidth = Math.max(1, Math.round(width * scale));
+  const targetHeight = Math.max(1, Math.round(height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  context.drawImage(source, 0, 0, targetWidth, targetHeight);
+  return decodeImageData(context.getImageData(0, 0, targetWidth, targetHeight));
+}
+
+async function imageFromFile(file) {
+  if ('createImageBitmap' in globalThis) {
+    const bitmap = await createImageBitmap(file);
+    return { source: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close() };
+  }
+  const url = URL.createObjectURL(file);
+  const image = new Image();
   try {
-    const url = new URL(value, globalThis.location?.href || 'https://local.invalid/');
-    if (url.hash.startsWith('#share=')) return url.hash.slice(7);
-  } catch { /* not a URL */ }
-  return core.extractShareEncoded(value);
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = () => reject(new Error('无法读取二维码图片'));
+      image.src = url;
+    });
+    return { source: image, width: image.naturalWidth, height: image.naturalHeight, close: () => URL.revokeObjectURL(url) };
+  } catch (error) {
+    URL.revokeObjectURL(url);
+    throw error;
+  }
 }
 
-function structuredText(text) {
-  const value = String(text || '').trim();
-  if (!value) return false;
-  if (/^HEX\s*:/i.test(value)) return true;
-  if (/^[\[{]/.test(value)) return true;
-  if (/(?:^|[^A-Z0-9])(?:CT|RG|EN|VR|PROC|FL|RL)-[A-Z0-9-]+/i.test(value)) return true;
-  return Boolean(extractShareEncoded(value));
-}
-
-function sanitizeStructuredResult(result) {
-  if (!result || !structuredText(result.data)) return result;
-  return { ...result, binaryData: null, rawBytes: null };
-}
-
-async function expandEncryptedShare(result) {
-  const encoded = extractShareEncoded(result?.data);
-  if (!encoded || !encoded.startsWith('LB8E.')) return result;
-  const payload = await decodeSharePayload(encoded);
-  const bean = {
-    ...(payload.bean || {}),
-    source: 'luckybean-share-qr',
-    notes: ['加密二维码分享', payload.sharedAt ? `分享于 ${payload.sharedAt}` : ''].filter(Boolean).join('；')
-  };
-  return {
-    ...result,
-    data: JSON.stringify(bean),
-    binaryData: null,
-    rawBytes: null,
-    shareEncoded: encoded,
-    sharePayloadVersion: payload.appVersion || '',
-    encrypted: true
-  };
-}
-
-export async function normalizeQrResult(result, engine = 'unknown') {
-  const normalized = await core.normalizeQrResult(result, engine);
-  return sanitizeStructuredResult(await expandEncryptedShare(normalized));
+async function barcodeDetectorResult(source) {
+  if (!('BarcodeDetector' in globalThis)) return null;
+  try {
+    const detector = new BarcodeDetector({ formats: ['qr_code'] });
+    const values = await detector.detect(source);
+    const first = values?.[0];
+    if (!first) return null;
+    return core.normalizeQrResult({ text: first.rawValue || '', rawBytes: new Uint8Array(), rawBytesExact: false, source: 'barcode-detector' });
+  } catch {
+    return null;
+  }
 }
 
 export async function scanQrFile(file) {
-  const result = await core.scanQrFile(file);
-  return normalizeQrResult(result, result?.engine || 'image');
-}
-
-export class CameraScanner extends core.CameraScanner {
-  constructor(video, onResult, onStatus = () => {}) {
-    super(video, async result => {
-      try { onResult(await normalizeQrResult(result, result?.engine || 'camera')); }
-      catch (error) { onStatus(`二维码已捕捉，但解密失败：${error.message}`); }
-    }, onStatus);
+  if (!file) throw new Error('未选择二维码图片');
+  const image = await imageFromFile(file);
+  try {
+    const local = await decodeBitmapSource(image.source, image.width, image.height);
+    if (local) return expandQrResult(local);
+    const native = await barcodeDetectorResult(image.source);
+    if (native) return expandQrResult(native);
+    throw new Error('未识别到二维码，请调整距离、对焦或重新扫描');
+  } finally {
+    image.close?.();
   }
 }
 
-function normalizeCodeText(value) {
-  return String(value || '').normalize('NFKC').toUpperCase()
-    .replace(/[‐‑‒–—―−﹣－]/g, '-')
-    .replace(/\s*-\s*/g, '-');
-}
+export class CameraScanner {
+  constructor(video, onResult, onStatus = () => {}) {
+    this.video = video;
+    this.onResult = onResult;
+    this.onStatus = onStatus;
+    this.canvas = document.createElement('canvas');
+    this.context = this.canvas.getContext('2d', { willReadFrequently: true });
+    this.stream = null;
+    this.active = false;
+    this.processing = false;
+    this.frameRequest = 0;
+    this.lastScanAt = 0;
+    this.lastPayload = '';
+    this.lastPayloadAt = 0;
+  }
 
-function decodeCodebookText(text, codebook) {
-  const source = normalizeCodeText(text);
-  const tableFields = {
-    countries: 'countryCode',
-    regions: 'regionCode',
-    entities: 'entityCode',
-    varieties: 'varietyCode',
-    processes: 'processCode'
-  };
-  const result = { source: 'codebook-text-qr' };
-  let matches = 0;
-  for (const [table, field] of Object.entries(tableFields)) {
-    for (const row of codebook?.[table] || []) {
-      const code = normalizeCodeText(row?.[0]);
-      if (!code) continue;
-      const index = source.indexOf(code);
-      if (index < 0) continue;
-      const before = source[index - 1] || '';
-      const after = source[index + code.length] || '';
-      if (/[A-Z0-9]/.test(before) || /[A-Z0-9]/.test(after)) continue;
-      result[field] = row[0];
-      matches += 1;
-      break;
+  status(message) {
+    try { this.onStatus(message); } catch { /* overlay may have closed */ }
+  }
+
+  async start() {
+    this.stop();
+    if (!navigator.mediaDevices?.getUserMedia) throw new Error('当前环境不支持摄像头实时扫描');
+    this.active = true;
+    this.status('正在启动本地二维码引擎…');
+    await ensureLocalJsQR();
+    this.stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+    });
+    if (!this.active) return;
+    this.video.srcObject = this.stream;
+    await this.video.play();
+    this.status('请将二维码完整放入取景框，识别全程在本机完成');
+    globalThis.LuckyBeanQrScanner = this;
+    this.loop();
+  }
+
+  async restart() {
+    this.lastPayload = '';
+    this.lastPayloadAt = 0;
+    this.status('正在重新扫描…');
+    if (!this.active || !this.stream?.active) return this.start();
+    this.processing = false;
+    if (!this.frameRequest) this.loop();
+  }
+
+  loop() {
+    if (!this.active) return;
+    this.frameRequest = requestAnimationFrame(() => this.loop());
+    const now = performance.now();
+    if (this.processing || now - this.lastScanAt < 160 || this.video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+    this.lastScanAt = now;
+    this.processFrame().catch(error => this.status(`扫描暂未成功：${error.message}`));
+  }
+
+  async processFrame() {
+    if (!this.active || !this.video.videoWidth || !this.video.videoHeight) return;
+    this.processing = true;
+    try {
+      const maxEdge = 960;
+      const scale = Math.min(1, maxEdge / Math.max(this.video.videoWidth, this.video.videoHeight));
+      const width = Math.max(1, Math.round(this.video.videoWidth * scale));
+      const height = Math.max(1, Math.round(this.video.videoHeight * scale));
+      if (this.canvas.width !== width || this.canvas.height !== height) {
+        this.canvas.width = width;
+        this.canvas.height = height;
+      }
+      this.context.drawImage(this.video, 0, 0, width, height);
+      const result = decodeImageData(this.context.getImageData(0, 0, width, height));
+      if (!result) return;
+      const signature = result.text || Array.from(result.rawBytes || []).slice(0, 48).join(',');
+      const now = Date.now();
+      if (signature && signature === this.lastPayload && now - this.lastPayloadAt < 1400) return;
+      this.lastPayload = signature;
+      this.lastPayloadAt = now;
+      this.status('二维码已捕捉，正在解析…');
+      await this.onResult(expandQrResult(result));
+      if (!document.querySelector('[data-overlay="camera"]')) {
+        this.stop();
+      } else {
+        this.status('未完成导入，可继续扫描或点击“重新扫描”');
+      }
+    } finally {
+      this.processing = false;
     }
   }
-  const roast = source.match(/(?:^|[^A-Z0-9])(RL-L[0-6])(?:$|[^A-Z0-9])/);
-  if (roast) { result.roastCode = roast[1]; matches += 1; }
-  if (matches >= 2 || (matches >= 1 && /豆仓编码|BREWION|LUCKY\s*BEAN/i.test(text))) return result;
-  return null;
+
+  stop() {
+    this.active = false;
+    this.processing = false;
+    if (this.frameRequest) cancelAnimationFrame(this.frameRequest);
+    this.frameRequest = 0;
+    if (this.stream) this.stream.getTracks().forEach(track => track.stop());
+    this.stream = null;
+    if (this.video) {
+      try { this.video.pause(); } catch { /* ignore */ }
+      this.video.srcObject = null;
+    }
+    if (globalThis.LuckyBeanQrScanner === this) globalThis.LuckyBeanQrScanner = null;
+  }
 }
 
-function latin1Bytes(text) {
-  if (!text || text.length < CORE_LEN + CRC_LEN) return null;
-  const bytes = new Uint8Array(text.length);
-  for (let index = 0; index < text.length; index += 1) {
-    const code = text.charCodeAt(index);
-    if (code > 255) return null;
-    bytes[index] = code;
-  }
-  return bytes;
+export function expandQrResult(value) {
+  const normalized = core.normalizeQrResult(value);
+  const envelope = decodeEncryptedShareEnvelope(normalized.text);
+  if (!envelope) return normalized;
+  return { ...normalized, family: 'luckybean-share', encryptedEnvelope: envelope, source: envelope.source || normalized.source };
 }
 
-function tryBrewIonBytes(bytes, codebook) {
-  if (!bytes || bytes.length < CORE_LEN + CRC_LEN) return null;
-  try { return core.decodeBrewIonBytes(Uint8Array.from(bytes), codebook); }
-  catch { return null; }
+export async function decodeJsQrResult(result, codebook, options = {}) {
+  const normalized = expandQrResult(result);
+  if (normalized.encryptedEnvelope) {
+    const passphrase = String(options.passphrase || '').trim();
+    if (!passphrase) {
+      const error = new Error('这是受保护的 Lucky Bean 分享码，需要口令');
+      error.code = 'share-passphrase-required';
+      error.envelope = normalized.encryptedEnvelope;
+      throw error;
+    }
+    const payload = await core.decodeEncryptedShareEnvelope(normalized.encryptedEnvelope, passphrase);
+    return { family: 'luckybean-share', format: 'encrypted', payload, raw: normalized, source: normalized.source || 'encrypted-share' };
+  }
+  return core.decodeJsQrResult(normalized, codebook);
 }
 
-export function decodeJsQrResult(result, codebook) {
-  if (!result) throw new Error('二维码结果为空');
-  const text = String(result.data || '').trim();
-
-  if (/^HEX\s*:/i.test(text)) return core.decodeBrewIonBytes(text, codebook);
-  try {
-    const object = JSON.parse(text);
-    if (object && typeof object === 'object') return { ...object, source: object.source || 'json-qr' };
-  } catch { /* not JSON */ }
-
-  const codebookResult = decodeCodebookText(text, codebook);
-  if (codebookResult) return codebookResult;
-
-  if (extractShareEncoded(text)) {
-    throw new Error('分享二维码已捕捉但尚未完成解压或解密，请重新扫描清晰原图');
-  }
-
-  const explicitBytes = result.binaryData || result.rawBytes || null;
-  const decodedExplicit = tryBrewIonBytes(explicitBytes, codebook);
-  if (decodedExplicit) return decodedExplicit;
-
-  const decodedLatin1 = tryBrewIonBytes(latin1Bytes(text), codebook);
-  if (decodedLatin1) return decodedLatin1;
-
-  if (explicitBytes?.length >= CORE_LEN + CRC_LEN || text.length >= CORE_LEN + CRC_LEN) {
-    throw new Error('二维码已识别，但内容不是有效的 BrewIon 固定字段编码；请确认二维码来自豆仓/富贵盒子并保持图像清晰');
-  }
-  throw new Error('二维码不是受支持的 BrewIon、Lucky Bean、JSON 或编码表文本');
+export function exportSharePayload(bean, options = {}) {
+  return core.exportSharePayload(bean, options);
 }
