@@ -38,7 +38,7 @@ function nextRole() {
 
 function qualityLabel(image) {
   if (image.status === 'good') return '质量良好';
-  if (image.status === 'usable') return '可用，建议补拍';
+  if (image.status === 'usable') return image.nativeSource ? 'Android 原图可读' : '可用，建议补拍';
   return '建议重拍';
 }
 
@@ -55,7 +55,7 @@ function root() {
 }
 
 function clearCapture({ keepOverlay = false } = {}) {
-  for (const image of captureState.images) URL.revokeObjectURL(image.previewUrl);
+  for (const image of captureState.images) if (image.previewUrl) URL.revokeObjectURL(image.previewUrl);
   captureState.images = [];
   captureState.busy = false;
   captureState.ocrText = '';
@@ -64,17 +64,29 @@ function clearCapture({ keepOverlay = false } = {}) {
   if (!keepOverlay && root()) root().innerHTML = '';
 }
 
+function previewHtml(image) {
+  if (image.previewAvailable && image.previewUrl) {
+    return `<img src="${esc(image.previewUrl)}" alt="${esc(image.roleLabel)}预览">`;
+  }
+  return `<div class="bag-photo-native-preview" aria-label="Android 原图由本地识别通道直接读取" style="display:grid;place-items:center;min-height:132px;border-radius:14px;background:rgba(255,255,255,.04);color:#8f8b83;font-size:13px;letter-spacing:.06em">Android 原图</div>`;
+}
+
+function sourceInfo(image) {
+  if (image.nativeSource) return 'Android 原图 · 本地 URI 直接读取';
+  return `${image.processedWidth}×${image.processedHeight} px · ${Math.round(image.blob.size / 1024)} KB`;
+}
+
 function renderImageCards() {
   if (!captureState.images.length) return '<div class="bag-empty">尚未添加照片</div>';
   return captureState.images.map(image => `
     <article class="bag-photo-card" data-bag-image-id="${esc(image.id)}">
-      <img src="${esc(image.previewUrl)}" alt="${esc(image.roleLabel)}预览">
+      ${previewHtml(image)}
       <div class="bag-photo-main">
         <div class="bag-photo-heading"><strong>${esc(image.roleLabel)}</strong><span class="bag-quality ${esc(image.status)}">${qualityLabel(image)} · ${image.score}</span></div>
         <select class="control bag-role-select" data-bag-role="${esc(image.id)}" aria-label="照片类型">
           ${ROLE_OPTIONS.map(([value, label]) => `<option value="${value}"${image.role === value ? ' selected' : ''}>${label}</option>`).join('')}
         </select>
-        <p>${image.processedWidth}×${image.processedHeight} px · ${Math.round(image.blob.size / 1024)} KB</p>
+        <p>${esc(sourceInfo(image))}</p>
         ${image.warnings.length ? `<ul>${image.warnings.map(item => `<li>${esc(item)}</li>`).join('')}</ul>` : '<p class="bag-good-copy">未发现明显模糊、过曝或大面积反光。</p>'}
       </div>
       <button class="bag-remove" type="button" data-bag-remove="${esc(image.id)}" aria-label="删除照片">×</button>
@@ -133,12 +145,15 @@ async function addFiles(fileList) {
       const prepared = await preparePackageImage(file);
       const role = nextRole();
       const id = `bag_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+      const nativeSource = Boolean(prepared.nativeSource);
       captureState.images.push({
         id,
         role,
         roleLabel: roleLabel(role),
         blob: prepared.blob,
-        previewUrl: URL.createObjectURL(prepared.blob),
+        previewUrl: nativeSource ? '' : URL.createObjectURL(prepared.blob),
+        previewAvailable: !nativeSource,
+        nativeSource,
         score: prepared.score,
         status: prepared.status,
         warnings: prepared.warnings,
@@ -247,7 +262,7 @@ function bindOverlay() {
   document.querySelectorAll('[data-bag-remove]').forEach(button => button.addEventListener('click', () => {
     const index = captureState.images.findIndex(image => image.id === button.dataset.bagRemove);
     if (index < 0) return;
-    URL.revokeObjectURL(captureState.images[index].previewUrl);
+    if (captureState.images[index].previewUrl) URL.revokeObjectURL(captureState.images[index].previewUrl);
     captureState.images.splice(index, 1);
     render();
   }));

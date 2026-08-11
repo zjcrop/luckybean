@@ -1,12 +1,16 @@
-import { get, put } from '../db.js';
+import { all, get, put, getSetting } from '../db.js';
 import { sha256Hex } from '../utils.js';
 import { BREW_API_ENDPOINT, brewApiJson } from './brew-api-client.js';
+import { buildMatchingEnvelope, MATCH_CONTRACT } from '../domain/matching/flavor-vector.js';
 
-export const BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.0';
-export const BREW_SPATIAL_CONTRACT = 'brew-spatial/1.2';
+export const BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.1';
+export const BREW_SPATIAL_CONTRACT = 'brew-spatial/1.3';
+export const BREW_FLAVOR_STATE_CONTRACT = 'brew-flavor-state/1.0';
 export const BREW_ANALYSIS_ENDPOINT = BREW_API_ENDPOINT;
-export const BREW_ANALYSIS_SERVICE_VERSION = 'luckybean-analysis-client/1.3.0';
+export const BREW_ANALYSIS_SERVICE_VERSION = 'luckybean-analysis-client/1.5.0';
 
+const SUPPORTED_ANALYSIS_CONTRACTS = new Set(['brew-analysis/2.0', BREW_ANALYSIS_CONTRACT]);
+const SUPPORTED_SPATIAL_CONTRACTS = new Set(['brew-spatial/1.2', BREW_SPATIAL_CONTRACT]);
 const CACHE_PREFIX = 'brew.analysis.cache.v2.';
 const DEFAULT_TIMEOUT_MS = 12000;
 const REQUIRED_TARGET_IDS = Object.freeze(['acidity', 'floral', 'fruity', 'sweetness', 'bitterness', 'astringency']);
@@ -30,9 +34,26 @@ function assertFinite(value, field) {
   return Number(value);
 }
 
+function validateFlavorState(flavorState, { required = false } = {}) {
+  if (!flavorState) {
+    if (required) throw new Error(`专业分析缺少 ${BREW_FLAVOR_STATE_CONTRACT}`);
+    return null;
+  }
+  if (flavorState.schemaVersion !== BREW_FLAVOR_STATE_CONTRACT) {
+    throw new Error(`专业分析风味状态协议不兼容：${flavorState.schemaVersion || 'unknown'}`);
+  }
+  if (!Array.isArray(flavorState.brewEffectVector) || flavorState.brewEffectVector.length !== 8) {
+    throw new Error('专业分析风味效果向量无效');
+  }
+  if (flavorState.vector && (!Array.isArray(flavorState.vector) || flavorState.vector.length !== 8)) {
+    throw new Error('专业分析风味状态向量无效');
+  }
+  return flavorState;
+}
+
 function validateSpatial(spatial) {
-  if (!spatial || spatial.schemaVersion !== BREW_SPATIAL_CONTRACT) {
-    throw new Error(`专业分析缺少 ${BREW_SPATIAL_CONTRACT} 三维轨迹`);
+  if (!spatial || !SUPPORTED_SPATIAL_CONTRACTS.has(spatial.schemaVersion)) {
+    throw new Error(`专业分析缺少兼容三维轨迹：${[...SUPPORTED_SPATIAL_CONTRACTS].join(' / ')}`);
   }
   if (!spatial.planFingerprint) throw new Error('专业分析三维轨迹缺少方案指纹');
   if (!Array.isArray(spatial.path) || spatial.path.length < 2) throw new Error('专业分析三维轨迹点不足');
@@ -57,12 +78,13 @@ function validateSpatial(spatial) {
       throw new Error(`专业分析靶区几何无效：${target?.id || 'unknown'}`);
     }
   }
+  validateFlavorState(spatial.flavorState, { required: spatial.schemaVersion === BREW_SPATIAL_CONTRACT });
   return spatial;
 }
 
 function validateAnalysis(analysis, { expectedInputFingerprint = '' } = {}) {
-  if (!analysis || analysis.contract !== BREW_ANALYSIS_CONTRACT) {
-    throw new Error(`专业分析接口契约不匹配，应为 ${BREW_ANALYSIS_CONTRACT}`);
+  if (!analysis || !SUPPORTED_ANALYSIS_CONTRACTS.has(analysis.contract)) {
+    throw new Error(`专业分析接口契约不兼容：${analysis?.contract || 'unknown'}`);
   }
   if (!analysis.analysisFingerprint) throw new Error('专业分析缺少统一计算指纹');
   if (!analysis.plan || typeof analysis.plan !== 'object') throw new Error('专业分析缺少冲煮方案');
@@ -74,6 +96,9 @@ function validateAnalysis(analysis, { expectedInputFingerprint = '' } = {}) {
   }
   if (expectedInputFingerprint && metadata.inputFingerprint !== expectedInputFingerprint) {
     throw new Error('专业分析返回的输入指纹与本次请求不一致');
+  }
+  if (analysis.input?.matching && !['luckybean-match/1.0', 'luckybean-match/1.1'].includes(analysis.input.matching.contract)) {
+    throw new Error('专业分析返回的匹配协议版本不兼容');
   }
   return analysis;
 }
@@ -113,10 +138,7 @@ function mapStage(stage, index) {
   };
 }
 
-/**
- * Adds display aliases only. No stage value, recommendation, risk, profile
- * definition or target geometry is recalculated in LuckyBean.
- */
+/** Adds display aliases only. No stage value, recommendation, risk, profile definition, flavor state or target geometry is recalculated in LuckyBean. */
 export function adaptAuthoritativePlan(analysis) {
   validateAnalysis(analysis);
   const source = structuredClone(analysis.plan);
@@ -129,28 +151,20 @@ export function adaptAuthoritativePlan(analysis) {
   const profileId = String(source.profile?.id || source.metadata?.profileId || analysis.metadata?.resolvedProfileId || 'recommended');
   const profileVersion = String(source.profile?.version || source.metadata?.profileVersion || analysis.metadata?.resolvedProfileVersion || '');
   const warnings = [...(source.warnings || []), ...(analysis.warnings || [])].map(warningText).filter(Boolean);
+  const flavorState = structuredClone(analysis.trajectory?.flavorState || analysis.flavorState || source.flavorState || null);
   return {
     ...source,
     engineVersion: String(source.engineVersion || source.metadata?.engineVersion || analysis.metadata?.engineVersion || ''),
-    profile: {
-      ...(source.profile || {}),
-      id: profileId,
-      version: profileVersion,
-      label: source.profile?.label || profileId
-    },
+    profile: { ...(source.profile || {}), id: profileId, version: profileVersion, label: source.profile?.label || profileId },
     profileVersion: profileVersion ? `${profileId}@${profileVersion}` : profileId,
     stages,
-    totals: {
-      ...(source.totals || {}),
-      doseG: dose,
-      waterG: totalWater,
-      ratio,
-      targetTimeSec: totalTime
-    },
+    totals: { ...(source.totals || {}), doseG: dose, waterG: totalWater, ratio, targetTimeSec: totalTime },
     warnings: [...new Set(warnings)],
     trajectory: structuredClone(analysis.trajectory),
     visualization3d: structuredClone(analysis.trajectory),
+    flavorState,
     prediction: structuredClone(analysis.prediction || analysis.trajectory.prediction || {}),
+    matching: structuredClone(analysis.matching || source.matching || null),
     integrations: structuredClone(analysis.integrations || {}),
     analysisContract: analysis.contract,
     analysisFingerprint: analysis.analysisFingerprint,
@@ -162,6 +176,31 @@ export function adaptAuthoritativePlan(analysis) {
   };
 }
 
+function sameBeanRecord(record = {}, inputBean = {}) {
+  const keys = ['countryCode', 'regionCode', 'entityCode', 'varietyCode', 'processCode', 'roastCode', 'roastDate'];
+  const comparable = keys.filter(key => inputBean[key]);
+  if (!comparable.length) return false;
+  return comparable.every(key => String(record[key] || '') === String(inputBean[key] || ''));
+}
+
+async function attachMatching(input) {
+  const next = structuredClone(input || {});
+  if (next.matching?.contract === MATCH_CONTRACT && next.matching?.signature_type === 'match_only') return next;
+  const [beans, settings] = await Promise.all([
+    all('beans').catch(() => []),
+    getSetting('app.settings', {}).catch(() => ({}))
+  ]);
+  const bean = beans.find(item => sameBeanRecord(item, next.bean || {})) || { ...(next.bean || {}) };
+  next.matching = buildMatchingEnvelope({
+    bean,
+    settings,
+    input: next,
+    userCorrection: settings?.matching?.userCorrection || [],
+    sessionCorrection: []
+  });
+  return next;
+}
+
 async function cached(input) {
   const id = await cacheKey(input);
   const expected = await inputFingerprint(input);
@@ -169,9 +208,7 @@ async function cached(input) {
   if (!record?.analysis) return null;
   try {
     return { analysis: validateAnalysis(record.analysis, { expectedInputFingerprint: expected }), cacheId: id, cached: true };
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 async function persistCache(input, analysis) {
@@ -179,7 +216,9 @@ async function persistCache(input, analysis) {
   await put('syncMetadata', {
     id,
     analysis: structuredClone(analysis),
-    contract: BREW_ANALYSIS_CONTRACT,
+    contract: analysis.contract,
+    spatialContract: analysis.trajectory?.schemaVersion || '',
+    flavorStateContract: analysis.trajectory?.flavorState?.schemaVersion || '',
     fingerprint: analysis.analysisFingerprint,
     inputFingerprint: await inputFingerprint(input),
     engineVersion: analysis.metadata?.engineVersion || '',
@@ -193,33 +232,24 @@ async function persistCache(input, analysis) {
 async function fetchAnalysis(input, { endpoint = BREW_ANALYSIS_ENDPOINT, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
   const expected = await inputFingerprint(input);
   const { payload } = await brewApiJson('', {
-    method: 'POST',
-    body: input,
-    endpoint,
+    method: 'POST', body: input, endpoint,
     timeoutMs: Math.min(Math.max(Number(timeoutMs) || DEFAULT_TIMEOUT_MS, 2500), 20000)
   });
   return validateAnalysis(payload, { expectedInputFingerprint: expected });
 }
 
 export async function requestBrewAnalysis(input, options = {}) {
-  const cacheRecord = await cached(input);
+  const preparedInput = await attachMatching(input);
+  const cacheRecord = await cached(preparedInput);
   const online = globalThis.navigator?.onLine !== false;
   if (!online && cacheRecord) return { ...cacheRecord, plan: adaptAuthoritativePlan(cacheRecord.analysis), stale: true, offline: true };
   if (options.preferCache === true && cacheRecord) return { ...cacheRecord, plan: adaptAuthoritativePlan(cacheRecord.analysis) };
   try {
-    const analysis = await fetchAnalysis(input, options);
-    const cacheId = await persistCache(input, analysis);
+    const analysis = await fetchAnalysis(preparedInput, options);
+    const cacheId = await persistCache(preparedInput, analysis);
     return { analysis, plan: adaptAuthoritativePlan(analysis), cacheId, cached: false };
   } catch (error) {
-    if (cacheRecord) {
-      return {
-        ...cacheRecord,
-        plan: adaptAuthoritativePlan(cacheRecord.analysis),
-        stale: true,
-        networkError: error.message,
-        networkErrorCode: error.code || ''
-      };
-    }
+    if (cacheRecord) return { ...cacheRecord, plan: adaptAuthoritativePlan(cacheRecord.analysis), stale: true, networkError: error.message, networkErrorCode: error.code || '' };
     throw error;
   }
 }

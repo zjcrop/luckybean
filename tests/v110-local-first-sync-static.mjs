@@ -105,7 +105,7 @@ assert.doesNotMatch(runtimeFeatures, /v109-history-management\.js|v099-trajector
 assert.doesNotMatch(runtimeFeatures, /v095-ui\.js|theme-bridge\.js/);
 
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v123d-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-5`/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-6`/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES = \['luckybean-main-v123-'/);
 assert.match(sw, /key\.startsWith\(CACHE_PREFIX\) && key !== CACHE_NAME/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES\.some/);
@@ -115,6 +115,7 @@ assert.match(sw, /src\/core\/bootstrap\.js/);
 assert.match(sw, /src\/services\/cloud-sync-safety\.js/);
 assert.match(sw, /src\/ui\/appearance-controller\.js/);
 assert.match(sw, /src\/features\/runtime-features\.js/);
+assert.match(sw, /src\/features\/gear-regression-fix-controller\.js/);
 assert.match(sw, /src\/renderers\/brew-spatial-view\.js/);
 assert.match(sw, /src\/domain\/history\/history-service\.js/);
 assert.match(sw, /Luckybean-END\.webp/);

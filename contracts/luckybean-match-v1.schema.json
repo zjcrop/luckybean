@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luckybean.local/contracts/luckybean-match-v1.schema.json",
+  "title": "LuckyBean Match Envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "schema_ver", "axis_set", "dim", "signature_type", "signature", "match_vector", "target_vector", "confidence", "model_versions"],
+  "properties": {
+    "contract": { "const": "luckybean-match/1.0" },
+    "schema_ver": { "const": 1 },
+    "axis_set": { "const": "flavor_core_v1" },
+    "dim": { "const": 8 },
+    "signature_type": { "const": "match_only" },
+    "signature": { "type": "string", "pattern": "^LMS1-FC1-D08-X[0-9A-F]{16}-Q(?:100|[0-9]{1,2})$" },
+    "match_vector": {
+      "type": "array", "minItems": 8, "maxItems": 8,
+      "items": { "type": "integer", "minimum": 0, "maximum": 100 }
+    },
+    "target_vector": {
+      "type": "array", "minItems": 8, "maxItems": 8,
+      "items": { "type": "number", "minimum": 0, "maximum": 100 }
+    },
+    "confidence": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "model_versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bean_model_ver", "gear_model_ver", "target_model_ver"],
+      "properties": {
+        "bean_model_ver": { "type": "string", "minLength": 1 },
+        "gear_model_ver": { "type": "string", "minLength": 1 },
+        "target_model_ver": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

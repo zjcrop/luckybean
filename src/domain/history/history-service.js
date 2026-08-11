@@ -124,11 +124,13 @@ export async function commitCompletedBrew({
   const bean = await requestValue(beans.get(beanId));
   if (!bean) { tx.abort(); throw new Error('豆卡不存在，无法保存冲煮记录'); }
   const remainingBefore = Number(bean.remainingWeight || 0);
-  if (!Number.isFinite(remainingBefore) || remainingBefore < amount) {
+  if (!Number.isFinite(remainingBefore) || remainingBefore < 0) {
     tx.abort();
-    throw new Error(`豆卡余量不足：当前${Math.max(0, remainingBefore).toFixed(1)}g，实际使用${amount.toFixed(1)}g`);
+    throw new Error('豆卡剩余克重数据无效，无法保存冲煮记录');
   }
-  const remainingAfter = Number((remainingBefore - amount).toFixed(3));
+  const inventoryShortfallG = Math.max(0, Number((amount - remainingBefore).toFixed(3)));
+  const remainingAfter = Math.max(0, Number((remainingBefore - amount).toFixed(3)));
+  const autoArchived = remainingAfter < 5;
   const record = {
     id: recordId,
     schemaVersion: BREW_HISTORY_SCHEMA,
@@ -156,7 +158,7 @@ export async function commitCompletedBrew({
     type: 'brew-consume',
     amountG: -amount,
     resultingWeightG: remainingAfter,
-    note: `确认完成冲煮并扣除${amount.toFixed(1)}g`,
+    note: `确认完成冲煮并扣除${amount.toFixed(1)}g${inventoryShortfallG > 0 ? `；记录余量不足${inventoryShortfallG.toFixed(1)}g，剩余量按0g结算` : ''}`,
     createdAt
   };
   const revision = {
@@ -177,14 +179,19 @@ export async function commitCompletedBrew({
     attempts: 0
   };
 
-  beans.put({ ...bean, remainingWeight: remainingAfter, updatedAt: createdAt });
+  beans.put({
+    ...bean,
+    remainingWeight: remainingAfter,
+    ...(autoArchived ? { archived: true, archivedAt: bean.archivedAt || createdAt } : {}),
+    updatedAt: createdAt
+  });
   inventory.put(inventoryEvent);
   sessions.put(record);
   revisions.put(revision);
   outbox.put(queueItem);
   await transactionDone(tx);
-  emitChanged({ store: 'brewSessions', operation: 'completed-brew-commit', recordId, beanId });
-  return { record, inventoryEvent, duplicate: false };
+  emitChanged({ store: 'brewSessions', operation: 'completed-brew-commit', recordId, beanId, remainingAfter, autoArchived, inventoryShortfallG });
+  return { record, inventoryEvent, duplicate: false, remainingAfter, autoArchived, inventoryShortfallG };
 }
 
 export async function listCompletedBrews({ beanId = '', includeArchived = false } = {}) {

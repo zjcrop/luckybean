@@ -117,11 +117,34 @@ function scoreQuality(metrics, width, height) {
   };
 }
 
+function androidNativeFallback(file, error) {
+  if (!globalThis.__LUCKYBEAN_ANDROID__) throw error;
+  return {
+    blob: file,
+    originalName: file.name || 'coffee-bag-image',
+    originalSize: file.size || 0,
+    width: 0,
+    height: 0,
+    processedWidth: 0,
+    processedHeight: 0,
+    metrics: null,
+    score: 65,
+    status: 'usable',
+    nativeSource: true,
+    warnings: ['WebView预览不可用；识别时由 Android 直接读取原始照片，不再依赖空 Blob']
+  };
+}
+
 export async function preparePackageImage(file, { maxEdge = DEFAULT_MAX_EDGE } = {}) {
   if (!(file instanceof Blob)) throw new TypeError('需要有效的图片文件');
-  const image = await decodeImage(file);
+  let image;
+  try {
+    image = await decodeImage(file);
+  } catch (error) {
+    return androidNativeFallback(file, error);
+  }
   const { width, height } = dimensions(image);
-  if (!width || !height) throw new Error('图片尺寸无效');
+  if (!width || !height) return androidNativeFallback(file, new Error('图片尺寸无效'));
 
   const sampleScale = Math.min(1, SAMPLE_EDGE / Math.max(width, height));
   const sampleCanvas = document.createElement('canvas');
@@ -150,6 +173,7 @@ export async function preparePackageImage(file, { maxEdge = DEFAULT_MAX_EDGE } =
     processedWidth: outputCanvas.width,
     processedHeight: outputCanvas.height,
     metrics,
+    nativeSource: false,
     ...quality
   };
 }

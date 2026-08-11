@@ -1,0 +1,137 @@
+name: LuckyBean integration Android
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: luckybean-integration-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v5.7.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4.0.1
+      - name: Install Android SDK components
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools' 'emulator' 'system-images;android-29;google_apis;x86_64'
+      - uses: gradle/actions/setup-gradle@v6.3.0
+        with:
+          gradle-version: '8.9'
+      - name: Compile debug APK
+        id: compile
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          gradle --no-daemon -p android :app:assembleDebug 2>&1 | tee android-build.log
+          status=${PIPESTATUS[0]}
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Verify native execution contract
+        if: steps.compile.outputs.status == '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=android/app/build/outputs/apk/debug/app-debug.apk
+          test -f "$apk"
+          grep -q 'class BrewTimerService extends Service' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
+          grep -q 'SystemClock.elapsedRealtime()' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
+          grep -q 'synthesizeToFile' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
+          grep -q 'ExoPlayer' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
+          grep -q 'prepareBrewExecution' android/app/src/main/java/com/luckybean/app/MainActivity.java
+          grep -q 'FLAG_KEEP_SCREEN_ON' android/app/src/main/java/com/luckybean/app/MainActivity.java
+          grep -q 'FOREGROUND_SERVICE_MEDIA_PLAYBACK' android/app/src/main/AndroidManifest.xml
+          unzip -l "$apk" | grep -q 'assets/web-cache/src/features/full-integration-controller-v3.js'
+          unzip -l "$apk" | grep -q 'assets/web-cache/src/features/experience-fixes-controller.js'
+          unzip -l "$apk" | grep -q 'assets/web-cache/contracts/luckybean-match-v1.schema.json'
+          unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'globalThis.__LUCKYBEAN_ANDROID__ || !globalThis.speechSynthesis'
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app'"
+      - name: Android 10 runtime startup smoke
+        if: steps.compile.outputs.status == '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=android/app/build/outputs/apk/debug/app-debug.apk
+          export ANDROID_AVD_HOME="$RUNNER_TEMP/android-avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n luckybean-api29 -k 'system-images;android-29;google_apis;x86_64' --force
+          echo 'Available AVDs:'
+          "$ANDROID_HOME/emulator/emulator" -list-avds | tee android-avd-list.txt
+          grep -qx 'luckybean-api29' android-avd-list.txt
+          accel_args=()
+          if [ -e /dev/kvm ]; then
+            sudo chmod 666 /dev/kvm || true
+          else
+            accel_args=(-accel off)
+          fi
+          nohup "$ANDROID_HOME/emulator/emulator" -avd luckybean-api29 -no-window -noaudio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -wipe-data "${accel_args[@]}" > android-emulator.log 2>&1 &
+          if ! timeout 180 adb wait-for-device; then
+            echo 'Android emulator did not expose adb within 180s.' >&2
+            tail -n 200 android-emulator.log >&2 || true
+            exit 1
+          fi
+          for i in $(seq 1 120); do
+            if [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then break; fi
+            sleep 2
+          done
+          if [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" != "1" ]; then
+            echo 'Android emulator did not finish booting.' >&2
+            tail -n 200 android-emulator.log >&2 || true
+            exit 1
+          fi
+          adb install -r "$apk"
+          adb logcat -c
+          set +e
+          adb shell am start -W -n com.luckybean.app/.MainActivity > android-start.txt 2>&1
+          start_status=$?
+          set -e
+          sleep 8
+          adb logcat -d -v threadtime > android-runtime.log
+          cat android-start.txt
+          if [ "$start_status" -ne 0 ] || ! adb shell pidof com.luckybean.app >/dev/null; then
+            echo 'LuckyBean process did not survive startup.' >&2
+            grep -n -E 'FATAL EXCEPTION|AndroidRuntime|com\.luckybean\.app|Caused by:' android-runtime.log | tail -n 200 >&2 || true
+            exit 1
+          fi
+          if grep -A40 -B10 'FATAL EXCEPTION: main' android-runtime.log | grep -q 'com.luckybean.app'; then
+            grep -A80 -B20 'FATAL EXCEPTION: main' android-runtime.log >&2 || true
+            exit 1
+          fi
+      - name: Package integration APK
+        if: steps.compile.outputs.status == '0'
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist/LuckyBean-1.23D-full-integration-debug.apk
+          sha256sum dist/LuckyBean-1.23D-full-integration-debug.apk > dist/SHA256SUMS.txt
+          printf 'source_sha=%s\nbranch=%s\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist/BUILD_PROVENANCE.txt
+      - name: Upload Android build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: luckybean-full-integration-android-${{ github.sha }}
+          path: |
+            android-build.log
+            android-avd-list.txt
+            android-emulator.log
+            android-start.txt
+            android-runtime.log
+            dist/
+          if-no-files-found: warn
+      - name: Fail if Android compile failed
+        if: steps.compile.outputs.status != '0'
+        shell: bash
+        run: |
+          echo 'Android compilation failed; see uploaded android-build.log.'
+          exit 1

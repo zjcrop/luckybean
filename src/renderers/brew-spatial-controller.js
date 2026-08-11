@@ -1,7 +1,8 @@
 import { brewSpatialView } from './brew-spatial-view.js';
 
 const REQUIRED_TARGET_IDS = Object.freeze(['acidity', 'floral', 'fruity', 'sweetness', 'bitterness', 'astringency']);
-const SUPPORTED_SPATIAL_CONTRACTS = new Set(['brew-spatial/1.1', 'brew-spatial/1.2']);
+const SUPPORTED_SPATIAL_CONTRACTS = new Set(['brew-spatial/1.1', 'brew-spatial/1.2', 'brew-spatial/1.3']);
+const VIEW_NATIVE_SPATIAL_CONTRACT = 'brew-spatial/1.2';
 
 function isProfessionalScene(scene) {
   if (!scene || !SUPPORTED_SPATIAL_CONTRACTS.has(scene.schemaVersion) || !Array.isArray(scene.path) || scene.path.length < 2) return false;
@@ -21,6 +22,17 @@ function sceneFromPlan(plan) {
     plan.analysisSnapshot?.trajectory
   ];
   return candidates.find(isProfessionalScene) || null;
+}
+
+function adaptForView(scene) {
+  if (!scene || scene.schemaVersion !== 'brew-spatial/1.3') return scene;
+  // Spatial 1.3 keeps the same t/T/W path and target point geometry used by the renderer.
+  // Flavor State is carried through untouched; only the renderer's version gate is adapted.
+  return {
+    ...scene,
+    sourceSchemaVersion: scene.schemaVersion,
+    schemaVersion: VIEW_NATIVE_SPATIAL_CONTRACT
+  };
 }
 
 function host() { return document.querySelector('#brewSpatialMount'); }
@@ -43,7 +55,7 @@ async function mount(plan) {
   }
   target.hidden = false;
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  return Boolean(brewSpatialView.mountPreview(target, scene));
+  return Boolean(brewSpatialView.mountPreview(target, adaptForView(scene)));
 }
 
 function clear() {
@@ -58,14 +70,15 @@ document.addEventListener('luckybean:plan-ready', event => mount(event.detail?.p
 document.addEventListener('luckybean:history-plan-loaded', event => mount(event.detail?.plan));
 document.addEventListener('luckybean:spatial-clear', clear);
 document.addEventListener('luckybean:open-spatial-scene', event => {
-  if (isProfessionalScene(event.detail?.scene) && brewSpatialView.setScene(event.detail.scene)) brewSpatialView.open();
+  const scene = event.detail?.scene;
+  if (isProfessionalScene(scene) && brewSpatialView.setScene(adaptForView(scene))) brewSpatialView.open();
 });
 
 globalThis.LuckyBeanSpatial = {
-  revision: 'brew-spatial-view/1.3.0',
+  revision: 'brew-spatial-view/1.4.0',
   mount,
   clear,
-  open(scene) { if (isProfessionalScene(scene) && brewSpatialView.setScene(scene)) brewSpatialView.open(); },
+  open(scene) { if (isProfessionalScene(scene) && brewSpatialView.setScene(adaptForView(scene))) brewSpatialView.open(); },
   close() { brewSpatialView.close(); },
   validate: isProfessionalScene
 };
