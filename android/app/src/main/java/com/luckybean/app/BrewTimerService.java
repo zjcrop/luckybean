@@ -49,6 +49,7 @@ public final class BrewTimerService extends Service {
     private static final String CHANNEL_ID = "luckybean_brew_execution";
     private static final int NOTIFICATION_ID = 23011;
     private static final long TICK_INTERVAL_MS = 50L;
+    private static final int MAX_TTS_PREPARE_RETRIES = 30;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final List<SpeechEvent> speechEvents = new ArrayList<>();
@@ -58,7 +59,9 @@ public final class BrewTimerService extends Service {
 
     private ExoPlayer player;
     private TextToSpeech textToSpeech;
+    private boolean ttsInitialized = false;
     private boolean ttsReady = false;
+    private int ttsPrepareRetries = 0;
     private boolean running = false;
     private boolean paused = false;
     private long startedElapsedMs = 0L;
@@ -93,6 +96,7 @@ public final class BrewTimerService extends Service {
 
     private void initializeTts() {
         textToSpeech = new TextToSpeech(getApplicationContext(), status -> {
+            ttsInitialized = true;
             if (status != TextToSpeech.SUCCESS) {
                 ttsReady = false;
                 return;
@@ -121,7 +125,9 @@ public final class BrewTimerService extends Service {
         String action = intent.getAction();
         if (ACTION_PREPARE.equals(action)) {
             parsePayload(intent.getStringExtra(EXTRA_PAYLOAD));
+            ttsPrepareRetries = 0;
             prepareSpeechFiles();
+            handler.postDelayed(() -> { if (!running) stopSelf(); }, 120000L);
             return START_NOT_STICKY;
         }
         if (ACTION_START.equals(action)) {
@@ -169,10 +175,11 @@ public final class BrewTimerService extends Service {
     }
 
     private void prepareSpeechFiles() {
-        if (!ttsReady || textToSpeech == null) {
-            handler.postDelayed(this::prepareSpeechFiles, 180L);
+        if (!ttsInitialized) {
+            if (ttsPrepareRetries++ < MAX_TTS_PREPARE_RETRIES) handler.postDelayed(this::prepareSpeechFiles, 180L);
             return;
         }
+        if (!ttsReady || textToSpeech == null) return;
         File directory = new File(getCacheDir(), "brew-speech-v1");
         if (!directory.exists() && !directory.mkdirs()) return;
         for (SpeechEvent event : speechEvents) {
@@ -259,6 +266,7 @@ public final class BrewTimerService extends Service {
             if (textToSpeech != null) textToSpeech.stop();
             player.stop();
             player.clearMediaItems();
+            player.setVolume(1.0f);
             player.setMediaItem(MediaItem.fromUri(uri));
             player.prepare();
             player.play();
@@ -305,9 +313,10 @@ public final class BrewTimerService extends Service {
         AudioManager.OnAudioFocusChangeListener listener = focusChange -> {
             if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
                 audioFocusHeld = true;
+                if (player != null) player.setVolume(1.0f);
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
                 audioFocusHeld = false;
-                if (player != null) { player.stop(); player.clearMediaItems(); }
+                if (player != null) { player.stop(); player.clearMediaItems(); player.setVolume(1.0f); }
                 if (textToSpeech != null) textToSpeech.stop();
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
                 if (player != null) player.setVolume(0.25f);
@@ -388,7 +397,11 @@ public final class BrewTimerService extends Service {
         final String text;
         final String fixedKey;
         SpeechEvent(String id, long atMs, long validWindowMs, String text, String fixedKey) {
-            this.id = id; this.atMs = atMs; this.validWindowMs = validWindowMs; this.text = text; this.fixedKey = fixedKey;
+            this.id = id;
+            this.atMs = atMs;
+            this.validWindowMs = validWindowMs;
+            this.text = text;
+            this.fixedKey = fixedKey;
         }
     }
 }
