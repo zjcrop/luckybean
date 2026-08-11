@@ -27,7 +27,7 @@ assert.match(controller, /\.bean-card\.compact\.lb-one-line-bean \.bean-freshnes
 
 // Keep the original freshness model as the single source of truth rather than
 // duplicating roast/process/variety/frozen-aging rules in the UI controller.
-assert.match(utils, /export function freshnessProfile\(bean\)/);
+assert.match(utils, /export function freshnessProfile\(bean,\s*now = new Date\(\)\)/);
 assert.doesNotMatch(controller, /RL-L0|SL28|GESHA|0\.78/);
 assert.match(sw, /features\/freshness-timeline-controller\.js\?v=1\.23E-main-sync\.1/);
 
