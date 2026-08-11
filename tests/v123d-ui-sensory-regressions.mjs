@@ -9,7 +9,7 @@ const app = read('src/app.js');
 const styles = read('styles.css');
 const layoutGuard = read('src/ui/layout-guard.css');
 
-assert.match(read('src/utils.js'), /APP_VERSION = '1\.23D'/, 'the locked app version must remain 1.23D');
+assert.match(read('src/utils.js'), /APP_VERSION = '1\.23E'/, 'the locked app version must be 1.23E');
 
 assert.match(appearance, /theme === 'dark' \? '☀️' : '🌙'/, 'dark mode must offer the sun action and light mode the moon action');
 assert.match(appearance, /screen\.dataset\.splashVariant = normalized/, 'the persisted splash choice must restore its matching background after refresh');
@@ -38,4 +38,4 @@ assert.match(app, /dripperMaterial:\s*normalizeDripperMaterial\(/, 'LuckyBean mu
 assert.match(app, /data-add-bean-option="regions"/, 'region must retain a local add-option action');
 assert.match(app, /data-add-bean-option="entities"/, 'estate and processing-station must retain a local add-option action');
 
-console.log('LuckyBean 1.23D settings and sensory regression contracts passed');
+console.log('LuckyBean 1.23E settings and sensory regression contracts passed');
