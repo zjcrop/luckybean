@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.23D';
+export const APP_VERSION = '1.23E';
 export const SCHEMA_VERSION = 8;
 
 export const $ = (selector, root = document) => root.querySelector(selector);
