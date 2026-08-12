@@ -34,18 +34,25 @@ test('catalog is authoritative, cached, and includes all six competition profile
   }
 });
 
-test('ratio defaults to profile recommendation while preserving explicit manual override', async () => {
+test('ratio defaults to model recommendation while preserving explicit manual override', async () => {
   const app = await read('src/app.js');
   assert.match(app, /ratioMode: 'auto'/);
-  assert.match(app, /方案推荐（生成后返回）/);
+  assert.match(app, /ratioRecommendedLabel = `模型推荐 · 1:\$\{Number\(settings\.ratio \|\| 15\.5\)\}`/);
   assert.match(app, /ratioMode = ratioSelection === 'auto' \? 'auto' : 'manual'/);
+  assert.match(app, /\[14,14\.5,15,15\.5,16,16\.5,17,18\]/);
 });
 
-test('absolute tail cooling accepts 60°C and is transported to BrewProfiles', async () => {
+test('cooling defaults to model recommendation and custom tail accepts 60°C', async () => {
   const app = await read('src/app.js');
+  assert.match(app, /firstCoolingMode: 'auto'/);
+  assert.match(app, /tailCoolingMode: 'auto'/);
   assert.match(app, /const minimum = first \? 70 : 50/);
-  assert.match(app, /tailCoolingMode: \$\('#tailCoolingMode'\)/);
-  assert.match(app, /tailTemperatureC: Number\(state\.settings\.brew\.tailTemperatureC\)/);
+  assert.match(app, /data-cooling-choice="auto">模型推荐/);
+  assert.match(app, /data-cooling-choice="custom">自定义/);
+  assert.match(app, /data-cooling-choice="off">不开启/);
+  assert.match(app, /firstTemperatureC: state\.settings\.brew\.firstCoolingMode === 'custom' \? Number\(state\.settings\.brew\.firstTemperatureC\) : null/);
+  assert.match(app, /tailTemperatureC: state\.settings\.brew\.tailCoolingMode === 'custom' \? Number\(state\.settings\.brew\.tailTemperatureC\) : null/);
+  assert.doesNotMatch(app, /select\.addEventListener\('pointerdown', reopenCustom\)/);
 });
 
 test('client rejects empty or incomplete target geometry', async () => {
