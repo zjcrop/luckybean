@@ -20,6 +20,8 @@ assert.match(controller, /bean-freshness-progress\{display:block!important/);
 assert.match(controller, /按赏味期阶段/);
 assert.match(controller, /data-lb-freshness-root class="empty-state"/);
 assert.match(controller, /const hasUnknownCard = cards\.some\(card => !beanMap\.has\(String\(card\.dataset\.beanId \|\| ''\)\)\)/);
+assert.match(controller, /attributes: true/);
+assert.match(controller, /attributeFilter: \['class', 'data-bean-id'\]/);
 assert.match(controller, /if \(!beanMap\.size \|\| hasUnknownCard\) await refreshBeanMap\(\)/);
 
 assert.match(integrationCss, /bean-freshness-progress\{display:none!important\}/);

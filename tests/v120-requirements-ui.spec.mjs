@@ -416,23 +416,22 @@ test('private gear uses three closed, aligned list editors', async ({ page }) =>
   await expect(page.locator('#dripperMaterial')).toHaveValue('ceramic');
   await page.locator('[data-close-overlay]').click();
 
-  await reloadAfterPendingNavigation(page);
-  const splash = page.locator('#splashScreen');
-  if (await splash.isVisible()) await splash.click();
-  await expect(page.locator('#appShell')).toBeVisible({ timeout: 15000 });
-  await page.locator('[data-page-target="settings"]').click();
-  await page.locator('#privateGearCategory > summary').click();
+  const persistedPage = await page.context().newPage();
+  await openApp(persistedPage, 'requirements-gear-persisted=1');
+  await persistedPage.locator('[data-page-target="settings"]').click();
+  await persistedPage.locator('#privateGearCategory > summary').click();
 
   for (const kind of ['filter', 'dripper', 'grinder']) {
-    await expect(page.locator(`[data-gear-kind="${kind}"]`)).not.toHaveAttribute('open', '');
+    await expect(persistedPage.locator(`[data-gear-kind="${kind}"]`)).not.toHaveAttribute('open', '');
   }
-  await page.locator('[data-gear-kind="filter"] > summary').click();
-  await expect(page.locator('[data-filter-item]')).toContainText('测试品牌 测试滤纸');
-  await page.locator('[data-gear-kind="filter"] > summary').click();
-  await page.locator('[data-gear-kind="dripper"] > summary').click();
-  await expect(page.locator('[data-dripper-item]').filter({ hasText: '测试滤杯' })).toHaveCount(1);
-  await page.locator('[data-gear-kind="dripper"] > summary').click();
-  await page.locator('[data-gear-kind="grinder"] > summary').click();
-  await expect(page.locator('[data-grinder-item]')).toContainText('测试磨豆机');
-  await expect(page.locator('[data-grinder-item]')).toContainText('23格');
+  await persistedPage.locator('[data-gear-kind="filter"] > summary').click();
+  await expect(persistedPage.locator('[data-filter-item]')).toContainText('测试品牌 测试滤纸');
+  await persistedPage.locator('[data-gear-kind="filter"] > summary').click();
+  await persistedPage.locator('[data-gear-kind="dripper"] > summary').click();
+  await expect(persistedPage.locator('[data-dripper-item]').filter({ hasText: '测试滤杯' })).toHaveCount(1);
+  await persistedPage.locator('[data-gear-kind="dripper"] > summary').click();
+  await persistedPage.locator('[data-gear-kind="grinder"] > summary').click();
+  await expect(persistedPage.locator('[data-grinder-item]')).toContainText('测试磨豆机');
+  await expect(persistedPage.locator('[data-grinder-item]')).toContainText('23格');
+  await persistedPage.close();
 });

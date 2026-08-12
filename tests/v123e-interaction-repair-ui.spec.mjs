@@ -38,8 +38,9 @@ test('bean flavor picker is regrouped to five requested categories and starts at
     dialog.scrollTop = 100;
     host.scrollTop = 100;
   });
-  await page.waitForTimeout(100);
-  const labels = await page.locator('[data-overlay="flavors"] .flavor-group h3').allTextContents();
+  const groups = page.locator('[data-overlay="flavors"] .flavor-group');
+  await expect(groups).toHaveCount(5, { timeout: 15000 });
+  const labels = await groups.locator('h3').allTextContents();
   expect(labels).toEqual(['花香', '果香', '茶感', '香料', '其他']);
   await expect(page.locator('[data-overlay="flavors"] .flavor-group').nth(0)).toContainText('茉莉');
   await expect(page.locator('[data-overlay="flavors"] .flavor-group').nth(4)).toContainText('巧克力');

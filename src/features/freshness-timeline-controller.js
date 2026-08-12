@@ -198,11 +198,16 @@ document.addEventListener('click', event => {
 }, true);
 
 new MutationObserver(records => {
-  const relevant = records.some(record => [...record.addedNodes].some(node => node.nodeType === 1 && (
-    node.matches?.('.bean-card,.popup-menu,#beanGroups') || node.querySelector?.('.bean-card,.popup-menu,#beanGroups')
-  )));
+  const relevant = records.some(record => {
+    if (record.type === 'attributes') {
+      return record.target?.nodeType === 1 && record.target.matches?.('.bean-card[data-bean-id]');
+    }
+    return [...record.addedNodes].some(node => node.nodeType === 1 && (
+      node.matches?.('.bean-card,.popup-menu,#beanGroups') || node.querySelector?.('.bean-card,.popup-menu,#beanGroups')
+    ));
+  });
   if (relevant) queue();
-}).observe(document.body, { childList: true, subtree: true });
+}).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'data-bean-id'] });
 
 document.addEventListener('luckybean:app-refreshed', async () => {
   await refreshBeanMap();
