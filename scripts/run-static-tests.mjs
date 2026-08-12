@@ -17,7 +17,8 @@ const tests = [
   'tests/v123e-plan-contract-regression.mjs',
   'tests/v123e-freshness-timeline-regression.mjs',
   'tests/v123e-interaction-repair-static.mjs',
-  'tests/v123e-gear-matching-regression.mjs'
+  'tests/v123e-gear-matching-regression.mjs',
+  'tests/v123e-android-gallery-uri-regression.mjs'
 ];
 
 function annotation(text) {
