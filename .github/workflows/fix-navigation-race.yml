@@ -1,0 +1,66 @@
+name: Fix Playwright navigation race
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-navigation-race.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Patch navigation-race test helper
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('tests/v120-requirements-ui.spec.mjs')
+          text = path.read_text(encoding='utf-8')
+          helper = """
+          async function reloadAfterPendingNavigation(page) {
+            for (let attempt = 0; attempt < 3; attempt += 1) {
+              try {
+                await page.reload({ waitUntil: 'domcontentloaded' });
+                return;
+              } catch (error) {
+                const message = String(error?.message || error || '');
+                const navigationRace = /ERR_ABORTED|frame was detached/i.test(message);
+                if (!navigationRace || attempt === 2) throw error;
+                await page.waitForTimeout(250);
+                await page.waitForLoadState('domcontentloaded').catch(() => {});
+              }
+            }
+          }
+          """.strip()
+
+          if 'async function reloadAfterPendingNavigation(page)' not in text:
+            anchor = "async function seedBean(page) {"
+            if anchor not in text:
+              raise SystemExit('seedBean anchor not found')
+            text = text.replace(anchor, helper + "\n\n" + anchor, 1)
+
+          old = "await page.reload({ waitUntil: 'domcontentloaded' });"
+          count = text.count(old)
+          if count != 2:
+            raise SystemExit(f'expected 2 explicit reloads, found {count}')
+          text = text.replace(old, 'await reloadAfterPendingNavigation(page);')
+          path.write_text(text, encoding='utf-8')
+          PY
+          node --check tests/v120-requirements-ui.spec.mjs
+      - name: Commit deterministic test
+        shell: bash
+        run: |
+          git config user.name 'zjcrop'
+          git config user.email '127176814+zjcrop@users.noreply.github.com'
+          git add tests/v120-requirements-ui.spec.mjs
+          git commit -m 'test: stabilize explicit reload navigation races'
+          git push origin HEAD:main
