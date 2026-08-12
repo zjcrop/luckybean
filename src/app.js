@@ -748,17 +748,22 @@ async function openBatchBeanManager({ recycle = false } = {}) {
     const names = state.beans.filter(bean => ids.includes(bean.id)).slice(0, 3).map(beanDisplayName);
     const suffix = ids.length > names.length ? ` 等${ids.length}张豆卡` : '';
     if (!globalThis.confirm(`确认删除：${names.join('、')}${suffix}？\n记录将移入回收站并保留7天。`)) return;
-    event.currentTarget.disabled = true; event.currentTarget.textContent = '正在删除…';
-    try {
-      const at = new Date().toISOString();
-      const selected = state.beans.filter(bean => ids.includes(bean.id));
-      for (const bean of selected) {
-        await put('recycleBin', { id: `bean:${bean.id}`, entity: 'beans', entityId: bean.id, payload: structuredClone(bean), recycledAt: at });
-        await remove('beans', bean.id);
-      }
-      await refreshData(); renderBeans(); await openBatchBeanManager({ recycle: false });
-      toast(`已将 ${selected.length} 张豆卡移入回收站`, 'status-good');
-    } catch (error) { event.currentTarget.disabled = false; event.currentTarget.textContent = '删除所选'; toast(error.message || '批量删除失败', 'status-bad'); }
+    const selected = state.beans.filter(bean => ids.includes(bean.id));
+    const snapshot = [...state.beans];
+    const at = new Date().toISOString();
+    state.beans = state.beans.filter(bean => !ids.includes(bean.id));
+    closeOverlay(); renderBeans();
+    toast(`已删除 ${selected.length} 张豆卡，云端将在后台同步`, 'status-good');
+    Promise.all(selected.flatMap(bean => [
+      put('recycleBin', { id: `bean:${bean.id}`, entity: 'beans', entityId: bean.id, payload: structuredClone(bean), recycledAt: at }),
+      remove('beans', bean.id)
+    ])).then(() => {
+      globalThis.LuckyBeanV099tBeanGroups?.invalidateData?.();
+      document.dispatchEvent(new CustomEvent('luckybean:app-refreshed'));
+    }).catch(error => {
+      state.beans = snapshot; renderBeans();
+      toast(error.message || '本地删除失败，已恢复列表', 'status-bad');
+    });
   });
   $('#restoreBatchBeansBtn')?.addEventListener('click', async event => {
     const ids = selectedIds(); if (!ids.length) return;
@@ -1631,6 +1636,7 @@ function openCoolingDialog(which) {
 async function generatePlan() {
   const bean = state.beans.find(item => item.id === $('#brewBean').value); if (!bean) return toast('请先选择豆卡');
   const button = $('#generatePlanBtn'); state.selectedBeanId = bean.id;
+  const previousCandidates = state.currentPlan?.recommendation?.candidates || [];
   const input = buildBrewInput(bean); state.currentBrewInput = input;
   button.disabled = true; button.textContent = '正在计算…';
   try {
@@ -1642,6 +1648,9 @@ async function generatePlan() {
       failure.code = error.code || 'BREWPROFILES_UNAVAILABLE';
       failure.cause = error;
       throw failure;
+    }
+    if ((plan.recommendation?.candidates || []).length < 3 && previousCandidates.length >= 3) {
+      plan.recommendation = { ...(plan.recommendation || {}), candidates: previousCandidates };
     }
     plan.beanId = bean.id; plan.generatedAt = new Date().toISOString(); plan.input = input;
     validatePlan(plan); state.currentPlan = plan;
@@ -1684,7 +1693,7 @@ function planHtml(plan) {
   <details class="details-block professional-result"><summary>专业内容……</summary><div class="details-content">
     <section class="visual-section"><h3>风味拟合</h3><div class="bar-chart">${Object.entries({花香:flavor.floral,酸质:flavor.acidity,甜感:flavor.sweetness,口感:flavor.body,苦感风险:flavor.bitterness,洁净度:flavor.clarity}).map(([key,value])=>`<div class="bar-row"><span>${key}</span><div class="bar-track"><div class="bar-fill" style="width:${clamp(Number(value||0)*100,0,100)}%"></div></div><strong>${Math.round(Number(value||0)*100)}</strong></div>`).join('')}</div></section>
     <dl class="professional-list"><dt>研磨建议</dt><dd>${esc(plan.grinder ? `${plan.grinder.label} ${plan.grinder.recommended}${plan.grinder.unit}` : '未提供')}</dd><dt>品种模型</dt><dd>${esc(plan.temperature?.model?.model || '通用模型')}</dd><dt>关键化学标记</dt><dd>${esc((plan.temperature?.model?.markers || []).join('、') || '未提供')}</dd><dt>敏感度</dt><dd>${esc(plan.temperature?.model?.sensitivityText || '未提供')}</dd><dt>执行主轴</dt><dd>${esc(plan.temperature?.model?.execution || '未提供')}</dd><dt>容差参考</dt><dd>${plan.temperature?.model?.tolerance ? `温度 ±${plan.temperature.model.tolerance.temperatureC}°C / 流速 ±${plan.temperature.model.tolerance.flowGPerSec}g/s / 水量 ±${plan.temperature.model.tolerance.waterG}g` : '未提供'}</dd><dt>调水方案</dt><dd>${esc(water?.profile?.name || '未提供')} · 参考TDS ${Number(water?.profile?.tdsMid ?? water?.targetTdsRange?.[0] ?? state.settings.brew.customWater?.tds ?? 85)} mg/L</dd><dt>水质判断</dt><dd>${esc(plan.temperature?.model?.waterAdvice || '未提供')}</dd><dt>调水版本</dt><dd>${esc(water?.modelVersion || '—')}</dd><dt>计算模型</dt><dd>${esc(plan.professional?.calculationModelVersion || plan.engineVersion || '—')}</dd><dt>平均流速</dt><dd>${esc(String(plan.professional?.hydraulics?.averageFlowGPerSec ?? '—'))} g/s</dd></dl>
-    ${candidates.length ? `<details class="nested-settings"><summary>匹配方案前三名</summary><div class="nested-content">${candidates.map((item,index)=>`<div class="record-item"><span>${index+1}. ${esc(item.profile?.label || item.id)}</span><span>${esc(item.reason || '')}</span><strong>${matchPercent(item.score)}%</strong></div>`).join('')}</div></details>` : ''}
+    ${candidates.length ? `<section class="nested-settings recommended-profile-options"><h3>推荐冲煮方案（按匹配度）</h3><div class="nested-content">${candidates.map((item,index)=>`<button class="record-item recommended-profile-option${String(item.id || item.profile?.id) === String(plan.profile?.id) ? ' selected' : ''}" type="button" data-recommended-profile="${esc(item.id || item.profile?.id)}"><span>${index+1}. ${esc(item.profile?.label || item.label || item.id)}</span><small>${esc(item.reason || '点击采用此方案重新计算')}</small><strong>${matchPercent(item.score)}%</strong></button>`).join('')}</div></section>` : '<p class="muted small">当前专业引擎未返回可选方案排名。</p>'}
     ${(plan.explanation||[]).map(value=>`<p class="muted small">${esc(value)}</p>`).join('')}
     ${(plan.professional?.modelLimitations||[]).map(value=>`<p class="status-warn small">${esc(value)}</p>`).join('')}
     ${plan.correction?.changes ? `<div class="correction-note"><strong>修正依据</strong>${plan.correction.changes.map(value=>`<p>${esc(value)}</p>`).join('')}</div>` : ''}
@@ -1696,6 +1705,13 @@ function planHtml(plan) {
 function bindPlanActions() {
   $('#startBrewBtn')?.addEventListener('click', startTimer);
   $('#exportPlanBtn')?.addEventListener('click', () => exportCurrentPlan($('#planExportFormat')?.value || 'json'));
+  $$('[data-recommended-profile]').forEach(button => button.addEventListener('click', async () => {
+    const profileId = button.dataset.recommendedProfile;
+    if (!profileId || profileId === state.currentPlan?.profile?.id) return;
+    state.brewProfileOverride = profileId;
+    const select = $('#brewProfile'); if (select) select.value = profileId;
+    await generatePlan();
+  }));
 }
 
 function planExportDocument(plan, format, bean) {

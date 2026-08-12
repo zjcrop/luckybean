@@ -15,7 +15,10 @@ assert.match(integration, /请进入“器”设定个人账户及设备设定/)
 assert.match(integration, /data-page-target=\"settings\"/);
 assert.match(app, /添加第一支咖啡豆小酌一杯吧/);
 assert.match(app, /\.sort\(\(a, b\) => Number\(b\.score\) - Number\(a\.score\)\)\s*\.slice\(0, 3\)/);
-assert.match(app, /匹配方案前三名/);
+assert.match(app, /推荐冲煮方案（按匹配度）/);
+assert.match(app, /data-recommended-profile/);
+assert.match(app, /云端将在后台同步/);
+assert.doesNotMatch(integration, /injectBatchButton\(\);ensurePlanEffect/);
 assert.doesNotMatch(app, /<h3>冲煮轨迹拟合图<\/h3>/);
 assert.match(app, /brewSpatialMount/);
 

@@ -81,20 +81,6 @@ async function mode() {
   return currentMode;
 }
 
-function injectGroupOption() {
-  $$('.popup-menu').forEach(menu => {
-    if (!menu.querySelector('[data-group-method]')) return;
-    let button = menu.querySelector('[data-lb-freshness-group-option]');
-    if (!button) {
-      button = document.createElement('button');
-      button.type = 'button';
-      button.dataset.lbFreshnessGroupOption = '1';
-      menu.append(button);
-    }
-    button.textContent = `按赏味期阶段${currentMode === MODE_RATIO ? ' ✓' : ''}`;
-  });
-}
-
 function placeholderCard(bean) {
   return `<article class="bean-card compact" data-bean-id="${esc(bean.id)}" tabindex="0"></article>`;
 }
@@ -160,21 +146,11 @@ function queue() {
     queued = false;
     injectStyle();
     await decorateCards();
-    injectGroupOption();
     if (currentMode === MODE_RATIO && !$('#beanGroups [data-lb-freshness-root]')) await renderFreshnessGroups();
   }));
 }
 
 document.addEventListener('click', event => {
-  const freshness = event.target.closest?.('[data-lb-freshness-group-option]');
-  if (freshness) {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    event.stopPropagation();
-    selectFreshnessMode().catch(error => console.warn('赏味期分组切换失败', error));
-    return;
-  }
-
   const stage = event.target.closest?.('[data-lb-freshness-stage]');
   if (stage) {
     event.preventDefault();

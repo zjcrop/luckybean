@@ -38,7 +38,7 @@ assert.match(gearController, /const match = dripperMatch\(settings, dripper\.id\
 assert.doesNotMatch(gearController, /brewDripperAngle/);
 assert.match(index, /gear-matching-controller\.js\?v=1\.23E-main-sync\.2/);
 assert.match(sw, /gear-matching-controller\.js\?v=1\.23E-main-sync\.2/);
-assert.match(build, /versionCode 102311/);
+assert.match(build, /versionCode 102312/);
 
 const settings = {
   gear: {

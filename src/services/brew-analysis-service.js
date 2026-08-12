@@ -154,11 +154,29 @@ export function adaptAuthoritativePlan(analysis) {
   const profileVersion = String(source.profile?.version || source.metadata?.profileVersion || analysis.metadata?.resolvedProfileVersion || '');
   const warnings = [...(source.warnings || []), ...(analysis.warnings || [])].map(warningText).filter(Boolean);
   const flavorState = structuredClone(analysis.trajectory?.flavorState || analysis.flavorState || source.flavorState || null);
+  const rawCandidates = analysis.matching?.candidates || source.matching?.candidates || source.recommendation?.candidates || [];
+  const candidates = (Array.isArray(rawCandidates) ? rawCandidates : [])
+    .map(item => {
+      const id = String(item?.profile?.id || item?.profileId || item?.id || '').trim();
+      const score = Number(item?.score ?? item?.matchingScore ?? item?.matchScore);
+      if (!id || !Number.isFinite(score)) return null;
+      return {
+        ...structuredClone(item),
+        id,
+        score,
+        reason: String(item?.reason || item?.summary || item?.explanation || ''),
+        profile: { ...(item?.profile || {}), id, label: String(item?.profile?.label || item?.profileLabel || item?.label || id) }
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
   return {
     ...source,
     engineVersion: String(source.engineVersion || source.metadata?.engineVersion || analysis.metadata?.engineVersion || ''),
     profile: { ...(source.profile || {}), id: profileId, version: profileVersion, label: source.profile?.label || profileId },
     profileVersion: profileVersion ? `${profileId}@${profileVersion}` : profileId,
+    recommendation: { ...(source.recommendation || {}), selectedBy: analysis.matching?.selectedBy || source.matching?.selectedBy || source.recommendation?.selectedBy || 'private-service', candidates },
     stages,
     totals: { ...(source.totals || {}), doseG: dose, waterG: totalWater, ratio, targetTimeSec: totalTime },
     warnings: [...new Set(warnings)],

@@ -50,7 +50,7 @@ assert.match(account, /<span>账户<\/span><small>唯一的登录与自动同步
 assert.doesNotMatch(runtime, /postbrew-sensory/);
 assert.doesNotMatch(sw, /postbrew-sensory-controller/);
 assert.match(androidBuild, /applicationId 'com\.luckybean\.app'/);
-assert.match(androidBuild, /versionCode 102311/);
+assert.match(androidBuild, /versionCode 102312/);
 assert.match(androidBuild, /versionName '1\.23E'/);
 assert.match(androidBridge, /https:\/\/zjcrop\.github\.io\/luckybean\//);
 assert.doesNotMatch(androidBridge, /zjcrop\.github\.io\/(?:BrewIon\/luckybean|LuckyBean)\//);

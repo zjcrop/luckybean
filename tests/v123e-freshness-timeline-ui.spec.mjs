@@ -51,15 +51,16 @@ test('one-line bean card restores historical freshness color/length and uses it 
   expect(dashStyle).toContain(`left:${expected.progress}%`);
 
   await page.locator('#groupBtn').click();
-  const option = page.locator('[data-lb-freshness-group-option]');
+  const option = page.locator('[data-v099f-group-freshness]');
+  await expect(option).toHaveCount(1);
   await expect(option).toBeVisible({ timeout: 5000 });
   await expect(option).toContainText('按赏味期阶段');
   await option.click();
 
-  await expect(page.locator('[data-lb-freshness-stage="养豆中"]')).toBeVisible();
-  await expect(page.locator('[data-lb-freshness-stage="味正盛"]')).toBeVisible();
-  await expect(page.locator('[data-lb-freshness-stage="味将尽"]')).toBeVisible();
-  await page.locator(`[data-lb-freshness-stage="${expected.stage}"]`).click();
+  await expect(page.locator('[data-v099t-open-group="养豆中"]')).toBeVisible();
+  await expect(page.locator('[data-v099t-open-group="味正盛"]')).toBeVisible();
+  await expect(page.locator('[data-v099t-open-group="味将尽"]')).toBeVisible();
+  await page.locator(`[data-v099t-open-group="${expected.stage}"]`).click();
 
   const groupedCard = page.locator('.bean-card[data-bean-id="freshness-line-bean"]');
   await expect(groupedCard).toHaveClass(/lb-one-line-bean/, { timeout: 10000 });
