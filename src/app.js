@@ -267,23 +267,6 @@ function enterApp() {
   $('#appShell').classList.remove('hidden');
   switchPage('beans');
   bindControlStates(document);
-  requestAnimationFrame(showFirstUseGuidance);
-}
-
-function deviceSetupComplete() {
-  const gear = state.settings.gear || {};
-  return Array.isArray(gear.drippers) && gear.drippers.length > 0
-    && Array.isArray(gear.filters) && gear.filters.length > 0;
-}
-
-function showFirstUseGuidance() {
-  const sessionKey = 'luckybean.first-use-guidance.shown.v1';
-  const authenticated = Boolean(globalThis.LuckyBeanCloudAuth?.getSession?.()?.refresh_token);
-  if ((authenticated && deviceSetupComplete()) || sessionStorage.getItem(sessionKey) === '1') return;
-  sessionStorage.setItem(sessionKey, '1');
-  const overlay = showOverlay(`${dialogHeader('首次使用', '请先完成基础设定', { centered: true, closable: false })}<p class="first-use-message">请进入“器”设定个人账户及设备设定</p><div class="row end"><button class="button subtle" type="button" data-close-overlay>稍后设置</button><button id="firstUseSettingsBtn" class="button primary" type="button">前往“器”</button></div>`, { id: 'first-use-guidance', backdropClose: false });
-  bindClose(overlay);
-  $('#firstUseSettingsBtn')?.addEventListener('click', () => { closeOverlay(); switchPage('settings'); });
 }
 
 function showInfoDialog(title, message) {
