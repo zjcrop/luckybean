@@ -55,7 +55,7 @@ assert.match(sw, /luckybean-archive-v1\.schema\.json/);
 assert.match(sw, /cache\.put\(request, response\.clone\(\)\)/);
 assert.match(sw, /caches\.match\(request\).*caches\.match\('\.\/index\.html'\)/s);
 
-assert.match(androidBuild, /versionCode 102309/);
+assert.match(androidBuild, /versionCode 102310/);
 assert.match(androidBuild, /versionName '1\.23E'/);
 assert.match(androidBuild, /include 'index\.html', 'recognition-test\.html'/);
 assert.match(androidActivity, /addJavascriptInterface\(new NativeFileBridge\(\), "LuckyBeanNative"\)/);
@@ -105,7 +105,7 @@ assert.match(deployWorkflow, /npm ci/);
 assert.match(deployWorkflow, /public\/vendor\/jsqr\/jsQR\.js/);
 assert.match(deployWorkflow, /LuckyBean-1\.23E-web\.zip/);
 assert.match(buildWorkflow, /LuckyBean-1\.23E-debug\.apk/);
-assert.match(buildWorkflow, /version_code=102309/);
+assert.match(buildWorkflow, /version_code=102310/);
 assert.match(buildWorkflow, /gear-matching-controller\.js/);
 assert.match(buildWorkflow, /public\/vendor\/jsqr\/jsQR\.js/);
 assert.match(buildWorkflow, /analysis_contract=brew-analysis\/2\.1/);
