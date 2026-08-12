@@ -33,8 +33,9 @@ assert.ok(activity.includes('ImageDecoder.createSource'), 'Android must generate
 assert.ok(activity.includes('InputImage.fromFilePath(MainActivity.this, sourceUri)'), 'native OCR must read content:// directly when WebView bytes are empty');
 
 const gearFix = fs.readFileSync(new URL('../src/features/gear-regression-fix-controller.js', import.meta.url), 'utf8');
-assert.ok(gearFix.includes('滤杯角度'), 'matching gear UI must use dripper angle');
-assert.ok(!gearFix.includes('lbDripperShape'), 'canonical matching gear UI must not expose the obsolete shape selector');
-assert.ok(gearFix.includes("$$(BLOCK_SELECTOR, host).forEach(node => node.remove())"), 'matching gear UI must remove stale duplicate blocks before rendering');
+assert.ok(gearFix.includes('滤杯角度'), 'gear compatibility guard must document dripper-angle ownership');
+assert.ok(!gearFix.includes('lbDripperShape'), 'small brew must not expose the obsolete shape selector');
+assert.ok(gearFix.includes('data-lb-legacy-gear-disabled') || gearFix.includes('lbLegacyGearDisabled'), 'small brew must keep an inert sentinel that blocks legacy editor recreation');
+assert.ok(gearFix.includes('if (!node.matches(SENTINEL_SELECTOR)) node.remove()'), 'stale legacy matching blocks must be removed while the inert sentinel remains');
 
-console.log('v127 screenshot regression and 1.23E Android image pipeline static checks passed');
+console.log('v127 screenshot regression, no-small-brew-gear-editor and 1.23E Android image pipeline static checks passed');
