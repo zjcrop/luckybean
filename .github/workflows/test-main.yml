@@ -27,6 +27,7 @@ jobs:
         run: |
           python3 scripts/apply-small-brew-v5.py
           python3 scripts/apply-small-brew-v5-e2e.py
+          python3 scripts/apply-small-brew-v5-e2e2.py
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
