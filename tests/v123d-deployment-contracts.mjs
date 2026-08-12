@@ -81,7 +81,7 @@ assert.match(qr, /public\/vendor\/jsqr\/jsQR\.js/);
 assert.doesNotMatch(qr, /cdn\.jsdelivr\.net/);
 assert.doesNotMatch(qr, /decodeEncryptedShareEnvelope/);
 assert.match(qr, /async restart\(\)/);
-assert.match(interactionRepair, /豆卡自动推荐/);
+assert.match(interactionRepair, /模型推荐结果/);
 assert.match(interactionRepair, /使用说明/);
 assert.match(interactionRepair, /flavorText: flavorNames\.join\(' '\)/);
 assert.match(gearMatching, /滤杯角度/);
