@@ -55,8 +55,12 @@ async function refreshBeanMap() {
 }
 
 async function decorateCards() {
-  if (!beanMap.size) await refreshBeanMap();
-  $$('.bean-card.lb-one-line-bean[data-bean-id]').forEach(card => {
+  let cards = $$('.bean-card.lb-one-line-bean[data-bean-id]');
+  if (!cards.length) return;
+  const hasUnknownCard = cards.some(card => !beanMap.has(String(card.dataset.beanId || '')));
+  if (!beanMap.size || hasUnknownCard) await refreshBeanMap();
+  cards = $$('.bean-card.lb-one-line-bean[data-bean-id]');
+  cards.forEach(card => {
     const bean = beanMap.get(String(card.dataset.beanId || ''));
     if (!bean) return;
     const profile = freshnessProfile(bean);
