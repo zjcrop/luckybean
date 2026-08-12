@@ -36,7 +36,7 @@ assert.match(gearController, /materialSelect\.disabled = true/);
 assert.doesNotMatch(gearController, /brewDripperAngle/);
 assert.match(index, /gear-matching-controller\.js\?v=1\.23E-main-sync\.2/);
 assert.match(sw, /gear-matching-controller\.js\?v=1\.23E-main-sync\.2/);
-assert.match(build, /versionCode 102309/);
+assert.match(build, /versionCode 102310/);
 
 const settings = {
   gear: {
