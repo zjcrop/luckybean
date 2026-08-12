@@ -12,6 +12,21 @@ async function openApp(page, suffix) {
   await page.waitForFunction(() => Boolean(globalThis.LuckyBeanRuntimeFeatures), null, { timeout: 15000 });
 }
 
+async function reloadAfterPendingNavigation(page) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      return;
+    } catch (error) {
+      const message = String(error?.message || error || '');
+      const navigationRace = /ERR_ABORTED|frame was detached/i.test(message);
+      if (!navigationRace || attempt === 2) throw error;
+      await page.waitForTimeout(250);
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
+    }
+  }
+}
+
 async function seedBean(page) {
   await page.evaluate(async () => {
     const db = await import('/src/db.js');
@@ -226,7 +241,7 @@ test('settings splash previews keep their red and white backgrounds', async ({ p
   expect(await red.locator('img').evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
   expect(await white.locator('img').evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
   await white.click();
-  await page.reload({ waitUntil: 'domcontentloaded' });
+  await reloadAfterPendingNavigation(page);
   await expect(page.locator('#splashScreen')).toHaveAttribute('data-splash-variant', 'white');
   await expect(page.locator('#splashScreen')).toHaveCSS('background-color', 'rgb(243, 239, 229)');
 });
@@ -401,7 +416,7 @@ test('private gear uses three closed, aligned list editors', async ({ page }) =>
   await expect(page.locator('#dripperMaterial')).toHaveValue('ceramic');
   await page.locator('[data-close-overlay]').click();
 
-  await page.reload({ waitUntil: 'domcontentloaded' });
+  await reloadAfterPendingNavigation(page);
   const splash = page.locator('#splashScreen');
   if (await splash.isVisible()) await splash.click();
   await expect(page.locator('#appShell')).toBeVisible({ timeout: 15000 });
