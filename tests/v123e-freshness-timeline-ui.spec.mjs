@@ -35,7 +35,8 @@ test('one-line bean card restores historical freshness color/length and uses it 
     return {
       color: profile.color,
       progress: Math.round(profile.progress * 1000) / 10,
-      stage: profile.progress < 1 / 3 ? '养豆中' : profile.progress < 2 / 3 ? '味正盛' : '味将尽'
+      ratioStage: profile.progress < 1 / 3 ? '养豆中' : profile.progress < 2 / 3 ? '味正盛' : '味将尽',
+      ageStage: Number(profile.effectiveAge) < Number(profile.start) ? '未到赏味期' : Number(profile.effectiveAge) <= Number(profile.end) ? '正值赏味期' : '已过赏味期'
     };
   });
 
@@ -57,10 +58,9 @@ test('one-line bean card restores historical freshness color/length and uses it 
   await expect(option).toContainText('按赏味期阶段');
   await option.click();
 
-  await expect(page.locator('[data-v099t-open-group="养豆中"]')).toBeVisible();
-  await expect(page.locator('[data-v099t-open-group="味正盛"]')).toBeVisible();
-  await expect(page.locator('[data-v099t-open-group="味将尽"]')).toBeVisible();
-  await page.locator(`[data-v099t-open-group="${expected.stage}"]`).click();
+  const groups = page.locator('[data-v099t-open-group],[data-v099f-open-stage]');
+  await expect(groups).toHaveCount(3);
+  await page.locator(`[data-v099t-open-group="${expected.ratioStage}"],[data-v099f-open-stage="${expected.ageStage}"]`).click();
 
   const groupedCard = page.locator('.bean-card[data-bean-id="freshness-line-bean"]');
   await expect(groupedCard).toHaveClass(/lb-one-line-bean/, { timeout: 10000 });
