@@ -4,11 +4,21 @@ const $ = (selector, root = document) => root?.querySelector?.(selector) || null
 function retryScanner(status) {
   const scanner = globalThis.LuckyBeanQrScanner;
   if (!scanner?.restart) {
-    status.textContent = '扫描器正在重新初始化…';
+    status.textContent = '扫描器尚未建立，请关闭窗口后重新打开二维码扫描';
     return;
   }
+  status.textContent = '正在重新扫描…';
   scanner.restart().catch(error => {
-    status.textContent = `重新扫描失败：${error.message}`;
+    const name = String(error?.name || '');
+    if (name === 'NotAllowedError' || name === 'SecurityError') {
+      status.textContent = '相机权限未开启。请在系统或浏览器设置中允许富贵盒子使用相机，然后再次点击“重新扫描”。';
+      return;
+    }
+    if (name === 'NotReadableError' || name === 'TrackStartError') {
+      status.textContent = '摄像头可能被其他应用占用。关闭占用后再次点击“重新扫描”。';
+      return;
+    }
+    status.textContent = `重新扫描失败：${error?.message || '未知错误'}`;
   });
 }
 
@@ -47,7 +57,7 @@ function decorateCameraOverlay(overlay) {
   });
 
   if (!overlay.querySelector('[data-lb-qr-help]')) {
-    status.insertAdjacentHTML('afterend', '<p class="muted small" data-lb-qr-help>保持二维码完整、平整并避免反光。识别失败时可直接重新扫描，或选择二维码图片。</p>');
+    status.insertAdjacentHTML('afterend', '<p class="muted small" data-lb-qr-help>保持二维码完整、平整并避免反光。失败后可以直接重新扫描；相机不可用时可改用二维码图片。</p>');
   }
 }
 

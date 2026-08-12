@@ -7,6 +7,7 @@ export const MATCH_DIM = MATCH_AXES.length;
 const DEFAULT_BEAN_VECTOR = Object.freeze([65, 68, 70, 55, 35, 65, 25, 60]);
 const clamp = (value, min = 0, max = 100) => Math.min(max, Math.max(min, Number(value) || 0));
 const add = (vector, delta) => vector.map((value, index) => clamp(value + Number(delta[index] || 0)));
+const sumDelta = (vector, delta) => vector.map((value, index) => Number(value || 0) + Number(delta[index] || 0));
 const textOf = (...values) => values.filter(Boolean).join(' ').normalize('NFKC').toLocaleLowerCase('zh-CN');
 
 function roastDelta(value = '') {
@@ -48,6 +49,7 @@ function flavorTextDelta(value = '') {
   if (/citrus|柑橘|柠檬|lime|orange|莓|berry|fruit|果/.test(key)) { delta[0] += 7; delta[2] += 6; delta[7] += 3; }
   if (/honey|sugar|caramel|甜|蜂蜜|焦糖|蔗糖/.test(key)) delta[1] += 9;
   if (/tea|茶/.test(key)) { delta[3] -= 5; delta[5] += 5; delta[7] += 4; }
+  if (/spice|香料|肉桂|丁香|胡椒|豆蔻/.test(key)) { delta[2] += 3; delta[7] += 2; }
   if (/chocolate|cacao|巧克力|可可|nut|坚果/.test(key)) { delta[3] += 6; delta[4] += 3; }
   if (/wine|酒|ferment|酵/.test(key)) { delta[6] += 9; delta[2] += 4; }
   return delta;
@@ -77,7 +79,16 @@ export function buildBeanVector(bean = {}) {
   }
   vector = add(vector, ageDelta(bean.roastDate));
 
-  const evidence = [bean.countryCode || bean.country, bean.regionCode || bean.region, bean.varietyCode || bean.variety, bean.processCode || bean.process, bean.roastCode || bean.roastLevel, bean.roastColor, bean.altitude, bean.flavorText || bean.flavorNote || bean.notes || bean.flavorCodes?.length];
+  const evidence = [
+    bean.countryCode || bean.country,
+    bean.regionCode || bean.region,
+    bean.varietyCode || bean.variety,
+    bean.processCode || bean.process,
+    bean.roastCode || bean.roastLevel,
+    bean.roastColor,
+    bean.altitude,
+    bean.flavorText || bean.flavorNote || bean.notes || bean.flavorCodes?.length
+  ];
   const present = evidence.filter(value => value !== undefined && value !== null && value !== '').length;
   const confidence = Math.round(clamp(42 + present * 6.5, 42, 94));
   return { vector: vector.map(value => Math.round(clamp(value))), confidence };
@@ -90,28 +101,60 @@ function angleCorrection(value) {
   return [-1.5 * x, 1.0 * x, -1.5 * x, 2.0 * x, -0.5 * x, 0.5 * x, 0, 0.5 * x];
 }
 
+function bypassKey(value) {
+  const key = String(value || 'medium').toLowerCase();
+  if (['none', '无', '0'].includes(key)) return 'none';
+  if (['low', '少', '1'].includes(key)) return 'low';
+  if (['high', '多', '3'].includes(key)) return 'high';
+  return 'medium';
+}
+
+function speedKey(value) {
+  const key = String(value || 'medium').toLowerCase();
+  if (['low', '低'].includes(key)) return 'low';
+  if (['high', '高'].includes(key)) return 'high';
+  return 'medium';
+}
+
+function findById(rows, id) {
+  if (!Array.isArray(rows) || !id) return null;
+  return rows.find(row => String(row?.id || '') === String(id)) || null;
+}
+
 export function buildGearCorrection(settings = {}, brewInput = {}) {
   const matching = settings?.matchingGear || {};
+  const gear = settings?.gear || {};
   const dripperId = String(brewInput?.brew?.dripperId || brewInput?.brew?.dripperCode || 'default');
   const paperId = String(brewInput?.brew?.filterPaperId || 'default');
-  const dripper = matching.drippers?.[dripperId] || matching.defaultDripper || {};
-  const paper = matching.papers?.[paperId] || matching.defaultPaper || {};
-  const bypass = String(dripper.bypass || 'medium');
-  const speed = String(paper.speed || 'medium');
+
+  const gearDripper = findById(gear.drippers, dripperId) || {};
+  const matchDripper = matching.drippers?.[dripperId] || matching.defaultDripper || {};
+  const snapshotDripper = brewInput?.brew?.dripperSnapshot || {};
+  const dripper = { ...gearDripper, ...matchDripper, ...snapshotDripper };
+
+  const gearPaper = findById(gear.filters, paperId) || {};
+  const matchPaper = matching.papers?.[paperId] || matching.defaultPaper || {};
+  const snapshotPaper = brewInput?.brew?.filterPaperSnapshot || {};
+  const paper = { ...gearPaper, ...matchPaper, ...snapshotPaper };
+
+  const bypass = bypassKey(dripper.bypass);
+  const speed = speedKey(paper.speed);
   let vector = angleCorrection(dripper.angleDeg);
+
   const bypassMap = {
     none: [1, 1, 0, 3, 2, 1, 0, 1],
     low: [1, 1, 0, 2, 1, 1, 0, 1],
     medium: Array(MATCH_DIM).fill(0),
     high: [-2, -1, -1, -3, -2, -1, 0, -1]
   };
-  vector = add(vector, bypassMap[bypass] || bypassMap.medium);
+  vector = sumDelta(vector, bypassMap[bypass] || bypassMap.medium);
+
   const speedMap = {
     low: [-1, 1, -1, 2, 2, -2, 0, 1],
     medium: Array(MATCH_DIM).fill(0),
     high: [2, -1, 2, -2, -1, 2, 0, -1]
   };
-  vector = add(vector, speedMap[speed] || speedMap.medium);
+  vector = sumDelta(vector, speedMap[speed] || speedMap.medium);
   return vector.map(value => Math.round(clamp(value, -8, 8)));
 }
 
@@ -156,8 +199,8 @@ export function buildMatchingEnvelope({ bean = {}, settings = {}, input = {}, us
     target_vector: targetVector,
     confidence: base.confidence,
     model_versions: {
-      bean_model_ver: 'bean-vector/1.0',
-      gear_model_ver: 'gear-correction/1.1',
+      bean_model_ver: 'bean-vector/1.1',
+      gear_model_ver: 'gear-correction/1.2',
       target_model_ver: 'target-vector/1.0'
     }
   };

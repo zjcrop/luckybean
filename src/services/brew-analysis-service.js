@@ -1,5 +1,6 @@
 import { all, get, put, getSetting } from '../db.js';
 import { sha256Hex } from '../utils.js';
+import { loadCodebook, makeIndex, displayName } from '../codebook.js';
 import { BREW_API_ENDPOINT, brewApiJson } from './brew-api-client.js';
 import { buildMatchingEnvelope, MATCH_CONTRACT } from '../domain/matching/flavor-vector.js';
 
@@ -7,13 +8,15 @@ export const BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.1';
 export const BREW_SPATIAL_CONTRACT = 'brew-spatial/1.3';
 export const BREW_FLAVOR_STATE_CONTRACT = 'brew-flavor-state/1.0';
 export const BREW_ANALYSIS_ENDPOINT = BREW_API_ENDPOINT;
-export const BREW_ANALYSIS_SERVICE_VERSION = 'luckybean-analysis-client/1.5.0';
+export const BREW_ANALYSIS_SERVICE_VERSION = 'luckybean-analysis-client/1.6.0';
 
 const SUPPORTED_ANALYSIS_CONTRACTS = new Set(['brew-analysis/2.0', BREW_ANALYSIS_CONTRACT]);
 const SUPPORTED_SPATIAL_CONTRACTS = new Set(['brew-spatial/1.2', BREW_SPATIAL_CONTRACT]);
 const CACHE_PREFIX = 'brew.analysis.cache.v2.';
 const DEFAULT_TIMEOUT_MS = 12000;
 const REQUIRED_TARGET_IDS = Object.freeze(['acidity', 'floral', 'fruity', 'sweetness', 'bitterness', 'astringency']);
+
+let codebookIndexPromise = null;
 
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical);
@@ -138,7 +141,6 @@ function mapStage(stage, index) {
   };
 }
 
-/** Adds display aliases only. No stage value, recommendation, risk, profile definition, flavor state or target geometry is recalculated in LuckyBean. */
 export function adaptAuthoritativePlan(analysis) {
   validateAnalysis(analysis);
   const source = structuredClone(analysis.plan);
@@ -183,16 +185,105 @@ function sameBeanRecord(record = {}, inputBean = {}) {
   return comparable.every(key => String(record[key] || '') === String(inputBean[key] || ''));
 }
 
+function selectedBeanIdFromRuntime(input = {}) {
+  const explicit = String(input?.bean?.id || input?.beanId || input?.brew?.beanId || '').trim();
+  if (explicit) return explicit;
+  try {
+    return String(globalThis.document?.querySelector?.('#brewBean')?.value || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+async function matchingCodebookIndex() {
+  if (!codebookIndexPromise) {
+    codebookIndexPromise = loadCodebook()
+      .then(loaded => makeIndex(loaded?.data || loaded))
+      .catch(() => null);
+  }
+  return codebookIndexPromise;
+}
+
+function resolvedName(index, table, code) {
+  if (!index || !code) return '';
+  const name = String(displayName(index, table, code, '') || '').trim();
+  return name === '—' ? '' : name;
+}
+
+async function enrichBeanForMatching(bean = {}) {
+  const index = await matchingCodebookIndex();
+  const flavorNames = [...new Set((bean.flavorCodes || [])
+    .map(code => resolvedName(index, 'flavors', code))
+    .filter(Boolean))];
+  return {
+    ...bean,
+    countryName: bean.countryName || resolvedName(index, 'countries', bean.countryCode),
+    regionName: bean.regionName || resolvedName(index, 'regions', bean.regionCode),
+    entityName: bean.entityName || resolvedName(index, 'entities', bean.entityCode),
+    varietyName: bean.varietyName || resolvedName(index, 'varieties', bean.varietyCode),
+    processName: bean.processName || resolvedName(index, 'processes', bean.processCode),
+    flavorText: [bean.flavorText, ...flavorNames].filter(Boolean).join(' ').trim()
+  };
+}
+
+function findGearRow(rows, id, aliases = []) {
+  if (!Array.isArray(rows)) return null;
+  const values = new Set([id, ...aliases].filter(Boolean).map(String));
+  return rows.find(row => values.has(String(row?.id || '')) || values.has(String(row?.name || '')) || values.has(String(row?.type || ''))) || null;
+}
+
+function gearSnapshot(settings = {}, input = {}) {
+  const gear = settings?.gear || {};
+  const matching = settings?.matchingGear || {};
+  const brew = input?.brew || {};
+  const dripper = findGearRow(gear.drippers, brew.dripperId, [brew.dripperCode]) || {};
+  const paper = findGearRow(gear.filters, brew.filterPaperId, [brew.filterPaper]) || {};
+  const dripperMatch = matching.drippers?.[dripper.id || brew.dripperId] || matching.defaultDripper || {};
+  const paperMatch = matching.papers?.[paper.id || brew.filterPaperId] || matching.defaultPaper || {};
+  return {
+    dripper: {
+      id: String(dripper.id || brew.dripperId || ''),
+      name: String(dripper.name || ''),
+      type: String(dripper.type || brew.dripperCode || ''),
+      material: String(dripper.material || brew.dripperMaterial || 'plastic'),
+      angleDeg: Number.isFinite(Number(dripperMatch.angleDeg ?? dripper.angleDeg)) ? Number(dripperMatch.angleDeg ?? dripper.angleDeg) : null,
+      bypass: String(dripperMatch.bypass ?? dripper.bypass ?? 'medium')
+    },
+    paper: {
+      id: String(paper.id || brew.filterPaperId || ''),
+      brand: String(paper.brand || ''),
+      type: String(paper.type || brew.filterPaper || ''),
+      speed: String(paperMatch.speed ?? paper.speed ?? 'medium')
+    }
+  };
+}
+
 async function attachMatching(input) {
   const next = structuredClone(input || {});
-  if (next.matching?.contract === MATCH_CONTRACT && next.matching?.signature_type === 'match_only') return next;
   const [beans, settings] = await Promise.all([
     all('beans').catch(() => []),
     getSetting('app.settings', {}).catch(() => ({}))
   ]);
-  const bean = beans.find(item => sameBeanRecord(item, next.bean || {})) || { ...(next.bean || {}) };
+  const selectedBeanId = selectedBeanIdFromRuntime(next);
+  const bean = beans.find(item => selectedBeanId && String(item?.id || '') === selectedBeanId)
+    || beans.find(item => sameBeanRecord(item, next.bean || {}))
+    || { ...(next.bean || {}) };
+  const enrichedBean = await enrichBeanForMatching(bean);
+  if (bean?.id) {
+    next.bean = {
+      ...(next.bean || {}),
+      id: bean.id,
+      flavorCodes: [...(bean.flavorCodes || next.bean?.flavorCodes || [])]
+    };
+  }
+
+  const snapshots = gearSnapshot(settings, next);
+  next.brew ||= {};
+  next.brew.dripperSnapshot = snapshots.dripper;
+  next.brew.filterPaperSnapshot = snapshots.paper;
+
   next.matching = buildMatchingEnvelope({
-    bean,
+    bean: enrichedBean,
     settings,
     input: next,
     userCorrection: settings?.matching?.userCorrection || [],
@@ -208,7 +299,9 @@ async function cached(input) {
   if (!record?.analysis) return null;
   try {
     return { analysis: validateAnalysis(record.analysis, { expectedInputFingerprint: expected }), cacheId: id, cached: true };
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 async function persistCache(input, analysis) {
@@ -232,7 +325,9 @@ async function persistCache(input, analysis) {
 async function fetchAnalysis(input, { endpoint = BREW_ANALYSIS_ENDPOINT, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
   const expected = await inputFingerprint(input);
   const { payload } = await brewApiJson('', {
-    method: 'POST', body: input, endpoint,
+    method: 'POST',
+    body: input,
+    endpoint,
     timeoutMs: Math.min(Math.max(Number(timeoutMs) || DEFAULT_TIMEOUT_MS, 2500), 20000)
   });
   return validateAnalysis(payload, { expectedInputFingerprint: expected });
@@ -249,7 +344,15 @@ export async function requestBrewAnalysis(input, options = {}) {
     const cacheId = await persistCache(preparedInput, analysis);
     return { analysis, plan: adaptAuthoritativePlan(analysis), cacheId, cached: false };
   } catch (error) {
-    if (cacheRecord) return { ...cacheRecord, plan: adaptAuthoritativePlan(cacheRecord.analysis), stale: true, networkError: error.message, networkErrorCode: error.code || '' };
+    if (cacheRecord) {
+      return {
+        ...cacheRecord,
+        plan: adaptAuthoritativePlan(cacheRecord.analysis),
+        stale: true,
+        networkError: error.message,
+        networkErrorCode: error.code || ''
+      };
+    }
     throw error;
   }
 }

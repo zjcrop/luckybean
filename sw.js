@@ -54,6 +54,7 @@ const CORE = [
   './src/features/full-integration-controller-v3.js?v=1.23E-main-sync.2',
   './src/features/freshness-timeline-controller.js?v=1.23E-main-sync.2',
   './src/features/gear-regression-fix-controller.js?v=1.23E-main-sync.2',
+  './src/features/gear-matching-controller.js?v=1.23E-main-sync.2',
   './src/features/legacy-timer-guard.js?v=1.23E-main-sync.2',
   './src/features/experience-fixes-controller.js?v=1.23E-main-sync.2',
   './src/features/interaction-repair-controller.js?v=1.23E-main-sync.2',
@@ -75,7 +76,6 @@ const CORE = [
   './src/group-interaction-controller.js?v=1.23E-main-sync.2',
   './src/ui-upgrade-controller.js?v=1.23E-main-sync.2',
   './src/origin-map-controller.js?v=1.23E-main-sync.2',
-
   './public/app-logo.webp?v=1.23E-main-sync.2',
   './public/splash-art-red.webp?v=1.23E-main-sync.2',
   './public/splash-art-light.webp?v=1.23E-main-sync.2',
@@ -111,7 +111,6 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
-
   if (request.mode === 'navigate') {
     event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {
       if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
@@ -119,7 +118,6 @@ self.addEventListener('fetch', event => {
     }).catch(() => caches.match(request).then(cached => cached || caches.match('./index.html'))));
     return;
   }
-
   if (url.origin === self.location.origin) {
     event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {
       if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
@@ -127,7 +125,6 @@ self.addEventListener('fetch', event => {
     }).catch(() => caches.match(request)));
     return;
   }
-
   if (url.hostname === 'cdn.jsdelivr.net') {
     event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {
       caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
