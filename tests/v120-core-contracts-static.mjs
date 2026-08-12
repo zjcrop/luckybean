@@ -93,7 +93,7 @@ assert.match(reconciliation, /unique-normalized-name-and-parent-match/);
 assert.match(providerStatus, /BREW_ANALYSIS_CONTRACT/);
 assert.match(providerStatus, /openCodebookReconciliationScreen/);
 
-// LuckyBean water boundary: no salts or precise ions, optional environment defaults.
+// LuckyBean water boundary: no salts or precise ions; environment remains optional but now lives in a compact dialog.
 assert.match(water, /精确配方请在.?萃离.?中调整|精细调整请使用“萃离”/);
 assert.match(water, /customProfile/);
 assert.doesNotMatch(water, /CaCl|MgSO|KHCO|NaHCO|targetIonsMgL|totalDoseG|\bdoses\b/);
@@ -101,7 +101,11 @@ assert.doesNotMatch(model, /waterProfile\.(?:ca|mg|hco3)/);
 assert.match(app, /ambientTemperatureC:\s*25/);
 assert.match(app, /relativeHumidityPct:\s*null/);
 assert.match(app, /initialBedTemperatureC:\s*25/);
-assert.match(app, /环境细节（默认25°C，可选）/);
+assert.match(app, /id="openEnvironmentBtn"/);
+assert.match(app, /function openBrewEnvironmentDialog/);
+assert.match(app, /室温 °C/);
+assert.match(app, /相对湿度 %/);
+assert.match(app, /初始粉床温度 °C/);
 
 // New transactional stores and offline assets are present.
 for (const store of ['historyRevisions', 'recycleBin', 'syncOutbox']) assert.match(dbCore, new RegExp(`'${store}'`));
@@ -112,4 +116,4 @@ for (const asset of [
   'src/services/provider-package-service.js'
 ]) assert.match(sw, new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 
-console.log('v1.2 core analysis, completed history, provider and spatial contracts passed');
+console.log('v1.2 core analysis, completed history, provider, spatial and environment-dialog contracts passed');
