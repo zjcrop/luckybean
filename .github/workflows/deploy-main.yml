@@ -106,7 +106,7 @@ jobs:
               && grep -q '"revision":"1.23E-main-sync.2"' /tmp/luckybean-version.json \
               && grep -q 'buildBrewInput' /tmp/luckybean-app.js \
               && grep -q 'public/vendor/jsqr/jsQR.js' /tmp/luckybean-qr.js \
-              && grep -q '豆卡自动推荐' /tmp/luckybean-repair.js \
+              && grep -q '模型推荐结果' /tmp/luckybean-repair.js \
               && grep -q '使用说明' /tmp/luckybean-repair.js \
               && grep -q '日期归属' /tmp/luckybean-recognition.html; then
               echo "LuckyBean Pages verified for $SOURCE_SHA"
