@@ -2,7 +2,7 @@ import { APP_VERSION, SCHEMA_VERSION, $, $$, uid, esc, clamp, todayISO, formatDa
 import { openDb, all, get, put, remove, bulkPut, getSetting, setSetting, clearAll, migrateLegacy } from './db.js';
 import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, parseNaturalLanguage, REMOTE_CODEBOOK_URL } from './codebook.js';
 import { CameraScanner, scanQrFile, decodeJsQrResult } from './qr.js';
-import { computeFallbackPlan, requestPrivatePlan, validatePlan, FALLBACK_ENGINE_VERSION, buildCorrectedPlan, listBrewProfiles } from './brew-engine.js';
+import { computeFallbackPlan, requestPrivatePlan, validatePlan, FALLBACK_ENGINE_VERSION, buildCorrectedPlan, listBrewProfiles, recommendProfile } from './brew-engine.js';
 import { brewProfileCatalogStatus } from './services/brew-profile-catalog-service.js';
 import { listWaterProfiles, inferWaterProfile } from './water-profiles.js';
 import { buildCompactSharePayload, encodeSharePayload, decodeSharePayload } from './share-codec.js';
@@ -54,7 +54,7 @@ const DEFAULT_SETTINGS = {
   brew: {
     apiEndpoint: '', mode: 'simple', method: 'pourover', doseG: 15, ratio: 15.5, ratioMode: 'auto',
     profileId: 'recommended', segmentMode: 'auto', segments: 3, lowTempFirst: true,
-    dripper: '平底滤杯', dripperMaterial: 'plastic', filterPaperId: '', grinder: '', waterProfileId: 'auto', waterVolumeL: 5,
+    dripper: '平底滤杯', dripperMaterial: 'plastic', filterPaperId: '', grinder: '', waterProfileId: 'plain', waterVolumeL: 5,
     customWater: { name: '我的水型', tds: 85, tendency: { floral: 0, acidity: 0, sweetness: 0, body: 0, bitterness: 0, astringency: 0 }, note: '' }, flavorTargets: { acidity: 1.5, floral: 2, fruity: 2, sweetness: 2, bitterness: 2, astringency: 2 },
     firstCoolingMode: 'auto', firstTemperatureC: 87, tailCoolingMode: 'auto', tailTemperatureC: 86,
     temperatureTune: 0, grindTune: 0, bloomTune: 0, repeatability: false,
@@ -92,6 +92,7 @@ const state = {
   settings: structuredClone(DEFAULT_SETTINGS), page: 'beans', selectedBeanId: null,
   filter: { search: '', country: '', variety: '', process: '', flavors: [], sort: 'freshness', dir: 'asc' },
   recommendedBeanId: null, currentPlan: null, currentBrewInput: null,
+  brewProfileOverride: null, brewDripperOverride: null, brewEntryMode: 'normal',
   beanFormSource: null, beanFormDraft: null, cameraScanner: null,
   timer: { interval: null, paused: false, stageIndex: 0, remaining: 0 }, currentExecution: null,
   activeGroupKey: null, groupAnimationMode: 'manual', recommendationTimer: null, recommendationRun: false, recommendationExpandedAll: false, recommendationPromptMemory: {}, preferenceBoardOpen: false, settingsFocusFilterId: '',
@@ -152,6 +153,8 @@ async function loadSettings() {
     health: { ...DEFAULT_SETTINGS.health, ...(saved?.health || {}) }
   };
   state.settings.sensoryRecentLimit = clamp(state.settings.sensoryRecentLimit || 50, 5, 200);
+  if (!state.settings.brew.waterProfileId || state.settings.brew.waterProfileId === 'auto') state.settings.brew.waterProfileId = 'plain';
+  state.settings.brew.profileId = 'recommended';
 }
 
 async function saveSettings() { await setSetting('app.settings', state.settings); }
@@ -227,8 +230,21 @@ async function migrateLegacyFlavorCodes() {
 }
 
 function pageElement(page) { return $(`#page${page[0].toUpperCase()}${page.slice(1)}`); }
-function switchPage(page, { preserveOverlay = false } = {}) {
+function switchPage(page, { preserveOverlay = false, entryMode = 'normal' } = {}) {
   if (!PAGE_META[page]) return;
+  const previousPage = state.page;
+  if (page === 'brew' && previousPage !== 'brew') {
+    state.brewEntryMode = entryMode;
+    if (entryMode !== 'replay') {
+      state.brewProfileOverride = null;
+      state.brewDripperOverride = null;
+    }
+  }
+  if (previousPage === 'brew' && page !== 'brew') {
+    state.brewProfileOverride = null;
+    state.brewDripperOverride = null;
+    state.brewEntryMode = 'normal';
+  }
   if (!preserveOverlay) closeOverlay();
   state.page = page;
   $$('.page').forEach(node => node.classList.toggle('active', node.dataset.page === page));
@@ -1261,7 +1277,12 @@ function loadBrewSession(sessionId) {
     plan = structuredClone(session);
   }
   closeOverlay(); state.selectedBeanId = session.beanId; state.currentPlan = plan; state.currentBrewInput = structuredClone(session.normalizedInput || session.input || null);
-  switchPage('brew');
+  const replayInput = state.currentBrewInput || {};
+  const replayProfileId = String(plan?.profile?.id || replayInput?.brew?.profileId || 'recommended');
+  state.brewProfileOverride = replayProfileId === 'recommended' ? null : replayProfileId;
+  state.brewDripperOverride = replayInput?.brew?.dripperId || null;
+  state.brewEntryMode = 'replay';
+  switchPage('brew', { entryMode: 'replay' });
   document.dispatchEvent(new CustomEvent('luckybean:history-plan-loaded', { detail: { plan, record: session } }));
   requestAnimationFrame(() => $('#generatedPlan')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   toast(session.correction ? '已载入修正方案' : '已载入历史方案');
@@ -1283,13 +1304,16 @@ function correctWeightDialog(bean) {
 }
 
 function buildBrewInput(bean) {
-  const segmentMode = $('#brewSegments')?.value || state.settings.brew.segmentMode || 'auto';
-  const segments = resolvedSegmentCount(bean, segmentMode);
-  const waterSelection = $('#brewWaterProfile')?.value || state.settings.brew.waterProfileId || 'auto';
-  const resolvedWater = waterSelection === 'auto' ? inferWaterProfile(bean) : waterSelection;
+  const segmentMode = 'auto';
+  const segments = resolvedSegmentCount(bean, 'auto');
+  const waterSelection = $('#brewWaterProfile')?.value || state.settings.brew.waterProfileId || 'plain';
+  const resolvedWater = waterSelection === 'plain' ? 'custom' : waterSelection;
   const targets = state.settings.brew.flavorTargets || DEFAULT_SETTINGS.brew.flavorTargets;
   const customWater = state.settings.brew.customWater || DEFAULT_SETTINGS.brew.customWater;
-  const dripper = selectedDripperItem($('#brewDripper')?.value);
+  const plainWater = { name: '纯水', tendency: { floral: 0, acidity: 0, sweetness: 0, body: 0, bitterness: 0, astringency: 0 }, note: '未启用额外调水配方；具体基础水矿物组成不在 LuckyBean 中假定。' };
+  const profileSelection = $('#brewProfile')?.value || state.brewProfileOverride || 'recommended';
+  const dripperSelection = $('#brewDripper')?.value || state.brewDripperOverride || 'recommended';
+  const dripper = dripperSelection === 'recommended' ? recommendedDripperForBrew(bean, profileSelection) : selectedDripperItem(dripperSelection);
   const ratioSelection = $('#brewRatio')?.value || state.settings.brew.ratioMode || 'auto';
   const ratioMode = ratioSelection === 'auto' ? 'auto' : 'manual';
   const ratio = ratioMode === 'auto'
@@ -1299,18 +1323,111 @@ function buildBrewInput(bean) {
     bean: { countryCode: bean.countryCode, regionCode: bean.regionCode, entityCode: bean.entityCode, varietyCode: bean.varietyCode, processCode: bean.processCode, roastCode: bean.roastCode, roastColor: bean.roastColor || null, roastDate: bean.roastDate, altitude: bean.altitude || null },
     brew: {
       mode: 'professional', method: 'pourover', doseG: parseNumber($('#brewDose')?.value, 15), ratio, ratioMode,
-      profileId: $('#brewProfile')?.value || 'recommended', segmentMode, segments,
-      dripperId: dripper?.id || '', dripperCode: dripper?.type || '平底滤杯', dripperMaterial: normalizeDripperMaterial($('#brewDripperMaterial')?.value || dripper?.material), filterPaper: selectedFilterItem()?.type || '', filterPaperId: $('#brewFilterPaper')?.value || '', grinder: state.settings.brew.grinder || '',
-      firstCoolingMode: $('#firstCoolingMode')?.value || state.settings.brew.firstCoolingMode || 'auto', firstTemperatureC: Number(state.settings.brew.firstTemperatureC),
-      tailCoolingMode: $('#tailCoolingMode')?.value || state.settings.brew.tailCoolingMode || 'auto', tailTemperatureC: Number(state.settings.brew.tailTemperatureC),
-      lowTempFirst: ($('#firstCoolingMode')?.value || state.settings.brew.firstCoolingMode) !== 'off',
+      profileId: profileSelection, segmentMode, segments,
+      dripperSelectionMode: dripperSelection === 'recommended' ? 'recommended' : 'manual', dripperId: dripper?.id || '', dripperCode: dripper?.type || '平底滤杯', dripperMaterial: normalizeDripperMaterial(dripper?.material), filterPaper: selectedFilterItem()?.type || '', filterPaperId: $('#brewFilterPaper')?.value || '', grinder: state.settings.brew.grinder || '',
+      firstCoolingMode: state.settings.brew.firstCoolingMode || 'auto', firstTemperatureC: state.settings.brew.firstCoolingMode === 'custom' ? Number(state.settings.brew.firstTemperatureC) : null,
+      tailCoolingMode: state.settings.brew.tailCoolingMode || 'auto', tailTemperatureC: state.settings.brew.tailCoolingMode === 'custom' ? Number(state.settings.brew.tailTemperatureC) : null,
+      lowTempFirst: (state.settings.brew.firstCoolingMode || 'auto') !== 'off',
       temperatureTune: Number(state.settings.brew.temperatureTune || 0), grindTune: Number(state.settings.brew.grindTune || 0), bloomTune: Number(state.settings.brew.bloomTune || 0),
       repeatability: Boolean(state.settings.brew.repeatability), waterProfileId: resolvedWater
     },
-    water: { profileId: resolvedWater, recipeVolumeL: Number(state.settings.brew.waterVolumeL || 5), tdsMgL: Number(customWater.tds || 85), customProfile: resolvedWater === 'custom' ? customWater : undefined },
+    water: { selectionMode: waterSelection === 'plain' ? 'plain' : 'profile', profileId: resolvedWater, recipeVolumeL: Number(state.settings.brew.waterVolumeL || 5), tdsMgL: waterSelection === 'plain' ? null : Number(customWater.tds || 85), customProfile: resolvedWater === 'custom' ? (waterSelection === 'plain' ? plainWater : customWater) : undefined },
     environment: { ...state.settings.brew.environment },
     targets: { acidity: Number(targets.acidity), floral: Number(targets.floral), fruity: Number(targets.fruity), sweetness: Number(targets.sweetness), bitterness: Number(targets.bitterness), astringency: Number(targets.astringency) }
   };
+}
+
+function brewProfileSelection() {
+  return state.brewProfileOverride || 'recommended';
+}
+
+function dripperUiGroup(item = {}) {
+  const text = `${item.type || ''} ${item.name || ''}`.toLowerCase();
+  if (/平底|b75|kalita|orea|april|flat/.test(text)) return 'flat';
+  if (/浸泡|switch|clever|aero|immersion/.test(text)) return 'immersion';
+  if (/低旁路|mugen|pulsar|tricolate|stagg|low.?bypass/.test(text)) return 'low-bypass';
+  return 'cone';
+}
+
+function preferredDripperGroup(profileId = '') {
+  const id = String(profileId || '').toLowerCase();
+  if (/flat46|april|flat/.test(id)) return 'flat';
+  if (/switch|immersion/.test(id)) return 'immersion';
+  if (/mugen|low.?bypass|pulsar|tricolate/.test(id)) return 'low-bypass';
+  if (/hoffmann|winton|lance|onyx|four-six|one-pour|two-pulse|three-pulse|four-stage|five-pulse|pulse-30x15/.test(id)) return 'cone';
+  return '';
+}
+
+function recommendedDripperForBrew(bean, profileId = 'recommended') {
+  const drippers = gearDrippers();
+  if (!drippers.length) return null;
+  const preferred = preferredDripperGroup(profileId);
+  if (preferred) {
+    const matched = drippers.find(item => dripperUiGroup(item) === preferred);
+    if (matched) return matched;
+  }
+  const targets = state.settings.brew.flavorTargets || DEFAULT_SETTINGS.brew.flavorTargets;
+  let best = null;
+  for (const dripper of drippers) {
+    const recommendation = recommendProfile({
+      bean: bean || {},
+      brew: { dripperCode: dripper.type || dripper.name || '', repeatability: Boolean(state.settings.brew.repeatability) },
+      targets
+    });
+    const score = Number(recommendation?.selected?.score || 0);
+    if (!best || score > best.score) best = { dripper, score };
+  }
+  return best?.dripper || selectedDripperItem(state.settings.brew.dripper) || drippers[0];
+}
+
+function coolingModeText(which) {
+  const first = which === 'first';
+  const modeKey = first ? 'firstCoolingMode' : 'tailCoolingMode';
+  const temperatureKey = first ? 'firstTemperatureC' : 'tailTemperatureC';
+  const mode = state.settings.brew[modeKey] || 'auto';
+  if (mode === 'off') return '不开启';
+  if (mode === 'custom') return `${Number(state.settings.brew[temperatureKey] || (first ? 87 : 86))}°C`;
+  return '模型推荐';
+}
+
+function openCoolingModeMenu(which) {
+  const first = which === 'first';
+  const modeKey = first ? 'firstCoolingMode' : 'tailCoolingMode';
+  const title = first ? '首段降温' : '尾段降温';
+  const current = state.settings.brew[modeKey] || 'auto';
+  const overlay = showOverlay(`${dialogHeader(title, '默认采用模型推荐；自定义仅覆盖温度目标。', { centered: true })}<div class="lb-choice-grid"><button class="button${current === 'auto' ? ' primary' : ''}" type="button" data-cooling-choice="auto">模型推荐</button><button class="button${current === 'custom' ? ' primary' : ''}" type="button" data-cooling-choice="custom">自定义</button><button class="button${current === 'off' ? ' primary' : ''}" type="button" data-cooling-choice="off">不开启</button></div>`, { id: 'cooling-mode', backdropClose: true, dialogClass: 'bottom-sheet' });
+  bindClose(overlay);
+  overlay.addEventListener('click', async event => {
+    const button = event.target.closest('[data-cooling-choice]');
+    if (!button) return;
+    const choice = button.dataset.coolingChoice;
+    if (choice === 'custom') {
+      closeOverlay();
+      openCoolingDialog(which);
+      return;
+    }
+    state.settings.brew[modeKey] = choice;
+    await saveSettings();
+    closeOverlay();
+    renderBrew();
+  });
+}
+
+function openBrewEnvironmentDialog() {
+  const env = state.settings.brew.environment || DEFAULT_SETTINGS.brew.environment;
+  const overlay = showOverlay(`${dialogHeader('环境细节', '默认室温 25°C；湿度可留空。', { centered: true })}<div class="brew-row three"><label class="field"><span>室温 °C</span><input id="ambientTemperatureC" class="control" type="number" min="5" max="40" step="0.5" value="${Number(env.ambientTemperatureC ?? 25)}"></label><label class="field"><span>相对湿度 %</span><input id="relativeHumidityPct" class="control" type="number" min="0" max="100" step="1" placeholder="可留空" value="${env.relativeHumidityPct == null ? '' : Number(env.relativeHumidityPct)}"></label><label class="field"><span>初始粉床温度 °C</span><input id="initialBedTemperatureC" class="control" type="number" min="5" max="40" step="0.5" value="${Number(env.initialBedTemperatureC ?? 25)}"></label></div><div class="row end"><button id="saveEnvironmentBtn" class="button primary" type="button">确定</button></div>`, { id: 'brew-environment', backdropClose: true, dialogClass: 'bottom-sheet' });
+  bindClose(overlay);
+  $('#saveEnvironmentBtn', overlay)?.addEventListener('click', async () => {
+    const humidityRaw = $('#relativeHumidityPct', overlay)?.value;
+    state.settings.brew.environment = {
+      ambientTemperatureC: parseNumber($('#ambientTemperatureC', overlay)?.value, 25),
+      relativeHumidityPct: humidityRaw === '' ? null : clamp(parseNumber(humidityRaw, 50), 0, 100),
+      initialBedTemperatureC: parseNumber($('#initialBedTemperatureC', overlay)?.value, 25)
+    };
+    await saveSettings();
+    closeOverlay();
+    renderBrew();
+  });
 }
 
 function renderBrew() {
@@ -1319,13 +1436,12 @@ function renderBrew() {
   if (!state.selectedBeanId && activeBeans.length) state.selectedBeanId = activeBeans[0].id;
   const selected = activeBeans.find(bean => bean.id === state.selectedBeanId);
   const settings = state.settings.brew;
-  const recommendedSegments = resolvedSegmentCount(selected, 'auto');
   const waterProfiles = listWaterProfiles();
-  const inferredWater = selected ? inferWaterProfile(selected) : 'custom';
-  const currentWater = settings.waterProfileId || 'auto';
+  const currentWater = settings.waterProfileId && settings.waterProfileId !== 'auto' ? settings.waterProfileId : 'plain';
   const drippers = gearDrippers();
-  const activeDripper = selectedDripperItem(settings.dripper);
-  const activeDripperMaterial = normalizeDripperMaterial(activeDripper?.material || settings.dripperMaterial);
+  const currentProfileId = brewProfileSelection();
+  const currentDripperSelection = state.brewDripperOverride || 'recommended';
+  const recommendedDripper = recommendedDripperForBrew(selected, currentProfileId);
   const filters = gearFilters();
   const selectedFilterId = settings.filterPaperId || filters[0]?.id || '';
   const brewProfiles = listBrewProfiles();
@@ -1337,27 +1453,19 @@ function renderBrew() {
   const heading = $('#brewHeadingBean');
   if (heading) heading.innerHTML = `<select id="brewBean" class="control brew-bean-heading" aria-label="选择豆子">${activeBeans.map(bean=>`<option value="${esc(bean.id)}"${bean.id===state.selectedBeanId?' selected':''}>${esc(beanDisplayName(bean))}</option>`).join('')}</select>`;
   const customWaterLabel = currentWater === 'custom' ? `${settings.customWater?.name || '自定义'} · TDS ${Number(settings.customWater?.tds || 85)}` : '';
-  container.innerHTML = `<section class="panel brew-form"><div class="brew-compact-grid">
-    <div class="brew-row two" data-brew-row="dose-ratio"><label class="field"><span>粉量</span><input id="brewDose" class="control" type="number" min="5" max="40" step="0.1" value="${settings.doseG}"></label><label class="field"><span>粉水比</span><select id="brewRatio" class="control${settings.ratioMode!=='manual'?' model-recommended':' custom-selected'}"><option value="auto"${settings.ratioMode!=='manual'?' selected':''}>方案推荐（生成后返回）</option>${[14,14.5,15,15.5,16,16.5,17,18].map(value=>`<option value="${value}"${settings.ratioMode==='manual'&&Number(settings.ratio)===value?' selected':''}>手工 1:${value}</option>`).join('')}</select></label></div>
-    <div class="brew-row three" data-brew-row="filter-gear"><label class="field"><span>滤杯</span><select id="brewDripper" class="control">${drippers.map(item=>`<option value="${esc(item.id)}"${activeDripper?.id===item.id?' selected':''}>${esc(item.name)}</option>`).join('')}</select></label><label class="field"><span>滤杯材质</span><select id="brewDripperMaterial" class="control">${dripperMaterialOptions(activeDripperMaterial)}</select></label><label class="field"><span>滤纸</span><select id="brewFilterPaper" class="control">${filters.length?filters.map(item=>`<option value="${esc(item.id)}"${selectedFilterId===item.id?' selected':''}>${esc([item.brand,item.type].filter(Boolean).join(' '))} · ${item.quantity}张</option>`).join(''):'<option value="">未设滤纸</option>'}</select></label></div>
-    <div class="brew-row two" data-brew-row="method-water"><label class="field"><span>冲煮法</span><select id="brewProfile" class="control">${brewProfiles.map(profile=>`<option value="${esc(profile.id)}"${settings.profileId===profile.id?' selected':''}>${esc(profile.label)}</option>`).join('')}</select><select id="brewSegments" class="control sub-control" aria-label="分段方式"><option value="auto"${settings.segmentMode==='auto'?' selected':''}>模型推荐：${recommendedSegments+1}段</option>${[1,2,3,4,5].map(value=>`<option value="${value}"${String(settings.segmentMode)===String(value)?' selected':''}>${value+1}段（含首段）</option>`).join('')}</select><small class="profile-catalog-status">${esc(catalogLabel)}</small></label><label class="field"><span>调水方案</span><select id="brewWaterProfile" class="control${currentWater==='auto'?' model-recommended':' custom-selected'}"><option value="auto"${currentWater==='auto'?' selected':''}>模型推荐：${esc(waterProfiles.find(item=>item.id===inferredWater)?.name || inferredWater)}</option>${waterProfiles.filter(profile=>profile.id!=='custom').map(profile=>`<option value="${profile.id}"${currentWater===profile.id?' selected':''}>${esc(profile.name)}</option>`).join('')}<option value="custom"${currentWater==='custom'?' selected':''}>自定义</option></select>${customWaterLabel?'<small class="custom-summary">自定义</small>':''}</label></div>
-    <div class="brew-row two" data-brew-row="tune-flavor"><div class="field"><span>微调</span><button id="openBrewTuneBtn" class="control control-button" type="button">微调</button></div><div class="field"><span>风味设定</span><button id="openFlavorTargetBtn" class="control control-button" type="button">风味设定</button></div></div>
-    <div class="brew-row two" data-brew-row="cooling"><label class="field"><span>首段降温</span><select id="firstCoolingMode" class="control ${settings.firstCoolingMode==='auto'?'model-recommended':'custom-selected'}"><option value="auto"${settings.firstCoolingMode==='auto'?' selected':''}>模型推荐</option><option value="custom"${settings.firstCoolingMode==='custom'?' selected':''}>自定义 ${Number(settings.firstTemperatureC||87)}°C</option><option value="off"${settings.firstCoolingMode==='off'?' selected':''}>不开启</option></select></label><label class="field"><span>尾段降温</span><select id="tailCoolingMode" class="control ${settings.tailCoolingMode==='auto'?'model-recommended':'custom-selected'}"><option value="auto"${settings.tailCoolingMode==='auto'?' selected':''}>模型推荐</option><option value="custom"${settings.tailCoolingMode==='custom'?' selected':''}>自定义 ${Number(settings.tailTemperatureC||86)}°C</option><option value="off"${settings.tailCoolingMode==='off'?' selected':''}>不开启</option></select></label></div>
-    <details class="brew-environment-details"><summary>环境细节（默认25°C，可选）</summary><div class="brew-row three"><label class="field"><span>室温 °C</span><input id="ambientTemperatureC" class="control" type="number" min="5" max="40" step="0.5" value="${Number(settings.environment?.ambientTemperatureC ?? 25)}"></label><label class="field"><span>相对湿度 %</span><input id="relativeHumidityPct" class="control" type="number" min="0" max="100" step="1" placeholder="可留空" value="${settings.environment?.relativeHumidityPct == null ? '' : Number(settings.environment.relativeHumidityPct)}"></label><label class="field"><span>初始粉床温度 °C</span><input id="initialBedTemperatureC" class="control" type="number" min="5" max="40" step="0.5" value="${Number(settings.environment?.initialBedTemperatureC ?? 25)}"></label></div></details>
+  const ratioRecommendedLabel = `模型推荐 · 1:${Number(settings.ratio || 15.5)}`;
+  container.innerHTML = `<section class="panel brew-form"><div class="brew-compact-grid lb-brew-five-row">
+    <div class="brew-row two brew-row-primary" data-brew-row="dose-ratio"><label class="field brew-primary-field"><span>粉量</span><input id="brewDose" class="control brew-large-control" type="number" min="5" max="40" step="0.1" value="${settings.doseG}"></label><label class="field brew-primary-field"><span>粉水比</span><select id="brewRatio" class="control brew-large-control${settings.ratioMode!=='manual'?' model-recommended':' custom-selected'}"><option value="auto"${settings.ratioMode!=='manual'?' selected':''}>${esc(ratioRecommendedLabel)}</option>${[14,14.5,15,15.5,16,16.5,17,18].map(value=>`<option value="${value}"${settings.ratioMode==='manual'&&Number(settings.ratio)===value?' selected':''}>1:${value}</option>`).join('')}</select></label></div>
+    <div class="brew-row three brew-row-secondary" data-brew-row="filter-gear-water"><label class="field"><span>滤杯</span><select id="brewDripper" class="control brew-small-control" data-recommended-dripper-id="${esc(recommendedDripper?.id || '')}"><option value="recommended"${currentDripperSelection==='recommended'?' selected':''}>方案推荐${recommendedDripper ? ` · ${esc(recommendedDripper.name || recommendedDripper.type)}` : ''}</option>${drippers.map(item=>`<option value="${esc(item.id)}"${currentDripperSelection===item.id?' selected':''}>${esc(item.name)}</option>`).join('')}</select></label><label class="field"><span>滤纸</span><select id="brewFilterPaper" class="control brew-small-control">${filters.length?filters.map(item=>`<option value="${esc(item.id)}"${selectedFilterId===item.id?' selected':''}>${esc([item.brand,item.type].filter(Boolean).join(' '))}</option>`).join(''):'<option value="">未设滤纸</option>'}</select></label><label class="field"><span>调水方案</span><select id="brewWaterProfile" class="control brew-small-control${currentWater==='plain'?' model-recommended':' custom-selected'}"><option value="plain"${currentWater==='plain'?' selected':''}>纯水</option>${waterProfiles.filter(profile=>profile.id!=='custom').map(profile=>`<option value="${profile.id}"${currentWater===profile.id?' selected':''}>${esc(profile.name)}</option>`).join('')}<option value="custom"${currentWater==='custom'?' selected':''}>自定义</option></select>${customWaterLabel?'<small class="custom-summary">自定义</small>':''}</label></div>
+    <div class="brew-row three brew-action-strip" data-brew-row="actions"><button id="openBrewTuneBtn" class="control control-button brew-menu-button" type="button">微调</button><button id="openFlavorTargetBtn" class="control control-button brew-menu-button" type="button">风味设定</button><button id="openEnvironmentBtn" class="control control-button brew-menu-button" type="button">环境细节</button></div>
+    <div class="brew-row two brew-action-strip" data-brew-row="cooling"><button id="firstCoolingMode" class="control control-button brew-menu-button${settings.firstCoolingMode==='auto'?' model-recommended':' custom-selected'}" type="button">首段降温 · ${esc(coolingModeText('first'))}</button><button id="tailCoolingMode" class="control control-button brew-menu-button${settings.tailCoolingMode==='auto'?' model-recommended':' custom-selected'}" type="button">尾段降温 · ${esc(coolingModeText('tail'))}</button></div>
+    <div class="brew-row one brew-profile-row" data-brew-row="profile"><label class="field brew-profile-field"><span>冲煮法</span><select id="brewProfile" class="control brew-large-profile${currentProfileId==='recommended'?' model-recommended':' custom-selected'}"><option value="recommended"${currentProfileId==='recommended'?' selected':''}>模型推荐</option>${brewProfiles.filter(profile=>profile.id!=='recommended').map(profile=>`<option value="${esc(profile.id)}"${currentProfileId===profile.id?' selected':''}>${esc(profile.label)}</option>`).join('')}</select><small class="profile-catalog-status">${esc(catalogLabel)}</small></label></div>
     <div class="brew-generate-row menu-row"><button id="generatePlanBtn" class="button primary" type="button"${selected?'':' disabled'}>生成方案</button><button id="directSensoryBtn" class="button" type="button"${selected?'':' disabled'}>直接品鉴</button></div>
   </div></section>
   <div id="planResult">${state.currentPlan && state.currentPlan.beanId === state.selectedBeanId ? planHtml(state.currentPlan) : ''}</div>
   ${recentSessions.length ? `<section class="panel"><div class="panel-title"><div><h3>往次方案</h3><p>点击复刻，修正方案标“修”</p></div></div><div class="record-list">${recentSessions.map(sessionRecordHtml).join('')}</div></section>` : ''}`;
-  $('#brewBean')?.addEventListener('change', event => { state.selectedBeanId = event.target.value; state.currentPlan = null; renderBrew(); });
-  ['ambientTemperatureC','relativeHumidityPct','initialBedTemperatureC'].forEach(id => $('#'+id)?.addEventListener('change', async () => {
-    const humidityRaw = $('#relativeHumidityPct')?.value;
-    state.settings.brew.environment = {
-      ambientTemperatureC: parseNumber($('#ambientTemperatureC')?.value, 25),
-      relativeHumidityPct: humidityRaw === '' ? null : clamp(parseNumber(humidityRaw, 50), 0, 100),
-      initialBedTemperatureC: parseNumber($('#initialBedTemperatureC')?.value, 25)
-    };
-    await saveSettings();
-  }));
+  $('#brewBean')?.addEventListener('change', event => { state.selectedBeanId = event.target.value; state.currentPlan = null; state.brewProfileOverride = null; state.brewDripperOverride = null; state.brewEntryMode = 'normal'; renderBrew(); });
+
   $('#generatePlanBtn')?.addEventListener('click', generatePlan);
   $('#brewRatio')?.addEventListener('change', async event => {
     state.settings.brew.ratioMode = event.target.value === 'auto' ? 'auto' : 'manual';
@@ -1365,48 +1473,22 @@ function renderBrew() {
     await saveSettings();
     renderBrew();
   });
-  $('#brewProfile')?.addEventListener('change', async event => { state.settings.brew.profileId = event.target.value; await saveSettings(); });
-  $('#brewDripper')?.addEventListener('change', async event => {
-    const dripper = selectedDripperItem(event.target.value);
-    state.settings.brew.dripper = event.target.value;
-    state.settings.brew.dripperMaterial = normalizeDripperMaterial(dripper?.material);
-    await saveSettings();
-    renderBrew();
+  $('#brewProfile')?.addEventListener('change', event => { state.brewProfileOverride = event.target.value === 'recommended' ? null : event.target.value; state.brewEntryMode = 'manual'; });
+  $('#brewDripper')?.addEventListener('change', event => {
+    state.brewDripperOverride = event.target.value === 'recommended' ? null : event.target.value;
   });
-  $('#brewDripperMaterial')?.addEventListener('change', async event => {
-    const material = normalizeDripperMaterial(event.target.value);
-    const dripper = selectedDripperItem();
-    if (dripper) {
-      const stored = state.settings.gear.drippers.find(item => item.id === dripper.id);
-      if (stored) stored.material = material;
-    }
-    state.settings.brew.dripperMaterial = material;
+  $('#brewFilterPaper')?.addEventListener('change', async event => {
+    state.settings.brew.filterPaperId = event.target.value;
     await saveSettings();
   });
+
   $('#directSensoryBtn')?.addEventListener('click', () => openSensoryModeChooser({ beanId: state.selectedBeanId, source: 'direct-brew' }));
   $('#openFlavorTargetBtn')?.addEventListener('click', openFlavorTargetDialog);
   $('#openBrewTuneBtn')?.addEventListener('click', openBrewTuneDialog);
   $('#brewWaterProfile')?.addEventListener('change', async event => { state.settings.brew.waterProfileId = event.target.value; await saveSettings(); if (event.target.value === 'custom') openCustomWaterDialog(); else renderBrew(); });
-  const bindCoolingMode = (id, which, modeKey) => {
-    const select = $(`#${id}`);
-    if (!select) return;
-    const reopenCustom = event => {
-      if (select.value !== 'custom') return;
-      event.preventDefault();
-      if (!$('#overlayRoot [data-overlay="cooling"]')) openCoolingDialog(which);
-    };
-    select.addEventListener('pointerdown', reopenCustom);
-    select.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') reopenCustom(event); });
-    select.addEventListener('change', async event => {
-      state.settings.brew[modeKey] = event.target.value;
-      await saveSettings();
-      if (event.target.value === 'custom') {
-        if (!$('#overlayRoot [data-overlay="cooling"]')) openCoolingDialog(which);
-      } else renderBrew();
-    });
-  };
-  bindCoolingMode('firstCoolingMode', 'first', 'firstCoolingMode');
-  bindCoolingMode('tailCoolingMode', 'tail', 'tailCoolingMode');
+  $('#openEnvironmentBtn')?.addEventListener('click', openBrewEnvironmentDialog);
+  $('#firstCoolingMode')?.addEventListener('click', () => openCoolingModeMenu('first'));
+  $('#tailCoolingMode')?.addEventListener('click', () => openCoolingModeMenu('tail'));
   if (!container.dataset.brewActionsBound) {
     container.dataset.brewActionsBound = 'true';
     container.addEventListener('click', event => {
@@ -1508,8 +1590,8 @@ async function generatePlan() {
     state.settings.brew = {
       ...state.settings.brew, method: input.brew.method, doseG: input.brew.doseG,
       ratio: Number(plan.totals?.ratio || input.brew.ratio), ratioMode: input.brew.ratioMode,
-      profileId: input.brew.profileId, segmentMode: input.brew.segmentMode, segments: input.brew.segments, lowTempFirst: input.brew.lowTempFirst,
-      dripper: input.brew.dripperId || input.brew.dripperCode, dripperMaterial: input.brew.dripperMaterial, filterPaper: input.brew.filterPaper, filterPaperId: input.brew.filterPaperId, grinder: input.brew.grinder,
+      profileId: 'recommended', segmentMode: 'auto', segments: input.brew.segments, lowTempFirst: input.brew.lowTempFirst,
+      dripper: state.settings.brew.dripper, dripperMaterial: state.settings.brew.dripperMaterial, filterPaper: input.brew.filterPaper, filterPaperId: input.brew.filterPaperId, grinder: input.brew.grinder,
       waterProfileId: $('#brewWaterProfile')?.value || 'auto', waterVolumeL: input.water.recipeVolumeL,
       firstCoolingMode: input.brew.firstCoolingMode, firstTemperatureC: input.brew.firstTemperatureC,
       tailCoolingMode: input.brew.tailCoolingMode, tailTemperatureC: input.brew.tailTemperatureC,

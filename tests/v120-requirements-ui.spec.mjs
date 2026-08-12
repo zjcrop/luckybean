@@ -110,13 +110,12 @@ test('one server login keeps automatic sync and exposes manual sync recovery act
   expect(options.length).toBeGreaterThan(8);
   const profile = page.locator('#brewProfile');
   const generate = page.locator('#generatePlanBtn');
+  await expect(page.locator('#brewSegments')).toHaveCount(0);
+  await expect(profile).toHaveValue('recommended');
   for (const selected of options) {
     await profile.selectOption(selected);
     await expect(profile).toHaveValue(selected);
     await expect(profile).toBeVisible();
-    const segments = page.locator('#brewSegments');
-    const fixedSegments = await segments.isDisabled();
-    await expect(segments).toHaveAttribute('aria-hidden', fixedSegments ? 'true' : 'false');
     await generate.click();
     await expect(generate).toBeEnabled({ timeout: 20000 });
     await expect(page.locator('#generatedPlan')).toBeVisible({ timeout: 20000 });
@@ -303,34 +302,44 @@ test('brew form uses five requested rows and reopens saved cooling temperatures'
 
   const expected = [
     ['dose-ratio', ['brewDose', 'brewRatio']],
-    ['filter-gear', ['brewDripper', 'brewDripperMaterial', 'brewFilterPaper']],
-    ['method-water', ['brewProfile', 'brewWaterProfile']],
-    ['tune-flavor', ['openBrewTuneBtn', 'openFlavorTargetBtn']],
-    ['cooling', ['firstCoolingMode', 'tailCoolingMode']]
+    ['filter-gear-water', ['brewDripper', 'brewFilterPaper', 'brewWaterProfile']],
+    ['actions', ['openBrewTuneBtn', 'openFlavorTargetBtn', 'openEnvironmentBtn']],
+    ['cooling', ['firstCoolingMode', 'tailCoolingMode']],
+    ['profile', ['brewProfile']]
   ];
   await expect(page.locator('[data-brew-row]')).toHaveCount(5);
+  await expect(page.locator('#brewSegments')).toHaveCount(0);
+  await expect(page.locator('#brewDripperMaterial')).toHaveCount(0);
+  await expect(page.locator('#brewProfile')).toHaveValue('recommended');
+  await expect(page.locator('#brewWaterProfile')).toHaveValue('plain');
   for (const [row, ids] of expected) {
     const root = page.locator(`[data-brew-row="${row}"]`);
     for (const id of ids) await expect(root.locator(`#${id}`)).toHaveCount(1);
   }
 
-  await page.locator('#firstCoolingMode').selectOption('custom');
+  await page.locator('#firstCoolingMode').click();
+  await page.locator('[data-cooling-choice="custom"]').click();
   await page.locator('#coolingTemperature').fill('82');
   await page.locator('#saveCoolingBtn').click();
   await expect(page.locator('[data-overlay="cooling"]')).toHaveCount(0);
-  await expect(page.locator('#firstCoolingMode')).toHaveValue('custom');
-  await page.locator('#firstCoolingMode').dispatchEvent('pointerdown');
+  await expect(page.locator('#firstCoolingMode')).toContainText('82°C');
+  await page.locator('#firstCoolingMode').click();
+  await expect(page.locator('[data-overlay="cooling-mode"]')).toBeVisible();
+  await page.locator('[data-cooling-choice="custom"]').click();
   await expect(page.locator('[data-overlay="cooling"]')).toBeVisible();
   await expect(page.locator('#coolingTemperature')).toHaveValue('82');
   await page.locator('#saveCoolingBtn').click();
   await expect(page.locator('[data-overlay="cooling"]')).toHaveCount(0);
 
-  await page.locator('#tailCoolingMode').selectOption('custom');
+  await page.locator('#tailCoolingMode').click();
+  await page.locator('[data-cooling-choice="custom"]').click();
   await page.locator('#coolingTemperature').fill('60');
   await page.locator('#saveCoolingBtn').click();
   await expect(page.locator('[data-overlay="cooling"]')).toHaveCount(0);
-  await expect(page.locator('#tailCoolingMode')).toHaveValue('custom');
-  await page.locator('#tailCoolingMode').dispatchEvent('pointerdown');
+  await expect(page.locator('#tailCoolingMode')).toContainText('60°C');
+  await page.locator('#tailCoolingMode').click();
+  await expect(page.locator('[data-overlay="cooling-mode"]')).toBeVisible();
+  await page.locator('[data-cooling-choice="custom"]').click();
   await expect(page.locator('[data-overlay="cooling"]')).toBeVisible();
   await expect(page.locator('#coolingTemperature')).toHaveValue('60');
 });

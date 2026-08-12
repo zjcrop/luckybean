@@ -44,22 +44,20 @@ test('edited legacy bean keeps readable country and variety in compact card', as
   await expect(card).not.toContainText('未定');
 });
 
-test('custom first and tail cooling keep exactly one inline editor each after repeated mutations', async ({ page }) => {
-  await page.evaluate(async () => {
-    const db = await import('/src/db.js');
-    const current = await db.getSetting('app.settings', {}) || {};
-    current.brew ||= {};
-    current.brew.firstCoolingMode = 'custom';
-    current.brew.firstTemperatureC = 90;
-    current.brew.tailCoolingMode = 'custom';
-    current.brew.tailTemperatureC = 80;
-    await db.setSetting('app.settings', current);
-    document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail: { source: 'v123e-cooling' } }));
-  });
-
+test('cooling menus keep custom values stable and can return to model recommendation after repeated mutations', async ({ page }) => {
   await page.locator('[data-page-target="brew"]').click();
-  await expect(page.locator('#firstCoolingMode')).toHaveValue('custom', { timeout: 10000 });
-  await expect(page.locator('#tailCoolingMode')).toHaveValue('custom');
+  const first = page.locator('#firstCoolingMode');
+  const tail = page.locator('#tailCoolingMode');
+  await expect(first).toContainText('模型推荐', { timeout: 10000 });
+  await expect(tail).toContainText('模型推荐');
+
+  await tail.click();
+  await expect(page.locator('[data-overlay="cooling-mode"]')).toBeVisible();
+  await page.locator('[data-cooling-choice="custom"]').click();
+  await expect(page.locator('[data-overlay="cooling"]')).toBeVisible();
+  await page.locator('#coolingTemperature').fill('80');
+  await page.locator('#saveCoolingBtn').click();
+  await expect(tail).toContainText('80°C');
 
   await page.evaluate(() => {
     for (let i = 0; i < 20; i += 1) {
@@ -69,12 +67,13 @@ test('custom first and tail cooling keep exactly one inline editor each after re
       marker.remove();
     }
   });
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(300);
+  await expect(page.locator('[data-lb-cooling-editor]')).toHaveCount(0);
+  await expect(page.locator('#tailCoolingMode')).toContainText('80°C');
 
-  await expect(page.locator('[data-lb-cooling-editor="first"]')).toHaveCount(1);
-  await expect(page.locator('[data-lb-cooling-editor="tail"]')).toHaveCount(1);
-  await expect(page.locator('[data-lb-cooling-editor="first"] input')).toHaveValue('90');
-  await expect(page.locator('[data-lb-cooling-editor="tail"] input')).toHaveValue('80');
+  await page.locator('#tailCoolingMode').click();
+  await page.locator('[data-cooling-choice="auto"]').click();
+  await expect(page.locator('#tailCoolingMode')).toContainText('模型推荐');
 });
 
 test('小酌 never recreates editable dripper angle bypass or paper-speed controls after repeated DOM mutations', async ({ page }) => {

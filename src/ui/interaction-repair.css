@@ -94,3 +94,25 @@
   .lb-auto-profile strong{grid-column:1/-1}
   .lb-guide-dialog{width:94vw;max-height:76dvh}
 }
+
+
+/* LuckyBean small-brew five-row contract */
+.lb-brew-five-row{display:grid;gap:10px}
+.brew-row-primary{align-items:end}
+.brew-primary-field>span,.brew-profile-field>span{font-size:.78rem;letter-spacing:.04em;opacity:.72}
+.brew-large-control,.brew-large-profile{min-height:58px!important;font-size:clamp(1.32rem,5vw,1.9rem)!important;font-weight:720!important;line-height:1.1!important;padding:.55rem .65rem!important}
+.brew-row-secondary{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important;align-items:end}
+.brew-row-secondary .field>span{font-size:.72rem;opacity:.7}
+.brew-small-control{min-width:0!important;font-size:.76rem!important;padding-inline:.35rem!important;white-space:nowrap;text-overflow:ellipsis}
+.brew-action-strip{gap:7px!important}
+.brew-menu-button{min-width:0!important;min-height:42px!important;font-size:.78rem!important;padding:.48rem .45rem!important;white-space:normal!important;text-align:center!important}
+.brew-profile-row{grid-template-columns:minmax(0,1fr)!important}
+.brew-profile-field{width:100%}
+.lb-choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0 4px}
+.lb-brew-five-row [data-brew-row="profile"]{margin-top:2px;padding-top:6px;border-top:1px solid var(--line-color,rgba(128,128,128,.22))}
+@media (max-width:520px){
+  .brew-row-secondary{gap:5px!important}
+  .brew-small-control{font-size:.7rem!important;padding-inline:.22rem!important}
+  .brew-menu-button{font-size:.72rem!important;padding-inline:.28rem!important}
+  .brew-large-control,.brew-large-profile{min-height:54px!important;font-size:1.42rem!important}
+}

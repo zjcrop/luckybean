@@ -44,7 +44,7 @@ test('dripper angle and bypass are configured in 器设 and only displayed read-
   await page.locator('[data-page-target="brew"]').click();
   await page.locator('#brewDripper').selectOption(dripperId);
   await page.locator('#brewDripper').dispatchEvent('change');
-  await expect(page.locator('#brewDripperMaterial')).toBeDisabled();
+  await expect(page.locator('#brewDripperMaterial')).toHaveCount(0);
   await expect(page.locator('[data-lb-brew-dripper-properties]')).toContainText('45°');
   await expect(page.locator('[data-lb-brew-dripper-properties]')).toContainText('旁通少');
   await expect(page.locator('#brewContent')).not.toContainText('滤杯角度');
