@@ -2,6 +2,14 @@ import { test, expect } from '@playwright/test';
 
 const BASE_URL = 'http://127.0.0.1:4173';
 
+async function openPrivateGear(page) {
+  await page.locator('[data-page-target="settings"]').click();
+  const privateGear = page.locator('#privateGearCategory');
+  const topSummary = privateGear.locator(':scope > summary');
+  if (!(await privateGear.evaluate(node => node.open))) await topSummary.click();
+  return privateGear;
+}
+
 test.beforeEach(async ({ page }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/, route => route.abort('failed'));
   await page.goto(`${BASE_URL}/?v123e-gear-matching=1`, { waitUntil: 'domcontentloaded' });
@@ -10,9 +18,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('dripper angle and bypass are configured in 器设 and only displayed read-only in 小酌', async ({ page }) => {
-  await page.locator('[data-page-target="settings"]').click();
-  const privateGear = page.locator('#privateGearCategory');
-  await privateGear.locator('summary').click();
+  const privateGear = await openPrivateGear(page);
   await privateGear.locator('[data-add-gear="dripper"]').click();
   await expect(page.locator('#lbDripperAngle')).toBeVisible();
   await expect(page.locator('#lbDripperBypass')).toBeVisible();
@@ -38,9 +44,7 @@ test('dripper angle and bypass are configured in 器设 and only displayed read-
 });
 
 test('filter speed is bound to filter paper in 器设', async ({ page }) => {
-  await page.locator('[data-page-target="settings"]').click();
-  const privateGear = page.locator('#privateGearCategory');
-  await privateGear.locator('summary').click();
+  const privateGear = await openPrivateGear(page);
   await privateGear.locator('[data-add-gear="filter"]').click();
   await expect(page.locator('#lbFilterSpeed')).toBeVisible();
   await page.locator('#lbFilterBrand').fill('测试');
