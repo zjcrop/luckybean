@@ -26,7 +26,7 @@ assert.match(qrUi, /LuckyBeanQrScanner/);
 assert.match(qrUi, /scanner\.restart/);
 assert.match(repair, /const FLAVOR_GROUPS = \['花香', '果香', '茶感', '香料', '其他'\]/);
 assert.match(repair, /flavorText: flavorNames\.join\(' '\)/);
-assert.match(repair, /豆卡自动推荐/);
+assert.match(repair, /模型推荐结果/);
 assert.match(repair, /data-lb-open-guide/);
 assert.match(repair, /请先在器设页面中注册或登录账户，以便同步数据到云端/);
 assert.match(repair, /杯测品鉴/);
