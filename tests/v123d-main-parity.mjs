@@ -12,15 +12,17 @@ test('all pages use the same red seal slot geometry', async () => {
   assert.match(styles, /\.page-heading\.centered-page-heading\s*\{[\s\S]*min-height:\s*42px !important;[\s\S]*margin-bottom:\s*10px !important;/);
 });
 
-test('bean custom fields and brew row order are locked to the current interaction contract', async () => {
+test('bean custom fields and five-row brew order are locked to the current interaction contract', async () => {
   const app = await read('src/app.js');
   for (const table of ['countries', 'regions', 'entities', 'varieties', 'processes']) {
     assert.match(app, new RegExp(`${table}: \\{ field:`));
   }
   assert.match(app, /CUSTOM_BEAN_OPTION_VALUE = '__custom__'/);
   const rows = [...app.matchAll(/data-brew-row="([^"]+)"/g)].map(match => match[1]);
-  assert.deepEqual(rows.slice(0, 5), ['dose-ratio', 'filter-gear', 'method-water', 'tune-flavor', 'cooling']);
-  assert.match(app, /select\.addEventListener\('pointerdown', reopenCustom\)/);
+  assert.deepEqual(rows.slice(0, 5), ['dose-ratio', 'filter-gear-water', 'actions', 'cooling', 'profile']);
+  assert.doesNotMatch(app, /select\.addEventListener\('pointerdown', reopenCustom\)/);
+  assert.doesNotMatch(app, /id="brewSegments"/);
+  assert.match(app, /id="brewProfile"[\s\S]*>模型推荐<\/option>/);
 });
 
 test('about section contains the shipped illustration', async () => {
