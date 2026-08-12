@@ -2,3 +2,7 @@ node_modules/
 test-results/
 playwright-report/
 .playwright/
+android/signing/*.jks
+android/signing/*.keystore
+android/signing/*.p12
+android/signing/key.properties

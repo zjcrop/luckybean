@@ -11,6 +11,7 @@ const tests = [
   'tests/v125-root-state-models.mjs',
   'tests/v123d-deployment-contracts.mjs',
   'tests/v123d-ui-sensory-regressions.mjs',
+  'tests/v123e-batch-onboarding-static.mjs',
   'tests/v126-full-integration-static.mjs',
   'tests/v127-user-regressions-static.mjs',
   'tests/v123e-cloud-gear-sync.mjs',

@@ -267,6 +267,23 @@ function enterApp() {
   $('#appShell').classList.remove('hidden');
   switchPage('beans');
   bindControlStates(document);
+  requestAnimationFrame(showFirstUseGuidance);
+}
+
+function deviceSetupComplete() {
+  const gear = state.settings.gear || {};
+  return Array.isArray(gear.drippers) && gear.drippers.length > 0
+    && Array.isArray(gear.filters) && gear.filters.length > 0;
+}
+
+function showFirstUseGuidance() {
+  const sessionKey = 'luckybean.first-use-guidance.shown.v1';
+  const authenticated = Boolean(globalThis.LuckyBeanCloudAuth?.getSession?.()?.refresh_token);
+  if ((authenticated && deviceSetupComplete()) || sessionStorage.getItem(sessionKey) === '1') return;
+  sessionStorage.setItem(sessionKey, '1');
+  const overlay = showOverlay(`${dialogHeader('首次使用', '请先完成基础设定', { centered: true, closable: false })}<p class="first-use-message">请进入“器”设定个人账户及设备设定</p><div class="row end"><button class="button subtle" type="button" data-close-overlay>稍后设置</button><button id="firstUseSettingsBtn" class="button primary" type="button">前往“器”</button></div>`, { id: 'first-use-guidance', backdropClose: false });
+  bindClose(overlay);
+  $('#firstUseSettingsBtn')?.addEventListener('click', () => { closeOverlay(); switchPage('settings'); });
 }
 
 function showInfoDialog(title, message) {
@@ -654,7 +671,10 @@ function renderBeans() {
   if (!beans.length) {
     state.activeGroupKey = null;
     state.recommendationExpandedAll = false;
-    container.innerHTML = `${board}<div class="empty-state"><strong>没有符合条件的豆卡</strong><p>点击“添丁”录入，或从“搜索”调整条件。</p></div>`;
+    const hasActiveBeans = state.beans.some(bean => !bean.archived && Number(bean.remainingWeight) > 0);
+    container.innerHTML = hasActiveBeans
+      ? `${board}<div class="empty-state"><strong>没有符合条件的豆卡</strong><p>请调整搜索或筛选条件。</p></div>`
+      : `${board}<button class="empty-state empty-bean-entry" type="button" data-add-mode="text"><strong>添加第一支咖啡豆小酌一杯吧</strong><p>点击建立第一张豆卡</p></button>`;
     return;
   }
   if (beans.length <= 6) {
@@ -709,8 +729,64 @@ function openGroupMenu() {
 function openManageMenu() {
   closePopups();
   const popup = document.createElement('div'); popup.className = 'popup-menu';
-  popup.innerHTML = `<button type="button" data-manage-action="export">导出数据</button><button type="button" data-manage-action="import">导入数据</button>`;
+  popup.innerHTML = `<button type="button" data-manage-action="batch">批量管理</button><button type="button" data-manage-action="export">导出数据</button><button type="button" data-manage-action="import">导入数据</button>`;
   document.body.append(popup); positionPopup($('#manageBtn'), popup);
+}
+
+async function beanRecycleRows() {
+  return (await all('recycleBin').catch(() => []))
+    .filter(item => item.entity === 'beans' && item.payload)
+    .sort((a, b) => String(b.recycledAt || '').localeCompare(String(a.recycledAt || '')));
+}
+
+async function cleanupExpiredBeanRecycle() {
+  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const rows = await beanRecycleRows();
+  await Promise.all(rows.filter(item => Date.parse(item.recycledAt || 0) <= cutoff).map(item => remove('recycleBin', item.id)));
+}
+
+async function openBatchBeanManager({ recycle = false } = {}) {
+  const rows = recycle ? await beanRecycleRows() : state.beans.filter(bean => !bean.archived);
+  const content = `${dialogHeader('批量管理', recycle ? '回收站记录保留7天，之后自动销毁' : '删除后先移入回收站，不等待网络同步', { centered: true })}<div class="batch-tabs"><button class="button${recycle ? '' : ' primary'}" type="button" data-batch-tab="active">豆卡</button><button class="button${recycle ? ' primary' : ''}" type="button" data-batch-tab="recycle">回收站</button></div><div class="batch-select-toolbar"><button class="button subtle" type="button" data-batch-select-all>全选</button><span data-batch-count>已选 0 项</span></div><div class="batch-bean-list">${rows.length ? rows.map(item => { const bean = recycle ? item.payload : item; return `<label class="batch-bean-row"><input type="checkbox" data-batch-bean="${esc(item.id)}"><span><strong>${esc(beanDisplayName(bean))}</strong><small>${Number(bean.remainingWeight || 0).toFixed(1)}g · ${esc(formatDate(bean.roastDate))}</small></span></label>`; }).join('') : '<p class="empty-state">暂无记录</p>'}</div><div class="row end"><button class="button subtle" type="button" data-close-overlay>返回</button>${recycle ? '<button id="restoreBatchBeansBtn" class="button primary" type="button" disabled>恢复所选</button>' : '<button id="deleteBatchBeansBtn" class="button danger" type="button" disabled>删除所选</button>'}</div>`;
+  const overlay = showOverlay(content, { full: true, id: 'batch-bean-manager' });
+  bindClose(overlay);
+  const selectedIds = () => $$('[data-batch-bean]:checked', overlay).map(input => input.dataset.batchBean);
+  const update = () => {
+    const count = selectedIds().length;
+    $('[data-batch-count]', overlay).textContent = `已选 ${count} 项`;
+    const action = $('#deleteBatchBeansBtn') || $('#restoreBatchBeansBtn');
+    if (action) action.disabled = count === 0;
+  };
+  $$('[data-batch-bean]', overlay).forEach(input => input.addEventListener('change', update));
+  $('[data-batch-select-all]', overlay)?.addEventListener('click', () => { $$('[data-batch-bean]', overlay).forEach(input => { input.checked = true; }); update(); });
+  $$('[data-batch-tab]', overlay).forEach(button => button.addEventListener('click', () => openBatchBeanManager({ recycle: button.dataset.batchTab === 'recycle' })));
+  $('#deleteBatchBeansBtn')?.addEventListener('click', async event => {
+    const ids = selectedIds(); if (!ids.length) return;
+    const names = state.beans.filter(bean => ids.includes(bean.id)).slice(0, 3).map(beanDisplayName);
+    const suffix = ids.length > names.length ? ` 等${ids.length}张豆卡` : '';
+    if (!globalThis.confirm(`确认删除：${names.join('、')}${suffix}？\n记录将移入回收站并保留7天。`)) return;
+    event.currentTarget.disabled = true; event.currentTarget.textContent = '正在删除…';
+    try {
+      const at = new Date().toISOString();
+      const selected = state.beans.filter(bean => ids.includes(bean.id));
+      for (const bean of selected) {
+        await put('recycleBin', { id: `bean:${bean.id}`, entity: 'beans', entityId: bean.id, payload: structuredClone(bean), recycledAt: at });
+        await remove('beans', bean.id);
+      }
+      await refreshData(); renderBeans(); await openBatchBeanManager({ recycle: false });
+      toast(`已将 ${selected.length} 张豆卡移入回收站`, 'status-good');
+    } catch (error) { event.currentTarget.disabled = false; event.currentTarget.textContent = '删除所选'; toast(error.message || '批量删除失败', 'status-bad'); }
+  });
+  $('#restoreBatchBeansBtn')?.addEventListener('click', async event => {
+    const ids = selectedIds(); if (!ids.length) return;
+    event.currentTarget.disabled = true; event.currentTarget.textContent = '正在恢复…';
+    try {
+      const records = (await beanRecycleRows()).filter(item => ids.includes(item.id));
+      for (const item of records) { await put('beans', { ...item.payload, updatedAt: new Date().toISOString() }); await remove('recycleBin', item.id); }
+      await refreshData(); renderBeans(); await openBatchBeanManager({ recycle: true });
+      toast(`已恢复 ${records.length} 张豆卡`, 'status-good');
+    } catch (error) { event.currentTarget.disabled = false; event.currentTarget.textContent = '恢复所选'; toast(error.message || '恢复失败', 'status-bad'); }
+  });
 }
 
 function openSearchDialog() {
@@ -1612,19 +1688,20 @@ function planHtml(plan) {
   const flavor = plan.flavorFit || {};
   const first = plan.stages?.[0];
   const water = plan.water;
-  const candidates = plan.recommendation?.candidates || [];
+  const candidates = [...(plan.recommendation?.candidates || [])]
+    .filter(item => Number.isFinite(Number(item.score)))
+    .sort((a, b) => Number(b.score) - Number(a.score))
+    .slice(0, 3);
   const corrected = Boolean(plan.correction);
-  const showVisual = Boolean(state.settings.ui.planVisualsExpanded || state.settings.ui.temporaryVisualOpen);
-  const extraction = plan.extractionModel || plan.professional?.extractionModel || {};
+  const matchPercent = score => Math.round(clamp(Number(score) <= 1 ? Number(score) * 100 : Number(score), 0, 100));
   return `<section class="panel generated-plan" id="generatedPlan"><div class="panel-title"><div><h2>冲煮方案${corrected ? ' · 修正' : ''}</h2><p>${Number(plan.totals?.doseG||0).toFixed(1)}g · ${Number(plan.totals?.waterG||0).toFixed(0)}g · ${formatSeconds(plan.totals?.targetTimeSec||0)}</p></div><span class="plan-profile-label">${esc(plan.profile?.label || String(plan.profileVersion || '').split('@')[0])}</span></div>
   ${(plan.warnings||[]).map(warning=>`<p class="small status-warn">${esc(warning)}</p>`).join('')}
   ${first ? `<p class="low-temp-note">首段建议 ${Number(first.temperatureC).toFixed(0)}°C：${esc(plan.firstPourReason || '控制初段释放并保留香气与甜感。')}</p>` : ''}
   <div>${plan.stages.map(stage=>`<article class="plan-stage"><div class="stage-index">${stage.index}</div><div class="stage-lines"><div class="stage-line"><div class="stage-cell"><span>本段注水</span><strong>${Number(stage.stageWaterG).toFixed(0)}g</strong></div><div class="stage-cell"><span>累计注水</span><strong>${Number(stage.cumulativeWaterG).toFixed(0)}g</strong></div><div class="stage-cell"><span>阶段</span><strong>${esc(stage.name)}</strong></div></div><div class="stage-line"><div class="stage-cell"><span>壶中/粉床</span><strong>${Number(stage.temperatureC).toFixed(0)}°/${Number(stage.coreTemperatureC ?? stage.temperatureC).toFixed(0)}°C</strong></div><div class="stage-cell"><span>时间/流速</span><strong>${Number(stage.durationSec).toFixed(0)}s · ${Number(stage.flowGPerSec||0).toFixed(1)}g/s</strong></div><div class="stage-cell"><span>注水方法</span><strong>${esc(stage.method)}</strong><small>${esc(stage.notice || '')}</small></div></div></div></article>`).join('')}</div>
-  <section class="visual-section trajectory-section${showVisual?' open':''}"><div class="trajectory-title-row"><button id="trajectoryTitleBtn" type="button"><h3>冲煮轨迹拟合图</h3></button><label class="switch-control"><span>默认开启</span><input id="trajectoryDefaultToggle" type="checkbox"${state.settings.ui.planVisualsExpanded?' checked':''}><i></i></label></div>${showVisual?`${trajectorySvg(plan)}<p class="muted small">目标 EY ${extraction.targetEY ?? '—'}% · 预测 TDS ${extraction.predictedTds ?? '—'}%；轨迹是相对模型，不替代折光仪测量。</p>`:''}</section>
   <details class="details-block professional-result"><summary>专业内容……</summary><div class="details-content">
     <section class="visual-section"><h3>风味拟合</h3><div class="bar-chart">${Object.entries({花香:flavor.floral,酸质:flavor.acidity,甜感:flavor.sweetness,口感:flavor.body,苦感风险:flavor.bitterness,洁净度:flavor.clarity}).map(([key,value])=>`<div class="bar-row"><span>${key}</span><div class="bar-track"><div class="bar-fill" style="width:${clamp(Number(value||0)*100,0,100)}%"></div></div><strong>${Math.round(Number(value||0)*100)}</strong></div>`).join('')}</div></section>
     <dl class="professional-list"><dt>研磨建议</dt><dd>${esc(plan.grinder ? `${plan.grinder.label} ${plan.grinder.recommended}${plan.grinder.unit}` : '未提供')}</dd><dt>品种模型</dt><dd>${esc(plan.temperature?.model?.model || '通用模型')}</dd><dt>关键化学标记</dt><dd>${esc((plan.temperature?.model?.markers || []).join('、') || '未提供')}</dd><dt>敏感度</dt><dd>${esc(plan.temperature?.model?.sensitivityText || '未提供')}</dd><dt>执行主轴</dt><dd>${esc(plan.temperature?.model?.execution || '未提供')}</dd><dt>容差参考</dt><dd>${plan.temperature?.model?.tolerance ? `温度 ±${plan.temperature.model.tolerance.temperatureC}°C / 流速 ±${plan.temperature.model.tolerance.flowGPerSec}g/s / 水量 ±${plan.temperature.model.tolerance.waterG}g` : '未提供'}</dd><dt>调水方案</dt><dd>${esc(water?.profile?.name || '未提供')} · 参考TDS ${Number(water?.profile?.tdsMid ?? water?.targetTdsRange?.[0] ?? state.settings.brew.customWater?.tds ?? 85)} mg/L</dd><dt>水质判断</dt><dd>${esc(plan.temperature?.model?.waterAdvice || '未提供')}</dd><dt>调水版本</dt><dd>${esc(water?.modelVersion || '—')}</dd><dt>计算模型</dt><dd>${esc(plan.professional?.calculationModelVersion || plan.engineVersion || '—')}</dd><dt>平均流速</dt><dd>${esc(String(plan.professional?.hydraulics?.averageFlowGPerSec ?? '—'))} g/s</dd></dl>
-    ${candidates.length ? `<details class="nested-settings"><summary>方案推荐排序</summary><div class="nested-content">${candidates.map(item=>`<div class="record-item"><span>${esc(item.profile?.label || item.id)}</span><span>${esc(item.reason || '')}</span><strong>${Math.round(Number(item.score||0)*100)}</strong></div>`).join('')}</div></details>` : ''}
+    ${candidates.length ? `<details class="nested-settings"><summary>匹配方案前三名</summary><div class="nested-content">${candidates.map((item,index)=>`<div class="record-item"><span>${index+1}. ${esc(item.profile?.label || item.id)}</span><span>${esc(item.reason || '')}</span><strong>${matchPercent(item.score)}%</strong></div>`).join('')}</div></details>` : ''}
     ${(plan.explanation||[]).map(value=>`<p class="muted small">${esc(value)}</p>`).join('')}
     ${(plan.professional?.modelLimitations||[]).map(value=>`<p class="status-warn small">${esc(value)}</p>`).join('')}
     ${plan.correction?.changes ? `<div class="correction-note"><strong>修正依据</strong>${plan.correction.changes.map(value=>`<p>${esc(value)}</p>`).join('')}</div>` : ''}
@@ -1636,8 +1713,6 @@ function planHtml(plan) {
 function bindPlanActions() {
   $('#startBrewBtn')?.addEventListener('click', startTimer);
   $('#exportPlanBtn')?.addEventListener('click', () => exportCurrentPlan($('#planExportFormat')?.value || 'json'));
-  $('#trajectoryDefaultToggle')?.addEventListener('change', async event => { state.settings.ui.planVisualsExpanded = event.target.checked; state.settings.ui.temporaryVisualOpen = false; await saveSettings(); if (state.currentPlan) { $('#planResult').innerHTML=planHtml(state.currentPlan); bindPlanActions(); } });
-  $('#trajectoryTitleBtn')?.addEventListener('click', () => { if (state.settings.ui.planVisualsExpanded) return; state.settings.ui.temporaryVisualOpen = !state.settings.ui.temporaryVisualOpen; if (state.currentPlan) { $('#planResult').innerHTML=planHtml(state.currentPlan); bindPlanActions(); } });
 }
 
 function planExportDocument(plan, format, bean) {
@@ -2314,14 +2389,13 @@ function renderSettings() {
   $('#settingsContent').innerHTML = `<div class="settings-categories">
   <details class="settings-category" data-settings-key="account"><summary><span>账户</span><small>登录、云端同步、恢复与多设备连接</small></summary><div class="settings-category-body" data-cloud-account-host></div></details>
   <details class="settings-category" id="privateGearCategory"><summary><span>私器${low.length?'<sup class="gear-low-star">*</sup>':''}</span><small>滤纸，滤杯，磨豆机设定</small></summary><div class="settings-category-body">${gearManagerHtml()}</div></details>
-  <details class="settings-category data-category"><summary><span>数藏</span><small>数据的导入导出、分析及备份</small></summary><div class="settings-category-body"><section class="v099p-data-analysis" data-v099p-data-analysis><h3>数藏分析</h3><p class="muted small">从豆卡、冲煮与品鉴记录生成个人咖啡图谱。</p><div class="v099p-analysis-actions"><button type="button" data-v099f-preference>风味喜好数字测写</button><button type="button" data-v099f-world>咖啡世界</button></div></section><details class="nested-settings"><summary>健康提醒参数（点击展开）</summary><div class="nested-content"><div class="grid-2"><label class="field"><span>每日咖啡因参考上限</span><input id="dailyCaffeineLimitMg" class="control" type="number" min="50" max="400" step="10" value="${Math.min(400,Number(state.settings.health.dailyCaffeineLimitMg || 400))}"><small>mg；一般健康成人默认400mg，只允许向下调整</small></label><label class="field"><span>预计入睡时间</span><input id="bedtimeLocal" class="control" type="time" value="${esc(state.settings.health.bedtimeLocal || '23:00')}"></label><label class="field"><span>睡前停止咖啡因</span><input id="caffeineCutoffHours" class="control" type="number" min="1" max="12" step="1" value="${Number(state.settings.health.caffeineCutoffHours || 6)}"><small>小时；默认至少提前6小时</small></label></div><p class="muted small">克数为咖啡因估算，不是医学诊断。孕期、未成年人、对咖啡因敏感或有医嘱者不适用一般成人阈值。</p><button id="saveHealthSettingsBtn" class="button" type="button">保存健康提醒</button></div></details><div class="text-actions data-actions"><button id="settingsExportBtn" class="button" type="button">导出备份</button><button id="settingsImportBtn" class="button" type="button">导入备份</button><button id="clearAllDataBtn" class="button danger" type="button">清空本地数据</button></div><details class="nested-settings"><summary>数据源与接口（点击展开）</summary><div class="nested-content"><div class="setting-row"><div><h3>数据源</h3><p>后台校验并原子更新，失败时保留最后有效版本。</p></div><button id="updateCodebookBtn" class="button" type="button">更新全部数据源</button></div><div id="providerStatusPanel"></div><label class="field"><span>私有冲煮 API</span><input id="brewApiEndpoint" class="control" type="url" placeholder="HTTPS 服务端地址" value="${esc(state.settings.brew.apiEndpoint||'')}"></label><button id="saveApiBtn" class="button" type="button">保存接口</button><label class="toggle"><input id="planVisualToggle" type="checkbox"${state.settings.ui.planVisualsExpanded?' checked':''}>默认显示冲煮轨迹图</label></div></details></div></details>
+  <details class="settings-category data-category"><summary><span>数藏</span><small>数据的导入导出、分析及备份</small></summary><div class="settings-category-body"><section class="v099p-data-analysis" data-v099p-data-analysis><h3>数藏分析</h3><p class="muted small">从豆卡、冲煮与品鉴记录生成个人咖啡图谱。</p><div class="v099p-analysis-actions"><button type="button" data-v099f-preference>风味喜好数字测写</button><button type="button" data-v099f-world>咖啡世界</button></div></section><details class="nested-settings"><summary>健康提醒参数（点击展开）</summary><div class="nested-content"><div class="grid-2"><label class="field"><span>每日咖啡因参考上限</span><input id="dailyCaffeineLimitMg" class="control" type="number" min="50" max="400" step="10" value="${Math.min(400,Number(state.settings.health.dailyCaffeineLimitMg || 400))}"><small>mg；一般健康成人默认400mg，只允许向下调整</small></label><label class="field"><span>预计入睡时间</span><input id="bedtimeLocal" class="control" type="time" value="${esc(state.settings.health.bedtimeLocal || '23:00')}"></label><label class="field"><span>睡前停止咖啡因</span><input id="caffeineCutoffHours" class="control" type="number" min="1" max="12" step="1" value="${Number(state.settings.health.caffeineCutoffHours || 6)}"><small>小时；默认至少提前6小时</small></label></div><p class="muted small">克数为咖啡因估算，不是医学诊断。孕期、未成年人、对咖啡因敏感或有医嘱者不适用一般成人阈值。</p><button id="saveHealthSettingsBtn" class="button" type="button">保存健康提醒</button></div></details><div class="text-actions data-actions"><button id="settingsExportBtn" class="button" type="button">导出备份</button><button id="settingsImportBtn" class="button" type="button">导入备份</button><button id="clearAllDataBtn" class="button danger" type="button">清空本地数据</button></div><details class="nested-settings"><summary>数据源与接口（点击展开）</summary><div class="nested-content"><div class="setting-row"><div><h3>数据源</h3><p>后台校验并原子更新，失败时保留最后有效版本。</p></div><button id="updateCodebookBtn" class="button" type="button">更新全部数据源</button></div><div id="providerStatusPanel"></div><label class="field"><span>私有冲煮 API</span><input id="brewApiEndpoint" class="control" type="url" placeholder="HTTPS 服务端地址" value="${esc(state.settings.brew.apiEndpoint||'')}"></label><button id="saveApiBtn" class="button" type="button">保存接口</button></div></details></div></details>
   <details class="settings-category"><summary><span>本物</span><small>关于本工具和开发小哥的一切</small></summary><div class="settings-category-body about-content"><figure class="about-illustration"><img src="./public/Luckybean-END.webp?v=1.23D-main-sync.4" alt="富贵盒子猫咪插图" loading="lazy" decoding="async"><figcaption>富贵盒子</figcaption></figure><h2>富贵盒子</h2><p>咖啡豆管理、冲煮辅助、品鉴记录与本地数据归档工具。</p><dl><dt>版本</dt><dd>${APP_VERSION}</dd><dt>数据结构</dt><dd>${SCHEMA_VERSION}</dd><dt>离线引擎</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>数据源</dt><dd>公开编码数据 ${esc(meta.version||state.codebook.version||'6')}</dd><dt>开发与维护</dt><dd>zjcrop</dd></dl></div></details>
   </div>`;
   renderProviderStatusPanel($('#providerStatusPanel')).catch(error => console.warn('数据源状态读取失败', error));
   $$('.settings-category').forEach(section=>section.addEventListener('toggle',()=>{if(!section.open)return;$$('.settings-category').forEach(other=>{if(other!==section)other.open=false;});}));
   $('#updateCodebookBtn').addEventListener('click', updateCodebook);
   $('#saveApiBtn').addEventListener('click',async()=>{state.settings.brew.apiEndpoint=$('#brewApiEndpoint').value.trim();await saveSettings();toast('接口地址已保存');});
-  $('#planVisualToggle').addEventListener('change',async event=>{state.settings.ui.planVisualsExpanded=event.target.checked;await saveSettings();});
   $('#saveHealthSettingsBtn').addEventListener('click',async()=>{state.settings.health={...state.settings.health,dailyCaffeineLimitMg:clamp(parseNumber($('#dailyCaffeineLimitMg').value,400),50,400),bedtimeLocal:$('#bedtimeLocal').value||'23:00',caffeineCutoffHours:clamp(parseNumber($('#caffeineCutoffHours').value,6),1,12)};await saveSettings();toast('健康提醒参数已保存','status-good');});
   $('[data-add-gear="filter"]')?.addEventListener('click',()=>openAddFilterDialog());
   $('[data-add-gear="dripper"]')?.addEventListener('click',()=>openAddDripperDialog());
@@ -2408,7 +2482,7 @@ function bindGlobalEvents() {
 document.addEventListener('click',event=>{
     const deleteSession=event.target.closest('[data-delete-session]');if(deleteSession){event.preventDefault();event.stopPropagation();confirmDeleteBrewSession(deleteSession.dataset.deleteSession);return;}
     const sensoryRecord=event.target.closest('[data-sensory-record]');if(sensoryRecord){event.preventDefault();openSensoryRecord(sensoryRecord.dataset.sensoryRecord);return;}
-    const manage=event.target.closest('[data-manage-action]');if(manage){const action=manage.dataset.manageAction;closePopups();if(action==='export')exportData();if(action==='import')$('#importInput').click();return;}
+    const manage=event.target.closest('[data-manage-action]');if(manage){const action=manage.dataset.manageAction;closePopups();if(action==='batch')openBatchBeanManager();if(action==='export')exportData();if(action==='import')$('#importInput').click();return;}
     const add=event.target.closest('[data-add-mode]');if(add){const mode=add.dataset.addMode;closePopups();if(mode==='photo')$('#qrImageInput').click();if(mode==='qr')openCameraDialog();if(mode==='text')openTextRecognition();return;}
     const recommend=event.target.closest('[data-recommend-mode]');if(recommend){recommendBean(recommend.dataset.recommendMode);return;}
     if(!event.target.closest('.popup-menu,.recommend-menu,#groupBtn,#manageBtn,#fabRecommendBtn,#fabAddBtn'))closePopups();
@@ -2434,6 +2508,7 @@ async function init() {
   const loaded = await loadCodebook(); state.codebook=loaded.data;state.codebookMeta=loaded.meta;state.codebookIndex=makeIndex(loaded.data);
   if (await handleSharedHash()) return;
   await refreshData(); await migrateLegacyFlavorCodes(); bindGlobalEvents();
+  await cleanupExpiredBeanRecycle().catch(error => console.warn('回收站过期清理失败', error));
   enterApp();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
 }

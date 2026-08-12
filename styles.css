@@ -114,6 +114,16 @@ a { color: var(--clickable); }
   color: var(--text);
   border-bottom: 1px dashed var(--active);
 }
+
+.empty-bean-entry { width: 100%; cursor: pointer; color: inherit; }
+.first-use-message { text-align: center; font-size: 1.05rem; line-height: 1.8; }
+.batch-tabs, .batch-select-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.batch-select-toolbar span { margin-left: auto; color: var(--muted); font-size: .9rem; }
+.batch-bean-list { display: grid; gap: 8px; margin-bottom: 18px; }
+.batch-bean-row { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
+.batch-bean-row input { width: 20px; height: 20px; flex: 0 0 auto; }
+.batch-bean-row span { display: grid; gap: 3px; }
+.batch-bean-row small { color: var(--muted); }
 .button.subtle { color: var(--muted); }
 .button.danger { color: var(--danger); }
 .button:disabled, .small-control:disabled { color: var(--muted-deep); border-bottom: 0; }

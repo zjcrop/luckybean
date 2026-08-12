@@ -4,13 +4,17 @@
 
 ## 构建
 
-在仓库根目录执行：
+本地调试构建在仓库根目录执行：
 
 ```bash
 gradle -p android :app:assembleDebug
 ```
 
 生成：`android/app/build/outputs/apk/debug/app-debug.apk`。
+
+正式发布APK由GitHub Actions读取仓库Secrets中的长期发布Keystore，执行
+`:app:assembleRelease`，并对照`android/signing/CERT_SHA256.txt`锁定签名。
+没有正式Keystore时不得把debug APK作为可升级发布包交付。
 
 ## 安全说明
 

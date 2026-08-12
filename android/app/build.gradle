@@ -4,6 +4,11 @@ plugins {
 
 def repositoryRoot = rootProject.projectDir.parentFile
 def generatedWebAssets = layout.buildDirectory.dir('generated/luckybeanWebAssets')
+def releaseStoreFile = System.getenv('LUCKYBEAN_KEYSTORE_FILE')
+def releaseStorePassword = System.getenv('LUCKYBEAN_STORE_PASSWORD')
+def releaseKeyAlias = System.getenv('LUCKYBEAN_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('LUCKYBEAN_KEY_PASSWORD')
+def hasReleaseSigning = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { it }
 
 tasks.register('syncLuckyBeanWebAssets') {
     inputs.files(
@@ -66,16 +71,29 @@ android {
         versionName '1.23E'
     }
     sourceSets { main.assets.srcDir(generatedWebAssets) }
+    signingConfigs {
+        if (hasReleaseSigning) {
+            luckyBeanRelease {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+                enableV1Signing true
+                enableV2Signing true
+            }
+        }
+    }
     buildTypes {
         debug { }
         release {
+            if (hasReleaseSigning) signingConfig signingConfigs.luckyBeanRelease
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         alpha {
             initWith release
-            signingConfig signingConfigs.debug
+            if (hasReleaseSigning) signingConfig signingConfigs.luckyBeanRelease
             debuggable false
             matchingFallbacks = ['release']
         }
