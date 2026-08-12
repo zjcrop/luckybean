@@ -24,7 +24,9 @@ jobs:
           fetch-depth: 0
       - name: Apply staged small-brew refactor
         if: ${{ github.event_name == 'push' }}
-        run: python3 scripts/apply-small-brew-v5.py
+        run: |
+          python3 scripts/apply-small-brew-v5.py
+          python3 scripts/apply-small-brew-v5-e2e.py
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
