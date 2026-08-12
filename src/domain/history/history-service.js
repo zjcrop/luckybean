@@ -2,9 +2,10 @@ import { openDb } from '../../db.js';
 import { sha256Hex } from '../../utils.js';
 
 export const BREW_HISTORY_SCHEMA = 'brew-history/1.0';
-const ANALYSIS_CONTRACT = 'brew-analysis/2.0';
-const SPATIAL_CONTRACT = 'brew-spatial/1.2';
-const SUPPORTED_SPATIAL_CONTRACTS = new Set(['brew-spatial/1.1', SPATIAL_CONTRACT]);
+const CURRENT_ANALYSIS_CONTRACT = 'brew-analysis/2.1';
+const SUPPORTED_ANALYSIS_CONTRACTS = new Set(['brew-analysis/2.0', CURRENT_ANALYSIS_CONTRACT]);
+const CURRENT_SPATIAL_CONTRACT = 'brew-spatial/1.3';
+const SUPPORTED_SPATIAL_CONTRACTS = new Set(['brew-spatial/1.1', 'brew-spatial/1.2', CURRENT_SPATIAL_CONTRACT]);
 
 function requestValue(request) {
   return new Promise((resolve, reject) => {
@@ -30,10 +31,14 @@ function positiveNumber(value, field) {
 }
 
 function validateAnalysisSnapshot(snapshot) {
-  if (!snapshot || snapshot.contract !== ANALYSIS_CONTRACT) throw new Error(`历史记录必须保存${ANALYSIS_CONTRACT}完整分析快照`);
+  if (!snapshot || !SUPPORTED_ANALYSIS_CONTRACTS.has(snapshot.contract)) {
+    throw new Error(`历史记录必须保存兼容分析快照：${[...SUPPORTED_ANALYSIS_CONTRACTS].join(' / ')}`);
+  }
   if (!snapshot.analysisFingerprint) throw new Error('历史记录缺少分析指纹');
   if (!snapshot.plan || typeof snapshot.plan !== 'object') throw new Error('历史记录缺少方案快照');
-  if (!SUPPORTED_SPATIAL_CONTRACTS.has(snapshot.trajectory?.schemaVersion)) throw new Error(`历史记录缺少受支持的${SPATIAL_CONTRACT}三维快照`);
+  if (!SUPPORTED_SPATIAL_CONTRACTS.has(snapshot.trajectory?.schemaVersion)) {
+    throw new Error(`历史记录缺少兼容三维快照：${[...SUPPORTED_SPATIAL_CONTRACTS].join(' / ')}`);
+  }
   if (!Array.isArray(snapshot.trajectory.path) || snapshot.trajectory.path.length < 2) throw new Error('历史记录三维轨迹点不足');
   return snapshot;
 }
