@@ -4,21 +4,13 @@ const $ = (selector, root = document) => root?.querySelector?.(selector) || null
 const $$ = (selector, root = document) => root?.querySelectorAll ? [...root.querySelectorAll(selector)] : [];
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const MATERIALS = Object.freeze([
-  ['glass', '玻璃'],
-  ['ceramic', '陶瓷'],
-  ['plastic', '塑料'],
-  ['titanium', '钛']
+  ['glass', '玻璃'], ['ceramic', '陶瓷'], ['plastic', '塑料'], ['titanium', '钛']
 ]);
 const BYPASS = Object.freeze([
-  ['none', '无'],
-  ['low', '少'],
-  ['medium', '中'],
-  ['high', '多']
+  ['none', '无'], ['low', '少'], ['medium', '中'], ['high', '多']
 ]);
 const PAPER_SPEED = Object.freeze([
-  ['low', '低'],
-  ['medium', '中'],
-  ['high', '高']
+  ['low', '低'], ['medium', '中'], ['high', '高']
 ]);
 
 let repairQueued = false;
@@ -77,16 +69,15 @@ async function persistSettings(settings, source) {
 }
 
 function closeEditor() {
-  const root = $('#overlayRoot');
-  if (root) root.replaceChildren();
+  $('#overlayRoot')?.replaceChildren();
 }
 
-function dialog(title, subtitle, body) {
+function dialog(title, subtitle, body, overlayId) {
   const root = $('#overlayRoot');
   if (!root) return null;
-  root.innerHTML = `<div class="overlay" data-overlay="gear-matching-editor">
+  root.innerHTML = `<div class="overlay" data-overlay="${esc(overlayId)}">
     <div class="dialog lb-gear-match-dialog">
-      <div class="dialog-header centered"><div><h2>${esc(title)}</h2><p>${esc(subtitle)}</p></div><button type="button" class="close-button" data-lb-gear-close aria-label="关闭">×</button></div>
+      <div class="dialog-header centered"><div><h2>${esc(title)}</h2><p>${esc(subtitle)}</p></div><button type="button" class="close-button" data-close-overlay data-lb-gear-close aria-label="关闭">×</button></div>
       ${body}
     </div>
   </div>`;
@@ -112,25 +103,26 @@ async function openDripperEditor(existingId = '') {
   const settings = await loadSettings({ fresh: true });
   const existing = settings.gear.drippers.find(item => String(item?.id || '') === String(existingId)) || {};
   const match = dripperMatch(settings, existingId);
-  const angle = Number.isFinite(Number(match.angleDeg ?? existing.angleDeg)) ? Number(match.angleDeg ?? existing.angleDeg) : '';
+  const angle = Number.isFinite(Number(match.angleDeg ?? existing.angleDeg)) ? Number(match.angleDeg ?? existing.angleDeg) : 60;
   const bypass = normalizeBypass(match.bypass ?? existing.bypass);
   const material = normalizeMaterial(existing.material || match.material);
   const overlay = dialog(existingId ? '编辑滤杯' : '添加滤杯',
     '滤杯角度、旁通量与滤杯本身绑定；小酌选择滤杯后自动读取，不再重复设置。',
     `<div class="grid-2">
-      <label class="field"><span>名称 *</span><input id="lbDripperName" class="control" value="${esc(existing.name || '')}" placeholder="例如 V60 02"></label>
-      <label class="field"><span>类型 *</span><select id="lbDripperType" class="control">${['平底滤杯','锥形滤杯','混合式滤杯','低旁路滤杯','浸泡式滤杯'].map(type => `<option${type === (existing.type || '平底滤杯') ? ' selected' : ''}>${type}</option>`).join('')}</select></label>
-      <label class="field"><span>材质 *</span><select id="lbDripperMaterial" class="control">${options(MATERIALS, material)}</select></label>
-      <label class="field"><span>滤杯角度 *</span><input id="lbDripperAngle" class="control" type="number" min="25" max="95" step="1" value="${esc(angle)}" placeholder="25–95°"><small>旧滤杯未设置时保持中性修正；编辑保存时请补录。</small></label>
+      <label class="field"><span>名称 *</span><input id="dripperName" class="control" value="${esc(existing.name || '')}" placeholder="例如 V60 02"></label>
+      <label class="field"><span>类型 *</span><select id="dripperType" class="control">${['平底滤杯','锥形滤杯','混合式滤杯','低旁路滤杯','浸泡式滤杯'].map(type => `<option${type === (existing.type || '平底滤杯') ? ' selected' : ''}>${type}</option>`).join('')}</select></label>
+      <label class="field"><span>材质 *</span><select id="dripperMaterial" class="control">${options(MATERIALS, material)}</select></label>
+      <label class="field"><span>滤杯角度 *</span><input id="lbDripperAngle" class="control" type="number" min="25" max="95" step="1" value="${esc(angle)}"><small>25–95°；60°为中性参考。角度随滤杯保存。</small></label>
       <label class="field"><span>旁通量 *</span><select id="lbDripperBypass" class="control">${options(BYPASS, bypass)}</select></label>
-      <label class="field"><span>价格</span><input id="lbDripperPrice" class="control" type="number" min="0" step="0.01" value="${Number(existing.price || 0)}"></label>
+      <label class="field"><span>价格</span><input id="dripperPrice" class="control" type="number" min="0" step="0.01" value="${Number(existing.price || 0)}"></label>
     </div>
-    <div class="row end">${existingId ? '<button id="lbDeleteDripper" class="button danger" type="button">删除</button>' : ''}<button id="lbSaveDripper" class="button primary" type="button">确定</button></div>`
+    <div class="row end">${existingId ? '<button id="deleteDripperBtn" class="button danger" type="button">删除</button>' : ''}<button id="saveDripperBtn" class="button primary" type="button">确定</button></div>`,
+    'dripper-editor'
   );
   if (!overlay) return;
 
-  $('#lbSaveDripper', overlay)?.addEventListener('click', async () => {
-    const name = $('#lbDripperName', overlay).value.trim();
+  $('#saveDripperBtn', overlay)?.addEventListener('click', async () => {
+    const name = $('#dripperName', overlay).value.trim();
     const angleDeg = Number($('#lbDripperAngle', overlay).value);
     if (!name) return showInlineStatus(overlay, '滤杯名称为必填项');
     if (!Number.isFinite(angleDeg) || angleDeg < 25 || angleDeg > 95) return showInlineStatus(overlay, '滤杯角度必须为 25–95°');
@@ -140,9 +132,9 @@ async function openDripperEditor(existingId = '') {
       ...existing,
       id,
       name,
-      type: $('#lbDripperType', overlay).value,
-      material: normalizeMaterial($('#lbDripperMaterial', overlay).value),
-      price: Math.max(0, Number($('#lbDripperPrice', overlay).value) || 0),
+      type: $('#dripperType', overlay).value,
+      material: normalizeMaterial($('#dripperMaterial', overlay).value),
+      price: Math.max(0, Number($('#dripperPrice', overlay).value) || 0),
       createdAt: existing.createdAt || now,
       updatedAt: now
     };
@@ -160,7 +152,7 @@ async function openDripperEditor(existingId = '') {
     await persistSettings(settings, 'dripper-saved');
   });
 
-  $('#lbDeleteDripper', overlay)?.addEventListener('click', async () => {
+  $('#deleteDripperBtn', overlay)?.addEventListener('click', async () => {
     settings.gear.drippers = settings.gear.drippers.filter(item => String(item?.id || '') !== String(existingId));
     delete settings.matchingGear.drippers[existingId];
     if (settings.brew.dripper === existingId) settings.brew.dripper = settings.gear.drippers[0]?.id || '';
@@ -176,19 +168,20 @@ async function openFilterEditor(existingId = '') {
   const overlay = dialog(existingId ? '编辑滤纸' : '添加滤纸',
     '过滤速度与滤纸本身绑定；小酌选择滤纸后自动作为匹配修正参数。',
     `<div class="grid-2">
-      <label class="field"><span>品牌</span><input id="lbFilterBrand" class="control" value="${esc(existing.brand || '')}"></label>
-      <label class="field"><span>类型 *</span><input id="lbFilterType" class="control" value="${esc(existing.type || '')}"></label>
+      <label class="field"><span>品牌</span><input id="filterBrand" class="control" value="${esc(existing.brand || '')}"></label>
+      <label class="field"><span>类型 *</span><input id="filterType" class="control" value="${esc(existing.type || '')}"></label>
       <label class="field"><span>过滤速度 *</span><select id="lbFilterSpeed" class="control">${options(PAPER_SPEED, speed)}</select></label>
-      <label class="field"><span>张数 *</span><input id="lbFilterQuantity" class="control" type="number" min="0" step="1" value="${Number(existing.quantity ?? 0)}"></label>
-      <label class="field"><span>价格</span><input id="lbFilterPrice" class="control" type="number" min="0" step="0.01" value="${Number(existing.price || 0)}"></label>
+      <label class="field"><span>张数 *</span><input id="filterQuantity" class="control" type="number" min="0" step="1" value="${Number(existing.quantity ?? 0)}"></label>
+      <label class="field"><span>价格</span><input id="filterPrice" class="control" type="number" min="0" step="0.01" value="${Number(existing.price || 0)}"></label>
     </div>
-    <div class="row end">${existingId ? '<button id="lbDeleteFilter" class="button danger" type="button">删除</button>' : ''}<button id="lbSaveFilter" class="button primary" type="button">确定</button></div>`
+    <div class="row end">${existingId ? '<button id="deleteFilterBtn" class="button danger" type="button">删除</button>' : ''}<button id="saveFilterBtn" class="button primary" type="button">确定</button></div>`,
+    'filter-editor'
   );
   if (!overlay) return;
 
-  $('#lbSaveFilter', overlay)?.addEventListener('click', async () => {
-    const type = $('#lbFilterType', overlay).value.trim();
-    const quantity = Math.floor(Number($('#lbFilterQuantity', overlay).value));
+  $('#saveFilterBtn', overlay)?.addEventListener('click', async () => {
+    const type = $('#filterType', overlay).value.trim();
+    const quantity = Math.floor(Number($('#filterQuantity', overlay).value));
     if (!type) return showInlineStatus(overlay, '滤纸类型为必填项');
     if (!Number.isFinite(quantity) || quantity < 0) return showInlineStatus(overlay, '滤纸张数必须为 0 或正整数');
     const id = String(existing.id || uid('filter'));
@@ -196,10 +189,10 @@ async function openFilterEditor(existingId = '') {
     const record = {
       ...existing,
       id,
-      brand: $('#lbFilterBrand', overlay).value.trim(),
+      brand: $('#filterBrand', overlay).value.trim(),
       type,
       quantity,
-      price: Math.max(0, Number($('#lbFilterPrice', overlay).value) || 0),
+      price: Math.max(0, Number($('#filterPrice', overlay).value) || 0),
       createdAt: existing.createdAt || now,
       updatedAt: now
     };
@@ -214,7 +207,7 @@ async function openFilterEditor(existingId = '') {
     await persistSettings(settings, 'filter-saved');
   });
 
-  $('#lbDeleteFilter', overlay)?.addEventListener('click', async () => {
+  $('#deleteFilterBtn', overlay)?.addEventListener('click', async () => {
     settings.gear.filters = settings.gear.filters.filter(item => String(item?.id || '') !== String(existingId));
     delete settings.matchingGear.papers[existingId];
     if (settings.brew.filterPaperId === existingId) settings.brew.filterPaperId = settings.gear.filters[0]?.id || '';
@@ -322,9 +315,4 @@ document.addEventListener('luckybean:local-app-ready', repair);
 new MutationObserver(repair).observe(document.body, { childList: true, subtree: true });
 repair();
 
-globalThis.LuckyBeanGearMatching = {
-  openDripperEditor,
-  openFilterEditor,
-  normalizeBypass,
-  normalizeSpeed
-};
+globalThis.LuckyBeanGearMatching = { openDripperEditor, openFilterEditor, normalizeBypass, normalizeSpeed };
