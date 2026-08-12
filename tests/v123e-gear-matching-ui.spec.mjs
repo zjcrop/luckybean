@@ -45,9 +45,10 @@ test('dripper angle and bypass are configured in 器设 and only displayed read-
   await page.locator('#brewDripper').selectOption(dripperId);
   await page.locator('#brewDripper').dispatchEvent('change');
   await expect(page.locator('#brewDripperMaterial')).toHaveCount(0);
-  await expect(page.locator('[data-lb-brew-dripper-properties]')).toContainText('45°');
-  await expect(page.locator('[data-lb-brew-dripper-properties]')).toContainText('旁通少');
+  await expect(page.locator('[data-lb-brew-dripper-properties]')).toHaveCount(0);
   await expect(page.locator('#brewContent')).not.toContainText('滤杯角度');
+  const tops = await page.locator('[data-brew-row="filter-gear-water"] .control').evaluateAll(nodes => nodes.map(node => Math.round(node.getBoundingClientRect().top)));
+  expect(new Set(tops).size).toBe(1);
 });
 
 test('filter speed is bound to filter paper in 器设', async ({ page }) => {
