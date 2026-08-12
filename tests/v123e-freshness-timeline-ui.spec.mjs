@@ -51,6 +51,11 @@ test('one-line bean card restores historical freshness color/length and uses it 
   expect(solidStyle).toContain(`background:${expected.color}`);
   expect(dashStyle).toContain(`left:${expected.progress}%`);
 
+  // Let the refresh-triggered grouping controller finish its background render
+  // before exercising the menu. A click while that render owns the container is
+  // intentionally ignored to prevent two renderers from replacing each other.
+  await expect(page.locator('#beanGroups')).not.toHaveClass(/v099t-group-busy/);
+  await page.waitForTimeout(250);
   await page.locator('#groupBtn').click();
   const option = page.locator('[data-v099f-group-freshness]');
   await expect(option).toHaveCount(1);
