@@ -81,8 +81,6 @@ function analysisFor(input) {
     path, targets, signals: {}, aggregate: { positive: [], negative: [], net: [] },
     summary: [], prediction: { suitability: 0.8, verdict: 'browser fixture', strengths: [], risks: [], confidence: 'test' }
   };
-  // Mirror the production brew-analysis/2.0 response: transport and engine
-  // versions live on the analysis envelope, not as legacy plan fields.
   const plan = {
     metadata: { fingerprint: planFingerprint, profileId, profileVersion: '2.0.0' },
     profile: { id: profileId, version: '2.0.0', label: profileId },
@@ -108,6 +106,16 @@ function analysisFor(input) {
 }
 
 export async function installBrewProfilesBrowserFixture(page) {
+  // These tests exercise a specific feature after startup. Suppress the first-use guide in the
+  // isolated test context so it cannot intercept unrelated control clicks while remaining unchanged
+  // in production.
+  await page.addInitScript(() => {
+    const removeGuide = () => document.querySelector('[data-lb-onboarding]')?.remove();
+    document.addEventListener('DOMContentLoaded', () => {
+      removeGuide();
+      new MutationObserver(removeGuide).observe(document.documentElement, { childList: true, subtree: true });
+    }, { once: true });
+  });
   await page.route(BREWPROFILES_ENDPOINT, async route => {
     const request = route.request();
     const url = new URL(request.url());
@@ -120,4 +128,3 @@ export async function installBrewProfilesBrowserFixture(page) {
     return route.abort('failed');
   });
 }
-
