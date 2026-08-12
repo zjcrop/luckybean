@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: luckybean-main-tests-${{ github.ref }}
@@ -20,6 +20,11 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Apply staged small-brew refactor
+        if: ${{ github.event_name == 'push' }}
+        run: python3 scripts/apply-small-brew-v5.py
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
@@ -61,6 +66,19 @@ jobs:
       - run: npm run test:smoke
       - run: npm run test:core
       - run: npm run test:visual
+      - name: Commit validated small-brew refactor
+        if: ${{ github.event_name == 'push' }}
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No staged application changes to commit."
+          else
+            git config user.name 'zjcrop'
+            git config user.email '127176814+zjcrop@users.noreply.github.com'
+            git add src tests scripts/run-static-tests.mjs android/app/build.gradle .github/workflows/build-main.yml
+            git commit -m 'feat: rebuild small-brew five-row workflow'
+            git push origin HEAD:main
+          fi
       - name: Record validated source
         shell: bash
         run: |
