@@ -77,15 +77,15 @@ test('custom first and tail cooling keep exactly one inline editor each after re
   await expect(page.locator('[data-lb-cooling-editor="tail"] input')).toHaveValue('80');
 });
 
-test('matching gear has one canonical angle bypass and paper-speed block after repeated DOM mutations', async ({ page }) => {
+test('小酌 never recreates editable dripper angle bypass or paper-speed controls after repeated DOM mutations', async ({ page }) => {
   await page.locator('[data-page-target="brew"]').click();
-  const block = page.locator('[data-lb-matching-gear]');
-  await expect(block).toHaveCount(1, { timeout: 10000 });
-  await expect(block.locator('#lbDripperAngle')).toHaveCount(1);
-  await expect(block).toContainText('滤杯角度');
-  await expect(block).toContainText('旁通');
-  await expect(block).toContainText('滤纸流速');
-  await expect(page.locator('#lbDripperShape')).toHaveCount(0);
+  const sentinel = page.locator('[data-lb-matching-gear][data-lb-legacy-gear-disabled]');
+  await expect(sentinel).toHaveCount(1, { timeout: 10000 });
+  await expect(sentinel).toBeHidden();
+  await expect(page.locator('#brewContent #lbDripperAngle')).toHaveCount(0);
+  await expect(page.locator('#brewContent #lbDripperBypass')).toHaveCount(0);
+  await expect(page.locator('#brewContent #lbPaperSpeed')).toHaveCount(0);
+  await expect(page.locator('#brewContent #lbDripperShape')).toHaveCount(0);
 
   await page.evaluate(() => {
     for (let i = 0; i < 30; i += 1) {
@@ -97,8 +97,8 @@ test('matching gear has one canonical angle bypass and paper-speed block after r
   });
   await page.waitForTimeout(500);
   await expect(page.locator('[data-lb-matching-gear]')).toHaveCount(1);
-  await expect(page.locator('#lbDripperAngle')).toHaveCount(1);
-  await expect(page.locator('#lbDripperShape')).toHaveCount(0);
+  await expect(page.locator('[data-lb-matching-gear][data-lb-legacy-gear-disabled]')).toBeHidden();
+  await expect(page.locator('#brewContent #lbDripperAngle,#brewContent #lbDripperBypass,#brewContent #lbPaperSpeed,#brewContent #lbDripperShape')).toHaveCount(0);
 });
 
 test('Android image decode failure marks native URI fallback instead of pretending WebView bytes are valid', async ({ page }) => {
