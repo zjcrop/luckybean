@@ -2,15 +2,27 @@
 // 滤杯角度、旁通量和滤纸流速现在只允许在“器设 → 私器”中随器具保存；
 // 小酌只选择器具，不再拥有第二套可编辑参数。
 const BLOCK_SELECTOR = '[data-lb-matching-gear]';
+const SENTINEL_SELECTOR = '[data-lb-matching-gear][data-lb-legacy-gear-disabled]';
 const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
 const $$ = (selector, root = document) => root?.querySelectorAll ? [...root.querySelectorAll(selector)] : [];
 let queued = false;
 
-function removeLegacySmallBrewEditor() {
+function disableLegacySmallBrewEditor() {
   const host = $('#brewContent');
   if (!host) return;
-  // Remove every stale block created by older 1.23E builds. The canonical editor now lives in 器设.
-  $$(BLOCK_SELECTOR, host).forEach(node => node.remove());
+  // Keep one inert hidden sentinel so the legacy integration controller sees the old block as
+  // already present and never recreates its editable angle/bypass/paper-speed controls.
+  $$(BLOCK_SELECTOR, host).forEach(node => {
+    if (!node.matches(SENTINEL_SELECTOR)) node.remove();
+  });
+  if (!$(SENTINEL_SELECTOR, host)) {
+    const sentinel = document.createElement('span');
+    sentinel.dataset.lbMatchingGear = '';
+    sentinel.dataset.lbLegacyGearDisabled = '1';
+    sentinel.hidden = true;
+    sentinel.setAttribute('aria-hidden', 'true');
+    host.append(sentinel);
+  }
 }
 
 function scheduleCleanup() {
@@ -18,7 +30,7 @@ function scheduleCleanup() {
   queued = true;
   requestAnimationFrame(() => {
     queued = false;
-    removeLegacySmallBrewEditor();
+    disableLegacySmallBrewEditor();
   });
 }
 
@@ -38,4 +50,4 @@ function init() {
 if (document.documentElement.dataset.startup === 'ready') init();
 else document.addEventListener('luckybean:local-app-ready', init, { once: true });
 
-globalThis.LuckyBeanLegacyGearGuard = { removeLegacySmallBrewEditor };
+globalThis.LuckyBeanLegacyGearGuard = { disableLegacySmallBrewEditor };
