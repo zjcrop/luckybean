@@ -19,6 +19,8 @@ assert.match(controller, /data-lb-freshness-timeline/);
 assert.match(controller, /bean-freshness-progress\{display:block!important/);
 assert.match(controller, /按赏味期阶段/);
 assert.match(controller, /data-lb-freshness-root class="empty-state"/);
+assert.match(controller, /const hasUnknownCard = cards\.some\(card => !beanMap\.has\(String\(card\.dataset\.beanId \|\| ''\)\)\)/);
+assert.match(controller, /if \(!beanMap\.size \|\| hasUnknownCard\) await refreshBeanMap\(\)/);
 
 assert.match(integrationCss, /bean-freshness-progress\{display:none!important\}/);
 assert.match(controller, /\.bean-card\.compact\.lb-one-line-bean \.bean-freshness-progress\{display:block!important/);
@@ -26,4 +28,4 @@ assert.match(utils, /export function freshnessProfile\(bean,\s*now = new Date\(\
 assert.doesNotMatch(controller, /RL-L0|SL28|GESHA|0\.78/);
 assert.match(sw, /features\/freshness-timeline-controller\.js\?v=1\.23E-main-sync\.2/);
 
-console.log('LuckyBean 1.23E one-line freshness timeline and stage grouping regression checks passed');
+console.log('LuckyBean 1.23E one-line freshness timeline, stale-cache recovery and stage grouping regression checks passed');
