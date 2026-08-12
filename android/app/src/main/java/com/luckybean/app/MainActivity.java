@@ -289,7 +289,6 @@ public final class MainActivity extends Activity {
                 if (bitmap != null) {
                     input = InputImage.fromBitmap(bitmap, 0);
                 } else if (sourceUri != null) {
-                    // InputImage.fromFilePath reads content:// directly and honors image rotation metadata.
                     input = InputImage.fromFilePath(MainActivity.this, sourceUri);
                 } else {
                     throw new IllegalArgumentException("无法读取照片数据，Android 原图引用不可用");
@@ -437,6 +436,29 @@ public final class MainActivity extends Activity {
         return cleaned.isEmpty() ? "luckybean-export.bin" : cleaned;
     }
 
+    private void retainReadPermission(Intent data, Uri uri) {
+        if (data == null || uri == null) return;
+        int flags = data.getFlags();
+        if ((flags & Intent.FLAG_GRANT_READ_URI_PERMISSION) == 0) return;
+        if ((flags & Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION) == 0) return;
+        try {
+            getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } catch (SecurityException ignored) {
+            // Some gallery/document providers grant only transient permission. Immediate OCR still works.
+        }
+    }
+
+    private void cleanupUnusedCameraOutput(Uri usedCameraUri) {
+        Uri pending = cameraOutputUri;
+        cameraOutputUri = null;
+        if (pending == null || pending.equals(usedCameraUri)) return;
+        try {
+            getContentResolver().delete(pending, null, null);
+        } catch (Exception ignored) {
+            // Best-effort cleanup only; never block the selected gallery image.
+        }
+    }
+
     private final class LuckyBeanChromeClient extends WebChromeClient {
         @Override
         public void onPermissionRequest(PermissionRequest request) {
@@ -461,6 +483,26 @@ public final class MainActivity extends Activity {
                                          FileChooserParams params) {
             if (filePathCallback != null) filePathCallback.onReceiveValue(null);
             filePathCallback = callback;
+            cleanupUnusedCameraOutput(null);
+
+            boolean captureOnly = params.isCaptureEnabled();
+            if (captureOnly && getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
+                Intent camera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                android.content.ContentValues values = new android.content.ContentValues();
+                values.put(MediaStore.Images.Media.DISPLAY_NAME, "luckybean-camera-" + System.currentTimeMillis() + ".jpg");
+                values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+                cameraOutputUri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+                if (cameraOutputUri != null) {
+                    camera.putExtra(MediaStore.EXTRA_OUTPUT, cameraOutputUri);
+                    camera.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    try {
+                        startActivityForResult(camera, FILE_CHOOSER_REQUEST);
+                        return true;
+                    } catch (ActivityNotFoundException error) {
+                        cleanupUnusedCameraOutput(null);
+                    }
+                }
+            }
 
             Intent contentIntent;
             try {
@@ -470,21 +512,19 @@ public final class MainActivity extends Activity {
                 contentIntent.addCategory(Intent.CATEGORY_OPENABLE);
                 contentIntent.setType("*/*");
             }
+            contentIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+            if (params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE) {
+                contentIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+            }
 
             Intent chooser = Intent.createChooser(contentIntent, "选择文件或照片");
-            if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
-                Intent camera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                android.content.ContentValues values = new android.content.ContentValues();
-                values.put(MediaStore.Images.Media.DISPLAY_NAME, "luckybean-qr-" + System.currentTimeMillis() + ".jpg");
-                values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-                cameraOutputUri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
-                if (cameraOutputUri != null) {
-                    camera.putExtra(MediaStore.EXTRA_OUTPUT, cameraOutputUri);
-                    camera.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{camera});
-                }
+            try {
+                startActivityForResult(chooser, FILE_CHOOSER_REQUEST);
+            } catch (ActivityNotFoundException error) {
+                filePathCallback.onReceiveValue(null);
+                filePathCallback = null;
+                Toast.makeText(MainActivity.this, "无法打开系统文件选择器", Toast.LENGTH_SHORT).show();
             }
-            startActivityForResult(chooser, FILE_CHOOSER_REQUEST);
             return true;
         }
 
@@ -541,24 +581,34 @@ public final class MainActivity extends Activity {
             return;
         }
         if (requestCode != FILE_CHOOSER_REQUEST || filePathCallback == null) return;
+
         Uri[] result = null;
+        Uri usedCameraUri = null;
         if (resultCode == RESULT_OK) {
-            if (data == null || data.getData() == null) {
-                if (cameraOutputUri != null) result = new Uri[]{cameraOutputUri};
-            } else {
-                ClipData clip = data.getClipData();
-                if (clip != null) {
-                    result = new Uri[clip.getItemCount()];
-                    for (int i = 0; i < clip.getItemCount(); i++) result[i] = clip.getItemAt(i).getUri();
-                } else {
-                    result = new Uri[]{data.getData()};
+            ClipData clip = data == null ? null : data.getClipData();
+            Uri single = data == null ? null : data.getData();
+            if (clip != null && clip.getItemCount() > 0) {
+                java.util.ArrayList<Uri> uris = new java.util.ArrayList<>();
+                for (int i = 0; i < clip.getItemCount(); i++) {
+                    Uri uri = clip.getItemAt(i).getUri();
+                    if (uri == null) continue;
+                    retainReadPermission(data, uri);
+                    uris.add(uri);
                 }
+                if (!uris.isEmpty()) result = uris.toArray(new Uri[0]);
+            } else if (single != null) {
+                retainReadPermission(data, single);
+                result = new Uri[]{single};
+            } else if (cameraOutputUri != null) {
+                usedCameraUri = cameraOutputUri;
+                result = new Uri[]{cameraOutputUri};
             }
         }
+
+        cleanupUnusedCameraOutput(usedCameraUri);
         rememberRecognitionSources(result);
         filePathCallback.onReceiveValue(result);
         filePathCallback = null;
-        cameraOutputUri = null;
     }
 
     @Override
@@ -576,6 +626,7 @@ public final class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        cleanupUnusedCameraOutput(null);
         if (chineseTextRecognizer != null) chineseTextRecognizer.close();
         if (latinTextRecognizer != null) latinTextRecognizer.close();
         synchronized (recognitionSourceLock) {
