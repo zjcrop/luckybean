@@ -10,6 +10,12 @@ async function openPrivateGear(page) {
   return privateGear;
 }
 
+async function openGearSubpage(privateGear, kind) {
+  const section = privateGear.locator(`[data-gear-kind="${kind}"]`);
+  if (!(await section.evaluate(node => node.open))) await section.locator(':scope > summary').click();
+  return section;
+}
+
 test.beforeEach(async ({ page }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/, route => route.abort('failed'));
   await page.goto(`${BASE_URL}/?v123e-gear-matching=1`, { waitUntil: 'domcontentloaded' });
@@ -19,16 +25,17 @@ test.beforeEach(async ({ page }) => {
 
 test('dripper angle and bypass are configured in 器设 and only displayed read-only in 小酌', async ({ page }) => {
   const privateGear = await openPrivateGear(page);
-  await privateGear.locator('[data-add-gear="dripper"]').click();
+  const drippers = await openGearSubpage(privateGear, 'dripper');
+  await drippers.locator('[data-add-gear="dripper"]').click();
   await expect(page.locator('#lbDripperAngle')).toBeVisible();
   await expect(page.locator('#lbDripperBypass')).toBeVisible();
-  await page.locator('#lbDripperName').fill('测试角度滤杯');
-  await page.locator('#lbDripperType').selectOption({ label: '锥形滤杯' });
-  await page.locator('#lbDripperMaterial').selectOption('plastic');
+  await page.locator('#dripperName').fill('测试角度滤杯');
+  await page.locator('#dripperType').selectOption({ label: '锥形滤杯' });
+  await page.locator('#dripperMaterial').selectOption('plastic');
   await page.locator('#lbDripperAngle').fill('45');
   await page.locator('#lbDripperBypass').selectOption('low');
-  await page.locator('#lbSaveDripper').click();
-  await expect(page.locator('[data-overlay="gear-matching-editor"]')).toHaveCount(0);
+  await page.locator('#saveDripperBtn').click();
+  await expect(page.locator('[data-overlay="dripper-editor"]')).toHaveCount(0);
   const saved = page.locator('[data-dripper-item]').filter({ hasText: '测试角度滤杯' });
   await expect(saved).toHaveCount(1);
   const dripperId = await saved.getAttribute('data-dripper-item');
@@ -45,13 +52,15 @@ test('dripper angle and bypass are configured in 器设 and only displayed read-
 
 test('filter speed is bound to filter paper in 器设', async ({ page }) => {
   const privateGear = await openPrivateGear(page);
-  await privateGear.locator('[data-add-gear="filter"]').click();
+  const filters = await openGearSubpage(privateGear, 'filter');
+  await filters.locator('[data-add-gear="filter"]').click();
   await expect(page.locator('#lbFilterSpeed')).toBeVisible();
-  await page.locator('#lbFilterBrand').fill('测试');
-  await page.locator('#lbFilterType').fill('高速滤纸');
+  await page.locator('#filterBrand').fill('测试');
+  await page.locator('#filterType').fill('高速滤纸');
   await page.locator('#lbFilterSpeed').selectOption('high');
-  await page.locator('#lbFilterQuantity').fill('20');
-  await page.locator('#lbSaveFilter').click();
+  await page.locator('#filterQuantity').fill('20');
+  await page.locator('#saveFilterBtn').click();
+  await expect(page.locator('[data-overlay="filter-editor"]')).toHaveCount(0);
   const saved = page.locator('[data-filter-item]').filter({ hasText: '高速滤纸' });
   await expect(saved).toHaveCount(1);
   await expect(saved).toContainText('流速高');
