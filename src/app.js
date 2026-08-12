@@ -657,7 +657,7 @@ function renderBeans() {
     const hasActiveBeans = state.beans.some(bean => !bean.archived && Number(bean.remainingWeight) > 0);
     container.innerHTML = hasActiveBeans
       ? `${board}<div class="empty-state"><strong>没有符合条件的豆卡</strong><p>请调整搜索或筛选条件。</p></div>`
-      : `${board}<button class="empty-state empty-bean-entry" type="button" data-add-mode="text"><strong>添加第一支咖啡豆小酌一杯吧</strong><p>点击建立第一张豆卡</p></button>`;
+      : `${board}<button class="empty-state empty-bean-entry" type="button" data-empty-add-bean><strong>添加第一支咖啡豆小酌一杯吧</strong><p>点击建立第一张豆卡</p></button>`;
     return;
   }
   if (beans.length <= 6) {
@@ -2463,6 +2463,7 @@ function bindGlobalEvents() {
   $('#fabSearchBtn').addEventListener('click',openSearchDialog); $('#fabRecommendBtn').addEventListener('click',openRecommendMenu); $('#fabHistoryBtn').addEventListener('click',()=>openHistoryScreen()); $('#fabAddBtn').addEventListener('click',openAddMenu);
   document.addEventListener('luckybean:request-history-replay', event => loadBrewSession(event.detail?.recordId));
 document.addEventListener('click',event=>{
+    const emptyAdd=event.target.closest('[data-empty-add-bean]');if(emptyAdd){openTextRecognition();return;}
     const deleteSession=event.target.closest('[data-delete-session]');if(deleteSession){event.preventDefault();event.stopPropagation();confirmDeleteBrewSession(deleteSession.dataset.deleteSession);return;}
     const sensoryRecord=event.target.closest('[data-sensory-record]');if(sensoryRecord){event.preventDefault();openSensoryRecord(sensoryRecord.dataset.sensoryRecord);return;}
     const manage=event.target.closest('[data-manage-action]');if(manage){const action=manage.dataset.manageAction;closePopups();if(action==='batch')openBatchBeanManager();if(action==='export')exportData();if(action==='import')$('#importInput').click();return;}
