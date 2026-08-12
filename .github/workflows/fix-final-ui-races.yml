@@ -108,9 +108,9 @@ jobs:
           # Static lock for the actual freshness production race fix.
           path = Path('tests/v123e-freshness-timeline-regression.mjs')
           text = path.read_text(encoding='utf-8')
-          anchor = "assert.match(controller, /hasUnknownCard/);"
-          addition = "assert.match(controller, /hasUnknownCard/);\nassert.match(controller, /attributes: true/);\nassert.match(controller, /attributeFilter: \\['class', 'data-bean-id'\\]/);"
-          if addition not in text:
+          anchor = "assert.match(controller, /const hasUnknownCard = cards\\.some\\(card => !beanMap\\.has\\(String\\(card\\.dataset\\.beanId \\|\\| ''\\)\\)\\)/);"
+          addition = anchor + "\nassert.match(controller, /attributes: true/);\nassert.match(controller, /attributeFilter: \\['class', 'data-bean-id'\\]/);"
+          if 'attributeFilter:' not in text:
             if anchor not in text:
               raise SystemExit('freshness static anchor not found')
             text = text.replace(anchor, addition, 1)
