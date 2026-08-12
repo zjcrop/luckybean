@@ -25,6 +25,12 @@ jobs:
 
           path = Path('tests/v120-requirements-ui.spec.mjs')
           text = path.read_text(encoding='utf-8')
+          old = "await page.reload({ waitUntil: 'domcontentloaded' });"
+          count = text.count(old)
+          if count != 2:
+            raise SystemExit(f'expected 2 explicit reloads, found {count}')
+          text = text.replace(old, 'await reloadAfterPendingNavigation(page);')
+
           helper = """
           async function reloadAfterPendingNavigation(page) {
             for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -42,17 +48,10 @@ jobs:
           }
           """.strip()
 
-          if 'async function reloadAfterPendingNavigation(page)' not in text:
-            anchor = "async function seedBean(page) {"
-            if anchor not in text:
-              raise SystemExit('seedBean anchor not found')
-            text = text.replace(anchor, helper + "\n\n" + anchor, 1)
-
-          old = "await page.reload({ waitUntil: 'domcontentloaded' });"
-          count = text.count(old)
-          if count != 2:
-            raise SystemExit(f'expected 2 explicit reloads, found {count}')
-          text = text.replace(old, 'await reloadAfterPendingNavigation(page);')
+          anchor = "async function seedBean(page) {"
+          if anchor not in text:
+            raise SystemExit('seedBean anchor not found')
+          text = text.replace(anchor, helper + "\n\n" + anchor, 1)
           path.write_text(text, encoding='utf-8')
           PY
           node --check tests/v120-requirements-ui.spec.mjs
