@@ -47,6 +47,14 @@ let renderQueued = false;
 let lastAutomaticUserId = '';
 let deletionDialogFingerprint = '';
 let readinessTimer = null;
+let lastCompletionNotice = '';
+
+function completionNotice(message, detail = {}) {
+  const stamp = `${message}|${detail.restored ? JSON.stringify(detail.restored) : ''}|${Date.now() >> 11}`;
+  if (lastCompletionNotice === stamp) return;
+  lastCompletionNotice = stamp;
+  document.dispatchEvent(new CustomEvent('luckybean:user-notice', { detail: { message, kind: 'status-good' } }));
+}
 
 function esc(value) {
   return String(value ?? '').replace(/[&<>'\"]/g, char => ({
@@ -313,6 +321,9 @@ document.addEventListener('luckybean:cloud-sync-state', event => {
   lastSyncState = event.detail?.state || lastSyncState;
   lastDetail = event.detail || {};
   queueRender();
+  if (lastSyncState === 'synced') completionNotice('数据同步已完成', event.detail);
+  if (lastSyncState === 'synced-preserved') completionNotice('数据同步已完成，云端独有数据已保留', event.detail);
+  if (lastSyncState === 'downloaded') completionNotice('数据下载及本地合并已完成', event.detail);
   if (lastSyncState === 'deletion-confirmation-required') setTimeout(() => openDeletionDialog(lastDetail), 0);
 });
 

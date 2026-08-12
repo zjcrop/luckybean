@@ -114,3 +114,21 @@ test('legacy brew records delete locally without pretending inventory can be res
   expect(result.session).toBeUndefined();
   expect(result.outbox.operation).toBe('delete');
 });
+
+test('formal brew record can be deleted without inventory evidence when weight restoration is not requested', async ({ page }) => {
+  await openApp(page);
+  const result = await page.evaluate(async () => {
+    const db = await import('/src/db.js');
+    const history = await import('/src/domain/history/history-service.js');
+    const id = 'formal-brew-delete-without-restore-001';
+    await db.put('brewSessions', {
+      id, beanId: 'missing-inventory-bean', schemaVersion: 'brew-history/1.0',
+      inventoryEventId: 'missing-inventory-event', createdAt: new Date().toISOString(),
+      profile: { id: 'formal', label: '正式方案' }, totals: { doseG: 15, waterG: 225 }
+    });
+    const deleted = await history.permanentlyDeleteBrewRecords([id], { restoreWeight: false, sensoryMode: 'detach' });
+    return { deleted, session: await db.get('brewSessions', id) };
+  });
+  expect(result.deleted.deleted).toBe(1);
+  expect(result.session).toBeUndefined();
+});

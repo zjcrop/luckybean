@@ -546,6 +546,11 @@ globalThis.LuckyBeanCloudSync = {
   resolveDeletionDecision,
   syncNow: () => reconcile({ reason: 'manual', interactive: true }),
   pullNow: () => reconcile({ reason: 'manual-pull', interactive: true, forcePull: true }),
+  syncIntentionalDeletion: async () => {
+    const current = await stateRecord();
+    if (!current.lastRemoteRevision) return reconcile({ reason: 'intentional-local-deletion', interactive: false });
+    return reconcile({ reason: 'intentional-local-deletion', interactive: true, deletionPolicy: 'delete' });
+  },
   enabled: async () => true,
   getState: stateRecord,
   hasPendingChanges: () => Boolean(readDirty())

@@ -308,9 +308,9 @@ export async function permanentlyDeleteBrewRecords(ids, { restoreWeight = false,
     const record = active || recycled?.payload;
     if (!record) continue;
     const isFormalHistory = record.schemaVersion === BREW_HISTORY_SCHEMA;
-    const originalInventoryEvent = record.inventoryEventId ? await requestValue(inventory.get(record.inventoryEventId)) : null;
+    const originalInventoryEvent = restoreWeight && record.inventoryEventId ? await requestValue(inventory.get(record.inventoryEventId)) : null;
     let consumedAmount = 0;
-    if (isFormalHistory) consumedAmount = validateInventoryEvidence(record, originalInventoryEvent);
+    if (restoreWeight && isFormalHistory) consumedAmount = validateInventoryEvidence(record, originalInventoryEvent);
     else if (restoreWeight) throw new Error(`旧版冲煮记录${record.id}缺少可信库存凭证，只能删除记录，不能自动补回豆量`);
     const linkedSensory = allSensory.filter(item => item.brewSessionId === id);
     for (const item of linkedSensory) {

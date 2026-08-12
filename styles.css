@@ -535,6 +535,8 @@ input[type="checkbox"] { accent-color: var(--active); }
 .freshness-trend { white-space: nowrap; font-size: 12px; padding-top: 4px; }
 .freshness-trend.rising { color: #9fcf89; }
 .freshness-trend.falling { color: #aaa49b; }
+.management-stack { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
+.management-stack .button { min-width:0; padding-inline:8px; }
 .freshness-curve-panel { margin: 16px 0; border-block: 1px dashed rgba(255,255,255,.10); padding: 12px 0; }
 .freshness-curve { width: 100%; height: auto; min-height: 150px; display: block; }
 .freshness-curve .curve-axis { stroke: rgba(255,255,255,.16); stroke-width: 1; }

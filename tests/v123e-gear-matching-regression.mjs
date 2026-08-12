@@ -33,12 +33,12 @@ assert.match(gearController, /过滤速度/);
 assert.match(gearController, /matchingGear\.drippers/);
 assert.match(gearController, /matchingGear\.papers/);
 assert.doesNotMatch(gearController, /const materialSelect = \$\('#brewDripperMaterial'\)/);
-assert.match(gearController, /dripperSelect\.dataset\.recommendedDripperId/);
-assert.match(gearController, /const match = dripperMatch\(settings, dripper\.id\)/);
+assert.match(gearController, /\[data-lb-brew-dripper-properties\].*remove/);
+assert.doesNotMatch(gearController, /note\.textContent = `\$\{angle\}/);
 assert.doesNotMatch(gearController, /brewDripperAngle/);
 assert.match(index, /gear-matching-controller\.js\?v=1\.23E-main-sync\.2/);
 assert.match(sw, /gear-matching-controller\.js\?v=1\.23E-main-sync\.2/);
-assert.match(build, /versionCode 102313/);
+assert.match(build, /versionCode 102314/);
 
 const settings = {
   gear: {

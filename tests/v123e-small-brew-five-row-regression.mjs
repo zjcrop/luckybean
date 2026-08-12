@@ -32,8 +32,9 @@ assert.match(app, /tailTemperatureC: state\.settings\.brew\.tailCoolingMode === 
 assert.doesNotMatch(app, /select\.addEventListener\('pointerdown', reopenCustom\)/);
 assert.match(app, /openBrewEnvironmentDialog/);
 assert.match(app, /recommendedDripperForBrew/);
-assert.match(gear, /dataset\.recommendedDripperId/);
+assert.match(render, /data-recommended-dripper-id/);
+assert.match(gear, /\[data-lb-brew-dripper-properties\].*remove/);
 assert.match(repair, /模型推荐结果/);
 assert.match(css, /LuckyBean small-brew five-row contract/);
-assert.match(build, /versionCode 102313/);
+assert.match(build, /versionCode 102314/);
 console.log('LuckyBean 1.23E five-row small-brew contract passed');

@@ -8,7 +8,8 @@
 }
 
 [data-overlay="flavors"] .dialog{
-  overflow-y:auto!important;
+  overflow:visible!important;
+  max-height:none!important;
   overscroll-behavior:contain;
   -webkit-overflow-scrolling:touch;
   scroll-padding-top:12px;
@@ -16,14 +17,30 @@
 [data-overlay="flavors"] .flavor-groups{
   overflow:visible!important;
   min-height:0;
+  display:grid;
+  gap:8px;
 }
 [data-overlay="flavors"] .flavor-group{
   scroll-margin-top:12px;
+  border:1px solid var(--line-color,rgba(128,128,128,.22));
+  border-radius:10px;
+  padding:0 10px;
+}
+[data-overlay="flavors"] .flavor-group>summary{
+  cursor:pointer;
+  min-height:44px;
+  display:flex;
+  align-items:center;
+  font-weight:700;
+}
+[data-overlay="flavors"] .flavor-group[open]>summary{
+  border-bottom:1px solid var(--line-color,rgba(128,128,128,.18));
 }
 [data-overlay="flavors"] .flavor-grid{
   display:flex;
   flex-wrap:wrap;
   gap:7px;
+  padding:10px 0;
 }
 [data-overlay="flavors"] .flavor-button{
   min-height:34px;
@@ -103,6 +120,8 @@
 .brew-large-control,.brew-large-profile{min-height:58px!important;font-size:clamp(1.32rem,5vw,1.9rem)!important;font-weight:720!important;line-height:1.1!important;padding:.55rem .65rem!important}
 .brew-row-secondary{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important;align-items:end}
 .brew-row-secondary .field>span{font-size:.72rem;opacity:.7}
+.brew-row-secondary .field{align-self:end}
+.brew-row-secondary .control{width:100%;margin:0!important}
 .brew-small-control{min-width:0!important;font-size:.76rem!important;padding-inline:.35rem!important;white-space:nowrap;text-overflow:ellipsis}
 .brew-action-strip{gap:7px!important}
 .brew-menu-button{min-width:0!important;min-height:42px!important;font-size:.78rem!important;padding:.48rem .45rem!important;white-space:normal!important;text-align:center!important}

@@ -116,6 +116,7 @@ function toast(message, kind = '') {
   node.className = `toast show ${kind}`;
   toastTimer = setTimeout(() => node.className = 'toast', 2600);
 }
+document.addEventListener('luckybean:user-notice', event => toast(event.detail?.message || '', event.detail?.kind || 'status-good'));
 
 function showOverlay(content, { full = false, id = 'dialog', backdropClose = false, dialogClass = '' } = {}) {
   const root = $('#overlayRoot');
@@ -728,6 +729,30 @@ async function cleanupExpiredBeanRecycle() {
   await Promise.all(rows.filter(item => Date.parse(item.recycledAt || 0) <= cutoff).map(item => remove('recycleBin', item.id)));
 }
 
+async function moveBeansToRecycle(ids) {
+  const selectedIds = new Set(ids || []);
+  const selected = state.beans.filter(bean => selectedIds.has(bean.id));
+  if (!selected.length) return 0;
+  const snapshot = [...state.beans];
+  const at = new Date().toISOString();
+  state.beans = state.beans.filter(bean => !selectedIds.has(bean.id));
+  renderBeans();
+  try {
+    for (const bean of selected) {
+      await put('recycleBin', { id: `bean:${bean.id}`, entity: 'beans', entityId: bean.id, payload: structuredClone(bean), recycledAt: at, expiresAt: new Date(Date.parse(at) + 7 * 86400000).toISOString() });
+      await remove('beans', bean.id);
+    }
+    globalThis.LuckyBeanV099tBeanGroups?.invalidateData?.();
+    document.dispatchEvent(new CustomEvent('luckybean:app-refreshed'));
+    globalThis.LuckyBeanCloudSync?.syncIntentionalDeletion?.().catch(() => {});
+    return selected.length;
+  } catch (error) {
+    state.beans = snapshot;
+    renderBeans();
+    throw error;
+  }
+}
+
 async function openBatchBeanManager({ recycle = false } = {}) {
   const rows = recycle ? await beanRecycleRows() : state.beans.filter(bean => !bean.archived);
   const content = `${dialogHeader('批量管理', recycle ? '回收站记录保留7天，之后自动销毁' : '删除后先移入回收站，不等待网络同步', { centered: true })}<div class="batch-tabs"><button class="button${recycle ? '' : ' primary'}" type="button" data-batch-tab="active">豆卡</button><button class="button${recycle ? ' primary' : ''}" type="button" data-batch-tab="recycle">回收站</button></div><div class="batch-select-toolbar"><button class="button subtle" type="button" data-batch-select-all>全选</button><span data-batch-count>已选 0 项</span></div><div class="batch-bean-list">${rows.length ? rows.map(item => { const bean = recycle ? item.payload : item; return `<label class="batch-bean-row"><input type="checkbox" data-batch-bean="${esc(item.id)}"><span><strong>${esc(beanDisplayName(bean))}</strong><small>${Number(bean.remainingWeight || 0).toFixed(1)}g · ${esc(formatDate(bean.roastDate))}</small></span></label>`; }).join('') : '<p class="empty-state">暂无记录</p>'}</div><div class="row end"><button class="button subtle" type="button" data-close-overlay>返回</button>${recycle ? '<button id="restoreBatchBeansBtn" class="button primary" type="button" disabled>恢复所选</button>' : '<button id="deleteBatchBeansBtn" class="button danger" type="button" disabled>删除所选</button>'}</div>`;
@@ -748,22 +773,10 @@ async function openBatchBeanManager({ recycle = false } = {}) {
     const names = state.beans.filter(bean => ids.includes(bean.id)).slice(0, 3).map(beanDisplayName);
     const suffix = ids.length > names.length ? ` 等${ids.length}张豆卡` : '';
     if (!globalThis.confirm(`确认删除：${names.join('、')}${suffix}？\n记录将移入回收站并保留7天。`)) return;
-    const selected = state.beans.filter(bean => ids.includes(bean.id));
-    const snapshot = [...state.beans];
-    const at = new Date().toISOString();
-    state.beans = state.beans.filter(bean => !ids.includes(bean.id));
-    closeOverlay(); renderBeans();
-    toast(`已删除 ${selected.length} 张豆卡，云端将在后台同步`, 'status-good');
-    Promise.all(selected.flatMap(bean => [
-      put('recycleBin', { id: `bean:${bean.id}`, entity: 'beans', entityId: bean.id, payload: structuredClone(bean), recycledAt: at }),
-      remove('beans', bean.id)
-    ])).then(() => {
-      globalThis.LuckyBeanV099tBeanGroups?.invalidateData?.();
-      document.dispatchEvent(new CustomEvent('luckybean:app-refreshed'));
-    }).catch(error => {
-      state.beans = snapshot; renderBeans();
-      toast(error.message || '本地删除失败，已恢复列表', 'status-bad');
-    });
+    closeOverlay();
+    moveBeansToRecycle(ids)
+      .then(count => toast(`已删除 ${count} 张豆卡，回收站保留7天，云端将在后台同步删除`, 'status-good'))
+      .catch(error => toast(error.message || '本地删除失败，已恢复列表', 'status-bad'));
   });
   $('#restoreBatchBeansBtn')?.addEventListener('click', async event => {
     const ids = selectedIds(); if (!ids.length) return;
@@ -1115,7 +1128,7 @@ function openFlavorEditor(selected, bean, source) {
   const rows = (state.codebook.flavors || []).filter(row => row?.[0] && String(row.length >= 9 ? row[4] : row[1] || '').trim());
   const groups = new Map();
   rows.forEach(row => { const name = row.length >= 9 ? row[4] : row[1]; const label = flavorGroupLabel(name || row[2] || row[1]); if (!groups.has(label)) groups.set(label, []); groups.get(label).push(row); });
-  const content = `${dialogHeader('风味标签', `中文标签 ${rows.length} 项，最多选择 12 项`, { closable: false })}<div class="flavor-groups">${[...groups.entries()].map(([label, items]) => `<section class="flavor-group"><h3>${esc(label)}</h3><div class="flavor-grid">${items.map(row=>`<button type="button" class="flavor-button${set.has(row[0])?' selected':''}" data-flavor-code="${esc(row[0])}">${esc(String(row.length >= 9 ? row[4] : row[1]).trim())}</button>`).join('')}</div></section>`).join('')}</div><div class="row end"><button id="backFlavorsBtn" class="button subtle" type="button">返回</button><button id="clearFlavorsBtn" class="button subtle" type="button">清空</button><button id="confirmFlavorsBtn" class="button primary" type="button">确定</button></div>`;
+  const content = `${dialogHeader('风味标签', `中文标签 ${rows.length} 项，最多选择 12 项`, { closable: false })}<div class="flavor-groups">${[...groups.entries()].map(([label, items]) => `<details class="flavor-group"><summary>${esc(label)}</summary><div class="flavor-grid">${items.map(row=>`<button type="button" class="flavor-button${set.has(row[0])?' selected':''}" data-flavor-code="${esc(row[0])}">${esc(String(row.length >= 9 ? row[4] : row[1]).trim())}</button>`).join('')}</div></details>`).join('')}</div><div class="row end"><button id="backFlavorsBtn" class="button subtle" type="button">返回</button><button id="clearFlavorsBtn" class="button subtle" type="button">清空</button><button id="confirmFlavorsBtn" class="button primary" type="button">确定</button></div>`;
   const overlay = showOverlay(content, { full: true, id: 'flavors' }); bindClose(overlay);
   overlay.addEventListener('click', event => {
     const button = event.target.closest('[data-flavor-code]'); if (!button) return;
@@ -1267,7 +1280,7 @@ function detailBean(beanId) {
   const sessions = state.brewSessions.filter(session => session.beanId === bean.id).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,5);
   const content = `${dialogHeader(beanDisplayName(bean), beanNameSummary(bean))}
     <div class="detail-layout"><div class="freshness-card"><div><div class="small muted">赏味状态</div><h2>${esc(fresh.label)}</h2><p class="muted small">烘焙日期 ${formatDate(bean.roastDate)} · 有效豆龄 ${Math.round(fresh.effectiveAge)} 天 · 剩余 ${Number(bean.remainingWeight||0).toFixed(1)}g</p></div><div class="freshness-trend ${fresh.rising?'rising':'falling'}">风味${esc(fresh.trend)}</div></div>
-    <div class="management-stack"><button id="correctWeightBtn" class="button" type="button">修正克重</button><button id="toggleColdBtn" class="button${bean.refrigerated?' active':''}" type="button">${bean.refrigerated?'解除冷藏':'设为冷藏'}</button><button id="archiveBeanBtn" class="button" type="button">${bean.archived?'移出溯旧':'移至溯旧'}</button></div></div>
+    <div class="management-stack"><button id="correctWeightBtn" class="button" type="button">修正克重</button><button id="toggleColdBtn" class="button${bean.refrigerated?' active':''}" type="button">${bean.refrigerated?'解除冷藏':'设为冷藏'}</button><button id="archiveBeanBtn" class="button" type="button">${bean.archived?'移出溯旧':'移至溯旧'}</button><button id="deleteBeanBtn" class="button danger" type="button">删除</button></div></div>
     <section class="freshness-curve-panel">${freshnessCurveSvg(bean)}</section>
     <div class="detail-tags">${flavors || '<span class="muted small">风味待录</span>'}</div>
     <section class="panel"><div class="panel-title"><div><h3>冲煮记录</h3><p>点击可载入完整方案复刻</p></div></div><div class="record-list">${sessions.length ? sessions.map(sessionRecordHtml).join('') : '<p class="muted small">尚无冲煮记录</p>'}</div></section>
@@ -1277,6 +1290,15 @@ function detailBean(beanId) {
   $('#correctWeightBtn').addEventListener('click', () => correctWeightDialog(bean));
   $('#toggleColdBtn').addEventListener('click', async () => { bean.refrigerated = !bean.refrigerated; bean.freezeDate = bean.refrigerated ? todayISO() : ''; bean.updatedAt = new Date().toISOString(); await put('beans', bean); await refreshData(); detailBean(bean.id); });
   $('#archiveBeanBtn').addEventListener('click', async () => { bean.archived = !bean.archived; bean.updatedAt = new Date().toISOString(); await put('beans', bean); await refreshData(); closeOverlay(); renderBeans(); toast(bean.archived?'已移至溯旧':'已恢复到豆藏'); });
+  $('#deleteBeanBtn').addEventListener('click', async event => {
+    if (!globalThis.confirm(`确认删除“${beanDisplayName(bean)}”？\n豆卡将进入回收站保留7天，并同步删除云端记录。`)) return;
+    event.currentTarget.disabled = true;
+    try {
+      closeOverlay();
+      const count = await moveBeansToRecycle([bean.id]);
+      toast(count ? '豆卡已删除，回收站保留7天，云端将在后台同步删除' : '豆卡不存在', count ? 'status-good' : 'status-bad');
+    } catch (error) { toast(error.message || '豆卡删除失败', 'status-bad'); }
+  });
   $('#brewThisBeanBtn').addEventListener('click', () => { closeOverlay(); state.selectedBeanId = bean.id; state.currentPlan = null; switchPage('brew'); });
   $('#editBeanBtn').addEventListener('click', () => openBeanForm(bean, { type: 'manual' }));
   $('#copyBeanBtn').addEventListener('click', () => { const copy = { ...bean, id: undefined, createdAt: undefined, updatedAt: undefined, remainingWeight: bean.initialWeight }; openBeanForm(copy, { type: 'copy' }); });

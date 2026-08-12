@@ -101,9 +101,9 @@ async function repairFlavorPicker(overlay) {
     });
     liveHost.replaceChildren();
     FLAVOR_GROUPS.forEach(label => {
-      const section = document.createElement('section');
+      const section = document.createElement('details');
       section.className = 'flavor-group';
-      const title = document.createElement('h3');
+      const title = document.createElement('summary');
       title.textContent = label;
       const grid = document.createElement('div');
       grid.className = 'flavor-grid';
@@ -113,6 +113,7 @@ async function repairFlavorPicker(overlay) {
     });
     overlay.dataset.lbFlavorTaxonomy = '1';
     const dialog = $('.dialog', overlay);
+    overlay.scrollTop = 0;
     if (dialog) dialog.scrollTop = 0;
     liveHost.scrollTop = 0;
     requestAnimationFrame(() => {

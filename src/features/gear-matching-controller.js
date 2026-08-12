@@ -258,22 +258,7 @@ async function decorateRenderedGear() {
 async function decorateBrewGear() {
   const dripperSelect = $('#brewDripper');
   if (!dripperSelect) return;
-  const settings = await loadSettings();
-  const selectedId = dripperSelect.value === 'recommended' ? dripperSelect.dataset.recommendedDripperId : dripperSelect.value;
-  const dripper = settings.gear.drippers.find(item => String(item?.id || '') === String(selectedId))
-    || settings.gear.drippers.find(item => [item?.name, item?.type].includes(selectedId))
-    || settings.gear.drippers[0];
-  if (!dripper) return;
-  const match = dripperMatch(settings, dripper.id);
-  let note = $('[data-lb-brew-dripper-properties]');
-  if (!note) {
-    note = document.createElement('small');
-    note.className = 'muted lb-brew-dripper-properties';
-    note.dataset.lbBrewDripperProperties = '1';
-    dripperSelect.insertAdjacentElement('afterend', note);
-  }
-  const angle = Number.isFinite(Number(match.angleDeg)) ? `${Number(match.angleDeg)}°` : '角度未设';
-  note.textContent = `${angle} · 旁通${bypassLabel(match.bypass)} · 参数来自器设`;
+  $('[data-lb-brew-dripper-properties]')?.remove();
   if (dripperSelect.dataset.lbGearBound !== '1') {
     dripperSelect.dataset.lbGearBound = '1';
     dripperSelect.addEventListener('change', () => {

@@ -40,11 +40,15 @@ test('bean flavor picker is regrouped to five requested categories and starts at
   });
   const groups = page.locator('[data-overlay="flavors"] .flavor-group');
   await expect(groups).toHaveCount(5, { timeout: 15000 });
-  const labels = await groups.locator('h3').allTextContents();
+  const labels = await groups.locator('summary').allTextContents();
   expect(labels).toEqual(['花香', '果香', '茶感', '香料', '其他']);
+  await expect(groups.nth(0)).not.toHaveAttribute('open', '');
+  await groups.nth(0).locator('summary').click();
+  await expect(groups.nth(0)).toHaveAttribute('open', '');
   await expect(page.locator('[data-overlay="flavors"] .flavor-group').nth(0)).toContainText('茉莉');
   await expect(page.locator('[data-overlay="flavors"] .flavor-group').nth(4)).toContainText('巧克力');
   expect(await page.locator('[data-overlay="flavors"] .dialog').evaluate(node => node.scrollTop)).toBe(0);
+  await expect(page.locator('[data-overlay="flavors"]')).toHaveCSS('overflow-y', 'auto');
   await expect(page.locator('[data-overlay="flavors"] .flavor-button').first()).toHaveCSS('border-radius', '6px');
 });
 
