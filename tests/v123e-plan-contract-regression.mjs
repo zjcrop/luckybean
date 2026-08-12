@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { validatePlan } from '../src/brew-engine.js';
 
 function authoritativePlan(contract) {
@@ -27,4 +28,12 @@ assert.throws(
   'unknown authoritative contracts must still be rejected'
 );
 
-console.log('Verified final LuckyBean plan validator accepts BrewProfiles 2.0/2.1 and rejects unknown contracts.');
+const history = fs.readFileSync(new URL('../src/domain/history/history-service.js', import.meta.url), 'utf8');
+assert.match(history, /SUPPORTED_ANALYSIS_CONTRACTS = new Set\(\['brew-analysis\/2\.0', CURRENT_ANALYSIS_CONTRACT\]\)/);
+assert.match(history, /CURRENT_ANALYSIS_CONTRACT = 'brew-analysis\/2\.1'/);
+assert.match(history, /CURRENT_SPATIAL_CONTRACT = 'brew-spatial\/1\.3'/);
+assert.match(history, /SUPPORTED_SPATIAL_CONTRACTS = new Set\(\['brew-spatial\/1\.1', 'brew-spatial\/1\.2', CURRENT_SPATIAL_CONTRACT\]\)/);
+assert.match(history, /SUPPORTED_ANALYSIS_CONTRACTS\.has\(snapshot\.contract\)/);
+assert.match(history, /SUPPORTED_SPATIAL_CONTRACTS\.has\(snapshot\.trajectory\?\.schemaVersion\)/);
+
+console.log('Verified LuckyBean plan and brew-history validators accept BrewProfiles 2.0/2.1 and spatial 1.1/1.2/1.3 while rejecting unknown plan contracts.');
