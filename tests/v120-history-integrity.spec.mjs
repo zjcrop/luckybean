@@ -95,3 +95,26 @@ test('permanent deletion refuses missing or mismatched inventory evidence', asyn
   expect(result.restoreEvents).toHaveLength(1);
   expect(result.restoreEvents[0].sourceEventId).toBe(result.originalEvent.id);
 });
+
+test('legacy brew records delete locally without pretending inventory can be restored', async ({ page }) => {
+  await openApp(page);
+  const result = await page.evaluate(async () => {
+    const db = await import('/src/db.js');
+    const history = await import('/src/domain/history/history-service.js');
+    const id = 'legacy-brew-delete-001';
+    await db.put('brewSessions', { id, beanId: 'legacy-bean', createdAt: new Date().toISOString(), profile: { id: 'legacy', label: '旧版方案' }, totals: { waterG: 225 } });
+    await db.put('sensoryRecords', { id: 'legacy-sensory-001', beanId: 'legacy-bean', brewSessionId: id, createdAt: new Date().toISOString() });
+    const deleted = await history.permanentlyDeleteBrewRecords([id], { restoreWeight: false, sensoryMode: 'detach' });
+    return {
+      deleted,
+      session: await db.get('brewSessions', id),
+      sensory: await db.get('sensoryRecords', 'legacy-sensory-001'),
+      outbox: (await db.all('syncOutbox')).find(item => item.entityId === id && item.operation === 'delete')
+    };
+  });
+  expect(result.deleted.deleted).toBe(1);
+  expect(result.session).toBeUndefined();
+  expect(result.sensory.brewSessionId).toBe('');
+  expect(result.sensory.detachedFromBrewSessionId).toBe('legacy-brew-delete-001');
+  expect(result.outbox.operation).toBe('delete');
+});

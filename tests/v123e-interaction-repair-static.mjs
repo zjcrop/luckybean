@@ -39,5 +39,5 @@ assert.match(css, /\.flavor-button[\s\S]*border-radius:6px!important/);
 assert.match(index, /release-revision" content="1\.23E-main-sync\.2"/);
 assert.match(index, /gear-matching-controller\.js\?v=1\.23E-main-sync\.2/);
 assert.match(sw, /gear-matching-controller\.js\?v=1\.23E-main-sync\.2/);
-assert.match(androidBuild, /versionCode 102312/);
+assert.match(androidBuild, /versionCode 102313/);
 console.log('LuckyBean 1.23E QR, bean matching, gear binding, flavor taxonomy and user-guide repair checks passed');

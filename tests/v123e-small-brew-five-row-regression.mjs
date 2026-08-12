@@ -35,5 +35,5 @@ assert.match(app, /recommendedDripperForBrew/);
 assert.match(gear, /dataset\.recommendedDripperId/);
 assert.match(repair, /模型推荐结果/);
 assert.match(css, /LuckyBean small-brew five-row contract/);
-assert.match(build, /versionCode 102312/);
+assert.match(build, /versionCode 102313/);
 console.log('LuckyBean 1.23E five-row small-brew contract passed');

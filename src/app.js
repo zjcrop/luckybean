@@ -1315,7 +1315,8 @@ async function deleteBrewSession(sessionId, restoreBeans = false) {
   if (!session) return toast('冲煮记录不存在', 'status-bad');
   const bean = state.beans.find(item => item.id === session.beanId);
   try {
-    await permanentlyDeleteBrewRecords([sessionId], { restoreWeight: restoreBeans, sensoryMode: 'detach' });
+    const result = await permanentlyDeleteBrewRecords([sessionId], { restoreWeight: restoreBeans, sensoryMode: 'detach' });
+    if (result.deleted !== 1) throw new Error('本地记录未删除，请刷新后重试');
     if (state.currentPlan?.id === sessionId) { state.currentPlan = null; state.currentBrewInput = null; }
     await refreshData();
     closeOverlay();

@@ -306,15 +306,18 @@ export async function permanentlyDeleteBrewRecords(ids, { restoreWeight = false,
     const active = await requestValue(sessions.get(id));
     const recycled = await requestValue(recycle.get(id));
     const record = active || recycled?.payload;
-    if (!record || record.schemaVersion !== BREW_HISTORY_SCHEMA) continue;
-    const originalInventoryEvent = await requestValue(inventory.get(record.inventoryEventId));
-    const consumedAmount = validateInventoryEvidence(record, originalInventoryEvent);
+    if (!record) continue;
+    const isFormalHistory = record.schemaVersion === BREW_HISTORY_SCHEMA;
+    const originalInventoryEvent = record.inventoryEventId ? await requestValue(inventory.get(record.inventoryEventId)) : null;
+    let consumedAmount = 0;
+    if (isFormalHistory) consumedAmount = validateInventoryEvidence(record, originalInventoryEvent);
+    else if (restoreWeight) throw new Error(`旧版冲煮记录${record.id}缺少可信库存凭证，只能删除记录，不能自动补回豆量`);
     const linkedSensory = allSensory.filter(item => item.brewSessionId === id);
     for (const item of linkedSensory) {
       if (sensoryMode === 'delete') sensory.delete(item.id);
       else sensory.put({ ...item, brewSessionId: '', detachedFromBrewSessionId: id, updatedAt: at });
     }
-    if (restoreWeight) {
+    if (restoreWeight && isFormalHistory) {
       weightByBean.set(record.beanId, (weightByBean.get(record.beanId) || 0) + consumedAmount);
       restoredWeightG += consumedAmount;
       inventory.put({
