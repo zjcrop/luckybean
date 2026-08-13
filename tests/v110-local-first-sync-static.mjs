@@ -38,13 +38,15 @@ assert.match(startup, /ensureLocalDevice/);
 assert.doesNotMatch(startup, /ensureLocalIdentity|LB-LOCAL-/);
 assert.match(startup, /luckybean:local-app-ready/);
 assert.match(startup, /点击进入/);
-assert.match(startup, /navigator\.serviceWorker\.register\('\.\/sw\.js\?v=1\.23E-main-sync\.2'/);
-assert.match(startup, /await ensureLocalDevice\(\)[\s\S]*await import\('\.\.\/app\.js\?v=1\.23E-main-sync\.2'\)/);
+assert.match(startup, /RELEASE_REVISION/);
+assert.match(startup, /navigator\.serviceWorker\.register\(`\.\/sw\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`/);
+assert.match(startup, /await ensureLocalDevice\(\)[\s\S]*await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`\)/);
 assert.doesNotMatch(startup, /fetch\s*\(/);
 
 assert.match(auth, /REMEMBER_MS\s*=\s*7\s*\*\s*24/);
 assert.match(auth, /grant_type=refresh_token/);
 assert.match(auth, /warmSession/);
+assert.match(auth, /cloud-register-success/);
 assert.doesNotMatch(auth, /localStorage\.setItem\([^\n]*password/i);
 
 assert.match(sync, /DEBOUNCE_MS\s*=\s*8000/);
@@ -77,15 +79,17 @@ assert.match(db, /markSyncDirty\(name, 'put'/);
 assert.match(db, /luckybean:data-changed/);
 assert.match(bootstrap, /requestIdleCallback/);
 assert.match(bootstrap, /reconcile/);
-assert.match(panel, /登录服务器同步/);
+assert.match(panel, /登录 \/ 注册服务器同步/);
 assert.match(panel, /自动同步始终启用/);
 assert.match(panel, /下载云端数据合并本地/);
 assert.match(panel, /data-cloud-sync-indicator|cloud-sync-indicator/);
+assert.doesNotMatch(panel, /MutationObserver|setInterval/);
 assert.match(appearance, /splash-art-red\.webp/);
 assert.match(appearance, /splash-art-light\.webp/);
 assert.match(appearance, /LuckyBeanAppearanceController/);
-assert.doesNotMatch(appearance, /new MutationObserver\([^\n]*document\.documentElement/);
+assert.doesNotMatch(appearance, /MutationObserver/);
 assert.match(fab, /LuckyBeanFabController/);
+assert.match(fab, /visualViewport/);
 
 assert.match(analysis, /brew-analysis\/2\.1/);
 assert.match(analysis, /brew-spatial\/1\.3/);
@@ -106,8 +110,9 @@ assert.doesNotMatch(runtimeFeatures, /v109-history-management\.js|v099-trajector
 assert.doesNotMatch(runtimeFeatures, /v095-ui\.js|theme-bridge\.js/);
 
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v123e-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-2`/);
-assert.match(sw, /LEGACY_CACHE_PREFIXES = \['luckybean-main-v123d-'/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-3`/);
+assert.match(sw, /LEGACY_CACHE_PREFIXES = \[/);
+assert.match(sw, /'luckybean-main-v123d-'/);
 assert.match(sw, /key\.startsWith\(CACHE_PREFIX\) && key !== CACHE_NAME/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES\.some/);
 assert.doesNotMatch(sw, /keys\.filter\(key => key !== CACHE_NAME\)/);
@@ -116,7 +121,8 @@ assert.match(sw, /src\/core\/bootstrap\.js/);
 assert.match(sw, /src\/services\/cloud-sync-safety\.js/);
 assert.match(sw, /src\/ui\/appearance-controller\.js/);
 assert.match(sw, /src\/features\/runtime-features\.js/);
-assert.match(sw, /src\/features\/gear-regression-fix-controller\.js/);
+assert.match(sw, /src\/ui\/gear-controller\.js/);
+assert.doesNotMatch(sw, /gear-regression-fix-controller/);
 assert.match(sw, /src\/renderers\/brew-spatial-view\.js/);
 assert.match(sw, /src\/domain\/history\/history-service\.js/);
 assert.match(sw, /src\/recognition-bridge\.js/);
@@ -127,20 +133,10 @@ assert.doesNotMatch(sw, /v095-ui\.js|theme-bridge\.js|splash-red\.jpg|settings-m
 assert.equal(manifest.version, '1.23E');
 
 for (const path of [
-  'src/v109-supabase-auth-gate.js',
-  'src/v099f-cloud-sync.js',
-  'src/v099j-runtime-stability.js',
-  'src/v099o-dom-stability.js',
-  'src/v099h-splash-assets.js',
-  'src/v099d-radar-scroll.js',
-  'src/v097-fab-gesture.js',
-  'src/v099d-supabase-auth.js',
-  'src/v099e-account-bridge.js',
-  'src/v099e-cloud-sync.js',
-  'src/v099f-runtime-hotfix.js',
-  'src/v108-local-first-history.js',
-  'src/v095-ui.js',
-  'src/theme-bridge.js'
+  'src/v109-supabase-auth-gate.js','src/v099f-cloud-sync.js','src/v099j-runtime-stability.js','src/v099o-dom-stability.js','src/v099h-splash-assets.js',
+  'src/v099d-radar-scroll.js','src/v097-fab-gesture.js','src/v099d-supabase-auth.js','src/v099e-account-bridge.js','src/v099e-cloud-sync.js',
+  'src/v099f-runtime-hotfix.js','src/v108-local-first-history.js','src/v095-ui.js','src/theme-bridge.js',
+  'src/features/gear-regression-fix-controller.js','src/features/legacy-timer-guard.js','src/features/experience-fixes-controller.js','src/features/interaction-repair-controller.js'
 ]) assert.equal(exists(path), false, `${path} should have been removed`);
 
-console.log('LuckyBean 1.23E local-first, cache isolation and current BrewProfiles contract checks passed');
+console.log('LuckyBean 1.23E local-first, sync3 cache isolation and current BrewProfiles contract checks passed');
