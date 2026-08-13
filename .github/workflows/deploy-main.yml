@@ -39,7 +39,7 @@ jobs:
           cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
           cp -R src public contracts _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.23E","revision":"1.23E-main-sync.4","analysisContract":"brew-analysis/2.1","spatialContract":"brew-spatial/1.3","matchingContract":"luckybean-match/1.1","qrRuntime":"local-jsqr-1.4.0","uiArchitecture":"canonical-no-repair-guards"}\n' "$SOURCE_SHA" > _site/version.json
+          printf '{"commit":"%s","version":"1.23E","revision":"1.23E-main-sync.5","analysisContract":"brew-analysis/2.1","spatialContract":"brew-spatial/1.3","matchingContract":"luckybean-match/1.1","qrRuntime":"local-jsqr-1.4.0","navigationBack":"internal-stack-overlay-first","uiArchitecture":"canonical-no-repair-guards"}\n' "$SOURCE_SHA" > _site/version.json
           zip -qr LuckyBean-1.23E-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts docs DEVELOPMENT_STATUS.md
       - uses: actions/upload-artifact@v7.0.1
         with:
@@ -73,7 +73,7 @@ jobs:
           cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
           cp -R src public contracts _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.23E","revision":"1.23E-main-sync.4","analysisContract":"brew-analysis/2.1","spatialContract":"brew-spatial/1.3","matchingContract":"luckybean-match/1.1","qrRuntime":"local-jsqr-1.4.0","uiArchitecture":"canonical-no-repair-guards"}\n' "$SOURCE_SHA" > _site/version.json
+          printf '{"commit":"%s","version":"1.23E","revision":"1.23E-main-sync.5","analysisContract":"brew-analysis/2.1","spatialContract":"brew-spatial/1.3","matchingContract":"luckybean-match/1.1","qrRuntime":"local-jsqr-1.4.0","navigationBack":"internal-stack-overlay-first","uiArchitecture":"canonical-no-repair-guards"}\n' "$SOURCE_SHA" > _site/version.json
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
           path: _site
@@ -97,6 +97,8 @@ jobs:
             jsqr_status=$(curl -L -sS -o /tmp/luckybean-jsqr.js -w '%{http_code}' "$base/public/vendor/jsqr/jsQR.js")
             guide_status=$(curl -L -sS -o /tmp/luckybean-guide.js -w '%{http_code}' "$base/src/ui/flavor-guide-controller.js")
             gear_status=$(curl -L -sS -o /tmp/luckybean-gear.js -w '%{http_code}' "$base/src/ui/gear-controller.js")
+            nav_status=$(curl -L -sS -o /tmp/luckybean-navigation.js -w '%{http_code}' "$base/src/ui/navigation-controller.js")
+            components_status=$(curl -L -sS -o /tmp/luckybean-components.css -w '%{http_code}' "$base/src/ui/app-components.css")
             layout_status=$(curl -L -sS -o /tmp/luckybean-layout.css -w '%{http_code}' "$base/src/ui/app-layout.css")
             sensory_status=$(curl -L -sS -o /tmp/luckybean-sensory.css -w '%{http_code}' "$base/src/ui/professional-sensory.css")
             manifest_status=$(curl -L -sS -o /tmp/luckybean-manifest.json -w '%{http_code}' "$base/manifest.webmanifest")
@@ -104,17 +106,21 @@ jobs:
             archive_status=$(curl -L -sS -o /tmp/luckybean-archive-schema.json -w '%{http_code}' "$base/contracts/luckybean-archive-v1.schema.json")
             old_repair_status=$(curl -L -sS -o /dev/null -w '%{http_code}' "$base/src/features/interaction-repair-controller.js")
             old_gear_status=$(curl -L -sS -o /dev/null -w '%{http_code}' "$base/src/features/gear-matching-controller.js")
-            if [ "$index_status" = "200" ] && [ "$version_status" = "200" ] && [ "$app_status" = "200" ] && [ "$qr_status" = "200" ] && [ "$jsqr_status" = "200" ] && [ "$guide_status" = "200" ] && [ "$gear_status" = "200" ] && [ "$layout_status" = "200" ] && [ "$sensory_status" = "200" ] && [ "$manifest_status" = "200" ] && [ "$recognition_status" = "200" ] && [ "$archive_status" = "200" ] \
+            if [ "$index_status" = "200" ] && [ "$version_status" = "200" ] && [ "$app_status" = "200" ] && [ "$qr_status" = "200" ] && [ "$jsqr_status" = "200" ] && [ "$guide_status" = "200" ] && [ "$gear_status" = "200" ] && [ "$nav_status" = "200" ] && [ "$components_status" = "200" ] && [ "$layout_status" = "200" ] && [ "$sensory_status" = "200" ] && [ "$manifest_status" = "200" ] && [ "$recognition_status" = "200" ] && [ "$archive_status" = "200" ] \
               && grep -qi '<html' /tmp/luckybean-index.html \
               && grep -q "$SOURCE_SHA" /tmp/luckybean-version.json \
               && grep -q '"version":"1.23E"' /tmp/luckybean-version.json \
-              && grep -q '"revision":"1.23E-main-sync.4"' /tmp/luckybean-version.json \
+              && grep -q '"revision":"1.23E-main-sync.5"' /tmp/luckybean-version.json \
+              && grep -q '"navigationBack":"internal-stack-overlay-first"' /tmp/luckybean-version.json \
               && grep -q '"uiArchitecture":"canonical-no-repair-guards"' /tmp/luckybean-version.json \
               && grep -q 'buildBrewInput' /tmp/luckybean-app.js \
               && grep -q 'public/vendor/jsqr/jsQR.js' /tmp/luckybean-qr.js \
               && grep -q '模型推荐结果' /tmp/luckybean-guide.js \
               && grep -q '使用说明' /tmp/luckybean-guide.js \
               && grep -q '滤杯角度' /tmp/luckybean-gear.js \
+              && grep -q 'LuckyBeanNavigation' /tmp/luckybean-navigation.js \
+              && grep -q 'history.back()' /tmp/luckybean-navigation.js \
+              && grep -q 'gap: 1em' /tmp/luckybean-components.css \
               && grep -q -- '--viewport-height' /tmp/luckybean-layout.css \
               && grep -q -- '--cup-tag-selected-bg' /tmp/luckybean-sensory.css \
               && grep -q '日期归属' /tmp/luckybean-recognition.html \
@@ -122,7 +128,7 @@ jobs:
               echo "LuckyBean Pages verified for $SOURCE_SHA"
               exit 0
             fi
-            echo "Attempt $attempt: index=$index_status version=$version_status app=$app_status qr=$qr_status jsqr=$jsqr_status guide=$guide_status gear=$gear_status layout=$layout_status sensory=$sensory_status oldRepair=$old_repair_status oldGear=$old_gear_status manifest=$manifest_status recognition=$recognition_status archive=$archive_status"
+            echo "Attempt $attempt: index=$index_status version=$version_status app=$app_status qr=$qr_status jsqr=$jsqr_status guide=$guide_status gear=$gear_status nav=$nav_status components=$components_status layout=$layout_status sensory=$sensory_status oldRepair=$old_repair_status oldGear=$old_gear_status manifest=$manifest_status recognition=$recognition_status archive=$archive_status"
             sleep 10
           done
           echo 'LuckyBean Pages verification failed'
