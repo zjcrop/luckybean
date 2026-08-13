@@ -3,8 +3,8 @@ import { DRIPPER_CATALOG, FILTER_PAPER_CATALOG, resolveDripperPhysics, resolveFi
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?[...r.querySelectorAll(s)]:[];
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const GROUPS=[['cone','锥形'],['flat','平底'],['hybrid','混合'],['lowBypass','低旁通'],['immersion','浸泡式']];
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const GROUPS=[['cone','锥形'],['flat','平底'],['hybrid','混合'],['lowBypass','低旁路'],['immersion','浸泡式']];
 const TYPES={cone:'锥形滤杯',flat:'平底滤杯',hybrid:'混合式滤杯',lowBypass:'低旁路滤杯',immersion:'浸泡式滤杯'};
 const MATERIALS=[['genericPlastic','塑料'],['asResin','AS树脂'],['pctg','PCTG'],['polycarbonate','聚碳酸酯'],['polypropylene','PP'],['tritan','Tritan'],['porcelain','瓷'],['ceramic','陶瓷'],['glass','玻璃'],['borosilicateGlass','硼硅玻璃'],['stainlessSteel','不锈钢'],['titanium','钛']];
 const FLOW=[['low','低'],['medium','中'],['high','高'],['controllable','可控']];
@@ -53,7 +53,7 @@ async function openDripperEditor(id=''){
 <label class="field"><span>标准/基础模板</span><select id="dCatalog" class="control">${catalogOpts(DRIPPER_CATALOG,template)}</select></label>
 <label class="field"><span>品牌</span><input id="dBrand" class="control" value="${esc(r.brand||'')}"></label><label class="field"><span>名称 *</span><input id="dName" class="control" value="${esc(r.name||'')}"></label>
 <label class="field"><span>分组</span><select id="dGroup" class="control">${opts(GROUPS,x.group)}</select></label><label class="field"><span>材质</span><select id="dMaterial" class="control">${opts(MATERIALS,x.materialKey)}</select></label>
-<label class="field"><span>角度</span><input id="dAngle" class="control" type="number" min="25" max="95" value="${x.angleDeg}"></label><label class="field"><span>结构排水</span><select id="dFlow" class="control">${opts(FLOW,x.drainageClass)}</select></label>
+<label class="field"><span>滤杯角度</span><input id="dAngle" class="control" type="number" min="25" max="95" value="${x.angleDeg}"></label><label class="field"><span>结构排水</span><select id="dFlow" class="control">${opts(FLOW,x.drainageClass)}</select></label>
 <label class="field"><span>下开口</span><select id="dOutlet" class="control">${opts(OUTLET,x.outletClass)}</select></label><label class="field"><span>旁通量</span><select id="dBypass" class="control">${opts(BYPASS,x.bypassClass)}</select></label>
 <label class="field"><span>质量 g</span><input id="dMass" class="control" type="number" min="10" max="1000" value="${r.physics?.massG??''}" placeholder="未知可留空"></label><label class="field"><span>默认预热</span><select id="dPreheat" class="control"><option value="true"${x.preheated?' selected':''}>是</option><option value="false"${!x.preheated?' selected':''}>否</option></select></label>
 <label class="field"><span>价格</span><input id="dPrice" class="control" type="number" min="0" step="0.01" value="${Number(r.price||0)}"></label></div><p class="muted small" data-resolved>计算快照：${esc(dSummary(x))}</p><div class="row end">${id?'<button id="dDelete" class="button danger">删除</button>':''}<button id="dSave" class="button primary">确定</button></div>`,'dripper-editor');if(!o)return;
