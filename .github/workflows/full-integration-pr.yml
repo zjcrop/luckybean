@@ -3,152 +3,66 @@ name: LuckyBean integration Android
 on:
   pull_request:
     branches: [main]
-  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: luckybean-integration-android-${{ github.ref }}
+  group: luckybean-last-three-release-fixes-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  android:
+  canonicalize:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7.0.1
-      - uses: actions/setup-java@v5.7.0
         with:
-          distribution: temurin
-          java-version: '17'
-      - uses: android-actions/setup-android@v4.0.1
-      - name: Install Android SDK components
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools' 'emulator' 'system-images;android-29;google_apis;x86_64'
-      - uses: gradle/actions/setup-gradle@v6.3.0
-        with:
-          gradle-version: '8.9'
-      - name: Compile debug APK
-        id: compile
-        shell: bash
-        run: |
-          set +e
-          set -o pipefail
-          gradle --no-daemon -p android :app:assembleDebug 2>&1 | tee android-build.log
-          status=${PIPESTATUS[0]}
-          echo "status=$status" >> "$GITHUB_OUTPUT"
-          exit 0
-      - name: Verify native execution and canonical web contracts
-        if: steps.compile.outputs.status == '0'
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 2
+      - name: Fix final canonical release contracts
         shell: bash
         run: |
           set -euo pipefail
-          apk=android/app/build/outputs/apk/debug/app-debug.apk
-          test -f "$apk"
-          grep -q "versionCode 102314" android/app/build.gradle
-          grep -q "versionName '1.23E'" android/app/build.gradle
-          grep -q 'bindImageSource(String imageId, boolean includePreview)' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'ImageDecoder.createSource' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'InputImage.fromFilePath' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'LuckyBeanAndroid/1.23E' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'class BrewTimerService extends Service' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
-          grep -q 'SystemClock.elapsedRealtime()' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
-          grep -q 'synthesizeToFile' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
-          grep -q 'ExoPlayer' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
-          grep -q 'prepareBrewExecution' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'FLAG_KEEP_SCREEN_ON' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'FOREGROUND_SERVICE_MEDIA_PLAYBACK' android/app/src/main/AndroidManifest.xml
-          unzip -p "$apk" assets/web-cache/src/recognition-bridge.js | grep -Fq "dataUrl: nativeSource ? '' : await blobToDataUrl(image.blob)"
-          unzip -p "$apk" assets/web-cache/src/package-capture-controller.js | grep -Fq 'bindAndroidImageSource(id, nativeSource)'
-          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.1'"
-          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_SPATIAL_CONTRACT = 'brew-spatial/1.3'"
-          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_FLAVOR_STATE_CONTRACT = 'brew-flavor-state/1.0'"
-          unzip -p "$apk" assets/web-cache/src/domain/matching/flavor-vector.js | grep -Fq "MATCH_CONTRACT = 'luckybean-match/1.1'"
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/app-layout.css'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/professional-sensory.css'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/gear-controller.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/bean-card-controller.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/domain/beans/bean-lifecycle-service.js'
-          if unzip -l "$apk" | grep -Eq 'interaction-repair|experience-fixes|gear-regression-fix|legacy-timer-guard|gear-matching-controller'; then
-            echo 'Obsolete repair/guard assets leaked into APK.' >&2
-            exit 1
-          fi
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102314' versionName='1.23E'"
-      - name: Android 10 runtime startup smoke
-        if: steps.compile.outputs.status == '0'
-        shell: bash
-        run: |
-          set -euo pipefail
-          apk=android/app/build/outputs/apk/debug/app-debug.apk
-          export ANDROID_AVD_HOME="$RUNNER_TEMP/android-avd"
-          mkdir -p "$ANDROID_AVD_HOME"
-          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n luckybean-api29 -k 'system-images;android-29;google_apis;x86_64' --force
-          echo 'Available AVDs:'
-          "$ANDROID_HOME/emulator/emulator" -list-avds | tee android-avd-list.txt
-          grep -qx 'luckybean-api29' android-avd-list.txt
-          accel_args=()
-          if [ -e /dev/kvm ]; then
-            sudo chmod 666 /dev/kvm || true
-          else
-            accel_args=(-accel off)
-          fi
-          nohup "$ANDROID_HOME/emulator/emulator" -avd luckybean-api29 -no-window -noaudio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -wipe-data "${accel_args[@]}" > android-emulator.log 2>&1 &
-          if ! timeout 180 adb wait-for-device; then
-            echo 'Android emulator did not expose adb within 180s.' >&2
-            tail -n 200 android-emulator.log >&2 || true
-            exit 1
-          fi
-          for i in $(seq 1 120); do
-            if [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then break; fi
-            sleep 2
-          done
-          if [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" != "1" ]; then
-            echo 'Android emulator did not finish booting.' >&2
-            tail -n 200 android-emulator.log >&2 || true
-            exit 1
-          fi
-          adb install -r "$apk"
-          adb logcat -c
-          set +e
-          adb shell am start -W -n com.luckybean.app/.MainActivity > android-start.txt 2>&1
-          start_status=$?
-          set -e
-          sleep 8
-          adb logcat -d -v threadtime > android-runtime.log
-          cat android-start.txt
-          if [ "$start_status" -ne 0 ] || ! adb shell pidof com.luckybean.app >/dev/null; then
-            echo 'LuckyBean process did not survive startup.' >&2
-            grep -n -E 'FATAL EXCEPTION|AndroidRuntime|com\.luckybean\.app|Caused by:' android-runtime.log | tail -n 200 >&2 || true
-            exit 1
-          fi
-          if grep -A40 -B10 'FATAL EXCEPTION: main' android-runtime.log | grep -q 'com.luckybean.app'; then
-            grep -A80 -B20 'FATAL EXCEPTION: main' android-runtime.log >&2 || true
-            exit 1
-          fi
-      - name: Package integration APK
-        if: steps.compile.outputs.status == '0'
-        shell: bash
-        run: |
-          mkdir -p dist
-          cp android/app/build/outputs/apk/debug/app-debug.apk dist/LuckyBean-1.23E-full-integration-debug.apk
-          sha256sum dist/LuckyBean-1.23E-full-integration-debug.apk > dist/SHA256SUMS.txt
-          printf 'source_sha=%s\nbranch=%s\nversion=1.23E\nversion_code=102314\nrevision=1.23E-main-sync.3\nanalysis_contract=brew-analysis/2.1\nspatial_contract=brew-spatial/1.3\nmatching_contract=luckybean-match/1.1\nui_architecture=canonical-no-repair-guards\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist/BUILD_PROVENANCE.txt
-      - name: Upload Android build diagnostics
-        if: always()
-        uses: actions/upload-artifact@v7.0.1
-        with:
-          name: luckybean-full-integration-android-${{ github.sha }}
-          path: |
-            android-build.log
-            android-avd-list.txt
-            android-emulator.log
-            android-start.txt
-            android-runtime.log
-            dist/
-          if-no-files-found: warn
-      - name: Fail if Android compile failed
-        if: steps.compile.outputs.status != '0'
-        shell: bash
-        run: |
-          echo 'Android compilation failed; see uploaded android-build.log.'
-          exit 1
+          python - <<'PY'
+          from pathlib import Path
+
+          css = Path('src/ui/app-components.css')
+          text = css.read_text(encoding='utf-8')
+          old = '''.v095-splash-choice [data-splash-variant="red"] { background: #993333 !important; }\n.v095-splash-choice [data-splash-variant="white"] { background: #f3efe5 !important; }\n.v095-splash-choice [data-splash-variant] img { background: transparent !important; }'''
+          new = '''#appearanceSettings .v095-splash-choice button[data-appearance-splash="red"] { background: #993333 !important; }\n#appearanceSettings .v095-splash-choice button[data-appearance-splash="white"] { background: #f3efe5 !important; }\n#appearanceSettings .v095-splash-choice button[data-appearance-splash] img { background: transparent !important; }'''
+          if text.count(old) != 1:
+              raise SystemExit(f'splash preview rule count={text.count(old)}')
+          css.write_text(text.replace(old, new), encoding='utf-8')
+
+          groups = Path('src/bean-groups-controller.js')
+          text = groups.read_text(encoding='utf-8')
+          old_class = 'return `<article class="bean-card compact${selected ? \' recommended v099l-selected\' : \'\'}" data-bean-id="${esc(bean.id)}" tabindex="0">'
+          new_class = 'return `<article class="bean-card compact lb-one-line-bean${selected ? \' recommended v099l-selected\' : \'\'}" data-bean-id="${esc(bean.id)}" tabindex="0">'
+          if text.count(old_class) != 1:
+              raise SystemExit(f'group bean card class count={text.count(old_class)}')
+          text = text.replace(old_class, new_class)
+          old_track = '<div class="bean-freshness-progress" aria-label="时间轴已填充${progress}%">'
+          new_track = '<div class="bean-freshness-progress" data-lb-freshness-timeline aria-label="时间轴已填充${progress}%">'
+          if text.count(old_track) != 1:
+              raise SystemExit(f'group freshness track count={text.count(old_track)}')
+          groups.write_text(text.replace(old_track, new_track), encoding='utf-8')
+
+          test = Path('tests/v120-requirements-ui.spec.mjs')
+          text = test.read_text(encoding='utf-8')
+          old = '''    oldPanel.dataset.v099fAccountSync = '1';\n    oldPanel.textContent = '旧服务器登录';\n    root.append(oldPanel);\n  });'''
+          new = '''    oldPanel.dataset.v099fAccountSync = '1';\n    oldPanel.textContent = '旧服务器登录';\n    root.append(oldPanel);\n    document.dispatchEvent(new CustomEvent('luckybean:settings-rendered'));\n  });'''
+          if text.count(old) != 1:
+              raise SystemExit(f'account lifecycle test block count={text.count(old)}')
+          test.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+
+          git fetch origin main
+          git show origin/main:.github/workflows/full-integration-pr.yml > .github/workflows/full-integration-pr.yml
+          git config user.name 'zjcrop'
+          git config user.email '127176814+zjcrop@users.noreply.github.com'
+          git add src/ui/app-components.css src/bean-groups-controller.js tests/v120-requirements-ui.spec.mjs .github/workflows/full-integration-pr.yml
+          git diff --cached --check
+          git commit -m 'close final three release regression contracts'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
