@@ -181,3 +181,49 @@ test('professional cupping keeps page scrolling separate from tag and radar drag
   expect(scrolled.top).toBeGreaterThanOrEqual(Math.max(0, scrolled.max - 2));
   await expect(page.locator('[data-v095-next]')).toBeVisible();
 });
+
+test('system back closes overlays first and then follows actual main-page history', async ({ page }) => {
+  await page.setViewportSize({ width:390, height:844 });
+  await openApp(page, 'navigation-back');
+  await seedBean(page, 'ui-navigation-bean');
+
+  await expect.poll(() => page.evaluate(() => globalThis.LuckyBeanNavigation?.snapshot?.().depth ?? -1)).toBe(0);
+  await page.locator('[data-page-target="settings"]').click();
+  await expect(page.locator('.page[data-page="settings"]')).toHaveClass(/active/);
+  await page.locator('[data-page-target="beans"]').click();
+  await expect(page.locator('.page[data-page="beans"]')).toHaveClass(/active/);
+  await expect.poll(() => page.evaluate(() => globalThis.LuckyBeanNavigation.snapshot().depth)).toBe(2);
+
+  await page.locator('#manageBtn').click();
+  await expect(page.locator('[data-overlay="batch-bean-manager"]')).toBeVisible();
+  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.back())).toBe(true);
+  await expect(page.locator('[data-overlay="batch-bean-manager"]')).toHaveCount(0);
+  await expect(page.locator('.page[data-page="beans"]')).toHaveClass(/active/);
+
+  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.back())).toBe(true);
+  await expect(page.locator('.page[data-page="settings"]')).toHaveClass(/active/);
+  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.back())).toBe(true);
+  await expect(page.locator('.page[data-page="beans"]')).toHaveClass(/active/);
+  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.canGoBack())).toBe(false);
+});
+
+test('bean metadata groups use one-character gap instead of growing into a wide blank band', async ({ page }) => {
+  await page.setViewportSize({ width:390, height:844 });
+  await openApp(page, 'bean-metadata-gap');
+  await seedBean(page, 'ui-gap-bean');
+  const metrics = await page.locator('.bean-card[data-bean-id="ui-gap-bean"] .lb-bean-line').evaluate(line => {
+    const style = getComputedStyle(line);
+    const primary = getComputedStyle(line.querySelector('.lb-bean-primary'));
+    const secondary = getComputedStyle(line.querySelector('.lb-bean-secondary'));
+    return {
+      gap:parseFloat(style.columnGap || style.gap),
+      fontSize:parseFloat(style.fontSize),
+      primaryGrow:Number(primary.flexGrow),
+      secondaryGrow:Number(secondary.flexGrow)
+    };
+  });
+  expect(metrics.gap).toBeGreaterThan(9);
+  expect(metrics.gap).toBeLessThan(20);
+  expect(metrics.primaryGrow).toBe(0);
+  expect(metrics.secondaryGrow).toBe(0);
+});
