@@ -26,11 +26,20 @@ const deployWorkflow = read('.github/workflows/deploy-main.yml');
 const buildWorkflow = read('.github/workflows/build-main.yml');
 const integrationWorkflow = read('.github/workflows/full-integration-pr.yml');
 
+const revisionMatch = index.match(/release-revision" content="([^"]+)"/);
+assert.ok(revisionMatch, 'release revision missing from index');
+const releaseRevision = revisionMatch[1];
+assert.match(releaseRevision, /^1\.23E-main-sync\.\d+$/);
+assert.ok(index.includes(`data-release-revision="${releaseRevision}"`), 'body revision must match meta revision');
+const versionCodeMatch = androidBuild.match(/versionCode\s+(\d+)/);
+assert.ok(versionCodeMatch, 'Android versionCode missing');
+const androidVersionCode = Number(versionCodeMatch[1]);
+assert.ok(androidVersionCode > 102314, `upgrade build must exceed prior official versionCode 102314, got ${androidVersionCode}`);
+
 assert.match(read('src/utils.js'), /APP_VERSION = '1\.23E'/);
 assert.match(read('src/utils.js'), /SCHEMA_VERSION = 8/);
 assert.equal(manifest.version, '1.23E');
 assert.match(index, /application-version" content="1\.23E"/);
-assert.match(index, /release-revision" content="1\.23E-main-sync\.3"/);
 assert.match(index, /accept="\.luckybean,application\/vnd\.luckybean\.archive\+json,application\/json"/);
 for (const canonical of ['app-layout.css','app-components.css','professional-sensory.css','flavor-guide-controller.js','gear-controller.js','bean-card-controller.js','onboarding-controller.js']) {
   assert.ok(index.includes(canonical), `missing canonical entry ${canonical}`);
@@ -38,6 +47,9 @@ for (const canonical of ['app-layout.css','app-components.css','professional-sen
 for (const obsolete of ['interaction-repair-controller.js','experience-fixes-controller.js','gear-matching-controller.js','gear-regression-fix-controller.js','legacy-timer-guard.js']) {
   assert.ok(!index.includes(obsolete), `obsolete entry ${obsolete}`);
   assert.equal(fs.existsSync(`src/features/${obsolete}`), false, `${obsolete} should be deleted`);
+}
+for (const asset of ['manifest.webmanifest','styles.css','src/ui/app-layout.css','src/ui/app-components.css','src/ui/bean-card.css','src/ui/professional-sensory.css','src/core/startup-controller.js']) {
+  assert.ok(index.includes(`${asset}?v=${releaseRevision}`), `asset revision mismatch for ${asset}`);
 }
 
 assert.match(app, /createPortableArchive/);
@@ -52,7 +64,8 @@ assert.doesNotMatch(codebook, /labeled\.roastDate \|\| labeled\.productionDate/)
 
 assert.match(sw, /recognition-test\.html/);
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v123e-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-3`/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-\d+`/);
+assert.ok(sw.includes(`REVISION = '${releaseRevision}'`), 'service worker revision must match index');
 assert.match(sw, /luckybean-main-v123d-/);
 assert.match(sw, /freshness-timeline-controller\.js/);
 assert.match(sw, /ui\/gear-controller\.js/);
@@ -67,7 +80,6 @@ assert.match(sw, /luckybean-archive-v1\.schema\.json/);
 assert.match(sw, /cache\.put\(request, response\.clone\(\)\)/);
 assert.match(sw, /caches\.match\(request\).*caches\.match\('\.\/index\.html'\)/s);
 
-assert.match(androidBuild, /versionCode 102314/);
 assert.match(androidBuild, /versionName '1\.23E'/);
 assert.match(androidBuild, /include 'index\.html', 'recognition-test\.html'/);
 assert.match(androidActivity, /addJavascriptInterface\(new NativeFileBridge\(\), "LuckyBeanNative"\)/);
@@ -120,7 +132,7 @@ assert.match(freshnessTimeline, /freshnessProfile\(bean\)\.progress/);
 assert.match(deployWorkflow, /npm ci/);
 assert.match(deployWorkflow, /public\/vendor\/jsqr\/jsQR\.js/);
 assert.match(deployWorkflow, /LuckyBean-1\.23E-web\.zip/);
-assert.match(deployWorkflow, /1\.23E-main-sync\.3/);
+assert.ok(deployWorkflow.includes(releaseRevision), 'Pages workflow revision must match current release');
 assert.match(deployWorkflow, /flavor-guide-controller\.js/);
 assert.match(deployWorkflow, /old_repair_status/);
 assert.match(buildWorkflow, /:app:assembleRelease/);
@@ -129,14 +141,18 @@ assert.match(buildWorkflow, /LUCKYBEAN_KEYSTORE_B64/);
 assert.match(buildWorkflow, /CERT_SHA256\.txt/);
 assert.match(androidBuild, /signingConfigs/);
 assert.match(androidBuild, /LUCKYBEAN_KEYSTORE_FILE/);
-assert.match(buildWorkflow, /version_code=102314/);
+assert.ok(buildWorkflow.includes(`version_code=${androidVersionCode}`), 'release provenance versionCode must match Gradle');
+assert.ok(buildWorkflow.includes(`versionCode ${androidVersionCode}`), 'release verifier versionCode must match Gradle');
+assert.ok(buildWorkflow.includes(`revision=${releaseRevision}`), 'release provenance revision must match index');
 assert.match(buildWorkflow, /ui\/gear-controller\.js/);
 assert.doesNotMatch(buildWorkflow, /gear-matching-controller\.js/);
 assert.match(buildWorkflow, /public\/vendor\/jsqr\/jsQR\.js/);
 assert.match(buildWorkflow, /analysis_contract=brew-analysis\/2\.1/);
 assert.match(buildWorkflow, /ui_architecture=canonical-no-repair-guards/);
-assert.match(integrationWorkflow, /versionCode 102314/);
+assert.ok(integrationWorkflow.includes(`versionCode ${androidVersionCode}`), 'integration verifier versionCode must match Gradle');
+assert.ok(integrationWorkflow.includes(`version_code=${androidVersionCode}`), 'integration provenance versionCode must match Gradle');
+assert.ok(integrationWorkflow.includes(`revision=${releaseRevision}`), 'integration revision must match index');
 assert.match(integrationWorkflow, /ui\/app-layout\.css/);
 assert.match(integrationWorkflow, /Obsolete repair\/guard assets leaked into APK/);
 
-console.log('LuckyBean 1.23E sync3 deployment, canonical UI, local QR, gear binding, guide, matching, freshness, BrewProfiles and archive contracts passed');
+console.log(`LuckyBean 1.23E ${releaseRevision} deployment, upgrade package, canonical UI, local QR, gear binding, guide, matching, freshness, BrewProfiles and archive contracts passed`);
