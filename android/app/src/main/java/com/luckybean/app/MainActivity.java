@@ -87,6 +87,7 @@ public final class MainActivity extends Activity {
         chineseTextRecognizer = TextRecognition.getClient(new ChineseTextRecognizerOptions.Builder().build());
         latinTextRecognizer = TextRecognition.getClient(new TextRecognizerOptions.Builder().build());
         configureWebView();
+        registerSystemBackCallback();
         if (savedInstanceState == null) {
             webView.loadUrl(APP_ORIGIN + "index.html");
         } else {
@@ -611,10 +612,40 @@ public final class MainActivity extends Activity {
         filePathCallback = null;
     }
 
+    private void registerSystemBackCallback() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Api33Back.register(this);
+        }
+    }
+
+    private void handleSystemBack() {
+        if (webView == null) {
+            finish();
+            return;
+        }
+        String script = "(function(){try{return Boolean(globalThis.LuckyBeanNavigation&&globalThis.LuckyBeanNavigation.back&&globalThis.LuckyBeanNavigation.back());}catch(error){return false;}})()";
+        webView.evaluateJavascript(script, result -> {
+            if ("true".equals(result)) return;
+            if (webView.canGoBack()) webView.goBack();
+            else finish();
+        });
+    }
+
+    @android.annotation.TargetApi(Build.VERSION_CODES.TIRAMISU)
+    private static final class Api33Back {
+        private Api33Back() {}
+
+        static void register(MainActivity activity) {
+            activity.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                activity::handleSystemBack
+            );
+        }
+    }
+
     @Override
     public void onBackPressed() {
-        if (webView.canGoBack()) webView.goBack();
-        else super.onBackPressed();
+        handleSystemBack();
     }
 
     @Override
