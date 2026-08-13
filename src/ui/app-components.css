@@ -20,7 +20,28 @@
 .lb-bean-line { display: flex; align-items: baseline; min-width: 0; flex: 1; white-space: nowrap; overflow: hidden; letter-spacing: -.1px; }
 .lb-bean-primary { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; font-weight: 700; color: var(--lb-gold); }
 .lb-bean-secondary { flex: 0 1 42%; max-width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; font-weight: 450; color: var(--lb-text); }
-.lb-brew-circle { width: 31px; height: 31px; min-width: 31px; min-height: 31px; padding: 0; border: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; line-height: 1; box-shadow: none; background: var(--accent, #b7312c); color: #fff; }
+.bean-card.compact.lb-one-line-bean .lb-brew-circle {
+  inline-size: 32px;
+  block-size: 32px;
+  min-inline-size: 32px;
+  max-inline-size: 32px;
+  min-block-size: 32px;
+  max-block-size: 32px;
+  flex: 0 0 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: none;
+  background: var(--accent, #b7312c);
+  color: #fff;
+}
 .bean-freshness-progress { display: block; position: absolute; left: 10px; right: 7px; bottom: 2px; height: 4px; pointer-events: none; }
 .bean-freshness-solid { display: block; position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; min-width: 0; }
 .bean-freshness-dashed { display: block; position: absolute; right: 0; top: 1px; height: 2px; border-top: 2px dashed #343434; }
@@ -113,7 +134,7 @@ html[data-theme="light"] .lb-open-guide { border-color: #b58d51; background: #e8
 @media (max-width: 540px) {
   .lb-bean-primary { font-size: 13px; }
   .lb-bean-secondary { font-size: 11px; max-width: 40%; }
-  .lb-brew-circle { width: 30px; height: 30px; min-width: 30px; min-height: 30px; }
+  .bean-card.compact.lb-one-line-bean .lb-brew-circle { inline-size: 30px; block-size: 30px; min-inline-size: 30px; max-inline-size: 30px; min-block-size: 30px; max-block-size: 30px; flex-basis: 30px; font-size: 10.5px; }
   .lb-profile-effect > div { grid-template-columns: repeat(4,1fr); row-gap: 4px; }
 }
 @media (max-width: 520px) {
