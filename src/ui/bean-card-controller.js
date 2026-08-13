@@ -90,7 +90,6 @@ document.addEventListener('pointerup', event => {
   if (!press.activated) cancelPress(); else { clearTimeout(press.timer); press = null; }
 }, { capture:true, passive:true });
 document.addEventListener('pointercancel', cancelPress, { capture:true, passive:true });
-document.addEventListener('scroll', () => { if (press && !press.activated) cancelPress(); }, { capture:true, passive:true });
 document.addEventListener('click', event => {
   if (performance.now() > suppressClickUntil) return;
   const card = event.target.closest?.('.bean-card[data-bean-id]');
