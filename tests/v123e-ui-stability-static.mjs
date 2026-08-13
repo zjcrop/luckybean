@@ -35,7 +35,12 @@ const codebookCss = read('src/ui/codebook-reconciliation-screen.css');
 const runtimeFeatures = read('src/features/runtime-features.js');
 const qrUi = read('src/qr-ui-controller.js');
 
-assert.match(index, /1\.23E-main-sync\.3/);
+const revisionMatch = index.match(/release-revision" content="([^"]+)"/);
+assert.ok(revisionMatch, 'release revision missing from index');
+const releaseRevision = revisionMatch[1];
+assert.match(releaseRevision, /^1\.23E-main-sync\.\d+$/);
+const syncNumber = releaseRevision.match(/main-sync\.(\d+)$/)?.[1];
+assert.ok(syncNumber, 'release sync number missing');
 for (const active of [
   'app-layout.css','app-components.css','bean-card.css','professional-sensory.css','viewport-controller.js','gear-controller.js',
   'brew-cooling-controller.js','flavor-guide-controller.js','onboarding-controller.js','bean-card-controller.js','bean-enrichment-service.js'
@@ -112,13 +117,15 @@ assert.match(guide, /dataset\.settingsKey = 'about'/);
 assert.match(components, /\.lb-open-guide/);
 assert.match(components, /#b9975a/i);
 assert.match(components, /#e8d7b5/i);
+assert.match(components, /\.lb-brew-circle\s*\{[^}]*border-radius:\s*50%/s);
 
 assert.match(spatialCss, /--spatial-shell/);
 assert.match(spatialCss, /html\[data-theme="light"\]/);
 assert.match(spatialCss, /--spatial-canvas-filter/);
 assert.match(spatialCss, /var\(--viewport-height,100dvh\)/);
 
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-3`/);
+assert.ok(sw.includes(`REVISION = '${releaseRevision}'`), 'service worker revision must match index');
+assert.ok(sw.includes(`main-sync-${syncNumber}`), 'service worker cache generation must match current release');
 assert.match(sw, /bean-lifecycle-service\.js/);
 assert.match(sw, /professional-sensory\.css/);
 assert.match(sw, /onboarding-controller\.js/);
@@ -133,4 +140,4 @@ const bodyObserverFiles = uiControllerFiles.filter(file => {
 });
 assert.deepEqual(bodyObserverFiles, [], `global body MutationObservers remain: ${bodyObserverFiles.join(', ')}`);
 
-console.log('LuckyBean 1.23E canonical UI stability regression checks passed');
+console.log(`LuckyBean 1.23E ${releaseRevision} canonical UI stability regression checks passed`);
