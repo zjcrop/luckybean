@@ -1,62 +1,270 @@
-import { all, bulkPut, getSetting, setSetting, remove } from '../db.js';
+import { all } from '../db.js';
 import { loadCodebook, makeIndex, displayName } from '../codebook.js';
 
-const VERSION='full-integration/1.3';
-const COUNTRY=new Map([['埃塞俄比亚','埃塞'],['Ethiopia','埃塞'],['巴拿马','巴拿马'],['Panama','巴拿马'],['肯尼亚','肯尼亚'],['Kenya','肯尼亚'],['哥斯达黎加','哥达'],['Costa Rica','哥达'],['哥伦比亚','哥伦'],['Colombia','哥伦'],['危地马拉','危地'],['Guatemala','危地'],['印度尼西亚','印尼'],['Indonesia','印尼']]);
-const STATION=new Map([['Chelbesa Washing Station','CHL'],['Chelbesa','CHL'],['Janson','JAN'],['Janson Coffee Farm','JAN'],['Hambela','HAM'],['Konga','KON']]);
-const VARIETY=new Map([['Geisha','瑰夏'],['Gesha','瑰夏'],['瑰夏','瑰夏'],['Bourbon','波旁'],['波旁','波旁'],['Typica','铁皮'],['铁皮卡','铁皮']]);
-const ROAST={'RL-L0':'极浅','RL-L1':'浅','RL-L2':'中浅','RL-L3':'中','RL-L4':'中深','RL-L5':'深','RL-L6':'深'};
-const PROCESS=[[/dark\s*room\s*washed|暗房水洗/i,'暗水'],[/washed|水洗/i,'水洗'],[/natural|日晒/i,'日晒'],[/anaerobic|厌氧/i,'厌氧'],[/honey|蜜/i,'蜜处']];
-const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let index=null, beanMap=new Map(), latestPlan=null, wakeLock=null, execution=null, syncClick=false, observerQueued=false;
-const code=(table,id,fallback='')=>index?displayName(index,table,id,fallback):fallback;
+const VERSION = 'full-integration/1.4';
+const COUNTRY = new Map([
+  ['埃塞俄比亚','埃塞'], ['Ethiopia','埃塞'], ['巴拿马','巴拿马'], ['Panama','巴拿马'],
+  ['肯尼亚','肯尼亚'], ['Kenya','肯尼亚'], ['哥斯达黎加','哥达'], ['Costa Rica','哥达'],
+  ['哥伦比亚','哥伦'], ['Colombia','哥伦'], ['危地马拉','危地'], ['Guatemala','危地'],
+  ['印度尼西亚','印尼'], ['Indonesia','印尼']
+]);
+const STATION = new Map([
+  ['Chelbesa Washing Station','CHL'], ['Chelbesa','CHL'], ['Janson','JAN'],
+  ['Janson Coffee Farm','JAN'], ['Hambela','HAM'], ['Konga','KON']
+]);
+const VARIETY = new Map([
+  ['Geisha','瑰夏'], ['Gesha','瑰夏'], ['瑰夏','瑰夏'], ['Bourbon','波旁'],
+  ['波旁','波旁'], ['Typica','铁皮'], ['铁皮卡','铁皮']
+]);
+const ROAST = { 'RL-L0':'极浅', 'RL-L1':'浅', 'RL-L2':'中浅', 'RL-L3':'中', 'RL-L4':'中深', 'RL-L5':'深', 'RL-L6':'深' };
+const PROCESS = [[/dark\s*room\s*washed|暗房水洗/i,'暗水'], [/washed|水洗/i,'水洗'], [/natural|日晒/i,'日晒'], [/anaerobic|厌氧/i,'厌氧'], [/honey|蜜/i,'蜜处']];
+const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
+const $$ = (selector, root = document) => root?.querySelectorAll ? [...root.querySelectorAll(selector)] : [];
+const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
 
-function notice(text){let n=$('[data-lb-notice]');if(!n){document.body.insertAdjacentHTML('beforeend','<div class="lb-notice" data-lb-notice></div>');n=$('[data-lb-notice]');}n.textContent=text;n.classList.add('show');clearTimeout(notice.timer);notice.timer=setTimeout(()=>n.classList.remove('show'),3500);}
-function shortCountry(value){const v=String(value||'').trim();if(!v)return'未定';if(COUNTRY.has(v))return COUNTRY.get(v);if(/^[A-Za-z ]+$/.test(v))return v.replace(/[^A-Za-z]/g,'').slice(0,3).toUpperCase();return[...v].length<=3?v:`${[...v].slice(0,2).join('')}…`;}
-function shortStation(value){const v=String(value||'').trim();if(!v||v==='—')return'';if(STATION.has(v))return STATION.get(v);const latin=v.normalize('NFKD').replace(/[^A-Za-z]/g,'').toUpperCase();return latin.length>=3?latin.slice(0,3):[...v].slice(0,3).join('');}
-function shortVariety(value){const v=String(value||'').trim();if(!v)return'未定';if(/^\d{3,}$/.test(v)||/^SL\s*\d+$/i.test(v))return v.replace(/\s+/g,'').toUpperCase();return VARIETY.get(v)||([...v].length<=4?v:[...v].slice(0,4).join(''));}
-function shortProcess(value){const v=String(value||'').trim();if(!v)return'未定';for(const [re,label]of PROCESS)if(re.test(v))return label;return[...v].length<=3?v:[...v].slice(0,2).join('');}
-function readable(value){const v=String(value||'').trim();return v&&v!=='—'&&!/^未定/.test(v)?v:'';}
-function beanNameParts(bean){return String(bean?.name||'').split(/\s*[·•｜|]\s*/).map(readable).filter(Boolean);}
-function parts(bean){const named=beanNameParts(bean);const country=shortCountry(code('countries',bean.countryCode,readable(bean.countryName)||readable(bean.country)||named[0]||''));const station=shortStation(code('entities',bean.entityCode,readable(bean.entityName)||readable(bean.entity)||readable(bean.processingStation)||''));const variety=shortVariety(code('varieties',bean.varietyCode,readable(bean.varietyName)||readable(bean.variety)||named[1]||''));const roast=ROAST[String(bean.roastCode||'').toUpperCase()]||String(code('roasts',bean.roastCode,readable(bean.roastName)||readable(bean.roast)||'中')).replace(/烘焙|烘/g,'').slice(0,2);const process=shortProcess(code('processes',bean.processCode,readable(bean.processName)||readable(bean.process)||''));const n=Math.max(0,Number(bean.remainingWeight||0));return{country,station,variety,roast,process,remaining:`${n.toFixed(n%1?1:0)}g`};}
-function transformCard(card){const bean=beanMap.get(card?.dataset?.beanId);if(!bean)return;const p=parts(bean),primary=[p.country,p.station,p.variety].filter(Boolean).join('/'),secondary=[p.roast,p.process,p.remaining].join('/'),signature=`${primary}/${secondary}`;if(card.dataset.lbSignature===signature)return;card.dataset.lbSignature=signature;card.classList.add('lb-one-line-bean');card.innerHTML=`<div class="lb-bean-line" aria-label="${esc(signature)}"><span class="lb-bean-primary">${esc(primary)}</span><span class="lb-bean-secondary">/${esc(secondary)}</span></div><button class="cup-action compact-pick lb-brew-circle" type="button" data-brew-bean="${esc(bean.id)}" aria-label="用这只豆小酌">酌</button>`;}
-function transformCards(){observerQueued=false;$$('.bean-card[data-bean-id]').forEach(transformCard);}
-function queueDom(){if(observerQueued)return;observerQueued=true;requestAnimationFrame(()=>{transformCards();injectGear();ensurePlanEffect();});}
-async function refreshBeans(){beanMap=new Map((await all('beans').catch(()=>[])).map(b=>[b.id,b]));queueDom();}
+let index = null;
+let beanMap = new Map();
+let latestPlan = null;
+let wakeLock = null;
+let nativeExecutionActive = false;
+let renderQueued = false;
+let beanObserver = null;
 
-function effectHtml(plan){const m=plan?.matching,a=m?.profileEffect?.add;if(!Array.isArray(a)||a.length!==8)return'';const labels=['酸','甜','香','体','苦','净','酵','余'];return`<div class="lb-profile-effect" data-lb-profile-effect data-match-key="${esc(`${m.selectedProfileId}:${m.score}`)}"><strong>方案倾向</strong><div>${a.map((v,i)=>{const n=Number(v||0),arrow=n>1?'↑':n<-1?'↓':'→';return`<span><b>${labels[i]}</b>${arrow}<small>${n>0?'+':''}${n}</small></span>`}).join('')}</div><small>匹配 ${Number(m.score||0).toFixed(1)} · ${esc(m.selectedProfileId||'')}</small></div>`;}
-function ensurePlanEffect(){if(!latestPlan)return;const host=$('#generatedPlan'),html=effectHtml(latestPlan);if(!host||!html)return;const key=`${latestPlan.matching?.selectedProfileId}:${latestPlan.matching?.score}`,old=$('[data-lb-profile-effect]',host);if(old?.dataset.matchKey===key)return;old?.remove();host.insertAdjacentHTML('afterbegin',html);}
+const code = (table, id, fallback = '') => index ? displayName(index, table, id, fallback) : fallback;
+const notify = (message, kind = 'status-good') => document.dispatchEvent(new CustomEvent('luckybean:user-notice', { detail: { message, kind } }));
 
-async function matchingSettings(){const s=await getSetting('app.settings',{});s.matchingGear||={drippers:{},papers:{},defaultDripper:{shape:'standard_cone',bypass:'medium'},defaultPaper:{speed:'medium'}};s.matchingGear.drippers||={};s.matchingGear.papers||={};return s;}
-async function injectGear(){const host=$('#brewContent');if(!host||$('[data-lb-matching-gear]',host))return;const anchor=$('[data-brew-row="filter-gear"]',host);if(!anchor)return;const s=await matchingSettings(),dripperId=$('#brewDripper')?.value||'default',paperId=$('#brewFilterPaper')?.value||'default',d=s.matchingGear.drippers[dripperId]||s.matchingGear.defaultDripper||{},p=s.matchingGear.papers[paperId]||s.matchingGear.defaultPaper||{};anchor.insertAdjacentHTML('afterend',`<div class="lb-matching-gear" data-lb-matching-gear><label><span>滤杯结构</span><select id="lbDripperShape" class="control"><option value="narrow_cone"${d.shape==='narrow_cone'?' selected':''}>窄锥</option><option value="standard_cone"${!d.shape||d.shape==='standard_cone'?' selected':''}>标准锥</option><option value="wide_cone"${d.shape==='wide_cone'?' selected':''}>宽锥</option><option value="flat_bottom"${d.shape==='flat_bottom'?' selected':''}>平底</option></select></label><label><span>旁通</span><select id="lbDripperBypass" class="control"><option value="none"${d.bypass==='none'?' selected':''}>无</option><option value="low"${d.bypass==='low'?' selected':''}>少</option><option value="medium"${!d.bypass||d.bypass==='medium'?' selected':''}>中</option><option value="high"${d.bypass==='high'?' selected':''}>多</option></select></label><label><span>滤纸流速</span><select id="lbPaperSpeed" class="control"><option value="low"${p.speed==='low'?' selected':''}>低</option><option value="medium"${!p.speed||p.speed==='medium'?' selected':''}>中</option><option value="high"${p.speed==='high'?' selected':''}>高</option></select></label></div>`);const save=async()=>{const next=await matchingSettings();next.matchingGear.drippers[dripperId]={shape:$('#lbDripperShape')?.value||'standard_cone',bypass:$('#lbDripperBypass')?.value||'medium'};next.matchingGear.papers[paperId]={speed:$('#lbPaperSpeed')?.value||'medium'};await setSetting('app.settings',next);};['lbDripperShape','lbDripperBypass','lbPaperSpeed'].forEach(id=>$(`#${id}`)?.addEventListener('change',save));}
+function shortCountry(value) {
+  const text = String(value || '').trim();
+  if (!text) return '未定';
+  if (COUNTRY.has(text)) return COUNTRY.get(text);
+  if (/^[A-Za-z .'-]+$/.test(text)) return text.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+  return [...text].length <= 3 ? text : `${[...text].slice(0, 2).join('')}…`;
+}
+function shortStation(value) {
+  const text = String(value || '').trim();
+  if (!text || text === '—') return '';
+  if (STATION.has(text)) return STATION.get(text);
+  const latin = text.normalize('NFKD').replace(/[^A-Za-z]/g, '').toUpperCase();
+  return latin.length >= 3 ? latin.slice(0, 3) : [...text].slice(0, 3).join('');
+}
+function shortVariety(value) {
+  const text = String(value || '').trim();
+  if (!text) return '未定';
+  if (/^\d{3,}$/.test(text) || /^SL\s*\d+$/i.test(text)) return text.replace(/\s+/g, '').toUpperCase();
+  return VARIETY.get(text) || ([...text].length <= 4 ? text : [...text].slice(0, 4).join(''));
+}
+function shortProcess(value) {
+  const text = String(value || '').trim();
+  if (!text) return '未定';
+  for (const [regex, label] of PROCESS) if (regex.test(text)) return label;
+  return [...text].length <= 3 ? text : [...text].slice(0, 2).join('');
+}
+function readable(value) {
+  const text = String(value || '').trim();
+  return text && text !== '—' && !/^未定/.test(text) ? text : '';
+}
+function beanNameParts(bean) {
+  return String(bean?.name || '').split(/\s*[·•｜|]\s*/).map(readable).filter(Boolean);
+}
+function parts(bean) {
+  const named = beanNameParts(bean);
+  const country = shortCountry(code('countries', bean.countryCode, readable(bean.countryName) || readable(bean.country) || named[0] || ''));
+  const station = shortStation(code('entities', bean.entityCode, readable(bean.entityName) || readable(bean.entity) || readable(bean.processingStation) || ''));
+  const variety = shortVariety(code('varieties', bean.varietyCode, readable(bean.varietyName) || readable(bean.variety) || named[1] || ''));
+  const roast = ROAST[String(bean.roastCode || '').toUpperCase()] || String(code('roasts', bean.roastCode, readable(bean.roastName) || readable(bean.roast) || '中')).replace(/烘焙|烘/g, '').slice(0, 2);
+  const process = shortProcess(code('processes', bean.processCode, readable(bean.processName) || readable(bean.process) || ''));
+  const remaining = Math.max(0, Number(bean.remainingWeight || 0));
+  return { country, station, variety, roast, process, remaining: `${remaining.toFixed(remaining % 1 ? 1 : 0)}g` };
+}
 
-function mobileWeb(){return!globalThis.__LUCKYBEAN_ANDROID__&&navigator.maxTouchPoints>0&&globalThis.matchMedia?.('(pointer: coarse)')?.matches&&(/Android|iPhone|iPad|Mobile|HarmonyOS/i.test(navigator.userAgent)||innerWidth<=1024);}
-function fullscreen(){if(!mobileWeb()||document.fullscreenElement)return;const f=document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen;try{f?.call(document.documentElement,{navigationUI:'hide'})?.catch?.(()=>{});}catch{}}
-async function acquireWake(){if(!('wakeLock'in navigator)||document.visibilityState!=='visible')return;try{wakeLock=await navigator.wakeLock.request('screen');}catch{wakeLock=null;}}
-async function releaseWake(){try{await wakeLock?.release?.();}catch{}wakeLock=null;}
-function stagesOf(plan){let cursor=0;return(Array.isArray(plan?.stages)?plan.stages:[]).map((s,i)=>{let start=Number(s.startSec??s.start),end=Number(s.end);if(!Number.isFinite(start))start=cursor;let duration=Number(s.durationSec);if(!Number.isFinite(duration)||duration<=0)duration=Number.isFinite(end)&&end>start?end-start:.1;if(!Number.isFinite(end)||end<=start)end=start+duration;cursor=end;return{index:i,startMs:Math.round(start*1000),endMs:Math.round(end*1000),name:String(s.name||`第${i+1}段`),waterG:Number(s.stageWaterG??s.pour??0),cumulativeWaterG:Number(s.cumulativeWaterG??s.cumulative??0),temperatureC:Number(s.temperatureC??s.pourTemperature??90),method:String(s.method||'')};});}
-function speechOf(plan){const stages=stagesOf(plan),events=[];stages.forEach((s,i)=>{if(i>0){events.push({id:`stage-${i+1}-prepare`,atMs:Math.max(0,s.startMs-8000),text:`准备第${i+1}段，${Math.round(s.waterG)}克，${Math.round(s.temperatureC)}度`,priority:'high',validWindowMs:3000});events.push({id:`stage-${i+1}-countdown`,atMs:Math.max(0,s.startMs-3200),text:'三，二，一',priority:'critical',validWindowMs:1200,fixedKey:'countdown_321'});}events.push({id:`stage-${i+1}-start`,atMs:s.startMs,text:`第${i+1}段，${s.name}，注水${Math.round(s.waterG)}克，累计${Math.round(s.cumulativeWaterG)}克，水温${Math.round(s.temperatureC)}度`,priority:'critical',validWindowMs:4500});});const totalMs=stages.at(-1)?.endMs||0;events.push({id:'brew-complete',atMs:totalMs,text:'冲煮完成',priority:'critical',validWindowMs:5000,fixedKey:'brew_complete'});return{contract:'luckybean-speech-timeline/1.0',voicePack:'zh_CN_v1',totalMs,events};}
-function payload(plan){return JSON.stringify({contract:'luckybean-brew-execution/1.0',version:1,stages:stagesOf(plan),speech:speechOf(plan)});}
-function prepareNative(plan){if(!globalThis.__LUCKYBEAN_ANDROID__||typeof globalThis.LuckyBeanNative?.prepareBrewExecution!=='function')return;try{globalThis.LuckyBeanNative.prepareBrewExecution(payload(plan));}catch(e){console.warn('Android语音预载失败',e);}}
-function stageIndex(){const n=Number(($('#timerStageCounter')?.textContent||'1').split('/')[0]);return Number.isFinite(n)&&n>0?n-1:0;}
-function fmt(seconds){const v=Math.max(0,Math.ceil(Number(seconds)||0));return`${Math.floor(v/60).toString().padStart(2,'0')}:${(v%60).toString().padStart(2,'0')}`;}
-function elapsed(exec=execution){if(!exec)return 0;const now=exec.paused?exec.pauseStarted:performance.now();return Math.max(0,now-exec.startedPerf-exec.pausedTotal);}
-function desired(stages,ms){let i=0;for(let n=0;n<stages.length;n++)if(ms>=stages[n].startMs)i=n;return Math.min(i,stages.length-1);}
-function syncStage(target){let current=stageIndex(),guard=20;if(current===target)return;syncClick=true;while(current<target&&guard-->0){$('#timerNextBtn')?.click();current++;}while(current>target&&guard-->0){$('#timerPrevBtn')?.click();current--;}syncClick=false;}
-function tick(){const e=execution;if(!e||e.ended||e.paused)return;const ms=elapsed(e);if(ms>=e.totalMs){syncStage(e.stages.length-1);if($('#timerNextBtn')){syncClick=true;$('#timerNextBtn').click();syncClick=false;}stopExecution('complete');return;}const i=desired(e.stages,ms),s=e.stages[i];syncStage(i);if($('#timerClock'))$('#timerClock').textContent=fmt((s.endMs-ms)/1000);if($('#timerElapsed'))$('#timerElapsed').textContent=fmt(ms/1000);if($('#timerTotalRemaining'))$('#timerTotalRemaining').textContent=fmt((e.totalMs-ms)/1000);e.timer=setTimeout(tick,100);}
-function startExecution(plan){const stages=stagesOf(plan);if(!stages.length)return;execution={stages,totalMs:Math.max(Number(plan?.totals?.targetTimeSec||0)*1000,stages.at(-1).endMs),startedPerf:performance.now(),pausedTotal:0,paused:false,pauseStarted:0,ended:false,timer:null};fullscreen();acquireWake();if(globalThis.__LUCKYBEAN_ANDROID__){try{globalThis.LuckyBeanNative?.setBrewScreenAwake?.(true);globalThis.LuckyBeanNative?.startBrewExecution?.(payload(plan));}catch(e){console.warn('Android原生执行启动失败',e);}}setTimeout(tick,30);}
-function pauseExecution(){if(!execution||execution.paused)return;execution.paused=true;execution.pauseStarted=performance.now();clearTimeout(execution.timer);try{globalThis.LuckyBeanNative?.pauseBrewExecution?.();}catch{}}
-function resumeExecution(){if(!execution||!execution.paused)return;execution.pausedTotal+=performance.now()-execution.pauseStarted;execution.paused=false;execution.pauseStarted=0;try{globalThis.LuckyBeanNative?.resumeBrewExecution?.();}catch{}tick();}
-function stopExecution(reason='cancel'){if(!execution)return;execution.ended=true;clearTimeout(execution.timer);execution=null;releaseWake();if(globalThis.__LUCKYBEAN_ANDROID__){try{globalThis.LuckyBeanNative?.setBrewScreenAwake?.(false);if(reason!=='complete')globalThis.LuckyBeanNative?.cancelBrewExecution?.();}catch{}}}
+function transformCard(card) {
+  const bean = beanMap.get(String(card?.dataset?.beanId || ''));
+  if (!bean) return;
+  const value = parts(bean);
+  const primary = [value.country, value.station, value.variety].filter(Boolean).join('/');
+  const secondary = [value.roast, value.process, value.remaining].join('/');
+  const signature = `${primary}/${secondary}`;
+  if (card.dataset.lbSignature === signature && card.classList.contains('lb-one-line-bean')) return;
+  card.dataset.lbSignature = signature;
+  card.classList.add('lb-one-line-bean');
+  card.innerHTML = `<div class="lb-bean-line" aria-label="${esc(signature)}"><span class="lb-bean-primary">${esc(primary)}</span><span class="lb-bean-secondary">/${esc(secondary)}</span></div><button class="cup-action compact-pick lb-brew-circle" type="button" data-brew-bean="${esc(bean.id)}" aria-label="用这只豆小酌">酌</button>`;
+}
 
-function injectBatchButton(){$$('.popup-menu').forEach(p=>{if($('[data-lb-batch-open]',p)||!$('[data-manage-action="export"]',p))return;p.insertAdjacentHTML('afterbegin','<button type="button" data-lb-batch-open>批量管理豆卡</button>');});}
-function selected(root){return$$('input[type="checkbox"]:checked',root).map(x=>x.value);}
-async function openBatch(){const rows=await all('beans'),row=b=>{const p=parts(b);return`<label class="lb-batch-row"><input type="checkbox" value="${esc(b.id)}"><span>${esc([p.country,p.station,p.variety,p.roast,p.process,p.remaining].filter(Boolean).join('/'))}</span></label>`};const active=rows.filter(b=>!b.archived),archived=rows.filter(b=>b.archived);document.body.insertAdjacentHTML('beforeend',`<div class="lb-batch-overlay" data-lb-batch-overlay><div class="lb-batch-dialog"><header><strong>豆卡批量管理</strong><button data-lb-batch-close>×</button></header><div class="lb-batch-tabs"><details open><summary>豆藏 · ${active.length}</summary>${active.map(row).join('')||'<p>暂无</p>'}</details><details><summary>溯旧 · ${archived.length}</summary>${archived.map(row).join('')||'<p>暂无</p>'}</details></div><div class="lb-batch-group"><input id="lbBatchGroup" class="control" maxlength="30" placeholder="批量分组名称"><button data-lb-batch-group>设定分组</button></div><footer><button data-lb-batch-all>全选</button><button data-lb-batch-archive>移至溯旧</button><button data-lb-batch-restore>恢复豆藏</button><button class="danger" data-lb-batch-delete>删除</button></footer></div></div>`);}
-async function batch(action,ids,group=''){if(!ids.length)return;const rows=await all('beans'),items=rows.filter(b=>ids.includes(b.id)),now=new Date().toISOString();if(action==='archive'||action==='restore'){const archived=action==='archive';await bulkPut('beans',items.map(b=>({...b,archived,archivedAt:archived?(b.archivedAt||now):null,updatedAt:now})));}else if(action==='group')await bulkPut('beans',items.map(b=>({...b,customGroup:group,updatedAt:now})));else if(action==='delete'){const history=await all('brewSessions'),sensory=await all('sensoryRecords'),blocked=new Set([...history.map(x=>x.beanId),...sensory.map(x=>x.beanId)]);for(const b of items)if(!blocked.has(b.id))await remove('beans',b.id);const n=items.filter(b=>blocked.has(b.id)).length;if(n)notice(`${n}张豆卡存在历史记录，已保留；建议移至“溯旧”。`);}document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh',{detail:{source:'batch-beans'}}));await refreshBeans();}
-function onboarding(){if(localStorage.getItem('luckybean.onboarding.v1')||beanMap.size||$('.page.active')?.dataset.page!=='beans')return;document.body.insertAdjacentHTML('beforeend','<div class="lb-onboarding" data-lb-onboarding><div><strong>欢迎使用 LuckyBean</strong><p>请进入“器”设定个人账户及设备设定</p><footer><button data-lb-onboard-start>前往“器”</button><button data-lb-onboard-later>以后再说</button><button data-lb-onboard-never>不再显示</button></footer></div></div>');}
+function transformCards() {
+  renderQueued = false;
+  $$('.bean-card[data-bean-id]', $('#beanGroups') || document).forEach(transformCard);
+}
+function queueCardRender() {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(transformCards);
+}
+async function refreshBeans() {
+  beanMap = new Map((await all('beans').catch(() => [])).map(bean => [String(bean.id), bean]));
+  queueCardRender();
+}
 
-function bindClicks(){document.addEventListener('click',async event=>{if(event.target.closest('#startBrewBtn')&&latestPlan){fullscreen();acquireWake();setTimeout(()=>startExecution(latestPlan),0);return;}if(event.target.closest('#timerPauseBtn')){execution?.paused?resumeExecution():pauseExecution();return;}if(event.target.closest('#timerEndBtn')){stopExecution();return;}if(!syncClick&&event.target.closest('#timerNextBtn,#timerPrevBtn')&&execution){setTimeout(()=>{const s=execution?.stages?.[stageIndex()];if(s&&execution)execution.startedPerf=performance.now()-s.startMs-execution.pausedTotal;},0);return;}if(event.target.closest('[data-lb-batch-open]')){event.preventDefault();$('.popup-menu')?.remove();await openBatch();return;}const root=$('[data-lb-batch-overlay]');if(root){if(event.target.closest('[data-lb-batch-close]')){root.remove();return;}if(event.target.closest('[data-lb-batch-all]')){$$('input[type="checkbox"]',root).forEach(x=>x.checked=true);return;}const ids=selected(root);if(event.target.closest('[data-lb-batch-archive]')){await batch('archive',ids);root.remove();return;}if(event.target.closest('[data-lb-batch-restore]')){await batch('restore',ids);root.remove();return;}if(event.target.closest('[data-lb-batch-group]')){await batch('group',ids,$('#lbBatchGroup',root)?.value.trim()||'');root.remove();return;}if(event.target.closest('[data-lb-batch-delete]')&&ids.length&&confirm(`确认删除选中的${ids.length}张无历史豆卡？`)){await batch('delete',ids);root.remove();return;}}const guide=$('[data-lb-onboarding]');if(guide){if(event.target.closest('[data-lb-onboard-start]')){localStorage.setItem('luckybean.onboarding.v1','done');guide.remove();$('[data-page-target="settings"]')?.click();}else if(event.target.closest('[data-lb-onboard-later]'))guide.remove();else if(event.target.closest('[data-lb-onboard-never]')){localStorage.setItem('luckybean.onboarding.v1','never');guide.remove();}}},true);}
-function bindEvents(){document.addEventListener('luckybean:data-changed',async e=>{await refreshBeans();if(e.detail?.autoArchived)notice('这支咖啡豆剩余不足5g，已自动移至“溯旧”。');});document.addEventListener('luckybean:app-refreshed',refreshBeans);document.addEventListener('luckybean:plan-ready',e=>{latestPlan=e.detail?.plan||null;if(latestPlan){prepareNative(latestPlan);setTimeout(ensurePlanEffect,0);}});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&execution&&!execution.ended)acquireWake();});}
-async function init(){try{const loaded=await loadCodebook();index=makeIndex(loaded?.data||loaded);}catch(e){console.warn('简称库加载失败',e);}await refreshBeans();bindClicks();bindEvents();const mo=new MutationObserver(queueDom);mo.observe(document.body,{childList:true,subtree:true});queueDom();setTimeout(onboarding,800);document.documentElement.dataset.fullIntegration=VERSION;}
-if(document.documentElement.dataset.startup==='ready')init();else document.addEventListener('luckybean:local-app-ready',init,{once:true});
+function effectHtml(plan) {
+  const matching = plan?.matching;
+  const add = matching?.profileEffect?.add;
+  if (!Array.isArray(add) || add.length !== 8) return '';
+  const labels = ['酸','甜','香','体','苦','净','酵','余'];
+  const key = `${matching.selectedProfileId}:${matching.score}`;
+  return `<div class="lb-profile-effect" data-lb-profile-effect data-match-key="${esc(key)}"><strong>方案倾向</strong><div>${add.map((value, index) => {
+    const number = Number(value || 0);
+    const arrow = number > 1 ? '↑' : number < -1 ? '↓' : '→';
+    return `<span><b>${labels[index]}</b>${arrow}<small>${number > 0 ? '+' : ''}${number}</small></span>`;
+  }).join('')}</div><small>匹配 ${Number(matching.score || 0).toFixed(1)} · ${esc(matching.selectedProfileId || '')}</small></div>`;
+}
+function ensurePlanEffect() {
+  if (!latestPlan) return;
+  const host = $('#generatedPlan');
+  const html = effectHtml(latestPlan);
+  if (!host || !html) return;
+  const key = `${latestPlan.matching?.selectedProfileId}:${latestPlan.matching?.score}`;
+  const existing = $('[data-lb-profile-effect]', host);
+  if (existing?.dataset.matchKey === key) return;
+  existing?.remove();
+  host.insertAdjacentHTML('afterbegin', html);
+}
+
+function mobileWeb() {
+  return !globalThis.__LUCKYBEAN_ANDROID__ && navigator.maxTouchPoints > 0 && globalThis.matchMedia?.('(pointer: coarse)')?.matches && (/Android|iPhone|iPad|Mobile|HarmonyOS/i.test(navigator.userAgent) || innerWidth <= 1024);
+}
+function requestFullscreenForBrew() {
+  if (!mobileWeb() || document.fullscreenElement) return;
+  const request = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+  try { request?.call(document.documentElement, { navigationUI: 'hide' })?.catch?.(() => {}); } catch {}
+}
+async function acquireWake() {
+  if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+  try { wakeLock = await navigator.wakeLock.request('screen'); } catch { wakeLock = null; }
+}
+async function releaseWake() {
+  try { await wakeLock?.release?.(); } catch {}
+  wakeLock = null;
+}
+function stagesOf(plan) {
+  let cursor = 0;
+  return (Array.isArray(plan?.stages) ? plan.stages : []).map((stage, index) => {
+    let start = Number(stage.startSec ?? stage.start);
+    let end = Number(stage.end);
+    if (!Number.isFinite(start)) start = cursor;
+    let duration = Number(stage.durationSec);
+    if (!Number.isFinite(duration) || duration <= 0) duration = Number.isFinite(end) && end > start ? end - start : .1;
+    if (!Number.isFinite(end) || end <= start) end = start + duration;
+    cursor = end;
+    return {
+      index, startMs: Math.round(start * 1000), endMs: Math.round(end * 1000), name: String(stage.name || `第${index + 1}段`),
+      waterG: Number(stage.stageWaterG ?? stage.pour ?? 0), cumulativeWaterG: Number(stage.cumulativeWaterG ?? stage.cumulative ?? 0),
+      temperatureC: Number(stage.temperatureC ?? stage.pourTemperature ?? 90), method: String(stage.method || '')
+    };
+  });
+}
+function speechOf(plan) {
+  const stages = stagesOf(plan);
+  const events = [];
+  stages.forEach((stage, index) => {
+    if (index > 0) {
+      events.push({ id:`stage-${index + 1}-prepare`, atMs:Math.max(0, stage.startMs - 8000), text:`准备第${index + 1}段，${Math.round(stage.waterG)}克，${Math.round(stage.temperatureC)}度`, priority:'high', validWindowMs:3000 });
+      events.push({ id:`stage-${index + 1}-countdown`, atMs:Math.max(0, stage.startMs - 3200), text:'三，二，一', priority:'critical', validWindowMs:1200, fixedKey:'countdown_321' });
+    }
+    events.push({ id:`stage-${index + 1}-start`, atMs:stage.startMs, text:`第${index + 1}段，${stage.name}，注水${Math.round(stage.waterG)}克，累计${Math.round(stage.cumulativeWaterG)}克，水温${Math.round(stage.temperatureC)}度`, priority:'critical', validWindowMs:4500 });
+  });
+  const totalMs = stages.at(-1)?.endMs || 0;
+  events.push({ id:'brew-complete', atMs:totalMs, text:'冲煮完成', priority:'critical', validWindowMs:5000, fixedKey:'brew_complete' });
+  return { contract:'luckybean-speech-timeline/1.0', voicePack:'zh_CN_v1', totalMs, events };
+}
+function nativePayload(plan) {
+  return JSON.stringify({ contract:'luckybean-brew-execution/1.0', version:1, stages:stagesOf(plan), speech:speechOf(plan) });
+}
+function prepareNative(plan) {
+  if (!globalThis.__LUCKYBEAN_ANDROID__ || typeof globalThis.LuckyBeanNative?.prepareBrewExecution !== 'function') return;
+  try { globalThis.LuckyBeanNative.prepareBrewExecution(nativePayload(plan)); } catch (error) { console.warn('Android语音预载失败', error); }
+}
+function startNativeExecution(plan) {
+  requestFullscreenForBrew();
+  acquireWake();
+  if (!globalThis.__LUCKYBEAN_ANDROID__) return;
+  nativeExecutionActive = true;
+  try {
+    globalThis.LuckyBeanNative?.setBrewScreenAwake?.(true);
+    globalThis.LuckyBeanNative?.startBrewExecution?.(nativePayload(plan));
+  } catch (error) {
+    console.warn('Android原生执行启动失败', error);
+  }
+}
+function pauseNativeExecution() {
+  if (!nativeExecutionActive) return;
+  try { globalThis.LuckyBeanNative?.pauseBrewExecution?.(); } catch {}
+}
+function resumeNativeExecution() {
+  if (!nativeExecutionActive) return;
+  try { globalThis.LuckyBeanNative?.resumeBrewExecution?.(); } catch {}
+}
+function stopNativeExecution(cancel = true) {
+  releaseWake();
+  if (!globalThis.__LUCKYBEAN_ANDROID__) return;
+  try {
+    globalThis.LuckyBeanNative?.setBrewScreenAwake?.(false);
+    if (cancel && nativeExecutionActive) globalThis.LuckyBeanNative?.cancelBrewExecution?.();
+  } catch {}
+  nativeExecutionActive = false;
+}
+
+function bindNativeExecutionBridge() {
+  document.addEventListener('click', event => {
+    if (event.target.closest('#startBrewBtn') && latestPlan) { startNativeExecution(latestPlan); return; }
+    if (event.target.closest('#timerPauseBtn')) {
+      const button = event.target.closest('#timerPauseBtn');
+      requestAnimationFrame(() => button?.textContent?.includes('继续') ? pauseNativeExecution() : resumeNativeExecution());
+      return;
+    }
+    if (event.target.closest('#timerEndBtn')) stopNativeExecution(true);
+  }, true);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && nativeExecutionActive) acquireWake();
+  });
+  window.addEventListener('pagehide', () => stopNativeExecution(true));
+}
+
+function bindEvents() {
+  document.addEventListener('luckybean:data-changed', async event => {
+    await refreshBeans();
+    if (event.detail?.autoArchived) notify('这支咖啡豆剩余不足5g，已自动移至“溯旧”。');
+  });
+  document.addEventListener('luckybean:app-refreshed', refreshBeans);
+  document.addEventListener('luckybean:plan-ready', event => {
+    latestPlan = event.detail?.plan || null;
+    if (!latestPlan) return;
+    prepareNative(latestPlan);
+    requestAnimationFrame(ensurePlanEffect);
+  });
+}
+
+function bindBeanContainerObserver() {
+  const root = $('#beanGroups');
+  if (!root || beanObserver) return;
+  beanObserver = new MutationObserver(records => {
+    if (records.some(record => [...record.addedNodes].some(node => node.nodeType === 1 && (node.matches?.('.bean-card[data-bean-id]') || node.querySelector?.('.bean-card[data-bean-id]'))))) queueCardRender();
+  });
+  beanObserver.observe(root, { childList: true, subtree: true });
+}
+
+async function init() {
+  try {
+    const loaded = await loadCodebook();
+    index = makeIndex(loaded?.data || loaded);
+  } catch (error) {
+    console.warn('简称库加载失败', error);
+  }
+  await refreshBeans();
+  bindBeanContainerObserver();
+  bindNativeExecutionBridge();
+  bindEvents();
+  queueCardRender();
+  document.documentElement.dataset.fullIntegration = VERSION;
+}
+
+if (document.documentElement.dataset.startup === 'ready') init();
+else document.addEventListener('luckybean:local-app-ready', init, { once:true });

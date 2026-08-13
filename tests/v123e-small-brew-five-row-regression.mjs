@@ -3,9 +3,10 @@ import fs from 'node:fs';
 
 const read = path => fs.readFileSync(path, 'utf8');
 const app = read('src/app.js');
-const css = read('src/ui/interaction-repair.css');
-const gear = read('src/features/gear-matching-controller.js');
-const repair = read('src/features/interaction-repair-controller.js');
+const css = read('src/ui/app-components.css');
+const gear = read('src/ui/gear-controller.js');
+const flavorGuide = read('src/ui/flavor-guide-controller.js');
+const cooling = read('src/ui/brew-cooling-controller.js');
 const build = read('android/app/build.gradle');
 
 const renderStart = app.indexOf('function renderBrew()');
@@ -33,8 +34,10 @@ assert.doesNotMatch(app, /select\.addEventListener\('pointerdown', reopenCustom\
 assert.match(app, /openBrewEnvironmentDialog/);
 assert.match(app, /recommendedDripperForBrew/);
 assert.match(render, /data-recommended-dripper-id/);
-assert.match(gear, /\[data-lb-brew-dripper-properties\].*remove/);
-assert.match(repair, /模型推荐结果/);
-assert.match(css, /LuckyBean small-brew five-row contract/);
+assert.doesNotMatch(gear, /\[data-lb-brew-dripper-properties\].*remove/);
+assert.match(flavorGuide, /模型推荐结果/);
+assert.match(cooling, /firstCoolingMode/);
+assert.match(cooling, /tailCoolingMode/);
+assert.match(css, /\.lb-brew-five-row/);
 assert.match(build, /versionCode 102314/);
-console.log('LuckyBean 1.23E five-row small-brew contract passed');
+console.log('LuckyBean 1.23E canonical five-row small-brew contract passed');

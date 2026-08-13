@@ -6,7 +6,7 @@ import {
 import {
   analyzeRemoteDeletionRisk, deletedBaselineUnitKeys, deletionRiskFingerprintSource,
   mergePacketPreservingRemote, packetUnitKeySet
-} from './cloud-sync-safety.js?v=1.23D-main-sync.4';
+} from './cloud-sync-safety.js';
 
 const STATE_ID = 'cloud.sync.state.v3';
 const DEVICE_ID = 'cloud.device.id.v3';

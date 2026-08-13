@@ -2,6 +2,7 @@ import { get, put } from '../db.js';
 
 const DEVICE_RECORD_ID = 'cloud.device.id.v3';
 const SPLASH_READY_TIMEOUT_MS = 12000;
+const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.23E-main-sync.3';
 let enterRequested = false;
 let shellReady = false;
 
@@ -41,9 +42,7 @@ async function deviceId() {
   return value;
 }
 
-async function ensureLocalDevice() {
-  return deviceId();
-}
+async function ensureLocalDevice() { return deviceId(); }
 
 function dismissSplash() {
   const node = splash();
@@ -115,7 +114,7 @@ function bindStatusEvents() {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=1.23E-main-sync.2', { updateViaCache: 'none' }).catch(() => {});
+  navigator.serviceWorker.register(`./sw.js?v=${encodeURIComponent(RELEASE_REVISION)}`, { updateViaCache: 'none' }).catch(() => {});
 }
 
 document.documentElement.dataset.startup = 'booting';
@@ -126,7 +125,7 @@ setStatus('正在准备本地数据…');
 try {
   await ensureLocalDevice();
   document.dispatchEvent(new CustomEvent('luckybean:local-bootstrap-ready'));
-  await import('../app.js?v=1.23E-main-sync.2');
+  await import(`../app.js?v=${encodeURIComponent(RELEASE_REVISION)}`);
   document.dispatchEvent(new CustomEvent('luckybean:app-module-loaded'));
   watchForShell();
 } catch (error) {

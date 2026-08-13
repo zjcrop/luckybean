@@ -17,19 +17,28 @@ const brewCore = read('src/brew-engine-core.js');
 const matchVector = read('src/domain/matching/flavor-vector.js');
 const freshnessTimeline = read('src/features/freshness-timeline-controller.js');
 const qr = read('src/qr.js');
-const interactionRepair = read('src/features/interaction-repair-controller.js');
-const gearMatching = read('src/features/gear-matching-controller.js');
+const flavorGuide = read('src/ui/flavor-guide-controller.js');
+const enrichment = read('src/services/bean-enrichment-service.js');
+const gear = read('src/ui/gear-controller.js');
+const layout = read('src/ui/app-layout.css');
+const sensoryCss = read('src/ui/professional-sensory.css');
 const deployWorkflow = read('.github/workflows/deploy-main.yml');
 const buildWorkflow = read('.github/workflows/build-main.yml');
+const integrationWorkflow = read('.github/workflows/full-integration-pr.yml');
 
 assert.match(read('src/utils.js'), /APP_VERSION = '1\.23E'/);
 assert.match(read('src/utils.js'), /SCHEMA_VERSION = 8/);
 assert.equal(manifest.version, '1.23E');
 assert.match(index, /application-version" content="1\.23E"/);
-assert.match(index, /release-revision" content="1\.23E-main-sync\.2"/);
+assert.match(index, /release-revision" content="1\.23E-main-sync\.3"/);
 assert.match(index, /accept="\.luckybean,application\/vnd\.luckybean\.archive\+json,application\/json"/);
-assert.match(index, /interaction-repair-controller\.js\?v=1\.23E-main-sync\.2/);
-assert.match(index, /gear-matching-controller\.js\?v=1\.23E-main-sync\.2/);
+for (const canonical of ['app-layout.css','app-components.css','professional-sensory.css','flavor-guide-controller.js','gear-controller.js','bean-card-controller.js','onboarding-controller.js']) {
+  assert.ok(index.includes(canonical), `missing canonical entry ${canonical}`);
+}
+for (const obsolete of ['interaction-repair-controller.js','experience-fixes-controller.js','gear-matching-controller.js','gear-regression-fix-controller.js','legacy-timer-guard.js']) {
+  assert.ok(!index.includes(obsolete), `obsolete entry ${obsolete}`);
+  assert.equal(fs.existsSync(`src/features/${obsolete}`), false, `${obsolete} should be deleted`);
+}
 
 assert.match(app, /createPortableArchive/);
 assert.match(app, /inspectPortableArchive/);
@@ -43,14 +52,17 @@ assert.doesNotMatch(codebook, /labeled\.roastDate \|\| labeled\.productionDate/)
 
 assert.match(sw, /recognition-test\.html/);
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v123e-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-2`/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-3`/);
 assert.match(sw, /luckybean-main-v123d-/);
-assert.match(sw, /gear-regression-fix-controller\.js/);
-assert.match(sw, /gear-matching-controller\.js/);
 assert.match(sw, /freshness-timeline-controller\.js/);
-assert.match(sw, /interaction-repair-controller\.js/);
+assert.match(sw, /ui\/gear-controller\.js/);
+assert.match(sw, /ui\/flavor-guide-controller\.js/);
+assert.match(sw, /ui\/app-layout\.css/);
+assert.match(sw, /ui\/professional-sensory\.css/);
+assert.doesNotMatch(sw, /interaction-repair-controller|experience-fixes-controller|gear-matching-controller|gear-regression-fix-controller|legacy-timer-guard/);
 assert.match(sw, /public\/vendor\/jsqr\/jsQR\.js/);
 assert.match(sw, /domain\/beans\/bean-consumption-summary\.js/);
+assert.match(sw, /domain\/beans\/bean-lifecycle-service\.js/);
 assert.match(sw, /luckybean-archive-v1\.schema\.json/);
 assert.match(sw, /cache\.put\(request, response\.clone\(\)\)/);
 assert.match(sw, /caches\.match\(request\).*caches\.match\('\.\/index\.html'\)/s);
@@ -81,13 +93,17 @@ assert.match(qr, /public\/vendor\/jsqr\/jsQR\.js/);
 assert.doesNotMatch(qr, /cdn\.jsdelivr\.net/);
 assert.doesNotMatch(qr, /decodeEncryptedShareEnvelope/);
 assert.match(qr, /async restart\(\)/);
-assert.match(interactionRepair, /模型推荐结果/);
-assert.match(interactionRepair, /使用说明/);
-assert.match(interactionRepair, /flavorText: flavorNames\.join\(' '\)/);
-assert.match(gearMatching, /滤杯角度/);
-assert.match(gearMatching, /过滤速度/);
-assert.match(gearMatching, /matchingGear\.drippers/);
-assert.match(gearMatching, /matchingGear\.papers/);
+assert.match(flavorGuide, /模型推荐结果/);
+assert.match(flavorGuide, /使用说明/);
+assert.match(enrichment, /flavorText: flavorNames\.join\(' '\)/);
+assert.match(gear, /滤杯角度/);
+assert.match(gear, /过滤速度/);
+assert.match(gear, /matchingGear\.drippers/);
+assert.match(gear, /matchingGear\.papers/);
+assert.doesNotMatch(gear, /MutationObserver/);
+assert.match(layout, /--viewport-height/);
+assert.match(layout, /touch-action: pan-y/);
+assert.match(sensoryCss, /--cup-tag-selected-bg/);
 
 assert.match(brewAnalysis, /BREW_ANALYSIS_CONTRACT = 'brew-analysis\/2\.1'/);
 assert.match(brewAnalysis, /BREW_SPATIAL_CONTRACT = 'brew-spatial\/1\.3'/);
@@ -104,6 +120,9 @@ assert.match(freshnessTimeline, /freshnessProfile\(bean\)\.progress/);
 assert.match(deployWorkflow, /npm ci/);
 assert.match(deployWorkflow, /public\/vendor\/jsqr\/jsQR\.js/);
 assert.match(deployWorkflow, /LuckyBean-1\.23E-web\.zip/);
+assert.match(deployWorkflow, /1\.23E-main-sync\.3/);
+assert.match(deployWorkflow, /flavor-guide-controller\.js/);
+assert.match(deployWorkflow, /old_repair_status/);
 assert.match(buildWorkflow, /:app:assembleRelease/);
 assert.match(buildWorkflow, /LuckyBean-1\.23E-release\.apk/);
 assert.match(buildWorkflow, /LUCKYBEAN_KEYSTORE_B64/);
@@ -111,8 +130,13 @@ assert.match(buildWorkflow, /CERT_SHA256\.txt/);
 assert.match(androidBuild, /signingConfigs/);
 assert.match(androidBuild, /LUCKYBEAN_KEYSTORE_FILE/);
 assert.match(buildWorkflow, /version_code=102314/);
-assert.match(buildWorkflow, /gear-matching-controller\.js/);
+assert.match(buildWorkflow, /ui\/gear-controller\.js/);
+assert.doesNotMatch(buildWorkflow, /gear-matching-controller\.js/);
 assert.match(buildWorkflow, /public\/vendor\/jsqr\/jsQR\.js/);
 assert.match(buildWorkflow, /analysis_contract=brew-analysis\/2\.1/);
+assert.match(buildWorkflow, /ui_architecture=canonical-no-repair-guards/);
+assert.match(integrationWorkflow, /versionCode 102314/);
+assert.match(integrationWorkflow, /ui\/app-layout\.css/);
+assert.match(integrationWorkflow, /Obsolete repair\/guard assets leaked into APK/);
 
-console.log('LuckyBean 1.23E deployment, local QR, gear binding, guide, matching, freshness, BrewProfiles and archive contracts passed');
+console.log('LuckyBean 1.23E sync3 deployment, canonical UI, local QR, gear binding, guide, matching, freshness, BrewProfiles and archive contracts passed');

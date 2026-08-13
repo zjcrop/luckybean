@@ -1,5 +1,6 @@
 const QR_OVERLAY_SELECTOR = '[data-overlay="camera"]';
 const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
+let overlayObserver = null;
 
 function retryScanner(status) {
   const scanner = globalThis.LuckyBeanQrScanner;
@@ -54,7 +55,7 @@ function decorateCameraOverlay(overlay) {
     event.preventDefault();
     event.stopPropagation();
     retryScanner(status);
-  });
+  }, { once:true });
 
   if (!overlay.querySelector('[data-lb-qr-help]')) {
     status.insertAdjacentHTML('afterend', '<p class="muted small" data-lb-qr-help>保持二维码完整、平整并避免反光。失败后可以直接重新扫描；相机不可用时可改用二维码图片。</p>');
@@ -62,10 +63,21 @@ function decorateCameraOverlay(overlay) {
 }
 
 function scan() {
-  const overlay = document.querySelector(QR_OVERLAY_SELECTOR);
+  const root = document.querySelector('#overlayRoot');
+  const overlay = root?.querySelector(QR_OVERLAY_SELECTOR);
   if (overlay) decorateCameraOverlay(overlay);
 }
 
-new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
+function bindOverlayObserver() {
+  const root = document.querySelector('#overlayRoot');
+  if (!root || overlayObserver) return;
+  overlayObserver = new MutationObserver(scan);
+  overlayObserver.observe(root, { childList:true, subtree:true });
+}
+
 document.addEventListener('luckybean:app-refreshed', scan);
+document.addEventListener('luckybean:local-app-ready', () => { bindOverlayObserver(); scan(); }, { once:true });
+bindOverlayObserver();
 scan();
+
+globalThis.LuckyBeanQrUi = { scan, decorateCameraOverlay };

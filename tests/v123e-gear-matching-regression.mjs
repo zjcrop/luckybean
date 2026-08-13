@@ -10,7 +10,7 @@ import {
 const read = path => fs.readFileSync(path, 'utf8');
 const qr = read('src/qr.js');
 const service = read('src/services/brew-analysis-service.js');
-const gearController = read('src/features/gear-matching-controller.js');
+const gearController = read('src/ui/gear-controller.js');
 const index = read('index.html');
 const sw = read('sw.js');
 const build = read('android/app/build.gradle');
@@ -32,12 +32,10 @@ assert.match(gearController, /旁通量/);
 assert.match(gearController, /过滤速度/);
 assert.match(gearController, /matchingGear\.drippers/);
 assert.match(gearController, /matchingGear\.papers/);
-assert.doesNotMatch(gearController, /const materialSelect = \$\('#brewDripperMaterial'\)/);
-assert.match(gearController, /\[data-lb-brew-dripper-properties\].*remove/);
-assert.doesNotMatch(gearController, /note\.textContent = `\$\{angle\}/);
+assert.doesNotMatch(gearController, /MutationObserver/);
 assert.doesNotMatch(gearController, /brewDripperAngle/);
-assert.match(index, /gear-matching-controller\.js\?v=1\.23E-main-sync\.2/);
-assert.match(sw, /gear-matching-controller\.js\?v=1\.23E-main-sync\.2/);
+assert.match(index, /ui\/gear-controller\.js\?v=1\.23E-main-sync\.3/);
+assert.match(sw, /ui\/gear-controller\.js/);
 assert.match(build, /versionCode 102314/);
 
 const settings = {
@@ -63,4 +61,4 @@ assert.equal(envelope.contract, 'luckybean-match/1.1');
 assert.equal(envelope.match_vector.length, 8);
 assert.equal(envelope.target_vector.length, 8);
 assert.match(envelope.signature, /^LMS1-FC1-X[0-9A-F]{16}-Q\d+$/);
-console.log('LuckyBean 1.23E gear binding, direct bean matching and QR runtime checks passed');
+console.log('LuckyBean 1.23E canonical gear binding, direct bean matching and QR runtime checks passed');
