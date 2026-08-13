@@ -103,9 +103,10 @@ assert.match(spatial, /pointerdown/);
 assert.match(spatial, /pinchDistance/);
 
 assert.match(runtimeFeatures, /RUNTIME_FEATURES/);
-assert.match(runtimeFeatures, /for \(const feature of RUNTIME_FEATURES\)/);
-assert.match(runtimeFeatures, /try\s*\{[\s\S]*await import\(feature\.path\)/);
+assert.match(runtimeFeatures, /for \(const \w+ of RUNTIME_FEATURES\)/);
+assert.match(runtimeFeatures, /try\s*\{[\s\S]*await import\(\w+\.path\)/);
 assert.match(runtimeFeatures, /LuckyBeanRuntimeFeatures/);
+assert.match(runtimeFeatures, /runtime-feature-error/);
 assert.doesNotMatch(runtimeFeatures, /v109-history-management\.js|v099-trajectory-signal-bridge\.js|v099i-trajectory-space\.js/);
 assert.doesNotMatch(runtimeFeatures, /v095-ui\.js|theme-bridge\.js/);
 
