@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import path from 'node:path';
 
-const read = path => fs.readFileSync(path, 'utf8');
+const read = file => fs.readFileSync(file, 'utf8');
+function walk(dir) {
+  return fs.readdirSync(dir, { withFileTypes:true }).flatMap(entry => {
+    const full = path.join(dir, entry.name);
+    return entry.isDirectory() ? walk(full) : [full];
+  });
+}
+
 const index = read('index.html');
 const sw = read('sw.js');
 const layout = read('src/ui/app-layout.css');
@@ -24,6 +32,8 @@ const guide = read('src/ui/flavor-guide-controller.js');
 const spatialCss = read('src/renderers/brew-spatial-view.css');
 const historyCss = read('src/ui/history/history-screen.css');
 const codebookCss = read('src/ui/codebook-reconciliation-screen.css');
+const runtimeFeatures = read('src/features/runtime-features.js');
+const qrUi = read('src/qr-ui-controller.js');
 
 assert.match(index, /1\.23E-main-sync\.3/);
 for (const active of [
@@ -72,6 +82,10 @@ assert.doesNotMatch(gear, /MutationObserver/);
 assert.doesNotMatch(account, /MutationObserver|setInterval/);
 assert.doesNotMatch(appearance, /MutationObserver|1\.23D-main-sync/);
 assert.doesNotMatch(voice, /MutationObserver/);
+assert.match(runtimeFeatures, /RELEASE_REVISION/);
+assert.doesNotMatch(runtimeFeatures, /1\.23D-main-sync/);
+assert.match(qrUi, /overlayObserver\.observe\(root/);
+assert.doesNotMatch(qrUi, /observe\(document\.body/);
 
 assert.match(viewport, /visualViewport/);
 assert.match(viewport, /--viewport-height/);
@@ -108,5 +122,15 @@ assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-3`/);
 assert.match(sw, /bean-lifecycle-service\.js/);
 assert.match(sw, /professional-sensory\.css/);
 assert.match(sw, /onboarding-controller\.js/);
+
+const sourceFiles = walk('src').filter(file => /\.(?:js|mjs|css)$/.test(file));
+const staleRevisionFiles = sourceFiles.filter(file => read(file).includes('1.23D-main-sync.4'));
+assert.deepEqual(staleRevisionFiles, [], `stale release cache keys remain: ${staleRevisionFiles.join(', ')}`);
+const uiControllerFiles = sourceFiles.filter(file => /(?:controller|ui|features)/i.test(file));
+const bodyObserverFiles = uiControllerFiles.filter(file => {
+  const source = read(file);
+  return /MutationObserver/.test(source) && /\.observe\(document\.body\s*,/.test(source);
+});
+assert.deepEqual(bodyObserverFiles, [], `global body MutationObservers remain: ${bodyObserverFiles.join(', ')}`);
 
 console.log('LuckyBean 1.23E canonical UI stability regression checks passed');
