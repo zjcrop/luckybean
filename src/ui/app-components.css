@@ -91,8 +91,8 @@ html[data-theme="light"] .lb-open-guide { border-color: #b58d51; background: #e8
 /* Onboarding / batch modal use theme surfaces. */
 .lb-batch-overlay, .lb-onboarding { position: fixed; inset: 0; z-index: 9999; background: var(--overlay-bg); display: flex; align-items: flex-end; justify-content: center; padding: max(12px,var(--safe-top)) 12px max(12px,var(--safe-bottom)); }
 .lb-batch-dialog, .lb-onboarding > div { width: min(620px,100%); max-height: 86dvh; overflow-y: auto; background: var(--surface-raised); color: var(--text); border: 1px solid var(--border); border-radius: 18px; padding: 14px; box-shadow: 0 16px 50px rgba(0,0,0,.28); }
-.lb-onboarding { align-items: center; }
-.lb-onboarding > div { max-width: 420px; text-align: center; }
+.lb-onboarding { align-items: center; pointer-events: none; }
+.lb-onboarding > div { max-width: 420px; text-align: center; pointer-events: auto; }
 .lb-onboarding strong { color: var(--lb-gold); font-size: 18px; }
 .lb-onboarding p { font-size: 13px; line-height: 1.8; color: var(--muted); }
 .lb-onboarding footer { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }

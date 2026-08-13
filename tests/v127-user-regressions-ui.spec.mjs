@@ -78,9 +78,7 @@ test('cooling menus keep custom values stable and can return to model recommenda
 
 test('小酌 never recreates editable dripper angle bypass or paper-speed controls after repeated DOM mutations', async ({ page }) => {
   await page.locator('[data-page-target="brew"]').click();
-  const sentinel = page.locator('[data-lb-matching-gear][data-lb-legacy-gear-disabled]');
-  await expect(sentinel).toHaveCount(1, { timeout: 10000 });
-  await expect(sentinel).toBeHidden();
+  await expect(page.locator('[data-lb-matching-gear][data-lb-legacy-gear-disabled]')).toHaveCount(0);
   await expect(page.locator('#brewContent #lbDripperAngle')).toHaveCount(0);
   await expect(page.locator('#brewContent #lbDripperBypass')).toHaveCount(0);
   await expect(page.locator('#brewContent #lbPaperSpeed')).toHaveCount(0);
@@ -95,8 +93,8 @@ test('小酌 never recreates editable dripper angle bypass or paper-speed contro
     }
   });
   await page.waitForTimeout(500);
-  await expect(page.locator('[data-lb-matching-gear]')).toHaveCount(1);
-  await expect(page.locator('[data-lb-matching-gear][data-lb-legacy-gear-disabled]')).toBeHidden();
+  await expect(page.locator('[data-lb-matching-gear]')).toHaveCount(0);
+  await expect(page.locator('[data-lb-matching-gear][data-lb-legacy-gear-disabled]')).toHaveCount(0);
   await expect(page.locator('#brewContent #lbDripperAngle,#brewContent #lbDripperBypass,#brewContent #lbPaperSpeed,#brewContent #lbDripperShape')).toHaveCount(0);
 });
 

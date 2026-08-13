@@ -53,7 +53,7 @@ function closeEditor() { $('#overlayRoot')?.replaceChildren(); }
 function dialog(title, subtitle, body, overlayId) {
   const root = $('#overlayRoot');
   if (!root) return null;
-  root.innerHTML = `<div class="overlay" data-overlay="${esc(overlayId)}"><div class="dialog lb-gear-match-dialog"><div class="dialog-header centered"><div><h2>${esc(title)}</h2><p>${esc(subtitle)}</p></div><button type="button" class="close-button" data-lb-gear-close aria-label="关闭">×</button></div>${body}</div></div>`;
+  root.innerHTML = `<div class="overlay" data-overlay="${esc(overlayId)}"><div class="dialog lb-gear-match-dialog"><div class="dialog-header centered"><div><h2>${esc(title)}</h2><p>${esc(subtitle)}</p></div><button type="button" class="close-button" data-close-overlay data-lb-gear-close aria-label="关闭">×</button></div>${body}</div></div>`;
   const overlay = root.firstElementChild;
   $('[data-lb-gear-close]', overlay)?.addEventListener('click', closeEditor);
   overlay.addEventListener('click', event => { if (event.target === overlay) closeEditor(); });
