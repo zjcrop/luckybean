@@ -7,7 +7,7 @@
     "postinstall": "node scripts/prepare-vendor.mjs",
     "test:recognition": "node --test test/*.test.js",
     "test:static": "node scripts/run-static-tests.mjs",
-    "test:smoke": "playwright test tests/v110-startup-smoke.spec.mjs --browser=chromium --reporter=line",
+    "test:smoke": "playwright test tests/v110-startup-smoke.spec.mjs tests/v123e-ui-interaction.spec.mjs --browser=chromium --reporter=line",
     "test:core": "node scripts/run-core-tests.mjs",
     "test:visual": "playwright test tests/v120-visual-baseline.spec.mjs --browser=chromium --reporter=line",
     "test:live-brewprofiles": "node tests/v123-live-brewprofiles.mjs && node tests/v126-live-matching-temperature.mjs"
