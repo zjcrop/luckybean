@@ -67,7 +67,6 @@ assert.ok(Array.isArray(matched.payload.matching.candidates) && matched.payload.
 assert.ok(matched.payload.matching.candidates.every(item => Array.isArray(item.brewEffectVector) && item.brewEffectVector.length === 8));
 assert.ok(matched.payload.matching.candidates.every((item, index, list) => index === 0 || list[index - 1].score >= item.score));
 
-// Legacy D08 labels remain accepted, but the service normalizes the response to 1.1.
 const legacyInput = input('recommended', 0);
 legacyInput.matching = {
   ...currentMatching,
@@ -86,4 +85,49 @@ const rejected = await post(invalid);
 assert.equal(rejected.response.status, 400, JSON.stringify(rejected.payload));
 assert.equal(rejected.payload.error, 'MATCH_SIGNATURE_INVALID');
 
-console.log(`v126 live verified: temperature tune changed stages/3D; current dimension-independent LMS1 and legacy D08 both work; selected ${matched.payload.matching.selectedProfileId} at score ${matched.payload.matching.score}.`);
+function physicalDripper(overrides = {}) {
+  return {
+    contract:'gear-physics/1.0', kind:'dripper', group:'cone', angleDeg:60,
+    outletClass:'large', outletIndex:1.08, drainageClass:'medium', drainageIndex:1,
+    bypassClass:'low', bypassFraction:0.035, contactAreaIndex:0.94,
+    materialKey:'asResin', materialClass:'plastic', massG:90, preheated:true,
+    confidence:0.86, ...overrides
+  };
+}
+const physicalPaper = {
+  contract:'gear-physics/1.0', kind:'filter-paper', shape:'cone', flowClass:'medium',
+  flowIndex:1, bypassTendency:'low', bypassFraction:0.025, confidence:0.8
+};
+function physicalInput(physical = physicalDripper(), paper = physicalPaper, dripperId = 'identity-a', dripperCode = 'cone') {
+  const next = input('three-pulse', 0);
+  Object.assign(next.brew, {
+    ratioMode:'manual', dripperId, dripperCode, dripperMaterial:physical.materialClass,
+    dripperPhysical:structuredClone(physical), filterPaperId:'paper-identity',
+    filterPaper:paper.flowClass === 'high' ? 'fast' : paper.flowClass === 'low' ? 'slow' : 'medium',
+    filterPaperPhysical:structuredClone(paper), gearPhysicsConfidence:Math.min(physical.confidence, paper.confidence)
+  });
+  return next;
+}
+async function physicalPost(body) {
+  const result = await post(body);
+  assert.equal(result.response.status, 200, JSON.stringify(result.payload));
+  assert.ok(Array.isArray(result.payload.trajectory?.path) && result.payload.trajectory.path.length > 10);
+  return result.payload;
+}
+
+const plasticGear = await physicalPost(physicalInput());
+const ceramicGear = await physicalPost(physicalInput(physicalDripper({ materialKey:'ceramic', materialClass:'ceramic', massG:280 })));
+assert.notDeepEqual(ceramicGear.trajectory.path, plasticGear.trajectory.path, 'plastic and ceramic must not have identical thermal trajectories');
+assert.notEqual(ceramicGear.trajectory.trajectoryModel?.material, plasticGear.trajectory.trajectoryModel?.material);
+
+const flatGear = await physicalPost(physicalInput(physicalDripper({ group:'flat', angleDeg:75, outletIndex:1.22, drainageClass:'high', drainageIndex:1.18, bypassFraction:0.07, contactAreaIndex:1.04 }), physicalPaper, 'flat-identity', 'flat'));
+assert.notDeepEqual(flatGear.trajectory.path, plasticGear.trajectory.path, 'geometry and hydraulics must change trajectory');
+
+const slowPaper = { ...physicalPaper, flowClass:'low', flowIndex:0.76, bypassFraction:0.015 };
+const paperGear = await physicalPost(physicalInput(physicalDripper(), slowPaper));
+assert.notDeepEqual(paperGear.trajectory.path, plasticGear.trajectory.path, 'paper resistance must change trajectory');
+
+const renamedGear = await physicalPost(physicalInput(physicalDripper(), physicalPaper, '完全不同的品牌与商品名-仅身份字段', 'cone'));
+assert.deepEqual(renamedGear.trajectory.path, plasticGear.trajectory.path, 'identity-only name/id must not change physics');
+
+console.log(`v126 live verified: tuning/matching plus physical gear sensitivity; identity-only rename is invariant; selected ${matched.payload.matching.selectedProfileId} at score ${matched.payload.matching.score}.`);

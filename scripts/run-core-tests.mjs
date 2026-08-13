@@ -8,7 +8,9 @@ const specs = [
   'tests/v127-user-regressions-ui.spec.mjs',
   'tests/v123e-freshness-timeline-ui.spec.mjs',
   'tests/v123e-interaction-repair-ui.spec.mjs',
-  'tests/v123e-gear-matching-ui.spec.mjs'
+  'tests/v123e-gear-matching-ui.spec.mjs',
+  'tests/v123e-gear-catalog-editor-ui.spec.mjs',
+  'tests/v123e-sensory-actions-ui.spec.mjs'
 ];
 
 function annotation(text) {
@@ -19,7 +21,12 @@ function annotation(text) {
     .slice(-7000);
 }
 
-const args = ['playwright', 'test', ...specs, '--browser=chromium', '--reporter=line'];
+const obsoleteGearEditorTitle = 'private gear uses three closed, aligned list editors';
+const args = [
+  'playwright', 'test', ...specs,
+  '--grep-invert', obsoleteGearEditorTitle,
+  '--browser=chromium', '--reporter=line'
+];
 const result = spawnSync('npx', args, { encoding: 'utf8', env: process.env, maxBuffer: 16 * 1024 * 1024, shell: process.platform === 'win32' });
 if (result.stdout) process.stdout.write(result.stdout);
 if (result.stderr) process.stderr.write(result.stderr);

@@ -41,16 +41,12 @@ assert.match(read('src/utils.js'), /SCHEMA_VERSION = 8/);
 assert.equal(manifest.version, '1.23E');
 assert.match(index, /application-version" content="1\.23E"/);
 assert.match(index, /accept="\.luckybean,application\/vnd\.luckybean\.archive\+json,application\/json"/);
-for (const canonical of ['app-layout.css','app-components.css','professional-sensory.css','flavor-guide-controller.js','gear-controller.js','bean-card-controller.js','onboarding-controller.js']) {
-  assert.ok(index.includes(canonical), `missing canonical entry ${canonical}`);
-}
+for (const canonical of ['app-layout.css','app-components.css','professional-sensory.css','flavor-guide-controller.js','gear-controller.js','bean-card-controller.js','onboarding-controller.js']) assert.ok(index.includes(canonical), `missing canonical entry ${canonical}`);
 for (const obsolete of ['interaction-repair-controller.js','experience-fixes-controller.js','gear-matching-controller.js','gear-regression-fix-controller.js','legacy-timer-guard.js']) {
   assert.ok(!index.includes(obsolete), `obsolete entry ${obsolete}`);
   assert.equal(fs.existsSync(`src/features/${obsolete}`), false, `${obsolete} should be deleted`);
 }
-for (const asset of ['manifest.webmanifest','styles.css','src/ui/app-layout.css','src/ui/app-components.css','src/ui/bean-card.css','src/ui/professional-sensory.css','src/core/startup-controller.js']) {
-  assert.ok(index.includes(`${asset}?v=${releaseRevision}`), `asset revision mismatch for ${asset}`);
-}
+for (const asset of ['manifest.webmanifest','styles.css','src/ui/app-layout.css','src/ui/app-components.css','src/ui/bean-card.css','src/ui/professional-sensory.css','src/core/startup-controller.js']) assert.ok(index.includes(`${asset}?v=${releaseRevision}`), `asset revision mismatch for ${asset}`);
 
 assert.match(app, /createPortableArchive/);
 assert.match(app, /inspectPortableArchive/);
@@ -108,8 +104,10 @@ assert.match(qr, /async restart\(\)/);
 assert.match(flavorGuide, /模型推荐结果/);
 assert.match(flavorGuide, /使用说明/);
 assert.match(enrichment, /flavorText: flavorNames\.join\(' '\)/);
-assert.match(gear, /滤杯角度/);
+assert.match(gear, /标准滤杯库/);
 assert.match(gear, /过滤速度/);
+assert.match(gear, /名称和品牌仅用于识别/);
+assert.match(gear, /resolvedPhysics/);
 assert.match(gear, /matchingGear\.drippers/);
 assert.match(gear, /matchingGear\.papers/);
 assert.doesNotMatch(gear, /MutationObserver/);
@@ -121,10 +119,15 @@ assert.match(brewAnalysis, /BREW_ANALYSIS_CONTRACT = 'brew-analysis\/2\.1'/);
 assert.match(brewAnalysis, /BREW_SPATIAL_CONTRACT = 'brew-spatial\/1\.3'/);
 assert.match(brewAnalysis, /BREW_FLAVOR_STATE_CONTRACT = 'brew-flavor-state\/1\.0'/);
 assert.match(brewAnalysis, /selectedBeanIdFromRuntime/);
-assert.match(brewAnalysis, /dripperSnapshot/);
+assert.match(brewAnalysis, /dripperPhysical/);
+assert.match(brewAnalysis, /filterPaperPhysical/);
+assert.match(brewAnalysis, /engineDripperCode/);
 assert.match(brewCore, /'brew-analysis\/2\.0', 'brew-analysis\/2\.1'/);
 assert.match(matchVector, /MATCH_CONTRACT = 'luckybean-match\/1\.1'/);
-assert.match(matchVector, /gear-correction\/1\.2/);
+assert.match(matchVector, /GEAR_PHYSICS_CONTRACT = 'gear-physics\/1\.0'/);
+assert.match(matchVector, /DRIPPER_CATALOG/);
+assert.match(matchVector, /FILTER_PAPER_CATALOG/);
+assert.match(matchVector, /gear-correction\/1\.3/);
 assert.doesNotMatch(matchVector, /LMS1-FC1-D\$\{/);
 assert.match(freshnessTimeline, /const STAGES = \['养豆中', '味正盛', '味将尽'\]/);
 assert.match(freshnessTimeline, /freshnessProfile\(bean\)\.progress/);
@@ -155,4 +158,4 @@ assert.ok(integrationWorkflow.includes(`revision=${releaseRevision}`), 'integrat
 assert.match(integrationWorkflow, /ui\/app-layout\.css/);
 assert.match(integrationWorkflow, /Obsolete repair\/guard assets leaked into APK/);
 
-console.log(`LuckyBean 1.23E ${releaseRevision} deployment, upgrade package, canonical UI, local QR, gear binding, guide, matching, freshness, BrewProfiles and archive contracts passed`);
+console.log(`LuckyBean 1.23E ${releaseRevision} deployment, upgrade package, catalog-resolved gear physics, canonical UI, local QR, guide, matching, freshness, BrewProfiles and archive contracts passed`);
