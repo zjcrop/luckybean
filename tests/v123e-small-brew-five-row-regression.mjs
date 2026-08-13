@@ -9,6 +9,11 @@ const flavorGuide = read('src/ui/flavor-guide-controller.js');
 const cooling = read('src/ui/brew-cooling-controller.js');
 const build = read('android/app/build.gradle');
 
+const versionCodeMatch = build.match(/versionCode\s+(\d+)/);
+assert.ok(versionCodeMatch, 'Android versionCode missing');
+assert.ok(Number(versionCodeMatch[1]) > 102314, `upgrade versionCode must exceed prior release 102314, got ${versionCodeMatch[1]}`);
+assert.match(build, /versionName '1\.23E'/);
+
 const renderStart = app.indexOf('function renderBrew()');
 const renderEnd = app.indexOf('function openCoolingDialog', renderStart);
 const render = app.slice(renderStart, renderEnd);
@@ -39,5 +44,7 @@ assert.match(flavorGuide, /模型推荐结果/);
 assert.match(cooling, /firstCoolingMode/);
 assert.match(cooling, /tailCoolingMode/);
 assert.match(css, /\.lb-brew-five-row/);
-assert.match(build, /versionCode 102314/);
-console.log('LuckyBean 1.23E canonical five-row small-brew contract passed');
+assert.match(css, /#brewDose\s*\{[^}]*font-weight:\s*800/s);
+assert.match(css, /#brewRatio\s*\{[^}]*font-weight:\s*800/s);
+assert.match(css, /#brewProfile\s*\{[^}]*font-weight:\s*800/s);
+console.log('LuckyBean 1.23E canonical five-row small-brew and upgrade Android contract passed');
