@@ -68,17 +68,22 @@ jobs:
           test -f "$apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102314' versionName='1.23E'"
           unzip -l "$apk" | grep -q 'assets/web-cache/public/vendor/jsqr/jsQR.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/features/gear-matching-controller.js'
+          unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/gear-controller.js'
+          unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/app-layout.css'
+          unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/professional-sensory.css'
+          unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/bean-card-controller.js'
+          unzip -l "$apk" | grep -q 'assets/web-cache/src/domain/beans/bean-lifecycle-service.js'
           unzip -p "$apk" assets/web-cache/src/qr.js | grep -Fq 'public/vendor/jsqr/jsQR.js'
           if unzip -p "$apk" assets/web-cache/src/qr.js | grep -Fq 'decodeEncryptedShareEnvelope'; then exit 1; fi
-          unzip -p "$apk" assets/web-cache/src/features/gear-matching-controller.js | grep -Fq '滤杯角度'
-          unzip -p "$apk" assets/web-cache/src/features/gear-matching-controller.js | grep -Fq '过滤速度'
+          unzip -p "$apk" assets/web-cache/src/ui/gear-controller.js | grep -Fq '滤杯角度'
+          unzip -p "$apk" assets/web-cache/src/ui/gear-controller.js | grep -Fq '过滤速度'
           unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq 'selectedBeanIdFromRuntime'
           unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq 'dripperSnapshot'
           unzip -p "$apk" assets/web-cache/src/domain/matching/flavor-vector.js | grep -Fq 'gear-correction/1.2'
           unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'brewProfileOverride'
           unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'data-brew-row="profile"'
           unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'value="plain"'
+          if unzip -l "$apk" | grep -Eq 'interaction-repair|experience-fixes|gear-regression-fix|legacy-timer-guard|gear-matching-controller'; then exit 1; fi
           if unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'id="brewSegments"'; then exit 1; fi
           if unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'id="brewDripperMaterial"'; then exit 1; fi
           if unzip -p "$apk" | grep -aEq 'sb_secret_|SUPABASE_SERVICE_ROLE_KEY'; then exit 1; fi
@@ -92,7 +97,7 @@ jobs:
           mkdir -p dist
           zip -qr dist/LuckyBean-1.23E-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts docs DEVELOPMENT_STATUS.md
           cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.23E-release.apk
-          printf 'source_sha=%s\nversion=1.23E\nversion_code=102314\nanalysis_contract=brew-analysis/2.1\nspatial_contract=brew-spatial/1.3\nmatching_contract=luckybean-match/1.1\nqr_runtime=local-jsqr-1.4.0\ngear_binding=dripper-angle-bypass-filter-speed\nbean_matching=direct-selected-bean-id\nandroid_gallery_uri=clipdata-first\nsmall_brew_layout=five-row\nprofile_default=model-recommended-transient-override\nwater_default=plain-no-added-recipe\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
+          printf 'source_sha=%s\nversion=1.23E\nversion_code=102314\nrevision=1.23E-main-sync.3\nanalysis_contract=brew-analysis/2.1\nspatial_contract=brew-spatial/1.3\nmatching_contract=luckybean-match/1.1\nqr_runtime=local-jsqr-1.4.0\ngear_binding=dripper-angle-bypass-filter-speed\nbean_matching=direct-selected-bean-id\nandroid_gallery_uri=clipdata-first\nsmall_brew_layout=five-row\nprofile_default=model-recommended-transient-override\nwater_default=plain-no-added-recipe\nui_architecture=canonical-no-repair-guards\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
           sha256sum dist/LuckyBean-1.23E-web.zip dist/LuckyBean-1.23E-release.apk > dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v7.0.1
         with:
