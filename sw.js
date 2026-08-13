@@ -1,7 +1,7 @@
-// LuckyBean 1.23E main-sync.4: canonical UI modules shared by Web/PWA and Android.
-const REVISION = '1.23E-main-sync.4';
+// LuckyBean 1.23E main-sync.5: canonical UI modules shared by Web/PWA and Android.
+const REVISION = '1.23E-main-sync.5';
 const CACHE_PREFIX = 'luckybean-main-v123e-';
-const CACHE_NAME = `${CACHE_PREFIX}main-sync-4`;
+const CACHE_NAME = `${CACHE_PREFIX}main-sync-5`;
 const LEGACY_CACHE_PREFIXES = [
   'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
   'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',
@@ -58,6 +58,7 @@ const CORE = [
   versioned('./src/renderers/brew-spatial-controller.js'),
   versioned('./src/renderers/brew-spatial-view.css'),
   versioned('./src/ui/viewport-controller.js'),
+  versioned('./src/ui/navigation-controller.js'),
   versioned('./src/ui/account-sync-panel.js'),
   versioned('./src/ui/appearance-controller.js'),
   versioned('./src/ui/voice-settings-controller.js'),
