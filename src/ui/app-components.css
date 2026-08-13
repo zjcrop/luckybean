@@ -33,6 +33,9 @@ html[data-theme="light"] .bean-freshness-dashed { border-top-color: #c9c6bd; }
 .brew-row-primary { align-items: end; }
 .brew-primary-field > span, .brew-profile-field > span { font-size: .78rem; letter-spacing: .04em; opacity: .72; }
 .brew-large-control, .brew-large-profile { min-height: 58px; font-size: clamp(1.32rem,5vw,1.9rem); font-weight: 720; line-height: 1.1; padding: .55rem .65rem; }
+#brewDose { font-size: clamp(1.65rem,6.2vw,2rem); font-weight: 800; }
+#brewRatio { font-size: clamp(1.18rem,4.8vw,1.42rem); font-weight: 800; }
+#brewProfile { font-size: clamp(1.42rem,5.6vw,1.78rem); font-weight: 800; }
 .brew-row-secondary { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; align-items: end; }
 .brew-row-secondary .field > span { font-size: .72rem; opacity: .7; }
 .brew-row-secondary .field { align-self: end; }
