@@ -39,7 +39,7 @@ jobs:
           cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
           cp -R src public contracts _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.23E","revision":"1.23E-main-sync.3","analysisContract":"brew-analysis/2.1","spatialContract":"brew-spatial/1.3","matchingContract":"luckybean-match/1.1","qrRuntime":"local-jsqr-1.4.0","uiArchitecture":"canonical-no-repair-guards"}\n' "$SOURCE_SHA" > _site/version.json
+          printf '{"commit":"%s","version":"1.23E","revision":"1.23E-main-sync.4","analysisContract":"brew-analysis/2.1","spatialContract":"brew-spatial/1.3","matchingContract":"luckybean-match/1.1","qrRuntime":"local-jsqr-1.4.0","uiArchitecture":"canonical-no-repair-guards"}\n' "$SOURCE_SHA" > _site/version.json
           zip -qr LuckyBean-1.23E-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts docs DEVELOPMENT_STATUS.md
       - uses: actions/upload-artifact@v7.0.1
         with:
@@ -73,7 +73,7 @@ jobs:
           cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
           cp -R src public contracts _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.23E","revision":"1.23E-main-sync.3","analysisContract":"brew-analysis/2.1","spatialContract":"brew-spatial/1.3","matchingContract":"luckybean-match/1.1","qrRuntime":"local-jsqr-1.4.0","uiArchitecture":"canonical-no-repair-guards"}\n' "$SOURCE_SHA" > _site/version.json
+          printf '{"commit":"%s","version":"1.23E","revision":"1.23E-main-sync.4","analysisContract":"brew-analysis/2.1","spatialContract":"brew-spatial/1.3","matchingContract":"luckybean-match/1.1","qrRuntime":"local-jsqr-1.4.0","uiArchitecture":"canonical-no-repair-guards"}\n' "$SOURCE_SHA" > _site/version.json
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
           path: _site
@@ -108,7 +108,7 @@ jobs:
               && grep -qi '<html' /tmp/luckybean-index.html \
               && grep -q "$SOURCE_SHA" /tmp/luckybean-version.json \
               && grep -q '"version":"1.23E"' /tmp/luckybean-version.json \
-              && grep -q '"revision":"1.23E-main-sync.3"' /tmp/luckybean-version.json \
+              && grep -q '"revision":"1.23E-main-sync.4"' /tmp/luckybean-version.json \
               && grep -q '"uiArchitecture":"canonical-no-repair-guards"' /tmp/luckybean-version.json \
               && grep -q 'buildBrewInput' /tmp/luckybean-app.js \
               && grep -q 'public/vendor/jsqr/jsQR.js' /tmp/luckybean-qr.js \
