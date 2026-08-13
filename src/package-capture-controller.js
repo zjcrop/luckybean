@@ -314,9 +314,5 @@ function interceptPhotoMode(event) {
 }
 
 document.addEventListener('click', interceptPhotoMode, true);
-new MutationObserver(() => {
-  const button = document.querySelector('[data-add-mode="photo"]');
-  if (button && button.textContent !== '拍袋录入') button.textContent = '拍袋录入';
-}).observe(document.body, { childList: true, subtree: true });
 
 window.LuckyBeanPackageCapture = { open: openPackageCapture, capabilities: getRecognitionCapabilities };
