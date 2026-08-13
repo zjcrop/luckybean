@@ -9,7 +9,11 @@ const utils = read('src/utils.js');
 const components = read('src/ui/app-components.css');
 const sw = read('sw.js');
 
-assert.match(index, /freshness-timeline-controller\.js\?v=1\.23E-main-sync\.3/);
+const revisionMatch = index.match(/release-revision" content="([^"]+)"/);
+assert.ok(revisionMatch, 'release revision missing from index');
+const releaseRevision = revisionMatch[1];
+assert.match(releaseRevision, /^1\.23E-main-sync\.\d+$/);
+assert.ok(index.includes(`freshness-timeline-controller.js?v=${releaseRevision}`), 'freshness controller asset revision must match current release');
 assert.match(controller, /import \{ clamp, freshnessProfile \} from '\.\.\/utils\.js'/);
 assert.match(controller, /const STAGES = \['养豆中', '味正盛', '味将尽'\]/);
 assert.match(controller, /if \(ratio < 1 \/ 3\) return STAGES\[0\]/);
@@ -26,5 +30,6 @@ assert.match(components, /\.bean-freshness-progress \{ display: block/);
 assert.match(utils, /export function freshnessProfile\(bean,\s*now = new Date\(\)\)/);
 assert.doesNotMatch(controller, /RL-L0|SL28|GESHA|0\.78/);
 assert.match(sw, /features\/freshness-timeline-controller\.js/);
+assert.ok(sw.includes(`REVISION = '${releaseRevision}'`), 'service worker revision must match current release');
 
 console.log('LuckyBean 1.23E canonical one-line freshness timeline and stage grouping checks passed');
