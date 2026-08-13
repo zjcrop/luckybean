@@ -194,10 +194,17 @@ test('system back closes overlays first and then follows actual main-page histor
   await expect(page.locator('.page[data-page="beans"]')).toHaveClass(/active/);
   await expect.poll(() => page.evaluate(() => globalThis.LuckyBeanNavigation.snapshot().depth)).toBe(2);
 
-  await page.locator('#manageBtn').click();
-  await expect(page.locator('[data-overlay="batch-bean-manager"]')).toBeVisible();
+  const card = page.locator('.bean-card[data-bean-id="ui-navigation-bean"]');
+  const box = await card.boundingBox();
+  expect(box).toBeTruthy();
+  await page.mouse.move(box.x + Math.min(24, box.width / 4), box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(650);
+  await expect(page.locator('[data-overlay="bean-quick-actions"]')).toBeVisible();
+  await page.mouse.up();
+
   expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.back())).toBe(true);
-  await expect(page.locator('[data-overlay="batch-bean-manager"]')).toHaveCount(0);
+  await expect(page.locator('[data-overlay="bean-quick-actions"]')).toHaveCount(0);
   await expect(page.locator('.page[data-page="beans"]')).toHaveClass(/active/);
 
   expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.back())).toBe(true);
