@@ -30,9 +30,10 @@ function showPrompt() {
   if ($('[data-lb-onboarding]') || cloudSession()?.user?.id) return;
   const stage = currentStage();
   if (['guide-completed','existing-user','dismissed'].includes(stage)) return;
-  const node = document.createElement('div');
+  const node = document.createElement('aside');
   node.className = 'lb-onboarding'; node.dataset.lbOnboarding = '1';
-  node.innerHTML = `<div role="dialog" aria-modal="true" aria-labelledby="lbOnboardTitle"><strong id="lbOnboardTitle">欢迎使用 Lucky Bean</strong><p>建议先建立服务器同步账户，用于多设备同步和数据保护。完成注册后会自动定位到“本物”的使用说明。</p><footer><button class="button primary" type="button" data-lb-onboard-account>前往账户</button><button class="button subtle" type="button" data-lb-onboard-later>稍后</button></footer></div>`;
+  node.setAttribute('aria-labelledby', 'lbOnboardTitle');
+  node.innerHTML = `<div><strong id="lbOnboardTitle">欢迎使用 Lucky Bean</strong><p>建议先建立服务器同步账户，用于多设备同步和数据保护。完成注册后会自动定位到“本物”的使用说明。</p><footer><button class="button primary" type="button" data-lb-onboard-account>前往账户</button><button class="button subtle" type="button" data-lb-onboard-later>稍后</button></footer></div>`;
   document.body.append(node);
 }
 function openSettingsSection(key) {
