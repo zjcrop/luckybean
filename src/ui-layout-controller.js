@@ -529,7 +529,11 @@ if (typeof document !== 'undefined') {
       applyFabPosition({ x: rect.left, y: rect.top }, node);
     }
   });
-  new MutationObserver(queueSync).observe(document.body, { childList: true, subtree: true });
+  document.addEventListener('luckybean:app-refreshed', queueSync);
+  for (const selector of ['#beanGroups', '#brewContent', '#overlayRoot']) {
+    const target = document.querySelector(selector);
+    if (target) new MutationObserver(queueSync).observe(target, { childList: true, subtree: true });
+  }
   queueSync();
 }
 

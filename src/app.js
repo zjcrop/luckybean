@@ -933,7 +933,7 @@ async function focusRecommendedBean(bean, { automatic = true, settle = true, ope
 function openAddMenu() {
   closePopups();
   const popup = document.createElement('div'); popup.className = 'popup-menu';
-  popup.innerHTML = `<button type="button" data-add-mode="photo">拍照识别</button><button type="button" data-add-mode="qr">二维码识别</button><button type="button" data-add-mode="text">文字识别</button>`;
+  popup.innerHTML = `<button type="button" data-add-mode="photo">拍袋录入</button><button type="button" data-add-mode="qr">二维码识别</button><button type="button" data-add-mode="text">文字识别</button>`;
   document.body.append(popup); positionPopup($('#fabAddBtn'), popup, { above: true });
 }
 
