@@ -15,6 +15,14 @@ const index = read('index.html');
 const sw = read('sw.js');
 const build = read('android/app/build.gradle');
 
+const revisionMatch = index.match(/release-revision" content="([^"]+)"/);
+assert.ok(revisionMatch, 'release revision missing');
+const releaseRevision = revisionMatch[1];
+assert.match(releaseRevision, /^1\.23E-main-sync\.\d+$/);
+const versionCodeMatch = build.match(/versionCode\s+(\d+)/);
+assert.ok(versionCodeMatch, 'Android versionCode missing');
+assert.ok(Number(versionCodeMatch[1]) > 102314, `upgrade versionCode must exceed prior release 102314, got ${versionCodeMatch[1]}`);
+
 assert.equal(MATCH_AXES.length, 8);
 assert.doesNotMatch(qr, /decodeEncryptedShareEnvelope/);
 assert.doesNotMatch(qr, /cdn\.jsdelivr\.net/);
@@ -34,9 +42,9 @@ assert.match(gearController, /matchingGear\.drippers/);
 assert.match(gearController, /matchingGear\.papers/);
 assert.doesNotMatch(gearController, /MutationObserver/);
 assert.doesNotMatch(gearController, /brewDripperAngle/);
-assert.match(index, /ui\/gear-controller\.js\?v=1\.23E-main-sync\.3/);
+assert.ok(index.includes(`ui/gear-controller.js?v=${releaseRevision}`), 'gear controller asset revision must match current release');
 assert.match(sw, /ui\/gear-controller\.js/);
-assert.match(build, /versionCode 102314/);
+assert.ok(sw.includes(`REVISION = '${releaseRevision}'`), 'service worker revision must match current release');
 
 const settings = {
   gear: {
@@ -61,4 +69,4 @@ assert.equal(envelope.contract, 'luckybean-match/1.1');
 assert.equal(envelope.match_vector.length, 8);
 assert.equal(envelope.target_vector.length, 8);
 assert.match(envelope.signature, /^LMS1-FC1-X[0-9A-F]{16}-Q\d+$/);
-console.log('LuckyBean 1.23E canonical gear binding, direct bean matching and QR runtime checks passed');
+console.log('LuckyBean 1.23E canonical gear binding, direct bean matching, QR runtime and upgrade release checks passed');
