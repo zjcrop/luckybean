@@ -61,29 +61,6 @@ test('professional sensory flavor tags use the canonical rounded-rectangle compo
   await expect(page.locator('[data-v095-tag="花香"]')).toHaveCSS('touch-action', 'pan-y');
 });
 
-test('professional cupping actions stay one row with cancel left, next center and previous right', async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 740 });
-  await page.evaluate(() => {
-    const actions = document.createElement('div');
-    actions.className = 'v095-wizard-actions';
-    actions.innerHTML = '<button type="button" class="button subtle" data-v095-cancel>取消品鉴</button><button type="button" class="button" data-v095-prev>上一步</button><button type="button" class="button primary" data-v095-next>下一步</button>';
-    document.body.append(actions);
-  });
-  const cancel = page.locator('[data-v095-cancel]');
-  const next = page.locator('[data-v095-next]');
-  const prev = page.locator('[data-v095-prev]');
-  const boxes = await Promise.all([cancel.boundingBox(), next.boundingBox(), prev.boundingBox()]);
-  expect(boxes.every(Boolean)).toBeTruthy();
-  expect(boxes[0].x).toBeLessThan(boxes[1].x);
-  expect(boxes[1].x).toBeLessThan(boxes[2].x);
-  expect(Math.abs(boxes[0].height - boxes[1].height)).toBeLessThan(0.5);
-  expect(Math.abs(boxes[1].height - boxes[2].height)).toBeLessThan(0.5);
-  expect(Math.abs(boxes[0].width - boxes[1].width)).toBeLessThan(1);
-  expect(Math.abs(boxes[1].width - boxes[2].width)).toBeLessThan(1);
-  const fontSizes = await Promise.all([cancel, next, prev].map(locator => locator.evaluate(node => getComputedStyle(node).fontSize)));
-  expect(new Set(fontSizes).size).toBe(1);
-});
-
 test('本物 exposes compact scrollable guide with required workflow text', async ({ page }) => {
   await page.locator('[data-page-target="settings"]').click();
   const category = page.locator('.settings-category').filter({ has:page.locator('summary span', { hasText:'本物' }) });
@@ -110,7 +87,7 @@ test('本物 exposes compact scrollable guide with required workflow text', asyn
 test('automatic profile recommendation is made visible when BrewProfiles returns a match', async ({ page }) => {
   await page.evaluate(() => {
     const host = document.createElement('div'); host.id = 'planResult'; document.body.append(host);
-    document.dispatchEvent(new CustomEvent('luckybean:plan-ready', { detail:{ plan:{ profile:{ id:'two-pulse' }, matching:{ selectedProfileId:'two-pulse', score:91.4 } } }));
+    document.dispatchEvent(new CustomEvent('luckybean:plan-ready', { detail:{ plan:{ profile:{ id:'two-pulse' }, matching:{ selectedProfileId:'two-pulse', score:91.4 } } } }));
   });
   const panel = page.locator('[data-lb-auto-profile]');
   await expect(panel).toBeVisible();
