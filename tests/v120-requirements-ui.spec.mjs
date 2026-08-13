@@ -53,7 +53,7 @@ test('one server login keeps automatic sync and exposes manual sync recovery act
   await expect(page.locator('#saveIdentityBtn,#settingsNickname,#settingsEmail,#settingsPhone,#settingsWechat,#settingsQq')).toHaveCount(0);
   await expect(page.locator('[data-cloud-sync-toggle],[data-cloud-sync-now],[data-cloud-pull],[data-cloud-register]')).toHaveCount(0);
   await expect(page.locator('[data-cloud-login]')).toHaveCount(1);
-  await expect(page.locator('[data-cloud-login]')).toHaveText('登录服务器同步');
+  await expect(page.locator('[data-cloud-login]')).toHaveText('登录 / 注册服务器同步');
 
   await page.evaluate(() => {
     const original = globalThis.LuckyBeanCloudSync.ensureAutomatic;
