@@ -1,0 +1,133 @@
+:root {
+  --viewport-height: 100dvh;
+  --surface: #080909;
+  --surface-raised: #111313;
+  --field: #050505;
+  --border: rgba(255,255,255,.12);
+  --overlay-bg: rgba(0,0,0,.72);
+}
+html[data-theme="light"] {
+  --surface: #ececea;
+  --surface-raised: #f8f8f5;
+  --field: #fff;
+  --border: #c9c6bd;
+  --overlay-bg: rgba(38,37,33,.30);
+}
+html, body, .app-shell, .main-content { max-width: 100%; }
+html, body { overflow-x: clip; }
+body, .app-shell, .login-screen { min-height: var(--viewport-height); }
+.page, .page-heading, .top-controls, .brew-heading-bean, #brewContent, #sensoryContent, #settingsContent { min-width: 0; }
+canvas, svg, img, video { max-width: 100%; }
+
+/* One scrolling surface per overlay. */
+.overlay {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.overlay > .dialog {
+  max-height: min(88dvh, 900px);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.overlay.full {
+  align-items: stretch;
+  padding: 0;
+}
+.overlay.full > .dialog {
+  width: min(880px, 100%);
+  height: var(--viewport-height);
+  min-height: 0;
+  max-height: var(--viewport-height);
+  margin: 0 auto;
+  overflow-y: auto;
+  padding: calc(22px + var(--safe-top)) 18px calc(40px + var(--safe-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+.overlay[data-overlay="bean-search"],
+.overlay[data-overlay="history"],
+.overlay[data-overlay="recommendation-board"] {
+  align-items: flex-end;
+  padding: 0;
+}
+.overlay .dialog.bottom-sheet,
+.overlay[data-overlay="bean-search"] > .dialog {
+  width: min(880px, 100%);
+  height: auto;
+  max-height: min(82dvh, 760px);
+  overflow-y: auto;
+  padding-bottom: calc(24px + var(--safe-bottom));
+}
+
+/* Professional cupping is a full page with the dialog as the only scroller. */
+.v095-professional-overlay {
+  display: block !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+.v095-professional-overlay > .v095-professional-dialog {
+  width: min(900px, 100%) !important;
+  height: var(--viewport-height) !important;
+  min-height: 0 !important;
+  max-height: var(--viewport-height) !important;
+  margin: 0 auto !important;
+  overflow-y: auto !important;
+  padding: max(16px, var(--safe-top)) 18px max(72px, calc(32px + var(--safe-bottom))) !important;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.v095-radar-stage svg { touch-action: pan-y; overflow: visible; }
+.v120-radar-node { touch-action: none; }
+
+/* Full-screen history/review pages use the same contract. */
+.history-dialog,
+.history-detail-dialog,
+.history-comparison-dialog,
+.codebook-review-dialog,
+.bag-capture-dialog {
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+/* Fixed navigation and action areas must not cover content. */
+.main-content { padding-bottom: calc(122px + var(--safe-bottom)); }
+.bottom-nav { min-height: calc(58px + var(--safe-bottom)); padding-bottom: var(--safe-bottom); }
+.fab-wrap { max-width: calc(100vw - 16px); }
+
+/* Touch targets: visual treatment remains lightweight, hit areas do not. */
+.button, .small-control, .icon-button, .nav-button, .close-button,
+.popup-menu button, .recommend-menu button, .history-actions button,
+.history-detail-actions button, .settings-category > summary {
+  min-height: 40px;
+}
+.button.primary, .button.danger, .lb-open-guide, .spatial-close-btn { min-height: 46px; }
+
+.management-stack { grid-template-columns: repeat(4, minmax(0,1fr)); }
+
+@media (max-width: 620px) {
+  .main-content { padding-left: 14px; padding-right: 14px; }
+  .overlay > .dialog { width: min(100%, 680px); }
+  .overlay.full > .dialog { padding-left: 14px; padding-right: 14px; }
+  .v095-professional-overlay > .v095-professional-dialog { padding-left: 14px !important; padding-right: 14px !important; }
+}
+
+@media (max-width: 380px) {
+  .management-stack { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .management-stack .button { min-height: 42px; white-space: normal; }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .overlay.full > .dialog,
+  .v095-professional-overlay > .v095-professional-dialog { padding-top: max(8px, var(--safe-top)); padding-bottom: max(18px, calc(12px + var(--safe-bottom))); }
+  .timer-stage-name { margin-top: 3dvh; }
+  .timer-stage-grid { margin-top: 3dvh; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
