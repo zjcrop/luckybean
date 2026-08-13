@@ -46,8 +46,8 @@ for (const deleted of [
 assert.match(layout, /--viewport-height:\s*100dvh/);
 assert.match(layout, /\.overlay\s*\{[\s\S]*overflow:\s*hidden/);
 assert.match(layout, /\.overlay\.full\s*>\s*\.dialog[\s\S]*overflow-y:\s*auto/);
-assert.match(layout, /\.v095-radar-stage svg \{ touch-action: pan-y/);
-assert.match(layout, /\.v120-radar-node \{ touch-action: none/);
+assert.match(layout, /\.v095-radar-stage svg,[\s\S]*\.v098-radar-return svg\s*\{\s*touch-action:\s*pan-y/);
+assert.match(layout, /\.v120-radar-node,[\s\S]*\.v098-radar-handle\s*\{\s*touch-action:\s*none/);
 assert.match(layout, /prefers-reduced-motion/);
 assert.doesNotMatch(historyCss, /100vh/);
 assert.doesNotMatch(codebookCss, /100vh/);
