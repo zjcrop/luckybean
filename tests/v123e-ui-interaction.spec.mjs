@@ -38,6 +38,33 @@ async function seedBean(page, id = 'ui-stability-bean') {
   await expect(page.locator(`.bean-card[data-bean-id="${id}"]`)).toBeVisible({ timeout:10000 });
 }
 
+async function assertMainPagesFit(page, width) {
+  for (const target of ['beans','brew','sensory','settings']) {
+    await page.locator(`[data-page-target="${target}"]`).click();
+    await expect(page.locator(`.page[data-page="${target}"]`)).toHaveClass(/active/);
+    const geometry = await page.evaluate(() => {
+      const nav = document.querySelector('#bottomNav').getBoundingClientRect();
+      const main = document.querySelector('#mainContent').getBoundingClientRect();
+      return {
+        documentOverflow:document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        bodyOverflow:document.body.scrollWidth - document.documentElement.clientWidth,
+        navLeft:nav.left,
+        navRight:nav.right,
+        mainLeft:main.left,
+        mainRight:main.right,
+        viewport:document.documentElement.clientWidth
+      };
+    });
+    expect(geometry.viewport).toBe(width);
+    expect(geometry.documentOverflow).toBeLessThanOrEqual(1);
+    expect(geometry.bodyOverflow).toBeLessThanOrEqual(1);
+    expect(geometry.navLeft).toBeGreaterThanOrEqual(-1);
+    expect(geometry.navRight).toBeLessThanOrEqual(width + 1);
+    expect(geometry.mainLeft).toBeGreaterThanOrEqual(-1);
+    expect(geometry.mainRight).toBeLessThanOrEqual(width + 1);
+  }
+}
+
 test('mobile theme persists and canonical viewport has no horizontal overflow', async ({ page }) => {
   await page.setViewportSize({ width:360, height:800 });
   await openApp(page, 'theme');
@@ -57,6 +84,17 @@ test('mobile theme persists and canonical viewport has no horizontal overflow', 
   await page.locator('#splashScreen').click();
   await expect(page.locator('#appShell')).toBeVisible({ timeout:15000 });
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+});
+
+test('extreme 320px and 430px mobile widths keep all four main pages inside viewport', async ({ page }) => {
+  await page.setViewportSize({ width:320, height:720 });
+  await openApp(page, 'width-contract');
+  await assertMainPagesFit(page, 320);
+  await page.setViewportSize({ width:430, height:900 });
+  await page.locator('[data-page-target="beans"]').click();
+  await page.locator('#themeToggleBtn').click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await assertMainPagesFit(page, 430);
 });
 
 test('500ms bean long press opens quick actions and delete uses seven-day recycle bin', async ({ page }) => {
