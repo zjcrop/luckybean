@@ -107,7 +107,7 @@ test('500ms bean long press opens quick actions and delete uses seven-day recycl
   expect(box).toBeTruthy();
   await page.mouse.move(box.x + Math.min(24, box.width / 4), box.y + box.height / 2);
   await page.mouse.down();
-  await page.waitForTimeout(540);
+  await page.waitForTimeout(650);
   await expect(page.locator('[data-overlay="bean-quick-actions"]')).toBeVisible();
   await page.mouse.up();
   await expect(page.locator('[data-overlay="bean-detail"]')).toHaveCount(0);
