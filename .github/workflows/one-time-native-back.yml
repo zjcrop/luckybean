@@ -23,61 +23,60 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
           path = Path('android/app/src/main/java/com/luckybean/app/MainActivity.java')
           text = path.read_text(encoding='utf-8')
-          create_anchor = '''        configureWebView();
-          if (savedInstanceState == null) {'''
-          create_replacement = '''        configureWebView();
-          registerSystemBackCallback();
-          if (savedInstanceState == null) {'''
-          if create_anchor not in text:
-              raise SystemExit('onCreate navigation anchor not found')
-          text = text.replace(create_anchor, create_replacement, 1)
-          old = '''    @Override
-          public void onBackPressed() {
-              if (webView.canGoBack()) webView.goBack();
-              else super.onBackPressed();
-          }
-          '''
-          new = '''    private void registerSystemBackCallback() {
-              if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                  Api33Back.register(this);
-              }
-          }
-
-          private void handleSystemBack() {
-              if (webView == null) {
-                  finish();
-                  return;
-              }
-              String script = "(function(){try{return Boolean(globalThis.LuckyBeanNavigation&&globalThis.LuckyBeanNavigation.back&&globalThis.LuckyBeanNavigation.back());}catch(error){return false;}})()";
-              webView.evaluateJavascript(script, result -> {
-                  if ("true".equals(result)) return;
-                  if (webView.canGoBack()) webView.goBack();
-                  else finish();
-              });
-          }
-
-          @android.annotation.TargetApi(Build.VERSION_CODES.TIRAMISU)
-          private static final class Api33Back {
-              private Api33Back() {}
-
-              static void register(MainActivity activity) {
-                  activity.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
-                      android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,
-                      activity::handleSystemBack
-                  );
-              }
-          }
-
-          @Override
-          public void onBackPressed() {
-              handleSystemBack();
-          }
-          '''
-          if old not in text:
-              raise SystemExit('legacy onBackPressed block not found')
-          text = text.replace(old, new, 1)
+          text, create_count = re.subn(
+              r'(        configureWebView\(\);\n)(        if \(savedInstanceState == null\) \{)',
+              r'\1        registerSystemBackCallback();\n\2',
+              text,
+              count=1
+          )
+          if create_count != 1:
+              raise SystemExit(f'onCreate navigation anchor count={create_count}')
+          pattern = re.compile(
+              r'    @Override\n'
+              r'    public void onBackPressed\(\) \{\n'
+              r'        if \(webView\.canGoBack\(\)\) webView\.goBack\(\);\n'
+              r'        else super\.onBackPressed\(\);\n'
+              r'    \}\n'
+          )
+          replacement = (
+              '    private void registerSystemBackCallback() {\n'
+              '        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {\n'
+              '            Api33Back.register(this);\n'
+              '        }\n'
+              '    }\n\n'
+              '    private void handleSystemBack() {\n'
+              '        if (webView == null) {\n'
+              '            finish();\n'
+              '            return;\n'
+              '        }\n'
+              '        String script = "(function(){try{return Boolean(globalThis.LuckyBeanNavigation&&globalThis.LuckyBeanNavigation.back&&globalThis.LuckyBeanNavigation.back());}catch(error){return false;}})()";\n'
+              '        webView.evaluateJavascript(script, result -> {\n'
+              '            if ("true".equals(result)) return;\n'
+              '            if (webView.canGoBack()) webView.goBack();\n'
+              '            else finish();\n'
+              '        });\n'
+              '    }\n\n'
+              '    @android.annotation.TargetApi(Build.VERSION_CODES.TIRAMISU)\n'
+              '    private static final class Api33Back {\n'
+              '        private Api33Back() {}\n\n'
+              '        static void register(MainActivity activity) {\n'
+              '            activity.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(\n'
+              '                android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,\n'
+              '                activity::handleSystemBack\n'
+              '            );\n'
+              '        }\n'
+              '    }\n\n'
+              '    @Override\n'
+              '    public void onBackPressed() {\n'
+              '        handleSystemBack();\n'
+              '    }\n'
+          )
+          text, back_count = pattern.subn(replacement, text, count=1)
+          if back_count != 1:
+              raise SystemExit(f'legacy onBackPressed block count={back_count}')
           path.write_text(text, encoding='utf-8')
           PY
           rm .github/workflows/one-time-native-back.yml
