@@ -20,7 +20,8 @@ const tests = [
   'tests/v123e-interaction-repair-static.mjs',
   'tests/v123e-gear-matching-regression.mjs',
   'tests/v123e-android-gallery-uri-regression.mjs',
-  'tests/v123e-small-brew-five-row-regression.mjs'
+  'tests/v123e-small-brew-five-row-regression.mjs',
+  'tests/v123e-ui-stability-static.mjs'
 ];
 
 function annotation(text) {
