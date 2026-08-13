@@ -1,0 +1,6 @@
+.bean-quick-actions-overlay { align-items: flex-end; padding: 0; }
+.bean-quick-actions { width: min(680px,100%); border-radius: 18px 18px 0 0; background: var(--surface-raised); color: var(--text); padding: 18px 18px calc(18px + var(--safe-bottom)); }
+.bean-quick-action-list { display: grid; grid-template-columns: 1fr; gap: 6px; }
+.bean-quick-action-list .button { width: 100%; min-height: 48px; border-bottom: 1px dashed var(--border); }
+.bean-quick-action-list .button:last-child { border-bottom: 0; }
+.bean-card.long-press-pending { transform: scale(.995); opacity: .92; }
