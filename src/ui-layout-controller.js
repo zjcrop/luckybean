@@ -522,6 +522,10 @@ function queueSync() {
 if (typeof document !== 'undefined') {
   document.addEventListener('click', interceptRecognitionParse, true);
   document.addEventListener('click', blankGroupCollapse, true);
+  document.addEventListener('click', event => {
+    if (!event.target.closest?.('[data-page-target="settings"]')) return;
+    requestAnimationFrame(() => document.dispatchEvent(new CustomEvent('luckybean:settings-rendered')));
+  });
   window.addEventListener('resize', () => {
     const node = $('#fabWrap');
     if (node?.dataset.v097Floating === '1') {
