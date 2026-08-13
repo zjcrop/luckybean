@@ -52,7 +52,7 @@ async function mode() {
   if (!currentMode) currentMode = await getSetting(MODE_KEY, 'native');
   return currentMode;
 }
-function placeholderCard(bean) { return `<article class="bean-card compact" data-bean-id="${esc(bean.id)}" tabindex="0"></article>`; }
+function placeholderCard(bean) { return `<article class="bean-card compact lb-one-line-bean" data-bean-id="${esc(bean.id)}" tabindex="0"></article>`; }
 
 async function renderFreshnessGroups() {
   if (rendering || await mode() !== MODE_RATIO) return;
