@@ -29,7 +29,7 @@ assert.match(app, /data-settings-key="account"/);
 assert.match(account, /replaceChildren\(section\)/);
 assert.match(account, /removeLegacyAccountUi/);
 assert.match(account, /dataset\.singleSyncAccount/);
-assert.match(account, /登录服务器同步/);
+assert.match(account, /登录 \/ 注册服务器同步/);
 assert.match(account, /自动同步始终启用/);
 assert.doesNotMatch(account, /type=\"checkbox\"|data-cloud-register|\.setEnabled\?\./);
 assert.match(account, /\.syncNow\?\./);
@@ -40,18 +40,30 @@ assert.match(sync, /function ensureAutomatic/);
 assert.doesNotMatch(sync, /ENABLE_KEY|setEnabled|reason: 'disabled'|emit\('disabled'/);
 assert.doesNotMatch(startup, /ensureLocalIdentity|LB-LOCAL-|getSetting|setSetting/);
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v123e-'/);
-assert.match(sw, /LEGACY_CACHE_PREFIXES = \['luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-', 'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-'/);
-assert.match(sw, /1\.23E/);
-assert.match(startup, /serviceWorker\.register\('\.\/sw\.js\?v=1\.23E-main-sync\.2', \{ updateViaCache: 'none' \}\)/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-3`/);
+assert.match(sw, /LEGACY_CACHE_PREFIXES = \[/);
+for (const prefix of [
+  'luckybean-main-v123d-',
+  'luckybean-main-v123-',
+  'luckybean-v120-test-',
+  'luckybean-v121-account-test-',
+  'luckybean-v122-cloud-safety-test-'
+]) assert.ok(sw.includes(`'${prefix}'`), `missing legacy cache prefix ${prefix}`);
+assert.match(sw, /1\.23E-main-sync\.3/);
+assert.match(startup, /RELEASE_REVISION/);
+assert.match(startup, /serviceWorker\.register\(`\.\/sw\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`/);
+assert.match(startup, /await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`\)/);
 assert.match(spatial, /#brewSpatialMount/);
 assert.match(sensory, /data-v120-radar-node/);
 assert.match(sensory, /pointermove/);
 assert.match(sensory, /data-v120-selected-tag/);
+assert.match(sensory, /data-v120-drag-handle/);
 assert.match(sensory, /luckybean:professional-sensory-complete/);
 assert.doesNotMatch(analysis, /专业冲煮分析需要登录云端账号/);
 assert.doesNotMatch(layoutController, /PROFILE_TO_SEGMENT|SEGMENT_TO_PROFILE|synchronizeBrewControls|enforceBrewSelection|v097ExplicitProfile/);
 assert.match(index, /voice-settings-controller\.js/);
 assert.match(voice, /LuckyBeanVoiceSettings/);
+assert.doesNotMatch(voice, /MutationObserver/);
 assert.match(sw, /voice-settings-controller\.js/);
 
 const baseInput = {
