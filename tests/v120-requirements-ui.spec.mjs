@@ -97,6 +97,7 @@ test('one server login keeps automatic sync and exposes manual sync recovery act
     oldPanel.dataset.v099fAccountSync = '1';
     oldPanel.textContent = '旧服务器登录';
     root.append(oldPanel);
+    document.dispatchEvent(new CustomEvent('luckybean:settings-rendered'));
   });
 
   await expect(page.locator('#settingsContent .settings-category').filter({ hasText: '个人信息与云端储存' })).toHaveCount(0);
