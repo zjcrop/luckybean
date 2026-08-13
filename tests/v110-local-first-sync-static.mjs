@@ -111,7 +111,8 @@ assert.doesNotMatch(runtimeFeatures, /v109-history-management\.js|v099-trajector
 assert.doesNotMatch(runtimeFeatures, /v095-ui\.js|theme-bridge\.js/);
 
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v123e-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-3`/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-\d+`/);
+assert.match(sw, /REVISION = '1\.23E-main-sync\.\d+'/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES = \[/);
 assert.match(sw, /'luckybean-main-v123d-'/);
 assert.match(sw, /key\.startsWith\(CACHE_PREFIX\) && key !== CACHE_NAME/);
@@ -140,4 +141,4 @@ for (const path of [
   'src/features/gear-regression-fix-controller.js','src/features/legacy-timer-guard.js','src/features/experience-fixes-controller.js','src/features/interaction-repair-controller.js'
 ]) assert.equal(exists(path), false, `${path} should have been removed`);
 
-console.log('LuckyBean 1.23E local-first, sync3 cache isolation and current BrewProfiles contract checks passed');
+console.log('LuckyBean 1.23E local-first cache isolation and current BrewProfiles contract checks passed');
