@@ -1,0 +1,88 @@
+name: LuckyBean one-time native back integration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-time-native-back.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ github.actor == 'zjcrop' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Integrate native back dispatcher into canonical MainActivity
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('android/app/src/main/java/com/luckybean/app/MainActivity.java')
+          text = path.read_text(encoding='utf-8')
+          create_anchor = '''        configureWebView();
+          if (savedInstanceState == null) {'''
+          create_replacement = '''        configureWebView();
+          registerSystemBackCallback();
+          if (savedInstanceState == null) {'''
+          if create_anchor not in text:
+              raise SystemExit('onCreate navigation anchor not found')
+          text = text.replace(create_anchor, create_replacement, 1)
+          old = '''    @Override
+          public void onBackPressed() {
+              if (webView.canGoBack()) webView.goBack();
+              else super.onBackPressed();
+          }
+          '''
+          new = '''    private void registerSystemBackCallback() {
+              if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                  Api33Back.register(this);
+              }
+          }
+
+          private void handleSystemBack() {
+              if (webView == null) {
+                  finish();
+                  return;
+              }
+              String script = "(function(){try{return Boolean(globalThis.LuckyBeanNavigation&&globalThis.LuckyBeanNavigation.back&&globalThis.LuckyBeanNavigation.back());}catch(error){return false;}})()";
+              webView.evaluateJavascript(script, result -> {
+                  if ("true".equals(result)) return;
+                  if (webView.canGoBack()) webView.goBack();
+                  else finish();
+              });
+          }
+
+          @android.annotation.TargetApi(Build.VERSION_CODES.TIRAMISU)
+          private static final class Api33Back {
+              private Api33Back() {}
+
+              static void register(MainActivity activity) {
+                  activity.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                      android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                      activity::handleSystemBack
+                  );
+              }
+          }
+
+          @Override
+          public void onBackPressed() {
+              handleSystemBack();
+          }
+          '''
+          if old not in text:
+              raise SystemExit('legacy onBackPressed block not found')
+          text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+          rm .github/workflows/one-time-native-back.yml
+          git config user.name 'zjcrop'
+          git config user.email '127176814+zjcrop@users.noreply.github.com'
+          git add android/app/src/main/java/com/luckybean/app/MainActivity.java .github/workflows/one-time-native-back.yml
+          git commit -m 'Integrate Android gesture back with app navigation stack'
+          git push origin HEAD:main
