@@ -63,18 +63,19 @@ jobs:
         run: |
           set -euo pipefail
           apk=android/app/build/outputs/apk/release/app-release.apk
-          grep -q "versionCode 102316" android/app/build.gradle
+          grep -q "versionCode 102317" android/app/build.gradle
           grep -q "versionName '1.23E'" android/app/build.gradle
           grep -q 'LuckyBeanNavigation' android/app/src/main/java/com/luckybean/app/MainActivity.java
           grep -q 'getOnBackInvokedDispatcher' android/app/src/main/java/com/luckybean/app/MainActivity.java
           grep -q 'handleSystemBack' android/app/src/main/java/com/luckybean/app/MainActivity.java
           grep -q 'android:enableOnBackInvokedCallback="true"' android/app/src/main/AndroidManifest.xml
           test -f "$apk"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102316' versionName='1.23E'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102317' versionName='1.23E'"
           unzip -l "$apk" | grep -q 'assets/web-cache/public/vendor/jsqr/jsQR.js'
           unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/gear-controller.js'
           unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/app-layout.css'
           unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/professional-sensory.css'
+          unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/sensory-wizard-actions.css'
           unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/bean-card-controller.js'
           unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/navigation-controller.js'
           unzip -l "$apk" | grep -q 'assets/web-cache/src/domain/beans/bean-lifecycle-service.js'
@@ -83,11 +84,15 @@ jobs:
           unzip -p "$apk" assets/web-cache/src/ui/navigation-controller.js | grep -Fq 'LuckyBeanNavigation'
           unzip -p "$apk" assets/web-cache/src/ui/navigation-controller.js | grep -Fq 'history.back()'
           unzip -p "$apk" assets/web-cache/src/ui/app-components.css | grep -Fq 'gap: 1em'
+          unzip -p "$apk" assets/web-cache/src/ui/sensory-wizard-actions.css | grep -Fq 'data-v095-next'
+          unzip -p "$apk" assets/web-cache/src/ui/sensory-wizard-actions.css | grep -Fq 'grid-column: 2'
           unzip -p "$apk" assets/web-cache/src/ui/gear-controller.js | grep -Fq '滤杯角度'
           unzip -p "$apk" assets/web-cache/src/ui/gear-controller.js | grep -Fq '过滤速度'
+          unzip -p "$apk" assets/web-cache/src/ui/gear-controller.js | grep -Fq '名称和品牌仅用于识别'
           unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq 'selectedBeanIdFromRuntime'
-          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq 'dripperSnapshot'
-          unzip -p "$apk" assets/web-cache/src/domain/matching/flavor-vector.js | grep -Fq 'gear-correction/1.2'
+          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq 'dripperPhysical'
+          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq 'filterPaperPhysical'
+          unzip -p "$apk" assets/web-cache/src/domain/matching/flavor-vector.js | grep -Fq 'gear-physics/1.0'
           unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'brewProfileOverride'
           unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'data-brew-row="profile"'
           unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'value="plain"'
@@ -105,7 +110,7 @@ jobs:
           mkdir -p dist
           zip -qr dist/LuckyBean-1.23E-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts docs DEVELOPMENT_STATUS.md
           cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.23E-release.apk
-          printf 'source_sha=%s\nversion=1.23E\nversion_code=102316\nrevision=1.23E-main-sync.5\nanalysis_contract=brew-analysis/2.1\nspatial_contract=brew-spatial/1.3\nmatching_contract=luckybean-match/1.1\nqr_runtime=local-jsqr-1.4.0\ngear_binding=dripper-angle-bypass-filter-speed\nbean_matching=direct-selected-bean-id\nandroid_gallery_uri=clipdata-first\nsmall_brew_layout=five-row\nprofile_default=model-recommended-transient-override\nwater_default=plain-no-added-recipe\nnavigation_back=internal-stack-overlay-first\nandroid_back=legacy-and-predictive\nbean_metadata_gap=one-em\nui_architecture=canonical-no-repair-guards\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
+          printf 'source_sha=%s\nversion=1.23E\nversion_code=102317\nrevision=1.23E-main-sync.6\nanalysis_contract=brew-analysis/2.1\nspatial_contract=brew-spatial/1.3\nmatching_contract=luckybean-match/1.1\ngear_physics_contract=gear-physics/1.0\nqr_runtime=local-jsqr-1.4.0\ngear_binding=resolved-physical-snapshot\nbean_matching=direct-selected-bean-id\nandroid_gallery_uri=clipdata-first\nsmall_brew_layout=five-row\nprofile_default=model-recommended-transient-override\nwater_default=plain-no-added-recipe\nnavigation_back=internal-stack-overlay-first\nandroid_back=legacy-and-predictive\nbean_metadata_gap=one-em\nsensory_actions=cancel-next-prev-equal-row\nui_architecture=canonical-no-repair-guards\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
           sha256sum dist/LuckyBean-1.23E-web.zip dist/LuckyBean-1.23E-release.apk > dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v7.0.1
         with:
