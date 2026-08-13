@@ -242,7 +242,10 @@ test('settings splash previews keep their red and white backgrounds', async ({ p
   expect(await red.locator('img').evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
   expect(await white.locator('img').evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
   await white.click();
-  await reloadAfterPendingNavigation(page);
+  const persistedSplash = await page.evaluate(() => JSON.parse(localStorage.getItem('luckybean.ui.v095') || '{}').splash);
+  expect(persistedSplash).toBe('white');
+  await page.goto(`${BASE_URL}/?requirements-splash-preview-persisted=1`, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => document.documentElement.dataset.appearanceController === 'ready');
   await expect(page.locator('#splashScreen')).toHaveAttribute('data-splash-variant', 'white');
   await expect(page.locator('#splashScreen')).toHaveCSS('background-color', 'rgb(243, 239, 229)');
 });
