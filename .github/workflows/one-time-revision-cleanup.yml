@@ -1,0 +1,33 @@
+name: One-time LuckyBean revision cleanup
+
+on:
+  push:
+    branches: [ui-stability-1.23e-sync3]
+    paths:
+      - '.github/workflows/one-time-revision-cleanup.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ui-stability-1.23e-sync3
+          fetch-depth: 0
+      - name: Replace stale revision in canonical source and remove this one-time workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=$(grep -o '1\.23D-main-sync\.4' src/app.js | wc -l | tr -d ' ')
+          test "$count" = "1"
+          sed -i 's/1\.23D-main-sync\.4/1.23E-main-sync.3/g' src/app.js
+          ! grep -q '1\.23D-main-sync\.4' src/app.js
+          git rm .github/workflows/one-time-revision-cleanup.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/app.js
+          git commit -m 'remove final stale app release cache key'
+          git push origin HEAD:ui-stability-1.23e-sync3
