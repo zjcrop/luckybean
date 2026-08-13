@@ -1,43 +1,46 @@
+const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.23E-main-sync.3';
+const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEASE_REVISION)}` });
+
 const RUNTIME_FEATURES = Object.freeze([
-  { id: 'data-migrations', path: '../data-migrations.js?v=1.23D-main-sync.4' },
-  { id: 'recognition-web-ocr', path: '../recognition-web-ocr.js?v=1.23D-main-sync.4' },
-  { id: 'recognition-paddle-ocr', path: '../recognition-paddle-ocr.js?v=1.23D-main-sync.4' },
-  { id: 'recognition-quality', path: '../recognition-quality-controller.js?v=1.23D-main-sync.4' },
-  { id: 'package-capture', path: '../package-capture-controller.js?v=1.23D-main-sync.4' },
-  { id: 'direct-camera', path: '../direct-camera-controller.js?v=1.23D-main-sync.4' },
-  { id: 'qr-ui', path: '../qr-ui-controller.js?v=1.23D-main-sync.4' },
-  { id: 'integrity-ui', path: '../integrity-ui-controller.js?v=1.23D-main-sync.4' },
-  { id: 'ui-layout', path: '../ui-layout-controller.js?v=1.23D-main-sync.4' },
-  { id: 'selection', path: '../selection-controller.js?v=1.23D-main-sync.4' },
-  { id: 'feature-controller', path: '../feature-controller.js?v=1.23D-main-sync.4' },
-  { id: 'runtime-controller', path: '../runtime-controller.js?v=1.23D-main-sync.4' },
-  { id: 'bean-groups', path: '../bean-groups-controller.js?v=1.23D-main-sync.4' },
-  { id: 'group-interaction', path: '../group-interaction-controller.js?v=1.23D-main-sync.4' },
-  { id: 'ui-upgrade', path: '../ui-upgrade-controller.js?v=1.23D-main-sync.4' },
-  { id: 'origin-map', path: '../origin-map-controller.js?v=1.23D-main-sync.4' }
+  feature('data-migrations', '../data-migrations.js'),
+  feature('recognition-web-ocr', '../recognition-web-ocr.js'),
+  feature('recognition-paddle-ocr', '../recognition-paddle-ocr.js'),
+  feature('recognition-quality', '../recognition-quality-controller.js'),
+  feature('package-capture', '../package-capture-controller.js'),
+  feature('direct-camera', '../direct-camera-controller.js'),
+  feature('qr-ui', '../qr-ui-controller.js'),
+  feature('integrity-ui', '../integrity-ui-controller.js'),
+  feature('ui-layout', '../ui-layout-controller.js'),
+  feature('selection', '../selection-controller.js'),
+  feature('feature-controller', '../feature-controller.js'),
+  feature('runtime-controller', '../runtime-controller.js'),
+  feature('bean-groups', '../bean-groups-controller.js'),
+  feature('group-interaction', '../group-interaction-controller.js'),
+  feature('ui-upgrade', '../ui-upgrade-controller.js'),
+  feature('origin-map', '../origin-map-controller.js')
 ]);
 
 const failures = [];
 const loaded = [];
-for (const feature of RUNTIME_FEATURES) {
+for (const runtimeFeature of RUNTIME_FEATURES) {
   try {
-    await import(feature.path);
-    loaded.push(feature.id);
+    await import(runtimeFeature.path);
+    loaded.push(runtimeFeature.id);
   } catch (error) {
-    const failure = { id: feature.id, path: feature.path, message: error?.message || String(error) };
+    const failure = { id:runtimeFeature.id, path:runtimeFeature.path, message:error?.message || String(error) };
     failures.push(failure);
     console.error('正式运行功能加载失败', failure, error);
-    document.dispatchEvent(new CustomEvent('luckybean:runtime-feature-error', { detail: failure }));
+    document.dispatchEvent(new CustomEvent('luckybean:runtime-feature-error', { detail:failure }));
   }
 }
 
 globalThis.LuckyBeanRuntimeFeatures = {
-  revision: '1.23D-main-sync.4',
-  declared: RUNTIME_FEATURES.map(feature => feature.id),
+  revision: RELEASE_REVISION,
+  declared:RUNTIME_FEATURES.map(runtimeFeature => runtimeFeature.id),
   loaded,
   failures
 };
 
 document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', {
-  detail: { declared: RUNTIME_FEATURES.length, loaded: loaded.length, failures }
+  detail:{ revision:RELEASE_REVISION, declared:RUNTIME_FEATURES.length, loaded:loaded.length, failures }
 }));
