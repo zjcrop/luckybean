@@ -71,9 +71,9 @@ html[data-theme="light"] .bean-freshness-dashed { border-top-color: #c9c6bd; }
 .lb-profile-effect > small { display: block; margin-top: 5px; font-size: 10px; opacity: .64; }
 
 /* Appearance previews */
-.v095-splash-choice [data-splash-variant="red"] { background: #993333 !important; }
-.v095-splash-choice [data-splash-variant="white"] { background: #f3efe5 !important; }
-.v095-splash-choice [data-splash-variant] img { background: transparent !important; }
+#appearanceSettings .v095-splash-choice button[data-appearance-splash="red"] { background: #993333 !important; }
+#appearanceSettings .v095-splash-choice button[data-appearance-splash="white"] { background: #f3efe5 !important; }
+#appearanceSettings .v095-splash-choice button[data-appearance-splash] img { background: transparent !important; }
 
 /* User guide */
 .lb-open-guide { width: 100%; margin-top: 14px; border: 1px solid #c9a866; border-radius: 8px; background: #b9975a; color: #090807; font-size: 17px; font-weight: 700; }
