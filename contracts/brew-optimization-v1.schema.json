@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zjcrop.github.io/luckybean/contracts/brew-optimization-v1.schema.json",
+  "title": "LuckyBean post-tasting brew optimization",
+  "type": "object",
+  "required": ["contract", "sourceSensoryId", "sourceBrewId", "triggered", "issues", "totalScoreUsedAsTrigger"],
+  "properties": {
+    "contract": { "const": "brew-optimization-assessment/1.0" },
+    "sourceSensoryId": { "type": "string" },
+    "sourceBrewId": { "type": "string" },
+    "triggered": { "type": "boolean" },
+    "totalScoreUsedAsTrigger": { "const": false },
+    "executionReliable": { "type": "boolean" },
+    "confidence": { "enum": ["insufficient-context", "low", "medium", "medium-high"] },
+    "issues": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "direction", "severity", "evidence", "adjustment", "planAdjustable"],
+        "properties": {
+          "key": { "type": "string", "minLength": 1 },
+          "label": { "type": "string", "minLength": 1 },
+          "direction": { "enum": ["low", "high"] },
+          "severity": { "type": "number", "minimum": 0.1, "maximum": 1 },
+          "evidence": { "type": "string", "minLength": 1 },
+          "adjustment": { "type": "string", "minLength": 1 },
+          "planAdjustable": { "const": true }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
+

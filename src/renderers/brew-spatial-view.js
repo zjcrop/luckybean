@@ -45,6 +45,7 @@ function boundsOf(scene) {
   if (Array.isArray(scene?.bounds?.min) && Array.isArray(scene?.bounds?.max)) return structuredClone(scene.bounds);
   const rows = [...(scene.path || [])];
   for (const target of scene.targets || []) rows.push(...(target.points || []));
+  for (const target of scene.personalTargets || []) rows.push(...(target.points || []));
   const min = [Infinity, Infinity, Infinity];
   const max = [-Infinity, -Infinity, -Infinity];
   for (const point of rows) for (let index = 0; index < 3; index += 1) {
@@ -85,10 +86,12 @@ export class BrewSpatialView {
     this.tapCandidate = null;
     this.selection = null;
     this.preview = null;
+    this.targetMode = 'standard';
   }
 
   setScene(scene) {
     this.scene = normalizeScene(scene);
+    this.targetMode = this.scene?.hasPersonalAdjustment ? 'personal' : 'standard';
     this.selection = null;
     this.updateInfo(null);
     this.updateSummary();
@@ -113,10 +116,19 @@ export class BrewSpatialView {
     open.addEventListener('click', () => this.open());
     const summary = createElement('div', 'spatial-summary');
     summary.dataset.spatialPredictionSummary = 'true';
-    card.append(head, open, summary);
+    const controls = createElement('div', 'spatial-mode-controls');
+    if (this.scene.hasPersonalAdjustment && this.scene.personalTargets?.length) {
+      const standard = createElement('button', 'button subtle', '标准预测'); standard.type='button'; standard.dataset.spatialTargetMode='standard';
+      const personal = createElement('button', 'button subtle', '个人感知'); personal.type='button'; personal.dataset.spatialTargetMode='personal';
+      controls.append(standard,personal);
+      controls.addEventListener('click', event => { const mode=event.target?.dataset?.spatialTargetMode; if(mode)this.setTargetMode(mode); });
+    }
+    const disclaimer=createElement('p','muted small spatial-prediction-disclaimer','本曲线为当前咖啡豆、器材和冲煮参数下的模型预测轨迹，用于观察趋势及参数变化的相对影响；实际结果以冲煮与品鉴为准。');
+    card.append(head, controls, open, summary, disclaimer);
     host.append(card);
     this.preview = card;
     this.updateSummary();
+    this.setTargetMode(this.targetMode);
     return card;
   }
 
@@ -140,6 +152,12 @@ export class BrewSpatialView {
     }
   }
 
+  setTargetMode(mode) {
+    this.targetMode = mode === 'personal' && this.scene?.hasPersonalAdjustment && this.scene?.personalTargets?.length ? 'personal' : 'standard';
+    document.querySelectorAll('[data-spatial-target-mode]').forEach(button => button.classList.toggle('active',button.dataset.spatialTargetMode===this.targetMode));
+    this.schedule();
+  }
+
   ensureOverlay() {
     if (this.overlay?.isConnected) return this.overlay;
     const overlay = createElement('div', 'spatial-fullscreen-overlay');
@@ -150,7 +168,8 @@ export class BrewSpatialView {
     title.append(createElement('strong', '', '三维风味靶区'));
     title.append(createElement('span', '', '单指旋转，双指缩放与平移；轻点路径或靶区查看三轴参数'));
     const reset = createElement('button', 'spatial-reset-btn', '复位视角'); reset.type = 'button'; reset.addEventListener('click', () => this.reset());
-    header.append(title, reset);
+    const mode = createElement('button','spatial-reset-btn','标准/个人'); mode.type='button'; mode.addEventListener('click',()=>this.setTargetMode(this.targetMode==='personal'?'standard':'personal'));
+    header.append(title, mode, reset);
     const viewport = createElement('div', 'spatial-fullscreen-viewport');
     const canvas = createElement('canvas', 'spatial-canvas');
     canvas.setAttribute('aria-label', 'X时间、Y粉床温度、Z累计注水量三维风味靶区图');
@@ -171,7 +190,10 @@ export class BrewSpatialView {
 
   open() {
     if (!this.scene) return;
-    const overlay = this.ensureOverlay(); overlay.hidden = false; this.opened = true;
+    let overlay;
+    try { overlay = this.ensureOverlay(); if (!this.ctx) throw new Error('设备未能建立3D画布上下文'); }
+    catch (error) { document.dispatchEvent(new CustomEvent('luckybean:spatial-render-error',{detail:{error,scene:structuredClone(this.scene)}})); return; }
+    overlay.hidden = false; this.opened = true;
     document.body.classList.add('spatial-fullscreen-open');
     requestAnimationFrame(() => { this.resize(); this.schedule(); overlay.querySelector('.spatial-close-btn')?.focus({ preventScroll: true }); });
   }
@@ -265,7 +287,8 @@ export class BrewSpatialView {
     return { target, center:projectedCenter, rx:Math.max(rx*.62,16*this.dpr), ry:Math.max(ry*.62,14*this.dpr), palette:palette(target), points };
   }
   drawTargets() {
-    const visuals = (this.scene.targets || []).map(target => this.targetVisual(target)).filter(Boolean).sort((a,b)=>a.center.z-b.center.z);
+    const targets = this.targetMode === 'personal' && this.scene.personalTargets?.length ? this.scene.personalTargets : this.scene.targets;
+    const visuals = (targets || []).map(target => this.targetVisual(target)).filter(Boolean).sort((a,b)=>a.center.z-b.center.z);
     for (const visual of visuals) {
       const mid = mixRgb(visual.palette.start, visual.palette.end, .48); this.ctx.save(); this.ctx.translate(visual.center.x, visual.center.y); this.ctx.scale(1, visual.ry / visual.rx);
       const gradient = this.ctx.createRadialGradient(-visual.rx*.32,-visual.rx*.30,visual.rx*.08,0,0,visual.rx); gradient.addColorStop(0,rgba(visual.palette.start,.84)); gradient.addColorStop(.55,rgba(mid,.62)); gradient.addColorStop(1,rgba(visual.palette.end,.28));

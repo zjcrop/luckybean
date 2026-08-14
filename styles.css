@@ -2,6 +2,7 @@
 @import url('./src/ui/codebook-reconciliation-screen.css');
 @import url('./src/ui/history/history-screen.css');
 @import url('./src/renderers/brew-spatial-view.css');
+@import url('./src/ui/brew-optimization.css');
 /* === consolidated from styles.css === */
 :root {
   color-scheme: dark;

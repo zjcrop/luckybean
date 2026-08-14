@@ -417,9 +417,9 @@ async function computeOptimizedPlan(input, { feedback = null, forceProfile = '' 
 export async function computeFallbackPlan(input = {}) { return computeOptimizedPlan(input); }
 
 function feedbackSummary(feedback) {
-  const labels = { underExtracted: '欠萃/酸尖', overExtracted: '过萃/苦涩', lowSweet: '甜感不足', lowAroma: '香气不足', muddy: '浑浊', thin: '单薄', heavy: '滞重' };
+  const labels = { underExtracted: '欠萃/酸尖', overExtracted: '过萃/苦涩', lowSweet: '甜感不足', lowAroma: '香气不足', highAroma:'香气过强', muddy: '浑浊', thin: '单薄', heavy: '滞重' };
   const active = Object.entries(feedback?.flags || {}).filter(([, value]) => value).map(([key]) => labels[key] || key);
-  return active.length ? active.join('、') : '未检测到明确缺陷，按评分残差做小幅校准';
+  return active.length ? active.join('、') : '未检测到明确可调整维度，参数保持不变';
 }
 
 function controlChangeText(controls = {}) {
@@ -428,7 +428,10 @@ function controlChangeText(controls = {}) {
 }
 
 export async function buildCorrectedPlan(input, sensoryRecord, previousPlan = null) {
-  const selectedProfile = explicitProfileId(input);
+  // 品鉴后的优化只调整当前方案，不重新进入方案推荐。即使原输入为
+  // recommended，也以完成冲煮时保存的方案为本次受控试验基线。
+  const selectedProfile = explicitProfileId(input)
+    || String(previousPlan?.profile?.id || String(previousPlan?.profileVersion || '').split('@')[0] || '');
   const coreInput = selectedProfile && CORE_PROFILE_ALIAS[selectedProfile]
     ? candidateInput(input, CORE_PROFILE_ALIAS[selectedProfile])
     : input;
@@ -442,9 +445,7 @@ export async function buildCorrectedPlan(input, sensoryRecord, previousPlan = nu
   const existingChanges = (draft.correction?.changes || []).filter(value => !selectedProfile || !/采用|方案|分段/.test(String(value)));
   const changes = [
     ...existingChanges,
-    selectedProfile
-      ? `保留用户指定的“${listBrewProfiles().find(item => item.id === selectedProfile)?.label || selectedProfile}”，不改变冲煮法，仅重算阶段参数。`
-      : '依据品鉴残差重新比较全部候选冲煮法，选择轨迹目标函数得分最高者。',
+    `保留本次实际使用的“${listBrewProfiles().find(item => item.id === selectedProfile)?.label || selectedProfile || '原方案'}”，不重新推荐冲煮法，仅重算可控参数。`,
     `品鉴反馈识别：${feedbackSummary(feedback)}。`,
     controlChangeText(rebuilt.optimizer?.controls)
   ];

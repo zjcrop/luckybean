@@ -1,0 +1,22 @@
+.bean-optimization-panel { border-color: color-mix(in srgb, var(--active) 38%, transparent); }
+.optimization-card-list, .optimization-issue-list { display: grid; gap: 12px; }
+.optimization-card {
+  display: grid; gap: 9px; padding: 15px; border: 1px solid #282724; border-radius: 14px;
+  background: color-mix(in srgb, var(--active) 7%, transparent);
+}
+.optimization-card > div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+.optimization-card small { color: var(--muted); }
+.optimization-card p { margin: 0; color: var(--muted); font-size: 13px; }
+.optimization-card[data-status="effective"] { border-color: color-mix(in srgb, var(--ok) 55%, transparent); }
+.optimization-card[data-status="ineffective"] { border-color: color-mix(in srgb, var(--danger) 55%, transparent); }
+.optimization-issue-row { display: grid; grid-template-columns: minmax(86px,.55fr) 1fr; gap: 5px 14px; padding: 12px 0; border-bottom: 1px solid #242320; }
+.optimization-issue-row small { grid-column: 2; color: var(--active); }
+.optimization-proposal { margin: 18px 0; padding: 16px; border: 1px solid #302d27; border-radius: 14px; }
+.optimization-proposal h3 { margin-top: 0; }
+.optimization-proposal p { margin: 8px 0; }
+
+@media (max-width: 560px) {
+  .optimization-card > div { display: grid; gap: 3px; }
+  .optimization-issue-row { grid-template-columns: 1fr; }
+  .optimization-issue-row small { grid-column: 1; }
+}

@@ -33,6 +33,14 @@ jobs:
       - name: Check JavaScript syntax
         shell: bash
         run: find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Reject private keys and release secrets in source
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RInaE --exclude='*.webp' --exclude='*.png' --exclude='*.jpg' --exclude='*.jar' --exclude='*.gradle' -- '-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|sb_secret_[A-Za-z0-9_-]{12,}' src public android contracts index.html sw.js styles.css; then
+            echo 'Private key or server secret material found in source'
+            exit 1
+          fi
       - run: npm run test:static
       - name: Verify live BrewProfiles contract
         run: npm run test:live-brewprofiles

@@ -54,3 +54,24 @@ The HTTP request body is the stable business object itself and must not contain
 metadata belongs in headers or the response envelope and must never control how
 the business fields are interpreted.
 
+## Post-tasting optimization records
+
+Optimization is an application history layer and is not part of the provider
+transport object. It can be created only after a tasting is linked to a completed
+brew. A total score, predicted score or the difference between them must never be
+used as the sole trigger. The assessment records up to three explicit dimension
+issues, their evidence, direction, severity and the controllable plan adjustment.
+
+The optimized draft preserves the profile that was actually brewed and changes
+only controllable parameters. It is stored on the bean's source brew record with
+status `pending-validation`. Loading the draft adds an application-only validation
+reference to the next raw brew input. After that brew receives a tasting, the
+source draft is classified as `effective`, `partially-effective`, `ineffective`
+or `inconclusive`; this classification never overwrites the original tasting.
+
+The standard spatial targets remain immutable. A separate personal target layer
+may be displayed after at least three linked observations. Both views use the same
+deterministic model trajectory and exist to compare trends and relative parameter
+effects, not to claim a certain sensory outcome. A rendering failure retries the
+same spatial input and must not synthesize a table or alternate prediction.
+

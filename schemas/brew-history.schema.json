@@ -40,14 +40,14 @@
       "type": "object",
       "required": ["contract", "analysisFingerprint", "plan", "trajectory"],
       "properties": {
-        "contract": { "const": "brew-analysis/2.0" },
+        "contract": { "enum": ["brew-analysis/2.0", "brew-analysis/2.1"] },
         "analysisFingerprint": { "type": "string", "minLength": 1 },
         "plan": { "type": "object" },
         "trajectory": {
           "type": "object",
           "required": ["schemaVersion", "path", "targets"],
           "properties": {
-            "schemaVersion": { "enum": ["brew-spatial/1.1", "brew-spatial/1.2"] },
+            "schemaVersion": { "enum": ["brew-spatial/1.1", "brew-spatial/1.2", "brew-spatial/1.3"] },
             "path": { "type": "array", "minItems": 2 },
             "targets": { "type": "array" }
           }
@@ -77,6 +77,24 @@
     },
     "providerVersions": { "type": "object" },
     "sensoryRecordIds": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "sensoryRecordId": { "type": "string" },
+    "sensoryNote": { "type": "string" },
+    "autoScore": { "type": "number", "minimum": 0, "maximum": 100 },
+    "subjectiveScore": { "type": "number", "minimum": 0, "maximum": 100 },
+    "scoreDelta": { "type": "number" },
+    "correctedPlanId": { "type": "string" },
+    "optimizationAssessment": { "type": ["object", "null"] },
+    "nextPlanDraft": {
+      "type": ["object", "null"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "sourceHistoryId": { "type": "string" },
+        "sourceSensoryId": { "type": "string" },
+        "optimizationStatus": { "enum": ["pending-validation", "effective", "partially-effective", "ineffective", "inconclusive"] },
+        "validationResult": { "type": "object" }
+      }
+    },
+    "optimizationValidation": { "type": ["object", "null"] },
     "revision": { "type": "integer", "minimum": 1 },
     "revisionHeadId": { "type": ["string", "null"] },
     "archivedAt": { "type": ["string", "null"], "format": "date-time" },

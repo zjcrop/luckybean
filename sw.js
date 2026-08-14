@@ -1,7 +1,7 @@
-// LuckyBean 1.23E main-sync.6: canonical UI modules shared by Web/PWA and Android.
-const REVISION = '1.23E-main-sync.6';
+// LuckyBean 1.23E main-sync.7: post-tasting optimization and deterministic spatial trends.
+const REVISION = '1.23E-main-sync.7';
 const CACHE_PREFIX = 'luckybean-main-v123e-';
-const CACHE_NAME = `${CACHE_PREFIX}main-sync-6`;
+const CACHE_NAME = `${CACHE_PREFIX}main-sync-7`;
 const LEGACY_CACHE_PREFIXES = [
   'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
   'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',
@@ -19,6 +19,7 @@ const CORE = [
   versioned('./src/ui/bean-card.css'),
   versioned('./src/ui/professional-sensory.css'),
   versioned('./src/ui/sensory-wizard-actions.css'),
+  versioned('./src/ui/brew-optimization.css'),
   versioned('./src/app.js'),
   versioned('./src/domain/archive/luckybean-archive-codec.js'),
   versioned('./src/domain/archive/luckybean-archive-service.js'),
@@ -31,6 +32,8 @@ const CORE = [
   './contracts/luckybean-archive-v1.schema.json',
   './contracts/recognition-document-v1.schema.json',
   './contracts/recognition-date-decision-v1.schema.json',
+  './contracts/brew-optimization-v1.schema.json',
+  './contracts/brew-optimization-validation-v1.schema.json',
   versioned('./src/core/startup-controller.js'),
   versioned('./src/core/bootstrap.js'),
   versioned('./src/services/cloud-auth-service.js'),
@@ -39,6 +42,7 @@ const CORE = [
   versioned('./src/services/bean-enrichment-service.js'),
   versioned('./src/cloud-codec.js'),
   versioned('./src/services/brew-analysis-service.js'),
+  versioned('./src/services/brew-calculation-coordinator.js'),
   versioned('./src/services/brew-api-client.js'),
   versioned('./src/services/brew-profile-catalog-service.js'),
   versioned('./src/services/local-reference-analysis.js'),
@@ -49,6 +53,8 @@ const CORE = [
   versioned('./src/ui/codebook-reconciliation-screen.js'),
   versioned('./src/ui/codebook-reconciliation-screen.css'),
   versioned('./src/domain/history/history-service.js'),
+  versioned('./src/domain/history/history-sensory-service.js'),
+  versioned('./src/domain/sensory/brew-optimization-assessment.js'),
   versioned('./src/domain/history/history-comparison.js'),
   versioned('./src/ui/brew-trend-panel.js'),
   versioned('./src/ui/brew-trend-panel.css'),

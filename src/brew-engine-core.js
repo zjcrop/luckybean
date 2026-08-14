@@ -391,11 +391,23 @@ function detectSensoryIssues(record = {}) {
   const sweet = flat('sweet');
   const mouth = flat('mouthfeel');
   const negative = flat('negative');
+  const professional = record.professionalData || record.professional || {};
+  const assessedKeys = new Set((record.optimizationAssessment?.issues || []).map(issue => String(issue.key || '')));
+  const assessed = key => assessedKeys.has(key);
+  const professionalSelections = Object.values(professional.selections || {}).flat().map(String);
+  const text = [...acid, ...bitter, ...sweet, ...mouth, ...negative, ...professionalSelections, ...(record.summary || []), record.naturalNote || ''].join(' ');
   return {
-    overAcid: acid.some(value => /尖锐|醋酸|过酸/.test(value)) || /过酸|酸尖/.test(record.naturalNote || ''),
-    overBitter: bitter.some(value => /偏高|焦苦/.test(value)) || /过苦|焦苦/.test(record.naturalNote || ''),
-    lowSweet: sweet.some(value => /无|低/.test(value)) || /甜不足|不甜/.test(record.naturalNote || ''),
-    dry: mouth.some(value => /干涩|收敛/.test(value)) || negative.some(value => /木质|纸味/.test(value)) || /干涩|收敛/.test(record.naturalNote || '')
+    overAcid: /尖锐|醋酸|过酸|酸尖/.test(text) || assessed('acidityHigh'),
+    lowAcid: assessed('acidityLow'),
+    overBitter: /偏高|焦苦|过苦|苦重/.test(text) || assessed('bitternessHigh'),
+    lowSweet: /甜感弱|无明显甜感|甜不足|不甜/.test(text) || assessed('sweetnessLow'),
+    lowAroma: /香气弱|花香弱|果香弱|香气不足|香味不足/.test(text) || assessed('aromaLow'),
+    highAroma: /香气过强|香味过多|香气太重|香味太重/.test(text) || assessed('aromaExcess'),
+    dry: /干涩|收敛|涩感|木质|纸味|干燥/.test(text) || assessed('astringencyHigh'),
+    lowBody: assessed('bodyLow'),
+    lowCleanliness: assessed('cleanlinessLow'),
+    lowAftertaste: assessed('aftertasteLow'),
+    lowBalance: assessed('balanceLow')
   };
 }
 
@@ -419,17 +431,33 @@ export async function buildCorrectedPlan(input, sensoryRecord, previousPlan = nu
     corrected.brew.grindTune = clamp(Number(corrected.brew.grindTune || 0) + 1, -4, 4);
     changes.push('水温降低约2°C、尾段水量收紧并建议略粗研磨，以抑制苦味和拖尾。');
   }
+  if (issues.lowAcid) {
+    corrected.targets.acidity = clamp(Number(corrected.targets.acidity ?? 1.5) + 0.45, 0, 3);
+    corrected.brew.temperatureTune = clamp(Number(corrected.brew.temperatureTune || 0) - 0.5, -6, 6);
+    changes.push('提高酸质保留权重并小幅降低温度，改善酸质被压平的问题。');
+  }
   if (issues.lowSweet) {
     corrected.targets.sweetness = clamp(Number(corrected.targets.sweetness ?? 1.5) + 0.8, 0, 3);
-    corrected.brew.profileId = issues.overBitter ? 'two-pulse' : 'four-six-v17';
-    changes.push('提高甜感权重，并优先采用两段式或四六法重排前40%注水。');
+    changes.push('保留原冲煮法，提高甜感权重并重新分配中段有效萃取。');
   }
   if (issues.dry) {
     corrected.brew.grindTune = clamp(Number(corrected.brew.grindTune || 0) + 1, -4, 4);
     corrected.brew.segments = clamp(Number(corrected.brew.segments || 3) - 1, 1, 5);
-    corrected.brew.profileId ||= 'two-pulse';
     changes.push('减少分段并略粗研磨，降低高细粉与段间浸泡导致的收敛风险。');
   }
+  if (issues.lowBody) {
+    corrected.brew.ratio = round(clamp(Number(corrected.brew.ratio || 15.5) - 0.3, 8, 25), 1);
+    corrected.targets.sweetness = clamp(Number(corrected.targets.sweetness ?? 1.5) + 0.35, 0, 3);
+    changes.push('小幅降低粉水比并提高中段甜感权重，改善单薄和醇厚度不足。');
+  }
+  if (issues.lowCleanliness) {
+    corrected.brew.grindTune = clamp(Number(corrected.brew.grindTune || 0) + 0.5, -4, 4);
+    changes.push('略粗研磨并降低尾段滞留风险，改善干净度。');
+  }
+  if (issues.lowAftertaste) changes.push('保持原方案，延长有效中段并减少尾段无效拖尾，以改善余韵连续性。');
+  if (issues.lowBalance) changes.push('保持原方案，以较小幅度重新平衡中段与尾段，避免单一维度过度补偿。');
+  if (issues.lowAroma) changes.push('保持原方案结构，强化前中段香气表达并限制尾段补偿。');
+  if (issues.highAroma) changes.push('保持原方案结构，降低前段刺激强度并减少香气过度暴露。');
   if (!changes.length) changes.push('未识别到明确酸、苦、甜或干涩问题；保留原方案，仅记录主观分差。');
 
   const plan = await computeFallbackPlan(corrected);

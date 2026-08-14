@@ -1,4 +1,6 @@
 import { brewSpatialView } from './brew-spatial-view.js';
+import { all } from '../db.js';
+import { applyPersonalSensitivityToScene, buildPersonalSensitivityProfile } from '../domain/sensory/brew-optimization-assessment.js';
 
 const REQUIRED_TARGET_IDS = Object.freeze(['acidity', 'floral', 'fruity', 'sweetness', 'bitterness', 'astringency']);
 const SUPPORTED_SPATIAL_CONTRACTS = new Set(['brew-spatial/1.1', 'brew-spatial/1.2', 'brew-spatial/1.3']);
@@ -37,11 +39,53 @@ function adaptForView(scene) {
 
 function host() { return document.querySelector('#brewSpatialMount'); }
 
+let lastRender = null;
+let sensitivityProfilePromise = null;
+
+function renderError(target, error) {
+  target.hidden = false;
+  target.replaceChildren();
+  const panel = document.createElement('section');
+  panel.className = 'spatial-render-error';
+  const title = document.createElement('strong'); title.textContent = '3D预测图渲染失败';
+  const message = document.createElement('p'); message.textContent = '计算结果已保留，请使用同一空间输入重新渲染。';
+  const detail = document.createElement('small'); detail.textContent = String(error?.message || '未知渲染错误');
+  const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'button primary'; retry.textContent = '重新渲染';
+  retry.addEventListener('click', () => retryLastRender());
+  panel.append(title, message, detail, retry); target.append(panel);
+}
+
+async function personalizedScene(scene) {
+  if (!sensitivityProfilePromise) {
+    sensitivityProfilePromise=all('sensoryRecords')
+      .then(records=>buildPersonalSensitivityProfile(records.slice(-500)))
+      .catch(()=>buildPersonalSensitivityProfile([]));
+  }
+  return applyPersonalSensitivityToScene(scene,await sensitivityProfilePromise);
+}
+
+async function renderScene(target, scene, plan) {
+  target.hidden = false;
+  target.replaceChildren();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const mounted = brewSpatialView.mountPreview(target, adaptForView(scene));
+  if (!mounted) throw new Error('3D预览组件未能挂载');
+  lastRender = { target, scene:structuredClone(scene), planFingerprint:String(scene.planFingerprint || plan?.analysisFingerprint || '') };
+  return true;
+}
+
+async function retryLastRender() {
+  if (!lastRender?.target || !lastRender?.scene) return false;
+  try { return await renderScene(lastRender.target, structuredClone(lastRender.scene), null); }
+  catch (error) { renderError(lastRender.target,error); return false; }
+}
+
 async function mount(plan) {
   const target = host();
   if (!target) return false;
   target.replaceChildren();
-  const scene = sceneFromPlan(plan);
+  const baseScene = sceneFromPlan(plan);
+  const scene = baseScene ? await personalizedScene(baseScene) : null;
   if (!scene) {
     target.hidden = false;
     const note = document.createElement('p');
@@ -53,9 +97,8 @@ async function mount(plan) {
     brewSpatialView.close();
     return false;
   }
-  target.hidden = false;
-  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  return Boolean(brewSpatialView.mountPreview(target, adaptForView(scene)));
+  try { return await renderScene(target,scene,plan); }
+  catch (error) { lastRender = { target, scene:structuredClone(scene), planFingerprint:String(scene.planFingerprint || plan?.analysisFingerprint || '') }; renderError(target,error); return false; }
 }
 
 function clear() {
@@ -69,6 +112,14 @@ function clear() {
 document.addEventListener('luckybean:plan-ready', event => mount(event.detail?.plan));
 document.addEventListener('luckybean:history-plan-loaded', event => mount(event.detail?.plan));
 document.addEventListener('luckybean:spatial-clear', clear);
+document.addEventListener('luckybean:data-changed',event=>{
+  if(event.detail?.store==='sensoryRecords'||/sensory|optimization/.test(String(event.detail?.operation||'')))sensitivityProfilePromise=null;
+});
+document.addEventListener('luckybean:spatial-render-error', event => {
+  const target = host(); if (!target) return;
+  if (event.detail?.scene) lastRender = { target, scene:structuredClone(event.detail.scene), planFingerprint:String(event.detail.scene.planFingerprint || '') };
+  renderError(target,event.detail?.error || new Error('3D渲染失败'));
+});
 document.addEventListener('luckybean:open-spatial-scene', event => {
   const scene = event.detail?.scene;
   if (isProfessionalScene(scene) && brewSpatialView.setScene(adaptForView(scene))) brewSpatialView.open();
@@ -77,8 +128,10 @@ document.addEventListener('luckybean:open-spatial-scene', event => {
 globalThis.LuckyBeanSpatial = {
   revision: 'brew-spatial-view/1.4.0',
   mount,
+  retry: retryLastRender,
   clear,
   open(scene) { if (isProfessionalScene(scene) && brewSpatialView.setScene(adaptForView(scene))) brewSpatialView.open(); },
   close() { brewSpatialView.close(); },
-  validate: isProfessionalScene
+  validate: isProfessionalScene,
+  getLastRenderFingerprint() { return lastRender?.planFingerprint || ''; }
 };

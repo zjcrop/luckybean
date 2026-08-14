@@ -292,21 +292,23 @@ export function deriveSensoryFeedback(record = {}, previousPlan = null) {
   const values = Object.values(record.answers || {})
     .flatMap(groups => Object.values(groups || {}).flat())
     .map(value => String(value));
-  const professional = Object.values(record.professional?.selections || {}).flat().map(String);
+  const professional = Object.values((record.professionalData || record.professional || {}).selections || {}).flat().map(String);
   const text = [...values, ...professional, record.naturalNote || '', ...(record.summary || [])].join(' ').toLowerCase();
   const has = regex => regex.test(text);
+  const assessedKeys = new Set((record.optimizationAssessment?.issues || []).map(issue => String(issue.key || '')));
+  const assessed = key => assessedKeys.has(key);
   const feedback = {
-    underExtracted: has(/酸尖|尖锐|酸薄|咸|空洞|寡淡|未萃取|under|sour/),
-    overExtracted: has(/焦苦|苦重|木质|干涩|收敛|涩|over|astring|woody/),
-    lowSweet: has(/甜不足|甜感弱|不甜|low sweet/),
-    lowAroma: has(/香气弱|花香弱|果香弱|闷|香气不足|low aroma/),
-    muddy: has(/浑浊|混浊|不干净|杂味|muddy/),
-    thin: has(/单薄|水感|轻薄|thin/),
+    underExtracted: has(/酸尖|尖锐|酸薄|咸|空洞|寡淡|未萃取|under|sour/) || assessed('acidityHigh'),
+    overExtracted: has(/焦苦|苦重|木质|干涩|收敛|涩|over|astring|woody/) || assessed('bitternessHigh') || assessed('astringencyHigh'),
+    lowSweet: has(/甜不足|甜感弱|不甜|low sweet/) || assessed('sweetnessLow'),
+    lowAroma: has(/香气弱|花香弱|果香弱|闷|香气不足|low aroma/) || assessed('aromaLow'),
+    highAroma: has(/香气过强|香味过多|香气太重|香味太重|high aroma/) || assessed('aromaExcess'),
+    muddy: has(/浑浊|混浊|不干净|杂味|muddy/) || assessed('cleanlinessLow'),
+    thin: has(/单薄|水感|轻薄|thin/) || assessed('bodyLow'),
     heavy: has(/厚重|滞重|闷厚|heavy/)
   };
   const score = Number(record.subjectiveScore ?? record.score ?? 0);
   const auto = Number(record.autoScore || 0);
-  const lowScore = score > 0 && score < 80;
   const previousControls = previousPlan?.optimizer?.controls || {};
 const controls = {
   tempOffset: Number(previousControls.tempOffset || 0),
@@ -322,10 +324,13 @@ const controls = {
   if (feedback.overExtracted) { controls.tempOffset -= 0.7; controls.grindDelta += 0.85; controls.ratioDelta -= 0.30; controls.tailDrop += 1.6; controls.tailPenalty += 0.35; }
   if (feedback.lowSweet) { controls.grindDelta -= 0.35; controls.midWeight += 0.30; controls.ratioDelta += 0.15; }
   if (feedback.lowAroma) { controls.tempOffset -= 0.25; controls.aromaWeight += 0.35; controls.flowOffset += 0.10; }
+  if (feedback.highAroma) { controls.tempOffset -= 0.35; controls.aromaWeight -= 0.25; controls.flowOffset -= 0.08; }
   if (feedback.muddy) { controls.grindDelta += 0.45; controls.flowOffset += 0.20; controls.tailPenalty += 0.20; }
   if (feedback.thin) { controls.grindDelta -= 0.30; controls.ratioDelta -= 0.20; controls.midWeight += 0.18; }
   if (feedback.heavy) { controls.grindDelta += 0.30; controls.ratioDelta += 0.20; controls.flowOffset += 0.15; }
-  if (lowScore && !Object.values(feedback).some(Boolean)) controls.midWeight += 0.12;
+  if (assessed('acidityLow')) { controls.tempOffset -= 0.35; controls.grindDelta += 0.20; controls.aromaWeight += 0.12; }
+  if (assessed('aftertasteLow')) { controls.timeScale += 0.04; controls.midWeight += 0.16; controls.tailPenalty -= 0.08; }
+  if (assessed('balanceLow')) { controls.midWeight += 0.10; controls.tailPenalty += 0.08; }
   controls.tempOffset = round(clamp(controls.tempOffset, -2, 2), 2);
   controls.flowOffset = round(clamp(controls.flowOffset, -0.8, 0.8), 2);
   controls.grindDelta = round(clamp(controls.grindDelta, -1.8, 1.8), 2);

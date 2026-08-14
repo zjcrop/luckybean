@@ -67,7 +67,7 @@ android {
         applicationId 'com.luckybean.app'
         minSdk 26
         targetSdk 35
-        versionCode 102317
+        versionCode 102318
         versionName '1.23E'
     }
     sourceSets { main.assets.srcDir(generatedWebAssets) }
@@ -112,3 +112,4 @@ dependencies {
     implementation 'com.google.mlkit:text-recognition-chinese:16.0.1'
     implementation 'androidx.media3:media3-exoplayer:1.8.1'
 }
+

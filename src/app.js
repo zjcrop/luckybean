@@ -8,10 +8,12 @@ import { listWaterProfiles, inferWaterProfile } from './water-profiles.js';
 import { buildCompactSharePayload, encodeSharePayload, decodeSharePayload } from './share-codec.js';
 import { computeAutomaticScore, sensoryPreferenceTags, buildPreferenceModel, recommendedBeanIds } from './preference-model.js';
 import { commitCompletedBrew, permanentlyDeleteBrewRecords } from './domain/history/history-service.js';
-import { attachSensoryToCompletedBrew } from './domain/history/history-sensory-service.js';
+import { attachSensoryToCompletedBrew, attachOptimizationDraft, completeOptimizationValidation } from './domain/history/history-sensory-service.js';
+import { assessTastingForOptimization } from './domain/sensory/brew-optimization-assessment.js';
 import { buildBeanConsumptionSummary, DEFAULT_CAFFEINE_HEALTH_SETTINGS } from './domain/beans/bean-consumption-summary.js';
 import { createLocalReferenceAnalysis } from './services/local-reference-analysis.js';
 import { adaptAuthoritativePlan } from './services/brew-analysis-service.js';
+import { BrewCalculationCoordinator } from './services/brew-calculation-coordinator.js';
 import './renderers/brew-spatial-controller.js';
 import './ui/brew-trend-panel.js';
 import { openHistoryScreen } from './ui/history/history-screen.js';
@@ -101,6 +103,7 @@ const state = {
 
 let toastTimer;
 let toastCleanupTimer;
+const brewCalculationCoordinator = new BrewCalculationCoordinator(requestPrivatePlan);
 function toast(message, kind = '') {
   const node = $('#toast');
   clearTimeout(toastTimer);
@@ -1277,12 +1280,15 @@ function detailBean(beanId) {
   const fresh = freshnessProfile(bean);
   const flavors = visibleFlavorCodes(bean).map(code => `<span class="tag">${esc(codeName('flavors', code, ''))}</span>`).join('');
   const records = state.sensoryRecords.filter(record => record.beanId === bean.id).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,3);
-  const sessions = state.brewSessions.filter(session => session.beanId === bean.id).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,5);
+  const allBeanSessions = state.brewSessions.filter(session => session.beanId === bean.id).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+  const sessions = allBeanSessions.slice(0,5);
+  const optimizationDrafts = allBeanSessions.filter(session => session.nextPlanDraft).slice(0,5);
   const content = `${dialogHeader(beanDisplayName(bean), beanNameSummary(bean))}
     <div class="detail-layout"><div class="freshness-card"><div><div class="small muted">赏味状态</div><h2>${esc(fresh.label)}</h2><p class="muted small">烘焙日期 ${formatDate(bean.roastDate)} · 有效豆龄 ${Math.round(fresh.effectiveAge)} 天 · 剩余 ${Number(bean.remainingWeight||0).toFixed(1)}g</p></div><div class="freshness-trend ${fresh.rising?'rising':'falling'}">风味${esc(fresh.trend)}</div></div>
     <div class="management-stack"><button id="correctWeightBtn" class="button" type="button">修正克重</button><button id="toggleColdBtn" class="button${bean.refrigerated?' active':''}" type="button">${bean.refrigerated?'解除冷藏':'设为冷藏'}</button><button id="archiveBeanBtn" class="button" type="button">${bean.archived?'移出溯旧':'移至溯旧'}</button><button id="deleteBeanBtn" class="button danger" type="button">删除</button></div></div>
     <section class="freshness-curve-panel">${freshnessCurveSvg(bean)}</section>
     <div class="detail-tags">${flavors || '<span class="muted small">风味待录</span>'}</div>
+    ${optimizationDrafts.length?`<section class="panel bean-optimization-panel"><div class="panel-title"><div><h3>下次冲煮优化</h3><p>源自品鉴中的具体低分或负面维度，需用下一次冲煮验证</p></div></div><div class="optimization-card-list">${optimizationDrafts.map(optimizationDraftHtml).join('')}</div></section>`:''}
     <section class="panel"><div class="panel-title"><div><h3>冲煮记录</h3><p>点击可载入完整方案复刻</p></div></div><div class="record-list">${sessions.length ? sessions.map(sessionRecordHtml).join('') : '<p class="muted small">尚无冲煮记录</p>'}</div></section>
     <section class="panel"><div class="panel-title"><div><h3>最近品鉴</h3><p>点击查看或编辑完整记录</p></div></div><div class="record-list">${records.length ? records.map(recordHtml).join('') : '<p class="muted small">尚无品鉴记录</p>'}</div></section>
     <div class="detail-actions menu-row"><button id="brewThisBeanBtn" class="button primary" type="button">小酌</button><button id="editBeanBtn" class="button" type="button">编辑</button><button id="copyBeanBtn" class="button" type="button">复制</button><button id="shareBeanBtn" class="button" type="button">分享</button></div>`;
@@ -1303,7 +1309,21 @@ function detailBean(beanId) {
   $('#editBeanBtn').addEventListener('click', () => openBeanForm(bean, { type: 'manual' }));
   $('#copyBeanBtn').addEventListener('click', () => { const copy = { ...bean, id: undefined, createdAt: undefined, updatedAt: undefined, remainingWeight: bean.initialWeight }; openBeanForm(copy, { type: 'copy' }); });
   $('#shareBeanBtn').addEventListener('click', () => openShareDialog(bean));
-  overlay.addEventListener('click', event => { const replay = event.target.closest('[data-replay-session]'); if (replay) loadBrewSession(replay.dataset.replaySession); });
+  overlay.addEventListener('click', event => {
+    const optimization = event.target.closest('[data-load-optimization]');
+    if (optimization) return loadOptimizationDraft(optimization.dataset.loadOptimization);
+    const replay = event.target.closest('[data-replay-session]'); if (replay) loadBrewSession(replay.dataset.replaySession);
+  });
+}
+
+function optimizationStatusLabel(status) {
+  return ({'pending-validation':'待验证',effective:'验证有效','partially-effective':'部分有效',ineffective:'未改善',inconclusive:'结果不确定'})[status]||'待验证';
+}
+
+function optimizationDraftHtml(session) {
+  const draft=session.nextPlanDraft||{}, assessment=session.optimizationAssessment||draft.correction?.assessment||{};
+  const status=draft.optimizationStatus||'pending-validation';
+  return `<article class="optimization-card" data-status="${esc(status)}"><div><strong>${esc((assessment.summary||[]).join('、')||'品鉴维度优化')}</strong><small>${formatDate(draft.createdAt||session.updatedAt)} · ${esc(optimizationStatusLabel(status))}</small></div><p>${esc(assessment.reason||draft.validationResult?.reason||'根据本次品鉴调整可控冲煮参数')}</p>${status==='pending-validation'?`<button class="button primary" type="button" data-load-optimization="${esc(session.id)}">载入建议并冲煮</button>`:`<small>${esc(draft.validationResult?.reason||'已完成下一次冲煮与品鉴对照')}</small>`}</article>`;
 }
 
 function sessionRecordHtml(session) {
@@ -1355,7 +1375,7 @@ async function deleteBrewSession(sessionId, restoreBeans = false) {
 function loadBrewSession(sessionId) {
   const session = state.brewSessions.find(item => item.id === sessionId); if (!session) return toast('冲煮记录不存在');
   let plan;
-  if (session.analysisSnapshot?.contract === 'brew-analysis/2.0') {
+  if (['brew-analysis/2.0','brew-analysis/2.1'].includes(session.analysisSnapshot?.contract)) {
     plan = adaptAuthoritativePlan(session.analysisSnapshot);
     plan.id = session.id;
     plan.beanId = session.beanId;
@@ -1373,6 +1393,20 @@ function loadBrewSession(sessionId) {
   document.dispatchEvent(new CustomEvent('luckybean:history-plan-loaded', { detail: { plan, record: session } }));
   requestAnimationFrame(() => $('#generatedPlan')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   toast(session.correction ? '已载入修正方案' : '已载入历史方案');
+}
+
+function loadOptimizationDraft(sessionId) {
+  const source=state.brewSessions.find(item=>item.id===sessionId), draft=source?.nextPlanDraft;
+  if (!source||!draft) return toast('优化建议不存在或已移除','status-bad');
+  const input=structuredClone(draft.input||source.normalizedInput||source.rawInput||{});
+  input.optimizationValidation={contract:'brew-optimization-validation-source/1.0',draftId:draft.id,sourceHistoryId:source.id,sourceSensoryId:draft.sourceSensoryId||source.sensoryRecordId||''};
+  closeOverlay(); state.selectedBeanId=source.beanId; state.currentPlan={...structuredClone(draft),beanId:source.beanId}; state.currentBrewInput=input;
+  state.brewProfileOverride=String(draft.profile?.id||input.brew?.profileId||'')||null;
+  state.brewDripperOverride=input.brew?.dripperId||null; state.brewEntryMode='optimization';
+  switchPage('brew',{entryMode:'optimization'});
+  document.dispatchEvent(new CustomEvent('luckybean:optimization-plan-loaded',{detail:{plan:state.currentPlan,source}}));
+  requestAnimationFrame(()=>$('#generatedPlan')?.scrollIntoView({behavior:'smooth',block:'start'}));
+  toast('已载入待验证优化方案；完成冲煮和品鉴后自动回写结果','status-good');
 }
 
 function correctWeightDialog(bean) {
@@ -1660,12 +1694,15 @@ async function generatePlan() {
   const bean = state.beans.find(item => item.id === $('#brewBean').value); if (!bean) return toast('请先选择豆卡');
   const button = $('#generatePlanBtn'); state.selectedBeanId = bean.id;
   const previousCandidates = state.currentPlan?.recommendation?.candidates || [];
-  const input = buildBrewInput(bean); state.currentBrewInput = input;
+  const requestedInput = buildBrewInput(bean);
   button.disabled = true; button.textContent = '正在计算…';
   try {
     let plan;
     try {
-      plan = await requestPrivatePlan(state.settings.brew.apiEndpoint, input);
+      const result = await brewCalculationCoordinator.calculate({ endpoint:state.settings.brew.apiEndpoint, input:requestedInput, previousPlan:state.currentPlan, beanId:bean.id });
+      if (!result.latest) return;
+      plan = result.plan;
+      state.currentBrewInput = result.input;
     } catch (error) {
       const failure = new Error(`${error.message} 未生成本地替代三维图，避免将参考轨迹误认为专业靶区。`);
       failure.code = error.code || 'BREWPROFILES_UNAVAILABLE';
@@ -1675,6 +1712,7 @@ async function generatePlan() {
     if ((plan.recommendation?.candidates || []).length < 3 && previousCandidates.length >= 3) {
       plan.recommendation = { ...(plan.recommendation || {}), candidates: previousCandidates };
     }
+    const input = state.currentBrewInput;
     plan.beanId = bean.id; plan.generatedAt = new Date().toISOString(); plan.input = input;
     validatePlan(plan); state.currentPlan = plan;
     document.dispatchEvent(new CustomEvent('luckybean:plan-ready', { detail: { plan, input, source: plan.executionSource || 'brew-profiles-authoritative' } }));
@@ -2163,8 +2201,10 @@ async function saveProfessionalEvaluation(detail = {}) {
     updatedAt: now
   };
   const session = state.brewSessions.find(item => item.id === record.brewSessionId);
+  record.optimizationAssessment = assessTastingForOptimization(record,session);
   if (session?.schemaVersion === 'brew-history/1.0') {
     await attachSensoryToCompletedBrew({ recordId: session.id, sensoryRecord: record, nextPlanDraft: null });
+    if (!existing) await completeOptimizationValidation({ validation:session.normalizedInput?.optimizationValidation||session.rawInput?.optimizationValidation, newSensoryRecord:record });
   } else {
     await put('sensoryRecords', record);
     if (session) {
@@ -2179,9 +2219,11 @@ async function saveProfessionalEvaluation(detail = {}) {
   await refreshData();
   state.evaluation = null;
   state.pendingSensoryContext = null;
-  switchPage('beans');
-  requestAnimationFrame(() => detailBean(beanId));
-  toast('专业杯测记录已保存', 'status-good');
+  if (record.optimizationAssessment.triggered) {
+    await openBrewOptimizationOffer(record,session);
+  } else {
+    switchPage('beans'); requestAnimationFrame(() => detailBean(beanId)); toast('专业杯测记录已保存', 'status-good');
+  }
 }
 
 document.addEventListener('luckybean:start-sensory-mode', event => {
@@ -2224,28 +2266,11 @@ async function saveEvaluation() {
     preferenceTags: sensoryPreferenceTags({ ...evaluation, autoScore, subjectiveScore }, bean || {}), updatedAt: new Date().toISOString()
   };
   delete record.nodeIndex;
-
-  let correctionSaved = false;
   const session = state.brewSessions.find(item => item.id === record.brewSessionId);
+  record.optimizationAssessment = assessTastingForOptimization(record,session);
   if (session?.schemaVersion === 'brew-history/1.0') {
-    let nextPlanDraft = null;
-    if (subjectiveScore < autoScore && (session.normalizedInput || session.rawInput)) {
-      const sourceInput = session.normalizedInput || session.rawInput;
-      const sourcePlan = session.analysisSnapshot?.plan || session;
-      const corrected = await buildCorrectedPlan(sourceInput, record, sourcePlan);
-      const hasIssue = Object.values(corrected.correction?.issues || {}).some(Boolean);
-      if (hasIssue) {
-        corrected.id = uid('draft');
-        corrected.beanId = record.beanId;
-        corrected.createdAt = new Date().toISOString();
-        corrected.sourceHistoryId = session.id;
-        corrected.input = corrected.input || sourceInput;
-        record.correctedPlanId = corrected.id;
-        nextPlanDraft = corrected;
-        correctionSaved = true;
-      }
-    }
-    await attachSensoryToCompletedBrew({ recordId: session.id, sensoryRecord: record, nextPlanDraft });
+    await attachSensoryToCompletedBrew({ recordId: session.id, sensoryRecord: record, nextPlanDraft:null });
+    if (!evaluation.editRecordId) await completeOptimizationValidation({ validation:session.normalizedInput?.optimizationValidation||session.rawInput?.optimizationValidation, newSensoryRecord:record });
   } else {
     if (session) {
       session.sensoryRecordId = record.id;
@@ -2258,11 +2283,46 @@ async function saveEvaluation() {
     await put('sensoryRecords', record);
   }
   await refreshData(); state.evaluation = null; state.pendingSensoryContext = null;
-  switchPage('beans'); requestAnimationFrame(()=>detailBean(record.beanId));
-  if (evaluation.editRecordId) toast('品鉴记录已按原模式完成修改', 'status-good');
-  else if (correctionSaved) toast('品鉴已保存，并生成下一次修正草案', 'status-warn');
-  else if (subjectiveScore < autoScore) toast('品鉴已保存；主观分低于自动分，已记录分差', 'status-warn');
-  else toast('品鉴与个人偏好已保存', 'status-good');
+  if (!evaluation.editRecordId && record.optimizationAssessment.triggered) await openBrewOptimizationOffer(record,session);
+  else { switchPage('beans'); requestAnimationFrame(()=>detailBean(record.beanId)); toast(evaluation.editRecordId?'品鉴记录已按原模式完成修改':'品鉴与个人偏好已保存','status-good'); }
+}
+
+function optimizationIssueRows(assessment) {
+  return (assessment?.issues||[]).map(issue=>`<div class="optimization-issue-row"><strong>${esc(issue.label)}</strong><span>${esc(issue.evidence)}</span><small>${esc(issue.adjustment)}</small></div>`).join('');
+}
+
+function optimizationStageDiff(before,after) {
+  const prior=before?.stages||[], next=after?.stages||[];
+  return next.map((stage,index)=>{const old=prior[index]||{};const changes=[];
+    if(Math.abs(Number(stage.stageWaterG||0)-Number(old.stageWaterG||0))>=1)changes.push(`水量 ${Number(old.stageWaterG||0).toFixed(0)}→${Number(stage.stageWaterG||0).toFixed(0)}g`);
+    if(Math.abs(Number(stage.temperatureC||0)-Number(old.temperatureC||0))>=.4)changes.push(`温度 ${Number(old.temperatureC||0).toFixed(1)}→${Number(stage.temperatureC||0).toFixed(1)}°C`);
+    if(Math.abs(Number(stage.flowGPerSec||0)-Number(old.flowGPerSec||0))>=.1)changes.push(`流速 ${Number(old.flowGPerSec||0).toFixed(1)}→${Number(stage.flowGPerSec||0).toFixed(1)}g/s`);
+    return changes.length?`第${stage.index||index+1}段：${changes.join('，')}`:'';
+  }).filter(Boolean).slice(0,4);
+}
+
+async function buildAuthoritativeOptimizationDraft(record,session) {
+  const sourceInput=structuredClone(session?.normalizedInput||session?.rawInput||{});
+  const sourcePlan=session?.analysisSnapshot?.plan ? adaptAuthoritativePlan(session.analysisSnapshot) : session;
+  if(!sourceInput?.brew||!sourcePlan)throw new Error('原冲煮记录缺少完整方案上下文');
+  const localDraft=await buildCorrectedPlan(sourceInput,record,sourcePlan);
+  const authoritative=await requestPrivatePlan(state.settings.brew.apiEndpoint,localDraft.input);
+  return { ...authoritative, id:uid('draft'), beanId:record.beanId, createdAt:new Date().toISOString(), input:localDraft.input, sourceHistoryId:session.id, sourceSensoryId:record.id, optimizationStatus:'pending-validation', correction:{ ...(localDraft.correction||{}), assessment:structuredClone(record.optimizationAssessment) } };
+}
+
+async function openBrewOptimizationOffer(record,session) {
+  const assessment=record.optimizationAssessment;
+  let draft=null, failure=null;
+  try { draft=await buildAuthoritativeOptimizationDraft(record,session); }
+  catch(error){ failure=error; }
+  const sourcePlan=session?.analysisSnapshot?.plan?adaptAuthoritativePlan(session.analysisSnapshot):session;
+  const changes=draft?optimizationStageDiff(sourcePlan,draft):[];
+  const content=`${dialogHeader('发现可优化项目',assessment.reason,{centered:true})}<div class="optimization-issue-list">${optimizationIssueRows(assessment)}</div>${draft?`<section class="optimization-proposal"><h3>下次冲煮建议</h3>${(draft.correction?.changes||[]).map(value=>`<p>${esc(value)}</p>`).join('')}${changes.map(value=>`<p><strong>${esc(value)}</strong></p>`).join('')}<small>原方案、粉量及未列出的条件保持不变；该建议需要下一次冲煮和品鉴验证。</small></section>`:`<p class="status-bad">优化方案计算失败：${esc(failure?.message||'未知错误')}</p>`}<div class="row menu-row"><button id="applyOptimizationDraftBtn" class="button primary" type="button"${draft?'':' disabled'}>保存并用于下次冲煮</button><button id="recordSensoryOnlyBtn" class="button" type="button">仅保存品鉴</button>${failure?'<button id="retryOptimizationBtn" class="button" type="button">重新计算建议</button>':''}</div>`;
+  const overlay=showOverlay(content,{id:'post-tasting-optimization',backdropClose:false});
+  $('#recordSensoryOnlyBtn')?.addEventListener('click',()=>{closeOverlay();switchPage('beans');requestAnimationFrame(()=>detailBean(record.beanId));toast('品鉴已保存，未生成冲煮优化','status-good');});
+  $('#retryOptimizationBtn')?.addEventListener('click',()=>openBrewOptimizationOffer(record,session));
+  $('#applyOptimizationDraftBtn')?.addEventListener('click',async event=>{event.currentTarget.disabled=true;try{await attachOptimizationDraft({recordId:session.id,sensoryRecordId:record.id,nextPlanDraft:draft,assessment});await refreshData();closeOverlay();switchPage('beans');requestAnimationFrame(()=>detailBean(record.beanId));toast('优化建议已写入豆卡，等待下次冲煮验证','status-good');}catch(error){event.currentTarget.disabled=false;toast(error.message||'优化建议保存失败','status-bad');}});
+  return overlay;
 }
 
 function openSensoryRecordsPage() {

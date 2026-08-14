@@ -83,3 +83,63 @@ export async function attachSensoryToCompletedBrew({ recordId, sensoryRecord, ne
     throw error;
   }
 }
+
+export async function attachOptimizationDraft({ recordId, sensoryRecordId, nextPlanDraft, assessment }) {
+  if (!recordId || !sensoryRecordId || !nextPlanDraft?.id) throw new Error('冲煮优化记录不完整');
+  const db = await openDb();
+  const tx = db.transaction(['brewSessions','sensoryRecords','historyRevisions','syncOutbox'],'readwrite');
+  const sessions=tx.objectStore('brewSessions'), sensory=tx.objectStore('sensoryRecords');
+  const revisions=tx.objectStore('historyRevisions'), outbox=tx.objectStore('syncOutbox');
+  try {
+    const record=await requestValue(sessions.get(recordId));
+    const sensoryRecord=await requestValue(sensory.get(sensoryRecordId));
+    if (!record || record.schemaVersion!==BREW_HISTORY_SCHEMA || !sensoryRecord) { tx.abort(); throw new Error('冲煮或品鉴记录不存在'); }
+    const at=new Date().toISOString(), revision=Number(record.revision||1)+1, revisionId=`${record.id}:revision:${revision}`;
+    const draft={ ...structuredClone(nextPlanDraft), optimizationStatus:'pending-validation', sourceHistoryId:record.id, sourceSensoryId:sensoryRecord.id, createdAt:nextPlanDraft.createdAt||at };
+    const next={ ...record, nextPlanDraft:draft, correctedPlanId:draft.id, optimizationAssessment:structuredClone(assessment||sensoryRecord.optimizationAssessment||null), revision, revisionHeadId:revisionId, updatedAt:at, syncState:'pending' };
+    sensory.put({ ...sensoryRecord, correctedPlanId:draft.id, optimizationStatus:'pending-validation', updatedAt:at });
+    sessions.put(next);
+    revisions.put({ id:revisionId, brewSessionId:record.id, revision, kind:'optimization-draft-created', snapshot:structuredClone(next), createdAt:at });
+    outbox.put({ id:`${record.id}:outbox:${revision}`, entity:'brewSessions', entityId:record.id, operation:'upsert', payload:structuredClone(next), createdAt:at, attempts:0 });
+    await transactionDone(tx);
+    document.dispatchEvent(new CustomEvent('luckybean:data-changed',{detail:{store:'brewSessions',operation:'optimization-draft-created',recordId:record.id,at}}));
+    return { record:next, sensoryRecord, draft };
+  } catch(error) { try{tx.abort();}catch{} throw error; }
+}
+
+export async function completeOptimizationValidation({ validation, newSensoryRecord }) {
+  const sourceHistoryId=String(validation?.sourceHistoryId||'');
+  const sourceSensoryId=String(validation?.sourceSensoryId||'');
+  if (!sourceHistoryId || !newSensoryRecord?.id) return null;
+  const db=await openDb();
+  const tx=db.transaction(['brewSessions','sensoryRecords','historyRevisions','syncOutbox'],'readwrite');
+  const sessions=tx.objectStore('brewSessions'), sensory=tx.objectStore('sensoryRecords');
+  const revisions=tx.objectStore('historyRevisions'), outbox=tx.objectStore('syncOutbox');
+  try {
+    const source=await requestValue(sessions.get(sourceHistoryId));
+    if (!source?.nextPlanDraft || (sourceSensoryId && source.nextPlanDraft.sourceSensoryId!==sourceSensoryId)) {
+      tx.abort(); return null;
+    }
+    const originalKeys=new Set((source.optimizationAssessment?.issues||source.nextPlanDraft.correction?.assessment?.issues||[]).map(issue=>issue.key));
+    const repeated=(newSensoryRecord.optimizationAssessment?.issues||[]).map(issue=>issue.key).filter(key=>originalKeys.has(key));
+    const executionReliable=newSensoryRecord.optimizationAssessment?.executionReliable!==false;
+    const status=!executionReliable?'inconclusive':repeated.length===0?'effective':repeated.length<originalKeys.size?'partially-effective':'ineffective';
+    const at=new Date().toISOString(), revision=Number(source.revision||1)+1, revisionId=`${source.id}:revision:${revision}`;
+    const validationResult={
+      contract:'brew-optimization-validation/1.0', status, validatedAt:at,
+      sourceHistoryId:source.id, sourceSensoryId:sourceSensoryId||source.nextPlanDraft.sourceSensoryId,
+      validationHistoryId:String(newSensoryRecord.brewSessionId||''), validationSensoryId:newSensoryRecord.id,
+      originalIssueKeys:[...originalKeys], repeatedIssueKeys:repeated,
+      reason:!executionReliable?'本次实际执行存在明显偏差，不能可靠判断方案效果。':repeated.length===0?'原低分维度未再次出现。':`仍出现：${repeated.join('、')}`
+    };
+    const draft={...source.nextPlanDraft,optimizationStatus:status,validationResult};
+    const next={...source,nextPlanDraft:draft,optimizationValidation:validationResult,revision,revisionHeadId:revisionId,updatedAt:at,syncState:'pending'};
+    sessions.put(next);
+    sensory.put({...newSensoryRecord,optimizationValidation:validationResult,updatedAt:at});
+    revisions.put({id:revisionId,brewSessionId:source.id,revision,kind:'optimization-validated',snapshot:structuredClone(next),createdAt:at});
+    outbox.put({id:`${source.id}:outbox:${revision}`,entity:'brewSessions',entityId:source.id,operation:'upsert',payload:structuredClone(next),createdAt:at,attempts:0});
+    await transactionDone(tx);
+    document.dispatchEvent(new CustomEvent('luckybean:data-changed',{detail:{store:'brewSessions',operation:'optimization-validated',recordId:source.id,at}}));
+    return validationResult;
+  } catch(error) { try{tx.abort();}catch{} throw error; }
+}

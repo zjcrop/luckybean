@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zjcrop.github.io/luckybean/contracts/brew-optimization-validation-v1.schema.json",
+  "title": "LuckyBean brew optimization validation",
+  "type": "object",
+  "required": ["contract", "status", "sourceHistoryId", "validationHistoryId", "originalIssueKeys", "repeatedIssueKeys"],
+  "properties": {
+    "contract": { "const": "brew-optimization-validation/1.0" },
+    "status": { "enum": ["effective", "partially-effective", "ineffective", "inconclusive"] },
+    "sourceHistoryId": { "type": "string", "minLength": 1 },
+    "sourceSensoryId": { "type": "string" },
+    "validationHistoryId": { "type": "string", "minLength": 1 },
+    "validationSensoryId": { "type": "string", "minLength": 1 },
+    "originalIssueKeys": { "type": "array", "items": { "type": "string" } },
+    "repeatedIssueKeys": { "type": "array", "items": { "type": "string" } },
+    "validatedAt": { "type": "string", "format": "date-time" },
+    "reason": { "type": "string" }
+  },
+  "additionalProperties": true
+}
+
