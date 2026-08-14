@@ -25,6 +25,7 @@ assert.match(controller, /data-lb-freshness-timeline/);
 assert.match(groupController, /按赏味期阶段/);
 assert.match(canonicalGroups, /luckybean:app-refreshed/);
 assert.match(canonicalGroups, /render\(\{ force: true, refreshData: true \}\)/);
+assert.match(canonicalGroups, /LuckyBeanFreshnessTimeline\?\.refresh\?\.\(\)/, 'the single group renderer must explicitly decorate every completed card render');
 assert.doesNotMatch(controller, /data-lb-freshness-group-option/);
 assert.doesNotMatch(controller, /container\.innerHTML|data-lb-freshness-root/);
 assert.match(controller, /render: refreshTimelineCards/);

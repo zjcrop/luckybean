@@ -199,6 +199,7 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
     } finally {
       rendering = false;
       container.classList.remove('v099t-group-busy');
+      globalThis.LuckyBeanFreshnessTimeline?.refresh?.();
     }
   }
 
