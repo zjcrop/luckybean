@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 const BASE_URL = 'http://127.0.0.1:4173';
 
-test('cupping actions stay one row in cancel-next-previous order with equal sizing', async ({ page }) => {
+test('cupping actions stay one row in cancel-previous-next order with equal sizing', async ({ page }) => {
   await page.goto(`${BASE_URL}/?sensory-actions=1`, { waitUntil:'domcontentloaded' });
   await page.setViewportSize({ width:360, height:740 });
   await page.evaluate(() => {
@@ -11,7 +11,10 @@ test('cupping actions stay one row in cancel-next-previous order with equal sizi
     actions.innerHTML = '<button class="button subtle" data-v095-cancel>取消品鉴</button><button class="button" data-v095-prev>上一步</button><button class="button primary" data-v095-next>下一步</button>';
     document.body.append(actions);
   });
-  const nodes = [page.locator('[data-v095-cancel]'), page.locator('[data-v095-next]'), page.locator('[data-v095-prev]')];
+  const nodes = [page.locator('[data-v095-cancel]'), page.locator('[data-v095-prev]'), page.locator('[data-v095-next]')];
+  await expect(nodes[0]).toHaveText('取消品鉴');
+  await expect(nodes[1]).toHaveText('上一步');
+  await expect(nodes[2]).toHaveText('下一步');
   const boxes = await Promise.all(nodes.map(node => node.boundingBox()));
   expect(boxes.every(Boolean)).toBeTruthy();
   expect(boxes[0].x).toBeLessThan(boxes[1].x);
