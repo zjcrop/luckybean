@@ -296,6 +296,18 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
 
   window.addEventListener('click', event => { handleClick(event).catch(error => console.error('豆藏分组处理失败', error)); }, true);
   window.addEventListener('pageshow', () => { getMode().then(mode => { if ([MODE_FRESHNESS, MODE_REMAINING].includes(mode) && $('#pageBeans.active')) setTimeout(() => { captureBoard(); render({ force: true, refreshData: true }).catch(() => {}); }, 80); }).catch(() => {}); });
+  document.addEventListener('luckybean:app-refreshed', () => {
+    invalidateData();
+    getMode().then(mode => {
+      if (![MODE_FRESHNESS, MODE_REMAINING].includes(mode) || !$('#pageBeans.active')) return;
+      setTimeout(() => {
+        captureBoard();
+        const container = $('#beanGroups'); if (container) delete container.dataset.v099tGroupKey;
+        render({ force: true, refreshData: true }).catch(error => console.warn('豆藏分组刷新失败', error));
+      }, 0);
+    }).catch(() => {});
+  });
+  document.addEventListener('luckybean:data-changed', () => { invalidateData(); });
 
   const prewarm = () => loadData().catch(() => {});
   if ('requestIdleCallback' in globalThis) requestIdleCallback(prewarm, { timeout: 1600 }); else setTimeout(prewarm, 600);
