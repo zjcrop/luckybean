@@ -1,7 +1,7 @@
-// LuckyBean 1.23E main-sync.7: post-tasting optimization and deterministic spatial trends.
-const REVISION = '1.23E-main-sync.7';
+// LuckyBean 1.23E main-sync.8: canonical cupping navigation and post-tasting optimization.
+const REVISION = '1.23E-main-sync.8';
 const CACHE_PREFIX = 'luckybean-main-v123e-';
-const CACHE_NAME = `${CACHE_PREFIX}main-sync-7`;
+const CACHE_NAME = `${CACHE_PREFIX}main-sync-8`;
 const LEGACY_CACHE_PREFIXES = [
   'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
   'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',

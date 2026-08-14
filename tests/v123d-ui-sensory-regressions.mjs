@@ -9,6 +9,7 @@ const app = read('src/app.js');
 const styles = read('styles.css');
 const layout = read('src/ui/app-layout.css');
 const sensoryCss = read('src/ui/professional-sensory.css');
+const sensoryActionsCss = read('src/ui/sensory-wizard-actions.css');
 
 assert.match(read('src/utils.js'), /APP_VERSION = '1\.23E'/, 'the locked app version must be 1.23E');
 
@@ -25,6 +26,9 @@ assert.doesNotMatch(voice, /MutationObserver/, 'voice settings must be event-dri
 assert.match(sensory, /const SCORE_STEP = STEPS\.length \+ 1/, 'professional cupping must include a dedicated score step');
 assert.match(sensory, /打分总结/, 'the score summary UI must be present');
 assert.match(sensory, /data-v095-cancel>取消品鉴/, 'cancel must remain available throughout the workflow');
+assert.match(sensory, /data-v095-cancel>[\s\S]*data-v095-prev[\s\S]*>上一步<[\s\S]*data-v095-next/, 'every professional step must keep cancel, previous and next in semantic order');
+assert.match(sensoryActionsCss, /\[data-v095-prev\]\s*\{[\s\S]*?grid-column:\s*2/, 'previous must occupy the centered action column');
+assert.match(sensoryActionsCss, /\[data-v095-next\]\s*\{[\s\S]*?grid-column:\s*3/, 'next must occupy the rightmost action column');
 const defectHandler = sensory.match(/\$\$\('\[data-v095-defect-group\]'[\s\S]*?\n  \}\)\);/)?.[0] || '';
 assert.ok(defectHandler, 'defect interaction handler must exist');
 assert.doesNotMatch(defectHandler, /renderWizard\(\)/, 'defect selection must not rebuild the overlay and jump its scroll position');

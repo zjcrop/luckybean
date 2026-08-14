@@ -25,12 +25,12 @@
   grid-row: 1;
 }
 
-.v095-wizard-actions [data-v095-next] {
+.v095-wizard-actions [data-v095-prev] {
   grid-column: 2;
   grid-row: 1;
 }
 
-.v095-wizard-actions [data-v095-prev] {
+.v095-wizard-actions [data-v095-next] {
   grid-column: 3;
   grid-row: 1;
 }
@@ -55,8 +55,8 @@
   }
 
   .v095-wizard-actions [data-v095-cancel] { grid-column: 1; }
-  .v095-wizard-actions [data-v095-next] { grid-column: 2; }
-  .v095-wizard-actions [data-v095-prev] { grid-column: 3; }
+  .v095-wizard-actions [data-v095-prev] { grid-column: 2; }
+  .v095-wizard-actions [data-v095-next] { grid-column: 3; }
 }
 
 @media (max-width: 360px) {
