@@ -55,6 +55,14 @@ async function mode() {
 function placeholderCard(bean) { return `<article class="bean-card compact lb-one-line-bean" data-bean-id="${esc(bean.id)}" tabindex="0"></article>`; }
 
 async function renderFreshnessGroups() {
+  // The canonical bean-groups controller owns container replacement. This module
+  // only decorates its cards; two render owners race and can replace a complete
+  // card with a placeholder after the user opens a group.
+  if (globalThis.LuckyBeanV099tBeanGroups) {
+    await refreshBeanMap();
+    queueDecorate();
+    return;
+  }
   if (rendering || await mode() !== MODE_RATIO) return;
   const page = $('#pageBeans.active');
   const container = $('#beanGroups');

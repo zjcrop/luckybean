@@ -27,6 +27,7 @@ assert.match(canonicalGroups, /luckybean:app-refreshed/);
 assert.match(canonicalGroups, /render\(\{ force: true, refreshData: true \}\)/);
 assert.doesNotMatch(controller, /data-lb-freshness-group-option/);
 assert.match(controller, /data-lb-freshness-root class="empty-state"/);
+assert.match(controller, /globalThis\.LuckyBeanV099tBeanGroups/);
 assert.doesNotMatch(controller, /document\.head\.append|attributes:\s*true|attributeFilter|observe\(document\.body/);
 assert.match(controller, /beanObserver\.observe\(root, \{ childList: true, subtree: true \}\)/);
 assert.match(components, /\.bean-freshness-progress \{ display: block/);

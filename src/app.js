@@ -2487,6 +2487,7 @@ function renderSettings() {
   $$('[data-grinder-item]').forEach(button=>button.addEventListener('click',()=>openAddGrinderDialog(button.dataset.grinderItem)));
   $('#settingsExportBtn').addEventListener('click',exportData); $('#settingsImportBtn').addEventListener('click',()=>$('#importInput').click());
   $('#clearAllDataBtn').addEventListener('click',confirmClearAll); bindControlStates($('#settingsContent'));
+  requestAnimationFrame(() => document.dispatchEvent(new CustomEvent('luckybean:settings-rendered')));
 }
 
 async function updateCodebook() {

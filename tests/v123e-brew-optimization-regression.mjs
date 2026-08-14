@@ -13,6 +13,7 @@ assert.doesNotMatch(optimizer,/score\s*<\s*80/);
 assert.match(engine,/previousPlan\?\.profile\?\.id/);
 assert.match(app,/completeOptimizationValidation/);
 assert.match(app,/data-load-optimization/);
+assert.match(app,/new CustomEvent\('luckybean:settings-rendered'\)/);
 assert.match(history,/optimization-validated/);
 assert.match(coordinator,/latest:\s*revision\s*===\s*this\.revision/);
 assert.match(controller,/retryLastRender/);
