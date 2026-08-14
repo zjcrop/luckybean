@@ -25,7 +25,7 @@ const obsoleteGearEditorTitle = 'private gear uses three closed, aligned list ed
 const args = [
   'playwright', 'test', ...specs,
   '--grep-invert', obsoleteGearEditorTitle,
-  '--browser=chromium', '--reporter=line'
+  '--browser=chromium', '--reporter=line', '--workers=1'
 ];
 const result = spawnSync('npx', args, { encoding: 'utf8', env: process.env, maxBuffer: 16 * 1024 * 1024, shell: process.platform === 'win32' });
 if (result.stdout) process.stdout.write(result.stdout);
