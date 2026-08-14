@@ -29,19 +29,27 @@ public final class LuckyBeanApplication extends Application {
     }
 
     private void warmRecognitionRuntime() {
-        Bitmap bitmap = null;
         try {
             chineseRecognizer = TextRecognition.getClient(new ChineseTextRecognizerOptions.Builder().build());
             latinRecognizer = TextRecognition.getClient(new TextRecognizerOptions.Builder().build());
-            bitmap = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888);
+            final Bitmap bitmap = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888);
             bitmap.eraseColor(Color.WHITE);
             InputImage input = InputImage.fromBitmap(bitmap, 0);
             Tasks.whenAllComplete(chineseRecognizer.process(input), latinRecognizer.process(input))
-                .addOnCompleteListener(ignored -> Log.i(TAG, "Bundled OCR runtime warmed in background"));
+                .addOnCompleteListener(ignored -> {
+                    if (!bitmap.isRecycled()) bitmap.recycle();
+                    Log.i(TAG, "Bundled OCR runtime warmed in background");
+                });
         } catch (Exception error) {
             Log.w(TAG, "OCR background warm-up failed", error);
-        } finally {
-            if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
         }
+    }
+
+    @Override
+    public void onTerminate() {
+        if (chineseRecognizer != null) chineseRecognizer.close();
+        if (latinRecognizer != null) latinRecognizer.close();
+        if (warmupThread != null) warmupThread.quitSafely();
+        super.onTerminate();
     }
 }
