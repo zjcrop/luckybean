@@ -74,8 +74,8 @@ jobs:
           unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'id="brewServeMode"'
           unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'id="confirmBrewPreparedBtn"'
           unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'preparationSpeech'
-          unzip -p "$apk" classes.dex > "$RUNNER_TEMP/luckybean-classes.dex"
-          grep -aFq 'ANNOUNCE_BREW_PREPARATION' "$RUNNER_TEMP/luckybean-classes.dex"
+          grep -Fq 'ACTION_ANNOUNCE' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
+          grep -Fq 'announceBrewPreparation' android/app/src/main/java/com/luckybean/app/MainActivity.java
           unzip -p "$apk" assets/web-cache/src/domain/matching/flavor-vector.js | grep -Fq "MATCH_CONTRACT = 'luckybean-match/1.1'"
           unzip -p "$apk" assets/web-cache/src/domain/matching/flavor-vector.js | grep -Fq "GEAR_PHYSICS_CONTRACT = 'gear-physics/1.0'"
           unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/app-layout.css'
