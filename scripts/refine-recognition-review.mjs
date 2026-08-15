@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 
+// Trigger after workflow registration on the default branch.
 function replaceOnce(text, before, after, label) {
   if (text.includes(after)) return text;
   const count = text.split(before).length - 1;
@@ -25,17 +26,14 @@ app = replaceOnce(app,
   return rows ? \`<section class="panel" data-recognition-review="pending"><div class="panel-title"><div><h3>待确认识别项</h3><p>仅保留尚未解决的字段；确认完成后本区自动消失</p></div></div><div class="text-evidence">\${rows}</div></section>\` : '';
 }`,
 'review-only evidence renderer');
-
 app = replaceOnce(app,
 "      ${source.showRecognitionEvidence === true && source.evidence ? evidenceHtml(source.evidence, source.confidence) : ''}",
 "      ${source.evidence ? evidenceHtml(source.evidence, source.confidence, source.parseMetadata?.recognition?.reviewFields || []) : ''}",
 'render only unresolved recognition fields');
-
 app = replaceOnce(app,
 "  openBeanForm(merged, { type: 'text', text: sourceText, recognitionDocument, evidence: parsed.evidence, confidence: parsed.confidence, parseMetadata: parsed.parseMetadata, showRecognitionEvidence: false });",
 "  openBeanForm(merged, { type: 'text', text: sourceText, recognitionDocument, evidence: parsed.evidence, confidence: parsed.confidence, parseMetadata: parsed.parseMetadata });",
 'remove obsolete all-or-nothing evidence flag');
-
 app = replaceOnce(app,
 `      if (select.value === CUSTOM_BEAN_OPTION_VALUE) {
         select.value = select.dataset.previousValue || '';
@@ -49,6 +47,5 @@ app = replaceOnce(app,
         return;
       }`,
 'stable custom option event ordering');
-
 fs.writeFileSync(path, app);
 console.log('Refined recognition review and custom option event ordering.');
