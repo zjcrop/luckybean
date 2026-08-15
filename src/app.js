@@ -981,7 +981,7 @@ function beanFormHtml(bean = {}, source = {}) {
         ${fieldHtml('beanNotes','备注',`<input id="beanNotes" class="control" maxlength="300" value="${esc(bean.notes || '')}">`)}
       </div>
       <section class="panel"><div class="panel-title"><div><h3>风味标签</h3><p>${state.codebook.flavors?.length || 0}项可用</p></div><button id="editFlavorsBtn" class="button" type="button">编辑</button></div><div id="formFlavorSummary" class="flavor-summary">${flavors.map(code=>`<span class="tag" data-summary-code="${esc(code)}">${esc(codeName('flavors',code,code))}</span>`).join('') || '<span class="muted small">尚未选择</span>'}</div></section>
-      ${source.showRecognitionEvidence === true && source.evidence ? evidenceHtml(source.evidence, source.confidence) : ''}
+      ${source.evidence ? evidenceHtml(source.evidence, source.confidence, source.parseMetadata?.recognition?.reviewFields || []) : ''}
       <div class="row"><button id="beanFormBackBtn" class="button subtle" type="button">返回</button><span class="grow"></span><button class="button primary" type="submit">保存</button></div>
     </form>`;
 }
@@ -991,10 +991,14 @@ function fieldHtml(id, label, control, level = '') {
   return `<div class="form-field${level === 'required' ? ' required' : ''}${level === 'recommended' ? ' is-recommended' : ''}" data-field="${id}"><label for="${id}"><span>${label}</span>${badge}</label>${control}</div>`;
 }
 
-function evidenceHtml(evidence = {}, confidence = {}) {
+function evidenceHtml(evidence = {}, confidence = {}, reviewFields = []) {
   const labels = { countryCode:'国家',regionCode:'产区',entityCode:'庄园/处理站',varietyCode:'豆种',processCode:'处理法',roastCode:'烘焙度',roastDate:'烘焙日期',harvestYear:'产季',roastColor:'烘焙色值',roasterName:'烘焙商',altitude:'海拔',initialWeight:'初始克重',price:'价格' };
-  const rows = Object.entries(evidence).map(([key, value]) => `<div class="evidence-row"><span>${esc(labels[key]||key)}</span><span>${esc(value)}</span><span>${Math.round((confidence[key]||0)*100)}%</span></div>`).join('');
-  return rows ? `<section class="panel"><div class="panel-title"><div><h3>识别证据</h3><p>低置信度字段请人工确认</p></div></div><div class="text-evidence">${rows}</div></section>` : '';
+  const pending = new Set(Array.isArray(reviewFields) ? reviewFields.map(String) : []);
+  const rows = Object.entries(evidence)
+    .filter(([key]) => pending.has(key))
+    .map(([key, value]) => `<div class="evidence-row" data-evidence-field="${esc(key)}" data-evidence-value="${esc(String(value))}"><span>${esc(labels[key]||key)}</span><span>${esc(value)}</span><span>${Math.round((confidence[key]||0)*100)}%</span></div>`)
+    .join('');
+  return rows ? `<section class="panel" data-recognition-review="pending"><div class="panel-title"><div><h3>待确认识别项</h3><p>仅保留尚未解决的字段；确认完成后本区自动消失</p></div></div><div class="text-evidence">${rows}</div></section>` : '';
 }
 
 function customCodeRow(record) {
@@ -1059,8 +1063,9 @@ function openBeanForm(bean = {}, source = { type: 'manual' }) {
     select.dataset.previousValue = select.value;
     select.addEventListener('change', () => {
       if (select.value === CUSTOM_BEAN_OPTION_VALUE) {
+        const draft = captureBeanFormDraft();
         select.value = select.dataset.previousValue || '';
-        openAddBeanOptionDialog(table, captureBeanFormDraft());
+        queueMicrotask(() => openAddBeanOptionDialog(table, draft));
         return;
       }
       select.dataset.previousValue = select.value;
@@ -1179,7 +1184,7 @@ function finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, 
   } : null;
   const merged = overwrite ? { ...existing, ...parsed } : { ...parsed, ...Object.fromEntries(Object.entries(existing).filter(([, value]) => value !== '' && value !== null && value !== undefined)) };
   merged.name = merged.name || [codeName('countries', merged.countryCode, ''), codeName('varieties', merged.varietyCode, '')].filter(Boolean).join(' ') || '新豆卡';
-  openBeanForm(merged, { type: 'text', text: sourceText, recognitionDocument, evidence: parsed.evidence, confidence: parsed.confidence, parseMetadata: parsed.parseMetadata, showRecognitionEvidence: false });
+  openBeanForm(merged, { type: 'text', text: sourceText, recognitionDocument, evidence: parsed.evidence, confidence: parsed.confidence, parseMetadata: parsed.parseMetadata });
 }
 
 function openRecognitionDateReview({ parsed, sourceText, existingDraft, overwrite, dateDecision, recognitionDocument }) {
