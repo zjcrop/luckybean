@@ -23,7 +23,8 @@ const tests = [
   'tests/v123e-small-brew-five-row-regression.mjs',
   'tests/v123e-ui-stability-static.mjs',
   'tests/v123e-navigation-back-static.mjs',
-  'tests/v123e-brew-optimization-regression.mjs'
+  'tests/v123e-brew-optimization-regression.mjs',
+  'tests/v123e-recognition-pipeline-static.mjs'
 ];
 
 function annotation(text) {

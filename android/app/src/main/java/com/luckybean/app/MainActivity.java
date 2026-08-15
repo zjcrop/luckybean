@@ -33,10 +33,7 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.Text;
-import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
-import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions;
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -84,8 +81,9 @@ public final class MainActivity extends Activity {
         setContentView(webView);
         webView.post(this::enterImmersiveMode);
 
-        chineseTextRecognizer = TextRecognition.getClient(new ChineseTextRecognizerOptions.Builder().build());
-        latinTextRecognizer = TextRecognition.getClient(new TextRecognizerOptions.Builder().build());
+        LuckyBeanApplication recognitionRuntime = (LuckyBeanApplication) getApplication();
+        chineseTextRecognizer = recognitionRuntime.chineseRecognizer();
+        latinTextRecognizer = recognitionRuntime.latinRecognizer();
         configureWebView();
         registerSystemBackCallback();
         if (savedInstanceState == null) {
@@ -658,8 +656,6 @@ public final class MainActivity extends Activity {
     protected void onDestroy() {
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         cleanupUnusedCameraOutput(null);
-        if (chineseTextRecognizer != null) chineseTextRecognizer.close();
-        if (latinTextRecognizer != null) latinTextRecognizer.close();
         synchronized (recognitionSourceLock) {
             pendingRecognitionUris.clear();
             recognitionUriByImageId.clear();

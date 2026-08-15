@@ -368,10 +368,19 @@ function recordMatch(result, field, match, labeled = false) {
 
 export function parseNaturalLanguage(text, book) {
   const source = String(text || '').trim();
-  const lower = source.toLocaleLowerCase('zh-CN');
-  const normalizedCodes = normalizeCodeSource(source);
   const labeled = labeledFieldValues(source, book);
+  // Once a line has an explicit field label, its value belongs only to that field.
+  // Global inference is restricted to genuinely unlabelled lines so a region cannot
+  // also become a station and a variety number cannot become weight or altitude.
+  const unlabelledSource = source.split(/\n+/)
+    .map(line => line.trim())
+    .filter(line => line && !/^[^:：]{1,48}[:：]/.test(line))
+    .join('\n');
+  const inferenceSource = Object.keys(labeled).length ? unlabelledSource : source;
+  const lower = inferenceSource.toLocaleLowerCase('zh-CN');
+  const normalizedCodes = normalizeCodeSource(inferenceSource);
   const result = { confidence: {}, evidence: {}, parseMetadata: {}, sourceText: source };
+  const usedAliases = new Set();
   const definitions = [
     ['countries', 'countryCode', 'country', 'countryCustomName'],
     ['regions', 'regionCode', 'region', 'regionCustomName'],
@@ -410,10 +419,13 @@ export function parseNaturalLanguage(text, book) {
         }
       }
     }
+    const aliasKey = normalizeLabelValue(best?.alias).toLocaleLowerCase('zh-CN');
+    if (aliasKey && usedAliases.has(aliasKey)) best = null;
     recordMatch(result, field, best, false);
+    if (best && aliasKey) usedAliases.add(aliasKey);
   }
 
-  const roastSource = labeled.roast || source;
+  const roastSource = labeled.roast || inferenceSource;
   const roastMap = [
     [/极浅|超浅|lightest/i, 'RL-L0'], [/浅中|medium\s*light/i, 'RL-L2'], [/浅烘|浅度|light/i, 'RL-L1'],
     [/中深|medium\s*dark/i, 'RL-L4'], [/中烘|中度|medium/i, 'RL-L3'], [/极深|法式|very\s*dark/i, 'RL-L6'], [/深烘|深度|dark/i, 'RL-L5']
@@ -471,21 +483,25 @@ export function parseNaturalLanguage(text, book) {
     result.evidence.roasterName = labeled.roaster;
   }
 
-  const altitudeSource = labeled.altitude || source;
-  const altitude = altitudeSource.match(/(\d{3,4})\s*(?:m|米)?/i);
+  const altitudeSource = labeled.altitude || inferenceSource;
+  const altitude = labeled.altitude
+    ? altitudeSource.match(/(\d{3,4})(?:\s*[-~至到]\s*\d{3,4})?\s*(?:m|米|masl)?/i)
+    : altitudeSource.match(/(\d{3,4})(?:\s*[-~至到]\s*\d{3,4})?\s*(?:m(?:asl)?\b|米)/i);
   if (altitude) {
     result.altitude = Number(altitude[1]);
     result.confidence.altitude = labeled.altitude ? 0.97 : 0.85;
     result.evidence.altitude = labeled.altitude || altitude[0];
   }
-  const weightSource = labeled.weight || source;
-  const weight = weightSource.match(/(\d{2,4}(?:\.\d+)?)\s*(?:g|克)?/i);
+  const weightSource = labeled.weight || inferenceSource;
+  const weight = labeled.weight
+    ? weightSource.match(/(\d{1,5}(?:\.\d+)?)\s*(?:g|克|grams?)?/i)
+    : weightSource.match(/(\d{1,5}(?:\.\d+)?)\s*(?:g(?:rams?)?\b|克)/i);
   if (weight) {
     result.initialWeight = Number(weight[1]);
     result.confidence.initialWeight = labeled.weight ? 0.95 : 0.8;
     result.evidence.initialWeight = labeled.weight || weight[0];
   }
-  const priceSource = labeled.price || source;
+  const priceSource = labeled.price || inferenceSource;
   const price = priceSource.match(/[¥￥]?\s*(\d+(?:\.\d+)?)/);
   if (labeled.price && price) {
     result.price = Number(price[1]);
@@ -493,9 +509,10 @@ export function parseNaturalLanguage(text, book) {
     result.evidence.price = labeled.price;
   }
 
-  const flavorSource = labeled.flavor || source;
+  const flavorSource = labeled.flavor || inferenceSource;
   const flavorLower = flavorSource.toLocaleLowerCase('zh-CN');
   const flavorMatches = [];
+  const matchedFlavorAliases = [];
   let residue = flavorSource;
   for (const row of book.flavors || []) {
     const direct = directCodeMatch(normalizeCodeSource(flavorSource), [row]);
@@ -511,8 +528,11 @@ export function parseNaturalLanguage(text, book) {
     const matchedAlias = aliases.sort((a, b) => b.length - a.length).find(alias => alias.length >= 2 && flavorLower.includes(alias.toLocaleLowerCase('zh-CN')));
     if (matchedAlias) {
       flavorMatches.push(row[0]);
-      residue = residue.replaceAll(matchedAlias, ' ');
+      matchedFlavorAliases.push(matchedAlias);
     }
+  }
+  for (const alias of [...new Set(matchedFlavorAliases)].sort((a, b) => b.length - a.length)) {
+    residue = residue.replace(new RegExp(escapeRegex(alias), 'gi'), ' ');
   }
   result.flavorCodes = [...new Set(flavorMatches)].slice(0, 12);
   if (labeled.flavor) {

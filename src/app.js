@@ -1,6 +1,6 @@
 import { APP_VERSION, SCHEMA_VERSION, $, $$, uid, esc, clamp, todayISO, formatDate, freshness, freshnessProfile, downloadBlob, safeJsonParse, assertPlainObject, assertSafeJson, browserTitle, parseNumber } from './utils.js';
 import { openDb, all, get, put, remove, bulkPut, getSetting, setSetting, clearAll, migrateLegacy } from './db.js';
-import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, parseNaturalLanguage, REMOTE_CODEBOOK_URL } from './codebook.js';
+import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, REMOTE_CODEBOOK_URL } from './codebook.js';
 import { CameraScanner, scanQrFile, decodeJsQrResult } from './qr.js';
 import { computeFallbackPlan, requestPrivatePlan, validatePlan, FALLBACK_ENGINE_VERSION, buildCorrectedPlan, listBrewProfiles, recommendProfile } from './brew-engine.js';
 import { brewProfileCatalogStatus } from './services/brew-profile-catalog-service.js';
@@ -23,6 +23,7 @@ import { renderProviderStatusPanel } from './ui/provider-status-panel.js';
 import './sensory-professional-controller.js';
 import { createPortableArchive, inspectPortableArchive, restorePortableArchive, MAX_ARCHIVE_BYTES } from './domain/archive/luckybean-archive-service.js';
 import { recognitionDocumentFromText } from './domain/recognition/recognition-document.js';
+import { analyzeRecognitionDocument } from './domain/recognition/recognition-pipeline.js';
 import { classifyRecognitionDates } from './domain/recognition/recognition-date-classifier.js';
 import { buildDateReviewModel, resolveDateReviewSelections } from './domain/recognition/recognition-date-review.js';
 
@@ -943,11 +944,11 @@ function openAddMenu() {
 function selectOptions(rows, selected, labelIndex = 1, blank = '请选择') { return optionsHtml(rows, selected, labelIndex, blank); }
 const CUSTOM_BEAN_OPTION_VALUE = '__custom__';
 const CUSTOM_BEAN_FIELDS = Object.freeze({
-  countries: { field: 'countryCode', title: '自定义国家', prefix: 'custom_country' },
-  regions: { field: 'regionCode', title: '自定义产区', prefix: 'custom_region', requiresCountry: true },
-  entities: { field: 'entityCode', title: '自定义庄园 / 处理站', prefix: 'custom_entity', requiresCountry: true },
-  varieties: { field: 'varietyCode', title: '自定义豆种', prefix: 'custom_variety' },
-  processes: { field: 'processCode', title: '自定义处理法', prefix: 'custom_process' }
+  countries: { field: 'countryCode', customField: 'countryCustomName', title: '自定义国家', prefix: 'custom_country' },
+  regions: { field: 'regionCode', customField: 'regionCustomName', title: '自定义产区', prefix: 'custom_region', requiresCountry: true },
+  entities: { field: 'entityCode', customField: 'entityCustomName', title: '自定义庄园 / 处理站', prefix: 'custom_entity', requiresCountry: true },
+  varieties: { field: 'varietyCode', customField: 'varietyCustomName', title: '自定义豆种', prefix: 'custom_variety' },
+  processes: { field: 'processCode', customField: 'processCustomName', title: '自定义处理法', prefix: 'custom_process' }
 });
 function beanSelectOptions(table, rows, selected, labelIndex = 1, blank = '请选择') {
   return `${selectOptions(rows, selected, labelIndex, blank)}<option value="${CUSTOM_BEAN_OPTION_VALUE}">自定义</option>`;
@@ -1008,7 +1009,8 @@ function openAddBeanOptionDialog(table, capturedDraft = null) {
   const beanDraft = capturedDraft || captureBeanFormDraft();
   const countryCode = String(beanDraft.countryCode || '');
   if (config.requiresCountry && !countryCode) return toast('请先选择国家', 'status-warn');
-  const overlay = showOverlay(`${dialogHeader(config.title, '自定义项目仅保存在本地，后续可与正式编码表归并', { centered: true, closable: false })}<label class="field"><span>名称 *</span><input id="customBeanOptionName" class="control" maxlength="80" autocomplete="off"></label><div class="row end"><button id="cancelCustomBeanOptionBtn" class="button subtle" type="button">返回</button><button id="saveCustomBeanOptionBtn" class="button primary" type="button">确定</button></div>`, { id: 'custom-bean-option' });
+  const suggestedName = String(beanDraft[config.customField] || '');
+  const overlay = showOverlay(`${dialogHeader(config.title, '自定义项目仅保存在本地，后续可与正式编码表归并', { centered: true, closable: false })}<label class="field"><span>名称 *</span><input id="customBeanOptionName" class="control" maxlength="80" autocomplete="off" value="${esc(suggestedName)}"></label><div class="row end"><button id="cancelCustomBeanOptionBtn" class="button subtle" type="button">返回</button><button id="saveCustomBeanOptionBtn" class="button primary" type="button">确定</button></div>`, { id: 'custom-bean-option' });
   $('#customBeanOptionName')?.focus();
   $('#cancelCustomBeanOptionBtn')?.addEventListener('click', () => openBeanForm(beanDraft, state.beanFormSource || { type: 'manual' }));
   $('#saveCustomBeanOptionBtn')?.addEventListener('click', async () => {
@@ -1081,7 +1083,7 @@ function openBeanForm(bean = {}, source = { type: 'manual' }) {
   if (formValue('beanRoastColor')) { $('#beanRoast').dataset.autoFromColor = 'true'; syncRoastColor(); }
   $('#editFlavorsBtn').addEventListener('click', () => openFlavorEditor(selectedSummaryCodes(), bean, source));
   $('#beanFormBackBtn').addEventListener('click', () => {
-    if (source.type === 'text') openTextRecognition(source.text || '', captureBeanFormDraft()); else closeOverlay();
+    if (source.type === 'text') openTextRecognition(source.text || '', captureBeanFormDraft(), source.recognitionDocument || null); else closeOverlay();
   });
   form.addEventListener('submit', async event => {
     event.preventDefault();
@@ -1143,7 +1145,7 @@ function openFlavorEditor(selected, bean, source) {
   $('#confirmFlavorsBtn').addEventListener('click', () => { draft.flavorCodes = selectedFlavorCodes(overlay); openBeanForm(draft, source); });
 }
 
-function finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, dateDecision, reviewResolution = null }) {
+function finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, dateDecision, recognitionDocument = null, reviewResolution = null }) {
   const existing = existingDraft || {};
   if (reviewResolution) {
     if (reviewResolution.roastDate) {
@@ -1177,7 +1179,7 @@ function finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, 
   } : null;
   const merged = overwrite ? { ...existing, ...parsed } : { ...parsed, ...Object.fromEntries(Object.entries(existing).filter(([, value]) => value !== '' && value !== null && value !== undefined)) };
   merged.name = merged.name || [codeName('countries', merged.countryCode, ''), codeName('varieties', merged.varietyCode, '')].filter(Boolean).join(' ') || '新豆卡';
-  openBeanForm(merged, { type: 'text', text: sourceText, evidence: parsed.evidence, confidence: parsed.confidence, parseMetadata: parsed.parseMetadata });
+  openBeanForm(merged, { type: 'text', text: sourceText, recognitionDocument, evidence: parsed.evidence, confidence: parsed.confidence, parseMetadata: parsed.parseMetadata });
 }
 
 function openRecognitionDateReview({ parsed, sourceText, existingDraft, overwrite, dateDecision, recognitionDocument }) {
@@ -1199,8 +1201,21 @@ function openRecognitionDateReview({ parsed, sourceText, existingDraft, overwrit
     const selections = $$('.date-review-row', overlay).map(row => ({ candidateId: row.dataset.dateCandidate, type: $('.date-review-type', row).value, value: $('.date-review-value', row).value }));
     const reviewResolution = resolveDateReviewSelections(dateDecision, selections);
     if (!reviewResolution.ok) return toast(reviewResolution.errors[0], 'status-bad');
-    finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, dateDecision, reviewResolution });
+    finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, dateDecision, recognitionDocument, reviewResolution });
   });
+}
+
+function processRecognitionDocument(recognitionDocument, { existingDraft = null, overwrite = true } = {}) {
+  const analysis = analyzeRecognitionDocument(recognitionDocument, state.codebook);
+  const sourceText = analysis.semanticText;
+  const parsed = analysis.parsed;
+  const dateDecision = classifyRecognitionDates(recognitionDocument);
+  if (dateDecision.reviewRequired) {
+    openRecognitionDateReview({ parsed, sourceText, existingDraft, overwrite, dateDecision, recognitionDocument });
+    return analysis;
+  }
+  finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, dateDecision, recognitionDocument });
+  return analysis;
 }
 
 function openTextRecognition(text = '', existingDraft = null, suppliedDocument = null) {
@@ -1214,15 +1229,23 @@ function openTextRecognition(text = '', existingDraft = null, suppliedDocument =
   $('#parseTextBtn').addEventListener('click', () => {
     const sourceText = $('#recognitionText').value.trim();
     if (!sourceText) return toast('请先输入文字');
-    const parsed = parseNaturalLanguage(sourceText, state.codebook);
     const overwrite = $('#overwriteRecognizedFields').checked;
-    const recognitionDocument = pendingDocument?.fullText === sourceText ? pendingDocument : recognitionDocumentFromText(sourceText);
-    const dateDecision = classifyRecognitionDates(recognitionDocument);
-    if (dateDecision.reviewRequired) return openRecognitionDateReview({ parsed, sourceText, existingDraft, overwrite, dateDecision, recognitionDocument });
-    finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, dateDecision });
+    const pendingMatches = pendingDocument
+      && [pendingDocument.fullText, pendingDocument.rawFullText].map(value => String(value || '').trim()).includes(sourceText);
+    const recognitionDocument = pendingMatches ? pendingDocument : recognitionDocumentFromText(sourceText);
+    processRecognitionDocument(recognitionDocument, { existingDraft, overwrite });
   });
   $('#speechTextBtn').addEventListener('click', () => startSpeechRecognition('recognitionText'));
 }
+
+globalThis.LuckyBeanRecognitionFlow = {
+  acceptDocument(recognitionDocument, options = {}) {
+    return Promise.resolve(processRecognitionDocument(recognitionDocument, options));
+  },
+  openText(text = '', existingDraft = null, recognitionDocument = null) {
+    openTextRecognition(text, existingDraft, recognitionDocument);
+  }
+};
 
 function startSpeechRecognition(targetId = 'recognitionText') {
   const Recognition = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
