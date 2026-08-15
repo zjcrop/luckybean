@@ -450,6 +450,17 @@ export function parseNaturalLanguage(text, book) {
       break;
     }
   }
+  // Numeric roast levels are accepted only when an explicit roast label owns the value.
+  // This deliberately does not scan unlabeled body text, so crop years and other numbers
+  // cannot become roast levels by proximity or fallback inference.
+  if (labeled.roast) {
+    const numericRoast = normalizeLabelValue(labeled.roast).match(/^(?:RL[-\s]?)?L?([0-6])$/i);
+    if (numericRoast) {
+      result.roastCode = `RL-L${numericRoast[1]}`;
+      result.confidence.roastCode = 0.99;
+      result.evidence.roastCode = labeled.roast;
+    }
+  }
   const roastCode = normalizeCodeSource(roastSource).match(/(?:^|[^A-Z0-9])(RL-L[0-6])(?:$|[^A-Z0-9])/);
   if (roastCode) {
     result.roastCode = roastCode[1];

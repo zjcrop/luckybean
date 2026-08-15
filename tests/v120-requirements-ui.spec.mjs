@@ -270,7 +270,7 @@ test('bean recognition audits into fixed-format preflight before filling the com
   await expect(preflight.locator('.recognition-preflight-row').filter({ hasText: '国家' })).toContainText('埃塞俄比亚');
   await expect(preflight.locator('.recognition-preflight-row').filter({ hasText: '产季' })).toContainText('2025/2026');
   await expect(preflight.locator('.recognition-preflight-row').filter({ hasText: '烘焙度' })).toContainText('浅中烘');
-  await expect(preflight.locator('.recognition-preflight-row').filter({ hasText: '豆种' })).toContainText('—');
+  await expect(preflight.locator('.recognition-preflight-row').filter({ hasText: '豆种' })).toContainText('74110 / 74112');
   await expect(preflight.locator('text=96%')).toHaveCount(0);
   await page.locator('#preflightConfirmBtn').click();
   await expect(page.locator('[data-overlay="bean-form"]')).toBeVisible();

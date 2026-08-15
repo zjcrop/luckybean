@@ -33,3 +33,10 @@ test('layout parser recognizes reversed Japanese and Korean harvest labels', () 
   assert.equal(ja.relations[0]?.field, 'harvest');
   assert.equal(ko.relations[0]?.field, 'harvest');
 });
+
+
+test('explicit labeled numeric roast level is normalized without scanning crop numbers', () => {
+  const result = parseNaturalLanguage('CROP YEAR: 2025/26\nROAST LEVEL: L2', emptyBook);
+  assert.equal(result.harvestSeason, '2025/2026');
+  assert.equal(result.roastCode, 'RL-L2');
+});
