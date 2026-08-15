@@ -1,0 +1,72 @@
+name: Canonicalize Android web assets
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/canonicalize-android-web-assets.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Move Android branching into canonical app source
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          app_path = Path('src/app.js')
+          app = app_path.read_text()
+          replacements = [
+              (
+                  "function stopSpeech() { if (globalThis.speechSynthesis) speechSynthesis.cancel(); }",
+                  "function stopSpeech() { if (globalThis.__LUCKYBEAN_ANDROID__) return; if (globalThis.speechSynthesis) speechSynthesis.cancel(); }",
+              ),
+              (
+                  "function speak(text) {\n  if (!globalThis.speechSynthesis || !text) return;",
+                  "function speak(text) {\n  if (globalThis.__LUCKYBEAN_ANDROID__ || !globalThis.speechSynthesis || !text) return;",
+              ),
+              (
+                  "  const link = `${location.origin}${location.pathname}#share=${encoded}`;",
+                  "  const shareBase = globalThis.__LUCKYBEAN_PUBLIC_URL__ || `${location.origin}${location.pathname}`;\n  const link = `${shareBase}#share=${encoded}`;",
+              ),
+          ]
+          for old, new in replacements:
+              count = app.count(old)
+              if count != 1:
+                  raise SystemExit(f'app canonicalization target count={count}: {old[:60]}')
+              app = app.replace(old, new, 1)
+          app_path.write_text(app)
+
+          gradle_path = Path('android/app/build.gradle')
+          gradle = gradle_path.read_text()
+          start_marker = "        File appScript = new File(webCache, 'src/app.js')\n"
+          end_marker = "        appScript.write(original, 'UTF-8')\n"
+          start = gradle.find(start_marker)
+          if start < 0:
+              raise SystemExit('Gradle app.js mutation block start not found')
+          end = gradle.find(end_marker, start)
+          if end < 0:
+              raise SystemExit('Gradle app.js mutation block end not found')
+          end += len(end_marker)
+          replacement = "        // app.js is copied byte-for-byte. Platform branching lives in canonical src/app.js so\n        // Web and APK execute the same source and release SHA parity is meaningful.\n"
+          gradle = gradle[:start] + replacement + gradle[end:]
+          gradle_path.write_text(gradle)
+          PY
+          grep -Fq 'globalThis.__LUCKYBEAN_ANDROID__' src/app.js
+          grep -Fq 'globalThis.__LUCKYBEAN_PUBLIC_URL__' src/app.js
+          grep -Fq 'app.js is copied byte-for-byte' android/app/build.gradle
+          if grep -Fq "File appScript = new File(webCache, 'src/app.js')" android/app/build.gradle; then exit 1; fi
+          git config user.name 'LuckyBean Release Fix'
+          git config user.email 'actions@users.noreply.github.com'
+          git add src/app.js android/app/build.gradle
+          git commit -m 'fix: keep Android bundled app source byte-identical to web source'
+          git push origin HEAD:main
