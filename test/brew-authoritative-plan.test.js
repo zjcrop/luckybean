@@ -68,3 +68,24 @@ test('unknown analysis contracts and unversioned legacy plans remain rejected', 
   delete legacy.analysisFingerprint;
   assert.throws(() => validatePlan(legacy), /Schema 版本不兼容/);
 });
+
+test('cold brew validates stage water against brew water and recipe total independently', () => {
+  const cold = {
+    ...authoritativePlan(),
+    analysisContract: 'brew-analysis/2.1',
+    stages: [
+      { index: 1, durationSec: 30, stageWaterG: 50, cumulativeWaterG: 50, temperatureC: 88 },
+      { index: 2, durationSec: 45, stageWaterG: 100, cumulativeWaterG: 150, temperatureC: 92 }
+    ],
+    totals: { brewWaterG: 150, iceG: 100, bypassWaterG: 0, waterG: 250 }
+  };
+  assert.equal(validatePlan(cold), cold);
+  assert.throws(
+    () => validatePlan({ ...cold, totals: { ...cold.totals, brewWaterG: 160 } }),
+    /分段注水量与热萃水量不守恒/
+  );
+  assert.throws(
+    () => validatePlan({ ...cold, totals: { ...cold.totals, waterG: 260 } }),
+    /热萃水、冰块、旁路水与配方总量不守恒/
+  );
+});

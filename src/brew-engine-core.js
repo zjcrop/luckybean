@@ -519,8 +519,17 @@ export function validatePlan(plan) {
     total += Number(item.stageWaterG);
     last = Number(item.cumulativeWaterG);
   }
-  if (Number.isFinite(Number(plan.totals?.waterG)) && Math.abs(total - Number(plan.totals.waterG)) > 1) {
-    throw new Error('分段注水量与总量不守恒');
+  const brewWater = Number(plan.totals?.brewWaterG);
+  const recipeWater = Number(plan.totals?.waterG);
+  const ice = Number(plan.totals?.iceG ?? 0);
+  const bypass = Number(plan.totals?.bypassWaterG ?? 0);
+  const stageTarget = Number.isFinite(brewWater) && brewWater > 0 ? brewWater : recipeWater;
+  if (Number.isFinite(stageTarget) && Math.abs(total - stageTarget) > 1) {
+    throw new Error('分段注水量与热萃水量不守恒');
+  }
+  if (Number.isFinite(recipeWater) && Number.isFinite(brewWater) && brewWater > 0
+      && Math.abs(recipeWater - (brewWater + ice + bypass)) > 1) {
+    throw new Error('热萃水、冰块、旁路水与配方总量不守恒');
   }
   return plan;
 }
