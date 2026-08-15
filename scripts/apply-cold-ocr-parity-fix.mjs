@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 
-// One-shot deterministic source repair; idempotent by construction.
+// One-shot deterministic source repair; idempotent by construction. Trigger 2.
 function replaceOnce(text, before, after, label) {
   if (text.includes(after)) return text;
   const count = text.split(before).length - 1;
