@@ -61,12 +61,12 @@ jobs:
       - name: Verify Android package contract
         shell: bash
         run: |
-          # Do not enable pipefail here. Positive verification deliberately uses
-          # `producer | grep -q`: grep exits immediately on a match and may cause
-          # the producer (notably unzip/aapt) to receive SIGPIPE. Under pipefail
-          # that turns a successful match into a false release-gate failure.
-          # `set -e -u` still fails every missing/mismatched contract assertion.
+          # GitHub's `shell: bash` wrapper starts bash with `-o pipefail`.
+          # Positive checks below intentionally use `producer | grep -q`; grep
+          # closes early after a match and unzip/aapt may then exit on SIGPIPE.
+          # Disable inherited pipefail explicitly so grep remains the assertion.
           set -eu
+          set +o pipefail
           apk=android/app/build/outputs/apk/release/app-release.apk
           grep -q "versionCode 102322" android/app/build.gradle
           grep -q "versionName '1.23E'" android/app/build.gradle
