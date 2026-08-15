@@ -61,7 +61,12 @@ jobs:
       - name: Verify Android package contract
         shell: bash
         run: |
-          set -euo pipefail
+          # Do not enable pipefail here. Positive verification deliberately uses
+          # `producer | grep -q`: grep exits immediately on a match and may cause
+          # the producer (notably unzip/aapt) to receive SIGPIPE. Under pipefail
+          # that turns a successful match into a false release-gate failure.
+          # `set -e -u` still fails every missing/mismatched contract assertion.
+          set -eu
           apk=android/app/build/outputs/apk/release/app-release.apk
           grep -q "versionCode 102322" android/app/build.gradle
           grep -q "versionName '1.23E'" android/app/build.gradle
