@@ -24,19 +24,22 @@ jobs:
           from pathlib import Path
           path = Path('tests/v120-requirements-ui.spec.mjs')
           text = path.read_text()
-          old = """  await page.goto(`${BASE_URL}/?requirements-splash-preview-persisted=1`, { waitUntil: 'domcontentloaded' });"""
-          new = """  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      await page.goto(`${BASE_URL}/?requirements-splash-preview-persisted=1`, { waitUntil: 'domcontentloaded' });
-      break;
-    } catch (error) {
-      const message = String(error?.message || error || '');
-      const navigationRace = /ERR_ABORTED|frame was detached/i.test(message);
-      if (!navigationRace || attempt === 2) throw error;
-      await page.waitForTimeout(250);
-      await page.waitForLoadState('domcontentloaded').catch(() => {});
-    }
-  }"""
+          old = "  await page.goto(`${BASE_URL}/?requirements-splash-preview-persisted=1`, { waitUntil: 'domcontentloaded' });"
+          lines = [
+              "  for (let attempt = 0; attempt < 3; attempt += 1) {",
+              "    try {",
+              "      await page.goto(`${BASE_URL}/?requirements-splash-preview-persisted=1`, { waitUntil: 'domcontentloaded' });",
+              "      break;",
+              "    } catch (error) {",
+              "      const message = String(error?.message || error || '');",
+              "      const navigationRace = /ERR_ABORTED|frame was detached/i.test(message);",
+              "      if (!navigationRace || attempt === 2) throw error;",
+              "      await page.waitForTimeout(250);",
+              "      await page.waitForLoadState('domcontentloaded').catch(() => {});",
+              "    }",
+              "  }",
+          ]
+          new = '\n'.join(lines)
           if old not in text:
               raise SystemExit('target direct navigation not found')
           if text.count(old) != 1:
