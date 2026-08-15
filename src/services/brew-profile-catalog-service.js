@@ -40,6 +40,12 @@ function publicProfile(value) {
     tags: Array.isArray(value?.tags) ? value.tags.map(String) : [],
     compatibleDripperGroups: Array.isArray(value?.compatibleDripperGroups) ? value.compatibleDripperGroups.map(String) : [],
     autoRecommend: value?.autoRecommend === true,
+    serveMode: value?.serveMode === 'cold' ? 'cold' : 'hot',
+    referenceDoseG: Number(value?.referenceDoseG || 15),
+    referenceBrewWaterG: Number(value?.referenceBrewWaterG || 0),
+    referenceIceG: Number(value?.referenceIceG || 0),
+    referenceBypassWaterG: Number(value?.referenceBypassWaterG || 0),
+    referenceTotalWaterG: Number(value?.referenceTotalWaterG || 0),
     updatedAt: value?.updatedAt || null,
     source: 'brew-profiles-authoritative'
   };

@@ -48,8 +48,8 @@ test('cooling menus keep custom values stable and can return to model recommenda
   await page.locator('[data-page-target="brew"]').click();
   const first = page.locator('#firstCoolingMode');
   const tail = page.locator('#tailCoolingMode');
-  await expect(first).toContainText('模型推荐', { timeout: 10000 });
-  await expect(tail).toContainText('模型推荐');
+  await expect(first).toContainText('自动', { timeout: 10000 });
+  await expect(tail).toContainText('自动');
 
   await tail.click();
   await expect(page.locator('[data-overlay="cooling-mode"]')).toBeVisible();
@@ -73,7 +73,7 @@ test('cooling menus keep custom values stable and can return to model recommenda
 
   await page.locator('#tailCoolingMode').click();
   await page.locator('[data-cooling-choice="auto"]').click();
-  await expect(page.locator('#tailCoolingMode')).toContainText('模型推荐');
+  await expect(page.locator('#tailCoolingMode')).toContainText('自动');
 });
 
 test('小酌 never recreates editable dripper angle bypass or paper-speed controls after repeated DOM mutations', async ({ page }) => {

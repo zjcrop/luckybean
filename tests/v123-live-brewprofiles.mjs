@@ -133,6 +133,7 @@ const catalogResponse = await fetch(`${endpoint}?mode=profiles`, { headers });
 const catalog = await catalogResponse.json();
 assert.equal(catalogResponse.status, 200, JSON.stringify(catalog));
 assert.equal(catalog.contract, 'brew-profile-catalog/1.0');
+const catalogProfiles = new Map(catalog.profiles.map(profile => [profile.id, profile]));
 const catalogVersions = new Map(catalog.profiles.map(profile => [profile.id, profile.version]));
 assert.ok(catalogVersions.size >= 23, `catalog contains only ${catalogVersions.size} profiles`);
 for (const id of competitionIds) assert.ok(catalogVersions.has(id), `catalog missing ${id}`);
@@ -156,10 +157,12 @@ assert.equal(bodyTargetResponse.status, 400, JSON.stringify(bodyTargetError));
 assert.equal(bodyTargetError.error, 'TARGET_BODY_FORBIDDEN');
 
 for (const profileId of catalogVersions.keys()) {
+  const profileInput = buildBrewInput(profileId);
+  profileInput.brew.serveMode = catalogProfiles.get(profileId)?.serveMode || 'hot';
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { ...headers, 'x-request-id': crypto.randomUUID() },
-    body: JSON.stringify(buildBrewInput(profileId))
+    body: JSON.stringify(profileInput)
   });
   const analysis = await response.json();
   assert.equal(response.status, 200, `${profileId}: ${JSON.stringify(analysis)}`);

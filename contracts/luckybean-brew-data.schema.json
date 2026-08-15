@@ -27,6 +27,14 @@
           "type": "number",
           "exclusiveMinimum": 0
         },
+        "doseMode": {
+          "type": "string",
+          "enum": ["auto", "manual"]
+        },
+        "serveMode": {
+          "type": "string",
+          "enum": ["hot", "cold"]
+        },
         "ratio": {
           "type": "number",
           "exclusiveMinimum": 0

@@ -22,7 +22,7 @@ test('bean custom fields and five-row brew order are locked to the current inter
   assert.deepEqual(rows.slice(0, 5), ['dose-ratio', 'filter-gear-water', 'actions', 'cooling', 'profile']);
   assert.doesNotMatch(app, /select\.addEventListener\('pointerdown', reopenCustom\)/);
   assert.doesNotMatch(app, /id="brewSegments"/);
-  assert.match(app, /id="brewProfile"[\s\S]*>模型推荐<\/option>/);
+  assert.match(app, /id="brewProfile"[\s\S]*>自动<\/option>/);
 });
 
 test('about section contains the shipped illustration', async () => {

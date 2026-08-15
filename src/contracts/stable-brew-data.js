@@ -36,6 +36,8 @@ export function toStableBrewData(input = {}) {
 
   data.brew.profileId = data.brew.profileId || data.brew.brewStyle || data.brew.style || 'recommended';
   data.brew.doseG = finite(data.brew.doseG, 15);
+  data.brew.doseMode = data.brew.doseMode === 'manual' ? 'manual' : 'auto';
+  data.brew.serveMode = data.brew.serveMode === 'cold' ? 'cold' : 'hot';
   data.brew.ratio = finite(data.brew.ratio, 15.5);
   data.brew.dripperMaterial = ['glass', 'ceramic', 'plastic', 'titanium'].includes(String(data.brew.dripperMaterial))
     ? String(data.brew.dripperMaterial)

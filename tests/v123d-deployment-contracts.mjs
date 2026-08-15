@@ -104,7 +104,7 @@ assert.match(qr, /public\/vendor\/jsqr\/jsQR\.js/);
 assert.doesNotMatch(qr, /cdn\.jsdelivr\.net/);
 assert.doesNotMatch(qr, /decodeEncryptedShareEnvelope/);
 assert.match(qr, /async restart\(\)/);
-assert.match(flavorGuide, /模型推荐结果/);
+assert.match(flavorGuide, /<strong>自动<\/strong>/);
 assert.match(flavorGuide, /使用说明/);
 assert.match(enrichment, /flavorText: flavorNames\.join\(' '\)/);
 assert.match(gear, /标准滤杯库/);

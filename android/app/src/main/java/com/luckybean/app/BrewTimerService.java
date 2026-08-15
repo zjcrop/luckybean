@@ -41,6 +41,7 @@ import java.util.Set;
 public final class BrewTimerService extends Service {
     public static final String ACTION_PREPARE = "com.luckybean.app.action.PREPARE_BREW";
     public static final String ACTION_START = "com.luckybean.app.action.START_BREW";
+    public static final String ACTION_ANNOUNCE = "com.luckybean.app.action.ANNOUNCE_BREW_PREPARATION";
     public static final String ACTION_PAUSE = "com.luckybean.app.action.PAUSE_BREW";
     public static final String ACTION_RESUME = "com.luckybean.app.action.RESUME_BREW";
     public static final String ACTION_CANCEL = "com.luckybean.app.action.CANCEL_BREW";
@@ -136,6 +137,10 @@ public final class BrewTimerService extends Service {
             startExecution();
             return START_NOT_STICKY;
         }
+        if (ACTION_ANNOUNCE.equals(action)) {
+            speakStandalone(intent.getStringExtra(EXTRA_PAYLOAD), 0);
+            return START_NOT_STICKY;
+        }
         if (ACTION_PAUSE.equals(action)) pauseExecution();
         else if (ACTION_RESUME.equals(action)) resumeExecution();
         else if (ACTION_CANCEL.equals(action)) stopExecution(true);
@@ -195,6 +200,19 @@ public final class BrewTimerService extends Service {
             int result = textToSpeech.synthesizeToFile(event.text, params, file, utteranceId);
             if (result != TextToSpeech.SUCCESS) synthesisQueue.remove(utteranceId);
         }
+    }
+
+    private void speakStandalone(String text, int attempt) {
+        String value = text == null ? "" : text.trim();
+        if (value.isEmpty()) return;
+        if (!ttsInitialized && attempt < MAX_TTS_PREPARE_RETRIES) {
+            handler.postDelayed(() -> speakStandalone(value, attempt + 1), 180L);
+            return;
+        }
+        if (!ttsReady || textToSpeech == null) return;
+        requestAudioFocus();
+        textToSpeech.stop();
+        textToSpeech.speak(value, TextToSpeech.QUEUE_FLUSH, null, "brew-preparation");
     }
 
     private File cacheFile(String eventId) {

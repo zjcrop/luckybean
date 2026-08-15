@@ -169,10 +169,19 @@ function speechOf(plan) {
       events.push({ id:`stage-${index + 1}-prepare`, atMs:Math.max(0, stage.startMs - 8000), text:`准备第${index + 1}段，${Math.round(stage.waterG)}克，${Math.round(stage.temperatureC)}度`, priority:'high', validWindowMs:3000 });
       events.push({ id:`stage-${index + 1}-countdown`, atMs:Math.max(0, stage.startMs - 3200), text:'三，二，一', priority:'critical', validWindowMs:1200, fixedKey:'countdown_321' });
     }
-    events.push({ id:`stage-${index + 1}-start`, atMs:stage.startMs, text:`第${index + 1}段，${stage.name}，注水${Math.round(stage.waterG)}克，累计${Math.round(stage.cumulativeWaterG)}克，水温${Math.round(stage.temperatureC)}度`, priority:'critical', validWindowMs:4500 });
+    events.push({ id:`stage-${index + 1}-start`, atMs:stage.startMs, text:`第${index + 1}段，${stage.name}，注水${Math.round(stage.waterG)}克，累计${Math.round(stage.cumulativeWaterG)}克，水温${Math.round(stage.temperatureC)}度，${stage.method}`, priority:'critical', validWindowMs:4500 });
   });
+  (plan?.executionActions || []).filter(action => action.phase === 'timed' && action.type !== 'hot-pour' && Number.isFinite(Number(action.atSec))).forEach((action,index) => {
+    const atMs = Math.max(0, Math.round(Number(action.atSec) * 1000));
+    const amount = Number(action.amountG || 0);
+    const text = String(action.speech || `${action.type === 'add-ice' ? '加入冰块' : '执行下一步'}${amount > 0 ? `${Math.round(amount)}克` : ''}`);
+    events.push({ id:`action-${index + 1}-prepare`, atMs:Math.max(0,atMs-8000), text:`准备：${text}`, priority:'high', validWindowMs:3000 });
+    events.push({ id:`action-${index + 1}-start`, atMs, text, priority:'critical', validWindowMs:5000 });
+  });
+  events.sort((a,b)=>a.atMs-b.atMs || a.id.localeCompare(b.id));
   const totalMs = stages.at(-1)?.endMs || 0;
-  events.push({ id:'brew-complete', atMs:totalMs, text:'冲煮完成', priority:'critical', validWindowMs:5000, fixedKey:'brew_complete' });
+  const finish = (plan?.executionActions || []).filter(action => action.phase === 'after-brew' && action.speech).map(action => action.speech).join('');
+  events.push({ id:'brew-complete', atMs:totalMs, text:finish || '冲煮完成', priority:'critical', validWindowMs:8000, fixedKey:finish ? '' : 'brew_complete' });
   return { contract:'luckybean-speech-timeline/1.0', voicePack:'zh_CN_v1', totalMs, events };
 }
 function nativePayload(plan) {
@@ -214,7 +223,7 @@ function stopNativeExecution(cancel = true) {
 
 function bindNativeExecutionBridge() {
   document.addEventListener('click', event => {
-    if (event.target.closest('#startBrewBtn') && latestPlan) { startNativeExecution(latestPlan); return; }
+    if (event.target.closest('#confirmBrewPreparedBtn') && latestPlan) { startNativeExecution(latestPlan); return; }
     if (event.target.closest('#timerPauseBtn')) {
       const button = event.target.closest('#timerPauseBtn');
       requestAnimationFrame(() => button?.textContent?.includes('继续') ? pauseNativeExecution() : resumeNativeExecution());
@@ -222,6 +231,11 @@ function bindNativeExecutionBridge() {
     }
     if (event.target.closest('#timerEndBtn')) stopNativeExecution(true);
   }, true);
+  document.addEventListener('luckybean:brew-preparation', event => {
+    const speech = String(event.detail?.speech || '').trim();
+    if (!speech || !globalThis.__LUCKYBEAN_ANDROID__) return;
+    try { globalThis.LuckyBeanNative?.announceBrewPreparation?.(speech); } catch (error) { console.warn('Android准备提示播报失败', error); }
+  });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && nativeExecutionActive) acquireWake();
   });
