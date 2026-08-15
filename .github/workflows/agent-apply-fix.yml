@@ -21,16 +21,17 @@ jobs:
           node-version: 22
       - name: Apply deterministic patch
         run: node scripts/apply-cold-ocr-parity-fix.mjs
-      - name: Verify changed source anchors
+      - name: Verify app source repair
         run: |
           grep -Fq 'showRecognitionEvidence: false' src/app.js
           grep -Fq 'recognitionProvenance:' src/app.js
           grep -Fq 'source_app_sha=' .github/workflows/build-main.yml
-      - name: Commit patched sources
+      - name: Commit app source only
         run: |
-          if git diff --quiet; then exit 0; fi
+          git checkout -- .github/workflows/build-main.yml
+          if git diff --quiet -- src/app.js; then exit 0; fi
           git config user.name 'LuckyBean Fix Bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add src/app.js .github/workflows/build-main.yml
-          git commit -m 'fix: close OCR review state and enforce APK web parity [agent-patch-applied]'
+          git add src/app.js
+          git commit -m 'fix: close OCR review state after confirmation [agent-patch-applied]'
           git push origin HEAD:agent/cold-brew-ocr-parity-fix
