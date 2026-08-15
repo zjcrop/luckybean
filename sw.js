@@ -1,7 +1,7 @@
-// LuckyBean 1.23E main-sync.9: canonical coordinate-aware OCR, translation and field review.
-const REVISION = '1.23E-main-sync.9';
+// LuckyBean 1.23E main-sync.10: explicit roast-date confirmation and verified form handoff.
+const REVISION = '1.23E-main-sync.10';
 const CACHE_PREFIX = 'luckybean-main-v123e-';
-const CACHE_NAME = `${CACHE_PREFIX}main-sync-9`;
+const CACHE_NAME = `${CACHE_PREFIX}main-sync-10`;
 const LEGACY_CACHE_PREFIXES = [
   'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
   'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',

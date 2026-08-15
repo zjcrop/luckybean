@@ -1188,15 +1188,25 @@ function openRecognitionDateReview({ parsed, sourceText, existingDraft, overwrit
     const values = candidate.values;
     const valueOptions = values.map(value => `<option value="${esc(value)}">${esc(value)}</option>`).join('');
     const defaultType = candidate.defaultType;
-    return `<article class="date-review-row" data-date-candidate="${esc(candidate.candidateId)}"><div><strong>${esc(candidate.rawValue)}</strong><small>${esc(candidate.fieldLabel)} · ${esc(candidate.imageRole || '文字')}</small></div><select class="control date-review-type"><option value="ignore"${defaultType === 'ignore' ? ' selected' : ''}>忽略/暂不确定</option><option value="roastDate"${defaultType === 'roastDate' ? ' selected' : ''}>烘焙日期</option><option value="productionDate"${defaultType === 'productionDate' ? ' selected' : ''}>生产日期</option><option value="packDate"${defaultType === 'packDate' ? ' selected' : ''}>包装日期</option><option value="bestBefore"${defaultType === 'bestBefore' ? ' selected' : ''}>最佳赏味期</option><option value="expiryDate"${defaultType === 'expiryDate' ? ' selected' : ''}>到期日期</option></select><select class="control date-review-value">${valueOptions}</select>${candidate.warnings?.length ? `<p>${candidate.warnings.map(esc).join(' ')}</p>` : ''}</article>`;
+    return `<article class="date-review-row" data-date-candidate="${esc(candidate.candidateId)}"><div><strong>${esc(candidate.rawValue)}</strong><small>${esc(candidate.fieldLabel)} · ${esc(candidate.imageRole || '文字')}</small></div><select class="control date-review-type" aria-label="${esc(candidate.rawValue)} 的日期归属"><option value="pending"${defaultType === 'pending' ? ' selected' : ''} disabled>请选择日期归属</option><option value="ignore"${defaultType === 'ignore' ? ' selected' : ''}>明确忽略</option><option value="roastDate"${defaultType === 'roastDate' ? ' selected' : ''}>设为烘焙日期</option><option value="productionDate"${defaultType === 'productionDate' ? ' selected' : ''}>生产日期</option><option value="packDate"${defaultType === 'packDate' ? ' selected' : ''}>包装日期</option><option value="bestBefore"${defaultType === 'bestBefore' ? ' selected' : ''}>最佳赏味期</option><option value="expiryDate"${defaultType === 'expiryDate' ? ' selected' : ''}>到期日期</option></select><select class="control date-review-value" aria-label="${esc(candidate.rawValue)} 的确认值">${valueOptions}</select>${candidate.warnings?.length ? `<p>${candidate.warnings.map(esc).join(' ')}</p>` : ''}</article>`;
   }).join('');
-  const content = `${dialogHeader('确认日期归属', '系统不会把未确认日期静默写入烘焙日期')}<div class="date-review-list">${rows}</div><div class="row"><button id="dateReviewBackBtn" class="button subtle" type="button">返回文字</button><span class="grow"></span><button id="dateReviewContinueBtn" class="button primary" type="button">确认并继续</button></div>`;
+  const content = `${dialogHeader('确认日期归属', '为每个待确认日期明确选择归属；只有“设为烘焙日期”才会写入豆卡')}<div class="date-review-list">${rows}</div><p id="dateReviewStatus" class="muted small" role="status"></p><div class="row"><button id="dateReviewBackBtn" class="button subtle" type="button">返回文字</button><span class="grow"></span><button id="dateReviewContinueBtn" class="button primary" type="button">确认选择并填表</button></div>`;
   const overlay = showOverlay(content, { full: true, id: 'date-review' }); bindClose(overlay);
   $('#dateReviewBackBtn').addEventListener('click', () => openTextRecognition(sourceText, existingDraft, recognitionDocument));
+  const syncDateReviewState = () => {
+    const pendingCount = $$('.date-review-type', overlay).filter(control => control.value === 'pending').length;
+    $('#dateReviewContinueBtn').disabled = pendingCount > 0;
+    $('#dateReviewStatus').textContent = pendingCount
+      ? `还有 ${pendingCount} 个日期未选择归属，请选择后再继续。`
+      : '日期归属已明确，可以写入表格。';
+  };
   $$('.date-review-type', overlay).forEach(control => control.addEventListener('change', () => {
-    if (control.value !== 'roastDate') return;
-    $$('.date-review-type', overlay).filter(other => other !== control && other.value === 'roastDate').forEach(other => { other.value = 'ignore'; });
+    if (control.value === 'roastDate') {
+      $$('.date-review-type', overlay).filter(other => other !== control && other.value === 'roastDate').forEach(other => { other.value = 'ignore'; });
+    }
+    syncDateReviewState();
   }));
+  syncDateReviewState();
   $('#dateReviewContinueBtn').addEventListener('click', () => {
     const selections = $$('.date-review-row', overlay).map(row => ({ candidateId: row.dataset.dateCandidate, type: $('.date-review-type', row).value, value: $('.date-review-value', row).value }));
     const reviewResolution = resolveDateReviewSelections(dateDecision, selections);
