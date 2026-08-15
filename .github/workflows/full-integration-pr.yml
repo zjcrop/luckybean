@@ -114,8 +114,10 @@ jobs:
           else
             accel_args=(-accel off)
           fi
+          adb start-server
+          adb devices
           nohup "$ANDROID_HOME/emulator/emulator" -avd luckybean-api29 -no-window -noaudio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -wipe-data "${accel_args[@]}" > android-emulator.log 2>&1 &
-          if ! timeout 180 adb wait-for-device; then
+          if ! timeout --kill-after=10s 180s adb wait-for-device; then
             echo 'Android emulator did not expose adb within 180s.' >&2
             tail -n 200 android-emulator.log >&2 || true
             exit 1
