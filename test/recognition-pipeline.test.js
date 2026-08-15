@@ -28,6 +28,7 @@ test('English labels and coffee values become Chinese canonical bean fields', ()
     ['REGION', 'GUJI'],
     ['PROCESS', 'WASHED'],
     ['VARIETY', '74110'],
+    ['ROAST LEVEL', 'L2'],
     ['TASTING NOTES', 'BLUEBERRY, JASMINE, HONEY']
   ]);
   const analysis = analyzeRecognitionDocument(document, book);
@@ -36,6 +37,7 @@ test('English labels and coffee values become Chinese canonical bean fields', ()
   assert.equal(analysis.parsed.regionCode, 'RG-EA-GU');
   assert.equal(analysis.parsed.processCode, 'PR-WA');
   assert.equal(analysis.parsed.varietyCode, 'VA-JA10');
+  assert.equal(analysis.parsed.roastCode, 'RL-L2');
   assert.equal(analysis.parsed.entityCode, undefined, 'region evidence must not also become a station');
   assert.equal(analysis.parsed.altitude, undefined, 'variety digits must not become altitude');
   assert.equal(analysis.parsed.initialWeight, undefined, 'variety digits must not become weight');

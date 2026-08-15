@@ -444,6 +444,12 @@ export function parseNaturalLanguage(text, book) {
     result.confidence.roastCode = 0.995;
     result.evidence.roastCode = roastCode[1];
   }
+  const labeledRoastLevel = labeled.roast?.match(/^L?([0-6])$/i);
+  if (labeledRoastLevel) {
+    result.roastCode = `RL-L${labeledRoastLevel[1]}`;
+    result.confidence.roastCode = 0.99;
+    result.evidence.roastCode = labeled.roast;
+  }
 
   const roastDateInput = labeled.roastDate || '';
   const roastDateMatch = parseCoffeeDateValue(roastDateInput, { field: 'roastDate' });
