@@ -393,13 +393,6 @@ export async function autoFillRecognition(text, { overwrite = true } = {}) {
   globalThis.LuckyBeanIntegrityUI?.refresh?.();
 }
 
-function interceptRecognitionParse(event) {
-  if (!event.target.closest?.('#parseTextBtn')) return;
-  const text = $('#recognitionText')?.value || '';
-  const overwrite = $('#overwriteRecognizedFields')?.checked !== false;
-  setTimeout(() => autoFillRecognition(text, { overwrite }).catch(console.error), 90);
-}
-
 function fabBounds(width, height) {
   const margin = 10;
   const navTop = $('#bottomNav')?.getBoundingClientRect().top || innerHeight;
@@ -520,7 +513,6 @@ function queueSync() {
 }
 
 if (typeof document !== 'undefined') {
-  document.addEventListener('click', interceptRecognitionParse, true);
   document.addEventListener('click', blankGroupCollapse, true);
   document.addEventListener('click', event => {
     if (!event.target.closest?.('[data-page-target="settings"]')) return;

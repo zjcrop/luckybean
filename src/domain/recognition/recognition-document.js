@@ -38,6 +38,15 @@ export const RECOGNITION_FIELD_ALIASES = Object.freeze({
   roaster: ['烘焙商','烘焙厂','烘焙品牌','烘焙者','品牌','烘焙廠','roaster','roasted by','roast house','roastery']
 });
 
+export const RECOGNITION_FIELD_LABELS = Object.freeze({
+  country: '国家', origin: '产地', region: '产区', farm: '庄园', producer: '生产者',
+  station: '处理站', cooperative: '合作社', variety: '豆种', species: '种属',
+  process: '处理法', roastDate: '烘焙日期', productionDate: '生产日期',
+  packDate: '包装日期', bestBefore: '最佳赏味期', expiryDate: '到期日期',
+  harvest: '产季', altitude: '海拔', flavor: '风味', aroma: '香气', roast: '烘焙度',
+  roastColor: '烘焙色值', weight: '净重', lot: '批次', grade: '等级', roaster: '烘焙商'
+});
+
 const OCR_ALIAS_NORMALIZATION = Object.freeze({
   '烘培日期': '烘焙日期',
   '烘焙曰期': '烘焙日期',
@@ -263,7 +272,7 @@ function buildStructuredText(blocks, relations, consumed) {
     records.push({
       orderBlock: block,
       order: block?.order ?? Number.MAX_SAFE_INTEGER,
-      text: `${relation.label}: ${relation.value}`,
+      text: `${RECOGNITION_FIELD_LABELS[relation.field] || relation.label}: ${relation.value}`,
       relationId: relation.id
     });
   }
@@ -325,7 +334,7 @@ export function createRecognitionDocument({ images = [], blocks = [], engine = '
   const structuredFullText = structuredSections.join('\n').trim() || rawFullText;
   return {
     schemaVersion: RECOGNITION_DOCUMENT_SCHEMA,
-    parserVersion: '1.23E-recognition-layout.1',
+    parserVersion: '1.23E-recognition-layout.2',
     engine: String(engine || 'unknown'),
     createdAt,
     images: [...imageMap.values()].sort((a, b) => a.order - b.order),

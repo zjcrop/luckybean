@@ -1,6 +1,8 @@
 import { preparePackageImage } from './image-quality.js';
 import { getRecognitionCapabilities, recognizeCoffeeBag, RecognitionUnavailableError } from './recognition-bridge.js';
-import { createRecognitionDocument } from './domain/recognition/recognition-document.js';
+import { loadCodebook } from './codebook.js';
+import { createRecognitionDocument, recognitionDocumentFromText } from './domain/recognition/recognition-document.js';
+import { analyzeRecognitionDocument } from './domain/recognition/recognition-pipeline.js';
 
 const MAX_IMAGES = 4;
 const ROLE_OPTIONS = [
@@ -15,7 +17,9 @@ const captureState = {
   busy: false,
   ocrText: '',
   ocrEngine: '',
-  blocks: []
+  blocks: [],
+  recognitionDocument: null,
+  analysis: null
 };
 
 function esc(value) {
@@ -77,6 +81,8 @@ function clearCapture({ keepOverlay = false } = {}) {
   captureState.ocrText = '';
   captureState.ocrEngine = '';
   captureState.blocks = [];
+  captureState.recognitionDocument = null;
+  captureState.analysis = null;
   if (!keepOverlay && root()) root().innerHTML = '';
 }
 
@@ -113,11 +119,23 @@ function renderImageCards() {
 
 function renderRecognitionPanel() {
   if (!captureState.ocrText && !captureState.blocks.length) return '';
+  const analysis = captureState.analysis;
+  const fieldRows = (analysis?.fields || []).map(item => {
+    const percent = Math.round(Number(item.confidence || 0) * 100);
+    const stateLabel = item.status === 'translated' ? '已翻译归一' : item.status === 'resolved' ? '已归类' : '待确认';
+    return `<article class="bag-semantic-row ${esc(item.status)}" data-recognition-field="${esc(item.field)}">
+      <div class="bag-semantic-label"><strong>${esc(item.label)}</strong><span>${esc(stateLabel)} · ${percent}%</span></div>
+      <div class="bag-semantic-value"><b>${esc(item.standardValue || item.rawValue || '—')}</b>${item.rawValue && item.rawValue !== item.standardValue ? `<small>原文：${esc(item.rawValue)}</small>` : ''}</div>
+    </article>`;
+  }).join('');
   return `
     <section class="bag-recognition-result">
-      <div class="bag-result-heading"><strong>识别文字</strong><span>${esc(captureState.ocrEngine || '手工输入')}</span></div>
-      <textarea id="bagOcrText" class="control" rows="9" placeholder="识别文字会显示在这里，可在交给豆卡解析前修正。">${esc(captureState.ocrText)}</textarea>
-      <p class="muted small">这里只保留原始文字和证据。国家、产区、处理法、品种等字段仍由 Lucky Bean 编码表统一解析。</p>
+      <div class="bag-result-heading"><strong>翻译与字段整理</strong><span>${esc(captureState.ocrEngine || '手工输入')}</span></div>
+      ${analysis ? `<div class="bag-semantic-summary"><span>已归类 ${analysis.resolvedCount} 项</span><span class="${analysis.reviewCount ? 'needs-review' : ''}">待确认 ${analysis.reviewCount} 项</span></div>` : '<p class="muted small">修改文字后点击“重新整理”。</p>'}
+      <div class="bag-semantic-grid">${fieldRows || '<p class="muted small">尚未形成可靠字段；原始文字仍会保留，未确认内容不会强行写入豆卡。</p>'}</div>
+      <details class="bag-raw-evidence"><summary>查看和修正 OCR 原文</summary><textarea id="bagOcrText" class="control" rows="8" placeholder="识别文字会显示在这里，可修正后重新整理。">${esc(captureState.ocrText)}</textarea></details>
+      <div class="row end"><button id="bagReanalyzeBtn" class="button subtle" type="button">重新整理</button></div>
+      <p class="muted small">标准中文值来自 Lucky Bean / BrewIon 离线咖啡词库；专有名称无可靠对应时保留原文并标记待确认，不使用不可追溯的猜测翻译。</p>
     </section>`;
 }
 
@@ -144,7 +162,7 @@ function render() {
         <div class="bag-manual-entry">
           <button id="bagManualBtn" class="button subtle" type="button">手工粘贴文字</button>
           <span class="grow"></span>
-          <button id="bagHandoffBtn" class="button primary" type="button"${captureState.ocrText.trim() ? '' : ' disabled'}>交给豆卡解析</button>
+          <button id="bagHandoffBtn" class="button primary" type="button"${captureState.ocrText.trim() ? '' : ' disabled'}>确认并进入豆卡</button>
         </div>
         <input id="bagCameraInput" type="file" accept="image/*" capture="environment" hidden>
         <input id="bagGalleryInput" type="file" accept="image/*" multiple hidden>
@@ -206,6 +224,14 @@ async function runRecognition() {
     captureState.ocrEngine = result.engine || 'OCR';
     captureState.blocks = result.blocks || [];
     if (!captureState.ocrText) throw new Error('没有检测到可用文字，请补拍更清晰的局部照片');
+    captureState.recognitionDocument = createRecognitionDocument({
+      images: captureState.images.map(({ id, role, roleLabel }) => ({ id, role, roleLabel })),
+      blocks: captureState.blocks,
+      engine: captureState.ocrEngine,
+      fullText: captureState.ocrText
+    });
+    const { data: book } = await loadCodebook();
+    captureState.analysis = analyzeRecognitionDocument(captureState.recognitionDocument, book);
   } catch (error) {
     if (error instanceof RecognitionUnavailableError) {
       captureState.ocrEngine = '待安装';
@@ -219,6 +245,26 @@ async function runRecognition() {
     captureState.busy = false;
     render();
     if (!captureState.ocrText) openManualEntry(errorMessageForManual());
+  }
+}
+
+async function reanalyzeEditedText() {
+  const text = (document.querySelector('#bagOcrText')?.value || '').trim();
+  if (!text) return;
+  captureState.busy = true;
+  try {
+    const unchanged = captureState.recognitionDocument?.rawFullText?.trim() === text;
+    captureState.ocrText = text;
+    captureState.recognitionDocument = unchanged
+      ? captureState.recognitionDocument
+      : recognitionDocumentFromText(text);
+    const { data: book } = await loadCodebook();
+    captureState.analysis = analyzeRecognitionDocument(captureState.recognitionDocument, book);
+  } catch (error) {
+    alert(`文字整理失败：${error.message}`);
+  } finally {
+    captureState.busy = false;
+    render();
   }
 }
 
@@ -242,31 +288,20 @@ function openManualEntry(message = '可粘贴包装上的文字，后续仍由�
   }
 }
 
-function handoffToExistingParser() {
+async function handoffToExistingParser() {
   const text = (document.querySelector('#bagOcrText')?.value || captureState.ocrText).trim();
   if (!text) return;
-  const recognitionDocument = createRecognitionDocument({
-    images: captureState.images.map(({ id, role, roleLabel }) => ({ id, role, roleLabel })),
-    blocks: captureState.blocks,
-    engine: captureState.ocrEngine || 'manual-text',
-    fullText: text
-  });
-  globalThis.LuckyBeanPendingRecognitionDocument = recognitionDocument;
+  const unchanged = captureState.recognitionDocument?.rawFullText?.trim() === text;
+  const recognitionDocument = unchanged ? captureState.recognitionDocument : recognitionDocumentFromText(text);
+  if (!recognitionDocument) return;
+  const flow = globalThis.LuckyBeanRecognitionFlow;
+  if (typeof flow?.acceptDocument !== 'function') {
+    globalThis.LuckyBeanPendingRecognitionDocument = recognitionDocument;
+    alert('豆卡识别流程尚未就绪，请稍后重试');
+    return;
+  }
   clearCapture();
-  const trigger = document.createElement('button');
-  trigger.type = 'button';
-  trigger.dataset.addMode = 'text';
-  trigger.hidden = true;
-  document.body.append(trigger);
-  trigger.click();
-  trigger.remove();
-  requestAnimationFrame(() => {
-    const textarea = document.querySelector('#recognitionText');
-    if (!textarea) return;
-    textarea.value = text;
-    textarea.dispatchEvent(new Event('input', { bubbles: true }));
-    document.querySelector('#parseTextBtn')?.click();
-  });
+  await flow.acceptDocument(recognitionDocument, { overwrite: true });
 }
 
 function bindOverlay() {
@@ -278,6 +313,7 @@ function bindOverlay() {
   document.querySelector('#bagRecognizeBtn')?.addEventListener('click', runRecognition);
   document.querySelector('#bagManualBtn')?.addEventListener('click', () => openManualEntry());
   document.querySelector('#bagHandoffBtn')?.addEventListener('click', handoffToExistingParser);
+  document.querySelector('#bagReanalyzeBtn')?.addEventListener('click', reanalyzeEditedText);
   document.querySelector('#bagOcrText')?.addEventListener('input', event => {
     captureState.ocrText = event.target.value;
     const button = document.querySelector('#bagHandoffBtn');
