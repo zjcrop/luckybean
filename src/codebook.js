@@ -210,23 +210,23 @@ function normalizeLabelValue(value) {
 
 export const COFFEE_LABEL_LEXICON_VERSION = '1.0.0';
 export const DEFAULT_LABEL_LEXICON = Object.freeze({
-  country: ['产地国','原产国','原产地','国家','产地','origin','country of origin','origin country','country'],
-  region: ['产区','地区','区域','省','州','县','region','growing region','origin region','zone','district','province','terroir'],
-  entity: ['庄园','农场','生产者','农户','合作社','处理站','水洗站','处理厂','磨坊','工厂','producer','farmer','grower','farm','estate','finca','hacienda','cooperative','co-op','coop','washing station','ws','wet mill','dry mill','mill','factory'],
-  variety: ['豆种','品种','咖啡品种','栽培种','种属','variety','varietal','cultivar','var.','var','cv.','cv','species','botanical variety'],
-  process: ['处理法','处理方式','加工法','加工方式','发酵方式','处理工艺','process','processing','processing method','proc.','proc','method','fermentation'],
-  roast: ['烘焙度','烘焙程度','焙度','roast level','roast profile','roast'],
-  roastDate: ['烘焙日期','烘焙时间','烘焙日','焙炒日期','烘烤日期','出炉日期','roast date','roasted on','roast on','rst date','rst dt','rd'],
+  country: ['产地国','原产国','原产地','国家','产地','產地國','原產國','原產地','國家','產地','生産国','原産国','原産地','생산국','원산국','원산지','origin','country of origin','origin country','country'],
+  region: ['产区','地区','区域','省','州','县','產區','地區','區域','産地','地域','生産地域','生産地','산지','지역','생산 지역','생산지','region','growing region','origin region','zone','district','province','terroir'],
+  entity: ['庄园','农场','生产者','农户','合作社','处理站','水洗站','处理厂','磨坊','工厂','莊園','農場','生產者','農戶','合作社','處理站','水洗站','處理廠','農園','農場','生産者','協同組合','精製所','ウォッシングステーション','농장','생산자','협동조합','가공소','워싱 스테이션','producer','farmer','grower','farm','estate','finca','hacienda','cooperative','co-op','coop','washing station','ws','wet mill','dry mill','mill','factory'],
+  variety: ['豆种','品种','咖啡品种','栽培种','种属','豆種','品種','咖啡品種','栽培種','種屬','品種','栽培品種','品種名','품종','재배 품종','variety','varietal','cultivar','var.','var','cv.','cv','species','botanical variety'],
+  process: ['处理法','处理方式','加工法','加工方式','发酵方式','处理工艺','處理法','處理方式','加工法','發酵方式','精製方法','精製法','加工方法','処理方法','発酵方法','가공 방식','가공법','프로세싱','정제 방식','발효 방식','process','processing','processing method','proc.','proc','method','fermentation'],
+  roast: ['烘焙度','烘焙程度','焙度','烘焙度','焙度','焙煎度','ローストレベル','焼き加減','배전도','로스팅 정도','로스트 레벨','roast level','roast profile','roast'],
+  roastDate: ['烘焙日期','烘焙时间','烘焙日','焙炒日期','烘烤日期','出炉日期','烘焙日期','烘焙時間','焙煎日','焙煎日付','焙煎年月日','로스팅 날짜','로스팅일','배전일','roast date','roasted on','roast on','rst date','rst dt','rd'],
   productionDate: ['生产日期','制造日期','production date','prod date','manufactured on','mfg date','mfd'],
   packDate: ['包装日期','分装日期','pack date','packed on','packing date','pkd'],
   bestBefore: ['最佳赏味期','建议饮用日期','best before','best by','bbe'],
   expiryDate: ['到期日','有效期至','保质期至','use by','expiry','expiration date','exp'],
   roaster: ['烘焙商','烘焙厂','烘焙品牌','烘焙者','品牌','roaster','roasted by','roast house','roastery'],
-  harvest: ['产季','收获季','收获年份','采收季','采收年份','生豆产季','crop','crop year','harvest','harvest year','season','crop season','cy'],
-  flavor: ['风味','风味描述','杯测风味','风味标签','品鉴笔记','香气','flavor notes','flavour notes','tasting notes','cup notes','cupping notes','sensory notes','aroma'],
-  altitude: ['海拔','种植海拔','高度','elevation','altitude','elev.','elev','alt.','alt','masl','m.a.s.l.','meters above sea level','metres above sea level','ft asl','feet above sea level'],
-  roastColor: ['烘焙色值','色值','艾格壮','agtron','gourmet agtron','commercial agtron','roast color','colour value','color value','whole bean color','ground color'],
-  weight: ['净重','重量','克重','包装重量','net weight','net wt','net wt.','n.w.','nw'],
+  harvest: ['产季','收获季','收获年份','采收季','采收年份','生豆产季','收获年度','產季','收穫季','收穫年份','採收季','採收年份','生豆產季','收穫年度','採收年度','クロップ','クロップ年','クロップ年度','収穫年','収穫年度','収穫期','収穫シーズン','年産','크롭','크롭 연도','수확 연도','수확년도','수확기','수확 시기','수확 시즌','생산 연도','crop','crop year','harvest','harvest year','season','crop season','cy'],
+  flavor: ['风味','风味描述','杯测风味','风味标签','品鉴笔记','香气','風味','風味描述','杯測風味','香氣','フレーバー','風味','カッピングコメント','テイスティングノート','香り','플레이버','향미','컵노트','테이스팅 노트','아로마','flavor notes','flavour notes','tasting notes','cup notes','cupping notes','sensory notes','aroma'],
+  altitude: ['海拔','种植海拔','高度','種植海拔','標高','栽培標高','고도','재배 고도','elevation','altitude','elev.','elev','alt.','alt','masl','m.a.s.l.','meters above sea level','metres above sea level','ft asl','feet above sea level'],
+  roastColor: ['烘焙色值','色值','艾格壮','烘焙色值','色值','焙煎色','アグトロン','배전 색도','애그트론','agtron','gourmet agtron','commercial agtron','roast color','colour value','color value','whole bean color','ground color'],
+  weight: ['净重','重量','克重','包装重量','淨重','重量','包裝重量','内容量','正味重量','중량','내용량','순중량','net weight','net wt','net wt.','n.w.','nw'],
   price: ['价格','售价','购买价','price','retail price'],
   lot: ['批次','批号','地块批次','lot','lot no','lot number','batch','batch no'],
   grade: ['等级','分级','grade','screen size','screen','cup score','score']
@@ -255,8 +255,26 @@ function labeledFieldValues(source, book) {
   return result;
 }
 
+const MULTILINGUAL_VALUE_NORMALIZATION = Object.freeze([
+  [/^(?:ゲイシャ|ゲシャ|게이샤)$/i, 'Gesha'],
+  [/^(?:ウォッシュド|水洗式|워시드|수세식)$/i, 'Washed'],
+  [/^(?:ナチュラル|自然乾燥|내추럴|건식)$/i, 'Natural'],
+  [/^(?:ハニー|허니)$/i, 'Honey'],
+  [/^(?:エチオピア|에티오피아)$/i, 'Ethiopia'],
+  [/^(?:コロンビア|콜롬비아)$/i, 'Colombia'],
+  [/^(?:パナマ|파나마)$/i, 'Panama'],
+  [/^(?:ケニア|케냐)$/i, 'Kenya'],
+  [/^(?:ブラジル|브라질)$/i, 'Brazil']
+]);
+
+function normalizeMultilingualValue(value) {
+  const raw = normalizeLabelValue(value);
+  for (const [pattern, canonical] of MULTILINGUAL_VALUE_NORMALIZATION) if (pattern.test(raw)) return canonical;
+  return raw;
+}
+
 function bestTableMatch(value, rows) {
-  const source = normalizeLabelValue(value);
+  const source = normalizeMultilingualValue(value);
   if (!source) return null;
   const normalizedCodes = normalizeCodeSource(source);
   const directMatches = (rows || []).map(row => directCodeMatch(normalizedCodes, [row])).filter(Boolean);
@@ -344,10 +362,11 @@ export function parseCoffeeDateValue(value, { field = 'roastDate' } = {}) {
 
 export function parseHarvestSeasonValue(value) {
   const text=normalizeLabelValue(value);
-  let m=text.match(/(?:^|\D)(20\d{2}|\d{2})\s*[-–—\/]\s*(20\d{2}|\d{2})(?:\s*(?:crop|产季|season))?(?:\D|$)/i);
-  if(m){const a=fullYear(m[1]),b=fullYear(m[2]);return {rawValue:m[0].trim(),normalizedValue:`${a}/${b}`,harvestYear:a,harvestEndYear:b,formatId:'HARVEST_RANGE',confidence:0.98,candidates:[`${a}/${b}`],warnings:[]};}
-  m=text.match(/(?:^|\D)(20\d{2}|\d{2})(?:\s*(?:产季|年度|年|crop|crop year|harvest|season))?(?:\D|$)/i);
-  if(m){const year=fullYear(m[1]);return {rawValue:m[0].trim(),normalizedValue:String(year),harvestYear:year,harvestEndYear:year,formatId:'HARVEST_YEAR',confidence:0.97,candidates:[String(year)],warnings:[]};}
+  const suffix='(?:crop(?:\s*year|\s*season)?|harvest(?:\s*year|\s*season)?|season|产季|產季|收获年度|收穫年度|クロップ(?:年|年度)?|収穫(?:年|年度|期|シーズン)|年産|크롭(?:\s*연도)?|수확(?:\s*연도|년도|기|\s*시기|\s*시즌)|생산\s*연도)';
+  let m=text.match(new RegExp(`(?:^|\\D)(20\\d{2}|\\d{2})\\s*[-–—/]\\s*(20\\d{2}|\\d{2})(?:\\s*${suffix})?(?:\\D|$)`,'i'));
+  if(m){const a=fullYear(m[1]),rawB=fullYear(m[2]);const b=rawB<a&&m[2].length===2?a-(a%100)+Number(m[2]):rawB;return {rawValue:m[0].trim(),normalizedValue:`${a}/${b}`,harvestYear:a,harvestEndYear:b,formatId:'HARVEST_RANGE',confidence:0.985,candidates:[`${a}/${b}`],warnings:[]};}
+  m=text.match(new RegExp(`(?:^|\\D)(20\\d{2}|\\d{2})(?:\\s*${suffix})?(?:\\D|$)`,'i'));
+  if(m){const year=fullYear(m[1]);return {rawValue:m[0].trim(),normalizedValue:String(year),harvestYear:year,harvestEndYear:year,formatId:'HARVEST_YEAR',confidence:0.975,candidates:[String(year)],warnings:[]};}
   return {rawValue:text,normalizedValue:'',harvestYear:0,harvestEndYear:0,formatId:'UNRECOGNIZED',confidence:0,candidates:[],warnings:text?['产季年份格式未识别。']:[]};
 }
 
@@ -413,10 +432,15 @@ export function parseNaturalLanguage(text, book) {
     recordMatch(result, field, best, false);
   }
 
-  const roastSource = labeled.roast || source;
+  const harvestAliases = lexiconTerms(book, 'harvest').map(term => term.toLocaleLowerCase('zh-CN'));
+  const sourceWithoutHarvest = source.replace(/\r/g, '').split(/\n+/).filter(line => {
+    const normalized = normalizeLabelValue(line).toLocaleLowerCase('zh-CN');
+    return !harvestAliases.some(alias => normalized === alias || normalized.startsWith(`${alias}:`) || normalized.startsWith(`${alias}：`) || normalized.startsWith(`${alias} `) || normalized.endsWith(alias));
+  }).join('\n');
+  const roastSource = labeled.roast || sourceWithoutHarvest;
   const roastMap = [
-    [/极浅|超浅|lightest/i, 'RL-L0'], [/浅中|medium\s*light/i, 'RL-L2'], [/浅烘|浅度|light/i, 'RL-L1'],
-    [/中深|medium\s*dark/i, 'RL-L4'], [/中烘|中度|medium/i, 'RL-L3'], [/极深|法式|very\s*dark/i, 'RL-L6'], [/深烘|深度|dark/i, 'RL-L5']
+    [/极浅|超浅|極淺|最浅煎り|ライトest|lightest/i, 'RL-L0'], [/浅中|淺中|中浅煎り|미디엄 라이트|medium\s*light/i, 'RL-L2'], [/浅烘|浅度|淺焙|浅煎り|ライトロースト|약배전|라이트 로스트|light/i, 'RL-L1'],
+    [/中深|中深焙|中深煎り|강중배전|medium\s*dark/i, 'RL-L4'], [/中烘|中度|中焙|中煎り|ミディアムロースト|중배전|미디엄 로스트|medium/i, 'RL-L3'], [/极深|極深|法式|深深煎り|프렌치 로스트|very\s*dark/i, 'RL-L6'], [/深烘|深度|深焙|深煎り|ダークロースト|강배전|다크 로스트|dark/i, 'RL-L5']
   ];
   for (const [regex, code] of roastMap) {
     if (regex.test(roastSource)) {
@@ -424,6 +448,17 @@ export function parseNaturalLanguage(text, book) {
       result.confidence.roastCode = labeled.roast ? 0.96 : 0.9;
       result.evidence.roastCode = roastSource.match(regex)?.[0];
       break;
+    }
+  }
+  // Numeric roast levels are accepted only when an explicit roast label owns the value.
+  // This deliberately does not scan unlabeled body text, so crop years and other numbers
+  // cannot become roast levels by proximity or fallback inference.
+  if (labeled.roast) {
+    const numericRoast = normalizeLabelValue(labeled.roast).match(/^(?:RL[-\s]?)?L?([0-6])$/i);
+    if (numericRoast) {
+      result.roastCode = `RL-L${numericRoast[1]}`;
+      result.confidence.roastCode = 0.99;
+      result.evidence.roastCode = labeled.roast;
     }
   }
   const roastCode = normalizeCodeSource(roastSource).match(/(?:^|[^A-Z0-9])(RL-L[0-6])(?:$|[^A-Z0-9])/);
@@ -471,14 +506,14 @@ export function parseNaturalLanguage(text, book) {
     result.evidence.roasterName = labeled.roaster;
   }
 
-  const altitudeSource = labeled.altitude || source;
+  const altitudeSource = labeled.altitude || sourceWithoutHarvest;
   const altitude = altitudeSource.match(/(\d{3,4})\s*(?:m|米)?/i);
   if (altitude) {
     result.altitude = Number(altitude[1]);
     result.confidence.altitude = labeled.altitude ? 0.97 : 0.85;
     result.evidence.altitude = labeled.altitude || altitude[0];
   }
-  const weightSource = labeled.weight || source;
+  const weightSource = labeled.weight || sourceWithoutHarvest;
   const weight = weightSource.match(/(\d{2,4}(?:\.\d+)?)\s*(?:g|克)?/i);
   if (weight) {
     result.initialWeight = Number(weight[1]);

@@ -1,6 +1,6 @@
 import { APP_VERSION, SCHEMA_VERSION, $, $$, uid, esc, clamp, todayISO, formatDate, freshness, freshnessProfile, downloadBlob, safeJsonParse, assertPlainObject, assertSafeJson, browserTitle, parseNumber } from './utils.js';
 import { openDb, all, get, put, remove, bulkPut, getSetting, setSetting, clearAll, migrateLegacy } from './db.js';
-import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, parseNaturalLanguage, REMOTE_CODEBOOK_URL } from './codebook.js';
+import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, parseNaturalLanguage, parseHarvestSeasonValue, REMOTE_CODEBOOK_URL } from './codebook.js';
 import { CameraScanner, scanQrFile, decodeJsQrResult } from './qr.js';
 import { computeFallbackPlan, requestPrivatePlan, validatePlan, FALLBACK_ENGINE_VERSION, buildCorrectedPlan, listBrewProfiles, recommendProfile } from './brew-engine.js';
 import { brewProfileCatalogStatus } from './services/brew-profile-catalog-service.js';
@@ -520,7 +520,7 @@ function trajectorySvg(plan) {
   </svg><div class="trajectory-legend"><span class="temperature">温度</span><span class="flow">流量</span><span class="water">累计水量</span><span class="floral">花香</span><span class="acidity">酸</span><span class="sweetness">甜</span><span class="risk">苦涩风险</span></div></div>`;
 }
 function beanNameSummary(bean) {
-  return [codeName('regions', bean.regionCode, ''), codeName('processes', bean.processCode, '')].filter(Boolean).join(' · ') || '产区与处理法未记录';
+  return [codeName('regions', bean.regionCode, ''), bean.harvestSeason ? `产季 ${bean.harvestSeason}` : '', codeName('processes', bean.processCode, '')].filter(Boolean).join(' · ') || '产区与处理法未记录';
 }
 
 function scoreForBean(beanId) {
@@ -967,20 +967,21 @@ function beanFormHtml(bean = {}, source = {}) {
         ${fieldHtml('beanCountry','国家',`<select id="beanCountry" class="control">${beanSelectOptions('countries',state.codebook.countries,bean.countryCode)}</select>`,'required')}
         ${fieldHtml('beanRegion','产区',`<div class="select-with-add"><select id="beanRegion" class="control">${beanSelectOptions('regions',regions,bean.regionCode,2,bean.countryCode?'请选择产区':'先选择国家')}</select><button class="button subtle add-select-option" type="button" data-add-bean-option="regions">新增选项</button></div>`)}
         ${fieldHtml('beanEntity','庄园 / 处理站',`<div class="select-with-add"><select id="beanEntity" class="control">${beanSelectOptions('entities',entities,bean.entityCode,3,bean.countryCode?'请选择庄园 / 处理站':'先选择国家')}</select><button class="button subtle add-select-option" type="button" data-add-bean-option="entities">新增选项</button></div>`)}
+        ${fieldHtml('beanAltitude','海拔',`<input id="beanAltitude" class="control" type="number" min="0" max="5000" value="${esc(bean.altitude || '')}" placeholder="m">`)}
         ${fieldHtml('beanVariety','豆种',`<select id="beanVariety" class="control">${beanSelectOptions('varieties',state.codebook.varieties,bean.varietyCode)}</select>`,'required')}
+        ${fieldHtml('beanHarvestSeason','产季',`<input id="beanHarvestSeason" class="control" maxlength="20" value="${esc(bean.harvestSeason || (bean.harvestYear ? String(bean.harvestYear) : ''))}" placeholder="例如 2025/26">`)}
         ${fieldHtml('beanProcess','处理法',`<select id="beanProcess" class="control">${beanSelectOptions('processes',state.codebook.processes,bean.processCode)}</select>`,'required')}
-        ${fieldHtml('beanRoastColor','烘焙色值',`<input id="beanRoastColor" class="control" type="number" min="20" max="120" step="1" value="${esc(colorValue)}" placeholder="Agtron 20–120">`,'recommended')}
-        ${fieldHtml('beanRoast','烘焙度',`<select id="beanRoast" class="control"><option value="">填写色值自动生成</option>${ROASTS.map(([value,label])=>`<option value="${value}"${roastValue===value?' selected':''}>${label}</option>`).join('')}</select>`,'required')}
-        ${fieldHtml('beanRoastDate','烘焙日期',`<input id="beanRoastDate" class="control" type="date" value="${esc(bean.roastDate || (source.type === 'manual' ? todayISO() : ''))}">`,'required')}
-        ${fieldHtml('beanInitialWeight','初始克重',`<input id="beanInitialWeight" class="control" type="number" min="1" max="10000" step="0.1" value="${esc(bean.initialWeight || '')}">`,'required')}
-        ${fieldHtml('beanRefrigerated','是否冷藏',`<select id="beanRefrigerated" class="control"><option value="false"${!bean.refrigerated?' selected':''}>否</option><option value="true"${bean.refrigerated?' selected':''}>是</option></select>`,'recommended')}
-        ${fieldHtml('beanPrice','购买价格',`<input id="beanPrice" class="control" type="number" min="0" step="0.01" value="${esc(bean.price || '')}">`,'recommended')}
         ${fieldHtml('beanRoaster','烘焙商',`<input id="beanRoaster" class="control" maxlength="60" value="${esc(bean.roasterName || bean.roaster || '')}">`,'recommended')}
-        ${fieldHtml('beanAltitude','海拔',`<input id="beanAltitude" class="control" type="number" min="0" max="5000" value="${esc(bean.altitude || '')}">`)}
+        ${fieldHtml('beanRoastDate','烘焙日期',`<input id="beanRoastDate" class="control" type="date" value="${esc(bean.roastDate || (source.type === 'manual' ? todayISO() : ''))}">`,'required')}
+        ${fieldHtml('beanRoast','烘焙度',`<select id="beanRoast" class="control"><option value="">填写色值自动生成</option>${ROASTS.map(([value,label])=>`<option value="${value}"${roastValue===value?' selected':''}>${label}</option>`).join('')}</select>`,'required')}
+        ${fieldHtml('beanRoastColor','烘焙色值',`<input id="beanRoastColor" class="control" type="number" min="20" max="120" step="1" value="${esc(colorValue)}" placeholder="Agtron 20–120">`,'recommended')}
+        ${fieldHtml('beanInitialWeight','初始克重',`<input id="beanInitialWeight" class="control" type="number" min="1" max="10000" step="0.1" value="${esc(bean.initialWeight || '')}">`,'required')}
+        ${fieldHtml('beanPrice','购买价格',`<input id="beanPrice" class="control" type="number" min="0" step="0.01" value="${esc(bean.price || '')}">`,'recommended')}
+        ${fieldHtml('beanRefrigerated','是否冷藏',`<select id="beanRefrigerated" class="control"><option value="false"${!bean.refrigerated?' selected':''}>否</option><option value="true"${bean.refrigerated?' selected':''}>是</option></select>`,'recommended')}
         ${fieldHtml('beanNotes','备注',`<input id="beanNotes" class="control" maxlength="300" value="${esc(bean.notes || '')}">`)}
       </div>
       <section class="panel"><div class="panel-title"><div><h3>风味标签</h3><p>${state.codebook.flavors?.length || 0}项可用</p></div><button id="editFlavorsBtn" class="button" type="button">编辑</button></div><div id="formFlavorSummary" class="flavor-summary">${flavors.map(code=>`<span class="tag" data-summary-code="${esc(code)}">${esc(codeName('flavors',code,code))}</span>`).join('') || '<span class="muted small">尚未选择</span>'}</div></section>
-      ${source.evidence ? evidenceHtml(source.evidence, source.confidence) : ''}
+      ${source.preflightSummary ? `<details class="recognition-audit-details"><summary>识别整理详情</summary><div class="details-content">${esc(source.preflightSummary)}</div></details>` : ''}
       <div class="row"><button id="beanFormBackBtn" class="button subtle" type="button">返回</button><span class="grow"></span><button class="button primary" type="submit">保存</button></div>
     </form>`;
 }
@@ -1092,9 +1093,12 @@ function openBeanForm(bean = {}, source = { type: 'manual' }) {
     const countryCode = formValue('beanCountry');
     const varietyCode = formValue('beanVariety');
     const now = new Date().toISOString();
+    const harvestInput = formValue('beanHarvestSeason');
+    const harvestParsed = parseHarvestSeasonValue(harvestInput);
     const record = {
       ...bean, id: bean.id || uid('bean'), name: `${codeName('countries', countryCode, '未定国家')} · ${codeName('varieties', varietyCode, '未定豆种')}`,
       countryCode, regionCode: formValue('beanRegion'), entityCode: formValue('beanEntity'), varietyCode, processCode: formValue('beanProcess'),
+      harvestSeason: harvestParsed.normalizedValue || harvestInput, harvestYear: harvestParsed.harvestYear || 0, harvestEndYear: harvestParsed.harvestEndYear || 0,
       roastColor: parseNumber(formValue('beanRoastColor'), 0) || '', roastCode: formValue('beanRoast'), roastDate: formValue('beanRoastDate'), initialWeight,
       remainingWeight: bean.id ? Number(bean.remainingWeight) : initialWeight, refrigerated: formValue('beanRefrigerated') === 'true', freezeDate: formValue('beanRefrigerated') === 'true' ? (bean.freezeDate || todayISO()) : '',
       price: parseNumber(formValue('beanPrice'), 0), roasterName: formValue('beanRoaster'), altitude: parseNumber(formValue('beanAltitude'), 0), notes: formValue('beanNotes'),
@@ -1110,7 +1114,7 @@ function openBeanForm(bean = {}, source = { type: 'manual' }) {
 
 function selectedSummaryCodes() { return $$('#formFlavorSummary [data-summary-code]').map(node => node.dataset.summaryCode); }
 function captureBeanFormDraft() {
-  return { ...state.beanFormDraft, countryCode: formValue('beanCountry'), regionCode: formValue('beanRegion'), entityCode: formValue('beanEntity'), varietyCode: formValue('beanVariety'), processCode: formValue('beanProcess'), roastColor: formValue('beanRoastColor'), roastCode: formValue('beanRoast'), roastDate: formValue('beanRoastDate'), initialWeight: formValue('beanInitialWeight'), refrigerated: formValue('beanRefrigerated') === 'true', price: formValue('beanPrice'), roasterName: formValue('beanRoaster'), altitude: formValue('beanAltitude'), notes: formValue('beanNotes'), flavorCodes: selectedSummaryCodes() };
+  return { ...state.beanFormDraft, countryCode: formValue('beanCountry'), regionCode: formValue('beanRegion'), entityCode: formValue('beanEntity'), varietyCode: formValue('beanVariety'), harvestSeason: formValue('beanHarvestSeason'), processCode: formValue('beanProcess'), roastColor: formValue('beanRoastColor'), roastCode: formValue('beanRoast'), roastDate: formValue('beanRoastDate'), initialWeight: formValue('beanInitialWeight'), refrigerated: formValue('beanRefrigerated') === 'true', price: formValue('beanPrice'), roasterName: formValue('beanRoaster'), altitude: formValue('beanAltitude'), notes: formValue('beanNotes'), flavorCodes: selectedSummaryCodes() };
 }
 
 function flavorGroupLabel(name = '') {
@@ -1177,7 +1181,52 @@ function finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, 
   } : null;
   const merged = overwrite ? { ...existing, ...parsed } : { ...parsed, ...Object.fromEntries(Object.entries(existing).filter(([, value]) => value !== '' && value !== null && value !== undefined)) };
   merged.name = merged.name || [codeName('countries', merged.countryCode, ''), codeName('varieties', merged.varietyCode, '')].filter(Boolean).join(' ') || '新豆卡';
-  openBeanForm(merged, { type: 'text', text: sourceText, evidence: parsed.evidence, confidence: parsed.confidence, parseMetadata: parsed.parseMetadata });
+  openRecognitionPreflight({ merged, parsed, sourceText, dateDecision });
+}
+
+
+function recognitionPreflightRows(bean = {}) {
+  const flavorText = (bean.flavorCodes || []).map(code => codeName('flavors', code, '')).filter(Boolean).join('、');
+  const rows = [
+    ['国家', codeName('countries', bean.countryCode, bean.countryCustomName || '')],
+    ['产区', codeName('regions', bean.regionCode, bean.regionCustomName || '')],
+    ['庄园 / 处理站', codeName('entities', bean.entityCode, bean.entityCustomName || '')],
+    ['豆种', codeName('varieties', bean.varietyCode, bean.varietyCustomName || '')],
+    ['产季', bean.harvestSeason || (bean.harvestYear ? String(bean.harvestYear) : '')],
+    ['处理法', codeName('processes', bean.processCode, bean.processCustomName || '')],
+    ['海拔', bean.altitude ? `${bean.altitude} m` : ''],
+    ['烘焙商', bean.roasterName || ''],
+    ['烘焙日期', bean.roastDate || ''],
+    ['烘焙度', ROAST_NAME.get(bean.roastCode) || ''],
+    ['烘焙色值', bean.roastColor ? `Agtron ${bean.roastColor}` : ''],
+    ['风味', flavorText || (bean.customFlavorNames || []).join('、')],
+    ['净含量', bean.initialWeight ? `${bean.initialWeight} g` : '']
+  ];
+  return rows.map(([label, value]) => ({ label, value: String(value || '').trim() || '—' }));
+}
+
+function recognitionPreflightExtra(parsed, dateDecision) {
+  const items = [];
+  for (const candidate of dateDecision?.candidates || []) {
+    if (candidate.decision === 'exclude') items.push(`${candidate.fieldLabel}：${candidate.normalizedValue || candidate.rawValue}`);
+    else if (candidate.decision === 'review') items.push(`未自动写入日期：${candidate.rawValue}`);
+  }
+  for (const value of parsed.customFlavorNames || []) items.push(`未编码风味：${value}`);
+  return [...new Set(items)];
+}
+
+function openRecognitionPreflight({ merged, parsed, sourceText, dateDecision }) {
+  const rows = recognitionPreflightRows(merged);
+  const extra = recognitionPreflightExtra(parsed, dateDecision);
+  const correctedCount = Object.values(parsed.parseMetadata || {}).filter(item => item && typeof item === 'object' && item.normalizedValue && item.rawValue && item.normalizedValue !== item.rawValue).length;
+  const rowHtml = rows.map(row => `<div class="recognition-preflight-row"><span>${esc(row.label)}</span><strong>${esc(row.value)}</strong></div>`).join('');
+  const extraHtml = extra.length ? `<section class="recognition-preflight-extra"><h3>其他识别信息</h3>${extra.map(item => `<p>${esc(item)}</p>`).join('')}</section>` : '';
+  const detailSummary = `已自动识别、翻译并整理${correctedCount ? `，其中规范化 ${correctedCount} 项` : ''}。原始文字保留在识别元数据中。`;
+  const content = `${dialogHeader('识别信息确认', '已自动识别、翻译并整理标签信息，请确认后填入豆卡')}<section class="recognition-preflight-card"><div class="recognition-preflight-grid">${rowHtml}</div>${extraHtml}<details class="recognition-source-details"><summary>查看识别原文</summary><pre>${esc(sourceText)}</pre></details></section><div class="row recognition-preflight-actions"><button id="preflightBackBtn" class="button subtle" type="button">返回识别</button><span class="grow"></span><button id="preflightConfirmBtn" class="button primary" type="button">确认并填入</button></div>`;
+  const overlay = showOverlay(content, { full: true, id: 'recognition-preflight' });
+  bindClose(overlay);
+  $('#preflightBackBtn').addEventListener('click', () => openTextRecognition(sourceText, merged));
+  $('#preflightConfirmBtn').addEventListener('click', () => openBeanForm(merged, { type: 'text', text: sourceText, parseMetadata: parsed.parseMetadata, preflightSummary: detailSummary }));
 }
 
 function openRecognitionDateReview({ parsed, sourceText, existingDraft, overwrite, dateDecision, recognitionDocument }) {
@@ -1207,7 +1256,7 @@ function openTextRecognition(text = '', existingDraft = null, suppliedDocument =
   if (existingDraft) state.beanFormDraft = structuredClone(existingDraft);
   const pendingDocument = suppliedDocument || globalThis.LuckyBeanPendingRecognitionDocument;
   if (pendingDocument) delete globalThis.LuckyBeanPendingRecognitionDocument;
-  const content = `${dialogHeader('文字识别', '粘贴豆袋文字，系统按 BrewIon 词表提取字段')}<label class="field"><span>豆袋文字</span><textarea id="recognitionText" class="control" placeholder="例如：埃塞俄比亚 古吉 日晒 Heirloom，浅烘，2026-07-20，海拔2100m，净重150g，茉莉、蓝莓、蜂蜜">${esc(text)}</textarea></label><label class="toggle"><input id="overwriteRecognizedFields" type="checkbox" checked>识别结果覆盖已有表单字段</label><p class="muted small">语音识别可能由浏览器联网服务处理；识别证据和置信度会在表单中显示。</p><div class="row"><button id="speechTextBtn" class="button" type="button">语音输入</button><button id="clearRecognitionTextBtn" class="button subtle" type="button">清空</button><button id="manualBeanFormBtn" class="button subtle" type="button">直接填表</button><span class="grow"></span><button id="parseTextBtn" class="button primary" type="button">识别并填表</button></div>`;
+  const content = `${dialogHeader('文字识别', '支持简体、繁体、英文、日文和韩文；系统会先自动翻译、审核和整理')}<label class="field"><span>豆袋文字</span><textarea id="recognitionText" class="control" placeholder="例如：埃塞俄比亚 古吉 日晒 Heirloom，2026产季，浅烘，2026-07-20，海拔2100m">${esc(text)}</textarea></label><label class="toggle"><input id="overwriteRecognizedFields" type="checkbox" checked>识别结果覆盖已有表单字段</label><p class="muted small">识别后先展示固定格式的整理结果；确认后再填入豆卡。原始文字仍保留用于追溯。</p><div class="row"><button id="speechTextBtn" class="button" type="button">语音输入</button><button id="clearRecognitionTextBtn" class="button subtle" type="button">清空</button><button id="manualBeanFormBtn" class="button subtle" type="button">直接填表</button><span class="grow"></span><button id="parseTextBtn" class="button primary" type="button">识别并整理</button></div>`;
   const overlay = showOverlay(content, { full: true, id: 'text-recognition' }); bindClose(overlay);
   $('#clearRecognitionTextBtn').addEventListener('click', () => { $('#recognitionText').value = ''; $('#recognitionText').focus(); });
   $('#manualBeanFormBtn').addEventListener('click', () => openBeanForm(existingDraft || {}, { type: 'manual' }));
@@ -1218,7 +1267,6 @@ function openTextRecognition(text = '', existingDraft = null, suppliedDocument =
     const overwrite = $('#overwriteRecognizedFields').checked;
     const recognitionDocument = pendingDocument?.fullText === sourceText ? pendingDocument : recognitionDocumentFromText(sourceText);
     const dateDecision = classifyRecognitionDates(recognitionDocument);
-    if (dateDecision.reviewRequired) return openRecognitionDateReview({ parsed, sourceText, existingDraft, overwrite, dateDecision, recognitionDocument });
     finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, dateDecision });
   });
   $('#speechTextBtn').addEventListener('click', () => startSpeechRecognition('recognitionText'));
@@ -1244,7 +1292,8 @@ async function handleQrResult(result) {
   try {
     const decoded = decodeJsQrResult(result, state.codebook);
     decoded.name = [codeName('countries', decoded.countryCode, ''), codeName('varieties', decoded.varietyCode, '')].filter(Boolean).join(' ') || '扫码豆卡';
-    decoded.notes = [`扫码识别`, decoded.agtron ? `Agtron ${decoded.agtron}` : '', decoded.harvestYear ? `产季 ${decoded.harvestYear}` : ''].filter(Boolean).join('；');
+    decoded.harvestSeason = decoded.harvestSeason || (decoded.harvestYear ? String(decoded.harvestYear) : '');
+    decoded.notes = [`扫码识别`, decoded.agtron ? `Agtron ${decoded.agtron}` : ''].filter(Boolean).join('；');
     openBeanForm(decoded, { type: 'qr' }); toast('二维码解码成功', 'status-good');
   } catch (error) { toast(error.message, 'status-bad'); }
 }
