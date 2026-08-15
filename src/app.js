@@ -981,7 +981,7 @@ function beanFormHtml(bean = {}, source = {}) {
         ${fieldHtml('beanNotes','备注',`<input id="beanNotes" class="control" maxlength="300" value="${esc(bean.notes || '')}">`)}
       </div>
       <section class="panel"><div class="panel-title"><div><h3>风味标签</h3><p>${state.codebook.flavors?.length || 0}项可用</p></div><button id="editFlavorsBtn" class="button" type="button">编辑</button></div><div id="formFlavorSummary" class="flavor-summary">${flavors.map(code=>`<span class="tag" data-summary-code="${esc(code)}">${esc(codeName('flavors',code,code))}</span>`).join('') || '<span class="muted small">尚未选择</span>'}</div></section>
-      ${source.evidence ? evidenceHtml(source.evidence, source.confidence) : ''}
+      ${source.evidence ? evidenceHtml(source.evidence, source.confidence, source.parseMetadata?.recognition?.reviewFields || []) : ''}
       <div class="row"><button id="beanFormBackBtn" class="button subtle" type="button">返回</button><span class="grow"></span><button class="button primary" type="submit">保存</button></div>
     </form>`;
 }
@@ -991,10 +991,14 @@ function fieldHtml(id, label, control, level = '') {
   return `<div class="form-field${level === 'required' ? ' required' : ''}${level === 'recommended' ? ' is-recommended' : ''}" data-field="${id}"><label for="${id}"><span>${label}</span>${badge}</label>${control}</div>`;
 }
 
-function evidenceHtml(evidence = {}, confidence = {}) {
+function evidenceHtml(evidence = {}, confidence = {}, reviewFields = []) {
   const labels = { countryCode:'国家',regionCode:'产区',entityCode:'庄园/处理站',varietyCode:'豆种',processCode:'处理法',roastCode:'烘焙度',roastDate:'烘焙日期',harvestYear:'产季',roastColor:'烘焙色值',roasterName:'烘焙商',altitude:'海拔',initialWeight:'初始克重',price:'价格' };
-  const rows = Object.entries(evidence).map(([key, value]) => `<div class="evidence-row"><span>${esc(labels[key]||key)}</span><span>${esc(value)}</span><span>${Math.round((confidence[key]||0)*100)}%</span></div>`).join('');
-  return rows ? `<section class="panel"><div class="panel-title"><div><h3>识别证据</h3><p>低置信度字段请人工确认</p></div></div><div class="text-evidence">${rows}</div></section>` : '';
+  const pending = new Set(Array.isArray(reviewFields) ? reviewFields.map(String) : []);
+  const rows = Object.entries(evidence)
+    .filter(([key]) => pending.has(key))
+    .map(([key, value]) => `<div class="evidence-row" data-evidence-field="${esc(key)}" data-evidence-value="${esc(String(value))}"><span>${esc(labels[key]||key)}</span><span>${esc(value)}</span><span>${Math.round((confidence[key]||0)*100)}%</span></div>`)
+    .join('');
+  return rows ? `<section class="panel" data-recognition-review="pending"><div class="panel-title"><div><h3>待确认识别项</h3><p>仅保留尚未解决的字段；确认完成后本区自动消失</p></div></div><div class="text-evidence">${rows}</div></section>` : '';
 }
 
 function customCodeRow(record) {
@@ -1059,8 +1063,9 @@ function openBeanForm(bean = {}, source = { type: 'manual' }) {
     select.dataset.previousValue = select.value;
     select.addEventListener('change', () => {
       if (select.value === CUSTOM_BEAN_OPTION_VALUE) {
+        const draft = captureBeanFormDraft();
         select.value = select.dataset.previousValue || '';
-        openAddBeanOptionDialog(table, captureBeanFormDraft());
+        queueMicrotask(() => openAddBeanOptionDialog(table, draft));
         return;
       }
       select.dataset.previousValue = select.value;
@@ -1100,7 +1105,7 @@ function openBeanForm(bean = {}, source = { type: 'manual' }) {
       roastColor: parseNumber(formValue('beanRoastColor'), 0) || '', roastCode: formValue('beanRoast'), roastDate: formValue('beanRoastDate'), initialWeight,
       remainingWeight: bean.id ? Number(bean.remainingWeight) : initialWeight, refrigerated: formValue('beanRefrigerated') === 'true', freezeDate: formValue('beanRefrigerated') === 'true' ? (bean.freezeDate || todayISO()) : '',
       price: parseNumber(formValue('beanPrice'), 0), roasterName: formValue('beanRoaster'), altitude: parseNumber(formValue('beanAltitude'), 0), notes: formValue('beanNotes'),
-      flavorCodes: selectedSummaryCodes(), archived: Boolean(bean.archived), source: source.type || bean.source || 'manual',
+      flavorCodes: selectedSummaryCodes(), recognitionProvenance: source.parseMetadata ? { parseMetadata: structuredClone(source.parseMetadata), evidence: structuredClone(source.evidence || {}), confidence: structuredClone(source.confidence || {}), confirmedAt: source.parseMetadata?.dateReview?.confirmedAt || now } : (bean.recognitionProvenance || null), archived: Boolean(bean.archived), source: source.type || bean.source || 'manual',
       codebookSchemaVersion: Number(state.codebook._schemaVersion || 1), codebookDataVersion: String(state.codebook.version || '6'),
       recognitionMetadata: source.parseMetadata || bean.recognitionMetadata || null,
       createdAt: bean.createdAt || now, updatedAt: now
@@ -1232,7 +1237,7 @@ function openTextRecognition(text = '', existingDraft = null, suppliedDocument =
   if (existingDraft) state.beanFormDraft = structuredClone(existingDraft);
   const pendingDocument = suppliedDocument || globalThis.LuckyBeanPendingRecognitionDocument;
   if (pendingDocument) delete globalThis.LuckyBeanPendingRecognitionDocument;
-  const content = `${dialogHeader('文字识别', '粘贴豆袋文字，系统按 BrewIon 词表提取字段')}<label class="field"><span>豆袋文字</span><textarea id="recognitionText" class="control" placeholder="例如：埃塞俄比亚 古吉 日晒 Heirloom，浅烘，2026-07-20，海拔2100m，净重150g，茉莉、蓝莓、蜂蜜">${esc(text)}</textarea></label><label class="toggle"><input id="overwriteRecognizedFields" type="checkbox" checked>识别结果覆盖已有表单字段</label><p class="muted small">语音识别可能由浏览器联网服务处理；识别证据和置信度会在表单中显示。</p><div class="row"><button id="speechTextBtn" class="button" type="button">语音输入</button><button id="clearRecognitionTextBtn" class="button subtle" type="button">清空</button><button id="manualBeanFormBtn" class="button subtle" type="button">直接填表</button><span class="grow"></span><button id="parseTextBtn" class="button primary" type="button">识别并填表</button></div>`;
+  const content = `${dialogHeader('文字识别', '粘贴豆袋文字，系统按 BrewIon 词表提取字段')}<label class="field"><span>豆袋文字</span><textarea id="recognitionText" class="control" placeholder="例如：埃塞俄比亚 古吉 日晒 Heirloom，浅烘，2026-07-20，海拔2100m，净重150g，茉莉、蓝莓、蜂蜜">${esc(text)}</textarea></label><label class="toggle"><input id="overwriteRecognizedFields" type="checkbox" checked>识别结果覆盖已有表单字段</label><p class="muted small">语音识别可能由浏览器联网服务处理；低置信度字段会要求人工确认；确认后表单仅显示最终值，识别证据保留为内部来源记录。</p><div class="row"><button id="speechTextBtn" class="button" type="button">语音输入</button><button id="clearRecognitionTextBtn" class="button subtle" type="button">清空</button><button id="manualBeanFormBtn" class="button subtle" type="button">直接填表</button><span class="grow"></span><button id="parseTextBtn" class="button primary" type="button">识别并填表</button></div>`;
   const overlay = showOverlay(content, { full: true, id: 'text-recognition' }); bindClose(overlay);
   $('#clearRecognitionTextBtn').addEventListener('click', () => { $('#recognitionText').value = ''; $('#recognitionText').focus(); });
   $('#manualBeanFormBtn').addEventListener('click', () => openBeanForm(existingDraft || {}, { type: 'manual' }));

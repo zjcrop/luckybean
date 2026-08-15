@@ -1,7 +1,7 @@
 import { brewApiJson } from './brew-api-client.js';
 
 export const BREW_PROFILE_CATALOG_CONTRACT = 'brew-profile-catalog/1.0';
-const CACHE_KEY = 'luckybean.brew.profile.catalog.v1';
+const CACHE_KEY = 'luckybean.brew.profile.catalog.v2';
 const REQUIRED_COMPETITION_IDS = Object.freeze([
   'cbrc-2026-01-zhong-jingjing',
   'cbrc-2026-02-liang-baoyi',
@@ -10,14 +10,20 @@ const REQUIRED_COMPETITION_IDS = Object.freeze([
   'cbrc-2026-05-zhang-xiaobo',
   'cbrc-2026-06-qu-yongxiang'
 ]);
+const WATER_TOLERANCE_G = 0.5;
 
 let current = readCache();
 let running = null;
 
+function finite(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
 function readCache() {
   try {
     const value = JSON.parse(globalThis.localStorage?.getItem(CACHE_KEY) || 'null');
-    return validateCatalog(value, { requireCompetition: false });
+    return validateCatalog(value, { requireCompetition: false, requireAuthoritativeEnvelope: false });
   } catch { return null; }
 }
 
@@ -41,34 +47,50 @@ function publicProfile(value) {
     compatibleDripperGroups: Array.isArray(value?.compatibleDripperGroups) ? value.compatibleDripperGroups.map(String) : [],
     autoRecommend: value?.autoRecommend === true,
     serveMode: value?.serveMode === 'cold' ? 'cold' : 'hot',
-    referenceDoseG: Number(value?.referenceDoseG || 15),
-    referenceBrewWaterG: Number(value?.referenceBrewWaterG || 0),
-    referenceIceG: Number(value?.referenceIceG || 0),
-    referenceBypassWaterG: Number(value?.referenceBypassWaterG || 0),
-    referenceTotalWaterG: Number(value?.referenceTotalWaterG || 0),
+    referenceDoseG: finite(value?.referenceDoseG, 15),
+    referenceBrewWaterG: finite(value?.referenceBrewWaterG, 0),
+    referenceIceG: finite(value?.referenceIceG, 0),
+    referenceBypassWaterG: finite(value?.referenceBypassWaterG, 0),
+    referenceTotalWaterG: finite(value?.referenceTotalWaterG, 0),
     updatedAt: value?.updatedAt || null,
     source: 'brew-profiles-authoritative'
   };
 }
 
-export function validateCatalog(value, { requireCompetition = true } = {}) {
+function profileWaterBalanceValid(profile) {
+  if (!(profile.referenceDoseG > 0) || !(profile.referenceBrewWaterG > 0)) return false;
+  if (profile.referenceIceG < 0 || profile.referenceBypassWaterG < 0 || !(profile.referenceTotalWaterG > 0)) return false;
+  const expectedTotal = profile.referenceBrewWaterG + profile.referenceIceG + profile.referenceBypassWaterG;
+  return Math.abs(profile.referenceTotalWaterG - expectedTotal) <= WATER_TOLERANCE_G;
+}
+
+export function validateCatalog(value, { requireCompetition = true, requireAuthoritativeEnvelope = true } = {}) {
   if (!value || value.contract !== BREW_PROFILE_CATALOG_CONTRACT || !Array.isArray(value.profiles)) return null;
+  if (requireAuthoritativeEnvelope && !String(value.catalogHash || '').trim()) return null;
+  const declaredProfileCount = Number(value.profileCount);
+  if (Number.isFinite(declaredProfileCount) && declaredProfileCount !== value.profiles.length) return null;
+
   const ids = new Set();
   const profiles = [];
   for (const item of value.profiles) {
     const profile = publicProfile(item);
-    if (!profile.id || !profile.label || ids.has(profile.id)) continue;
+    if (!profile.id || !profile.label || ids.has(profile.id) || !profileWaterBalanceValid(profile)) return null;
     ids.add(profile.id);
     profiles.push(profile);
   }
   if (!profiles.length) return null;
+  if (!profiles.some(profile => profile.serveMode === 'hot') || !profiles.some(profile => profile.serveMode === 'cold')) return null;
+  if (!profiles.some(profile => profile.serveMode === 'hot' && profile.autoRecommend)) return null;
+  if (!profiles.some(profile => profile.serveMode === 'cold' && profile.autoRecommend)) return null;
   if (requireCompetition && REQUIRED_COMPETITION_IDS.some(id => !ids.has(id))) return null;
+
   return {
     contract: BREW_PROFILE_CATALOG_CONTRACT,
     apiVersion: String(value.apiVersion || ''),
     engineVersion: String(value.engineVersion || ''),
     generatedAt: value.generatedAt || '',
     catalogHash: String(value.catalogHash || ''),
+    profileCount: profiles.length,
     source: 'brew-profiles-authoritative',
     profiles
   };
@@ -85,16 +107,20 @@ export function brewProfileCatalogStatus() {
     generatedAt: current.generatedAt,
     engineVersion: current.engineVersion,
     profileCount: current.profiles.length,
+    hotProfileCount: current.profiles.filter(profile => profile.serveMode === 'hot').length,
+    coldProfileCount: current.profiles.filter(profile => profile.serveMode === 'cold').length,
+    hotAutoRecommendCount: current.profiles.filter(profile => profile.serveMode === 'hot' && profile.autoRecommend).length,
+    coldAutoRecommendCount: current.profiles.filter(profile => profile.serveMode === 'cold' && profile.autoRecommend).length,
     competitionProfileCount: current.profiles.filter(profile => profile.id.startsWith('cbrc-2026-')).length
-  } : { available: false, profileCount: 0, competitionProfileCount: 0 };
+  } : { available: false, profileCount: 0, hotProfileCount: 0, coldProfileCount: 0, hotAutoRecommendCount: 0, coldAutoRecommendCount: 0, competitionProfileCount: 0 };
 }
 
 export async function refreshBrewProfileCatalog({ force = false, timeoutMs = 10000 } = {}) {
   if (running && !force) return running;
   running = (async () => {
     const { payload } = await brewApiJson('?mode=profiles', { method: 'GET', timeoutMs });
-    const catalog = validateCatalog(payload, { requireCompetition: true });
-    if (!catalog) throw new Error('BrewProfiles返回的方案目录不完整，已保留上一版目录。');
+    const catalog = validateCatalog(payload, { requireCompetition: true, requireAuthoritativeEnvelope: true });
+    if (!catalog) throw new Error('BrewProfiles返回的方案目录未通过完整性或水量守恒校验，已保留上一版目录。');
     const changed = !current || current.catalogHash !== catalog.catalogHash;
     current = catalog;
     writeCache(catalog);
