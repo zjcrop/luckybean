@@ -357,6 +357,11 @@ public final class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void announceBrewPreparation(String text) {
+            runOnUiThread(() -> dispatchBrewService(BrewTimerService.ACTION_ANNOUNCE, text, false));
+        }
+
+        @JavascriptInterface
         public void pauseBrewExecution() {
             runOnUiThread(() -> dispatchBrewService(BrewTimerService.ACTION_PAUSE, null, false));
         }

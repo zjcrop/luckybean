@@ -320,7 +320,7 @@ test('brew form uses five requested rows and reopens saved cooling temperatures'
   await page.locator('[data-page-target="brew"]').click();
 
   const expected = [
-    ['dose-ratio', ['brewDose', 'brewRatio']],
+    ['dose-ratio', ['brewServeMode', 'brewDose', 'brewRatio']],
     ['filter-gear-water', ['brewDripper', 'brewFilterPaper', 'brewWaterProfile']],
     ['actions', ['openBrewTuneBtn', 'openFlavorTargetBtn', 'openEnvironmentBtn']],
     ['cooling', ['firstCoolingMode', 'tailCoolingMode']],

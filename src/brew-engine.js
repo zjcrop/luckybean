@@ -20,6 +20,11 @@ export {
 } from './brew-optimizer-v097.js';
 
 const EXTRA_PROFILES = Object.freeze([
+  { id:'ice-375', label:'375冰冲法', serveMode:'cold', referenceDoseG:15, tags:['iced','flash-brew'], description:'15g粉、150g热萃水、100g冰。' },
+  { id:'kurasu-japanese-iced', label:'Kurasu Japanese Iced', serveMode:'cold', referenceDoseG:16, tags:['iced','flash-brew'], description:'16g粉、150g热萃水、70g冰。' },
+  { id:'ultimate-flash-brew', label:'Ultimate Flash Brew', serveMode:'cold', referenceDoseG:20, tags:['iced','flash-brew'], description:'20g粉、240g热萃水、60g冰。' },
+  { id:'hoffmann-iced-filter', label:'Hoffmann Iced Filter', serveMode:'cold', referenceDoseG:32.5, tags:['iced','flash-brew'], description:'32.5g粉、300g热萃水、200g冰。' },
+  { id:'apollons-gold-4x45', label:'Apollon’s Gold 4×45g', serveMode:'cold', referenceDoseG:15, tags:['iced','flash-brew'], description:'15g粉、180g热萃水、50g冰。' },
   { id: 'four-stage', label: '四段式', tags: ['balanced', 'four-stage'], description: '总计四段，闷蒸计为第一段，之后用三段完成主体萃取。' },
   { id: 'four-six-33666', label: '46法改进版（33666）', tags: ['4:6', 'floral', 'acidity'], description: '五段固定比例；240g时为30/30/60/60/60g，前两段使用闷蒸温区。', source: 'Lucky Bean 33666 extension' },
   { id: 'hoffmann-one-cup', label: 'Hoffmann 单杯五段法', tags: ['v60','clarity','repeatable'], description: '15g/250g，50g闷蒸后四次等量注水，强调单杯萃取均匀与可复现性。', source: 'James Hoffmann, A Better 1 Cup V60 Technique (2022)' },

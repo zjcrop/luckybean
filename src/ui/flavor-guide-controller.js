@@ -103,7 +103,7 @@ function renderAutoRecommendation(plan) {
   if (existing?.dataset.lbAutoProfile === signature) return;
   existing?.remove();
   const node = document.createElement('div'); node.className = 'lb-auto-profile'; node.dataset.lbAutoProfile = signature;
-  node.innerHTML = `<strong>模型推荐结果</strong><span>${esc(currentProfileLabel(selectedId))}</span>${Number.isFinite(score) ? `<small>匹配 ${score.toFixed(1)}</small>` : '<small>由豆卡、器具与风味目标综合匹配</small>'}`;
+  node.innerHTML = `<strong>自动</strong><span>${esc(currentProfileLabel(selectedId))}</span>${Number.isFinite(score) ? `<small>匹配 ${score.toFixed(1)}</small>` : '<small>由豆卡、器具与风味目标综合匹配</small>'}`;
   host.prepend(node);
 }
 function bindOverlayObserver() {

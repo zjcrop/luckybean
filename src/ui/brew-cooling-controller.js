@@ -8,7 +8,7 @@ async function settings() { return await getSetting('app.settings', {}) || {}; }
 async function saveCooling(which, rawValue) {
   const first = which === 'first';
   const min = first ? 70 : 50;
-  const numeric = Math.min(97, Math.max(min, Number(rawValue)));
+  const numeric = Math.min(100, Math.max(min, Number(rawValue)));
   if (!Number.isFinite(numeric)) return;
   const current = await settings();
   current.brew ||= {};
@@ -33,7 +33,7 @@ function ensureCoolingEditor(selectId, which, current) {
   if (!wrap) {
     wrap = document.createElement('div');
     wrap.className = 'lb-inline-cooling-editor'; wrap.dataset.lbCoolingEditor = which;
-    wrap.innerHTML = `<small>自定义目标</small><input class="control" type="number" min="${min}" max="97" step="0.5" value="${value}" aria-label="${first ? '首段' : '尾段'}自定义目标温度"><span>°C</span>`;
+    wrap.innerHTML = `<small>自定义目标</small><input class="control" type="number" min="${min}" max="100" step="0.5" value="${value}" aria-label="${first ? '首段' : '尾段'}自定义目标温度"><span>°C</span>`;
     const input = $('input', wrap);
     input.addEventListener('change', () => saveCooling(which, input.value));
     input.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); input.blur(); } });

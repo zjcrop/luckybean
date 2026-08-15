@@ -91,6 +91,6 @@ test('automatic profile recommendation is made visible when BrewProfiles returns
   });
   const panel = page.locator('[data-lb-auto-profile]');
   await expect(panel).toBeVisible();
-  await expect(panel).toContainText('模型推荐结果');
+  await expect(panel).toContainText('自动');
   await expect(panel).toContainText('91.4');
 });

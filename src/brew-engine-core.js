@@ -14,7 +14,7 @@ export const FALLBACK_ENGINE_VERSION = 'lucky-brew-0.9.0-beta.1';
 export const BREW_SCHEMA_VERSION = 2;
 
 export const BREW_PROFILES = Object.freeze([
-  { id: 'recommended', label: '模型推荐', tags: ['auto'], description: '综合滤杯、烘焙、处理法和目标风味选择方案。' },
+  { id: 'recommended', label: '自动', serveMode:'hot', referenceDoseG:15, tags: ['auto'], description: '综合滤杯、烘焙、处理法和目标风味选择方案。' },
   { id: 'one-pour', label: '一刀流', tags: ['simple', 'body'], description: '闷蒸后一次完成主体注水，操作简洁、体感较强。' },
   { id: 'two-pulse', label: '两段式', tags: ['balanced', 'low-risk'], description: '闷蒸后两段完成主体与尾段收束。' },
   { id: 'three-pulse', label: '三段式', tags: ['clarity', 'aroma'], description: '闷蒸后分三段控制香气、甜感与尾段。' },

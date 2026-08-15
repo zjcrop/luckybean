@@ -37,7 +37,7 @@ assert.match(qrUi, /LuckyBeanQrScanner/);
 assert.match(qrUi, /scanner\.restart/);
 assert.match(flavorGuide, /const FLAVOR_GROUPS = \['花香','果香','茶感','香料','其他'\]/);
 assert.match(enrichment, /flavorText: flavorNames\.join\(' '\)/);
-assert.match(flavorGuide, /模型推荐结果/);
+assert.match(flavorGuide, /<strong>自动<\/strong>/);
 assert.match(flavorGuide, /data-lb-open-guide/);
 assert.match(flavorGuide, /data\.settingsKey = 'about'|dataset\.settingsKey = 'about'/);
 assert.match(flavorGuide, /请先在器设页面中注册或登录账户，以便同步数据到云端/);
