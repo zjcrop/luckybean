@@ -1,5 +1,6 @@
 name: LuckyBean main tests
 
+# Main-gate touchpoint: canonical Web/APK source parity must pass before release.
 on:
   push:
     branches: [main]
