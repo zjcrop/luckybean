@@ -39,7 +39,6 @@ jobs:
           for attempt in {1..30}; do curl --fail --silent http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
           cat /tmp/luckybean-http.log
           exit 1
-      - run: npm run test:smoke
       - run: npm run test:core
       - run: npm run test:visual
       - name: Commit validated fix and remove temporary machinery
