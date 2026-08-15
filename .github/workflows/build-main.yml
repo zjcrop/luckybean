@@ -72,6 +72,16 @@ jobs:
           grep -q 'Shared bundled OCR runtime warmed in background' android/app/src/main/java/com/luckybean/app/LuckyBeanApplication.java
           grep -q 'android:enableOnBackInvokedCallback="true"' android/app/src/main/AndroidManifest.xml
           test -f "$apk"
+          source_app_sha=$(sha256sum src/app.js | awk '{print $1}')
+          apk_app_sha=$(unzip -p "$apk" assets/web-cache/src/app.js | sha256sum | awk '{print $1}')
+          test "$source_app_sha" = "$apk_app_sha"
+          source_engine_sha=$(sha256sum src/brew-engine.js | awk '{print $1}')
+          apk_engine_sha=$(unzip -p "$apk" assets/web-cache/src/brew-engine.js | sha256sum | awk '{print $1}')
+          test "$source_engine_sha" = "$apk_engine_sha"
+          source_catalog_sha=$(sha256sum src/services/brew-profile-catalog-service.js | awk '{print $1}')
+          apk_catalog_sha=$(unzip -p "$apk" assets/web-cache/src/services/brew-profile-catalog-service.js | sha256sum | awk '{print $1}')
+          test "$source_catalog_sha" = "$apk_catalog_sha"
+          printf 'verified_web_asset_sha=%s\n' "$source_app_sha"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102322' versionName='1.23E'"
           unzip -l "$apk" | grep -q 'assets/web-cache/public/vendor/jsqr/jsQR.js'
           unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/gear-controller.js'
