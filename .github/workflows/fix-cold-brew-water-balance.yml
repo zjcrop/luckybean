@@ -22,8 +22,45 @@ jobs:
       - name: Patch validator and regression test
         shell: bash
         run: |
-          printf '%s' 'CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aApjb3JlPVBhdGgoInNyYy9icmV3LWVuZ2luZS1jb3JlLmpzIikKdGV4dD1jb3JlLnJlYWRfdGV4dCgpCm9sZD0iICBpZiAoTnVtYmVyLmlzRmluaXRlKE51bWJlcihwbGFuLnRvdGFscz8ud2F0ZXJHKSkpICYmIE1hdGguYWJzKHRvdGFsIC0gTnVtYmVyKHBsYW4udG90YWxzLndhdGVyRykpID4gMSkge1xuICAgIHRocm93IG5ldyBFcnJvcign5YiG5q615rOo5rC06YeP5LiO5oC76YeP5LiN5a6I5oGSJyk7XG4gIH1cbiAgcmV0dXJuIHBsYW47XG59IgpuZXc9IiAgY29uc3QgYnJld1dhdGVyID0gTnVtYmVyKHBsYW4udG90YWxzPy5icmV3V2F0ZXJHKTtcbiAgY29uc3QgcmVjaXBlV2F0ZXIgPSBOdW1iZXIocGxhbi50b3RhbHM/LndhdGVyRyk7XG4gIGNvbnN0IGljZSA9IE51bWJlcihwbGFuLnRvdGFscz8uaWNlRyA/PyAwKTtcbiAgY29uc3QgYnlwYXNzID0gTnVtYmVyKHBsYW4udG90YWxzPy5ieXBhc3NXYXRlckcgPz8gMCk7XG4gIGNvbnN0IHN0YWdlVGFyZ2V0ID0gTnVtYmVyLmlzRmluaXRlKGJyZXdXYXRlcikgJiYgYnJld1dhdGVyID4gMCA/IGJyZXdXYXRlciA6IHJlY2lwZVdhdGVyO1xuICBpZiAoTnVtYmVyLmlzRmluaXRlKHN0YWdlVGFyZ2V0KSAmJiBNYXRoLmFicyh0b3RhbCAtIHN0YWdlVGFyZ2V0KSA+IDEpIHtcbiAgICB0aHJvdyBuZXcgRXJyb3IoJ+WIhuauteazqOawtOmHjOS4jueDreiQuuawtOmHjOS4jeWuiOWukuS4pyk7XG4gIH1cbiAgaWYgKE51bWJlci5pc0Zpbml0ZShyZWNpcGVXYXRlcikgJiYgTnVtYmVyLmlzRmluaXRlKGJyZXdXYXRlcikgJiYgYnJld1dhdGVyID4gMFxuICAgICAgJiYgTWF0aC5hYnMocmVjaXBlV2F0ZXIgLSAoYnJld1dhdGVyICsgaWNlICsgYnlwYXNzKSkgPiAxKSB7XG4gICAgdGhyb3cgbmV3IEVycm9yKCfng63okIzmsLTjgIHmnaXlnZfjgIHml4Hot6/msLTkuI7phY3mlrnmgLvph4/kuI3lrojlro/jgIcpO1xuICB9XG4gIHJldHVybiBwbGFuO1xufSIKaWYgb2xkIG5vdCBpbiB0ZXh0OiByYWlzZSBTeXN0ZW1FeGl0KCJ0YXJnZXQgdmFsaWRhdG9yIGJsb2NrIG5vdCBmb3VuZCIpCmNvcmUud3JpdGVfdGV4dCh0ZXh0LnJlcGxhY2Uob2xkLG5ldywxKSkKdGVzdD1QYXRoKCJ0ZXN0L2JyZXctYXV0aG9yaXRhdGl2ZS1wbGFuLnRlc3QuanMiKQp0PXRlc3QucmVhZF90ZXh0KCkKbWFya2VyPSJ0ZXN0KCdjb2xkIGJyZXcgdmFsaWRhdGVzIHN0YWdlIHdhdGVyIGFnYWluc3QgYnJldyB3YXRlciBhbmQgcmVjaXBlIHRvdGFsIGluZGVwZW5kZW50bHknIgppZiBtYXJrZXIgbm90IGluIHQ6CiAgICB0ICs9ICIiIgoKdGVzdCgnY29sZCBicmV3IHZhbGlkYXRlcyBzdGFnZSB3YXRlciBhZ2FpbnN0IGJyZXcgd2F0ZXIgYW5kIHJlY2lwZSB0b3RhbCBpbmRlcGVuZGVudGx5JywgKCkgPT4gewogIGNvbnN0IGNvbGQgPSB7CiAgICAuLi5hdXRob3JpdGF0aXZlUGxhbigpLAogICAgYW5hbHlzaXNDb250cmFjdDogJ2JyZXctYW5hbHlzaXMvMi4xJywKICAgIHN0YWdlczogWwogICAgICB7IGluZGV4OiAxLCBkdXJhdGlvblNlYzogMzAsIHN0YWdlV2F0ZXJHOiA1MCwgY3VtdWxhdGl2ZVdhdGVyRzogNTAsIHRlbXBlcmF0dXJlQzogODggfSwKICAgICAgeyBpbmRleDogMiwgZHVyYXRpb25TZWMDogNDUsIHN0YWdlV2F0ZXJHOiAxMDAsIGN1bXVsYXRpdmVXYXRlckc6IDE1MCwgdGVtcGVyYXR1cmVDOiA5MiB9CiAgICBdLAogICAgdG90YWxzOiB7IGJyZXdXYXRlckc6IDE1MCwgaWNlRzogMTAwLCBieXBhc3NXYXRlckc6IDAsIHdhdGVyRzogMjUwIH0KICB9OwogIGFzc2VydC5lcXVhbCh2YWxpZGF0ZVBsYW4oY29sZCksIGNvbGQpOwogIGFzc2VydC50aHJvd3MoKCkgPT4gdmFsaWRhdGVQbGFuKHsgLi4uY29sZCwgdG90YWxzOiB7IC4uLmNvbGQudG90YWxzLCBicmV3V2F0ZXJHOiAxNjAgfSB9KSwgL+WIhuauteazqOawtOmHjOS4jueDreiQuuawtOmHjOS4jeWuiOWukuS4py8pOwogIGFzc2VydC50aHJvd3MoKCkgPT4gdmFsaWRhdGVQbGFuKHsgLi4uY29sZCwgdG90YWxzOiB7IC4uLmNvbGQudG90YWxzLCB3YXRlckc6IDI2MCB9IH0pLCAv54Ot6JCN5rC044CB5Yaw5Z2X44CB5peB6Lev5rC05LiO6YWN5pa55oC76YeP5LiN5a6I5oGSFyk7Cn0pOwoKIgogICAgdGVzdC53cml0ZV90ZXh0KHQpCg==' | base64 -d > /tmp/cold_balance_patch.py
-          python /tmp/cold_balance_patch.py
+          python - <<'PY'
+          from pathlib import Path
+          core = Path('src/brew-engine-core.js')
+          text = core.read_text()
+          old = "  if (Number.isFinite(Number(plan.totals?.waterG)) && Math.abs(total - Number(plan.totals.waterG)) > 1) {\n    throw new Error('分段注水量与总量不守恒');\n  }\n  return plan;\n}"
+          new = "  const brewWater = Number(plan.totals?.brewWaterG);\n  const recipeWater = Number(plan.totals?.waterG);\n  const ice = Number(plan.totals?.iceG ?? 0);\n  const bypass = Number(plan.totals?.bypassWaterG ?? 0);\n  const stageTarget = Number.isFinite(brewWater) && brewWater > 0 ? brewWater : recipeWater;\n  if (Number.isFinite(stageTarget) && Math.abs(total - stageTarget) > 1) {\n    throw new Error('分段注水量与热萃水量不守恒');\n  }\n  if (Number.isFinite(recipeWater) && Number.isFinite(brewWater) && brewWater > 0\n      && Math.abs(recipeWater - (brewWater + ice + bypass)) > 1) {\n    throw new Error('热萃水、冰块、旁路水与配方总量不守恒');\n  }\n  return plan;\n}"
+          if old not in text:
+              raise SystemExit('target validator block not found')
+          core.write_text(text.replace(old, new, 1))
+          test = Path('test/brew-authoritative-plan.test.js')
+          t = test.read_text()
+          marker = "test('cold brew validates stage water against brew water and recipe total independently'"
+          lines = [
+              '',
+              "test('cold brew validates stage water against brew water and recipe total independently', () => {",
+              '  const cold = {',
+              '    ...authoritativePlan(),',
+              "    analysisContract: 'brew-analysis/2.1',",
+              '    stages: [',
+              '      { index: 1, durationSec: 30, stageWaterG: 50, cumulativeWaterG: 50, temperatureC: 88 },',
+              '      { index: 2, durationSec: 45, stageWaterG: 100, cumulativeWaterG: 150, temperatureC: 92 }',
+              '    ],',
+              '    totals: { brewWaterG: 150, iceG: 100, bypassWaterG: 0, waterG: 250 }',
+              '  };',
+              '  assert.equal(validatePlan(cold), cold);',
+              '  assert.throws(',
+              '    () => validatePlan({ ...cold, totals: { ...cold.totals, brewWaterG: 160 } }),',
+              '    /分段注水量与热萃水量不守恒/',
+              '  );',
+              '  assert.throws(',
+              '    () => validatePlan({ ...cold, totals: { ...cold.totals, waterG: 260 } }),',
+              '    /热萃水、冰块、旁路水与配方总量不守恒/',
+              '  );',
+              '});',
+              ''
+          ]
+          if marker not in t:
+              test.write_text(t + '\n'.join(lines))
+          PY
           node --check src/brew-engine-core.js
           node --test test/brew-authoritative-plan.test.js
           git diff --check
