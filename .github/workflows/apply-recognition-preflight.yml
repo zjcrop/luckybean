@@ -1,0 +1,40 @@
+name: Apply recognition preflight migration
+
+on:
+  push:
+    branches: [feature/harvest-season-field-20260815]
+    paths:
+      - '.github/workflows/apply-recognition-preflight.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: feature/harvest-season-field-20260815
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.12'
+      - run: python tools/apply_recognition_preflight.py
+      - run: npm ci
+      - run: npm run test:recognition
+      - run: npm run test:static
+      - name: Commit migration result
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm tools/apply_recognition_preflight.py .github/workflows/apply-recognition-preflight.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/app.js src/codebook.js src/domain/recognition/recognition-document.js src/ui/app-components.css test/harvest-multilingual-preflight.test.js
+          git commit -m 'Add multilingual recognition preflight and harvest field'
+          git push origin HEAD:feature/harvest-season-field-20260815
