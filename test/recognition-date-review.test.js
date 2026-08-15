@@ -6,8 +6,16 @@ import { buildDateReviewModel, resolveDateReviewSelections } from '../src/domain
 test('review model exposes automatic, excluded and unresolved candidates together', () => {
   const decision = classifyRecognitionDates('ROAST DATE 2026-07-28\nBEST BEFORE 2026-10-28\nLOT 20260729');
   const model = buildDateReviewModel(decision);
-  assert.deepEqual(model.map(item => item.defaultType), ['roastDate', 'bestBefore', 'ignore']);
+  assert.deepEqual(model.map(item => item.defaultType), ['roastDate', 'bestBefore', 'pending']);
   assert.equal(model.length, 3);
+});
+
+test('unresolved candidate requires an explicit date assignment before confirmation', () => {
+  const decision = classifyRecognitionDates('DATE 2026-07-28');
+  const [candidate] = buildDateReviewModel(decision);
+  const result = resolveDateReviewSelections(decision, [{ candidateId: candidate.candidateId, type: 'pending', value: candidate.values[0] }]);
+  assert.equal(result.ok, false);
+  assert.match(result.errors[0], /尚未选择日期归属/);
 });
 
 test('user confirmation retains source provenance instead of inventing confidence 1', () => {

@@ -54,3 +54,26 @@ test('native OCR payload is translated, structured and handed to the bean form w
   await expect(page.locator('#beanRoastDate')).toHaveValue('2026-08-12');
   await expect(page.locator('#formFlavorSummary')).toContainText('蓝莓');
 });
+
+test('pending roast date requires an explicit choice and is then inserted into the bean form', async ({ page }) => {
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/, route => route.abort('failed'));
+  await page.goto(`${BASE_URL}/?roast-date-confirmation=1`, { waitUntil: 'domcontentloaded' });
+  await page.locator('#splashScreen').click();
+  await expect(page.locator('#appShell')).toBeVisible({ timeout: 15000 });
+
+  await page.evaluate(() => globalThis.LuckyBeanRecognitionFlow.openText('DATE 2026-07-28'));
+  await page.locator('#parseTextBtn').click();
+
+  const review = page.locator('[data-overlay="date-review"]');
+  const type = review.locator('.date-review-type');
+  await expect(review).toBeVisible();
+  await expect(type).toHaveValue('pending');
+  await expect(review.locator('#dateReviewStatus')).toContainText('还有 1 个日期未选择归属');
+  await expect(review.locator('#dateReviewContinueBtn')).toBeDisabled();
+
+  await type.selectOption('roastDate');
+  await expect(review.locator('#dateReviewContinueBtn')).toBeEnabled();
+  await review.locator('#dateReviewContinueBtn').click();
+  await expect(page.locator('#beanForm')).toBeVisible();
+  await expect(page.locator('#beanRoastDate')).toHaveValue('2026-07-28');
+});

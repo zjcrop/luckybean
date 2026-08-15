@@ -1,4 +1,4 @@
-export const DATE_REVIEW_VERSION = '1.23D-date-review.2';
+export const DATE_REVIEW_VERSION = '1.23E-date-review.3';
 
 const ALLOWED_TYPES = new Set(['ignore', 'roastDate', 'productionDate', 'packDate', 'bestBefore', 'expiryDate']);
 
@@ -19,7 +19,7 @@ export function buildDateReviewModel(dateDecision) {
       ? 'roastDate'
       : candidate.decision === 'exclude' && ALLOWED_TYPES.has(candidate.fieldType)
         ? candidate.fieldType
-        : 'ignore',
+        : 'pending',
     fieldType: String(candidate.fieldType || 'unknown'),
     fieldLabel: String(candidate.fieldLabel || '未确定日期'),
     imageId: String(candidate.imageId || ''),
@@ -50,13 +50,26 @@ export function resolveDateReviewSelections(dateDecision, selections = []) {
       continue;
     }
     seen.add(candidateId);
-    const type = ALLOWED_TYPES.has(selection?.type) ? selection.type : 'ignore';
+    const requestedType = String(selection?.type || 'pending');
+    if (requestedType === 'pending') {
+      errors.push(`日期 ${candidate.rawValue} 尚未选择日期归属，请选择后再继续。`);
+      continue;
+    }
+    if (!ALLOWED_TYPES.has(requestedType)) {
+      errors.push(`日期 ${candidate.rawValue} 的归属类型无效，请重新选择。`);
+      continue;
+    }
+    const type = requestedType;
     const value = String(selection?.value || candidate.values[0] || '');
     if (type !== 'ignore' && (!value || !candidate.values.includes(value))) {
       errors.push(`日期 ${candidate.rawValue} 的确认值不属于识别候选。`);
       continue;
     }
     normalized.push({ candidateId, type, value, candidate });
+  }
+
+  for (const candidate of model) {
+    if (!seen.has(candidate.candidateId)) errors.push(`日期 ${candidate.rawValue} 未提交确认结果。`);
   }
 
   const roastSelections = normalized.filter(item => item.type === 'roastDate' && item.value);

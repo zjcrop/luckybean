@@ -63,7 +63,7 @@ jobs:
         run: |
           set -euo pipefail
           apk=android/app/build/outputs/apk/release/app-release.apk
-          grep -q "versionCode 102320" android/app/build.gradle
+          grep -q "versionCode 102321" android/app/build.gradle
           grep -q "versionName '1.23E'" android/app/build.gradle
           grep -q 'LuckyBeanNavigation' android/app/src/main/java/com/luckybean/app/MainActivity.java
           grep -q 'getOnBackInvokedDispatcher' android/app/src/main/java/com/luckybean/app/MainActivity.java
@@ -72,7 +72,7 @@ jobs:
           grep -q 'Shared bundled OCR runtime warmed in background' android/app/src/main/java/com/luckybean/app/LuckyBeanApplication.java
           grep -q 'android:enableOnBackInvokedCallback="true"' android/app/src/main/AndroidManifest.xml
           test -f "$apk"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102320' versionName='1.23E'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102321' versionName='1.23E'"
           unzip -l "$apk" | grep -q 'assets/web-cache/public/vendor/jsqr/jsQR.js'
           unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/gear-controller.js'
           unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/app-layout.css'
@@ -132,7 +132,7 @@ jobs:
           mkdir -p dist
           zip -qr dist/LuckyBean-1.23E-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts schemas docs DEVELOPMENT_STATUS.md
           cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.23E-release.apk
-          printf 'source_sha=%s\nversion=1.23E\nversion_code=102320\nrevision=1.23E-main-sync.9\nanalysis_contract=brew-analysis/2.1\nspatial_contract=brew-spatial/1.3\noptimization_contract=brew-optimization-assessment/1.0\noptimization_validation_contract=brew-optimization-validation/1.0\ncalculation_coordinator=latest-wins-profile-preserving\nspatial_failure=same-input-retry-only\nmatching_contract=luckybean-match/1.1\ngear_physics_contract=gear-physics/1.0\nqr_runtime=local-jsqr-1.4.0\ngear_binding=resolved-physical-snapshot\nbean_matching=direct-selected-bean-id\nandroid_gallery_uri=clipdata-first\nsmall_brew_layout=five-row\nprofile_default=model-recommended-transient-override\nwater_default=plain-no-added-recipe\nnavigation_back=internal-stack-overlay-first\nandroid_back=legacy-and-predictive\nbean_metadata_gap=one-em\nsensory_actions=cancel-prev-next-equal-row\nui_architecture=canonical-no-repair-guards\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
+          printf 'source_sha=%s\nversion=1.23E\nversion_code=102321\nrevision=1.23E-main-sync.10\nanalysis_contract=brew-analysis/2.1\nspatial_contract=brew-spatial/1.3\noptimization_contract=brew-optimization-assessment/1.0\noptimization_validation_contract=brew-optimization-validation/1.0\ncalculation_coordinator=latest-wins-profile-preserving\nspatial_failure=same-input-retry-only\nmatching_contract=luckybean-match/1.1\ngear_physics_contract=gear-physics/1.0\nqr_runtime=local-jsqr-1.4.0\ngear_binding=resolved-physical-snapshot\nbean_matching=direct-selected-bean-id\nandroid_gallery_uri=clipdata-first\nsmall_brew_layout=five-row\nprofile_default=model-recommended-transient-override\nwater_default=plain-no-added-recipe\nnavigation_back=internal-stack-overlay-first\nandroid_back=legacy-and-predictive\nbean_metadata_gap=one-em\nsensory_actions=cancel-prev-next-equal-row\nui_architecture=canonical-no-repair-guards\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
           sha256sum dist/LuckyBean-1.23E-web.zip dist/LuckyBean-1.23E-release.apk > dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v7.0.1
         with:
