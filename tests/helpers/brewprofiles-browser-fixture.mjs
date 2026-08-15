@@ -17,18 +17,32 @@ const profileIds = [
   'four-six-33666', 'flat46-clean', 'five-pulse', 'pulse-30x15',
   'cbrc-2026-01-zhong-jingjing', 'cbrc-2026-02-liang-baoyi',
   'cbrc-2026-03-wu-minwei', 'cbrc-2026-04-yang-xiao',
-  'cbrc-2026-05-zhang-xiaobo', 'cbrc-2026-06-qu-yongxiang'
+  'cbrc-2026-05-zhang-xiaobo', 'cbrc-2026-06-qu-yongxiang',
+  'hoffmann-one-cup', 'april-two-pour', 'matt-winton-five',
+  'lance-daily-two', 'switch-hybrid-50-50', 'mugen-one-pour', 'onyx-center-spiral',
+  'ice-375', 'kurasu-japanese-iced', 'ultimate-flash-brew',
+  'hoffmann-iced-filter', 'apollons-gold-4x45'
 ];
+
+const coldReferenceDoses = Object.freeze({
+  'ice-375': 15,
+  'kurasu-japanese-iced': 16,
+  'ultimate-flash-brew': 20,
+  'hoffmann-iced-filter': 32.5,
+  'apollons-gold-4x45': 15
+});
 
 const catalog = {
   contract: 'brew-profile-catalog/1.0',
-  apiVersion: '2.0.0',
+  apiVersion: '2.4.0',
   engineVersion: 'brewprofiles-test-fixture/1.0.0',
   generatedAt: '2026-08-07T00:00:00.000Z',
   catalogHash: 'sha256:browser-fixture',
   profiles: profileIds.map(id => ({
     id, version: '2.0.0', label: id, status: 'published', category: 'test',
-    tags: [], compatibleDripperGroups: [], autoRecommend: false
+    tags: [], compatibleDripperGroups: [], autoRecommend: false,
+    serveMode: Object.hasOwn(coldReferenceDoses, id) ? 'cold' : 'hot',
+    referenceDoseG: coldReferenceDoses[id] || 15
   }))
 };
 

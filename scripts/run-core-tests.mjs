@@ -11,7 +11,8 @@ const specs = [
   'tests/v123e-gear-matching-ui.spec.mjs',
   'tests/v123e-gear-catalog-editor-ui.spec.mjs',
   'tests/v123e-sensory-actions-ui.spec.mjs',
-  'tests/v123e-recognition-pipeline-ui.spec.mjs'
+  'tests/v123e-recognition-pipeline-ui.spec.mjs',
+  'tests/v123e-cold-brew-ui.spec.mjs'
 ];
 
 function annotation(text) {
