@@ -1878,9 +1878,9 @@ function exportCurrentPlan(format = 'json') {
   downloadBlob(`${safeName}_冲煮方案.${ext}`, planExportDocument(plan, format, bean), mime); toast(`已导出 ${ext.toUpperCase()} 方案`);
 }
 
-function stopSpeech() { if (globalThis.speechSynthesis) speechSynthesis.cancel(); }
+function stopSpeech() { if (globalThis.__LUCKYBEAN_ANDROID__) return; if (globalThis.speechSynthesis) speechSynthesis.cancel(); }
 function speak(text) {
-  if (!globalThis.speechSynthesis || !text) return;
+  if (globalThis.__LUCKYBEAN_ANDROID__ || !globalThis.speechSynthesis || !text) return;
   stopSpeech(); const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'zh-CN'; utterance.rate = 1.05; speechSynthesis.speak(utterance);
 }
 function preparationSpeech(plan) {
@@ -2509,7 +2509,8 @@ async function openShareDialog(bean) {
   try { encoded = await encodeShare(compact); }
   catch (error) { return toast(`分享编码失败：${error.message}`, 'status-bad'); }
   const payload = await decodeShare(encoded);
-  const link = `${location.origin}${location.pathname}#share=${encoded}`;
+  const shareBase = globalThis.__LUCKYBEAN_PUBLIC_URL__ || `${location.origin}${location.pathname}`;
+  const link = `${shareBase}#share=${encoded}`;
   const tooLong = encoded.length > 8000;
   const content = `${dialogHeader('分享豆卡', tooLong ? '内容超过安全链接长度，请保存网页文件' : `已压缩 ${payload.brewSessions?.length || 0} 条冲煮和 ${payload.sensoryRecords?.length || 0} 条品鉴`)}<div class="row menu-row"><button id="shareQrTab" class="button primary" type="button">二维码</button><button id="shareLinkTab" class="button" type="button">链接</button></div><div id="shareQrPanel"><div id="shareQrBox" class="qr-box"><span class="muted">正在生成二维码…</span></div></div><div id="shareLinkPanel" class="hidden"><div class="share-link-row"><div class="control ellipsis">${esc(tooLong?'内容过长，不生成 URL':link)}</div><button id="copyShareLinkBtn" class="button" type="button"${tooLong?' disabled':''}>复制</button></div></div><div class="grid-2"><button id="saveQrBtn" class="button" type="button"${tooLong?' disabled':''}>保存二维码 PNG</button><button id="saveShareHtmlBtn" class="button" type="button">保存分享网页</button></div><label class="field"><span>本机备注（不会同步给访问者）</span><textarea id="shareLocalNote" class="control" placeholder="仅保存在当前设备"></textarea></label><p class="muted small">编码字段使用 BrewIon 国家、豆种、处理法与风味代码；冲煮阶段采用“时间/克重/注水法编码/温度”结构。</p>`;
   const overlay = showOverlay(content,{id:'share'});bindClose(overlay);

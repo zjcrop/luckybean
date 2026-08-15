@@ -44,19 +44,8 @@ tasks.register('syncLuckyBeanWebAssets') {
         if (!moduleMatcher.find()) throw new GradleException('未找到应用模块入口，Android资产同步中止。')
         String moduleTag = moduleMatcher.group(0)
         indexFile.write(indexHtml.replace(moduleTag, '<script src="./native-bridge.js"></script>\n  ' + moduleTag), 'UTF-8')
-        File appScript = new File(webCache, 'src/app.js')
-        String original = appScript.getText('UTF-8')
-        String shareTarget = 'const link = `${location.origin}${location.pathname}#share=${encoded}`;'
-        String shareReplacement = 'const shareBase = globalThis.__LUCKYBEAN_PUBLIC_URL__ || `${location.origin}${location.pathname}`; const link = `${shareBase}#share=${encoded}`;'
-        if (original.contains(shareTarget)) original = original.replace(shareTarget, shareReplacement)
-        else if (!original.contains('__LUCKYBEAN_PUBLIC_URL__')) throw new GradleException('未找到分享链接生成语句，Android资产同步中止。')
-        String stopSpeechTarget = 'function stopSpeech() { if (globalThis.speechSynthesis) speechSynthesis.cancel(); }'
-        String stopSpeechReplacement = 'function stopSpeech() { if (globalThis.__LUCKYBEAN_ANDROID__) return; if (globalThis.speechSynthesis) speechSynthesis.cancel(); }'
-        String speakTarget = "function speak(text) {\n  if (!globalThis.speechSynthesis || !text) return;"
-        String speakReplacement = "function speak(text) {\n  if (globalThis.__LUCKYBEAN_ANDROID__ || !globalThis.speechSynthesis || !text) return;"
-        if (!original.contains(stopSpeechTarget) || !original.contains(speakTarget)) throw new GradleException('未找到网页语音入口，Android语音隔离中止。')
-        original = original.replace(stopSpeechTarget, stopSpeechReplacement).replace(speakTarget, speakReplacement)
-        appScript.write(original, 'UTF-8')
+        // app.js is copied byte-for-byte. Platform branching lives in canonical src/app.js so
+        // Web and APK execute the same source and release SHA parity is meaningful.
     }
 }
 
