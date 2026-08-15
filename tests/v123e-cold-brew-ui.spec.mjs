@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { installBrewProfilesBrowserFixture } from './helpers/brewprofiles-browser-fixture.mjs';
 
 const BASE_URL = 'http://127.0.0.1:4173';
 
 test.beforeEach(async ({ page }) => {
-  await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/, route => route.abort('failed'));
+  await installBrewProfilesBrowserFixture(page);
   await page.goto(`${BASE_URL}/?cold-brew-ui=1`, { waitUntil:'domcontentloaded' });
   await page.locator('#splashScreen').click();
   await expect(page.locator('#appShell')).toBeVisible({ timeout:15000 });
