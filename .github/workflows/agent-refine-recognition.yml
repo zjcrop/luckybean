@@ -1,0 +1,33 @@
+name: Refine recognition review state
+
+on:
+  push:
+    branches: [agent/cold-brew-ocr-parity-fix]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[review-refined]') }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: agent/cold-brew-ocr-parity-fix
+          fetch-depth: 0
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+      - run: node scripts/refine-recognition-review.mjs
+      - name: Verify and commit app source
+        run: |
+          grep -Fq '待确认识别项' src/app.js
+          grep -Fq 'reviewFields || []' src/app.js
+          grep -Fq 'queueMicrotask(() => openAddBeanOptionDialog' src/app.js
+          git config user.name 'LuckyBean Fix Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add src/app.js
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'fix: render only unresolved recognition review fields [review-refined]'
+          git push origin HEAD:agent/cold-brew-ocr-parity-fix
