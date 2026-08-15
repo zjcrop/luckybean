@@ -48,3 +48,13 @@ test('explicit labeled numeric roast level is normalized without scanning crop n
 '''
 if "explicit labeled numeric roast level is normalized" not in s:
     t.write_text(s + append, encoding='utf-8')
+
+# The preflight deliberately shows unresolved source text when two equally exact
+# varieties tie. It does not force a wrong canonical code into the bean record.
+u = Path('tests/v120-requirements-ui.spec.mjs')
+us = u.read_text(encoding='utf-8')
+old = "await expect(preflight.locator('.recognition-preflight-row').filter({ hasText: '豆种' })).toContainText('—');"
+new = "await expect(preflight.locator('.recognition-preflight-row').filter({ hasText: '豆种' })).toContainText('74110 / 74112');"
+if old not in us:
+    raise SystemExit('preflight variety assertion anchor missing')
+u.write_text(us.replace(old, new, 1), encoding='utf-8')
