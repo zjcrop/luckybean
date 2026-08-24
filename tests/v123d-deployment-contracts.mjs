@@ -33,7 +33,7 @@ const buildWorkflow = read('.github/workflows/build-main.yml');
 const revisionMatch = index.match(/release-revision" content="([^"]+)"/);
 assert.ok(revisionMatch, 'release revision missing from index');
 const releaseRevision = revisionMatch[1];
-assert.equal(releaseRevision, '1.24B-main.2');
+assert.equal(releaseRevision, '1.24B-main.3');
 assert.ok(index.includes(`data-release-revision="${releaseRevision}"`));
 
 const versionCodeMatch = androidBuild.match(/versionCode\s+(\d+)/);
@@ -58,10 +58,10 @@ assert.match(app, /processRecognitionDocument/);
 assert.match(codebook, /const roastDateInput = labeled\.roastDate \|\| ''/);
 assert.doesNotMatch(codebook, /labeled\.roastDate \|\| labeled\.productionDate/);
 
-assert.match(sw, /REVISION = '1\.24B-main\.2'/);
+assert.match(sw, /REVISION = '1\.24B-main\.3'/);
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124b-'/);
 assert.match(sw, /luckybean-main-v123e-/);
-for (const cached of ['release-1.24b.js','release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-transit-controller.js','release-1.24b-group-navigation.js','release-1.24b-about-controller.js','release-1.24b-polish.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js']) assert.ok(sw.includes(cached), `service worker missing ${cached}`);
+for (const cached of ['release-1.24b.js','release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-transit-controller.js','release-1.24b-group-navigation.js','release-1.24b-about-controller.js','release-1.24b-polish.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','recognition-field-resolver-1.24b.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js']) assert.ok(sw.includes(cached), `service worker missing ${cached}`);
 assert.match(sw, /cache\.put\(request, response\.clone\(\)\)/);
 
 assert.match(androidActivity, /addJavascriptInterface\(new NativeFileBridge\(\), "LuckyBeanNative"\)/);
@@ -107,14 +107,14 @@ assert.match(freshnessTimeline, /freshnessProfile\(bean\)\.progress/);
 assert.match(deployWorkflow, /push:[\s\S]*branches: \[main\]/);
 assert.match(deployWorkflow, /actions\/deploy-pages@v5\.0\.0/);
 assert.match(deployWorkflow, /"version":"1\.24B"/);
-assert.match(deployWorkflow, /1\.24B-main\.2/);
+assert.match(deployWorkflow, /1\.24B-main\.3/);
 assert.match(deployWorkflow, /SOURCE_SHA/);
 assert.match(deployWorkflow, /pages-status/);
 assert.doesNotMatch(deployWorkflow, /workflow_run:/);
 assert.match(buildWorkflow, /LuckyBean-1\.24B-release\.apk/);
 assert.match(buildWorkflow, /LuckyBean-1\.24B-web\.zip/);
 assert.match(buildWorkflow, /version_code=102402/);
-assert.match(buildWorkflow, /revision=1\.24B-main\.2/);
+assert.match(buildWorkflow, /revision=1\.24B-main\.3/);
 assert.match(buildWorkflow, /LUCKYBEAN_KEYSTORE_B64/);
 assert.match(buildWorkflow, /CERT_SHA256\.txt/);
 assert.match(buildWorkflow, /release-status/);
