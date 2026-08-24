@@ -1,0 +1,71 @@
+name: LuckyBean observable main gate
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-observable-main-gate
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Run observable release gate
+        id: gate
+        shell: bash
+        run: |
+          set +e
+          npm ci > /tmp/npm-ci.log 2>&1
+          install_status=$?
+          if [ "$install_status" -eq 0 ]; then
+            find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check > /tmp/js-check.log 2>&1
+            js_status=$?
+          else
+            js_status=99
+          fi
+          if [ "$install_status" -eq 0 ] && [ "$js_status" -eq 0 ]; then
+            npm run test:static > /tmp/static.log 2>&1
+            static_status=$?
+          else
+            static_status=99
+          fi
+          printf 'install=%s\njs=%s\nstatic=%s\n' "$install_status" "$js_status" "$static_status" > /tmp/gate-status
+          cat /tmp/gate-status
+          tail -c 6000 /tmp/static.log 2>/dev/null || true
+          exit 0
+      - name: Write observable receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /tmp/gate-status
+          overall=false
+          if [ "$install" = 0 ] && [ "$js" = 0 ] && [ "$static" = 0 ]; then overall=true; fi
+          log=$(tail -c 3500 /tmp/static.log 2>/dev/null | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+          receipt=$(mktemp)
+          printf '{"source_sha":"%s","version":"1.24B","install_status":%s,"js_status":%s,"static_status":%s,"passed":%s,"tail":%s,"generated_at":"%s"}\n' "$GITHUB_SHA" "$install" "$js" "$static" "$overall" "$log" "$(date -u +%FT%TZ)" > "$receipt"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          if git ls-remote --exit-code --heads origin ci-status >/dev/null 2>&1; then
+            git fetch origin ci-status:ci-status
+            git switch ci-status
+          else
+            git switch --orphan ci-status
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+          mkdir -p status
+          cp "$receipt" status/1.24B.json
+          git add status/1.24B.json
+          git commit -m "ci-status: LuckyBean 1.24B $GITHUB_SHA" || true
+          git push origin HEAD:ci-status
