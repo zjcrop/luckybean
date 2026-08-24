@@ -90,7 +90,7 @@ assert.match(releaseIntegration, /LOCAL_BREW_RECIPES_124B/);
 assert.match(releaseIntegration, /fineAnchor/);
 assert.match(releaseTransit, /markBeanDelivered/);
 assert.match(releaseTransit, /在途 \$\{beans\.length\} 支/);
-assert.match(releaseGroup, /data\.v099tGroupBack/);
+assert.match(releaseGroup, /dataset\.v099tGroupBack/);
 assert.match(releaseAbout, /端茶倒水的秦始皇🐻/);
 assert.match(releasePolish, /grinderReference/);
 assert.match(releasePolish, /openCenteredHelp/);
