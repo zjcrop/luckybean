@@ -25,7 +25,8 @@ const tests = [
   'tests/v123e-navigation-back-static.mjs',
   'tests/v123e-brew-optimization-regression.mjs',
   'tests/v123e-recognition-pipeline-static.mjs',
-  'tests/v124b-lifecycle-ocr-storage-regression.mjs'
+  'tests/v124b-lifecycle-ocr-storage-regression.mjs',
+  'tests/v124b-final-release-contract.mjs'
 ];
 
 function annotation(text) {
