@@ -43,22 +43,22 @@ jobs:
           fi
           printf 'install=%s\njs=%s\nstatic=%s\n' "$install_status" "$js_status" "$static_status" > /tmp/gate-status
           cat /tmp/gate-status
-          tail -c 6000 /tmp/static.log 2>/dev/null || true
+          tail -c 8000 /tmp/static.log 2>/dev/null || true
           exit 0
-      - name: Write observable receipt
+      - name: Write observable receipt and log
         shell: bash
         run: |
           set -euo pipefail
           . /tmp/gate-status
           overall=false
           if [ "$install" = 0 ] && [ "$js" = 0 ] && [ "$static" = 0 ]; then overall=true; fi
-          log=$(tail -c 3500 /tmp/static.log 2>/dev/null | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+          first_error=$(grep -m1 -E 'AssertionError|Static regression failed|ERR_ASSERTION|Error:' /tmp/static.log 2>/dev/null | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))')
           receipt=$(mktemp)
-          printf '{"source_sha":"%s","version":"1.24B","install_status":%s,"js_status":%s,"static_status":%s,"passed":%s,"tail":%s,"generated_at":"%s"}\n' "$GITHUB_SHA" "$install" "$js" "$static" "$overall" "$log" "$(date -u +%FT%TZ)" > "$receipt"
+          printf '{"source_sha":"%s","version":"1.24B","install_status":%s,"js_status":%s,"static_status":%s,"passed":%s,"first_error":%s,"generated_at":"%s"}\n' "$GITHUB_SHA" "$install" "$js" "$static" "$overall" "$first_error" "$(date -u +%FT%TZ)" > "$receipt"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          if git ls-remote --exit-code --heads origin ci-status >/dev/null 2>&1; then
-            git fetch origin ci-status:ci-status
+          git fetch origin ci-status:ci-status 2>/dev/null || true
+          if git show-ref --verify --quiet refs/heads/ci-status; then
             git switch ci-status
           else
             git switch --orphan ci-status
@@ -66,6 +66,9 @@ jobs:
           fi
           mkdir -p status
           cp "$receipt" status/1.24B.json
-          git add status/1.24B.json
+          cp /tmp/static.log status/1.24B-static.log 2>/dev/null || true
+          cp /tmp/js-check.log status/1.24B-js.log 2>/dev/null || true
+          cp /tmp/npm-ci.log status/1.24B-npm.log 2>/dev/null || true
+          git add status/
           git commit -m "ci-status: LuckyBean 1.24B $GITHUB_SHA" || true
           git push origin HEAD:ci-status
