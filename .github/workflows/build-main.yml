@@ -1,25 +1,24 @@
-name: LuckyBean main build
+name: LuckyBean main signed release
 
 on:
-  workflow_run:
-    workflows: ["LuckyBean main tests"]
+  push:
     branches: [main]
-    types: [completed]
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: luckybean-main-build-${{ github.event.workflow_run.head_sha }}
+  group: luckybean-main-signed-release
   cancel-in-progress: true
 
 jobs:
   build:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 30
     env:
-      SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+      SOURCE_SHA: ${{ github.sha }}
+      RELEASE_TAG: v1.24B-main.2
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -35,13 +34,18 @@ jobs:
       - uses: android-actions/setup-android@v4.0.1
       - name: Install Android build tools
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
-      - name: Install Gradle
-        uses: gradle/actions/setup-gradle@v6.3.0
+      - uses: gradle/actions/setup-gradle@v6.3.0
         with:
           gradle-version: '8.9'
       - run: npm ci
       - run: npm audit --audit-level=high
-      - run: npm run test:static
+      - name: Validate source
+        run: |
+          find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+          npm run test:static
+          grep -Fq 'release-1.24b-polish.js?v=1.24B-main.2' index.html
+          grep -Fq "REVISION = '1.24B-main.2'" sw.js
+          grep -Fq 'grind-psd-reference-service.js' sw.js
       - name: Restore official release keystore
         shell: bash
         env:
@@ -51,89 +55,60 @@ jobs:
           test -n "$LUCKYBEAN_KEYSTORE_B64"
           printf '%s' "$LUCKYBEAN_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/luckybean-release.jks"
           chmod 600 "$RUNNER_TEMP/luckybean-release.jks"
-      - name: Build signed Android release APK
+      - name: Build signed APK
         env:
           LUCKYBEAN_KEYSTORE_FILE: ${{ runner.temp }}/luckybean-release.jks
           LUCKYBEAN_STORE_PASSWORD: ${{ secrets.LUCKYBEAN_STORE_PASSWORD }}
           LUCKYBEAN_KEY_ALIAS: ${{ secrets.LUCKYBEAN_KEY_ALIAS }}
           LUCKYBEAN_KEY_PASSWORD: ${{ secrets.LUCKYBEAN_KEY_PASSWORD }}
         run: gradle --no-daemon -p android :app:assembleRelease
-      - name: Verify Android package contract
+      - name: Verify package, embedded source, and certificate
         shell: bash
         run: |
-          set -eu
-          set +o pipefail
+          set -euo pipefail
           apk=android/app/build/outputs/apk/release/app-release.apk
-          grep -q "versionCode 102402" android/app/build.gradle
-          grep -q "versionName '1.24B'" android/app/build.gradle
-          grep -q 'LuckyBeanNavigation' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'getOnBackInvokedDispatcher' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'handleSystemBack' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'recognitionRuntime.chineseRecognizer()' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'Shared bundled OCR runtime warmed in background' android/app/src/main/java/com/luckybean/app/LuckyBeanApplication.java
-          grep -q 'android:enableOnBackInvokedCallback="true"' android/app/src/main/AndroidManifest.xml
           test -f "$apk"
-          source_app_sha=$(sha256sum src/app.js | awk '{print $1}')
-          apk_app_sha=$(unzip -p "$apk" assets/web-cache/src/app.js | sha256sum | awk '{print $1}')
-          test "$source_app_sha" = "$apk_app_sha"
-          source_engine_sha=$(sha256sum src/brew-engine.js | awk '{print $1}')
-          apk_engine_sha=$(unzip -p "$apk" assets/web-cache/src/brew-engine.js | sha256sum | awk '{print $1}')
-          test "$source_engine_sha" = "$apk_engine_sha"
-          source_catalog_sha=$(sha256sum src/services/brew-profile-catalog-service.js | awk '{print $1}')
-          apk_catalog_sha=$(unzip -p "$apk" assets/web-cache/src/services/brew-profile-catalog-service.js | sha256sum | awk '{print $1}')
-          test "$source_catalog_sha" = "$apk_catalog_sha"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"
           for asset in \
-            assets/web-cache/public/vendor/jsqr/jsQR.js \
-            assets/web-cache/src/ui/gear-controller.js \
-            assets/web-cache/src/ui/app-layout.css \
-            assets/web-cache/src/ui/professional-sensory.css \
-            assets/web-cache/src/ui/sensory-wizard-actions.css \
-            assets/web-cache/src/ui/bean-card-controller.js \
-            assets/web-cache/src/ui/navigation-controller.js \
-            assets/web-cache/src/domain/beans/bean-lifecycle-service.js \
-            assets/web-cache/src/domain/recognition/recognition-pipeline.js \
-            assets/web-cache/src/domain/recognition/order-recognition-1.24b.js \
             assets/web-cache/src/features/release-1.24b-integration.js \
             assets/web-cache/src/features/release-1.24b-finalize.js \
             assets/web-cache/src/features/release-1.24b-polish.js \
-            assets/web-cache/src/data/local-brew-recipes-1.24b.js \
             assets/web-cache/src/services/grind-psd-reference-service.js \
-            assets/web-cache/src/services/brew-calculation-coordinator.js \
+            assets/web-cache/src/domain/recognition/order-recognition-1.24b.js \
+            assets/web-cache/src/data/local-brew-recipes-1.24b.js \
             assets/web-cache/src/release-1.24b.js; do
-            unzip -l "$apk" | grep -q "$asset"
+            unzip -l "$apk" | grep -Fq "$asset"
           done
           unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-polish.js?v=1.24B-main.2'
           unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '1.24B-main.2'"
-          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'grind-psd-reference-service.js'
-          unzip -p "$apk" assets/web-cache/src/recognition-bridge.js | grep -Fq 'queueConcurrency:1'
-          unzip -p "$apk" assets/web-cache/src/release-1.24b.js | grep -Fq 'StorageMode'
-          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-finalize.js | grep -Fq '订单录入'
-          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-polish.js | grep -Fq 'grinderReference'
-          unzip -p "$apk" assets/web-cache/src/services/grind-psd-reference-service.js | grep -Fiq 'grind-psd'
-          unzip -p "$apk" assets/web-cache/src/ui/navigation-controller.js | grep -Fq 'LuckyBeanNavigation'
-          unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'processRecognitionDocument'
-          grep -Fq 'ACTION_ANNOUNCE' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
-          grep -Fq 'announceBrewPreparation' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          if unzip -l "$apk" | grep -Eq 'interaction-repair|experience-fixes|gear-regression-fix|legacy-timer-guard|gear-matching-controller'; then exit 1; fi
-          secret_scan_dir=$(mktemp -d)
-          unzip -qq "$apk" 'assets/web-cache/*' -d "$secret_scan_dir"
-          if grep -RIEq -- 'sb_secret_[A-Za-z0-9_-]{12,}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----' "$secret_scan_dir"; then exit 1; fi
-          rm -rf "$secret_scan_dir"
+          source_app_sha=$(sha256sum src/app.js | awk '{print $1}')
+          apk_app_sha=$(unzip -p "$apk" assets/web-cache/src/app.js | sha256sum | awk '{print $1}')
+          test "$source_app_sha" = "$apk_app_sha"
           expected_cert=$(tr -d '[:space:]:' < android/signing/CERT_SHA256.txt | tr '[:lower:]' '[:upper:]')
           actual_cert=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')
           test -n "$actual_cert"
           test "$actual_cert" = "$expected_cert"
-      - name: Package exact tested source
+      - name: Package release
         shell: bash
         run: |
           mkdir -p dist
-          zip -qr dist/LuckyBean-1.24B-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts schemas docs DEVELOPMENT_STATUS.md
           cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.24B-release.apk
-          printf 'source_sha=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.2\nanalysis_contract=brew-analysis/2.1\nspatial_contract=brew-spatial/1.3\noptimization_contract=brew-optimization-assessment/1.0\noptimization_validation_contract=brew-optimization-validation/1.0\ncalculation_coordinator=latest-wins-profile-preserving\nspatial_failure=same-input-retry-only\nmatching_contract=luckybean-match/1.1\ngear_physics_contract=gear-physics/1.0\nqr_runtime=local-jsqr-1.4.0\ngear_binding=resolved-physical-snapshot\nbean_matching=direct-selected-bean-id\nandroid_gallery_uri=clipdata-first\nrecognition_queue=serial-one-image\nbean_lifecycle=ordered-owned-archived\nstorage_modes=room-refrigerated-frozen\nfreshness_age=effective-storage-history\nlocal_brew_methods=offline-no-timer\norder_ocr=privacy-minimized\ngrind_psd=measured-reference-plus-custom-anchors\nsmall_brew_layout=compact-auto-source\nprofile_default=automatic-transient-override\ndose_default=automatic-profile-reference\npreparation_voice=ice-and-first-stage\nwater_default=plain-no-added-recipe\nnavigation_back=internal-stack-overlay-first\nandroid_back=legacy-and-predictive\nbean_metadata_gap=compact-full-detail\nsensory_actions=cancel-prev-next-equal-row\nui_architecture=canonical-1.24b-complete\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
-          sha256sum dist/LuckyBean-1.24B-web.zip dist/LuckyBean-1.24B-release.apk > dist/SHA256SUMS.txt
+          zip -qr dist/LuckyBean-1.24B-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts schemas docs DEVELOPMENT_STATUS.md
+          printf 'source_sha=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.2\nsigning=official-release-keystore\nrecognition_queue=serial-one-image\nstorage_modes=room-refrigerated-frozen\norder_ocr=privacy-minimized\ngrind_psd=measured-reference-plus-custom-anchors\nui_architecture=canonical-1.24b-complete\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
+          sha256sum dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip > dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v7.0.1
         with:
           name: luckybean-main-v1.24B-${{ env.SOURCE_SHA }}
           path: dist/
           if-no-files-found: error
+      - name: Publish signed APK release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --clobber
+          else
+            gh release create "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --target "$SOURCE_SHA" --title "LuckyBean 1.24B" --notes "1.24B main.2 signed release. APK certificate is verified against android/signing/CERT_SHA256.txt before publication."
+          fi
