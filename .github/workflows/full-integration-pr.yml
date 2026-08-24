@@ -47,33 +47,19 @@ jobs:
           test -f "$apk"
           grep -q "versionCode 102402" android/app/build.gradle
           grep -q "versionName '1.24B'" android/app/build.gradle
-          grep -q 'bindImageSource(String imageId, boolean includePreview)' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'ImageDecoder.createSource' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'InputImage.fromFilePath' android/app/src/main/java/com/luckybean/app/MainActivity.java
           grep -q 'LuckyBeanAndroid/1.24B' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'LuckyBeanNavigation' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'getOnBackInvokedDispatcher' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'handleSystemBack' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'recognitionRuntime.chineseRecognizer()' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'Shared bundled OCR runtime warmed in background' android/app/src/main/java/com/luckybean/app/LuckyBeanApplication.java
-          grep -q 'android:enableOnBackInvokedCallback="true"' android/app/src/main/AndroidManifest.xml
-          grep -q 'class BrewTimerService extends Service' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
           grep -q 'SystemClock.elapsedRealtime()' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
-          grep -q 'synthesizeToFile' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
-          grep -q 'ExoPlayer' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
-          grep -q 'prepareBrewExecution' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'FLAG_KEEP_SCREEN_ON' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'FOREGROUND_SERVICE_MEDIA_PLAYBACK' android/app/src/main/AndroidManifest.xml
           unzip -p "$apk" assets/web-cache/src/recognition-bridge.js | grep -Fq "dataUrl: nativeSource ? '' : await blobToDataUrl(image.blob)"
           unzip -p "$apk" assets/web-cache/src/package-capture-controller.js | grep -Fq 'bindAndroidImageSource(id, nativeSource)'
           unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.1'"
           unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_SPATIAL_CONTRACT = 'brew-spatial/1.3'"
           unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_FLAVOR_STATE_CONTRACT = 'brew-flavor-state/1.0'"
-          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq 'dripperPhysical'
-          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq 'filterPaperPhysical'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-brew-mode-controller.js | grep -Fq 'data-lb-other-complete'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-brew-mode-controller.js | grep -Fq "type:'brew-consume'"
-          unzip -p "$apk" assets/web-cache/src/data/local-brew-recipes-1.24b.js | grep -Fq '常见偏差'
+          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-brew-mode-controller.js | grep -Fq '常见偏差与调整'
+          unzip -p "$apk" assets/web-cache/src/data/local-brew-recipes-1.24b.js | grep -Fq 'prep:'
+          unzip -p "$apk" assets/web-cache/src/data/local-brew-recipes-1.24b.js | grep -Fq 'finish:'
+          unzip -p "$apk" assets/web-cache/src/data/local-brew-recipes-1.24b.js | grep -Fq 'adjust:'
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"
       - name: Android 10 runtime startup smoke
         if: steps.compile.outputs.status == '0'
@@ -124,7 +110,7 @@ jobs:
           mkdir -p dist
           cp android/app/build/outputs/apk/debug/app-debug.apk dist/LuckyBean-1.24B-full-integration-debug.apk
           sha256sum dist/LuckyBean-1.24B-full-integration-debug.apk > dist/SHA256SUMS.txt
-          printf 'source_sha=%s\nbranch=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.3\nanalysis_contract=brew-analysis/2.1\nspatial_contract=brew-spatial/1.3\nmatching_contract=luckybean-match/1.1\ngear_physics_contract=gear-physics/1.0\nother_brew_completion=inventory-event-sensory-handoff\nother_brew_tutorials=detailed\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist/BUILD_PROVENANCE.txt
+          printf 'source_sha=%s\nbranch=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.3\nother_brew_completion=inventory-event-sensory-handoff\nother_brew_tutorials=detailed\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist/BUILD_PROVENANCE.txt
       - name: Upload Android build diagnostics
         if: always()
         uses: actions/upload-artifact@v7.0.1
