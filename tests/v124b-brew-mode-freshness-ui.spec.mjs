@@ -16,9 +16,10 @@ test('bean freshness line is present in the first painted one-line card',async({
     await db.put('beans',bean);
     document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh',{detail:{source:'v124b-instant-freshness'}}));
   });
-  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>queueMicrotask(resolve))));
   const card=page.locator('.bean-card.lb-one-line-bean[data-bean-id="instant-freshness-bean"]');
-  expect(await card.count()).toBe(1);
+  await expect(card).toHaveCount(1,{timeout:15000});
+  // The timeline must already belong to the first committed card DOM; do not grant a second
+  // animation frame or timer for a post-paint decoration pass.
   expect(await card.locator('[data-lb-freshness-timeline]').count()).toBe(1);
 });
 
