@@ -20,7 +20,8 @@ const spatial = read('src/renderers/brew-spatial-view.js');
 const sw = read('sw.js');
 const manifest = JSON.parse(read('manifest.webmanifest'));
 
-assert.match(index, /1\.23E/);
+assert.match(index, /1\.24B/);
+assert.match(index, /1\.24B-main\.2/);
 assert.match(index, /src\/core\/startup-controller\.js/);
 assert.match(index, /src\/core\/bootstrap\.js/);
 assert.match(index, /src\/services\/cloud-auth-service\.js/);
@@ -110,10 +111,11 @@ assert.match(runtimeFeatures, /runtime-feature-error/);
 assert.doesNotMatch(runtimeFeatures, /v109-history-management\.js|v099-trajectory-signal-bridge\.js|v099i-trajectory-space\.js/);
 assert.doesNotMatch(runtimeFeatures, /v095-ui\.js|theme-bridge\.js/);
 
-assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v123e-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-\d+`/);
-assert.match(sw, /REVISION = '1\.23E-main-sync\.\d+'/);
+assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124b-'/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-2`/);
+assert.match(sw, /REVISION = '1\.24B-main\.2'/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES = \[/);
+assert.match(sw, /'luckybean-main-v123e-'/);
 assert.match(sw, /'luckybean-main-v123d-'/);
 assert.match(sw, /key\.startsWith\(CACHE_PREFIX\) && key !== CACHE_NAME/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES\.some/);
@@ -123,6 +125,9 @@ assert.match(sw, /src\/core\/bootstrap\.js/);
 assert.match(sw, /src\/services\/cloud-sync-safety\.js/);
 assert.match(sw, /src\/ui\/appearance-controller\.js/);
 assert.match(sw, /src\/features\/runtime-features\.js/);
+assert.match(sw, /src\/features\/release-1\.24b-transit-controller\.js/);
+assert.match(sw, /src\/features\/release-1\.24b-group-navigation\.js/);
+assert.match(sw, /src\/features\/release-1\.24b-about-controller\.js/);
 assert.match(sw, /src\/ui\/gear-controller\.js/);
 assert.doesNotMatch(sw, /gear-regression-fix-controller/);
 assert.match(sw, /src\/renderers\/brew-spatial-view\.js/);
@@ -132,7 +137,7 @@ assert.match(sw, /Luckybean-END\.webp/);
 assert.match(sw, /public\/vendor\/jsvectormap\/world\.js/);
 assert.doesNotMatch(sw, /v109-history-management\.js|v099-trajectory-signal-bridge\.js|v099i-trajectory-space\.js/);
 assert.doesNotMatch(sw, /v095-ui\.js|theme-bridge\.js|splash-red\.jpg|settings-mascot\.png/);
-assert.equal(manifest.version, '1.23E');
+assert.equal(manifest.version, '1.24B');
 
 for (const path of [
   'src/v109-supabase-auth-gate.js','src/v099f-cloud-sync.js','src/v099j-runtime-stability.js','src/v099o-dom-stability.js','src/v099h-splash-assets.js',
@@ -141,4 +146,4 @@ for (const path of [
   'src/features/gear-regression-fix-controller.js','src/features/legacy-timer-guard.js','src/features/experience-fixes-controller.js','src/features/interaction-repair-controller.js'
 ]) assert.equal(exists(path), false, `${path} should have been removed`);
 
-console.log('LuckyBean 1.23E local-first cache isolation and current BrewProfiles contract checks passed');
+console.log('LuckyBean 1.24B local-first cache isolation and current BrewProfiles contract checks passed');
