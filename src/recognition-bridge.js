@@ -52,8 +52,6 @@ async function imagePayloadForNative(image) {
     role: image.role,
     mimeType: image.blob?.type || 'image/jpeg',
     nativeSource,
-    // Android URI-backed photos must not be forced back through FileReader/WebView.
-    // The native bridge already owns the content:// URI and accepts an empty dataUrl.
     dataUrl: nativeSource ? '' : await blobToDataUrl(image.blob)
   };
 }
@@ -61,24 +59,25 @@ async function imagePayloadForNative(image) {
 async function nativeRecognize(images, options) {
   const bridge = globalThis.LuckyBeanRecognitionBridge || globalThis.LuckyBeanNative;
   if (typeof bridge?.recognizeCoffeeBag !== 'function') return null;
-  const payloadImages = await Promise.all(images.map(imagePayloadForNative));
-  const result = await bridge.recognizeCoffeeBag({ images: payloadImages, locale: options.locale || 'zh-CN' });
-  return { ...result, engine: result?.engine || 'native-ppocr' };
+  const payloadImages = [];
+  for (const image of images) payloadImages.push(await imagePayloadForNative(image));
+  const result = await bridge.recognizeCoffeeBag({ images:payloadImages, locale:options.locale || 'zh-CN' });
+  return { ...result, engine:result?.engine || 'native-ppocr' };
 }
 
 async function webProviderRecognize(images, options) {
   const provider = globalThis.LuckyBeanPaddleOCR || globalThis.LuckyBeanWebOCR;
   if (typeof provider?.recognizeCoffeeBag === 'function') {
     const result = await provider.recognizeCoffeeBag(images, options);
-    return { ...result, engine: result?.engine || 'web-ppocr' };
+    return { ...result, engine:result?.engine || 'web-ppocr' };
   }
   if (typeof provider?.recognize === 'function') {
     const results = [];
     for (const image of images) {
       const value = await provider.recognize(image.blob, options);
-      results.push({ imageId: image.id, value });
+      results.push({ imageId:image.id, value });
     }
-    return { engine: 'web-ppocr', results };
+    return { engine:'web-ppocr', results };
   }
   return null;
 }
@@ -89,20 +88,16 @@ async function textDetectorRecognize(images) {
   const results = [];
   for (const image of images) {
     const bitmap = await createImageBitmap(image.blob);
-    try {
-      results.push({ imageId: image.id, value: await detector.detect(bitmap) });
-    } finally {
-      bitmap.close?.();
-    }
+    try { results.push({ imageId:image.id, value:await detector.detect(bitmap) }); }
+    finally { bitmap.close?.(); }
   }
-  return { engine: 'browser-text-detector', results };
+  return { engine:'browser-text-detector', results };
 }
 
 function collectBlocks(result, images) {
   const engine = result?.engine || 'unknown';
   const blocks = [];
   const roleByImage = new Map(images.map(image => [image.id, image.role || 'side']));
-
   if (Array.isArray(result?.blocks)) {
     for (const block of result.blocks) {
       const imageId = block.imageId || images[0]?.id || '';
@@ -119,7 +114,7 @@ function collectBlocks(result, images) {
   }
   if (!blocks.length && result?.fullText) {
     const imageId = images[0]?.id || '';
-    const normalized = normalizeBlock({ text: result.fullText, confidence: result.confidence }, imageId, engine, roleByImage.get(imageId) || 'side');
+    const normalized = normalizeBlock({ text:result.fullText, confidence:result.confidence }, imageId, engine, roleByImage.get(imageId) || 'side');
     if (normalized) blocks.push(normalized);
   }
   return deduplicateBlocks(blocks);
@@ -128,24 +123,51 @@ function collectBlocks(result, images) {
 export function getRecognitionCapabilities() {
   const nativeBridge = globalThis.LuckyBeanRecognitionBridge || globalThis.LuckyBeanNative;
   return {
-    native: typeof nativeBridge?.recognizeCoffeeBag === 'function',
-    webPaddle: Boolean(globalThis.LuckyBeanPaddleOCR || globalThis.LuckyBeanWebOCR),
-    textDetector: typeof globalThis.TextDetector === 'function'
+    native:typeof nativeBridge?.recognizeCoffeeBag === 'function',
+    webPaddle:Boolean(globalThis.LuckyBeanPaddleOCR || globalThis.LuckyBeanWebOCR),
+    textDetector:typeof globalThis.TextDetector === 'function'
   };
+}
+
+async function recognizeSingleImage(image, options) {
+  let result = await nativeRecognize([image], options);
+  if (!result) result = await webProviderRecognize([image], options);
+  if (!result) result = await textDetectorRecognize([image]);
+  if (!result) throw new RecognitionUnavailableError();
+  return result;
 }
 
 export async function recognizeCoffeeBag(images, options = {}) {
   if (!Array.isArray(images) || !images.length) throw new Error('请先添加豆袋照片');
-  let result = await nativeRecognize(images, options);
-  if (!result) result = await webProviderRecognize(images, options);
-  if (!result) result = await textDetectorRecognize(images);
-  if (!result) throw new RecognitionUnavailableError();
+  const allBlocks = [];
+  const perImage = [];
+  let engine = '';
+  const total = images.length;
 
-  const blocks = collectBlocks(result, images);
+  for (let index=0; index<images.length; index+=1) {
+    const image = images[index];
+    const order = index + 1;
+    const taskId = `IMG-${String(order).padStart(3,'0')}`;
+    options.onProgress?.({ taskId, order, total, imageId:image.id, status:'processing' });
+    try {
+      const result = await recognizeSingleImage(image, options);
+      engine ||= result.engine || 'OCR';
+      const blocks = collectBlocks(result, [image]);
+      allBlocks.push(...blocks);
+      perImage.push({ taskId, order, imageId:image.id, engine:result.engine || engine, blocks, status:'completed' });
+      options.onProgress?.({ taskId, order, total, imageId:image.id, status:'completed' });
+    } catch (error) {
+      perImage.push({ taskId, order, imageId:image.id, status:'failed', error:String(error?.message || error) });
+      options.onProgress?.({ taskId, order, total, imageId:image.id, status:'failed', error:String(error?.message || error) });
+      throw error;
+    }
+  }
+
+  const blocks = deduplicateBlocks(allBlocks);
   const groupedText = images.map(image => {
     const text = blocks.filter(block => block.imageId === image.id).map(block => block.text).join('\n');
     return text ? `【${image.roleLabel || image.role || '豆袋照片'}】\n${text}` : '';
   }).filter(Boolean);
   const fullText = groupedText.join('\n\n') || blocks.map(block => block.text).join('\n');
-  return { engine: result.engine, blocks, fullText, raw: result };
+  return { engine:engine || 'OCR', blocks, fullText, results:perImage, serial:true, queueConcurrency:1 };
 }
