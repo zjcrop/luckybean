@@ -13,7 +13,7 @@ const sw = read('sw.js');
 const revisionMatch = index.match(/release-revision" content="([^"]+)"/);
 assert.ok(revisionMatch, 'release revision missing from index');
 const releaseRevision = revisionMatch[1];
-assert.equal(releaseRevision, '1.24B-main.3');
+assert.equal(releaseRevision, '1.24B-main.4');
 assert.ok(index.includes(`freshness-timeline-controller.js?v=${releaseRevision}`), 'freshness controller asset revision must match current release');
 assert.match(controller, /import \{ clamp, freshnessProfile \} from '\.\.\/utils\.js'/);
 assert.match(controller, /const STAGES = \['养豆中', '味正盛', '味将尽'\]/);
