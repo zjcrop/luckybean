@@ -5,8 +5,20 @@ export class RecognitionUnavailableError extends Error {
   }
 }
 
+const BATCH_STATE_KEY='luckybean.recognition.batch.1.24b';
+
 function cleanText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function safeStoreBatch(batch) {
+  try { localStorage.setItem(BATCH_STATE_KEY, JSON.stringify(batch)); } catch {}
+}
+export function getRecognitionBatchSnapshot() {
+  try { return JSON.parse(localStorage.getItem(BATCH_STATE_KEY) || 'null'); } catch { return null; }
+}
+export function clearRecognitionBatchSnapshot() {
+  try { localStorage.removeItem(BATCH_STATE_KEY); } catch {}
 }
 
 function normalizeBlock(block, imageId, engine, imageRole = '') {
@@ -137,28 +149,66 @@ async function recognizeSingleImage(image, options) {
   return result;
 }
 
+function newBatch(images) {
+  const createdAt=new Date().toISOString();
+  return {
+    batchId:`BATCH-${createdAt.replace(/[-:.TZ]/g,'').slice(0,14)}`,
+    createdAt,
+    status:'processing',
+    currentTask:0,
+    totalTasks:images.length,
+    queueConcurrency:1,
+    tasks:images.map((image,index)=>({
+      taskId:`IMG-${String(index+1).padStart(3,'0')}`,
+      order:index+1,
+      imageId:image.id,
+      role:image.role||'side',
+      status:'pending',
+      engine:'',
+      text:'',
+      blocks:[],
+      error:null
+    }))
+  };
+}
+
 export async function recognizeCoffeeBag(images, options = {}) {
   if (!Array.isArray(images) || !images.length) throw new Error('请先添加豆袋照片');
   const allBlocks = [];
   const perImage = [];
   let engine = '';
   const total = images.length;
+  const batch=newBatch(images);
+  safeStoreBatch(batch);
 
   for (let index=0; index<images.length; index+=1) {
     const image = images[index];
     const order = index + 1;
-    const taskId = `IMG-${String(order).padStart(3,'0')}`;
-    options.onProgress?.({ taskId, order, total, imageId:image.id, status:'processing' });
+    const task=batch.tasks[index];
+    const taskId = task.taskId;
+    batch.currentTask=order;
+    task.status='processing';
+    safeStoreBatch(batch);
+    options.onProgress?.({ taskId, order, total, imageId:image.id, status:'processing', batchId:batch.batchId });
     try {
       const result = await recognizeSingleImage(image, options);
       engine ||= result.engine || 'OCR';
       const blocks = collectBlocks(result, [image]);
+      const text=blocks.map(block=>block.text).join('\n') || cleanText(result.fullText||'');
       allBlocks.push(...blocks);
-      perImage.push({ taskId, order, imageId:image.id, engine:result.engine || engine, blocks, status:'completed' });
-      options.onProgress?.({ taskId, order, total, imageId:image.id, status:'completed' });
+      const completed={ taskId, order, imageId:image.id, engine:result.engine || engine, blocks, status:'completed', text };
+      perImage.push(completed);
+      Object.assign(task,{status:'completed',engine:completed.engine,text,blocks,error:null,completedAt:new Date().toISOString()});
+      safeStoreBatch(batch);
+      options.onProgress?.({ taskId, order, total, imageId:image.id, status:'completed', batchId:batch.batchId });
     } catch (error) {
-      perImage.push({ taskId, order, imageId:image.id, status:'failed', error:String(error?.message || error) });
-      options.onProgress?.({ taskId, order, total, imageId:image.id, status:'failed', error:String(error?.message || error) });
+      const message=String(error?.message || error);
+      const failed={ taskId, order, imageId:image.id, status:'failed', error:message };
+      perImage.push(failed);
+      Object.assign(task,{status:'failed',error:message,failedAt:new Date().toISOString()});
+      batch.status='paused';
+      safeStoreBatch(batch);
+      options.onProgress?.({ taskId, order, total, imageId:image.id, status:'failed', error:message, batchId:batch.batchId });
       throw error;
     }
   }
@@ -169,5 +219,8 @@ export async function recognizeCoffeeBag(images, options = {}) {
     return text ? `【${image.roleLabel || image.role || '豆袋照片'}】\n${text}` : '';
   }).filter(Boolean);
   const fullText = groupedText.join('\n\n') || blocks.map(block => block.text).join('\n');
-  return { engine:engine || 'OCR', blocks, fullText, results:perImage, serial:true, queueConcurrency:1 };
+  batch.status='completed';
+  batch.completedAt=new Date().toISOString();
+  safeStoreBatch(batch);
+  return { engine:engine || 'OCR', blocks, fullText, results:perImage, serial:true, queueConcurrency:1, batch };
 }
