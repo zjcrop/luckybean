@@ -19,8 +19,6 @@ tests/v123e-freshness-timeline-regression.mjs:40:console.log('LuckyBean 1.23E ca
 tests/v123e-interaction-repair-ui.spec.mjs:7:  await page.goto(`${BASE_URL}/?v123e-canonical-interaction=1`, { waitUntil:'domcontentloaded' });
 tests/v122-cloud-sync-safety.mjs:61:console.log('v1.23D cloud union baseline and deletion propagation checks passed');
 tests/v123e-navigation-back-static.mjs:39:assert.ok(versionCode > 102315, `upgrade versionCode must exceed previous signed build: ${versionCode}`);
-tests/v123d-ui-sensory-regressions.mjs:14:assert.match(read('src/utils.js'), /APP_VERSION = '1\.23E'/, 'the locked app version must be 1.23E');
-tests/v123d-ui-sensory-regressions.mjs:55:console.log('LuckyBean 1.23E canonical settings and sensory regression contracts passed');
 tests/v127-user-regressions-static.mjs:47:console.log('v127 canonical cooling/gear ownership and 1.23E Android image pipeline static checks passed');
 tests/v123d-deployment-contracts.mjs:63:assert.match(sw, /luckybean-main-v123e-/);
 scripts/run-core-tests.mjs:7:  'tests/v123d-bean-summary-ui.spec.mjs',
