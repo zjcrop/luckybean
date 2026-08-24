@@ -1,7 +1,7 @@
 // LuckyBean 1.24B: lifecycle, transit/frozen beans, serial OCR and compact UI.
 const REVISION = '1.24B-main.4';
 const CACHE_PREFIX = 'luckybean-main-v124b-';
-const CACHE_NAME = `${CACHE_PREFIX}main-4`;
+const CACHE_NAME = `${CACHE_PREFIX}main-4-folder2`;
 const LEGACY_CACHE_PREFIXES = [
   'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
   'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',
