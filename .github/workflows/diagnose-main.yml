@@ -1,5 +1,6 @@
 name: LuckyBean observable main gate
 
+# Final 1.24B main.3 validation trigger. Keep this workflow read/diagnose-only with respect to main.
 on:
   push:
     branches: [main]
