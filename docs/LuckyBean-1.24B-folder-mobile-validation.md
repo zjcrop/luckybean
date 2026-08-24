@@ -12,6 +12,7 @@
 - Service Worker 保持 `1.24B-main.4` 发布修订，但轮换内部缓存桶，确保 Web/PWA 与 Android WebView 获取本轮最新脚本。
 - 发布门禁已同步迁移到当前 `main.4` 契约；历史 `main.3` 仅作为旧缓存/历史兼容语义保留。
 - 当前同步 UI 的正式按钮文案为“合并云端”，发布门禁按该正式文案校验。
+- 部署、缓存与 Web/Android parity 门禁已统一到本次 folder/mobile release contract。
 
 ## 发布要求
 
