@@ -20,6 +20,8 @@ const matchVector = read('src/domain/matching/flavor-vector.js');
 const freshnessTimeline = read('src/features/freshness-timeline-controller.js');
 const releaseCore = read('src/release-1.24b.js');
 const releaseIntegration = read('src/features/release-1.24b-finalize.js');
+const releasePolish = read('src/features/release-1.24b-polish.js');
+const grindPsd = read('src/services/grind-psd-reference-service.js');
 const orderParser = read('src/domain/recognition/order-recognition-1.24b.js');
 const deployWorkflow = read('.github/workflows/deploy-main.yml');
 const buildWorkflow = read('.github/workflows/build-main.yml');
@@ -27,7 +29,7 @@ const buildWorkflow = read('.github/workflows/build-main.yml');
 const revisionMatch = index.match(/release-revision" content="([^"]+)"/);
 assert.ok(revisionMatch, 'release revision missing from index');
 const releaseRevision = revisionMatch[1];
-assert.equal(releaseRevision, '1.24B-main.1');
+assert.equal(releaseRevision, '1.24B-main.2');
 assert.ok(index.includes(`data-release-revision="${releaseRevision}"`));
 
 const versionCodeMatch = androidBuild.match(/versionCode\s+(\d+)/);
@@ -41,6 +43,7 @@ assert.match(index, /application-version" content="1\.24B"/);
 assert.match(index, /release-1\.24b\.css/);
 assert.match(index, /release-1\.24b-integration\.js/);
 assert.match(index, /release-1\.24b-finalize\.js/);
+assert.match(index, /release-1\.24b-polish\.js/);
 
 for (const canonical of ['app-layout.css','app-components.css','professional-sensory.css','flavor-guide-controller.js','gear-controller.js','bean-card-controller.js','onboarding-controller.js']) assert.ok(index.includes(canonical), `missing canonical entry ${canonical}`);
 for (const obsolete of ['interaction-repair-controller.js','experience-fixes-controller.js','gear-matching-controller.js','gear-regression-fix-controller.js','legacy-timer-guard.js']) {
@@ -53,11 +56,10 @@ assert.match(app, /processRecognitionDocument/);
 assert.match(codebook, /const roastDateInput = labeled\.roastDate \|\| ''/);
 assert.doesNotMatch(codebook, /labeled\.roastDate \|\| labeled\.productionDate/);
 
-assert.match(sw, /REVISION = '1\.24B-main\.1'/);
+assert.match(sw, /REVISION = '1\.24B-main\.2'/);
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124b-'/);
 assert.match(sw, /luckybean-main-v123e-/);
-assert.match(sw, /release-1\.24b\.js/);
-assert.match(sw, /release-1\.24b-integration\.js/);
+for (const cached of ['release-1.24b.js','release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-polish.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js']) assert.ok(sw.includes(cached), `service worker missing ${cached}`);
 assert.match(sw, /cache\.put\(request, response\.clone\(\)\)/);
 
 assert.match(androidActivity, /addJavascriptInterface\(new NativeFileBridge\(\), "LuckyBeanNative"\)/);
@@ -84,6 +86,9 @@ assert.match(releaseIntegration, /data-lb-transit-section/);
 assert.match(releaseIntegration, /灰色|data-tone=\\"muted\\"/);
 assert.match(releaseIntegration, /LOCAL_BREW_RECIPES_124B/);
 assert.match(releaseIntegration, /fineAnchor/);
+assert.match(releasePolish, /grinderReference/);
+assert.match(releasePolish, /openCenteredHelp/);
+assert.match(grindPsd, /Grind-PSD|grind-psd/i);
 assert.match(orderParser, /privacyRedactions/);
 assert.match(orderParser, /paidPrice/);
 
@@ -95,10 +100,11 @@ assert.match(freshnessTimeline, /freshnessProfile\(bean\)\.progress/);
 
 assert.match(deployWorkflow, /LuckyBean-1\.24B-web\.zip/);
 assert.match(deployWorkflow, /"version":"1\.24B"/);
+assert.match(deployWorkflow, /1\.24B-main\.2/);
 assert.match(deployWorkflow, /recognitionQueue/);
 assert.match(buildWorkflow, /LuckyBean-1\.24B-release\.apk/);
 assert.match(buildWorkflow, /version_code=102402/);
-assert.match(buildWorkflow, /revision=1\.24B-main\.1/);
+assert.match(buildWorkflow, /revision=1\.24B-main\.2/);
 assert.match(buildWorkflow, /LUCKYBEAN_KEYSTORE_B64/);
 assert.match(buildWorkflow, /CERT_SHA256\.txt/);
 assert.match(androidBuild, /LUCKYBEAN_KEYSTORE_FILE/);
