@@ -18,6 +18,7 @@ const RUNTIME_FEATURES = Object.freeze([
   feature('group-interaction', '../group-interaction-controller.js'),
   feature('ui-upgrade', '../ui-upgrade-controller.js'),
   feature('origin-map', '../origin-map-controller.js'),
+  feature('recognition-batch-progress', './recognition-batch-progress-controller.js'),
   feature('release-1.24b-freshness-detail', './release-1.24b-freshness-detail.js')
 ]);
 
