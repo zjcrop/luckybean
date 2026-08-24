@@ -6,7 +6,6 @@ if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
 
   const STYLE_ID = 'luckybean-124b-ui-policy-style';
   const OBSERVED = Symbol('luckybean124bUiPolicyObserved');
-  const GROUP_BOUND = Symbol('luckybean124bGroupOutsideBound');
 
   function ensurePolicyStyle() {
     if (document.getElementById(STYLE_ID)) return;
@@ -41,6 +40,31 @@ if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
       #beanGroups .active-group-panel > .group-collapse-zone {
         display: none !important;
       }
+
+      .bean-consumption-summary .lb-stock-total,
+      .bean-consumption-summary .lb-today-consumption {
+        display: inline;
+      }
+
+      @media (max-width: 720px) {
+        .bean-consumption-summary > p {
+          display: grid !important;
+          gap: .28rem !important;
+          margin: 0 !important;
+        }
+        .bean-consumption-summary .lb-stock-total {
+          display: block !important;
+          font-size: clamp(1.22rem, 5.2vw, 1.55rem) !important;
+          line-height: 1.25 !important;
+          font-weight: 700 !important;
+          letter-spacing: .01em !important;
+        }
+        .bean-consumption-summary .lb-today-consumption {
+          display: block !important;
+          font-size: .9rem !important;
+          line-height: 1.45 !important;
+        }
+      }
     `;
     document.head.append(style);
   }
@@ -63,36 +87,36 @@ if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
     });
   }
 
+  function formatMobileBeanSummary(root = document) {
+    root.querySelectorAll('.bean-consumption-summary > p').forEach(node => {
+      if (node.dataset.lbSummaryLayout === '2') return;
+      const text = node.textContent.replace(/\s+/g, ' ').trim();
+      const stockMatch = text.match(/现有咖啡豆\s*([\d.]+)\s*(kg|g)/i);
+      const consumedMatch = text.match(/今日已饮用\s*([\d.]+)g豆/);
+      if (!stockMatch || !consumedMatch) return;
+
+      const stockValue = Number(stockMatch[1]);
+      const stockKg = stockMatch[2].toLowerCase() === 'kg' ? stockValue : stockValue / 1000;
+      const stockText = `${stockKg.toFixed(stockKg >= 10 ? 1 : 2)}kg`;
+      const consumedText = `${Number(consumedMatch[1]).toFixed(1)}g豆`;
+      const allowanceMatch = text.match(/参考上限还可使用约\s*([\d.]+)g豆/);
+      const exceededMatch = text.match(/参考上限已超过约\s*([\d.]+)mg咖啡因/);
+
+      let secondLine = `今日已饮用 ${consumedText}`;
+      if (allowanceMatch) secondLine += `，还可饮用 ${Number(allowanceMatch[1]).toFixed(1)}g豆（非罗布斯塔）`;
+      else if (exceededMatch) secondLine += `，参考上限已超过约${Number(exceededMatch[1]).toFixed(0)}mg咖啡因`;
+
+      node.innerHTML = `<span class="lb-stock-total">现有咖啡豆共计 ${stockText}</span><span class="lb-today-consumption">${secondLine}</span>`;
+      node.dataset.lbSummaryLayout = '2';
+    });
+  }
+
   function simplifyBeanSummary(root = document) {
     root.querySelectorAll('.preference-board-strip').forEach(node => node.remove());
     root.querySelectorAll('.bean-consumption-summary > small').forEach(node => {
       if (node.textContent.includes('咖啡因按阿拉比卡约12mg/g豆保守估算')) node.remove();
     });
-  }
-
-  function requestGroupClose(panel) {
-    if (!panel?.isConnected) return;
-    panel.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-  }
-
-  function bindOutsideGroupDismiss() {
-    const page = document.getElementById('pageBeans');
-    if (!page || page[GROUP_BOUND]) return;
-    page[GROUP_BOUND] = true;
-    page.addEventListener('click', event => {
-      const root = document.getElementById('beanGroups');
-      const panel = root?.querySelector('[data-active-group-panel]');
-      if (!panel) return;
-
-      // Bean cards, the active group title and toolbar controls preserve their own action.
-      if (event.target.closest('[data-bean-id],[data-brew-bean],.active-group-title,[data-open-group],#groupBtn,#manageBtn,#themeToggleBtn')) return;
-
-      // Blank space inside the compact active panel is already handled by the app's canonical handler.
-      if (panel.contains(event.target)) return;
-
-      // Any other single click inside the Beans page is outside the group and collapses it.
-      queueMicrotask(() => requestGroupClose(panel));
-    });
+    formatMobileBeanSummary(root);
   }
 
   function applyPolicy(root = document) {
@@ -100,7 +124,6 @@ if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
     simplifyAccountSync(root);
     simplifyCollectionSettings(root);
     simplifyBeanSummary(root);
-    bindOutsideGroupDismiss();
     document.documentElement.dataset.uiPolicyRevision = UI_POLICY_REVISION;
   }
 
