@@ -1,10 +1,9 @@
-const DEFER_FLAG='lbDeferredRecognition';
-
 function syncRatioSource(){
   const ratio=document.querySelector('#brewRatio');
   if(!ratio)return;
   const apply=()=>{
-    const automatic=String(ratio.value||'')==='recommended';
+    const mode=String(ratio.value||'');
+    const automatic=mode==='auto'||mode==='recommended';
     ratio.dataset.source=automatic?'auto':'manual';
     ratio.classList.toggle('lb-auto-field',automatic);
     ratio.classList.toggle('model-recommended',automatic);
@@ -20,19 +19,20 @@ for(const eventName of ['luckybean:brew-rendered','luckybean:app-refreshed','luc
 }
 queueMicrotask(syncRatioSource);
 
-document.addEventListener('click',event=>{
+function deferRecognitionClick(event){
   const button=event.target.closest?.('#bagRecognizeBtn');
   if(!button)return;
-  if(button.dataset[DEFER_FLAG]==='1'){
-    delete button.dataset[DEFER_FLAG];
-    return;
-  }
   event.preventDefault();
   event.stopImmediatePropagation();
+  document.removeEventListener('click',deferRecognitionClick,true);
   setTimeout(()=>{
-    const current=document.querySelector('#bagRecognizeBtn');
-    if(!current||current.disabled)return;
-    current.dataset[DEFER_FLAG]='1';
-    current.click();
+    try{
+      const current=document.querySelector('#bagRecognizeBtn');
+      if(current&&!current.disabled)current.click();
+    }finally{
+      setTimeout(()=>document.addEventListener('click',deferRecognitionClick,true),0);
+    }
   },0);
-},true);
+}
+
+document.addEventListener('click',deferRecognitionClick,true);
