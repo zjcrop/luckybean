@@ -1,1 +1,1 @@
-{"source_sha":"5c49ea35ed4c6913e52b0c720e2d0f9da232c23f","version":"1.24B","install_status":0,"js_status":0,"static_status":1,"passed":false,"first_error":"AssertionError [ERR_ASSERTION]: The input did not match the regular expression /data\\.v099tGroupBack/. Input:","generated_at":"2026-08-24T08:49:58Z"}
+{"source_sha":"457958a4ad20304ff1f079295d366a8cded9f46a","version":"1.24B","install_status":0,"js_status":0,"static_status":1,"passed":false,"first_error":"AssertionError [ERR_ASSERTION]: the locked app version must be 1.23E","generated_at":"2026-08-24T08:50:36Z"}
