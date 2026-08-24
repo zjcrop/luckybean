@@ -11,7 +11,7 @@ const layout = read('src/ui/app-layout.css');
 const sensoryCss = read('src/ui/professional-sensory.css');
 const sensoryActionsCss = read('src/ui/sensory-wizard-actions.css');
 
-assert.match(read('src/utils.js'), /APP_VERSION = '1\.23E'/, 'the locked app version must be 1.23E');
+assert.match(read('src/utils.js'), /APP_VERSION = '1\.24B'/, 'the locked app version must be 1.24B');
 
 assert.match(appearance, /theme === 'dark' \? '☀️' : '🌙'/, 'dark mode must offer the sun action and light mode the moon action');
 assert.match(appearance, /screen\.dataset\.splashVariant = normalized/, 'the persisted splash choice must restore its matching background after refresh');
@@ -52,4 +52,4 @@ assert.match(app, /dripperMaterial:\s*normalizeDripperMaterial\(/, 'LuckyBean mu
 assert.match(app, /data-add-bean-option="regions"/, 'region must retain a local add-option action');
 assert.match(app, /data-add-bean-option="entities"/, 'estate and processing-station must retain a local add-option action');
 
-console.log('LuckyBean 1.23E canonical settings and sensory regression contracts passed');
+console.log('LuckyBean 1.24B canonical settings and sensory regression contracts passed');
