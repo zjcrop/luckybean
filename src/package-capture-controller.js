@@ -310,7 +310,7 @@ function bindOverlay() {
   document.querySelector('#bagGalleryBtn')?.addEventListener('click', () => document.querySelector('#bagGalleryInput')?.click());
   document.querySelector('#bagCameraInput')?.addEventListener('change', event => addFiles(event.target.files));
   document.querySelector('#bagGalleryInput')?.addEventListener('change', event => addFiles(event.target.files));
-  document.querySelector('#bagRecognizeBtn')?.addEventListener('click', runRecognition);
+  document.querySelector('#bagRecognizeBtn')?.addEventListener('click', () => setTimeout(() => runRecognition(), 0));
   document.querySelector('#bagManualBtn')?.addEventListener('click', () => openManualEntry());
   document.querySelector('#bagHandoffBtn')?.addEventListener('click', handoffToExistingParser);
   document.querySelector('#bagReanalyzeBtn')?.addEventListener('click', reanalyzeEditedText);
