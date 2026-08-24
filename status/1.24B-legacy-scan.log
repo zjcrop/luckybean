@@ -5,7 +5,7 @@ tests/v123e-cloud-gear-sync.mjs:25:console.log('LuckyBean 1.23E gear cloud-sync 
 tests/v120-requirements-static.mjs:46:  'luckybean-main-v123e-',
 tests/v120-requirements-static.mjs:47:  'luckybean-main-v123d-',
 tests/v123e-gear-matching-regression.mjs:24:assert.ok(Number(versionCodeMatch[1]) > 102314, `upgrade versionCode must exceed prior release 102314, got ${versionCodeMatch[1]}`);
-tests/v123e-interaction-repair-static.mjs:24:assert.ok(Number(versionCodeMatch[1]) > 102314, `upgrade versionCode must exceed 102314, got ${versionCodeMatch[1]}`);
+tests/v123e-interaction-repair-static.mjs:22:assert.ok(Number(versionCodeMatch[1]) > 102314, `upgrade versionCode must exceed 102314, got ${versionCodeMatch[1]}`);
 tests/v127-user-regressions-ui.spec.mjs:7:  await page.goto(`${BASE_URL}/?v123e-regressions=1`, { waitUntil: 'domcontentloaded' });
 tests/v127-user-regressions-ui.spec.mjs:31:    document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail: { source: 'v123e-legacy-card' } }));
 tests/v127-user-regressions-ui.spec.mjs:41:  await page.evaluate(() => document.dispatchEvent(new CustomEvent('luckybean:app-refreshed', { detail: { source: 'v123e-force-display-repair' } })));

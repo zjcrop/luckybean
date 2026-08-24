@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 3.97613
+  duration_ms: 5.438042
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 1.650281
+  duration_ms: 2.191836
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 1.88203
+  duration_ms: 2.462812
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 1.472442
+  duration_ms: 1.929626
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.61611
+  duration_ms: 0.910752
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.093549
+  duration_ms: 2.691059
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.627657
+  duration_ms: 0.950506
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 16.735254
+# duration_ms 22.517348
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 4.368052
+  duration_ms: 5.61366
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 2.993577
+  duration_ms: 3.689926
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 2.927618
+  duration_ms: 3.633179
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 2.203666
+  duration_ms: 2.806785
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 1.86205
+  duration_ms: 2.290521
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 0.847879
+  duration_ms: 1.052867
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 19.553867
+# duration_ms 24.950625
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -148,6 +148,9 @@ Verified LuckyBean plan and brew-history validators accept BrewProfiles 2.0/2.1 
 LuckyBean 1.24B main.3 canonical one-line freshness timeline and stage grouping checks passed
 
 [static] tests/v123e-interaction-repair-static.mjs
+LuckyBean 1.24B canonical QR, bean matching, gear, flavor taxonomy, user-guide and upgrade release checks passed
+
+[static] tests/v123e-gear-matching-regression.mjs
 node:internal/modules/run_main:123
     triggerUncaughtException(
     ^
@@ -156,7 +159,7 @@ AssertionError [ERR_ASSERTION]: The input did not match the regular expression /
 
 '1.24B-main.3'
 
-    at file:///home/runner/work/luckybean/luckybean/tests/v123e-interaction-repair-static.mjs:19:8
+    at file:///home/runner/work/luckybean/luckybean/tests/v123e-gear-matching-regression.mjs:21:8
     at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
@@ -169,4 +172,4 @@ AssertionError [ERR_ASSERTION]: The input did not match the regular expression /
 }
 
 Node.js v22.23.2
-::error file=tests/v123e-interaction-repair-static.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /^1\.23E-main-sync\.\d+$/. Input:%0A%0A'1.24B-main.3'%0A%0A    at file:///home/runner/work/luckybean/luckybean/tests/v123e-interaction-repair-static.mjs:19:8%0A    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)%0A    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)%0A    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {%0A  generatedMessage: true,%0A  code: 'ERR_ASSERTION',%0A  actual: '1.24B-main.3',%0A  expected: /^1\.23E-main-sync\.\d+$/,%0A  operator: 'match',%0A  diff: 'simple'%0A}%0A%0ANode.js v22.23.2
+::error file=tests/v123e-gear-matching-regression.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /^1\.23E-main-sync\.\d+$/. Input:%0A%0A'1.24B-main.3'%0A%0A    at file:///home/runner/work/luckybean/luckybean/tests/v123e-gear-matching-regression.mjs:21:8%0A    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)%0A    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)%0A    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {%0A  generatedMessage: true,%0A  code: 'ERR_ASSERTION',%0A  actual: '1.24B-main.3',%0A  expected: /^1\.23E-main-sync\.\d+$/,%0A  operator: 'match',%0A  diff: 'simple'%0A}%0A%0ANode.js v22.23.2
