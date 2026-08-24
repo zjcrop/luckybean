@@ -19,6 +19,8 @@ const CORE = [
   versioned('./src/features/release-1.24b-integration.js'),
   versioned('./src/features/release-1.24b-finalize.js'),
   versioned('./src/features/release-1.24b-transit-controller.js'),
+  versioned('./src/features/release-1.24b-group-navigation.js'),
+  versioned('./src/features/release-1.24b-about-controller.js'),
   versioned('./src/features/release-1.24b-polish.js'),
   versioned('./src/data/local-brew-recipes-1.24b.js'),
   versioned('./src/services/grind-psd-reference-service.js'),
