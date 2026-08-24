@@ -52,10 +52,10 @@ assert.doesNotMatch(sw, /postbrew-sensory-controller/);
 assert.match(androidBuild, /applicationId 'com\.luckybean\.app'/);
 const versionCodeMatch = androidBuild.match(/versionCode\s+(\d+)/);
 assert.ok(versionCodeMatch, 'Android versionCode missing');
-assert.ok(Number(versionCodeMatch[1]) > 102314, `Android versionCode must exceed prior official release 102314, got ${versionCodeMatch[1]}`);
-assert.match(androidBuild, /versionName '1\.23E'/);
+assert.equal(Number(versionCodeMatch[1]), 102402, `LuckyBean 1.24B versionCode mismatch: ${versionCodeMatch[1]}`);
+assert.match(androidBuild, /versionName '1\.24B'/);
 assert.match(androidBridge, /https:\/\/zjcrop\.github\.io\/luckybean\//);
 assert.doesNotMatch(androidBridge, /zjcrop\.github\.io\/(?:BrewIon\/luckybean|LuckyBean)\//);
 assert.equal(dataContract.$id, 'https://zjcrop.github.io/luckybean/contracts/luckybean-brew-data.schema.json');
 
-console.log('v1.2.5 independent sensory state machines and LuckyBean 1.23E Android upgrade package contracts passed');
+console.log('v1.2.5 independent sensory state machines and LuckyBean 1.24B Android package contracts passed');
