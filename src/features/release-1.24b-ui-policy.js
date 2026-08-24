@@ -27,6 +27,12 @@ if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
         min-height: 0 !important;
       }
 
+      /* Removed summary modules must never flash before mutation cleanup. */
+      .preference-board-strip,
+      .bean-consumption-summary > small {
+        display: none !important;
+      }
+
       /* Expanded bean groups end with the card content; blank page space is outside the group. */
       #beanGroups .active-group-panel {
         min-height: 0 !important;
@@ -70,18 +76,21 @@ if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
   }
 
   function bindOutsideGroupDismiss() {
-    const root = document.getElementById('beanGroups');
-    if (!root || root[GROUP_BOUND]) return;
-    root[GROUP_BOUND] = true;
-    root.addEventListener('click', event => {
-      const panel = root.querySelector('[data-active-group-panel]');
+    const page = document.getElementById('pageBeans');
+    if (!page || page[GROUP_BOUND]) return;
+    page[GROUP_BOUND] = true;
+    page.addEventListener('click', event => {
+      const root = document.getElementById('beanGroups');
+      const panel = root?.querySelector('[data-active-group-panel]');
       if (!panel) return;
 
-      // Card/title interactions remain group interactions. Existing app logic handles blank space inside
-      // the compact panel. This branch handles the page space outside that panel with the same one-click rule.
-      if (event.target.closest('[data-bean-id],[data-brew-bean],.active-group-title,[data-open-group]')) return;
+      // Bean cards, the active group title and toolbar controls preserve their own action.
+      if (event.target.closest('[data-bean-id],[data-brew-bean],.active-group-title,[data-open-group],#groupBtn,#manageBtn,#themeToggleBtn')) return;
+
+      // Blank space inside the compact active panel is already handled by the app's canonical handler.
       if (panel.contains(event.target)) return;
 
+      // Any other single click inside the Beans page is outside the group and collapses it.
       queueMicrotask(() => requestGroupClose(panel));
     });
   }
