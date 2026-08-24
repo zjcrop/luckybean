@@ -39,7 +39,8 @@ assert.ok(sw.includes(`REVISION = '${releaseRevision}'`));
 assert.match(sw,/CACHE_PREFIX = 'luckybean-main-v124b-'/);
 assert.match(sw,/CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-folder2`/);
 
-for(const active of ['app-layout.css','app-components.css','bean-card.css','professional-sensory.css','viewport-controller.js','gear-controller.js','brew-cooling-controller.js','flavor-guide-controller.js','onboarding-controller.js','bean-card-controller.js','bean-enrichment-service.js','release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-polish.js','release-1.24b-group-navigation.js','release-1.24b-ui-policy.js'])assert.ok(index.includes(active),`index missing ${active}`);
+for(const active of ['app-layout.css','app-components.css','bean-card.css','professional-sensory.css','viewport-controller.js','gear-controller.js','brew-cooling-controller.js','flavor-guide-controller.js','onboarding-controller.js','bean-card-controller.js','bean-enrichment-service.js','release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-polish.js','release-1.24b-group-navigation.js'])assert.ok(index.includes(active),`index missing ${active}`);
+for(const runtimeActive of ['release-1.24b-ui-policy.js','release-1.24b-brew-mode-controller.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js'])assert.ok(runtimeFeatures.includes(runtimeActive),`runtime graph missing ${runtimeActive}`);
 for(const cached of ['release-1.24b-finalize.js','release-1.24b-polish.js','release-1.24b-group-navigation.js','release-1.24b-ui-policy.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','recognition-field-resolver-1.24b.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js'])assert.ok(sw.includes(cached),`service worker missing ${cached}`);
 for(const obsolete of ['layout-guard.css','full-integration.css','interaction-repair.css','gear-regression-fix-controller.js','legacy-timer-guard.js','gear-matching-controller.js','experience-fixes-controller.js','interaction-repair-controller.js'])assert.ok(!index.includes(obsolete),`obsolete index reference ${obsolete}`);
 
@@ -59,6 +60,7 @@ assert.doesNotMatch(gear,/MutationObserver/);
 assert.doesNotMatch(account,/MutationObserver|setInterval/);
 assert.doesNotMatch(voice,/MutationObserver/);
 assert.match(runtimeFeatures,/RELEASE_REVISION/);
+assert.match(runtimeFeatures,/1\.24B-main\.4/);
 assert.match(qrUi,/overlayObserver\.observe\(root/);
 assert.doesNotMatch(qrUi,/observe\(document\.body/);
 
@@ -71,9 +73,10 @@ assert.match(lifecycle,/RECYCLE_RETENTION_MS = 7 \* 24 \* 60 \* 60 \* 1000/);
 
 // Expanded bean groups are page-like folders: blank canvas, “藏”, page changes and navigation-back all close them.
 assert.match(groupNavigation,/folder-style group navigation active/);
-assert.match(groupNavigation,/\[data-page-target="beans"\]/);
+assert.match(groupNavigation,/\[data-page-target\]/);
 assert.match(groupNavigation,/page\.contains\(event\.target\)/);
-assert.match(groupNavigation,/closeActiveGroup\(\)/);
+assert.match(groupNavigation,/button\[data-v099t-group-back\]/);
+assert.match(groupNavigation,/capture:true/);
 assert.match(groupNavigation,/luckybean:navigation-back/);
 assert.doesNotMatch(uiPolicy,/\[data-active-group-panel\]/);
 
