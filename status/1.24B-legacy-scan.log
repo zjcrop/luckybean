@@ -73,7 +73,6 @@ src/domain/recognition/recognition-pipeline.js:3:export const RECOGNITION_PIPELI
 src/domain/recognition/recognition-date-review.js:1:export const DATE_REVIEW_VERSION = '1.23E-date-review.3';
 src/ui/appearance-controller.js:3:const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.23E-main-sync.4';
 src/cloud-codec.js:236:  // 1.23D/early 1.23E accidentally serialized an object array with String(array).
-src/core/startup-controller.js:5:const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.23E-main-sync.4';
 src/features/runtime-features.js:1:const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.23E-main-sync.4';
 android/app/src/main/java/com/luckybean/app/MainActivity.java:142:        settings.setUserAgentString(settings.getUserAgentString() + " LuckyBeanAndroid/1.23E");
 .github/workflows/diagnose-main.yml:48:              "1\\.23E|v123e|V123E|1023[0-9]{2}|main-v123e|1\\.23D|v123d|V123D|main-v123d" \
