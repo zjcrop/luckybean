@@ -8,14 +8,9 @@ function isBeanPageVisible(){return $('#pageBeans')?.classList?.contains('active
 function closeActiveGroup(){
   const panel=activePanel();
   if(!panel)return false;
-  const marker=document.createElement('button');
-  marker.type='button';
-  marker.hidden=true;
-  marker.dataset.v099tGroupBack='1';
-  marker.setAttribute('aria-hidden','true');
-  panel.append(marker);
-  marker.click();
-  marker.remove();
+  const back=panel.querySelector('button[data-v099t-group-back]')||panel.querySelector('[data-v099t-group-back]');
+  if(!back)return false;
+  back.click();
   return true;
 }
 
@@ -51,13 +46,13 @@ function bindPageLevelDismiss(){
   if(document.documentElement.dataset.lb124bPageGroupDismiss==='1')return;
   document.documentElement.dataset.lb124bPageGroupDismiss='1';
 
+  // Capture phase is deliberate: close folder state before the navigation controller refreshes pages.
   document.addEventListener('click',event=>{
     const panel=activePanel();
     if(!panel)return;
 
-    const beansNav=event.target.closest?.('[data-page-target="beans"]');
-    if(beansNav){
-      // Clicking “藏” while already on 豆藏 is the folder-level refresh/back action.
+    const pageTarget=event.target.closest?.('[data-page-target]');
+    if(pageTarget){
       closeActiveGroup();
       return;
     }
@@ -66,15 +61,9 @@ function bindPageLevelDismiss(){
     const page=$('#pageBeans');
     if(!page?.contains(event.target))return;
 
-    // Keep actual controls/cards interactive; everything else outside the opened folder is blank page space.
+    // Content inside the opened folder stays interactive. Any non-control space outside it is the parent folder canvas.
     if(panel.contains(event.target))return;
     if(event.target.closest?.('#groupBtn,#manageBtn,#themeToggleBtn,[data-open-group],.bean-card,button,a,input,select,textarea,[role="button"]'))return;
-    closeActiveGroup();
-  });
-
-  document.addEventListener('click',event=>{
-    const target=event.target.closest?.('[data-page-target]');
-    if(!target||target.dataset.pageTarget==='beans')return;
     closeActiveGroup();
   },{capture:true});
 }
