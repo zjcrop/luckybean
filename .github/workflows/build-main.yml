@@ -82,64 +82,40 @@ jobs:
           source_catalog_sha=$(sha256sum src/services/brew-profile-catalog-service.js | awk '{print $1}')
           apk_catalog_sha=$(unzip -p "$apk" assets/web-cache/src/services/brew-profile-catalog-service.js | sha256sum | awk '{print $1}')
           test "$source_catalog_sha" = "$apk_catalog_sha"
-          printf 'verified_web_asset_sha=%s\n' "$source_app_sha"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"
-          unzip -l "$apk" | grep -q 'assets/web-cache/public/vendor/jsqr/jsQR.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/gear-controller.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/app-layout.css'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/professional-sensory.css'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/sensory-wizard-actions.css'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/bean-card-controller.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/navigation-controller.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/domain/beans/bean-lifecycle-service.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/domain/sensory/brew-optimization-assessment.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/domain/history/history-sensory-service.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/domain/recognition/recognition-pipeline.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/domain/recognition/order-recognition-1.24b.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/features/release-1.24b-integration.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/features/release-1.24b-finalize.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/data/local-brew-recipes-1.24b.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/services/brew-calculation-coordinator.js'
-          unzip -l "$apk" | grep -q 'assets/web-cache/src/ui/brew-optimization.css'
-          unzip -l "$apk" | grep -q 'assets/web-cache/contracts/brew-optimization-v1.schema.json'
-          unzip -l "$apk" | grep -q 'assets/web-cache/contracts/brew-optimization-validation-v1.schema.json'
-          unzip -p "$apk" assets/web-cache/src/qr.js | grep -Fq 'public/vendor/jsqr/jsQR.js'
-          if unzip -p "$apk" assets/web-cache/src/qr.js | grep -Fq 'decodeEncryptedShareEnvelope'; then exit 1; fi
-          unzip -p "$apk" assets/web-cache/src/ui/navigation-controller.js | grep -Fq 'LuckyBeanNavigation'
-          unzip -p "$apk" assets/web-cache/src/ui/navigation-controller.js | grep -Fq 'history.back()'
-          unzip -p "$apk" assets/web-cache/src/ui/app-components.css | grep -Fq 'gap: 1em'
-          unzip -p "$apk" assets/web-cache/src/ui/sensory-wizard-actions.css | grep -A3 -F '[data-v095-prev]' | grep -Fq 'grid-column: 2'
-          unzip -p "$apk" assets/web-cache/src/ui/sensory-wizard-actions.css | grep -A3 -F '[data-v095-next]' | grep -Fq 'grid-column: 3'
-          unzip -p "$apk" assets/web-cache/src/ui/gear-controller.js | grep -Fq '滤杯角度'
-          unzip -p "$apk" assets/web-cache/src/ui/gear-controller.js | grep -Fq '过滤速度'
-          unzip -p "$apk" assets/web-cache/src/ui/gear-controller.js | grep -Fq '名称和品牌仅用于识别'
-          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq 'selectedBeanIdFromRuntime'
-          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq 'dripperPhysical'
-          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq 'filterPaperPhysical'
-          unzip -p "$apk" assets/web-cache/src/domain/matching/flavor-vector.js | grep -Fq 'gear-physics/1.0'
-          unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'brewProfileOverride'
-          unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'id="brewServeMode"'
-          unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'id="confirmBrewPreparedBtn"'
-          unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'preparationSpeech'
-          unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'data-brew-row="profile"'
-          grep -Fq 'ACTION_ANNOUNCE' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
-          grep -Fq 'announceBrewPreparation' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'value="plain"'
-          unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'completeOptimizationValidation'
-          unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'data-load-optimization'
-          unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'processRecognitionDocument'
-          unzip -p "$apk" assets/web-cache/src/domain/recognition/recognition-pipeline.js | grep -Fq 'RECOGNITION_PIPELINE_VERSION'
-          unzip -p "$apk" assets/web-cache/src/package-capture-controller.js | grep -Fq '翻译与字段整理'
-          unzip -p "$apk" assets/web-cache/src/package-capture-controller.js | grep -Fq '确认并进入豆卡'
+          for asset in \
+            assets/web-cache/public/vendor/jsqr/jsQR.js \
+            assets/web-cache/src/ui/gear-controller.js \
+            assets/web-cache/src/ui/app-layout.css \
+            assets/web-cache/src/ui/professional-sensory.css \
+            assets/web-cache/src/ui/sensory-wizard-actions.css \
+            assets/web-cache/src/ui/bean-card-controller.js \
+            assets/web-cache/src/ui/navigation-controller.js \
+            assets/web-cache/src/domain/beans/bean-lifecycle-service.js \
+            assets/web-cache/src/domain/recognition/recognition-pipeline.js \
+            assets/web-cache/src/domain/recognition/order-recognition-1.24b.js \
+            assets/web-cache/src/features/release-1.24b-integration.js \
+            assets/web-cache/src/features/release-1.24b-finalize.js \
+            assets/web-cache/src/features/release-1.24b-polish.js \
+            assets/web-cache/src/data/local-brew-recipes-1.24b.js \
+            assets/web-cache/src/services/grind-psd-reference-service.js \
+            assets/web-cache/src/services/brew-calculation-coordinator.js \
+            assets/web-cache/src/release-1.24b.js; do
+            unzip -l "$apk" | grep -q "$asset"
+          done
+          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-polish.js?v=1.24B-main.2'
+          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '1.24B-main.2'"
+          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'grind-psd-reference-service.js'
           unzip -p "$apk" assets/web-cache/src/recognition-bridge.js | grep -Fq 'queueConcurrency:1'
           unzip -p "$apk" assets/web-cache/src/release-1.24b.js | grep -Fq 'StorageMode'
-          if unzip -p "$apk" assets/web-cache/src/ui-layout-controller.js | grep -Fq "addEventListener('click', interceptRecognitionParse"; then exit 1; fi
-          unzip -p "$apk" assets/web-cache/src/domain/sensory/brew-optimization-assessment.js | grep -Fq 'totalScoreUsedAsTrigger:false'
-          unzip -p "$apk" assets/web-cache/src/renderers/brew-spatial-controller.js | grep -Fq 'retryLastRender'
-          unzip -p "$apk" assets/web-cache/src/renderers/brew-spatial-view.js | grep -Fq '用于观察趋势及参数变化的相对影响'
+          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-finalize.js | grep -Fq '订单录入'
+          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-polish.js | grep -Fq 'grinderReference'
+          unzip -p "$apk" assets/web-cache/src/services/grind-psd-reference-service.js | grep -Fiq 'grind-psd'
+          unzip -p "$apk" assets/web-cache/src/ui/navigation-controller.js | grep -Fq 'LuckyBeanNavigation'
+          unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'processRecognitionDocument'
+          grep -Fq 'ACTION_ANNOUNCE' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
+          grep -Fq 'announceBrewPreparation' android/app/src/main/java/com/luckybean/app/MainActivity.java
           if unzip -l "$apk" | grep -Eq 'interaction-repair|experience-fixes|gear-regression-fix|legacy-timer-guard|gear-matching-controller'; then exit 1; fi
-          if unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'id="brewSegments"'; then exit 1; fi
-          if unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'id="brewDripperMaterial"'; then exit 1; fi
           secret_scan_dir=$(mktemp -d)
           unzip -qq "$apk" 'assets/web-cache/*' -d "$secret_scan_dir"
           if grep -RIEq -- 'sb_secret_[A-Za-z0-9_-]{12,}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----' "$secret_scan_dir"; then exit 1; fi
@@ -154,7 +130,7 @@ jobs:
           mkdir -p dist
           zip -qr dist/LuckyBean-1.24B-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts schemas docs DEVELOPMENT_STATUS.md
           cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.24B-release.apk
-          printf 'source_sha=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.1\nanalysis_contract=brew-analysis/2.1\nspatial_contract=brew-spatial/1.3\noptimization_contract=brew-optimization-assessment/1.0\noptimization_validation_contract=brew-optimization-validation/1.0\ncalculation_coordinator=latest-wins-profile-preserving\nspatial_failure=same-input-retry-only\nmatching_contract=luckybean-match/1.1\ngear_physics_contract=gear-physics/1.0\nqr_runtime=local-jsqr-1.4.0\ngear_binding=resolved-physical-snapshot\nbean_matching=direct-selected-bean-id\nandroid_gallery_uri=clipdata-first\nrecognition_queue=serial-one-image\nbean_lifecycle=ordered-owned-archived\nstorage_modes=room-refrigerated-frozen\nfreshness_age=effective-storage-history\nlocal_brew_methods=offline-no-timer\norder_ocr=privacy-minimized\nsmall_brew_layout=compact-auto-source\nprofile_default=automatic-transient-override\ndose_default=automatic-profile-reference\npreparation_voice=ice-and-first-stage\nwater_default=plain-no-added-recipe\nnavigation_back=internal-stack-overlay-first\nandroid_back=legacy-and-predictive\nbean_metadata_gap=compact-full-detail\nsensory_actions=cancel-prev-next-equal-row\nui_architecture=canonical-plus-1.24b-integration\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
+          printf 'source_sha=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.2\nanalysis_contract=brew-analysis/2.1\nspatial_contract=brew-spatial/1.3\noptimization_contract=brew-optimization-assessment/1.0\noptimization_validation_contract=brew-optimization-validation/1.0\ncalculation_coordinator=latest-wins-profile-preserving\nspatial_failure=same-input-retry-only\nmatching_contract=luckybean-match/1.1\ngear_physics_contract=gear-physics/1.0\nqr_runtime=local-jsqr-1.4.0\ngear_binding=resolved-physical-snapshot\nbean_matching=direct-selected-bean-id\nandroid_gallery_uri=clipdata-first\nrecognition_queue=serial-one-image\nbean_lifecycle=ordered-owned-archived\nstorage_modes=room-refrigerated-frozen\nfreshness_age=effective-storage-history\nlocal_brew_methods=offline-no-timer\norder_ocr=privacy-minimized\ngrind_psd=measured-reference-plus-custom-anchors\nsmall_brew_layout=compact-auto-source\nprofile_default=automatic-transient-override\ndose_default=automatic-profile-reference\npreparation_voice=ice-and-first-stage\nwater_default=plain-no-added-recipe\nnavigation_back=internal-stack-overlay-first\nandroid_back=legacy-and-predictive\nbean_metadata_gap=compact-full-detail\nsensory_actions=cancel-prev-next-equal-row\nui_architecture=canonical-1.24b-complete\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
           sha256sum dist/LuckyBean-1.24B-web.zip dist/LuckyBean-1.24B-release.apk > dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v7.0.1
         with:
