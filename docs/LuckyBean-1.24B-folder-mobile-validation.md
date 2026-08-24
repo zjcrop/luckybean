@@ -14,7 +14,7 @@
 - 当前同步 UI 的正式按钮文案为“合并云端”，发布门禁按该正式文案校验。
 - 部署、缓存与 Web/Android parity 门禁已统一到本次 folder/mobile release contract。
 - `ui-policy` 与 `brew-mode` 已进入正式 runtime feature graph；Android APK 门禁同时检查运行入口、分组关闭、两行摘要和新缓存桶。
-- 赏味期即时横线门禁已迁移到当前 main.4，不再接受旧 main.3 作为当前发布身份。
+- 赏味期即时横线、interaction、gear matching 与 final/complete release contracts 均已迁移到当前 main.4。
 
 ## 发布要求
 
