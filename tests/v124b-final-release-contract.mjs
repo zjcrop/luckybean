@@ -64,7 +64,7 @@ assert.match(css, /grid-template-columns:minmax\(88px,.38fr\)/);
 assert.match(css, /\.lb-bean-detail .*white-space:normal/);
 assert.match(css, /\.lb-bean-actions\{display:grid/);
 
-assert.match(groupNavigation, /data\.v099tGroupBack/);
+assert.match(groupNavigation, /dataset\.v099tGroupBack/);
 assert.match(groupNavigation, /dx<=-72/);
 assert.match(groupNavigation, /luckybean:navigation-back/);
 assert.match(groupNavigation, /closeActiveGroup/);
