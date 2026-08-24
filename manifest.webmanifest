@@ -1,7 +1,7 @@
 {
-  "name": "富贵盒子 1.23E",
+  "name": "富贵盒子 1.24B",
   "short_name": "富贵盒子",
-  "start_url": "./?v=1.23E",
+  "start_url": "./?v=1.24B",
   "scope": "./",
   "display": "standalone",
   "background_color": "#080909",
@@ -9,12 +9,12 @@
   "lang": "zh-CN",
   "icons": [
     {
-      "src": "./public/app-logo.webp?v=1.23E",
+      "src": "./public/app-logo.webp?v=1.24B",
       "sizes": "512x512",
       "type": "image/webp",
       "purpose": "any maskable"
     }
   ],
-  "description": "富贵盒子 1.23E：本地优先的咖啡豆管理、冲煮、品鉴与可校验数据归档工具。",
-  "version": "1.23E"
+  "description": "富贵盒子 1.24B：本地优先的咖啡豆生命周期、冲煮、品鉴、在途与冷冻储存管理工具。",
+  "version": "1.24B"
 }
