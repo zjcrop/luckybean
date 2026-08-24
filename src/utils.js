@@ -1,5 +1,5 @@
-export const APP_VERSION = '1.23E';
-export const SCHEMA_VERSION = 8;
+export const APP_VERSION = '1.24B';
+export const SCHEMA_VERSION = 9;
 
 export const $ = (selector, root = document) => root.querySelector(selector);
 export const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -115,12 +115,36 @@ export function browserTitle(pageTitle) {
   document.title = `${pageTitle} · 富贵盒子`;
 }
 
+function effectiveStorageAge(bean, now, roastDate) {
+  const rawAge = Math.max(0, (new Date(now) - new Date(roastDate)) / 86400000);
+  const factors = { room: 1, refrigerated: 0.35, frozen: 0.08 };
+  const history = Array.isArray(bean?.storage?.history) ? bean.storage.history : [];
+  if (history.length) {
+    const start = new Date(roastDate);
+    const end = new Date(now);
+    let days = 0;
+    for (const period of history) {
+      const pStart = new Date(period.startAt || roastDate);
+      const pEnd = new Date(period.endAt || end);
+      const a = pStart < start ? start : pStart;
+      const b = pEnd > end ? end : pEnd;
+      if (b <= a) continue;
+      days += ((b - a) / 86400000) * Number(factors[period.mode] ?? 1);
+    }
+    return Math.max(0, days);
+  }
+  const mode = bean?.storage?.currentMode || bean?.storageMode || (bean?.refrigerated ? 'refrigerated' : 'room');
+  if (mode === 'room') return rawAge;
+  const storageStart = bean?.freezeDate || bean?.storage?.startedAt || roastDate;
+  const before = Math.max(0, (new Date(storageStart) - new Date(roastDate)) / 86400000);
+  const stored = Math.max(0, (new Date(now) - new Date(storageStart)) / 86400000);
+  return before + stored * Number(factors[mode] ?? 1);
+}
+
 export function freshnessProfile(bean, now = new Date()) {
   const rawAge = Math.max(0, daysBetween(bean.roastDate, now));
   const roast = bean.roastCode || 'RL-L2';
-  const frozen = Boolean(bean.refrigerated);
-  const frozenDays = frozen ? Math.max(0, daysBetween(bean.freezeDate || bean.roastDate, now)) : 0;
-  const effectiveAge = Math.max(0, rawAge - frozenDays * 0.78);
+  const effectiveAge = effectiveStorageAge(bean, now, bean.roastDate);
   const ranges = {
     'RL-L0': [10, 35, 65], 'RL-L1': [8, 30, 55], 'RL-L2': [7, 25, 45],
     'RL-L3': [5, 20, 35], 'RL-L4': [4, 16, 28], 'RL-L5': [3, 12, 22], 'RL-L6': [2, 9, 16]
