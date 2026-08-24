@@ -1,6 +1,7 @@
 import { parseNaturalLanguage } from '../../codebook.js';
+import { resolveRecognitionRelations, resolverPriorityDescription } from './recognition-field-resolver-1.24b.js';
 
-export const RECOGNITION_PIPELINE_VERSION = '1.23E-recognition-pipeline.2';
+export const RECOGNITION_PIPELINE_VERSION = '1.24B-recognition-pipeline.1';
 
 const RELATION_TO_RESULT = Object.freeze({
   country: 'countryCode',
@@ -97,16 +98,19 @@ function relationEvidence(document) {
   return byResult;
 }
 
+function resolvedRelations(relations, field) {
+  return resolveRecognitionRelations(relations.get(field) || []);
+}
+
 function rawForField(relations, field, parsed) {
-  const values = (relations.get(field) || []).map(item => item.value).filter(Boolean);
-  if (values.length) return [...new Set(values)].join('、');
+  const resolution = resolvedRelations(relations, field);
+  if (resolution.winner?.value) return resolution.winner.value;
   const evidence = parsed?.evidence?.[field];
   return Array.isArray(evidence) ? evidence.join('、') : clean(evidence);
 }
 
 function relationConfidence(relations, field) {
-  const values = (relations.get(field) || []).map(item => Number(item.score || 0)).filter(Number.isFinite);
-  return values.length ? Math.max(...values) : 0;
+  return Number(resolvedRelations(relations, field).winner?.confidence || 0);
 }
 
 function buildFieldRows(document, parsed, book) {
@@ -114,6 +118,7 @@ function buildFieldRows(document, parsed, book) {
   const rows = [];
 
   for (const [field, label, table, customField] of FIELD_DEFINITIONS) {
+    const resolution = resolvedRelations(relations, field);
     const rawValue = rawForField(relations, field, parsed);
     const value = parsed?.[field];
     const customValue = customField ? parsed?.[customField] : null;
@@ -137,16 +142,31 @@ function buildFieldRows(document, parsed, book) {
     const confidence = Math.max(Number(parsed?.confidence?.[field] || 0), relationConfidence(relations, field));
     const translated = resolved && rawValue && standardValue
       && normalizedComparable(rawValue) !== normalizedComparable(standardValue);
+    const requiresReview = Boolean(resolution.conflict) || !resolved;
     rows.push({
       field,
       label,
       rawValue,
       standardValue: standardValue || rawValue,
       confidence,
-      resolved,
+      resolved: resolved && !resolution.conflict,
       translated,
-      status: resolved ? (translated ? 'translated' : 'resolved') : 'review',
-      sources: relations.get(field) || []
+      status: requiresReview ? 'review' : (translated ? 'translated' : 'resolved'),
+      sources: resolution.winner?.sources || relations.get(field) || [],
+      resolution:{
+        priority:resolverPriorityDescription(),
+        conflict:Boolean(resolution.conflict),
+        reason:resolution.reason,
+        winningImageIds:resolution.winner?.imageIds || [],
+        candidates:(resolution.candidates || []).map(item=>({
+          value:item.value,
+          confidence:item.confidence,
+          explicit:item.explicit,
+          imageCount:item.imageCount,
+          score:Number(item.score.toFixed(3)),
+          imageIds:item.imageIds
+        }))
+      }
     });
   }
   return rows;
@@ -173,6 +193,7 @@ export function analyzeRecognitionDocument(document, book) {
     blockCount: Array.isArray(document.blocks) ? document.blocks.length : 0,
     relationCount: Array.isArray(document.relations) ? document.relations.length : 0,
     reviewFields: reviewFields.map(item => item.field),
+    arbitrationPriority:resolverPriorityDescription(),
     rawFullText: document.rawFullText || '',
     semanticText
   };
