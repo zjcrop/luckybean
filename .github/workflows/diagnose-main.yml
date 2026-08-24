@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Run observable release gate
+      - name: Run observable release gate and full legacy scan
         id: gate
         shell: bash
         run: |
@@ -41,11 +41,18 @@ jobs:
           else
             static_status=99
           fi
+          {
+            echo '# LuckyBean legacy/current-version reference scan'
+            echo '# Matches are evidence only; legacy compatibility references may be intentional.'
+            grep -RInE --exclude-dir=.git --exclude-dir=node_modules --exclude='*.lock' \
+              "1\\.23E|v123e|V123E|1023[0-9]{2}|main-v123e|1\\.23D|v123d|V123D|main-v123d" \
+              tests scripts src android .github package.json manifest.webmanifest index.html sw.js DEVELOPMENT_STATUS.md README.md 2>/dev/null || true
+          } > /tmp/legacy-scan.log
           printf 'install=%s\njs=%s\nstatic=%s\n' "$install_status" "$js_status" "$static_status" > /tmp/gate-status
           cat /tmp/gate-status
           tail -c 8000 /tmp/static.log 2>/dev/null || true
           exit 0
-      - name: Write observable receipt and log
+      - name: Write observable receipt, logs and full legacy scan
         shell: bash
         run: |
           set -euo pipefail
@@ -69,6 +76,7 @@ jobs:
           cp /tmp/static.log status/1.24B-static.log 2>/dev/null || true
           cp /tmp/js-check.log status/1.24B-js.log 2>/dev/null || true
           cp /tmp/npm-ci.log status/1.24B-npm.log 2>/dev/null || true
+          cp /tmp/legacy-scan.log status/1.24B-legacy-scan.log 2>/dev/null || true
           git add status/
           git commit -m "ci-status: LuckyBean 1.24B $GITHUB_SHA" || true
           git push origin HEAD:ci-status
