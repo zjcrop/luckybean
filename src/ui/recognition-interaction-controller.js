@@ -1,3 +1,5 @@
+import './brew-source-state-controller.js';
+
 const DEFER_FLAG='lbDeferredRecognition';
 
 document.addEventListener('click',event=>{
