@@ -73,7 +73,7 @@ assert.match(androidActivity, /InputImage\.fromFilePath\(MainActivity\.this, sou
 assert.match(androidBridge, /LuckyBeanRecognitionBridge/);
 assert.match(androidBridge, /for \(const image of images\)/);
 assert.match(recognitionBridge, /queueConcurrency:1/);
-assert.match(recognitionBridge, /IMG-\$\{String\(order\)\.padStart\(3,'0'\)\}/);
+assert.match(recognitionBridge, /taskId:`IMG-\$\{String\(index\+1\)\.padStart\(3,'0'\)\}`/);
 assert.match(packageCapture, /bindAndroidImageSource\(id, nativeSource\)/);
 
 assert.match(releaseCore, /BeanOwnershipStatus/);
