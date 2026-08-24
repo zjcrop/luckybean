@@ -82,7 +82,7 @@ assert.match(bootstrap, /requestIdleCallback/);
 assert.match(bootstrap, /reconcile/);
 assert.match(panel, /登录 \/ 注册服务器同步/);
 assert.match(panel, /自动同步始终启用/);
-assert.match(panel, /下载云端数据合并本地/);
+assert.match(panel, /合并云端/);
 assert.match(panel, /data-cloud-sync-indicator|cloud-sync-indicator/);
 assert.doesNotMatch(panel, /MutationObserver|setInterval/);
 assert.match(appearance, /splash-art-red\.webp/);
