@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 30
     env:
       SOURCE_SHA: ${{ github.sha }}
-      RELEASE_TAG: v1.24B-main.2
+      RELEASE_TAG: v1.24B-main.3
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -43,21 +43,21 @@ jobs:
         run: |
           find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
           npm run test:static
-          grep -Fq 'release-1.24b-polish.js?v=1.24B-main.2' index.html
-          grep -Fq 'release-1.24b-transit-controller.js?v=1.24B-main.2' index.html
-          grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.2' index.html
-          grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.2' index.html
-          grep -Fq "REVISION = '1.24B-main.2'" sw.js
+          grep -Fq 'release-revision" content="1.24B-main.3"' index.html
+          grep -Fq 'release-1.24b-polish.js?v=1.24B-main.3' index.html
+          grep -Fq 'release-1.24b-transit-controller.js?v=1.24B-main.3' index.html
+          grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.3' index.html
+          grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.3' index.html
+          grep -Fq "REVISION = '1.24B-main.3'" sw.js
+          grep -Fq 'release-1.24b-freshness-detail.js' sw.js
+          grep -Fq 'recognition-batch-progress-controller.js' sw.js
+          grep -Fq 'recognition-field-resolver-1.24b.js' sw.js
           grep -Fq 'grind-psd-reference-service.js' sw.js
-          grep -Fq 'release-1.24b-transit-controller.js' sw.js
-          grep -Fq 'release-1.24b-group-navigation.js' sw.js
-          grep -Fq 'release-1.24b-about-controller.js' sw.js
       - name: Synchronize Android runtime version marker
         shell: bash
         run: |
           set -euo pipefail
           file=android/app/src/main/java/com/luckybean/app/MainActivity.java
-          sed -i 's#LuckyBeanAndroid/1\.23E#LuckyBeanAndroid/1.24B#g' "$file"
           grep -Fq 'LuckyBeanAndroid/1.24B' "$file"
           ! grep -Fq 'LuckyBeanAndroid/1.23E' "$file"
       - name: Restore official release keystore
@@ -91,19 +91,27 @@ jobs:
             assets/web-cache/src/features/release-1.24b-group-navigation.js \
             assets/web-cache/src/features/release-1.24b-about-controller.js \
             assets/web-cache/src/features/release-1.24b-polish.js \
+            assets/web-cache/src/features/release-1.24b-freshness-detail.js \
+            assets/web-cache/src/features/recognition-batch-progress-controller.js \
+            assets/web-cache/src/domain/recognition/recognition-field-resolver-1.24b.js \
             assets/web-cache/src/services/grind-psd-reference-service.js \
             assets/web-cache/src/domain/recognition/order-recognition-1.24b.js \
             assets/web-cache/src/data/local-brew-recipes-1.24b.js \
             assets/web-cache/src/release-1.24b.js; do
             unzip -l "$apk" | grep -Fq "$asset"
           done
-          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-polish.js?v=1.24B-main.2'
-          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-transit-controller.js?v=1.24B-main.2'
-          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.2'
-          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.2'
-          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '1.24B-main.2'"
+          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-revision" content="1.24B-main.3"'
+          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-polish.js?v=1.24B-main.3'
+          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-transit-controller.js?v=1.24B-main.3'
+          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.3'
+          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.3'
+          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '1.24B-main.3'"
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'data-v099t-group-back'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-about-controller.js | grep -Fq '端茶倒水的秦始皇🐻'
+          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-freshness-detail.js | grep -Fq '完整赏味期曲线'
+          unzip -p "$apk" assets/web-cache/src/features/recognition-batch-progress-controller.js | grep -Fq '正在识别'
+          unzip -p "$apk" assets/web-cache/src/domain/recognition/recognition-field-resolver-1.24b.js | grep -Fq 'explicit-label > confidence > multi-image-consensus > weak-inference'
+          unzip -p "$apk" assets/web-cache/src/recognition-bridge.js | grep -Fq 'luckybean.recognition.batch.1.24b'
           source_app_sha=$(sha256sum src/app.js | awk '{print $1}')
           apk_app_sha=$(unzip -p "$apk" assets/web-cache/src/app.js | sha256sum | awk '{print $1}')
           test "$source_app_sha" = "$apk_app_sha"
@@ -118,7 +126,7 @@ jobs:
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.24B-release.apk
           zip -qr dist/LuckyBean-1.24B-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts schemas docs DEVELOPMENT_STATUS.md
-          printf 'source_sha=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.2\nsigning=official-release-keystore\nandroid_runtime_marker=LuckyBeanAndroid/1.24B\nrecognition_queue=serial-one-image\nbean_lifecycle=ordered-delivered-storage-history\nstorage_modes=room-refrigerated-frozen\norder_ocr=privacy-minimized\ngrind_psd=measured-reference-plus-custom-anchors\ngroup_navigation=canonical-group-back\nabout_contacts=inside-about-section\nui_architecture=canonical-1.24b-complete\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
+          printf 'source_sha=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.3\nsigning=official-release-keystore\nandroid_runtime_marker=LuckyBeanAndroid/1.24B\nrecognition_queue=serial-one-image-persistent\nrecognition_arbitration=explicit-confidence-consensus-inference\nbean_lifecycle=ordered-delivered-storage-history\nstorage_modes=room-refrigerated-frozen\nfreshness_detail=full-expandable\norder_ocr=privacy-minimized\ngrind_psd=measured-reference-plus-custom-anchors\ngroup_navigation=canonical-group-back\nabout_contacts=inside-about-section\nui_architecture=canonical-1.24b-complete\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
           sha256sum dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip > dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v7.0.1
         with:
@@ -134,7 +142,7 @@ jobs:
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --clobber
           else
-            gh release create "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --target "$SOURCE_SHA" --title "LuckyBean 1.24B" --notes "1.24B main.2 signed release. APK certificate is verified against android/signing/CERT_SHA256.txt before publication."
+            gh release create "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --target "$SOURCE_SHA" --title "LuckyBean 1.24B" --notes "1.24B main.3 signed release. APK certificate is verified against android/signing/CERT_SHA256.txt before publication."
           fi
       - name: Write verifiable release receipt
         shell: bash
@@ -144,7 +152,7 @@ jobs:
           apk_sha=$(sha256sum dist/LuckyBean-1.24B-release.apk | awk '{print $1}')
           web_sha=$(sha256sum dist/LuckyBean-1.24B-web.zip | awk '{print $1}')
           receipt=$(mktemp)
-          printf '{"version":"1.24B","revision":"1.24B-main.2","source_sha":"%s","release_tag":"%s","apk":"LuckyBean-1.24B-release.apk","apk_sha256":"%s","web_sha256":"%s","certificate_sha256":"%s","certificate_verified":true,"published":true,"generated_at":"%s"}\n' "$SOURCE_SHA" "$RELEASE_TAG" "$apk_sha" "$web_sha" "$cert" "$(date -u +%FT%TZ)" > "$receipt"
+          printf '{"version":"1.24B","revision":"1.24B-main.3","source_sha":"%s","release_tag":"%s","apk":"LuckyBean-1.24B-release.apk","apk_sha256":"%s","web_sha256":"%s","certificate_sha256":"%s","certificate_verified":true,"published":true,"generated_at":"%s"}\n' "$SOURCE_SHA" "$RELEASE_TAG" "$apk_sha" "$web_sha" "$cert" "$(date -u +%FT%TZ)" > "$receipt"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           if git ls-remote --exit-code --heads origin release-status >/dev/null 2>&1; then
