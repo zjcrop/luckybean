@@ -13,6 +13,7 @@ function cleanText(value) {
 
 function safeStoreBatch(batch) {
   try { localStorage.setItem(BATCH_STATE_KEY, JSON.stringify(batch)); } catch {}
+  try { document.dispatchEvent(new CustomEvent('luckybean:recognition-batch-progress',{detail:{batch}})); } catch {}
 }
 export function getRecognitionBatchSnapshot() {
   try { return JSON.parse(localStorage.getItem(BATCH_STATE_KEY) || 'null'); } catch { return null; }
