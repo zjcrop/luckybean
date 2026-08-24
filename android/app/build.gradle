@@ -44,8 +44,6 @@ tasks.register('syncLuckyBeanWebAssets') {
         if (!moduleMatcher.find()) throw new GradleException('未找到应用模块入口，Android资产同步中止。')
         String moduleTag = moduleMatcher.group(0)
         indexFile.write(indexHtml.replace(moduleTag, '<script src="./native-bridge.js"></script>\n  ' + moduleTag), 'UTF-8')
-        // app.js is copied byte-for-byte. Platform branching lives in canonical src/app.js so
-        // Web and APK execute the same source and release SHA parity is meaningful.
     }
 }
 
@@ -56,8 +54,8 @@ android {
         applicationId 'com.luckybean.app'
         minSdk 26
         targetSdk 35
-        versionCode 102322
-        versionName '1.23E'
+        versionCode 102402
+        versionName '1.24B'
     }
     sourceSets { main.assets.srcDir(generatedWebAssets) }
     signingConfigs {
