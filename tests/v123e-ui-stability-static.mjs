@@ -32,13 +32,13 @@ const qrUi=read('src/qr-ui-controller.js');
 const revisionMatch=index.match(/release-revision" content="([^"]+)"/);
 assert.ok(revisionMatch);
 const releaseRevision=revisionMatch[1];
-assert.equal(releaseRevision,'1.24B-main.2');
+assert.equal(releaseRevision,'1.24B-main.3');
 assert.ok(sw.includes(`REVISION = '${releaseRevision}'`));
 assert.match(sw,/CACHE_PREFIX = 'luckybean-main-v124b-'/);
-assert.match(sw,/CACHE_NAME = `\$\{CACHE_PREFIX\}main-2`/);
+assert.match(sw,/CACHE_NAME = `\$\{CACHE_PREFIX\}main-3`/);
 
 for(const active of ['app-layout.css','app-components.css','bean-card.css','professional-sensory.css','viewport-controller.js','gear-controller.js','brew-cooling-controller.js','flavor-guide-controller.js','onboarding-controller.js','bean-card-controller.js','bean-enrichment-service.js','release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-polish.js'])assert.ok(index.includes(active),`index missing ${active}`);
-for(const cached of ['release-1.24b-finalize.js','release-1.24b-polish.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js'])assert.ok(sw.includes(cached),`service worker missing ${cached}`);
+for(const cached of ['release-1.24b-finalize.js','release-1.24b-polish.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','recognition-field-resolver-1.24b.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js'])assert.ok(sw.includes(cached),`service worker missing ${cached}`);
 for(const obsolete of ['layout-guard.css','full-integration.css','interaction-repair.css','gear-regression-fix-controller.js','legacy-timer-guard.js','gear-matching-controller.js','experience-fixes-controller.js','interaction-repair-controller.js'])assert.ok(!index.includes(obsolete),`obsolete index reference ${obsolete}`);
 
 assert.match(layout,/--viewport-height:\s*100dvh/);
@@ -80,6 +80,7 @@ assert.match(releaseCss,/\.lb-bean-actions/);
 assert.match(releaseCss,/\.lb-freshness-row/);
 assert.match(releaseCss,/\.lb-record-links/);
 assert.match(releaseCss,/\.lb-centered-help-layer/);
+assert.match(releaseCss,/\.lb-freshness-detail-layer/);
 assert.match(releaseIntegration,/data-lb-transit-section/);
 assert.match(releaseIntegration,/data-lb-local-method-row/);
 assert.match(releaseIntegration,/注册信息已提交/);
