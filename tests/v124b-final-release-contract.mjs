@@ -8,6 +8,7 @@ const sw = read('sw.js');
 const release = read('src/release-1.24b.js');
 const integration = read('src/features/release-1.24b-integration.js');
 const finalize = read('src/features/release-1.24b-finalize.js');
+const transit = read('src/features/release-1.24b-transit-controller.js');
 const polish = read('src/features/release-1.24b-polish.js');
 const css = read('src/release-1.24b.css');
 const recognition = read('src/recognition-bridge.js');
@@ -18,9 +19,9 @@ const gradle = read('android/app/build.gradle');
 
 assert.match(index, /application-version" content="1\.24B"/);
 assert.match(index, /release-revision" content="1\.24B-main\.2"/);
-for (const file of ['release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-polish.js']) assert.ok(index.includes(file), `index must load ${file}`);
+for (const file of ['release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-transit-controller.js','release-1.24b-polish.js']) assert.ok(index.includes(file), `index must load ${file}`);
 assert.match(sw, /REVISION = '1\.24B-main\.2'/);
-for (const file of ['release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-polish.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js']) assert.ok(sw.includes(file), `service worker must cache ${file}`);
+for (const file of ['release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-transit-controller.js','release-1.24b-polish.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js']) assert.ok(sw.includes(file), `service worker must cache ${file}`);
 
 assert.match(release, /BeanOwnershipStatus/);
 assert.match(release, /ORDERED:'ordered'/);
@@ -36,6 +37,11 @@ assert.match(finalize, /parseCoffeeOrderText/);
 assert.match(finalize, /orderIdHash/);
 assert.match(finalize, /privacyRedactions/);
 assert.match(finalize, /data-lb-transit-section/);
+assert.match(transit, /markBeanDelivered/);
+assert.match(transit, /到货重量/);
+assert.match(transit, /烘焙日期/);
+assert.match(transit, /入库储存/);
+assert.match(transit, /data-lb-deliver/);
 assert.match(css, /data-tone="muted"/);
 
 assert.match(release, /createRecognitionBatch/);
@@ -84,12 +90,14 @@ assert.doesNotMatch(deploy, /workflow_run:/);
 assert.match(deploy, /npm run test:static/);
 assert.match(deploy, /deploy-pages@v5\.0\.0/);
 assert.match(deploy, /version\.json/);
+assert.match(deploy, /pages-status/);
 assert.match(build, /on:\n\s+push:\n\s+branches: \[main\]/);
 assert.match(build, /Restore official release keystore/);
 assert.match(build, /assembleRelease/);
 assert.match(build, /apksigner/);
 assert.match(build, /CERT_SHA256\.txt/);
 assert.match(build, /LuckyBeanAndroid\/1\.24B/);
+assert.match(build, /release-1\.24b-transit-controller\.js/);
 assert.match(gradle, /versionCode 102402/);
 assert.match(gradle, /versionName '1\.24B'/);
 
