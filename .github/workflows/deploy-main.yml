@@ -35,8 +35,13 @@ jobs:
           npm run test:static
           grep -Fq 'application-version" content="1.24B"' index.html
           grep -Fq 'release-1.24b-polish.js?v=1.24B-main.2' index.html
+          grep -Fq 'release-1.24b-transit-controller.js?v=1.24B-main.2' index.html
+          grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.2' index.html
+          grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.2' index.html
           grep -Fq "REVISION = '1.24B-main.2'" sw.js
           grep -Fq 'grind-psd-reference-service.js' sw.js
+          grep -Fq 'release-1.24b-group-navigation.js' sw.js
+          grep -Fq 'release-1.24b-about-controller.js' sw.js
       - name: Prepare exact tested web site
         shell: bash
         run: |
@@ -45,7 +50,7 @@ jobs:
           cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
           cp -R src public contracts schemas _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.2","recognitionQueue":"serial-one-image","beanLifecycle":"ordered-owned-archived","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","uiArchitecture":"canonical-1.24b-complete"}\n' "$SOURCE_SHA" > _site/version.json
+          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.2","recognitionQueue":"serial-one-image","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-group-back","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-complete"}\n' "$SOURCE_SHA" > _site/version.json
       - uses: actions/configure-pages@v6.0.0
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
@@ -77,13 +82,21 @@ jobs:
             curl -L -fsS "$base/?check=$SOURCE_SHA" -o /tmp/index.html || true
             curl -L -fsS "$base/sw.js?check=$SOURCE_SHA" -o /tmp/sw.js || true
             curl -L -fsS "$base/src/features/release-1.24b-finalize.js?check=$SOURCE_SHA" -o /tmp/finalize.js || true
+            curl -L -fsS "$base/src/features/release-1.24b-transit-controller.js?check=$SOURCE_SHA" -o /tmp/transit.js || true
+            curl -L -fsS "$base/src/features/release-1.24b-group-navigation.js?check=$SOURCE_SHA" -o /tmp/group.js || true
+            curl -L -fsS "$base/src/features/release-1.24b-about-controller.js?check=$SOURCE_SHA" -o /tmp/about.js || true
             curl -L -fsS "$base/src/features/release-1.24b-polish.js?check=$SOURCE_SHA" -o /tmp/polish.js || true
             if grep -Fq "$SOURCE_SHA" /tmp/version.json 2>/dev/null \
               && grep -Fq '"version":"1.24B"' /tmp/version.json \
               && grep -Fq '"revision":"1.24B-main.2"' /tmp/version.json \
-              && grep -Fq 'release-1.24b-polish.js?v=1.24B-main.2' /tmp/index.html \
+              && grep -Fq '"groupNavigation":"canonical-group-back"' /tmp/version.json \
+              && grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.2' /tmp/index.html \
+              && grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.2' /tmp/index.html \
               && grep -Fq "REVISION = '1.24B-main.2'" /tmp/sw.js \
               && grep -Fq '订单录入' /tmp/finalize.js \
+              && grep -Fq '已购' /tmp/transit.js \
+              && grep -Fq 'data-v099t-group-back' /tmp/group.js \
+              && grep -Fq '端茶倒水的秦始皇🐻' /tmp/about.js \
               && grep -Fq 'openCenteredHelp' /tmp/polish.js; then
               echo "LuckyBean Pages now serves 1.24B-main.2 from $SOURCE_SHA"
               exit 0
