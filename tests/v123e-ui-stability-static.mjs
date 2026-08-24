@@ -74,7 +74,7 @@ assert.match(lifecycle,/RECYCLE_RETENTION_MS = 7 \* 24 \* 60 \* 60 \* 1000/);
 // Expanded bean groups are page-like folders: blank canvas, “藏”, page changes and navigation-back all close them.
 assert.match(groupNavigation,/folder-style group navigation active/);
 assert.match(groupNavigation,/\[data-page-target\]/);
-assert.match(groupNavigation,/page\.contains\(event\.target\)/);
+assert.match(groupNavigation,/page\?\.contains\(event\.target\)/);
 assert.match(groupNavigation,/button\[data-v099t-group-back\]/);
 assert.match(groupNavigation,/capture:true/);
 assert.match(groupNavigation,/luckybean:navigation-back/);
