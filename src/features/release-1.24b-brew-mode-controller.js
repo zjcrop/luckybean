@@ -12,6 +12,7 @@ const ADDITIONS = Object.freeze({
 });
 
 let rendering = false;
+let queued = false;
 let observer = null;
 
 function injectStyle() {
@@ -42,7 +43,7 @@ async function readState() {
   settings.brew ||= {};
   const mode = settings.brew.lbMode === 'other' ? 'other' : 'pourover';
   const coffeeType = String(settings.brew.otherCoffeeType || 'espresso');
-  return { settings, mode, coffeeType };
+  return { mode, coffeeType };
 }
 
 async function saveState(mode, coffeeType) {
@@ -72,9 +73,10 @@ function resolveCoffeeType(value) {
     };
   }
   const recipe = LOCAL_BREW_RECIPES_124B[id] || LOCAL_BREW_RECIPES_124B.espresso;
+  const resolvedId = LOCAL_BREW_RECIPES_124B[id] ? id : 'espresso';
   return {
-    key:`method:${LOCAL_BREW_RECIPES_124B[id] ? id : 'espresso'}`, name:recipe.name, base:recipe.name,
-    additions:id === 'cold_brew' ? '水 / 冰（按饮用方式）' : id === 'south_indian_filter' ? '牛奶 / 水 / 糖（可选）' : '无固定添加',
+    key:`method:${resolvedId}`, name:recipe.name, base:recipe.name,
+    additions:resolvedId === 'cold_brew' ? '水 / 冰（按饮用方式）' : resolvedId === 'south_indian_filter' ? '牛奶 / 水 / 糖（可选）' : '无固定添加',
     steps:recipe.steps || [], detail:[recipe.dose, recipe.water, recipe.temperature, `研磨 ${recipe.grind}`].filter(Boolean).join(' · ')
   };
 }
@@ -85,7 +87,7 @@ function panelHtml(type) {
       <div class="lb-other-field"><span>原液</span><strong data-lb-other-base>${esc(type.base)}</strong></div>
       <div class="lb-other-field"><span>添加</span><strong data-lb-other-additions>${esc(type.additions)}</strong></div>
     </div>
-    ${type.detail ? `<p class="lb-other-note" data-lb-other-detail>${esc(type.detail)}</p>` : '<p class="lb-other-note" data-lb-other-detail></p>'}
+    <p class="lb-other-note" data-lb-other-detail>${esc(type.detail || '')}</p>
     <ol class="lb-other-steps" data-lb-other-steps>${type.steps.map(step => `<li>${esc(step)}</li>`).join('')}</ol>
     <p class="lb-other-note">“其他”只使用本地咖啡种类与制作步骤，不显示手冲参数，不调用 BrewProfiles 手冲计算，也不启动手冲倒计时。</p>`;
 }
@@ -95,6 +97,8 @@ function updatePanel(panel, value) {
   if (!type) return;
   const select = $('[data-lb-other-coffee]', panel);
   if (select && select.value !== type.key) select.value = type.key;
+  if (panel.dataset.lbRenderedType === type.key) return;
+  panel.dataset.lbRenderedType = type.key;
   $('[data-lb-other-base]', panel).textContent = type.base;
   $('[data-lb-other-additions]', panel).textContent = type.additions;
   $('[data-lb-other-detail]', panel).textContent = type.detail || '';
@@ -118,13 +122,14 @@ async function render() {
       switchRow.innerHTML = `<span class="lb-mode-left">手冲</span><button class="lb-brew-switch" type="button" role="switch" aria-label="手冲与其他制作切换"><span></span></button><span class="lb-mode-right">其他</span>`;
       root.prepend(switchRow);
     }
+    const resolved = resolveCoffeeType(coffeeType.includes(':') ? coffeeType : `method:${coffeeType}`) || resolveCoffeeType('method:espresso');
     let panel = $('[data-lb-other-brew-panel]', root);
-    const resolved = resolveCoffeeType(coffeeType.includes(':') ? coffeeType : `method:${coffeeType}`);
     if (!panel) {
       panel = document.createElement('section');
       panel.className = 'lb-other-brew-panel';
       panel.dataset.lbOtherBrewPanel = '1';
       panel.innerHTML = panelHtml(resolved);
+      panel.dataset.lbRenderedType = resolved.key;
       switchRow.after(panel);
     }
     const toggle = $('.lb-brew-switch', switchRow);
@@ -155,12 +160,20 @@ async function render() {
   }
 }
 
-function queueRender() { queueMicrotask(() => render().catch(() => {})); }
+function queueRender() {
+  if (queued) return;
+  queued = true;
+  queueMicrotask(() => {
+    queued = false;
+    render().catch(() => {});
+  });
+}
 
-observer = new MutationObserver(records => {
-  if (records.some(record => record.target?.id === 'brewContent' || record.target?.closest?.('#brewContent') || [...record.addedNodes].some(node => node.nodeType === 1 && (node.id === 'brewContent' || node.querySelector?.('#brewContent'))))) queueRender();
-});
-observer.observe(document.documentElement, { childList:true, subtree:true });
+const brewRoot = $('#brewContent');
+if (brewRoot) {
+  observer = new MutationObserver(queueRender);
+  observer.observe(brewRoot, { childList:true, subtree:true });
+}
 document.addEventListener('luckybean:app-refreshed', queueRender);
 document.addEventListener('luckybean:brew-rendered', queueRender);
 document.addEventListener('click', event => { if (event.target.closest?.('[data-page-target="brew"]')) queueRender(); }, true);
