@@ -21,7 +21,7 @@ const sw = read('sw.js');
 const manifest = JSON.parse(read('manifest.webmanifest'));
 
 assert.match(index, /1\.24B/);
-assert.match(index, /1\.24B-main\.2/);
+assert.match(index, /1\.24B-main\.3/);
 assert.match(index, /src\/core\/startup-controller\.js/);
 assert.match(index, /src\/core\/bootstrap\.js/);
 assert.match(index, /src\/services\/cloud-auth-service\.js/);
@@ -112,8 +112,8 @@ assert.doesNotMatch(runtimeFeatures, /v109-history-management\.js|v099-trajector
 assert.doesNotMatch(runtimeFeatures, /v095-ui\.js|theme-bridge\.js/);
 
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124b-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-2`/);
-assert.match(sw, /REVISION = '1\.24B-main\.2'/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-3`/);
+assert.match(sw, /REVISION = '1\.24B-main\.3'/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES = \[/);
 assert.match(sw, /'luckybean-main-v123e-'/);
 assert.match(sw, /'luckybean-main-v123d-'/);
@@ -128,6 +128,9 @@ assert.match(sw, /src\/features\/runtime-features\.js/);
 assert.match(sw, /src\/features\/release-1\.24b-transit-controller\.js/);
 assert.match(sw, /src\/features\/release-1\.24b-group-navigation\.js/);
 assert.match(sw, /src\/features\/release-1\.24b-about-controller\.js/);
+assert.match(sw, /src\/features\/release-1\.24b-freshness-detail\.js/);
+assert.match(sw, /src\/features\/recognition-batch-progress-controller\.js/);
+assert.match(sw, /src\/domain\/recognition\/recognition-field-resolver-1\.24b\.js/);
 assert.match(sw, /src\/ui\/gear-controller\.js/);
 assert.doesNotMatch(sw, /gear-regression-fix-controller/);
 assert.match(sw, /src\/renderers\/brew-spatial-view\.js/);
@@ -146,4 +149,4 @@ for (const path of [
   'src/features/gear-regression-fix-controller.js','src/features/legacy-timer-guard.js','src/features/experience-fixes-controller.js','src/features/interaction-repair-controller.js'
 ]) assert.equal(exists(path), false, `${path} should have been removed`);
 
-console.log('LuckyBean 1.24B local-first cache isolation and current BrewProfiles contract checks passed');
+console.log('LuckyBean 1.24B main.3 local-first cache isolation and current BrewProfiles contract checks passed');
