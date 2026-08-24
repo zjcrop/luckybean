@@ -27,7 +27,8 @@ const tests = [
   'tests/v123e-recognition-pipeline-static.mjs',
   'tests/v124b-lifecycle-ocr-storage-regression.mjs',
   'tests/v124b-final-release-contract.mjs',
-  'tests/v124b-complete-plan-contract.mjs'
+  'tests/v124b-complete-plan-contract.mjs',
+  'tests/v124b-current-identity-scan.mjs'
 ];
 
 function annotation(text) {
