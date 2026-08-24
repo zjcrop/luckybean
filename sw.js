@@ -1,9 +1,9 @@
-// LuckyBean 1.23E main-sync.11: hot/cold recipes, automatic dose and preparation voice.
-const REVISION = '1.23E-main-sync.11';
-const CACHE_PREFIX = 'luckybean-main-v123e-';
-const CACHE_NAME = `${CACHE_PREFIX}main-sync-11`;
+// LuckyBean 1.24B: lifecycle, transit/frozen beans, serial OCR and compact UI.
+const REVISION = '1.24B-main.1';
+const CACHE_PREFIX = 'luckybean-main-v124b-';
+const CACHE_NAME = `${CACHE_PREFIX}main-1`;
 const LEGACY_CACHE_PREFIXES = [
-  'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
+  'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
   'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',
   'luckybean-v123-brewprofiles-integration-test-', 'luckybean-v200-foundation-'
 ];
@@ -14,6 +14,9 @@ const CORE = [
   './recognition-test.html',
   versioned('./manifest.webmanifest'),
   versioned('./styles.css'),
+  versioned('./src/release-1.24b.css'),
+  versioned('./src/release-1.24b.js'),
+  versioned('./src/features/release-1.24b-integration.js'),
   versioned('./src/ui/app-layout.css'),
   versioned('./src/ui/app-components.css'),
   versioned('./src/ui/bean-card.css'),
