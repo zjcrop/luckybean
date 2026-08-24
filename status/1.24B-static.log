@@ -10,361 +10,591 @@ LuckyBean 1.24B main.3 local-first cache isolation and current BrewProfiles cont
 v1.2 core analysis, completed history, provider, spatial and environment-dialog contracts passed
 
 [static] tests/v120-requirements-static.mjs
+LuckyBean 1.24B single server account, mandatory automatic sync and all-profile checks passed
+
+[static] tests/v122-cloud-sync-safety.mjs
+v1.23D cloud union baseline and deletion propagation checks passed
+
+[static] tests/v123-brewprofiles-integration.mjs
+TAP version 13
+# Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
+ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
+  ---
+  duration_ms: 5.097279
+  type: 'test'
+  ...
+# Subtest: catalog is authoritative, cached, and includes all six competition profiles
+ok 2 - catalog is authoritative, cached, and includes all six competition profiles
+  ---
+  duration_ms: 2.042713
+  type: 'test'
+  ...
+# Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
+ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
+  ---
+  duration_ms: 2.374395
+  type: 'test'
+  ...
+# Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
+ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
+  ---
+  duration_ms: 1.875245
+  type: 'test'
+  ...
+# Subtest: client rejects empty or incomplete target geometry
+ok 5 - client rejects empty or incomplete target geometry
+  ---
+  duration_ms: 0.764175
+  type: 'test'
+  ...
+# Subtest: new plan generation never converts an API failure into a fake successful 3D scene
+ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
+  ---
+  duration_ms: 2.652949
+  type: 'test'
+  ...
+# Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
+ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
+  ---
+  duration_ms: 0.811885
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 21.309092
+
+[static] tests/v123d-main-parity.mjs
+TAP version 13
+# Subtest: all pages use the same red seal slot geometry
+ok 1 - all pages use the same red seal slot geometry
+  ---
+  duration_ms: 5.583631
+  type: 'test'
+  ...
+# Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
+ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
+  ---
+  duration_ms: 3.747415
+  type: 'test'
+  ...
+# Subtest: about section contains the shipped illustration
+ok 3 - about section contains the shipped illustration
+  ---
+  duration_ms: 3.552856
+  type: 'test'
+  ...
+# Subtest: settings data collection owns coffee world and preference profile
+ok 4 - settings data collection owns coffee world and preference profile
+  ---
+  duration_ms: 2.756142
+  type: 'test'
+  ...
+# Subtest: bean page shows inventory and health digest above its leaderboard
+ok 5 - bean page shows inventory and health digest above its leaderboard
+  ---
+  duration_ms: 2.34375
+  type: 'test'
+  ...
+# Subtest: cloud panel exposes status and both recovery actions
+ok 6 - cloud panel exposes status and both recovery actions
+  ---
+  duration_ms: 0.999234
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 24.687408
+
+[static] tests/v124-stable-data-format.mjs
+Stable cross-project brew data is version-independent and uses the fixed six-target contract.
+
+[static] tests/v125-root-state-models.mjs
+v1.2.5 independent sensory state machines and LuckyBean 1.24B Android package contracts passed
+
+[static] tests/v123d-deployment-contracts.mjs
 node:internal/modules/run_main:123
     triggerUncaughtException(
     ^
 
-AssertionError [ERR_ASSERTION]: The input did not match the regular expression /CACHE_NAME = `\$\{CACHE_PREFIX\}main-2`/. Input:
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /IMG-\$\{String\(order\)\.padStart\(3,'0'\)\}/. Input:
 
-'// LuckyBean 1.24B: lifecycle, transit/frozen beans, serial OCR and compact UI.\n' +
-  "const REVISION = '1.24B-main.3';\n" +
-  "const CACHE_PREFIX = 'luckybean-main-v124b-';\n" +
-  'const CACHE_NAME = `${CACHE_PREFIX}main-3`;\n' +
-  'const LEGACY_CACHE_PREFIXES = [\n' +
-  "  'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',\n" +
-  "  'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',\n" +
-  "  'luckybean-v123-brewprofiles-integration-test-', 'luckybean-v200-foundation-'\n" +
-  '];\n' +
-  'const versioned = path => `${path}?v=${REVISION}`;\n' +
-  'const CORE = [\n' +
-  "  './',\n" +
-  "  './index.html',\n" +
-  "  './recognition-test.html',\n" +
-  "  versioned('./manifest.webmanifest'),\n" +
-  "  versioned('./styles.css'),\n" +
-  "  versioned('./src/release-1.24b.css'),\n" +
-  "  versioned('./src/release-1.24b.js'),\n" +
-  "  versioned('./src/features/release-1.24b-integration.js'),\n" +
-  "  versioned('./src/features/release-1.24b-finalize.js'),\n" +
-  "  versioned('./src/features/release-1.24b-transit-controller.js'),\n" +
-  "  versioned('./src/features/release-1.24b-group-navigation.js'),\n" +
-  "  versioned('./src/features/release-1.24b-about-controller.js'),\n" +
-  "  versioned('./src/features/release-1.24b-polish.js'),\n" +
-  "  versioned('./src/features/release-1.24b-freshness-detail.js'),\n" +
-  "  versioned('./src/features/recognition-batch-progress-controller.js'),\n" +
-  "  versioned('./src/data/local-brew-recipes-1.24b.js'),\n" +
-  "  versioned('./src/services/grind-psd-reference-service.js'),\n" +
-  "  versioned('./src/domain/recognition/order-recognition-1.24b.js'),\n" +
-  "  versioned('./src/domain/recognition/recognition-field-resolver-1.24b.js'),\n" +
-  "  versioned('./src/ui/app-layout.css'),\n" +
-  "  versioned('./src/ui/app-components.css'),\n" +
-  "  versioned('./src/ui/bean-card.css'),\n" +
-  "  versioned('./src/ui/professional-sensory.css'),\n" +
-  "  versioned('./src/ui/sensory-wizard-actions.css'),\n" +
-  "  versioned('./src/ui/brew-optimization.css'),\n" +
-  "  versioned('./src/app.js'),\n" +
-  "  versioned('./src/domain/archive/luckybean-archive-codec.js'),\n" +
-  "  versioned('./src/domain/archive/luckybean-archive-service.js'),\n" +
-  "  versioned('./src/domain/beans/bean-consumption-summary.js'),\n" +
-  "  versioned('./src/domain/beans/bean-lifecycle-service.js'),\n" +
-  "  versioned('./src/domain/recognition/recognition-document.js'),\n" +
-  "  versioned('./src/domain/recognition/recognition-pipeline.js'),\n" +
-  "  versioned('./src/domain/recognition/recognition-date-classifier.js'),\n" +
-  "  versioned('./src/domain/recognition/recognition-date-review.js'),\n" +
-  "  versioned('./src/recognition-test-page.js'),\n" +
-  "  './contracts/luckybean-archive-v1.schema.json',\n" +
-  "  './contracts/recognition-document-v1.schema.json',\n" +
-  "  './contracts/recognition-date-decision-v1.schema.json',\n" +
-  "  './contracts/brew-optimization-v1.schema.json',\n" +
-  "  './contracts/brew-optimization-validation-v1.schema.json',\n" +
-  "  versioned('./src/core/startup-controller.js'),\n" +
-  "  versioned('./src/core/bootstrap.js'),\n" +
-  "  versioned('./src/services/cloud-auth-service.js'),\n" +
-  "  versioned('./src/services/cloud-sync-service.js'),\n" +
-  "  versioned('./src/services/cloud-sync-safety.js'),\n" +
-  "  versioned('./src/services/bean-enrichment-service.js'),\n" +
-  "  versioned('./src/cloud-codec.js'),\n" +
-  "  versioned('./src/services/brew-analysis-service.js'),\n" +
-  "  versioned('./src/services/brew-calculation-coordinator.js'),\n" +
-  "  versioned('./src/services/brew-api-client.js'),\n" +
-  "  versioned('./src/services/brew-profile-catalog-service.js'),\n" +
-  "  versioned('./src/services/local-reference-analysis.js'),\n" +
-  "  versioned('./src/services/provider-package-service.js'),\n" +
-  "  versioned('./src/services/codebook-reconciliation-service.js'),\n" +
-  "  versioned('./src/services/provider-bootstrap-controller.js'),\n" +
-  "  versioned('./src/ui/provider-status-panel.js'),\n" +
-  "  versioned('./src/ui/codebook-reconciliation-screen.js'),\n" +
-  "  versioned('./src/ui/codebook-reconciliation-screen.css'),\n" +
-  "  versioned('./src/domain/history/history-service.js'),\n" +
-  "  versioned('./src/domain/history/history-sensory-service.js'),\n" +
-  "  versioned('./src/domain/sensory/brew-optimization-assessment.js'),\n" +
-  "  versioned('./src/domain/history/history-comparison.js'),\n" +
-  "  versioned('./src/ui/brew-trend-panel.js'),\n" +
-  "  versioned('./src/ui/brew-trend-panel.css'),\n" +
-  "  versioned('./src/domain/history/history-migration.js'),\n" +
-  "  versioned('./src/ui/history/history-screen.js'),\n" +
-  "  versioned('./src/ui/history/history-screen.css'),\n" +
-  "  versioned('./src/renderers/brew-spatial-view.js'),\n" +
-  "  versioned('./src/renderers/brew-spatial-controller.js'),\n" +
-  "  versioned('./src/renderers/brew-spatial-view.css'),\n" +
-  "  versioned('./src/ui/viewport-controller.js'),\n" +
-  "  versioned('./src/ui/navigation-controller.js'),\n" +
-  "  versioned('./src/ui/account-sync-panel.js'),\n" +
-  "  versioned('./src/ui/appearance-controller.js'),\n" +
-  "  versioned('./src/ui/voice-settings-controller.js'),\n" +
-  "  versioned('./src/ui/gear-controller.js'),\n" +
-  "  versioned('./src/ui/brew-cooling-controller.js'),\n" +
-  "  versioned('./src/ui/flavor-guide-controller.js'),\n" +
-  "  versioned('./src/ui/onboarding-controller.js'),\n" +
-  "  versioned('./src/ui/bean-card-controller.js'),\n" +
-  "  versioned('./src/ui/fab-controller.js'),\n" +
-  "  versioned('./src/features/runtime-features.js'),\n" +
-  "  versioned('./src/features/full-integration-controller-v3.js'),\n" +
-  "  versioned('./src/features/freshness-timeline-controller.js'),\n" +
-  "  versioned('./src/data-migrations.js'),\n" +
-  "  versioned('./src/recognition-bridge.js'),\n" +
-  "  versioned('./src/image-quality.js'),\n" +
-  "  versioned('./src/recognition-web-ocr.js'),\n" +
-  "  versioned('./src/recognition-paddle-ocr.js'),\n" +
-  "  versioned('./src/recognition-quality-controller.js'),\n" +
-  "  versioned('./src/package-capture-controller.js'),\n" +
-  "  versioned('./src/direct-camera-controller.js'),\n" +
-  "  versioned('./src/qr-ui-controller.js'),\n" +
-  "  versioned('./src/integrity-ui-controller.js'),\n" +
-  "  versioned('./src/ui-layout-controller.js'),\n" +
-  "  versioned('./src/selection-controller.js'),\n" +
-  "  versioned('./src/feature-controller.js'),\n" +
-  "  versioned('./src/runtime-controller.js'),\n" +
-  "  versioned('./src/bean-groups-controller.js'),\n" +
-  "  versioned('./src/group-interaction-controller.js'),\n" +
-  "  versioned('./src/ui-upgrade-controller.js'),\n" +
-  "  versioned('./src/origin-map-controller.js'),\n" +
-  "  versioned('./public/app-logo.webp'),\n" +
-  "  versioned('./public/splash-art-red.webp'),\n" +
-  "  versioned('./public/splash-art-light.webp'),\n" +
-  "  versioned('./public/Luckybean-END.webp'),\n" +
-  "  './public/vendor/jsqr/jsQR.js',\n" +
-  "  './public/vendor/jsvectormap/jsvectormap.min.css',\n" +
-  "  './public/vendor/jsvectormap/jsvectormap.min.js',\n" +
-  "  './public/vendor/jsvectormap/world.js',\n" +
-  "  './public/fallback-codebook.json',\n" +
-  "  './public/legacy-flavor-map.json'\n" +
-  '];\n' +
-  '\n' +
-  "self.addEventListener('install', event => {\n" +
-  '  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));\n' +
-  '});\n' +
-  '\n' +
-  "self.addEventListener('activate', event => {\n" +
-  '  event.waitUntil((async () => {\n' +
-  '    const keys = await caches.keys();\n' +
-  '    await Promise.all(keys\n' +
-  '      .filter(key => (key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)\n' +
-  '        || LEGACY_CACHE_PREFIXES.some(prefix => key.startsWith(prefix)))\n' +
-  '      .map(key => caches.delete(key)));\n' +
-  '    await self.clients.claim();\n' +
-  '  })());\n' +
-  '});\n' +
-  '\n' +
-  "self.addEventListener('message', event => {\n" +
-  "  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();\n" +
-  '});\n' +
-  '\n' +
-  "self.addEventListener('fetch', event => {\n" +
-  '  const request = event.request;\n' +
-  "  if (request.method !== 'GET') return;\n" +
-  '  const url = new URL(request.url);\n' +
-  "  if (request.mode === 'navigate') {\n" +
-  "    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {\n" +
-  '      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
-  '      return response;\n' +
-  "    }).catch(() => caches.match(request).then(cached => cached || caches.match('./index.html'))));\n" +
-  '    return;\n' +
+'export class RecognitionUnavailableError extends Error {\n' +
+  "  constructor(message = '当前设备尚未安装豆袋文字识别引擎') {\n" +
+  '    super(message);\n' +
+  "    this.name = 'RecognitionUnavailableError';\n" +
   '  }\n' +
-  '  if (url.origin === self.location.origin) {\n' +
-  "    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {\n" +
-  '      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
-  '      return response;\n' +
-  '    }).catch(() => caches.match(request)));\n' +
-  '    return;\n' +
+  '}\n' +
+  '\n' +
+  "const BATCH_STATE_KEY='luckybean.recognition.batch.1.24b';\n" +
+  '\n' +
+  'function cleanText(value) {\n' +
+  "  return String(value || '').replace(/\\s+/g, ' ').trim();\n" +
+  '}\n' +
+  '\n' +
+  'function safeStoreBatch(batch) {\n' +
+  '  try { localStorage.setItem(BATCH_STATE_KEY, JSON.stringify(batch)); } catch {}\n' +
+  "  try { document.dispatchEvent(new CustomEvent('luckybean:recognition-batch-progress',{detail:{batch}})); } catch {}\n" +
+  '}\n' +
+  'export function getRecognitionBatchSnapshot() {\n' +
+  "  try { return JSON.parse(localStorage.getItem(BATCH_STATE_KEY) || 'null'); } catch { return null; }\n" +
+  '}\n' +
+  'export function clearRecognitionBatchSnapshot() {\n' +
+  '  try { localStorage.removeItem(BATCH_STATE_KEY); } catch {}\n' +
+  '}\n' +
+  '\n' +
+  "function normalizeBlock(block, imageId, engine, imageRole = '') {\n" +
+  '  const text = cleanText(block?.text ?? block?.rawValue ?? block?.value);\n' +
+  '  if (!text) return null;\n' +
+  '  const box = block?.polygon || block?.corners || block?.boundingBox || null;\n' +
+  '  const confidence = Number(block?.confidence ?? block?.score ?? 0.75);\n' +
+  '  return {\n' +
+  '    text,\n' +
+  '    confidence: Number.isFinite(confidence) ? Math.max(0, Math.min(1, confidence)) : 0.75,\n' +
+  '    polygon: box,\n' +
+  '    imageId,\n' +
+  '    imageRole,\n' +
+  '    engine\n' +
+  '  };\n' +
+  '}\n' +
+  '\n' +
+  'function deduplicateBlocks(blocks) {\n' +
+  '  const map = new Map();\n' +
+  '  for (const block of blocks) {\n' +
+  "    const polygonKey = Array.isArray(block.polygon) ? JSON.stringify(block.polygon) : '';\n" +
+  "    const key = `${block.imageId}|${block.text.toLocaleLowerCase('zh-CN').replace(/[\\s·•,，;；:：/_-]+/g, '')}|${polygonKey}`;\n" +
+  '    if (!key) continue;\n' +
+  '    const current = map.get(key);\n' +
+  '    if (!current || block.confidence > current.confidence) map.set(key, block);\n' +
   '  }\n' +
-  "  if (url.hostname === 'cdn.jsdelivr.net') {\n" +
-  '    event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {\n' +
-  '      caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
-  '      return response;\n' +
-  '    })));\n' +
+  '  return [...map.values()];\n' +
+  '}\n' +
+  '\n' +
+  'async function blobToDataUrl(blob) {\n' +
+  '  return new Promise((resolve, reject) => {\n' +
+  '    const reader = new FileReader();\n' +
+  '    reader.onload = () => resolve(reader.result);\n' +
+  "    reader.onerror = () => reject(new Error('图片编码失败'));\n" +
+  '    reader.readAsDataURL(blob);\n' +
+  '  });\n' +
+  '}\n' +
+  '\n' +
+  'async function imagePayloadForNative(image) {\n' +
+  '  const nativeSource = image?.nativeSource === true;\n' +
+  '  return {\n' +
+  '    id: image.id,\n' +
+  '    role: image.role,\n' +
+  "    mimeType: image.blob?.type || 'image/jpeg',\n" +
+  '    nativeSource,\n' +
+  "    dataUrl: nativeSource ? '' : await blobToDataUrl(image.blob)\n" +
+  '  };\n' +
+  '}\n' +
+  '\n' +
+  'async function nativeRecognize(images, options) {\n' +
+  '  const bridge = globalThis.LuckyBeanRecognitionBridge || globalThis.LuckyBeanNative;\n' +
+  "  if (typeof bridge?.recognizeCoffeeBag !== 'function') return null;\n" +
+  '  const payloadImages = [];\n' +
+  '  for (const image of images) payloadImages.push(await imagePayloadForNative(image));\n' +
+  "  const result = await bridge.recognizeCoffeeBag({ images:payloadImages, locale:options.locale || 'zh-CN' });\n" +
+  "  return { ...result, engine:result?.engine || 'native-ppocr' };\n" +
+  '}\n' +
+  '\n' +
+  'async function webProviderRecognize(images, options) {\n' +
+  '  const provider = globalThis.LuckyBeanPaddleOCR || globalThis.LuckyBeanWebOCR;\n' +
+  "  if (typeof provider?.recognizeCoffeeBag === 'function') {\n" +
+  '    const result = await provider.recognizeCoffeeBag(images, options);\n' +
+  "    return { ...result, engine:result?.engine || 'web-ppocr' };\n" +
   '  }\n' +
-  '});'
+  "  if (typeof provider?.recognize === 'function') {\n" +
+  '    const results = [];\n' +
+  '    for (const image of images) {\n' +
+  '      const value = await provider.recognize(image.blob, options);\n' +
+  '      results.push({ imageId:image.id, value });\n' +
+  '    }\n' +
+  "    return { engine:'web-ppocr', results };\n" +
+  '  }\n' +
+  '  return null;\n' +
+  '}\n' +
+  '\n' +
+  'async function textDetectorRecognize(images) {\n' +
+  "  if (typeof globalThis.TextDetector !== 'function' || typeof globalThis.createImageBitmap !== 'function') return null;\n" +
+  '  const detector = new TextDetector();\n' +
+  '  const results = [];\n' +
+  '  for (const image of images) {\n' +
+  '    const bitmap = await createImageBitmap(image.blob);\n' +
+  '    try { results.push({ imageId:image.id, value:await detector.detect(bitmap) }); }\n' +
+  '    finally { bitmap.close?.(); }\n' +
+  '  }\n' +
+  "  return { engine:'browser-text-detector', results };\n" +
+  '}\n' +
+  '\n' +
+  'function collectBlocks(result, images) {\n' +
+  "  const engine = result?.engine || 'unknown';\n" +
+  '  const blocks = [];\n' +
+  "  const roleByImage = new Map(images.map(image => [image.id, image.role || 'side']));\n" +
+  '  if (Array.isArray(result?.blocks)) {\n' +
+  '    for (const block of result.blocks) {\n' +
+  "      const imageId = block.imageId || images[0]?.id || '';\n" +
+  "      const normalized = normalizeBlock(block, imageId, engine, block.imageRole || roleByImage.get(imageId) || 'side');\n" +
+  '      if (normalized) blocks.push(normalized);\n' +
+  '    }\n' +
+  '  }\n' +
+  '  for (const item of result?.results || []) {\n' +
+  '    const rawBlocks = Array.isArray(item?.value) ? item.value : item?.value?.blocks || item?.value?.results || [];\n' +
+  '    for (const block of rawBlocks) {\n' +
+  "      const normalized = normalizeBlock(block, item.imageId, engine, roleByImage.get(item.imageId) || 'side');\n" +
+  '      if (normalized) blocks.push(normalized);\n' +
+  '    }\n' +
+  '  }\n' +
+  '  if (!blocks.length && result?.fullText) {\n' +
+  "    const imageId = images[0]?.id || '';\n" +
+  "    const normalized = normalizeBlock({ text:result.fullText, confidence:result.confidence }, imageId, engine, roleByImage.get(imageId) || 'side');\n" +
+  '    if (normalized) blocks.push(normalized);\n' +
+  '  }\n' +
+  '  return deduplicateBlocks(blocks);\n' +
+  '}\n' +
+  '\n' +
+  'export function getRecognitionCapabilities() {\n' +
+  '  const nativeBridge = globalThis.LuckyBeanRecognitionBridge || globalThis.LuckyBeanNative;\n' +
+  '  return {\n' +
+  "    native:typeof nativeBridge?.recognizeCoffeeBag === 'function',\n" +
+  '    webPaddle:Boolean(globalThis.LuckyBeanPaddleOCR || globalThis.LuckyBeanWebOCR),\n' +
+  "    textDetector:typeof globalThis.TextDetector === 'function'\n" +
+  '  };\n' +
+  '}\n' +
+  '\n' +
+  'async function recognizeSingleImage(image, options) {\n' +
+  '  let result = await nativeRecognize([image], options);\n' +
+  '  if (!result) result = await webProviderRecognize([image], options);\n' +
+  '  if (!result) result = await textDetectorRecognize([image]);\n' +
+  '  if (!result) throw new RecognitionUnavailableError();\n' +
+  '  return result;\n' +
+  '}\n' +
+  '\n' +
+  'function newBatch(images) {\n' +
+  '  const createdAt=new Date().toISOString();\n' +
+  '  return {\n' +
+  "    batchId:`BATCH-${createdAt.replace(/[-:.TZ]/g,'').slice(0,14)}`,\n" +
+  '    createdAt,\n' +
+  "    status:'processing',\n" +
+  '    currentTask:0,\n' +
+  '    totalTasks:images.length,\n' +
+  '    queueConcurrency:1,\n' +
+  '    tasks:images.map((image,index)=>({\n' +
+  "      taskId:`IMG-${String(index+1).padStart(3,'0')}`,\n" +
+  '      order:index+1,\n' +
+  '      imageId:image.id,\n' +
+  "      role:image.role||'side',\n" +
+  "      status:'pending',\n" +
+  "      engine:'',\n" +
+  "      text:'',\n" +
+  '      blocks:[],\n' +
+  '      error:null\n' +
+  '    }))\n' +
+  '  };\n' +
+  '}\n' +
+  '\n' +
+  'export async function recognizeCoffeeBag(images, options = {}) {\n' +
+  "  if (!Array.isArray(images) || !images.length) throw new Error('请先添加豆袋照片');\n" +
+  '  const allBlocks = [];\n' +
+  '  const perImage = [];\n' +
+  "  let engine = '';\n" +
+  '  const total = images.length;\n' +
+  '  const batch=newBatch(images);\n' +
+  '  safeStoreBatch(batch);\n' +
+  '\n' +
+  '  for (let index=0; index<images.length; index+=1) {\n' +
+  '    const image = images[index];\n' +
+  '    const order = index + 1;\n' +
+  '    const task=batch.tasks[index];\n' +
+  '    const taskId = task.taskId;\n' +
+  '    batch.currentTask=order;\n' +
+  "    task.status='processing';\n" +
+  '    safeStoreBatch(batch);\n' +
+  "    options.onProgress?.({ taskId, order, total, imageId:image.id, status:'processing', batchId:batch.batchId });\n" +
+  '    try {\n' +
+  '      const result = await recognizeSingleImage(image, options);\n' +
+  "      engine ||= result.engine || 'OCR';\n" +
+  '      const blocks = collectBlocks(result, [image]);\n' +
+  "      const text=blocks.map(block=>block.text).join('\\n') || cleanText(result.fullText||'');\n" +
+  '      allBlocks.push(...blocks);\n' +
+  "      const completed={ taskId, order, imageId:image.id, engine:result.engine || engine, blocks, status:'completed', text };\n" +
+  '      perImage.push(completed);\n' +
+  "      Object.assign(task,{status:'completed',engine:completed.engine,text,blocks,error:null,completedAt:new Date().toISOString()});\n" +
+  '      safeStoreBatch(batch);\n' +
+  "      options.onProgress?.({ taskId, order, total, imageId:image.id, status:'completed', batchId:batch.batchId });\n" +
+  '    } catch (error) {\n' +
+  '      const message=String(error?.message || error);\n' +
+  "      const failed={ taskId, order, imageId:image.id, status:'failed', error:message };\n" +
+  '      perImage.push(failed);\n' +
+  "      Object.assign(task,{status:'failed',error:message,failedAt:new Date().toISOString()});\n" +
+  "      batch.status='paused';\n" +
+  '      safeStoreBatch(batch);\n' +
+  "      options.onProgress?.({ taskId, order, total, imageId:image.id, status:'failed', error:message, batchId:batch.batchId });\n" +
+  '      throw error;\n' +
+  '    }\n' +
+  '  }\n' +
+  '\n' +
+  '  const blocks = deduplicateBlocks(allBlocks);\n' +
+  '  const groupedText = images.map(image => {\n' +
+  "    const text = blocks.filter(block => block.imageId === image.id).map(block => block.text).join('\\n');\n" +
+  "    return text ? `【${image.roleLabel || image.role || '豆袋照片'}】\\n${text}` : '';\n" +
+  '  }).filter(Boolean);\n' +
+  "  const fullText = groupedText.join('\\n\\n') || blocks.map(block => block.text).join('\\n');\n" +
+  "  batch.status='completed';\n" +
+  '  batch.completedAt=new Date().toISOString();\n' +
+  '  safeStoreBatch(batch);\n' +
+  "  return { engine:engine || 'OCR', blocks, fullText, results:perImage, serial:true, queueConcurrency:1, batch };\n" +
+  '}\n'
 
-    at file:///home/runner/work/luckybean/luckybean/tests/v120-requirements-static.mjs:43:8
+    at file:///home/runner/work/luckybean/luckybean/tests/v123d-deployment-contracts.mjs:76:8
     at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
   generatedMessage: true,
   code: 'ERR_ASSERTION',
-  actual: '// LuckyBean 1.24B: lifecycle, transit/frozen beans, serial OCR and compact UI.\n' +
-    "const REVISION = '1.24B-main.3';\n" +
-    "const CACHE_PREFIX = 'luckybean-main-v124b-';\n" +
-    'const CACHE_NAME = `${CACHE_PREFIX}main-3`;\n' +
-    'const LEGACY_CACHE_PREFIXES = [\n' +
-    "  'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',\n" +
-    "  'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',\n" +
-    "  'luckybean-v123-brewprofiles-integration-test-', 'luckybean-v200-foundation-'\n" +
-    '];\n' +
-    'const versioned = path => `${path}?v=${REVISION}`;\n' +
-    'const CORE = [\n' +
-    "  './',\n" +
-    "  './index.html',\n" +
-    "  './recognition-test.html',\n" +
-    "  versioned('./manifest.webmanifest'),\n" +
-    "  versioned('./styles.css'),\n" +
-    "  versioned('./src/release-1.24b.css'),\n" +
-    "  versioned('./src/release-1.24b.js'),\n" +
-    "  versioned('./src/features/release-1.24b-integration.js'),\n" +
-    "  versioned('./src/features/release-1.24b-finalize.js'),\n" +
-    "  versioned('./src/features/release-1.24b-transit-controller.js'),\n" +
-    "  versioned('./src/features/release-1.24b-group-navigation.js'),\n" +
-    "  versioned('./src/features/release-1.24b-about-controller.js'),\n" +
-    "  versioned('./src/features/release-1.24b-polish.js'),\n" +
-    "  versioned('./src/features/release-1.24b-freshness-detail.js'),\n" +
-    "  versioned('./src/features/recognition-batch-progress-controller.js'),\n" +
-    "  versioned('./src/data/local-brew-recipes-1.24b.js'),\n" +
-    "  versioned('./src/services/grind-psd-reference-service.js'),\n" +
-    "  versioned('./src/domain/recognition/order-recognition-1.24b.js'),\n" +
-    "  versioned('./src/domain/recognition/recognition-field-resolver-1.24b.js'),\n" +
-    "  versioned('./src/ui/app-layout.css'),\n" +
-    "  versioned('./src/ui/app-components.css'),\n" +
-    "  versioned('./src/ui/bean-card.css'),\n" +
-    "  versioned('./src/ui/professional-sensory.css'),\n" +
-    "  versioned('./src/ui/sensory-wizard-actions.css'),\n" +
-    "  versioned('./src/ui/brew-optimization.css'),\n" +
-    "  versioned('./src/app.js'),\n" +
-    "  versioned('./src/domain/archive/luckybean-archive-codec.js'),\n" +
-    "  versioned('./src/domain/archive/luckybean-archive-service.js'),\n" +
-    "  versioned('./src/domain/beans/bean-consumption-summary.js'),\n" +
-    "  versioned('./src/domain/beans/bean-lifecycle-service.js'),\n" +
-    "  versioned('./src/domain/recognition/recognition-document.js'),\n" +
-    "  versioned('./src/domain/recognition/recognition-pipeline.js'),\n" +
-    "  versioned('./src/domain/recognition/recognition-date-classifier.js'),\n" +
-    "  versioned('./src/domain/recognition/recognition-date-review.js'),\n" +
-    "  versioned('./src/recognition-test-page.js'),\n" +
-    "  './contracts/luckybean-archive-v1.schema.json',\n" +
-    "  './contracts/recognition-document-v1.schema.json',\n" +
-    "  './contracts/recognition-date-decision-v1.schema.json',\n" +
-    "  './contracts/brew-optimization-v1.schema.json',\n" +
-    "  './contracts/brew-optimization-validation-v1.schema.json',\n" +
-    "  versioned('./src/core/startup-controller.js'),\n" +
-    "  versioned('./src/core/bootstrap.js'),\n" +
-    "  versioned('./src/services/cloud-auth-service.js'),\n" +
-    "  versioned('./src/services/cloud-sync-service.js'),\n" +
-    "  versioned('./src/services/cloud-sync-safety.js'),\n" +
-    "  versioned('./src/services/bean-enrichment-service.js'),\n" +
-    "  versioned('./src/cloud-codec.js'),\n" +
-    "  versioned('./src/services/brew-analysis-service.js'),\n" +
-    "  versioned('./src/services/brew-calculation-coordinator.js'),\n" +
-    "  versioned('./src/services/brew-api-client.js'),\n" +
-    "  versioned('./src/services/brew-profile-catalog-service.js'),\n" +
-    "  versioned('./src/services/local-reference-analysis.js'),\n" +
-    "  versioned('./src/services/provider-package-service.js'),\n" +
-    "  versioned('./src/services/codebook-reconciliation-service.js'),\n" +
-    "  versioned('./src/services/provider-bootstrap-controller.js'),\n" +
-    "  versioned('./src/ui/provider-status-panel.js'),\n" +
-    "  versioned('./src/ui/codebook-reconciliation-screen.js'),\n" +
-    "  versioned('./src/ui/codebook-reconciliation-screen.css'),\n" +
-    "  versioned('./src/domain/history/history-service.js'),\n" +
-    "  versioned('./src/domain/history/history-sensory-service.js'),\n" +
-    "  versioned('./src/domain/sensory/brew-optimization-assessment.js'),\n" +
-    "  versioned('./src/domain/history/history-comparison.js'),\n" +
-    "  versioned('./src/ui/brew-trend-panel.js'),\n" +
-    "  versioned('./src/ui/brew-trend-panel.css'),\n" +
-    "  versioned('./src/domain/history/history-migration.js'),\n" +
-    "  versioned('./src/ui/history/history-screen.js'),\n" +
-    "  versioned('./src/ui/history/history-screen.css'),\n" +
-    "  versioned('./src/renderers/brew-spatial-view.js'),\n" +
-    "  versioned('./src/renderers/brew-spatial-controller.js'),\n" +
-    "  versioned('./src/renderers/brew-spatial-view.css'),\n" +
-    "  versioned('./src/ui/viewport-controller.js'),\n" +
-    "  versioned('./src/ui/navigation-controller.js'),\n" +
-    "  versioned('./src/ui/account-sync-panel.js'),\n" +
-    "  versioned('./src/ui/appearance-controller.js'),\n" +
-    "  versioned('./src/ui/voice-settings-controller.js'),\n" +
-    "  versioned('./src/ui/gear-controller.js'),\n" +
-    "  versioned('./src/ui/brew-cooling-controller.js'),\n" +
-    "  versioned('./src/ui/flavor-guide-controller.js'),\n" +
-    "  versioned('./src/ui/onboarding-controller.js'),\n" +
-    "  versioned('./src/ui/bean-card-controller.js'),\n" +
-    "  versioned('./src/ui/fab-controller.js'),\n" +
-    "  versioned('./src/features/runtime-features.js'),\n" +
-    "  versioned('./src/features/full-integration-controller-v3.js'),\n" +
-    "  versioned('./src/features/freshness-timeline-controller.js'),\n" +
-    "  versioned('./src/data-migrations.js'),\n" +
-    "  versioned('./src/recognition-bridge.js'),\n" +
-    "  versioned('./src/image-quality.js'),\n" +
-    "  versioned('./src/recognition-web-ocr.js'),\n" +
-    "  versioned('./src/recognition-paddle-ocr.js'),\n" +
-    "  versioned('./src/recognition-quality-controller.js'),\n" +
-    "  versioned('./src/package-capture-controller.js'),\n" +
-    "  versioned('./src/direct-camera-controller.js'),\n" +
-    "  versioned('./src/qr-ui-controller.js'),\n" +
-    "  versioned('./src/integrity-ui-controller.js'),\n" +
-    "  versioned('./src/ui-layout-controller.js'),\n" +
-    "  versioned('./src/selection-controller.js'),\n" +
-    "  versioned('./src/feature-controller.js'),\n" +
-    "  versioned('./src/runtime-controller.js'),\n" +
-    "  versioned('./src/bean-groups-controller.js'),\n" +
-    "  versioned('./src/group-interaction-controller.js'),\n" +
-    "  versioned('./src/ui-upgrade-controller.js'),\n" +
-    "  versioned('./src/origin-map-controller.js'),\n" +
-    "  versioned('./public/app-logo.webp'),\n" +
-    "  versioned('./public/splash-art-red.webp'),\n" +
-    "  versioned('./public/splash-art-light.webp'),\n" +
-    "  versioned('./public/Luckybean-END.webp'),\n" +
-    "  './public/vendor/jsqr/jsQR.js',\n" +
-    "  './public/vendor/jsvectormap/jsvectormap.min.css',\n" +
-    "  './public/vendor/jsvectormap/jsvectormap.min.js',\n" +
-    "  './public/vendor/jsvectormap/world.js',\n" +
-    "  './public/fallback-codebook.json',\n" +
-    "  './public/legacy-flavor-map.json'\n" +
-    '];\n' +
-    '\n' +
-    "self.addEventListener('install', event => {\n" +
-    '  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));\n' +
-    '});\n' +
-    '\n' +
-    "self.addEventListener('activate', event => {\n" +
-    '  event.waitUntil((async () => {\n' +
-    '    const keys = await caches.keys();\n' +
-    '    await Promise.all(keys\n' +
-    '      .filter(key => (key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)\n' +
-    '        || LEGACY_CACHE_PREFIXES.some(prefix => key.startsWith(prefix)))\n' +
-    '      .map(key => caches.delete(key)));\n' +
-    '    await self.clients.claim();\n' +
-    '  })());\n' +
-    '});\n' +
-    '\n' +
-    "self.addEventListener('message', event => {\n" +
-    "  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();\n" +
-    '});\n' +
-    '\n' +
-    "self.addEventListener('fetch', event => {\n" +
-    '  const request = event.request;\n' +
-    "  if (request.method !== 'GET') return;\n" +
-    '  const url = new URL(request.url);\n' +
-    "  if (request.mode === 'navigate') {\n" +
-    "    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {\n" +
-    '      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
-    '      return response;\n' +
-    "    }).catch(() => caches.match(request).then(cached => cached || caches.match('./index.html'))));\n" +
-    '    return;\n' +
+  actual: 'export class RecognitionUnavailableError extends Error {\n' +
+    "  constructor(message = '当前设备尚未安装豆袋文字识别引擎') {\n" +
+    '    super(message);\n' +
+    "    this.name = 'RecognitionUnavailableError';\n" +
     '  }\n' +
-    '  if (url.origin === self.location.origin) {\n' +
-    "    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {\n" +
-    '      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
-    '      return response;\n' +
-    '    }).catch(() => caches.match(request)));\n' +
-    '    return;\n' +
+    '}\n' +
+    '\n' +
+    "const BATCH_STATE_KEY='luckybean.recognition.batch.1.24b';\n" +
+    '\n' +
+    'function cleanText(value) {\n' +
+    "  return String(value || '').replace(/\\s+/g, ' ').trim();\n" +
+    '}\n' +
+    '\n' +
+    'function safeStoreBatch(batch) {\n' +
+    '  try { localStorage.setItem(BATCH_STATE_KEY, JSON.stringify(batch)); } catch {}\n' +
+    "  try { document.dispatchEvent(new CustomEvent('luckybean:recognition-batch-progress',{detail:{batch}})); } catch {}\n" +
+    '}\n' +
+    'export function getRecognitionBatchSnapshot() {\n' +
+    "  try { return JSON.parse(localStorage.getItem(BATCH_STATE_KEY) || 'null'); } catch { return null; }\n" +
+    '}\n' +
+    'export function clearRecognitionBatchSnapshot() {\n' +
+    '  try { localStorage.removeItem(BATCH_STATE_KEY); } catch {}\n' +
+    '}\n' +
+    '\n' +
+    "function normalizeBlock(block, imageId, engine, imageRole = '') {\n" +
+    '  const text = cleanText(block?.text ?? block?.rawValue ?? block?.value);\n' +
+    '  if (!text) return null;\n' +
+    '  const box = block?.polygon || block?.corners || block?.boundingBox || null;\n' +
+    '  const confidence = Number(block?.confidence ?? block?.score ?? 0.75);\n' +
+    '  return {\n' +
+    '    text,\n' +
+    '    confidence: Number.isFinite(confidence) ? Math.max(0, Math.min(1, confidence)) : 0.75,\n' +
+    '    polygon: box,\n' +
+    '    imageId,\n' +
+    '    imageRole,\n' +
+    '    engine\n' +
+    '  };\n' +
+    '}\n' +
+    '\n' +
+    'function deduplicateBlocks(blocks) {\n' +
+    '  const map = new Map();\n' +
+    '  for (const block of blocks) {\n' +
+    "    const polygonKey = Array.isArray(block.polygon) ? JSON.stringify(block.polygon) : '';\n" +
+    "    const key = `${block.imageId}|${block.text.toLocaleLowerCase('zh-CN').replace(/[\\s·•,，;；:：/_-]+/g, '')}|${polygonKey}`;\n" +
+    '    if (!key) continue;\n' +
+    '    const current = map.get(key);\n' +
+    '    if (!current || block.confidence > current.confidence) map.set(key, block);\n' +
     '  }\n' +
-    "  if (url.hostname === 'cdn.jsdelivr.net') {\n" +
-    '    event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {\n' +
-    '      caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
-    '      return response;\n' +
-    '    })));\n' +
+    '  return [...map.values()];\n' +
+    '}\n' +
+    '\n' +
+    'async function blobToDataUrl(blob) {\n' +
+    '  return new Promise((resolve, reject) => {\n' +
+    '    const reader = new FileReader();\n' +
+    '    reader.onload = () => resolve(reader.result);\n' +
+    "    reader.onerror = () => reject(new Error('图片编码失败'));\n" +
+    '    reader.readAsDataURL(blob);\n' +
+    '  });\n' +
+    '}\n' +
+    '\n' +
+    'async function imagePayloadForNative(image) {\n' +
+    '  const nativeSource = image?.nativeSource === true;\n' +
+    '  return {\n' +
+    '    id: image.id,\n' +
+    '    role: image.role,\n' +
+    "    mimeType: image.blob?.type || 'image/jpeg',\n" +
+    '    nativeSource,\n' +
+    "    dataUrl: nativeSource ? '' : await blobToDataUrl(image.blob)\n" +
+    '  };\n' +
+    '}\n' +
+    '\n' +
+    'async function nativeRecognize(images, options) {\n' +
+    '  const bridge = globalThis.LuckyBeanRecognitionBridge || globalThis.LuckyBeanNative;\n' +
+    "  if (typeof bridge?.recognizeCoffeeBag !== 'function') return null;\n" +
+    '  const payloadImages = [];\n' +
+    '  for (const image of images) payloadImages.push(await imagePayloadForNative(image));\n' +
+    "  const result = await bridge.recognizeCoffeeBag({ images:payloadImages, locale:options.locale || 'zh-CN' });\n" +
+    "  return { ...result, engine:result?.engine || 'native-ppocr' };\n" +
+    '}\n' +
+    '\n' +
+    'async function webProviderRecognize(images, options) {\n' +
+    '  const provider = globalThis.LuckyBeanPaddleOCR || globalThis.LuckyBeanWebOCR;\n' +
+    "  if (typeof provider?.recognizeCoffeeBag === 'function') {\n" +
+    '    const result = await provider.recognizeCoffeeBag(images, options);\n' +
+    "    return { ...result, engine:result?.engine || 'web-ppocr' };\n" +
     '  }\n' +
-    '});',
-  expected: /CACHE_NAME = `\$\{CACHE_PREFIX\}main-2`/,
+    "  if (typeof provider?.recognize === 'function') {\n" +
+    '    const results = [];\n' +
+    '    for (const image of images) {\n' +
+    '      const value = await provider.recognize(image.blob, options);\n' +
+    '      results.push({ imageId:image.id, value });\n' +
+    '    }\n' +
+    "    return { engine:'web-ppocr', results };\n" +
+    '  }\n' +
+    '  return null;\n' +
+    '}\n' +
+    '\n' +
+    'async function textDetectorRecognize(images) {\n' +
+    "  if (typeof globalThis.TextDetector !== 'function' || typeof globalThis.createImageBitmap !== 'function') return null;\n" +
+    '  const detector = new TextDetector();\n' +
+    '  const results = [];\n' +
+    '  for (const image of images) {\n' +
+    '    const bitmap = await createImageBitmap(image.blob);\n' +
+    '    try { results.push({ imageId:image.id, value:await detector.detect(bitmap) }); }\n' +
+    '    finally { bitmap.close?.(); }\n' +
+    '  }\n' +
+    "  return { engine:'browser-text-detector', results };\n" +
+    '}\n' +
+    '\n' +
+    'function collectBlocks(result, images) {\n' +
+    "  const engine = result?.engine || 'unknown';\n" +
+    '  const blocks = [];\n' +
+    "  const roleByImage = new Map(images.map(image => [image.id, image.role || 'side']));\n" +
+    '  if (Array.isArray(result?.blocks)) {\n' +
+    '    for (const block of result.blocks) {\n' +
+    "      const imageId = block.imageId || images[0]?.id || '';\n" +
+    "      const normalized = normalizeBlock(block, imageId, engine, block.imageRole || roleByImage.get(imageId) || 'side');\n" +
+    '      if (normalized) blocks.push(normalized);\n' +
+    '    }\n' +
+    '  }\n' +
+    '  for (const item of result?.results || []) {\n' +
+    '    const rawBlocks = Array.isArray(item?.value) ? item.value : item?.value?.blocks || item?.value?.results || [];\n' +
+    '    for (const block of rawBlocks) {\n' +
+    "      const normalized = normalizeBlock(block, item.imageId, engine, roleByImage.get(item.imageId) || 'side');\n" +
+    '      if (normalized) blocks.push(normalized);\n' +
+    '    }\n' +
+    '  }\n' +
+    '  if (!blocks.length && result?.fullText) {\n' +
+    "    const imageId = images[0]?.id || '';\n" +
+    "    const normalized = normalizeBlock({ text:result.fullText, confidence:result.confidence }, imageId, engine, roleByImage.get(imageId) || 'side');\n" +
+    '    if (normalized) blocks.push(normalized);\n' +
+    '  }\n' +
+    '  return deduplicateBlocks(blocks);\n' +
+    '}\n' +
+    '\n' +
+    'export function getRecognitionCapabilities() {\n' +
+    '  const nativeBridge = globalThis.LuckyBeanRecognitionBridge || globalThis.LuckyBeanNative;\n' +
+    '  return {\n' +
+    "    native:typeof nativeBridge?.recognizeCoffeeBag === 'function',\n" +
+    '    webPaddle:Boolean(globalThis.LuckyBeanPaddleOCR || globalThis.LuckyBeanWebOCR),\n' +
+    "    textDetector:typeof globalThis.TextDetector === 'function'\n" +
+    '  };\n' +
+    '}\n' +
+    '\n' +
+    'async function recognizeSingleImage(image, options) {\n' +
+    '  let result = await nativeRecognize([image], options);\n' +
+    '  if (!result) result = await webProviderRecognize([image], options);\n' +
+    '  if (!result) result = await textDetectorRecognize([image]);\n' +
+    '  if (!result) throw new RecognitionUnavailableError();\n' +
+    '  return result;\n' +
+    '}\n' +
+    '\n' +
+    'function newBatch(images) {\n' +
+    '  const createdAt=new Date().toISOString();\n' +
+    '  return {\n' +
+    "    batchId:`BATCH-${createdAt.replace(/[-:.TZ]/g,'').slice(0,14)}`,\n" +
+    '    createdAt,\n' +
+    "    status:'processing',\n" +
+    '    currentTask:0,\n' +
+    '    totalTasks:images.length,\n' +
+    '    queueConcurrency:1,\n' +
+    '    tasks:images.map((image,index)=>({\n' +
+    "      taskId:`IMG-${String(index+1).padStart(3,'0')}`,\n" +
+    '      order:index+1,\n' +
+    '      imageId:image.id,\n' +
+    "      role:image.role||'side',\n" +
+    "      status:'pending',\n" +
+    "      engine:'',\n" +
+    "      text:'',\n" +
+    '      blocks:[],\n' +
+    '      error:null\n' +
+    '    }))\n' +
+    '  };\n' +
+    '}\n' +
+    '\n' +
+    'export async function recognizeCoffeeBag(images, options = {}) {\n' +
+    "  if (!Array.isArray(images) || !images.length) throw new Error('请先添加豆袋照片');\n" +
+    '  const allBlocks = [];\n' +
+    '  const perImage = [];\n' +
+    "  let engine = '';\n" +
+    '  const total = images.length;\n' +
+    '  const batch=newBatch(images);\n' +
+    '  safeStoreBatch(batch);\n' +
+    '\n' +
+    '  for (let index=0; index<images.length; index+=1) {\n' +
+    '    const image = images[index];\n' +
+    '    const order = index + 1;\n' +
+    '    const task=batch.tasks[index];\n' +
+    '    const taskId = task.taskId;\n' +
+    '    batch.currentTask=order;\n' +
+    "    task.status='processing';\n" +
+    '    safeStoreBatch(batch);\n' +
+    "    options.onProgress?.({ taskId, order, total, imageId:image.id, status:'processing', batchId:batch.batchId });\n" +
+    '    try {\n' +
+    '      const result = await recognizeSingleImage(image, options);\n' +
+    "      engine ||= result.engine || 'OCR';\n" +
+    '      const blocks = collectBlocks(result, [image]);\n' +
+    "      const text=blocks.map(block=>block.text).join('\\n') || cleanText(result.fullText||'');\n" +
+    '      allBlocks.push(...blocks);\n' +
+    "      const completed={ taskId, order, imageId:image.id, engine:result.engine || engine, blocks, status:'completed', text };\n" +
+    '      perImage.push(completed);\n' +
+    "      Object.assign(task,{status:'completed',engine:completed.engine,text,blocks,error:null,completedAt:new Date().toISOString()});\n" +
+    '      safeStoreBatch(batch);\n' +
+    "      options.onProgress?.({ taskId, order, total, imageId:image.id, status:'completed', batchId:batch.batchId });\n" +
+    '    } catch (error) {\n' +
+    '      const message=String(error?.message || error);\n' +
+    "      const failed={ taskId, order, imageId:image.id, status:'failed', error:message };\n" +
+    '      perImage.push(failed);\n' +
+    "      Object.assign(task,{status:'failed',error:message,failedAt:new Date().toISOString()});\n" +
+    "      batch.status='paused';\n" +
+    '      safeStoreBatch(batch);\n' +
+    "      options.onProgress?.({ taskId, order, total, imageId:image.id, status:'failed', error:message, batchId:batch.batchId });\n" +
+    '      throw error;\n' +
+    '    }\n' +
+    '  }\n' +
+    '\n' +
+    '  const blocks = deduplicateBlocks(allBlocks);\n' +
+    '  const groupedText = images.map(image => {\n' +
+    "    const text = blocks.filter(block => block.imageId === image.id).map(block => block.text).join('\\n');\n" +
+    "    return text ? `【${image.roleLabel || image.role || '豆袋照片'}】\\n${text}` : '';\n" +
+    '  }).filter(Boolean);\n' +
+    "  const fullText = groupedText.join('\\n\\n') || blocks.map(block => block.text).join('\\n');\n" +
+    "  batch.status='completed';\n" +
+    '  batch.completedAt=new Date().toISOString();\n' +
+    '  safeStoreBatch(batch);\n' +
+    "  return { engine:engine || 'OCR', blocks, fullText, results:perImage, serial:true, queueConcurrency:1, batch };\n" +
+    '}\n',
+  expected: /IMG-\$\{String\(order\)\.padStart\(3,'0'\)\}/,
   operator: 'match',
   diff: 'simple'
 }
 
 Node.js v22.23.2
-::error file=tests/v120-requirements-static.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /CACHE_NAME = `\$\{CACHE_PREFIX\}main-2`/. Input:%0A%0A'// LuckyBean 1.24B: lifecycle, transit/frozen beans, serial OCR and compact UI.\n' +%0A  "const REVISION = '1.24B-main.3';\n" +%0A  "const CACHE_PREFIX = 'luckybean-main-v124b-';\n" +%0A  'const CACHE_NAME = `${CACHE_PREFIX}main-3`;\n' +%0A  'const LEGACY_CACHE_PREFIXES = [\n' +%0A  "  'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',\n" +%0A  "  'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',\n" +%0A  "  'luckybean-v123-brewprofiles-integration-test-', 'luckybean-v200-foundation-'\n" +%0A  '];\n' +%0A  'const versioned = path => `${path}?v=${REVISION}`;\n' +%0A  'const CORE = [\n' +%0A  "  './',\n" +%0A  "  './index.html',\n" +%0A  "  './recognition-test.html',\n" +%0A  "  versioned('./manifest.webmanifest'),\n" +%0A  "  versioned('./styles.css'),\n" +%0A  "  versioned('./src/release-1.24b.css'),\n" +%0A  "  versioned('./src/release-1.24b.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-integration.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-finalize.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-transit-controller.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-group-navigation.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-about-controller.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-polish.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-freshness-detail.js'),\n" +%0A  "  versioned('./src/features/recognition-batch-progress-controller.js'),\n" +%0A  "  versioned('./src/data/local-brew-recipes-1.24b.js'),\n" +%0A  "  versioned('./src/services/grind-psd-reference-service.js'),\n" +%0A  "  versioned('./src/domain/recognition/order-recognition-1.24b.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-field-resolver-1.24b.js'),\n" +%0A  "  versioned('./src/ui/app-layout.css'),\n" +%0A  "  versioned('./src/ui/app-components.css'),\n" +%0A  "  versioned('./src/ui/bean-card.css'),\n" +%0A  "  versioned('./src/ui/professional-sensory.css'),\n" +%0A  "  versioned('./src/ui/sensory-wizard-actions.css'),\n" +%0A  "  versioned('./src/ui/brew-optimization.css'),\n" +%0A  "  versioned('./src/app.js'),\n" +%0A  "  versioned('./src/domain/archive/luckybean-archive-codec.js'),\n" +%0A  "  versioned('./src/domain/archive/luckybean-archive-service.js'),\n" +%0A  "  versioned('./src/domain/beans/bean-consumption-summary.js'),\n" +%0A  "  versioned('./src/domain/beans/bean-lifecycle-service.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-document.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-pipeline.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-date-classifier.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-date-review.js'),\n" +%0A  "  versioned('./src/recognition-test-page.js'),\n" +%0A  "  './contracts/luckybean-archive-v1.schema.json',\n" +%0A  "  './contracts/recognition-document-v1.schema.json',\n" +%0A  "  './contracts/recognition-date-decision-v1.schema.json',\n" +%0A  "  './contracts/brew-optimization-v1.schema.json',\n" +%0A  "  './contracts/brew-optimization-validation-v1.schema.json',\n" +%0A  "  versioned('./src/core/startup-controller.js'),\n" +%0A  "  versioned('./src/core/bootstrap.js'),\n" +%0A  "  versioned('./src/services/cloud-auth-service.js'),\n" +%0A  "  versioned('./src/services/cloud-sync-service.js'),\n" +%0A  "  versioned('./src/services/cloud-sync-safety.js'),\n" +%0A  "  versioned('./src/services/bean-enrichment-service.js'),\n" +%0A  "  versioned('./src/cloud-codec.js'),\n" +%0A  "  versioned('./src/services/brew-analysis-service.js'),\n" +%0A  "  versioned('./src/services/brew-calculation-coordinator.js'),\n" +%0A  "  versioned('./src/services/brew-api-client.js'),\n" +%0A  "  versioned('./src/services/brew-profile-catalog-service.js'),\n" +%0A  "  versioned('./src/services/local-reference-analysis.js'),\n" +%0A  "  versioned('./src/services/provider-package-service.js'),\n" +%0A  "  versioned('./src/services/codebook-reconciliation-service.js'),\n" +%0A  "  versioned('./src/services/provider-bootstrap-controller.js'),\n" +%0A  "  versioned('./src/ui/provider-status-panel.js'),\n" +%0A  "  versioned('./src/ui/codebook-reconciliation-screen.js'),\n" +%0A  "  versioned('./src/ui/codebook-reconciliation-screen.css'),\n" +%0A  "  versioned('./src/domain/history/history-service.js'),\n" +%0A  "  versioned('./src/domain/history/history-sensory-service.js'),\n" +%0A  "  versioned('./src/domain/sensory/brew-optimization-assessment.js'),\n" +%0A  "  versioned('./src/domain/history/history-comparison.js'),\n" +%0A  "  versioned('./src/ui/brew-trend-panel.js'),\n" +%0A  "  versioned('./src/ui/brew-trend-panel.css'),\n" +%0A  "  versioned('./src/domain/history/history-migration.js'),\n" +%0A  "  versioned('./src/ui/history/history-screen.js'),\n" +%0A  "  versioned('./src/ui/history/history-screen.css'),\n" +%0A  "  versioned('./src/renderers/brew-spatial-view.js'),\n" +%0A  "  versioned('./src/renderers/brew-spatial-controller.js'),\n" +%0A  "  versioned('./src/renderers/brew-spatial-view.css'),\n" +%0A  "  versioned('./src/ui/viewport-controller.js'),\n" +%0A  "  versioned('./src/ui/navigation-controller.js'),\n" +%0A  "  versioned('./src/ui/account-sync-panel.js'),\n" +%0A  "  versioned('./src/ui/appearance-controller.js'),\n" +%0A  "  versioned('./src/ui/voice-settings-controller.js'),\n" +%0A  "  versioned('./src/ui/gear-controller.js'),\n" +%0A  "  versioned('./src/ui/brew-cooling-controller.js'),\n" +%0A  "  versioned('./src/ui/flavor-guide-controller.js'),\n" +%0A  "  versioned('./src/ui/onboarding-controller.js'),\n" +%0A  "  versioned('./src/ui/bean-card-controller.js'),\n" +%0A  "  versioned('./src/ui/fab-controller.js'),\n" +%0A  "  versioned('./src/features/runtime-features.js'),\n" +%0A  "  versioned('./src/features/full-integration-controller-v3.js'),\n" +%0A  "  versioned('./src/features/freshness-timeline-controller.js'),\n" +%0A  "  versioned('./src/data-migrations.js'),\n" +%0A  "  versioned('./src/recognition-bridge.js'),\n" +%0A  "  versioned('./src/image-quality.js'),\n" +%0A  "  versioned('./src/recognition-web-ocr.js'),\n" +%0A  "  versioned('./src/recognition-paddle-ocr.js'),\n" +%0A  "  versioned('./src/recognition-quality-controller.js'),\n" +%0A  "  versioned('./src/package-capture-controller.js'),\n" +%0A  "  versioned('./src/direct-camera-controller.js'),\n" +%0A  "  versioned('./src/qr-ui-controller.js'),\n" +%0A  "  versioned('./src/integrity-ui-controller.js'),\n" +%0A  "  versioned('./src/ui-layout-controller.js'),\n" +%0A  "  versioned('./src/selection-controller.js'),\n" +%0A  "  versioned('./src/feature-controller.js'),\n" +%0A  "  versioned('./src/runtime-controller.js'),\n" +%0A  "  ve
+::error file=tests/v123d-deployment-contracts.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /IMG-\$\{String\(order\)\.padStart\(3,'0'\)\}/. Input:%0A%0A'export class RecognitionUnavailableError extends Error {\n' +%0A  "  constructor(message = '当前设备尚未安装豆袋文字识别引擎') {\n" +%0A  '    super(message);\n' +%0A  "    this.name = 'RecognitionUnavailableError';\n" +%0A  '  }\n' +%0A  '}\n' +%0A  '\n' +%0A  "const BATCH_STATE_KEY='luckybean.recognition.batch.1.24b';\n" +%0A  '\n' +%0A  'function cleanText(value) {\n' +%0A  "  return String(value || '').replace(/\\s+/g, ' ').trim();\n" +%0A  '}\n' +%0A  '\n' +%0A  'function safeStoreBatch(batch) {\n' +%0A  '  try { localStorage.setItem(BATCH_STATE_KEY, JSON.stringify(batch)); } catch {}\n' +%0A  "  try { document.dispatchEvent(new CustomEvent('luckybean:recognition-batch-progress',{detail:{batch}})); } catch {}\n" +%0A  '}\n' +%0A  'export function getRecognitionBatchSnapshot() {\n' +%0A  "  try { return JSON.parse(localStorage.getItem(BATCH_STATE_KEY) || 'null'); } catch { return null; }\n" +%0A  '}\n' +%0A  'export function clearRecognitionBatchSnapshot() {\n' +%0A  '  try { localStorage.removeItem(BATCH_STATE_KEY); } catch {}\n' +%0A  '}\n' +%0A  '\n' +%0A  "function normalizeBlock(block, imageId, engine, imageRole = '') {\n" +%0A  '  const text = cleanText(block?.text ?? block?.rawValue ?? block?.value);\n' +%0A  '  if (!text) return null;\n' +%0A  '  const box = block?.polygon || block?.corners || block?.boundingBox || null;\n' +%0A  '  const confidence = Number(block?.confidence ?? block?.score ?? 0.75);\n' +%0A  '  return {\n' +%0A  '    text,\n' +%0A  '    confidence: Number.isFinite(confidence) ? Math.max(0, Math.min(1, confidence)) : 0.75,\n' +%0A  '    polygon: box,\n' +%0A  '    imageId,\n' +%0A  '    imageRole,\n' +%0A  '    engine\n' +%0A  '  };\n' +%0A  '}\n' +%0A  '\n' +%0A  'function deduplicateBlocks(blocks) {\n' +%0A  '  const map = new Map();\n' +%0A  '  for (const block of blocks) {\n' +%0A  "    const polygonKey = Array.isArray(block.polygon) ? JSON.stringify(block.polygon) : '';\n" +%0A  "    const key = `${block.imageId}|${block.text.toLocaleLowerCase('zh-CN').replace(/[\\s·•,，;；:：/_-]+/g, '')}|${polygonKey}`;\n" +%0A  '    if (!key) continue;\n' +%0A  '    const current = map.get(key);\n' +%0A  '    if (!current || block.confidence > current.confidence) map.set(key, block);\n' +%0A  '  }\n' +%0A  '  return [...map.values()];\n' +%0A  '}\n' +%0A  '\n' +%0A  'async function blobToDataUrl(blob) {\n' +%0A  '  return new Promise((resolve, reject) => {\n' +%0A  '    const reader = new FileReader();\n' +%0A  '    reader.onload = () => resolve(reader.result);\n' +%0A  "    reader.onerror = () => reject(new Error('图片编码失败'));\n" +%0A  '    reader.readAsDataURL(blob);\n' +%0A  '  });\n' +%0A  '}\n' +%0A  '\n' +%0A  'async function imagePayloadForNative(image) {\n' +%0A  '  const nativeSource = image?.nativeSource === true;\n' +%0A  '  return {\n' +%0A  '    id: image.id,\n' +%0A  '    role: image.role,\n' +%0A  "    mimeType: image.blob?.type || 'image/jpeg',\n" +%0A  '    nativeSource,\n' +%0A  "    dataUrl: nativeSource ? '' : await blobToDataUrl(image.blob)\n" +%0A  '  };\n' +%0A  '}\n' +%0A  '\n' +%0A  'async function nativeRecognize(images, options) {\n' +%0A  '  const bridge = globalThis.LuckyBeanRecognitionBridge || globalThis.LuckyBeanNative;\n' +%0A  "  if (typeof bridge?.recognizeCoffeeBag !== 'function') return null;\n" +%0A  '  const payloadImages = [];\n' +%0A  '  for (const image of images) payloadImages.push(await imagePayloadForNative(image));\n' +%0A  "  const result = await bridge.recognizeCoffeeBag({ images:payloadImages, locale:options.locale || 'zh-CN' });\n" +%0A  "  return { ...result, engine:result?.engine || 'native-ppocr' };\n" +%0A  '}\n' +%0A  '\n' +%0A  'async function webProviderRecognize(images, options) {\n' +%0A  '  const provider = globalThis.LuckyBeanPaddleOCR || globalThis.LuckyBeanWebOCR;\n' +%0A  "  if (typeof provider?.recognizeCoffeeBag === 'function') {\n" +%0A  '    const result = await provider.recognizeCoffeeBag(images, options);\n' +%0A  "    return { ...result, engine:result?.engine || 'web-ppocr' };\n" +%0A  '  }\n' +%0A  "  if (typeof provider?.recognize === 'function') {\n" +%0A  '    const results = [];\n' +%0A  '    for (const image of images) {\n' +%0A  '      const value = await provider.recognize(image.blob, options);\n' +%0A  '      results.push({ imageId:image.id, value });\n' +%0A  '    }\n' +%0A  "    return { engine:'web-ppocr', results };\n" +%0A  '  }\n' +%0A  '  return null;\n' +%0A  '}\n' +%0A  '\n' +%0A  'async function textDetectorRecognize(images) {\n' +%0A  "  if (typeof globalThis.TextDetector !== 'function' || typeof globalThis.createImageBitmap !== 'function') return null;\n" +%0A  '  const detector = new TextDetector();\n' +%0A  '  const results = [];\n' +%0A  '  for (const image of images) {\n' +%0A  '    const bitmap = await createImageBitmap(image.blob);\n' +%0A  '    try { results.push({ imageId:image.id, value:await detector.detect(bitmap) }); }\n' +%0A  '    finally { bitmap.close?.(); }\n' +%0A  '  }\n' +%0A  "  return { engine:'browser-text-detector', results };\n" +%0A  '}\n' +%0A  '\n' +%0A  'function collectBlocks(result, images) {\n' +%0A  "  const engine = result?.engine || 'unknown';\n" +%0A  '  const blocks = [];\n' +%0A  "  const roleByImage = new Map(images.map(image => [image.id, image.role || 'side']));\n" +%0A  '  if (Array.isArray(result?.blocks)) {\n' +%0A  '    for (const block of result.blocks) {\n' +%0A  "      const imageId = block.imageId || images[0]?.id || '';\n" +%0A  "      const normalized = normalizeBlock(block, imageId, engine, block.imageRole || roleByImage.get(imageId) || 'side');\n" +%0A  '      if (normalized) blocks.push(normalized);\n' +%0A  '    }\n' +%0A  '  }\n' +%0A  '  for (const item of result?.results || []) {\n' +%0A  '    const rawBlocks = Array.isArray(item?.value) ? item.value : item?.value?.blocks || item?.value?.results || [];\n' +%0A  '    for (const block of rawBlocks) {\n' +%0A  "      const normalized = normalizeBlock(block, item.imageId, engine, roleByImage.get(item.imageId) || 'side');\n" +%0A  '      if (normalized) blocks.push(normalized);\n' +%0A  '    }\n' +%0A  '  }\n' +%0A  '  if (!blocks.length && result?.fullText) {\n' +%0A  "    const imageId = images[0]?.id || '';\n" +%0A  "    const normalized = normalizeBlock({ text:result.fullText, confidence:result.confidence }, imageId, engine, roleByImage.get(imageId) || 'side');\n" +%0A  '    if (normalized) blocks.push(normalized);\n' +%0A  '  }\n' +%0A  '  return deduplicateBlocks(blocks);\n' +%0A  '}\n' +%0A  '\n' +%0A  'export function getRecognitionCapabilities() {\n' +%0A  '  const nativeBridge = globalThis.LuckyBeanRecognitionBridge || globalThis.LuckyBeanNative;\n' +%0A  '  return {\n' +%0A  "    native:typeof nativeBridge?.recognizeCoffeeBag === 'function',\n" +%0A
