@@ -4,7 +4,7 @@ import { getSetting } from '../db.js';
 import { grinderReference, mapCustomGrinderRange } from '../services/grind-psd-reference-service.js';
 
 const $ = (s,r=document) => r?.querySelector?.(s) || null;
-const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function closeHelp(){ document.querySelector('[data-lb-centered-help]')?.remove(); }
 function openCenteredHelp(title, body){
