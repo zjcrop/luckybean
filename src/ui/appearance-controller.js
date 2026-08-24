@@ -1,6 +1,6 @@
 const UI_KEY = 'luckybean.ui.v095';
 const LEGACY_UI_KEY = 'luckybean.ui.v094';
-const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.2';
+const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.3';
 const asset = path => `${path}?v=${encodeURIComponent(RELEASE_REVISION)}`;
 const SPLASH = Object.freeze({ red: asset('./public/splash-art-red.webp'), white: asset('./public/splash-art-light.webp') });
 let renderQueued = false;
