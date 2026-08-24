@@ -46,6 +46,26 @@ scripts/run-static-tests.mjs:24:  'tests/v123e-ui-stability-static.mjs',
 scripts/run-static-tests.mjs:25:  'tests/v123e-navigation-back-static.mjs',
 scripts/run-static-tests.mjs:26:  'tests/v123e-brew-optimization-regression.mjs',
 scripts/run-static-tests.mjs:27:  'tests/v123e-recognition-pipeline-static.mjs',
+scripts/migrate-release-1.24b.mjs:19:]) replaceExact(path, [["1.23E-main-sync.4", REVISION]]);
+scripts/migrate-release-1.24b.mjs:22:  ['LuckyBeanAndroid/1.23E', `LuckyBeanAndroid/${VERSION}`]
+scripts/migrate-release-1.24b.mjs:26:  ['Luckybean-END.webp?v=1.23E-main-sync.3', `Luckybean-END.webp?v=${REVISION}`]
+scripts/migrate-release-1.24b.mjs:29:replaceExact('tests/v123d-ui-sensory-regressions.mjs', [
+scripts/migrate-release-1.24b.mjs:30:  ["/APP_VERSION = '1\\.23E'/, 'the locked app version must be 1.23E'", "/APP_VERSION = '1\\.24B'/, 'the locked app version must be 1.24B'"],
+scripts/migrate-release-1.24b.mjs:31:  ["LuckyBean 1.23E canonical settings and sensory regression contracts passed", "LuckyBean 1.24B canonical settings and sensory regression contracts passed"]
+scripts/migrate-release-1.24b.mjs:35:  'tests/v123e-gear-matching-regression.mjs',
+scripts/migrate-release-1.24b.mjs:36:  'tests/v123e-interaction-repair-static.mjs',
+scripts/migrate-release-1.24b.mjs:37:  'tests/v123e-freshness-timeline-regression.mjs',
+scripts/migrate-release-1.24b.mjs:41:    ['LuckyBean 1.23E ', 'LuckyBean 1.24B '],
+scripts/migrate-release-1.24b.mjs:42:    ['and 1.23E Android image pipeline', 'and 1.24B Android image pipeline']
+scripts/migrate-release-1.24b.mjs:48:  ['versionCode 102322', `versionCode ${VERSION_CODE}`],
+scripts/migrate-release-1.24b.mjs:49:  ["versionName '1.23E'", `versionName '${VERSION}'`],
+scripts/migrate-release-1.24b.mjs:50:  ['LuckyBeanAndroid/1.23E', `LuckyBeanAndroid/${VERSION}`],
+scripts/migrate-release-1.24b.mjs:51:  ["versionCode='102322' versionName='1.23E'", `versionCode='${VERSION_CODE}' versionName='${VERSION}'`],
+scripts/migrate-release-1.24b.mjs:52:  ['LuckyBean-1.23E-full-integration-debug.apk', `LuckyBean-${VERSION}-full-integration-debug.apk`],
+scripts/migrate-release-1.24b.mjs:53:  ['version=1.23E', `version=${VERSION}`],
+scripts/migrate-release-1.24b.mjs:54:  ['version_code=102322', `version_code=${VERSION_CODE}`],
+scripts/migrate-release-1.24b.mjs:55:  ['revision=1.23E-main-sync.11', `revision=${REVISION}`]
+scripts/migrate-release-1.24b.mjs:72:  status = `${marker}\n\n当前版本：\`${VERSION}\`  \n发布修订：\`${REVISION}\`  \nAndroid：\`versionCode ${VERSION_CODE}\` / \`versionName ${VERSION}\`\n\n当前 main 以 1.24B 为唯一发布基线；下方 1.23D/1.23E 内容仅作为历史检查点保留，不再代表当前部署版本。\n\n---\n\n${status}`;
 src/app.js:2594:  <details class="settings-category"><summary><span>本物</span><small>关于本工具和开发小哥的一切</small></summary><div class="settings-category-body about-content"><figure class="about-illustration"><img src="./public/Luckybean-END.webp?v=1.23E-main-sync.3" alt="富贵盒子猫咪插图" loading="lazy" decoding="async"><figcaption>富贵盒子</figcaption></figure><h2>富贵盒子</h2><p>咖啡豆管理、冲煮辅助、品鉴记录与本地数据归档工具。</p><dl><dt>版本</dt><dd>${APP_VERSION}</dd><dt>数据结构</dt><dd>${SCHEMA_VERSION}</dd><dt>离线引擎</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>数据源</dt><dd>公开编码数据 ${esc(meta.version||state.codebook.version||'6')}</dd><dt>开发与维护</dt><dd>zjcrop</dd></dl></div></details>
 src/domain/recognition/recognition-date-classifier.js:4:export const DATE_CLASSIFIER_VERSION = '1.23D-date-fields.2';
 src/domain/recognition/recognition-document.js:337:    parserVersion: '1.23E-recognition-layout.2',
@@ -57,6 +77,7 @@ src/core/startup-controller.js:5:const RELEASE_REVISION = document.body?.dataset
 src/features/runtime-features.js:1:const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.23E-main-sync.4';
 android/app/src/main/java/com/luckybean/app/MainActivity.java:142:        settings.setUserAgentString(settings.getUserAgentString() + " LuckyBeanAndroid/1.23E");
 .github/workflows/diagnose-main.yml:48:              "1\\.23E|v123e|V123E|1023[0-9]{2}|main-v123e|1\\.23D|v123d|V123D|main-v123d" \
+.github/workflows/migrate-release-1.24b.yml:35:            "APP_VERSION = '1\\.23E'|versionName '1\\.23E'|versionCode 102322|LuckyBeanAndroid/1\\.23E|1\\.23E-main-sync\\.(3|4|11)" \
 .github/workflows/build-main.yml:62:          ! grep -Fq 'LuckyBeanAndroid/1.23E' "$file"
 .github/workflows/full-integration-pr.yml:48:          grep -q "versionCode 102322" android/app/build.gradle
 .github/workflows/full-integration-pr.yml:49:          grep -q "versionName '1.23E'" android/app/build.gradle
