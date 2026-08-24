@@ -46,6 +46,14 @@ jobs:
           grep -Fq 'release-1.24b-polish.js?v=1.24B-main.2' index.html
           grep -Fq "REVISION = '1.24B-main.2'" sw.js
           grep -Fq 'grind-psd-reference-service.js' sw.js
+      - name: Synchronize Android runtime version marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=android/app/src/main/java/com/luckybean/app/MainActivity.java
+          sed -i 's#LuckyBeanAndroid/1\.23E#LuckyBeanAndroid/1.24B#g' "$file"
+          grep -Fq 'LuckyBeanAndroid/1.24B' "$file"
+          ! grep -Fq 'LuckyBeanAndroid/1.23E' "$file"
       - name: Restore official release keystore
         shell: bash
         env:
@@ -69,6 +77,7 @@ jobs:
           apk=android/app/build/outputs/apk/release/app-release.apk
           test -f "$apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"
+          grep -Fq 'LuckyBeanAndroid/1.24B' android/app/src/main/java/com/luckybean/app/MainActivity.java
           for asset in \
             assets/web-cache/src/features/release-1.24b-integration.js \
             assets/web-cache/src/features/release-1.24b-finalize.js \
@@ -95,7 +104,7 @@ jobs:
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.24B-release.apk
           zip -qr dist/LuckyBean-1.24B-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts schemas docs DEVELOPMENT_STATUS.md
-          printf 'source_sha=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.2\nsigning=official-release-keystore\nrecognition_queue=serial-one-image\nstorage_modes=room-refrigerated-frozen\norder_ocr=privacy-minimized\ngrind_psd=measured-reference-plus-custom-anchors\nui_architecture=canonical-1.24b-complete\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
+          printf 'source_sha=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.2\nsigning=official-release-keystore\nandroid_runtime_marker=LuckyBeanAndroid/1.24B\nrecognition_queue=serial-one-image\nstorage_modes=room-refrigerated-frozen\norder_ocr=privacy-minimized\ngrind_psd=measured-reference-plus-custom-anchors\nui_architecture=canonical-1.24b-complete\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
           sha256sum dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip > dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v7.0.1
         with:
