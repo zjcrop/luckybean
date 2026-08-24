@@ -44,8 +44,10 @@ jobs:
           find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
           npm run test:static
           grep -Fq 'release-1.24b-polish.js?v=1.24B-main.2' index.html
+          grep -Fq 'release-1.24b-transit-controller.js?v=1.24B-main.2' index.html
           grep -Fq "REVISION = '1.24B-main.2'" sw.js
           grep -Fq 'grind-psd-reference-service.js' sw.js
+          grep -Fq 'release-1.24b-transit-controller.js' sw.js
       - name: Synchronize Android runtime version marker
         shell: bash
         run: |
@@ -81,6 +83,7 @@ jobs:
           for asset in \
             assets/web-cache/src/features/release-1.24b-integration.js \
             assets/web-cache/src/features/release-1.24b-finalize.js \
+            assets/web-cache/src/features/release-1.24b-transit-controller.js \
             assets/web-cache/src/features/release-1.24b-polish.js \
             assets/web-cache/src/services/grind-psd-reference-service.js \
             assets/web-cache/src/domain/recognition/order-recognition-1.24b.js \
@@ -89,6 +92,7 @@ jobs:
             unzip -l "$apk" | grep -Fq "$asset"
           done
           unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-polish.js?v=1.24B-main.2'
+          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-transit-controller.js?v=1.24B-main.2'
           unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '1.24B-main.2'"
           source_app_sha=$(sha256sum src/app.js | awk '{print $1}')
           apk_app_sha=$(unzip -p "$apk" assets/web-cache/src/app.js | sha256sum | awk '{print $1}')
@@ -104,7 +108,7 @@ jobs:
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.24B-release.apk
           zip -qr dist/LuckyBean-1.24B-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts schemas docs DEVELOPMENT_STATUS.md
-          printf 'source_sha=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.2\nsigning=official-release-keystore\nandroid_runtime_marker=LuckyBeanAndroid/1.24B\nrecognition_queue=serial-one-image\nstorage_modes=room-refrigerated-frozen\norder_ocr=privacy-minimized\ngrind_psd=measured-reference-plus-custom-anchors\nui_architecture=canonical-1.24b-complete\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
+          printf 'source_sha=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.2\nsigning=official-release-keystore\nandroid_runtime_marker=LuckyBeanAndroid/1.24B\nrecognition_queue=serial-one-image\nbean_lifecycle=ordered-delivered-storage-history\nstorage_modes=room-refrigerated-frozen\norder_ocr=privacy-minimized\ngrind_psd=measured-reference-plus-custom-anchors\nui_architecture=canonical-1.24b-complete\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
           sha256sum dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip > dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v7.0.1
         with:
