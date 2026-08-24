@@ -1,4 +1,4 @@
-import { getSetting, setSetting } from '../db.js';
+import { getSetting, setSetting, openDb } from '../db.js';
 import { LOCAL_BREW_RECIPES_124B, LOCAL_BEVERAGE_RECIPES_124B } from '../data/local-brew-recipes-1.24b.js';
 
 const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
@@ -15,6 +15,23 @@ let rendering = false;
 let queued = false;
 let observer = null;
 
+function requestValue(request) {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error('IndexedDB请求失败'));
+  });
+}
+function transactionDone(tx) {
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error('库存事务失败'));
+    tx.onabort = () => reject(tx.error || new Error('库存事务已回滚'));
+  });
+}
+function notice(message, kind = 'status-good') {
+  document.dispatchEvent(new CustomEvent('luckybean:user-notice', { detail: { message, kind } }));
+}
+
 function injectStyle() {
   if ($('#lbBrewModeStyle')) return;
   const style = document.createElement('style');
@@ -27,13 +44,15 @@ function injectStyle() {
     .lb-brew-switch[aria-checked="true"] span{transform:translateX(20px)}
     #brewContent.lb-brew-other-active > :not([data-lb-brew-mode-switch]):not([data-lb-other-brew-panel]){display:none!important}
     [data-lb-local-method-row]{display:none!important}
-    .lb-other-brew-panel{display:grid;gap:12px;padding:14px;border:1px solid rgba(190,151,80,.28);border-radius:14px;background:rgba(255,255,255,.025)}
+    .lb-other-brew-panel{display:grid;gap:14px;padding:14px;border:1px solid rgba(190,151,80,.28);border-radius:14px;background:rgba(255,255,255,.025)}
     .lb-other-brew-panel[hidden]{display:none!important}
     .lb-other-brew-panel .lb-other-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .lb-other-brew-panel .lb-other-field{display:grid;gap:5px;min-width:0}.lb-other-brew-panel .lb-other-field>span{font-size:11px;opacity:.65}
-    .lb-other-brew-panel .lb-other-steps{margin:0;padding-left:20px;display:grid;gap:6px;line-height:1.55}
-    .lb-other-brew-panel .lb-other-note{margin:0;font-size:11px;opacity:.62;line-height:1.55}
-    @media(max-width:420px){.lb-other-brew-panel .lb-other-grid{grid-template-columns:1fr}}
+    .lb-other-tutorial{display:grid;gap:12px}.lb-other-tutorial section{display:grid;gap:6px}.lb-other-tutorial h4{margin:0;font-size:13px}.lb-other-tutorial ul,.lb-other-tutorial ol{margin:0;padding-left:20px;display:grid;gap:6px;line-height:1.62}
+    .lb-other-brew-panel .lb-other-note{margin:0;font-size:11px;opacity:.68;line-height:1.6}
+    .lb-other-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}.lb-other-actions .button{width:100%}
+    .lb-other-dose-wrap{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}.lb-other-dose-wrap small{font-size:11px;opacity:.62;padding-bottom:10px}
+    @media(max-width:420px){.lb-other-brew-panel .lb-other-grid{grid-template-columns:1fr}.lb-other-dose-wrap{grid-template-columns:1fr}}
   `;
   document.head.append(style);
 }
@@ -44,8 +63,6 @@ async function readState() {
   let mode = settings.brew.lbMode === 'other' ? 'other' : 'pourover';
   let coffeeType = String(settings.brew.otherCoffeeType || '');
   let changed = false;
-  // Migrate the previous 1.24B two-select state once, then neutralize it so the
-  // legacy enhancer can no longer disable hand-pour controls behind the new switch.
   if (!coffeeType && settings.brew.extMethod && settings.brew.extMethod !== 'pourover') {
     coffeeType = `method:${settings.brew.extMethod}`;
     if (!settings.brew.lbMode) mode = 'other';
@@ -61,14 +78,15 @@ async function readState() {
   if (settings.brew.lbMode !== mode) { settings.brew.lbMode = mode; changed = true; }
   if (settings.brew.otherCoffeeType !== coffeeType) { settings.brew.otherCoffeeType = coffeeType; changed = true; }
   if (changed) await setSetting('app.settings', settings);
-  return { mode, coffeeType };
+  return { mode, coffeeType, otherDoseG:Number(settings.brew.otherDoseG || 0) };
 }
 
-async function saveState(mode, coffeeType) {
+async function saveState(mode, coffeeType, otherDoseG) {
   const settings = await getSetting('app.settings', {}) || {};
   settings.brew ||= {};
   settings.brew.lbMode = mode === 'other' ? 'other' : 'pourover';
   if (coffeeType) settings.brew.otherCoffeeType = coffeeType;
+  if (Number.isFinite(Number(otherDoseG)) && Number(otherDoseG) > 0) settings.brew.otherDoseG = Number(otherDoseG);
   settings.brew.extMethod = 'pourover';
   settings.brew.beverageRecipe = '';
   await setSetting('app.settings', settings);
@@ -87,47 +105,115 @@ function resolveCoffeeType(value) {
     if (!drink) return null;
     const base = drink.base === 'espresso' ? LOCAL_BREW_RECIPES_124B.espresso : null;
     return {
-      key:`drink:${id}`, name:drink.name, base:base?.name || (drink.base === 'custom' ? '自定义原液' : drink.base || '咖啡原液'),
-      additions:ADDITIONS[id] || '按配方添加', steps:drink.steps || [],
-      detail:base ? `${base.dose} · ${base.temperature} · 研磨 ${base.grind}` : ''
+      key:`drink:${id}`, id, kind, name:drink.name, base:base?.name || (drink.base === 'custom' ? '自定义原液' : drink.base || '咖啡原液'),
+      additions:ADDITIONS[id] || '按配方添加', defaultDoseG:Number(drink.defaultDoseG || base?.defaultDoseG || 15),
+      dose:base?.dose || '', water:base?.water || '', temperature:base?.temperature || '', grind:base?.grind || '',
+      prep:drink.prep || [], steps:drink.steps || [], finish:drink.finish || '', adjust:drink.adjust || []
     };
   }
   const recipe = LOCAL_BREW_RECIPES_124B[id] || LOCAL_BREW_RECIPES_124B.espresso;
   const resolvedId = LOCAL_BREW_RECIPES_124B[id] ? id : 'espresso';
   return {
-    key:`method:${resolvedId}`, name:recipe.name, base:recipe.name,
+    key:`method:${resolvedId}`, id:resolvedId, kind:'method', name:recipe.name, base:recipe.name,
     additions:resolvedId === 'cold_brew' ? '水 / 冰（按饮用方式）' : resolvedId === 'south_indian_filter' ? '牛奶 / 水 / 糖（可选）' : '无固定添加',
-    steps:recipe.steps || [], detail:[recipe.dose, recipe.water, recipe.temperature, `研磨 ${recipe.grind}`].filter(Boolean).join(' · ')
+    defaultDoseG:Number(recipe.defaultDoseG || 15), dose:recipe.dose || '', water:recipe.water || '', temperature:recipe.temperature || '', grind:recipe.grind || '',
+    prep:recipe.prep || [], steps:recipe.steps || [], finish:recipe.finish || '', adjust:recipe.adjust || []
   };
 }
 
-function panelHtml(type) {
+function listHtml(items, ordered = false) {
+  const tag = ordered ? 'ol' : 'ul';
+  return `<${tag}>${(items || []).map(item => `<li>${esc(item)}</li>`).join('')}</${tag}>`;
+}
+function tutorialHtml(type) {
+  return `<div class="lb-other-tutorial">
+    <section><h4>关键参数</h4><p class="lb-other-note">${esc([type.dose && `粉量 ${type.dose}`, type.water && `液量/水量 ${type.water}`, type.temperature && `温度 ${type.temperature}`, type.grind && `研磨 ${type.grind}`].filter(Boolean).join(' · '))}</p></section>
+    ${type.prep.length ? `<section><h4>准备</h4>${listHtml(type.prep)}</section>` : ''}
+    <section><h4>制作步骤</h4>${listHtml(type.steps, true)}</section>
+    ${type.finish ? `<section><h4>完成判断</h4><p class="lb-other-note">${esc(type.finish)}</p></section>` : ''}
+    ${type.adjust.length ? `<section><h4>常见偏差与调整</h4>${listHtml(type.adjust)}</section>` : ''}
+  </div>`;
+}
+
+function panelHtml(type, doseG) {
   return `<label class="lb-other-field"><span>咖啡种类</span><select class="control" data-lb-other-coffee aria-label="咖啡种类">${optionsHtml(type.key)}</select></label>
     <div class="lb-other-grid">
       <div class="lb-other-field"><span>原液</span><strong data-lb-other-base>${esc(type.base)}</strong></div>
       <div class="lb-other-field"><span>添加</span><strong data-lb-other-additions>${esc(type.additions)}</strong></div>
     </div>
-    <p class="lb-other-note" data-lb-other-detail>${esc(type.detail || '')}</p>
-    <ol class="lb-other-steps" data-lb-other-steps>${type.steps.map(step => `<li>${esc(step)}</li>`).join('')}</ol>
-    <p class="lb-other-note">“其他”只使用本地咖啡种类与制作步骤，不显示手冲参数，不调用 BrewProfiles 手冲计算，也不启动手冲倒计时。</p>`;
+    <div class="lb-other-dose-wrap"><label class="lb-other-field"><span>实际咖啡粉克重</span><input class="control" type="number" min="0.1" step="0.1" inputmode="decimal" data-lb-other-dose value="${esc(Number(doseG || type.defaultDoseG).toFixed(1))}" aria-label="实际咖啡粉克重"></label><small>完成时按此数值自动扣除豆卡余量</small></div>
+    <div data-lb-other-tutorial>${tutorialHtml(type)}</div>
+    <p class="lb-other-note">参数为可靠起始参考，不替代具体设备说明。其他模式不调用 BrewProfiles 手冲计算，也不启动手冲倒计时。</p>
+    <div class="lb-other-actions"><button class="button" type="button" data-lb-other-back>返回</button><button class="button primary" type="button" data-lb-other-complete>完成</button></div>`;
 }
 
-function updatePanel(panel, value) {
+function updatePanel(panel, value, { resetDose = false } = {}) {
   const type = resolveCoffeeType(value);
   if (!type) return;
   const select = $('[data-lb-other-coffee]', panel);
   if (select && select.value !== type.key) select.value = type.key;
-  if (panel.dataset.lbRenderedType === type.key) return;
+  if (panel.dataset.lbRenderedType === type.key && !resetDose) return;
   panel.dataset.lbRenderedType = type.key;
   $('[data-lb-other-base]', panel).textContent = type.base;
   $('[data-lb-other-additions]', panel).textContent = type.additions;
-  $('[data-lb-other-detail]', panel).textContent = type.detail || '';
-  $('[data-lb-other-steps]', panel).innerHTML = type.steps.map(step => `<li>${esc(step)}</li>`).join('');
+  $('[data-lb-other-tutorial]', panel).innerHTML = tutorialHtml(type);
+  if (resetDose) $('[data-lb-other-dose]', panel).value = type.defaultDoseG.toFixed(1);
 }
 
 function clearLegacyDisabledState(root) {
   root.querySelectorAll('.lb-disabled-for-method').forEach(node => node.classList.remove('lb-disabled-for-method'));
   root.querySelector('[data-lb-local-recipe]')?.remove();
+}
+
+async function deductOtherBrew({ beanId, doseG, coffeeType }) {
+  const amount = Number(doseG);
+  if (!beanId) throw new Error('请先选择咖啡豆');
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error('实际咖啡粉克重必须大于 0');
+  const resolved = resolveCoffeeType(coffeeType);
+  if (!resolved) throw new Error('咖啡种类无效');
+  const db = await openDb();
+  const tx = db.transaction(['beans', 'inventoryEvents'], 'readwrite');
+  const beans = tx.objectStore('beans');
+  const inventory = tx.objectStore('inventoryEvents');
+  const bean = await requestValue(beans.get(beanId));
+  if (!bean) { tx.abort(); throw new Error('豆卡不存在，无法扣除克重'); }
+  const before = Number(bean.remainingWeight || 0);
+  if (!Number.isFinite(before) || before < 0) { tx.abort(); throw new Error('豆卡剩余克重数据无效'); }
+  const after = Math.max(0, Number((before - amount).toFixed(3)));
+  const shortfall = Math.max(0, Number((amount - before).toFixed(3)));
+  const at = new Date().toISOString();
+  const id = `other-${crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
+  const autoArchived = after < 5;
+  beans.put({ ...bean, remainingWeight:after, ...(autoArchived ? { archived:true, archivedAt:bean.archivedAt || at } : {}), updatedAt:at });
+  inventory.put({
+    id:`${id}:consume`, beanId, sessionId:id, type:'brew-consume', amountG:-amount, resultingWeightG:after,
+    note:`其他制作 · ${resolved.name} · 自动扣除 ${amount.toFixed(1)}g${shortfall > 0 ? `；原余量不足 ${shortfall.toFixed(1)}g，剩余按 0g 结算` : ''}`,
+    metadata:{ mode:'other', coffeeType:resolved.key, coffeeName:resolved.name }, createdAt:at
+  });
+  await transactionDone(tx);
+  document.dispatchEvent(new CustomEvent('luckybean:data-changed', { detail:{ store:'inventoryEvents', operation:'other-brew-consume', beanId, amountG:amount, at } }));
+  document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail:{ source:'other-brew-completed' } }));
+  return { amount, after, shortfall, autoArchived, coffeeName:resolved.name };
+}
+
+async function completeOther(panel) {
+  const button = $('[data-lb-other-complete]', panel);
+  if (!button || button.disabled) return;
+  const beanId = $('#brewBean')?.value || '';
+  const coffeeType = $('[data-lb-other-coffee]', panel)?.value || '';
+  const doseG = Number($('[data-lb-other-dose]', panel)?.value || 0);
+  button.disabled = true;
+  button.textContent = '保存中…';
+  try {
+    await saveState('other', coffeeType, doseG);
+    const result = await deductOtherBrew({ beanId, doseG, coffeeType });
+    notice(`已自动扣除 ${result.amount.toFixed(1)}g 咖啡豆，进入品鉴记录`, result.shortfall > 0 ? 'status-warn' : 'status-good');
+    setTimeout(() => document.querySelector('[data-page-target="sensory"]')?.click(), 0);
+  } catch (error) {
+    button.disabled = false;
+    button.textContent = '完成';
+    notice(error.message || '完成制作失败', 'status-bad');
+  }
 }
 
 async function render() {
@@ -137,7 +223,7 @@ async function render() {
   rendering = true;
   try {
     injectStyle();
-    const { mode, coffeeType } = await readState();
+    const { mode, coffeeType, otherDoseG } = await readState();
     clearLegacyDisabledState(root);
     root.querySelectorAll('[data-lb-local-method-row]').forEach(node => { node.hidden = true; node.setAttribute('aria-hidden', 'true'); });
     let switchRow = $('[data-lb-brew-mode-switch]', root);
@@ -154,7 +240,7 @@ async function render() {
       panel = document.createElement('section');
       panel.className = 'lb-other-brew-panel';
       panel.dataset.lbOtherBrewPanel = '1';
-      panel.innerHTML = panelHtml(resolved);
+      panel.innerHTML = panelHtml(resolved, otherDoseG || resolved.defaultDoseG);
       panel.dataset.lbRenderedType = resolved.key;
       switchRow.after(panel);
     }
@@ -169,7 +255,8 @@ async function render() {
       toggle.addEventListener('click', async () => {
         const next = toggle.getAttribute('aria-checked') === 'true' ? 'pourover' : 'other';
         const selected = $('[data-lb-other-coffee]', panel)?.value || resolved.key;
-        await saveState(next, selected);
+        const dose = Number($('[data-lb-other-dose]', panel)?.value || resolved.defaultDoseG);
+        await saveState(next, selected, dose);
         await render();
       });
     }
@@ -177,9 +264,27 @@ async function render() {
     if (select && select.dataset.lbBound !== '1') {
       select.dataset.lbBound = '1';
       select.addEventListener('change', async () => {
-        updatePanel(panel, select.value);
-        await saveState('other', select.value);
+        updatePanel(panel, select.value, { resetDose:true });
+        await saveState('other', select.value, Number($('[data-lb-other-dose]', panel)?.value || 0));
       });
+    }
+    const dose = $('[data-lb-other-dose]', panel);
+    if (dose && dose.dataset.lbBound !== '1') {
+      dose.dataset.lbBound = '1';
+      dose.addEventListener('change', () => saveState('other', select?.value || resolved.key, Number(dose.value || 0)).catch(() => {}));
+    }
+    const back = $('[data-lb-other-back]', panel);
+    if (back && back.dataset.lbBound !== '1') {
+      back.dataset.lbBound = '1';
+      back.addEventListener('click', async () => {
+        await saveState('pourover', select?.value || resolved.key, Number(dose?.value || resolved.defaultDoseG));
+        await render();
+      });
+    }
+    const complete = $('[data-lb-other-complete]', panel);
+    if (complete && complete.dataset.lbBound !== '1') {
+      complete.dataset.lbBound = '1';
+      complete.addEventListener('click', () => completeOther(panel));
     }
   } finally {
     rendering = false;
@@ -205,4 +310,4 @@ document.addEventListener('luckybean:brew-rendered', queueRender);
 document.addEventListener('click', event => { if (event.target.closest?.('[data-page-target="brew"]')) queueRender(); }, true);
 queueRender();
 
-globalThis.LuckyBeanBrewMode124B = { render, resolveCoffeeType };
+globalThis.LuckyBeanBrewMode124B = { render, resolveCoffeeType, deductOtherBrew };
