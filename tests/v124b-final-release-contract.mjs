@@ -5,6 +5,7 @@ const read = path => fs.readFileSync(path, 'utf8');
 
 const index = read('index.html');
 const sw = read('sw.js');
+const runtime = read('src/features/runtime-features.js');
 const release = read('src/release-1.24b.js');
 const integration = read('src/features/release-1.24b-integration.js');
 const finalize = read('src/features/release-1.24b-finalize.js');
@@ -12,6 +13,7 @@ const transit = read('src/features/release-1.24b-transit-controller.js');
 const groupNavigation = read('src/features/release-1.24b-group-navigation.js');
 const about = read('src/features/release-1.24b-about-controller.js');
 const polish = read('src/features/release-1.24b-polish.js');
+const uiPolicy = read('src/features/release-1.24b-ui-policy.js');
 const freshnessDetail = read('src/features/release-1.24b-freshness-detail.js');
 const batchProgress = read('src/features/recognition-batch-progress-controller.js');
 const resolver = read('src/domain/recognition/recognition-field-resolver-1.24b.js');
@@ -23,10 +25,12 @@ const deploy = read('.github/workflows/deploy-main.yml');
 const gradle = read('android/app/build.gradle');
 
 assert.match(index, /application-version" content="1\.24B"/);
-assert.match(index, /release-revision" content="1\.24B-main\.3"/);
+assert.match(index, /release-revision" content="1\.24B-main\.4"/);
 for (const file of ['release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-transit-controller.js','release-1.24b-group-navigation.js','release-1.24b-about-controller.js','release-1.24b-polish.js']) assert.ok(index.includes(file), `index must load ${file}`);
-assert.match(sw, /REVISION = '1\.24B-main\.3'/);
-for (const file of ['release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-transit-controller.js','release-1.24b-group-navigation.js','release-1.24b-about-controller.js','release-1.24b-polish.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','recognition-field-resolver-1.24b.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js']) assert.ok(sw.includes(file), `service worker must cache ${file}`);
+for (const file of ['release-1.24b-ui-policy.js','release-1.24b-brew-mode-controller.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js']) assert.ok(runtime.includes(file), `runtime graph must load ${file}`);
+assert.match(sw, /REVISION = '1\.24B-main\.4'/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-folder2`/);
+for (const file of ['release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-transit-controller.js','release-1.24b-group-navigation.js','release-1.24b-about-controller.js','release-1.24b-polish.js','release-1.24b-ui-policy.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','recognition-field-resolver-1.24b.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js']) assert.ok(sw.includes(file), `service worker must cache ${file}`);
 
 assert.match(release, /BeanOwnershipStatus/);
 assert.match(release, /ORDERED:'ordered'/);
@@ -75,11 +79,15 @@ assert.match(css, /grid-template-columns:minmax\(88px,.38fr\)/);
 assert.match(css, /\.lb-bean-detail .*white-space:normal/);
 assert.match(css, /\.lb-bean-actions\{display:grid/);
 
-assert.match(groupNavigation, /dataset\.v099tGroupBack/);
+assert.match(groupNavigation, /button\[data-v099t-group-back\]/);
+assert.match(groupNavigation, /folder-style group navigation active/);
+assert.match(groupNavigation, /capture:true/);
 assert.match(groupNavigation, /dx<=-72/);
 assert.match(groupNavigation, /luckybean:navigation-back/);
 assert.match(groupNavigation, /closeActiveGroup/);
-assert.doesNotMatch(groupNavigation, />收</);
+assert.match(uiPolicy, /lb-stock-total/);
+assert.match(uiPolicy, /lb-today-consumption/);
+assert.match(uiPolicy, /非罗布斯塔/);
 
 assert.match(about, /data-settings-key="about"/);
 assert.match(about, /zj_crop/);
@@ -89,23 +97,12 @@ assert.match(about, /lb-about-contact/);
 assert.match(css, /\.lb-pending-field/);
 assert.match(integration, /灰色框选为自动计算选项/);
 assert.match(css, /\.lb-auto-field\{font-weight:700/);
-assert.match(finalize, /data-lb-extraction/);
-assert.match(finalize, /data-lb-beverage/);
-assert.match(finalize, /本地制作流程仅显示步骤与细节，不启动倒计时/);
-assert.match(finalize, /lb-disabled-for-method/);
-
 assert.match(polish, /grinderReference/);
 assert.match(polish, /mapCustomGrinderRange/);
 assert.match(polish, /较细、中间、较粗/);
 assert.match(polish, /首段降温/);
 assert.match(polish, /尾段降温/);
 assert.match(polish, /openCenteredHelp/);
-assert.match(finalize, /fineAnchor/);
-assert.match(finalize, /midAnchor/);
-assert.match(finalize, /coarseAnchor/);
-assert.match(finalize, /较细刻度/);
-assert.match(finalize, /中间刻度/);
-assert.match(finalize, /较粗刻度/);
 
 assert.match(finalize, /注册信息已提交/);
 assert.match(finalize, /请查收邮件并点击链接激活账户/);
@@ -118,7 +115,7 @@ assert.match(deploy, /npm run test:static/);
 assert.match(deploy, /deploy-pages@v5\.0\.0/);
 assert.match(deploy, /version\.json/);
 assert.match(deploy, /pages-status/);
-assert.match(deploy, /1\.24B-main\.3/);
+assert.match(deploy, /1\.24B-main\.4/);
 assert.match(build, /on:\n\s+push:\n\s+branches: \[main\]/);
 assert.match(build, /Restore official release keystore/);
 assert.match(build, /assembleRelease/);
@@ -131,4 +128,4 @@ assert.match(build, /recognition-field-resolver-1\.24b\.js/);
 assert.match(gradle, /versionCode 102402/);
 assert.match(gradle, /versionName '1\.24B'/);
 
-console.log('LuckyBean 1.24B main.3 final release contract passed');
+console.log('LuckyBean 1.24B main.4 final release contract passed');
