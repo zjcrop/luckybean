@@ -1,0 +1,24 @@
+/* Lucky Bean 1.24B compact UI states */
+.lb-auto-note{font-size:.72rem;opacity:.62;margin:.15rem 0 .35rem}
+.lb-auto-field{font-weight:700!important;border:1px solid rgba(128,128,128,.75)!important}
+.lb-bean-card[data-tone="muted"]{filter:grayscale(.78);opacity:.68}
+.lb-bean-card[data-tone="frozen"]{outline:1px solid rgba(80,140,220,.4)}
+.lb-pending-field{color:#c6a15b!important;font-weight:700!important;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.lb-bean-detail{display:flex;flex-direction:column;gap:.28rem;line-height:1.32}
+.lb-bean-detail .field{display:flex;gap:.4rem;align-items:baseline;flex-wrap:wrap;margin:0;padding:0}
+.lb-bean-detail .field-label{font-size:.72rem;opacity:.58;flex:0 0 auto}
+.lb-bean-detail .field-value{font-size:.9rem;overflow-wrap:anywhere;white-space:normal}
+.lb-bean-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.35rem;margin:.35rem 0}
+.lb-bean-actions button{min-width:0;padding:.48rem .2rem}
+.lb-freshness-row{display:grid;grid-template-columns:minmax(88px,.38fr) minmax(0,.62fr);gap:.45rem;align-items:center}
+.lb-freshness-mini{height:64px;min-height:54px;cursor:zoom-in}
+.lb-record-links{display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
+.lb-record-links button{width:100%}
+.lb-brew-dashboard{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem}
+.lb-brew-dashboard .control-title{display:none!important}
+.lb-three-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem}
+.lb-help-note-button{font-size:.72rem;color:#c6a15b;border:1px solid #c6a15b;border-radius:999px;padding:.12rem .38rem;background:transparent}
+.lb-batch-progress{font-size:.78rem;line-height:1.45}
+.lb-batch-progress .done{opacity:.62}
+.lb-batch-progress .active{font-weight:700}
+@media(max-width:420px){.lb-bean-detail .field-value{font-size:.86rem}.lb-freshness-mini{height:56px}.lb-bean-actions button{font-size:.78rem}}
