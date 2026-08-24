@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 5.519788
+  duration_ms: 5.277134
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 2.166038
+  duration_ms: 2.061528
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 2.5817
+  duration_ms: 2.432598
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 1.903836
+  duration_ms: 1.851757
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.876066
+  duration_ms: 0.81133
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.697417
+  duration_ms: 2.638121
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.948562
+  duration_ms: 0.872965
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 22.700931
+# duration_ms 21.795913
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 5.7494
+  duration_ms: 5.840242
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 3.595373
+  duration_ms: 3.671815
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 3.648894
+  duration_ms: 3.59371
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 2.765344
+  duration_ms: 2.792318
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 2.185505
+  duration_ms: 2.29899
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 1.02207
+  duration_ms: 1.16574
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 24.80306
+# duration_ms 25.244643
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -151,25 +151,238 @@ LuckyBean 1.24B main.3 canonical one-line freshness timeline and stage grouping 
 LuckyBean 1.24B canonical QR, bean matching, gear, flavor taxonomy, user-guide and upgrade release checks passed
 
 [static] tests/v123e-gear-matching-regression.mjs
+LuckyBean 1.24B canonical gear binding, direct bean matching, QR runtime and upgrade release checks passed
+
+[static] tests/v123e-android-gallery-uri-regression.mjs
+LuckyBean Android gallery URI routing regression checks passed
+
+[static] tests/v123e-small-brew-five-row-regression.mjs
+LuckyBean 1.24B compact small-brew, automatic-field and Android upgrade contract passed
+
+[static] tests/v123e-ui-stability-static.mjs
 node:internal/modules/run_main:123
     triggerUncaughtException(
     ^
 
-AssertionError [ERR_ASSERTION]: The input did not match the regular expression /^1\.23E-main-sync\.\d+$/. Input:
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /灰色|data-tone=\\"muted\\"/. Input:
 
-'1.24B-main.3'
+"import { all, getSetting, setSetting, put } from '../db.js';\n" +
+  "import { preparePackageImage } from '../image-quality.js';\n" +
+  "import { recognizeCoffeeBag } from '../recognition-bridge.js';\n" +
+  "import { normalizeBeanRecord, beanCardVisualState, markBeanInTransit, LOCAL_BREW_METHODS } from '../release-1.24b.js';\n" +
+  "import { parseCoffeeOrderText } from '../domain/recognition/order-recognition-1.24b.js';\n" +
+  "import { LOCAL_BREW_RECIPES_124B, LOCAL_BEVERAGE_RECIPES_124B } from '../data/local-brew-recipes-1.24b.js';\n" +
+  '\n' +
+  'const $=(s,r=document)=>r?.querySelector?.(s)||null;\n' +
+  'const $$=(s,r=document)=>[...(r?.querySelectorAll?.(s)||[])];\n' +
+  `const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));\n` +
+  'let observing=false;\n' +
+  '\n' +
+  "function notice(message,kind='status-good'){document.dispatchEvent(new CustomEvent('luckybean:user-notice',{detail:{message,kind}}));}\n" +
+  "function refresh(source){document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh',{detail:{source}}));}\n" +
+  "function closeOverlay(){ $('#overlayRoot')?.replaceChildren(); }\n" +
+  '\n' +
+  'async function fixBeanDetail(){\n' +
+  `  const overlay=$('#overlayRoot > [data-overlay="bean-detail"]'); if(!overlay||overlay.dataset.lbFinalized)return;\n` +
+  "  overlay.dataset.lbFinalized='1';\n" +
+  "  $('#correctWeightBtn',overlay)?.remove();\n" +
+  "  const stack=$('.management-stack',overlay), edit=$('#editBeanBtn',overlay);\n" +
+  "  if(stack&&edit){stack.prepend(edit);stack.classList.add('lb-bean-actions');}\n" +
+  "  const cold=$('#toggleColdBtn',overlay); if(cold&&!/^❄/.test(cold.textContent||''))cold.textContent='冷藏';\n" +
+  "  const beanId=overlay.closest('#overlayRoot') ? document.querySelector('.bean-card.recommended')?.dataset?.beanId : '';\n" +
+  "  const header=$('.dialog-header h2',overlay);\n" +
+  "  if(header&&/未定国家/.test(header.textContent||'')){\n" +
+  "    const id=window.__lbLastBeanId||''; const bean=id?await (await import('../db.js')).get('beans',id).catch(()=>null):null;\n" +
+  '    if(bean?.name)header.textContent=bean.name;\n' +
+  '  }\n' +
+  '}\n' +
+  '\n' +
+  'function addSwipeClose(){\n' +
+  "  const root=$('#beanGroups');if(!root||root.dataset.lbSwipeClose)return;root.dataset.lbSwipeClose='1';\n" +
+  '  let start=null;\n' +
+  "  root.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;start={x:e.clientX,y:e.clientY,id:e.pointerId};},{passive:true});\n" +
+  "  root.addEventListener('pointerup',e=>{if(!start||start.id!==e.pointerId)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;start=null;if(Math.abs(dx)>=70&&Math.abs(dx)>Math.abs(dy)*1.4){const panel=$('[data-active-group-panel]',root);if(panel)panel.dispatchEvent(new MouseEvent('click',{bubbles:true}));}},{passive:true});\n" +
+  '}\n' +
+  '\n' +
+  'async function addTransitCards(){\n' +
+  "  const host=$('#beanGroups');if(!host)return;\n" +
+  "  const beans=await all('beans').catch(()=>[]);\n" +
+  '  const transit=beans.filter(bean=>!bean.archived&&!bean.deletedAt&&!bean.recycledAt&&!bean.trashAt&&!bean.tombstoneAt&&!bean.isDeleted&&!bean._deleted&&!bean.deleted&&beanCardVisualState(bean).usable===false);\n' +
+  "  let section=$('[data-lb-transit-section]',host);\n" +
+  '  if(!transit.length){section?.remove();return;}\n' +
+  '  const html=transit.map(bean=>{const n=normalizeBeanRecord(bean);const price=n.purchase?.paidPrice!=null?`${n.purchase.currency||\'CNY\'} ${n.purchase.paidPrice}`:\'\';const weight=n.purchase?.weight?`${Number(n.purchase.weight).toFixed(0)}g`:\'\';return `<article class="bean-card compact lb-bean-card" data-tone="muted" data-bean-id="${esc(bean.id)}" tabindex="0"><div class="compact-bean-copy"><h3>${esc(bean.name||n.purchase?.productName||\'在途咖啡豆\')}</h3><small>${esc([n.purchase?.merchant,n.logistics?.status===\'in_transit\'?\'在途\':\'已下单\'].filter(Boolean).join(\' · \'))}</small><div class="compact-bean-row"><strong>${esc(weight||\'待入库\')}</strong><span class="compact-score">${esc(price||\'已购买\')}</span></div></div><span class="cup-action compact-pick" aria-label="在途豆不可冲煮">在途</span></article>`;}).join(\'\');\n' +
+  "  if(!section){section=document.createElement('section');section.dataset.lbTransitSection='1';section.className='lb-transit-section';host.prepend(section);}\n" +
+  '  section.innerHTML=`<div class="bean-grid compact-grid">${html}</div>`;\n' +
+  '}\n' +
+  '\n' +
+  "function bindLastBean(){document.addEventListener('click',e=>{const card=e.target.closest?.('.bean-card[data-bean-id]');if(card)window.__lbLastBeanId=card.dataset.beanId||'';},true);}\n" +
+  '\n' +
+  'function enhanceAddMenu(){\n' +
+  "  $$('.popup-menu').forEach(menu=>{\n" +
+  "    if(!menu.querySelector('[data-add-mode]')||menu.querySelector('[data-lb-order-add]'))return;\n" +
+  "    const b=document.createElement('button');b.type='button';b.dataset.lbOrderAdd='1';b.textContent='订单录入';menu.append(b);\n" +
+  '  });\n' +
+  '}\n' +
+  '\n' +
+  'function bindAndroidImage(id,nativeSource){\n' +
+  "  if(!nativeSource||!globalThis.__LUCKYBEAN_ANDROID__||typeof globalThis.LuckyBeanNative?.bindImageSource!=='function')return;\n" +
+  '  try{globalThis.LuckyBeanNative.bindImageSource(String(id),false);}catch{}\n' +
+  '}\n' +
+  '\n' +
+  'function openOrderEntry(){\n' +
+  "  closeOverlay(); const root=$('#overlayRoot');if(!root)return;\n" +
+  '  root.innerHTML=`<div class="overlay full" data-overlay="lb-order-entry"><div class="dialog"><div class="dialog-header"><div><h2>订单录入</h2><p>支持订单页/商品页截图；只提取咖啡购买字段，不保存手机号和地址。</p></div><button class="close-button" type="button">×</button></div><input id="lbOrderImages" type="file" accept="image/*" multiple><textarea id="lbOrderText" class="control" rows="9" placeholder="也可直接粘贴订单文字"></textarea><p class="muted small" data-lb-order-status>多张图片按 IMG-001、IMG-002… 顺序单进程识别。</p><div class="row end"><button class="button" type="button" data-lb-order-recognize>识别图片</button><button class="button primary" type="button" data-lb-order-save>建立在途豆卡</button></div></div></div>`;\n' +
+  "  const overlay=root.firstElementChild;overlay.addEventListener('click',e=>{if(e.target===overlay||e.target.closest('.close-button'))closeOverlay();});\n" +
+  "  $('[data-lb-order-recognize]',overlay)?.addEventListener('click',()=>recognizeOrderImages(overlay));\n" +
+  "  $('[data-lb-order-save]',overlay)?.addEventListener('click',()=>saveOrderBean(overlay));\n" +
+  '}\n' +
+  '\n' +
+  'async function recognizeOrderImages(overlay){\n' +
+  "  const files=[...($('#lbOrderImages',overlay)?.files||[])].filter(f=>f.type.startsWith('image/')).slice(0,8);if(!files.length)return notice('请先选择订单或商品图片','status-warn');\n" +
+  "  const status=$('[data-lb-order-status]',overlay);const images=[];\n" +
+  "  for(let i=0;i<files.length;i+=1){status.textContent=`准备图片 ${i+1}/${files.length}`;const prepared=await preparePackageImage(files[i]);const id=`order_${Date.now().toString(36)}_${String(i+1).padStart(3,'0')}`;bindAndroidImage(id,prepared.nativeSource);images.push({id,role:'order',roleLabel:`订单图片 ${i+1}`,blob:prepared.blob,nativeSource:Boolean(prepared.nativeSource)});}\n" +
+  '  try{\n' +
+  "    const result=await recognizeCoffeeBag(images,{locale:'zh-CN',onProgress:p=>{status.textContent=`${p.taskId} · ${p.status==='processing'?'识别中':'完成'} (${p.order}/${p.total})`;}});\n" +
+  "    $('#lbOrderText',overlay).value=result.fullText||'';status.textContent=`识别完成：${files.length} 张图片，严格串行处理。`;\n" +
+  '  }catch(error){status.textContent=`识别失败：${error.message}`;}\n' +
+  '}\n' +
+  '\n' +
+  'async function saveOrderBean(overlay){\n' +
+  "  const text=$('#lbOrderText',overlay)?.value?.trim()||'';if(!text)return notice('没有可解析的订单文字','status-warn');\n" +
+  '  const parsed=parseCoffeeOrderText(text);const purchase={...parsed.purchase,productName:parsed.productName};\n' +
+  "  let orderIdHash=null;if(parsed.purchase.orderId&&crypto?.subtle){const data=new TextEncoder().encode(parsed.purchase.orderId);const digest=await crypto.subtle.digest('SHA-256',data);orderIdHash=[...new Uint8Array(digest)].slice(0,12).map(v=>v.toString(16).padStart(2,'0')).join('');}\n" +
+  '  delete purchase.orderId;purchase.orderIdHash=orderIdHash;\n' +
+  '  const id=`bean_${crypto.randomUUID?.()||Date.now().toString(36)}`;\n' +
+  "  const base={id,name:parsed.productName||'在途咖啡豆',initialWeight:Number(parsed.purchase.weight||0),remainingWeight:0,price:Number(parsed.purchase.paidPrice||0),roasterName:parsed.purchase.merchant||'',source:'order-ocr',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),recognitionMetadata:{documentType:'order_page',privacyRedactions:parsed.privacyRedactions}};\n" +
+  "  const record=markBeanInTransit(base,purchase);record.logistics.status=parsed.logisticsStatus||'in_transit';await put('beans',record);closeOverlay();refresh('order-in-transit-created');notice('在途豆卡已建立，订单购买信息已保存','status-good');\n" +
+  '}\n' +
+  '\n' +
+  "async function brewExtraSettings(){const s=await getSetting('app.settings',{})||{};s.brew||={};s.brew.extMethod||='pourover';s.brew.beverageRecipe||='';return s;}\n" +
+  "async function saveBrewExtra(method,beverage){const s=await brewExtraSettings();s.brew.extMethod=method;s.brew.beverageRecipe=beverage;await setSetting('app.settings',s);}\n" +
+  '\n' +
+  'async function enhanceBrewMethods(){\n' +
+  "  const root=$('#brewContent');if(!root||root.dataset.lbMethodBusy)return;root.dataset.lbMethodBusy='1';\n" +
+  '  try{\n' +
+  "    const s=await brewExtraSettings();let row=$('[data-lb-local-method-row]',root);\n" +
+  '    if(!row){row=document.createElement(\'div\');row.className=\'lb-local-method-row\';row.dataset.lbLocalMethodRow=\'1\';row.innerHTML=`<select class="control" data-lb-extraction aria-label="萃取方式"><option value="pourover">手冲</option>${LOCAL_BREW_METHODS.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join(\'\')}</select><select class="control" data-lb-beverage aria-label="制作方式"><option value="">原液 / 不追加</option>${Object.entries(LOCAL_BEVERAGE_RECIPES_124B).map(([id,x])=>`<option value="${esc(id)}">${esc(x.name)}</option>`).join(\'\')}</select>`;const note=$(\'.lb-auto-note\',root);(note||root.firstChild)?.after?.(row);if(!row.parentNode)root.prepend(row);}\n' +
+  "    $('[data-lb-extraction]',row).value=s.brew.extMethod||'pourover';$('[data-lb-beverage]',row).value=s.brew.beverageRecipe||'';\n" +
+  "    const apply=async()=>{const method=$('[data-lb-extraction]',row).value,bev=$('[data-lb-beverage]',row).value;await saveBrewExtra(method,bev);applyMethodState(root,method,bev);};\n" +
+  "    if(!row.dataset.bound){row.dataset.bound='1';$('[data-lb-extraction]',row).addEventListener('change',apply);$('[data-lb-beverage]',row).addEventListener('change',apply);}\n" +
+  "    applyMethodState(root,s.brew.extMethod||'pourover',s.br"... 6086 more characters
 
-    at file:///home/runner/work/luckybean/luckybean/tests/v123e-gear-matching-regression.mjs:21:8
+    at file:///home/runner/work/luckybean/luckybean/tests/v123e-ui-stability-static.mjs:87:8
     at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
   generatedMessage: true,
   code: 'ERR_ASSERTION',
-  actual: '1.24B-main.3',
-  expected: /^1\.23E-main-sync\.\d+$/,
+  actual: "import { all, getSetting, setSetting, put } from '../db.js';\n" +
+    "import { preparePackageImage } from '../image-quality.js';\n" +
+    "import { recognizeCoffeeBag } from '../recognition-bridge.js';\n" +
+    "import { normalizeBeanRecord, beanCardVisualState, markBeanInTransit, LOCAL_BREW_METHODS } from '../release-1.24b.js';\n" +
+    "import { parseCoffeeOrderText } from '../domain/recognition/order-recognition-1.24b.js';\n" +
+    "import { LOCAL_BREW_RECIPES_124B, LOCAL_BEVERAGE_RECIPES_124B } from '../data/local-brew-recipes-1.24b.js';\n" +
+    '\n' +
+    'const $=(s,r=document)=>r?.querySelector?.(s)||null;\n' +
+    'const $$=(s,r=document)=>[...(r?.querySelectorAll?.(s)||[])];\n' +
+    `const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));\n` +
+    'let observing=false;\n' +
+    '\n' +
+    "function notice(message,kind='status-good'){document.dispatchEvent(new CustomEvent('luckybean:user-notice',{detail:{message,kind}}));}\n" +
+    "function refresh(source){document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh',{detail:{source}}));}\n" +
+    "function closeOverlay(){ $('#overlayRoot')?.replaceChildren(); }\n" +
+    '\n' +
+    'async function fixBeanDetail(){\n' +
+    `  const overlay=$('#overlayRoot > [data-overlay="bean-detail"]'); if(!overlay||overlay.dataset.lbFinalized)return;\n` +
+    "  overlay.dataset.lbFinalized='1';\n" +
+    "  $('#correctWeightBtn',overlay)?.remove();\n" +
+    "  const stack=$('.management-stack',overlay), edit=$('#editBeanBtn',overlay);\n" +
+    "  if(stack&&edit){stack.prepend(edit);stack.classList.add('lb-bean-actions');}\n" +
+    "  const cold=$('#toggleColdBtn',overlay); if(cold&&!/^❄/.test(cold.textContent||''))cold.textContent='冷藏';\n" +
+    "  const beanId=overlay.closest('#overlayRoot') ? document.querySelector('.bean-card.recommended')?.dataset?.beanId : '';\n" +
+    "  const header=$('.dialog-header h2',overlay);\n" +
+    "  if(header&&/未定国家/.test(header.textContent||'')){\n" +
+    "    const id=window.__lbLastBeanId||''; const bean=id?await (await import('../db.js')).get('beans',id).catch(()=>null):null;\n" +
+    '    if(bean?.name)header.textContent=bean.name;\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function addSwipeClose(){\n' +
+    "  const root=$('#beanGroups');if(!root||root.dataset.lbSwipeClose)return;root.dataset.lbSwipeClose='1';\n" +
+    '  let start=null;\n' +
+    "  root.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;start={x:e.clientX,y:e.clientY,id:e.pointerId};},{passive:true});\n" +
+    "  root.addEventListener('pointerup',e=>{if(!start||start.id!==e.pointerId)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;start=null;if(Math.abs(dx)>=70&&Math.abs(dx)>Math.abs(dy)*1.4){const panel=$('[data-active-group-panel]',root);if(panel)panel.dispatchEvent(new MouseEvent('click',{bubbles:true}));}},{passive:true});\n" +
+    '}\n' +
+    '\n' +
+    'async function addTransitCards(){\n' +
+    "  const host=$('#beanGroups');if(!host)return;\n" +
+    "  const beans=await all('beans').catch(()=>[]);\n" +
+    '  const transit=beans.filter(bean=>!bean.archived&&!bean.deletedAt&&!bean.recycledAt&&!bean.trashAt&&!bean.tombstoneAt&&!bean.isDeleted&&!bean._deleted&&!bean.deleted&&beanCardVisualState(bean).usable===false);\n' +
+    "  let section=$('[data-lb-transit-section]',host);\n" +
+    '  if(!transit.length){section?.remove();return;}\n' +
+    '  const html=transit.map(bean=>{const n=normalizeBeanRecord(bean);const price=n.purchase?.paidPrice!=null?`${n.purchase.currency||\'CNY\'} ${n.purchase.paidPrice}`:\'\';const weight=n.purchase?.weight?`${Number(n.purchase.weight).toFixed(0)}g`:\'\';return `<article class="bean-card compact lb-bean-card" data-tone="muted" data-bean-id="${esc(bean.id)}" tabindex="0"><div class="compact-bean-copy"><h3>${esc(bean.name||n.purchase?.productName||\'在途咖啡豆\')}</h3><small>${esc([n.purchase?.merchant,n.logistics?.status===\'in_transit\'?\'在途\':\'已下单\'].filter(Boolean).join(\' · \'))}</small><div class="compact-bean-row"><strong>${esc(weight||\'待入库\')}</strong><span class="compact-score">${esc(price||\'已购买\')}</span></div></div><span class="cup-action compact-pick" aria-label="在途豆不可冲煮">在途</span></article>`;}).join(\'\');\n' +
+    "  if(!section){section=document.createElement('section');section.dataset.lbTransitSection='1';section.className='lb-transit-section';host.prepend(section);}\n" +
+    '  section.innerHTML=`<div class="bean-grid compact-grid">${html}</div>`;\n' +
+    '}\n' +
+    '\n' +
+    "function bindLastBean(){document.addEventListener('click',e=>{const card=e.target.closest?.('.bean-card[data-bean-id]');if(card)window.__lbLastBeanId=card.dataset.beanId||'';},true);}\n" +
+    '\n' +
+    'function enhanceAddMenu(){\n' +
+    "  $$('.popup-menu').forEach(menu=>{\n" +
+    "    if(!menu.querySelector('[data-add-mode]')||menu.querySelector('[data-lb-order-add]'))return;\n" +
+    "    const b=document.createElement('button');b.type='button';b.dataset.lbOrderAdd='1';b.textContent='订单录入';menu.append(b);\n" +
+    '  });\n' +
+    '}\n' +
+    '\n' +
+    'function bindAndroidImage(id,nativeSource){\n' +
+    "  if(!nativeSource||!globalThis.__LUCKYBEAN_ANDROID__||typeof globalThis.LuckyBeanNative?.bindImageSource!=='function')return;\n" +
+    '  try{globalThis.LuckyBeanNative.bindImageSource(String(id),false);}catch{}\n' +
+    '}\n' +
+    '\n' +
+    'function openOrderEntry(){\n' +
+    "  closeOverlay(); const root=$('#overlayRoot');if(!root)return;\n" +
+    '  root.innerHTML=`<div class="overlay full" data-overlay="lb-order-entry"><div class="dialog"><div class="dialog-header"><div><h2>订单录入</h2><p>支持订单页/商品页截图；只提取咖啡购买字段，不保存手机号和地址。</p></div><button class="close-button" type="button">×</button></div><input id="lbOrderImages" type="file" accept="image/*" multiple><textarea id="lbOrderText" class="control" rows="9" placeholder="也可直接粘贴订单文字"></textarea><p class="muted small" data-lb-order-status>多张图片按 IMG-001、IMG-002… 顺序单进程识别。</p><div class="row end"><button class="button" type="button" data-lb-order-recognize>识别图片</button><button class="button primary" type="button" data-lb-order-save>建立在途豆卡</button></div></div></div>`;\n' +
+    "  const overlay=root.firstElementChild;overlay.addEventListener('click',e=>{if(e.target===overlay||e.target.closest('.close-button'))closeOverlay();});\n" +
+    "  $('[data-lb-order-recognize]',overlay)?.addEventListener('click',()=>recognizeOrderImages(overlay));\n" +
+    "  $('[data-lb-order-save]',overlay)?.addEventListener('click',()=>saveOrderBean(overlay));\n" +
+    '}\n' +
+    '\n' +
+    'async function recognizeOrderImages(overlay){\n' +
+    "  const files=[...($('#lbOrderImages',overlay)?.files||[])].filter(f=>f.type.startsWith('image/')).slice(0,8);if(!files.length)return notice('请先选择订单或商品图片','status-warn');\n" +
+    "  const status=$('[data-lb-order-status]',overlay);const images=[];\n" +
+    "  for(let i=0;i<files.length;i+=1){status.textContent=`准备图片 ${i+1}/${files.length}`;const prepared=await preparePackageImage(files[i]);const id=`order_${Date.now().toString(36)}_${String(i+1).padStart(3,'0')}`;bindAndroidImage(id,prepared.nativeSource);images.push({id,role:'order',roleLabel:`订单图片 ${i+1}`,blob:prepared.blob,nativeSource:Boolean(prepared.nativeSource)});}\n" +
+    '  try{\n' +
+    "    const result=await recognizeCoffeeBag(images,{locale:'zh-CN',onProgress:p=>{status.textContent=`${p.taskId} · ${p.status==='processing'?'识别中':'完成'} (${p.order}/${p.total})`;}});\n" +
+    "    $('#lbOrderText',overlay).value=result.fullText||'';status.textContent=`识别完成：${files.length} 张图片，严格串行处理。`;\n" +
+    '  }catch(error){status.textContent=`识别失败：${error.message}`;}\n' +
+    '}\n' +
+    '\n' +
+    'async function saveOrderBean(overlay){\n' +
+    "  const text=$('#lbOrderText',overlay)?.value?.trim()||'';if(!text)return notice('没有可解析的订单文字','status-warn');\n" +
+    '  const parsed=parseCoffeeOrderText(text);const purchase={...parsed.purchase,productName:parsed.productName};\n' +
+    "  let orderIdHash=null;if(parsed.purchase.orderId&&crypto?.subtle){const data=new TextEncoder().encode(parsed.purchase.orderId);const digest=await crypto.subtle.digest('SHA-256',data);orderIdHash=[...new Uint8Array(digest)].slice(0,12).map(v=>v.toString(16).padStart(2,'0')).join('');}\n" +
+    '  delete purchase.orderId;purchase.orderIdHash=orderIdHash;\n' +
+    '  const id=`bean_${crypto.randomUUID?.()||Date.now().toString(36)}`;\n' +
+    "  const base={id,name:parsed.productName||'在途咖啡豆',initialWeight:Number(parsed.purchase.weight||0),remainingWeight:0,price:Number(parsed.purchase.paidPrice||0),roasterName:parsed.purchase.merchant||'',source:'order-ocr',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),recognitionMetadata:{documentType:'order_page',privacyRedactions:parsed.privacyRedactions}};\n" +
+    "  const record=markBeanInTransit(base,purchase);record.logistics.status=parsed.logisticsStatus||'in_transit';await put('beans',record);closeOverlay();refresh('order-in-transit-created');notice('在途豆卡已建立，订单购买信息已保存','status-good');\n" +
+    '}\n' +
+    '\n' +
+    "async function brewExtraSettings(){const s=await getSetting('app.settings',{})||{};s.brew||={};s.brew.extMethod||='pourover';s.brew.beverageRecipe||='';return s;}\n" +
+    "async function saveBrewExtra(method,beverage){const s=await brewExtraSettings();s.brew.extMethod=method;s.brew.beverageRecipe=beverage;await setSetting('app.settings',s);}\n" +
+    '\n' +
+    'async function enhanceBrewMethods(){\n' +
+    "  const root=$('#brewContent');if(!root||root.dataset.lbMethodBusy)return;root.dataset.lbMethodBusy='1';\n" +
+    '  try{\n' +
+    "    const s=await brewExtraSettings();let row=$('[data-lb-local-method-row]',root);\n" +
+    '    if(!row){row=document.createElement(\'div\');row.className=\'lb-local-method-row\';row.dataset.lbLocalMethodRow=\'1\';row.innerHTML=`<select class="control" data-lb-extraction aria-label="萃取方式"><option value="pourover">手冲</option>${LOCAL_BREW_METHODS.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join(\'\')}</select><select class="control" data-lb-beverage aria-label="制作方式"><option value="">原液 / 不追加</option>${Object.entries(LOCAL_BEVERAGE_RECIPES_124B).map(([id,x])=>`<option value="${esc(id)}">${esc(x.name)}</option>`).join(\'\')}</select>`;const note=$(\'.lb-auto-note\',root);(note||root.firstChild)?.after?.(row);if(!row.parentNode)root.prepend(row);}\n' +
+    "    $('[data-lb-extraction]',row).value=s.brew.extMethod||'pourover';$('[data-lb-beverage]',row).value=s.brew.beverageRecipe||'';\n" +
+    "    const apply=async()=>{const method=$('[data-lb-extraction]',row).value,bev=$('[data-lb-beverage]',row).value;await saveBrewExtra(method,bev);applyMethodState(root,method,bev);};\n" +
+    "    if(!row.dataset.bound){row.dataset.bound='1';$('[data-lb-extraction]',row).addEventListener('change',apply);$('[data-lb-beverage]',row).addEventListener('change',apply);}\n" +
+    "    applyMethodState(root,s.brew.extMethod||'pourover',s.br"... 6086 more characters,
+  expected: /灰色|data-tone=\\"muted\\"/,
   operator: 'match',
   diff: 'simple'
 }
 
 Node.js v22.23.2
-::error file=tests/v123e-gear-matching-regression.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /^1\.23E-main-sync\.\d+$/. Input:%0A%0A'1.24B-main.3'%0A%0A    at file:///home/runner/work/luckybean/luckybean/tests/v123e-gear-matching-regression.mjs:21:8%0A    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)%0A    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)%0A    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {%0A  generatedMessage: true,%0A  code: 'ERR_ASSERTION',%0A  actual: '1.24B-main.3',%0A  expected: /^1\.23E-main-sync\.\d+$/,%0A  operator: 'match',%0A  diff: 'simple'%0A}%0A%0ANode.js v22.23.2
+::error file=tests/v123e-ui-stability-static.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /灰色|data-tone=\\"muted\\"/. Input:%0A%0A"import { all, getSetting, setSetting, put } from '../db.js';\n" +%0A  "import { preparePackageImage } from '../image-quality.js';\n" +%0A  "import { recognizeCoffeeBag } from '../recognition-bridge.js';\n" +%0A  "import { normalizeBeanRecord, beanCardVisualState, markBeanInTransit, LOCAL_BREW_METHODS } from '../release-1.24b.js';\n" +%0A  "import { parseCoffeeOrderText } from '../domain/recognition/order-recognition-1.24b.js';\n" +%0A  "import { LOCAL_BREW_RECIPES_124B, LOCAL_BEVERAGE_RECIPES_124B } from '../data/local-brew-recipes-1.24b.js';\n" +%0A  '\n' +%0A  'const $=(s,r=document)=>r?.querySelector?.(s)||null;\n' +%0A  'const $$=(s,r=document)=>[...(r?.querySelectorAll?.(s)||[])];\n' +%0A  `const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));\n` +%0A  'let observing=false;\n' +%0A  '\n' +%0A  "function notice(message,kind='status-good'){document.dispatchEvent(new CustomEvent('luckybean:user-notice',{detail:{message,kind}}));}\n" +%0A  "function refresh(source){document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh',{detail:{source}}));}\n" +%0A  "function closeOverlay(){ $('#overlayRoot')?.replaceChildren(); }\n" +%0A  '\n' +%0A  'async function fixBeanDetail(){\n' +%0A  `  const overlay=$('#overlayRoot > [data-overlay="bean-detail"]'); if(!overlay||overlay.dataset.lbFinalized)return;\n` +%0A  "  overlay.dataset.lbFinalized='1';\n" +%0A  "  $('#correctWeightBtn',overlay)?.remove();\n" +%0A  "  const stack=$('.management-stack',overlay), edit=$('#editBeanBtn',overlay);\n" +%0A  "  if(stack&&edit){stack.prepend(edit);stack.classList.add('lb-bean-actions');}\n" +%0A  "  const cold=$('#toggleColdBtn',overlay); if(cold&&!/^❄/.test(cold.textContent||''))cold.textContent='冷藏';\n" +%0A  "  const beanId=overlay.closest('#overlayRoot') ? document.querySelector('.bean-card.recommended')?.dataset?.beanId : '';\n" +%0A  "  const header=$('.dialog-header h2',overlay);\n" +%0A  "  if(header&&/未定国家/.test(header.textContent||'')){\n" +%0A  "    const id=window.__lbLastBeanId||''; const bean=id?await (await import('../db.js')).get('beans',id).catch(()=>null):null;\n" +%0A  '    if(bean?.name)header.textContent=bean.name;\n' +%0A  '  }\n' +%0A  '}\n' +%0A  '\n' +%0A  'function addSwipeClose(){\n' +%0A  "  const root=$('#beanGroups');if(!root||root.dataset.lbSwipeClose)return;root.dataset.lbSwipeClose='1';\n" +%0A  '  let start=null;\n' +%0A  "  root.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;start={x:e.clientX,y:e.clientY,id:e.pointerId};},{passive:true});\n" +%0A  "  root.addEventListener('pointerup',e=>{if(!start||start.id!==e.pointerId)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;start=null;if(Math.abs(dx)>=70&&Math.abs(dx)>Math.abs(dy)*1.4){const panel=$('[data-active-group-panel]',root);if(panel)panel.dispatchEvent(new MouseEvent('click',{bubbles:true}));}},{passive:true});\n" +%0A  '}\n' +%0A  '\n' +%0A  'async function addTransitCards(){\n' +%0A  "  const host=$('#beanGroups');if(!host)return;\n" +%0A  "  const beans=await all('beans').catch(()=>[]);\n" +%0A  '  const transit=beans.filter(bean=>!bean.archived&&!bean.deletedAt&&!bean.recycledAt&&!bean.trashAt&&!bean.tombstoneAt&&!bean.isDeleted&&!bean._deleted&&!bean.deleted&&beanCardVisualState(bean).usable===false);\n' +%0A  "  let section=$('[data-lb-transit-section]',host);\n" +%0A  '  if(!transit.length){section?.remove();return;}\n' +%0A  '  const html=transit.map(bean=>{const n=normalizeBeanRecord(bean);const price=n.purchase?.paidPrice!=null?`${n.purchase.currency||\'CNY\'} ${n.purchase.paidPrice}`:\'\';const weight=n.purchase?.weight?`${Number(n.purchase.weight).toFixed(0)}g`:\'\';return `<article class="bean-card compact lb-bean-card" data-tone="muted" data-bean-id="${esc(bean.id)}" tabindex="0"><div class="compact-bean-copy"><h3>${esc(bean.name||n.purchase?.productName||\'在途咖啡豆\')}</h3><small>${esc([n.purchase?.merchant,n.logistics?.status===\'in_transit\'?\'在途\':\'已下单\'].filter(Boolean).join(\' · \'))}</small><div class="compact-bean-row"><strong>${esc(weight||\'待入库\')}</strong><span class="compact-score">${esc(price||\'已购买\')}</span></div></div><span class="cup-action compact-pick" aria-label="在途豆不可冲煮">在途</span></article>`;}).join(\'\');\n' +%0A  "  if(!section){section=document.createElement('section');section.dataset.lbTransitSection='1';section.className='lb-transit-section';host.prepend(section);}\n" +%0A  '  section.innerHTML=`<div class="bean-grid compact-grid">${html}</div>`;\n' +%0A  '}\n' +%0A  '\n' +%0A  "function bindLastBean(){document.addEventListener('click',e=>{const card=e.target.closest?.('.bean-card[data-bean-id]');if(card)window.__lbLastBeanId=card.dataset.beanId||'';},true);}\n" +%0A  '\n' +%0A  'function enhanceAddMenu(){\n' +%0A  "  $$('.popup-menu').forEach(menu=>{\n" +%0A  "    if(!menu.querySelector('[data-add-mode]')||menu.querySelector('[data-lb-order-add]'))return;\n" +%0A  "    const b=document.createElement('button');b.type='button';b.dataset.lbOrderAdd='1';b.textContent='订单录入';menu.append(b);\n" +%0A  '  });\n' +%0A  '}\n' +%0A  '\n' +%0A  'function bindAndroidImage(id,nativeSource){\n' +%0A  "  if(!nativeSource||!globalThis.__LUCKYBEAN_ANDROID__||typeof globalThis.LuckyBeanNative?.bindImageSource!=='function')return;\n" +%0A  '  try{globalThis.LuckyBeanNative.bindImageSource(String(id),false);}catch{}\n' +%0A  '}\n' +%0A  '\n' +%0A  'function openOrderEntry(){\n' +%0A  "  closeOverlay(); const root=$('#overlayRoot');if(!root)return;\n" +%0A  '  root.innerHTML=`<div class="overlay full" data-overlay="lb-order-entry"><div class="dialog"><div class="dialog-header"><div><h2>订单录入</h2><p>支持订单页/商品页截图；只提取咖啡购买字段，不保存手机号和地址。</p></div><button class="close-button" type="button">×</button></div><input id="lbOrderImages" type="file" accept="image/*" multiple><textarea id="lbOrderText" class="control" rows="9" placeholder="也可直接粘贴订单文字"></textarea><p class="muted small" data-lb-order-status>多张图片按 IMG-001、IMG-002… 顺序单进程识别。</p><div class="row end"><button class="button" type="button" data-lb-order-recognize>识别图片</button><button class="button primary" type="button" data-lb-order-save>建立在途豆卡</button></div></div></div>`;\n' +%0A  "  const overlay=root.firstElementChild;overlay.addEventListener('click',e=>{if(e.target===overlay||e.target.closest('.close-button'))closeOverlay();});\n" +%0A  "  $('[data-lb-order-recognize]',overlay)?.addEventListener('click',()=>recognizeOrderImages(overlay));\n" +%0A  "  $('[data-lb-order-save]',overlay)?.addEventListener('click',()=>saveOrderBean(overlay));\n" +%0A  '}\n' +%0A  '\n' +%0A  'async function recognizeOrderImages(overlay){\n' +%0A  "  const files=[...($('#lbOrderImages',overlay)?.files||[])].filter(f=>f.type.startsWith('image/')).slice(0
