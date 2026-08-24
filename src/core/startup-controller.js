@@ -2,7 +2,7 @@ import { get, put } from '../db.js';
 
 const DEVICE_RECORD_ID = 'cloud.device.id.v3';
 const SPLASH_READY_TIMEOUT_MS = 12000;
-const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.2';
+const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.3';
 let enterRequested = false;
 let shellReady = false;
 
