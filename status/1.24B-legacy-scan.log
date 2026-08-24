@@ -5,9 +5,7 @@ tests/v123e-cloud-gear-sync.mjs:25:console.log('LuckyBean 1.23E gear cloud-sync 
 tests/v120-requirements-static.mjs:46:  'luckybean-main-v123e-',
 tests/v120-requirements-static.mjs:47:  'luckybean-main-v123d-',
 tests/v123e-gear-matching-regression.mjs:24:assert.ok(Number(versionCodeMatch[1]) > 102314, `upgrade versionCode must exceed prior release 102314, got ${versionCodeMatch[1]}`);
-tests/v123e-gear-matching-regression.mjs:72:console.log('LuckyBean 1.23E canonical gear binding, direct bean matching, QR runtime and upgrade release checks passed');
 tests/v123e-interaction-repair-static.mjs:24:assert.ok(Number(versionCodeMatch[1]) > 102314, `upgrade versionCode must exceed 102314, got ${versionCodeMatch[1]}`);
-tests/v123e-interaction-repair-static.mjs:57:console.log('LuckyBean 1.23E canonical QR, bean matching, gear, flavor taxonomy, user-guide and upgrade release checks passed');
 tests/v127-user-regressions-ui.spec.mjs:7:  await page.goto(`${BASE_URL}/?v123e-regressions=1`, { waitUntil: 'domcontentloaded' });
 tests/v127-user-regressions-ui.spec.mjs:31:    document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail: { source: 'v123e-legacy-card' } }));
 tests/v127-user-regressions-ui.spec.mjs:41:  await page.evaluate(() => document.dispatchEvent(new CustomEvent('luckybean:app-refreshed', { detail: { source: 'v123e-force-display-repair' } })));
@@ -15,11 +13,9 @@ tests/v127-user-regressions-ui.spec.mjs:104:    const { preparePackageImage } = 
 tests/v127-user-regressions-ui.spec.mjs:136:    const { recognizeCoffeeBag } = await import('/src/recognition-bridge.js?v123e-uri-ocr');
 tests/v110-local-first-sync-static.mjs:118:assert.match(sw, /'luckybean-main-v123e-'/);
 tests/v110-local-first-sync-static.mjs:119:assert.match(sw, /'luckybean-main-v123d-'/);
-tests/v123e-freshness-timeline-regression.mjs:40:console.log('LuckyBean 1.23E canonical one-line freshness timeline and stage grouping checks passed');
 tests/v123e-interaction-repair-ui.spec.mjs:7:  await page.goto(`${BASE_URL}/?v123e-canonical-interaction=1`, { waitUntil:'domcontentloaded' });
 tests/v122-cloud-sync-safety.mjs:61:console.log('v1.23D cloud union baseline and deletion propagation checks passed');
 tests/v123e-navigation-back-static.mjs:39:assert.ok(versionCode > 102315, `upgrade versionCode must exceed previous signed build: ${versionCode}`);
-tests/v127-user-regressions-static.mjs:47:console.log('v127 canonical cooling/gear ownership and 1.23E Android image pipeline static checks passed');
 tests/v123d-deployment-contracts.mjs:63:assert.match(sw, /luckybean-main-v123e-/);
 scripts/run-core-tests.mjs:7:  'tests/v123d-bean-summary-ui.spec.mjs',
 scripts/run-core-tests.mjs:9:  'tests/v123e-freshness-timeline-ui.spec.mjs',
@@ -64,30 +60,29 @@ scripts/migrate-release-1.24b.mjs:53:  ['version=1.23E', `version=${VERSION}`],
 scripts/migrate-release-1.24b.mjs:54:  ['version_code=102322', `version_code=${VERSION_CODE}`],
 scripts/migrate-release-1.24b.mjs:55:  ['revision=1.23E-main-sync.11', `revision=${REVISION}`]
 scripts/migrate-release-1.24b.mjs:72:  status = `${marker}\n\n当前版本：\`${VERSION}\`  \n发布修订：\`${REVISION}\`  \nAndroid：\`versionCode ${VERSION_CODE}\` / \`versionName ${VERSION}\`\n\n当前 main 以 1.24B 为唯一发布基线；下方 1.23D/1.23E 内容仅作为历史检查点保留，不再代表当前部署版本。\n\n---\n\n${status}`;
-src/app.js:2594:  <details class="settings-category"><summary><span>本物</span><small>关于本工具和开发小哥的一切</small></summary><div class="settings-category-body about-content"><figure class="about-illustration"><img src="./public/Luckybean-END.webp?v=1.23E-main-sync.3" alt="富贵盒子猫咪插图" loading="lazy" decoding="async"><figcaption>富贵盒子</figcaption></figure><h2>富贵盒子</h2><p>咖啡豆管理、冲煮辅助、品鉴记录与本地数据归档工具。</p><dl><dt>版本</dt><dd>${APP_VERSION}</dd><dt>数据结构</dt><dd>${SCHEMA_VERSION}</dd><dt>离线引擎</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>数据源</dt><dd>公开编码数据 ${esc(meta.version||state.codebook.version||'6')}</dd><dt>开发与维护</dt><dd>zjcrop</dd></dl></div></details>
 src/domain/recognition/recognition-date-classifier.js:4:export const DATE_CLASSIFIER_VERSION = '1.23D-date-fields.2';
 src/domain/recognition/recognition-document.js:337:    parserVersion: '1.23E-recognition-layout.2',
 src/domain/recognition/recognition-pipeline.js:3:export const RECOGNITION_PIPELINE_VERSION = '1.23E-recognition-pipeline.2';
 src/domain/recognition/recognition-date-review.js:1:export const DATE_REVIEW_VERSION = '1.23E-date-review.3';
 src/cloud-codec.js:236:  // 1.23D/early 1.23E accidentally serialized an object array with String(array).
-android/app/src/main/java/com/luckybean/app/MainActivity.java:142:        settings.setUserAgentString(settings.getUserAgentString() + " LuckyBeanAndroid/1.23E");
 .github/workflows/diagnose-main.yml:48:              "1\\.23E|v123e|V123E|1023[0-9]{2}|main-v123e|1\\.23D|v123d|V123D|main-v123d" \
 .github/workflows/migrate-release-1.24b.yml:35:            "APP_VERSION = '1\\.23E'|versionName '1\\.23E'|versionCode 102322|LuckyBeanAndroid/1\\.23E|1\\.23E-main-sync\\.(3|4|11)" \
 .github/workflows/build-main.yml:62:          ! grep -Fq 'LuckyBeanAndroid/1.23E' "$file"
 package.json:10:    "test:smoke": "playwright test tests/v110-startup-smoke.spec.mjs tests/v123e-ui-interaction.spec.mjs --browser=chromium --reporter=line --workers=1",
 sw.js:6:  'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
-DEVELOPMENT_STATUS.md:1:# LuckyBean 1.23E — 开发状态
-DEVELOPMENT_STATUS.md:4:发布修订：`1.23E-main-sync.11`
-DEVELOPMENT_STATUS.md:5:Android：`versionCode 102322` / `versionName 1.23E`
-DEVELOPMENT_STATUS.md:14:- Android `versionCode` 提升为 `102322`，产品版本仍为 `1.23E`；缓存修订提升为 `1.23E-main-sync.11`。
-DEVELOPMENT_STATUS.md:22:- Android `versionCode` 提升为 `102321`，产品版本仍为 `1.23E`；缓存修订提升为 `1.23E-main-sync.10`。
-DEVELOPMENT_STATUS.md:32:- Android `versionCode` 提升为 `102320`，产品版本仍为 `1.23E`；正式 APK 仅使用 GitHub Actions 中的既有发布私钥签名，私钥不得进入源码、构建资源或 APK。
-DEVELOPMENT_STATUS.md:49:> 后续完整开发顺序、未关闭问题和验收门禁统一见 `docs/LuckyBean-1.23D-DEVELOPMENT-HANDBOOK.md`。本文件记录当前检查点，不代表历史业务问题已经全部关闭。
-DEVELOPMENT_STATUS.md:54:当前部署：LuckyBean `1.23D`，唯一来源为 GitHub `main` 的最新成功部署提交。
-DEVELOPMENT_STATUS.md:56:内部资源修订：`1.23D-main-sync.5`（仅用于清除旧 PWA/WebView 缓存，不是第二条版本线）
-DEVELOPMENT_STATUS.md:61:- 暂不推进 2.0、Compose、Room 或 KMP，先在 1.2.3 行为基线上完成 1.23D 的问题修复与验收。
-DEVELOPMENT_STATUS.md:62:- Web/PWA 继续使用 IndexedDB；既有 Android 测试壳随 1.23D Web 版本验证。
-DEVELOPMENT_STATUS.md:70:2. 数据 Schema 从 7 升至 8，应用显示版本回正为 `1.23D`。
-DEVELOPMENT_STATUS.md:77:6. PWA 离线资源表已纳入归档与结构化识别模块，版本缓存已切换到 1.23D。
-DEVELOPMENT_STATUS.md:84:13. 将 1.23D 改动移植到远端最新 main，保留独立品鉴状态机、器具模型、分享地址和既有主线回归测试。
-DEVELOPMENT_STATUS.md:86:15. 将 Web、PWA、Android、Actions 和构建产物版本统一为 `1.23D`；Android `versionCode` 为 `102304`。
+DEVELOPMENT_STATUS.md:7:当前 main 以 1.24B 为唯一发布基线；下方 1.23D/1.23E 内容仅作为历史检查点保留，不再代表当前部署版本。
+DEVELOPMENT_STATUS.md:11:# LuckyBean 1.23E — 开发状态
+DEVELOPMENT_STATUS.md:14:发布修订：`1.23E-main-sync.11`
+DEVELOPMENT_STATUS.md:15:Android：`versionCode 102322` / `versionName 1.23E`
+DEVELOPMENT_STATUS.md:24:- Android `versionCode` 提升为 `102322`，产品版本仍为 `1.23E`；缓存修订提升为 `1.23E-main-sync.11`。
+DEVELOPMENT_STATUS.md:32:- Android `versionCode` 提升为 `102321`，产品版本仍为 `1.23E`；缓存修订提升为 `1.23E-main-sync.10`。
+DEVELOPMENT_STATUS.md:42:- Android `versionCode` 提升为 `102320`，产品版本仍为 `1.23E`；正式 APK 仅使用 GitHub Actions 中的既有发布私钥签名，私钥不得进入源码、构建资源或 APK。
+DEVELOPMENT_STATUS.md:59:> 后续完整开发顺序、未关闭问题和验收门禁统一见 `docs/LuckyBean-1.23D-DEVELOPMENT-HANDBOOK.md`。本文件记录当前检查点，不代表历史业务问题已经全部关闭。
+DEVELOPMENT_STATUS.md:64:当前部署：LuckyBean `1.23D`，唯一来源为 GitHub `main` 的最新成功部署提交。
+DEVELOPMENT_STATUS.md:66:内部资源修订：`1.23D-main-sync.5`（仅用于清除旧 PWA/WebView 缓存，不是第二条版本线）
+DEVELOPMENT_STATUS.md:71:- 暂不推进 2.0、Compose、Room 或 KMP，先在 1.2.3 行为基线上完成 1.23D 的问题修复与验收。
+DEVELOPMENT_STATUS.md:72:- Web/PWA 继续使用 IndexedDB；既有 Android 测试壳随 1.23D Web 版本验证。
+DEVELOPMENT_STATUS.md:80:2. 数据 Schema 从 7 升至 8，应用显示版本回正为 `1.23D`。
+DEVELOPMENT_STATUS.md:87:6. PWA 离线资源表已纳入归档与结构化识别模块，版本缓存已切换到 1.23D。
+DEVELOPMENT_STATUS.md:94:13. 将 1.23D 改动移植到远端最新 main，保留独立品鉴状态机、器具模型、分享地址和既有主线回归测试。
+DEVELOPMENT_STATUS.md:96:15. 将 Web、PWA、Android、Actions 和构建产物版本统一为 `1.23D`；Android `versionCode` 为 `102304`。
