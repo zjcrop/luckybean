@@ -1,4 +1,4 @@
-const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.3';
+const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.4';
 const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEASE_REVISION)}` });
 
 const RUNTIME_FEATURES = Object.freeze([
@@ -19,7 +19,9 @@ const RUNTIME_FEATURES = Object.freeze([
   feature('ui-upgrade', '../ui-upgrade-controller.js'),
   feature('origin-map', '../origin-map-controller.js'),
   feature('recognition-batch-progress', './recognition-batch-progress-controller.js'),
-  feature('release-1.24b-freshness-detail', './release-1.24b-freshness-detail.js')
+  feature('release-1.24b-freshness-detail', './release-1.24b-freshness-detail.js'),
+  feature('release-1.24b-brew-mode', './release-1.24b-brew-mode-controller.js'),
+  feature('release-1.24b-ui-policy', './release-1.24b-ui-policy.js')
 ]);
 
 const failures = [];
