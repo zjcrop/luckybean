@@ -9,9 +9,10 @@ document.addEventListener('click',event=>{
   }
   event.preventDefault();
   event.stopImmediatePropagation();
-  button.dataset[DEFER_FLAG]='1';
   setTimeout(()=>{
-    if(!button.isConnected||button.disabled)return;
-    button.click();
+    const current=document.querySelector('#bagRecognizeBtn');
+    if(!current||current.disabled)return;
+    current.dataset[DEFER_FLAG]='1';
+    current.click();
   },0);
 },true);
