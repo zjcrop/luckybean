@@ -199,7 +199,8 @@ export async function recognizeCoffeeBag(images, options = {}) {
       allBlocks.push(...blocks);
       const completed={ taskId, order, imageId:image.id, engine:result.engine || engine, blocks, status:'completed', text };
       perImage.push(completed);
-      Object.assign(task,{status:'completed',engine:completed.engine,text,blocks,error:null,completedAt:new Date().toISOString()});
+      task.status='completed';
+      Object.assign(task,{engine:completed.engine,text,blocks,error:null,completedAt:new Date().toISOString()});
       safeStoreBatch(batch);
       options.onProgress?.({ taskId, order, total, imageId:image.id, status:'completed', batchId:batch.batchId });
     } catch (error) {
