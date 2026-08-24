@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 4.994283
+  duration_ms: 5.43201
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 2.049752
+  duration_ms: 2.212598
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 2.737549
+  duration_ms: 2.448618
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 2.019313
+  duration_ms: 1.97134
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.708617
+  duration_ms: 0.948656
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.669689
+  duration_ms: 2.805572
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.777955
+  duration_ms: 1.014327
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 21.345743
+# duration_ms 22.708475
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 5.739057
+  duration_ms: 5.776401
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 3.805226
+  duration_ms: 3.796055
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 4.093629
+  duration_ms: 3.697542
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 2.917295
+  duration_ms: 2.854573
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 2.374351
+  duration_ms: 2.27227
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 0.985647
+  duration_ms: 1.098455
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 25.353982
+# duration_ms 25.440399
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -163,28 +163,338 @@ LuckyBean 1.24B compact small-brew, automatic-field and Android upgrade contract
 LuckyBean 1.24B 1.24B-main.4 canonical UI stability regression checks passed
 
 [static] tests/v123e-navigation-back-static.mjs
+LuckyBean canonical page stack, overlay back, Android gesture back and compact bean metadata contracts passed
+
+[static] tests/v123e-brew-optimization-regression.mjs
+post-tasting optimization, deterministic spatial trend and release-signature guards passed
+
+[static] tests/v123e-recognition-pipeline-static.mjs
+Recognition document is the single translated and structured bean-entry source
+
+[static] tests/v124b-lifecycle-ocr-storage-regression.mjs
+LuckyBean 1.24B lifecycle, serial OCR, transit/frozen storage, order parsing and local brew regression checks passed
+
+[static] tests/v124b-final-release-contract.mjs
+LuckyBean 1.24B main.4 final release contract passed
+
+[static] tests/v124b-complete-plan-contract.mjs
+LuckyBean 1.24B main.4 complete modification-plan contract passed
+
+[static] tests/v124b-ui-policy-regression.mjs
 node:internal/modules/run_main:123
     triggerUncaughtException(
     ^
 
-AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-+ actual - expected
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /page\.addEventListener\('click'/. Input:
 
-+ '1.24B-main.4'
-- '1.24B-main.3'
-              ^
+'// LuckyBean 1.24B main.4 — canonical UI policy shared by Web and Android WebView.\n' +
+  "const UI_POLICY_REVISION = '1.24B-main.4';\n" +
+  '\n' +
+  'if (!globalThis.__LuckyBean124BUiPolicyLoaded) {\n' +
+  '  globalThis.__LuckyBean124BUiPolicyLoaded = true;\n' +
+  '\n' +
+  "  const STYLE_ID = 'luckybean-124b-ui-policy-style';\n" +
+  "  const OBSERVED = Symbol('luckybean124bUiPolicyObserved');\n" +
+  '\n' +
+  '  function ensurePolicyStyle() {\n' +
+  '    if (document.getElementById(STYLE_ID)) return;\n' +
+  "    const style = document.createElement('style');\n" +
+  '    style.id = STYLE_ID;\n' +
+  '    style.textContent = `\n' +
+  '      /* Coffee World: the visible map frame is always 2:1 (width:height). */\n' +
+  '      .v099g-world-map {\n' +
+  '        width: 100% !important;\n' +
+  '        aspect-ratio: 2 / 1 !important;\n' +
+  '        height: auto !important;\n' +
+  '        min-height: 0 !important;\n' +
+  '        max-height: none !important;\n' +
+  '      }\n' +
+  '      .v099g-world-map .jvm-container {\n' +
+  '        width: 100% !important;\n' +
+  '        height: 100% !important;\n' +
+  '        min-height: 0 !important;\n' +
+  '      }\n' +
+  '\n' +
+  '      /* Removed summary modules must never flash before mutation cleanup. */\n' +
+  '      .preference-board-strip,\n' +
+  '      .bean-consumption-summary > small {\n' +
+  '        display: none !important;\n' +
+  '      }\n' +
+  '\n' +
+  '      /* Expanded bean groups end with the card content; blank page space is outside the group. */\n' +
+  '      #beanGroups .active-group-panel {\n' +
+  '        min-height: 0 !important;\n' +
+  '        padding-bottom: 0 !important;\n' +
+  '      }\n' +
+  '      #beanGroups .active-group-panel > .group-collapse-zone {\n' +
+  '        display: none !important;\n' +
+  '      }\n' +
+  '\n' +
+  '      .bean-consumption-summary .lb-stock-total,\n' +
+  '      .bean-consumption-summary .lb-today-consumption {\n' +
+  '        display: inline;\n' +
+  '      }\n' +
+  '\n' +
+  '      @media (max-width: 720px) {\n' +
+  '        .bean-consumption-summary > p {\n' +
+  '          display: grid !important;\n' +
+  '          gap: .28rem !important;\n' +
+  '          margin: 0 !important;\n' +
+  '        }\n' +
+  '        .bean-consumption-summary .lb-stock-total {\n' +
+  '          display: block !important;\n' +
+  '          font-size: clamp(1.22rem, 5.2vw, 1.55rem) !important;\n' +
+  '          line-height: 1.25 !important;\n' +
+  '          font-weight: 700 !important;\n' +
+  '          letter-spacing: .01em !important;\n' +
+  '        }\n' +
+  '        .bean-consumption-summary .lb-today-consumption {\n' +
+  '          display: block !important;\n' +
+  '          font-size: .9rem !important;\n' +
+  '          line-height: 1.45 !important;\n' +
+  '        }\n' +
+  '      }\n' +
+  '    `;\n' +
+  '    document.head.append(style);\n' +
+  '  }\n' +
+  '\n' +
+  '  function simplifyAccountSync(root = document) {\n' +
+  "    root.querySelectorAll('[data-cloud-pull]').forEach(button => {\n" +
+  "      if (button.textContent !== '合并云端') button.textContent = '合并云端';\n" +
+  "      button.setAttribute('aria-label', '合并云端数据到本地');\n" +
+  '    });\n' +
+  '  }\n' +
+  '\n' +
+  '  function simplifyCollectionSettings(root = document) {\n' +
+  "    root.querySelectorAll('[data-v099p-data-analysis]').forEach(section => {\n" +
+  "      const heading = section.querySelector(':scope > h3');\n" +
+  "      if (heading && heading.textContent.trim() === '数藏分析') heading.remove();\n" +
+  "      const intro = [...section.querySelectorAll(':scope > p')].find(node =>\n" +
+  "        node.textContent.includes('从豆卡、冲煮与品鉴记录生成个人咖啡图谱')\n" +
+  '      );\n' +
+  '      intro?.remove();\n' +
+  '    });\n' +
+  '  }\n' +
+  '\n' +
+  '  function formatMobileBeanSummary(root = document) {\n' +
+  "    root.querySelectorAll('.bean-consumption-summary > p').forEach(node => {\n" +
+  "      if (node.dataset.lbSummaryLayout === '2') return;\n" +
+  "      const text = node.textContent.replace(/\\s+/g, ' ').trim();\n" +
+  '      const stockMatch = text.match(/现有咖啡豆\\s*([\\d.]+)\\s*(kg|g)/i);\n' +
+  '      const consumedMatch = text.match(/今日已饮用\\s*([\\d.]+)g豆/);\n' +
+  '      if (!stockMatch || !consumedMatch) return;\n' +
+  '\n' +
+  '      const stockValue = Number(stockMatch[1]);\n' +
+  "      const stockKg = stockMatch[2].toLowerCase() === 'kg' ? stockValue : stockValue / 1000;\n" +
+  '      const stockText = `${stockKg.toFixed(stockKg >= 10 ? 1 : 2)}kg`;\n' +
+  '      const consumedText = `${Number(consumedMatch[1]).toFixed(1)}g豆`;\n' +
+  '      const allowanceMatch = text.match(/参考上限还可使用约\\s*([\\d.]+)g豆/);\n' +
+  '      const exceededMatch = text.match(/参考上限已超过约\\s*([\\d.]+)mg咖啡因/);\n' +
+  '\n' +
+  '      let secondLine = `今日已饮用 ${consumedText}`;\n' +
+  '      if (allowanceMatch) secondLine += `，还可饮用 ${Number(allowanceMatch[1]).toFixed(1)}g豆（非罗布斯塔）`;\n' +
+  '      else if (exceededMatch) secondLine += `，参考上限已超过约${Number(exceededMatch[1]).toFixed(0)}mg咖啡因`;\n' +
+  '\n' +
+  '      node.innerHTML = `<span class="lb-stock-total">现有咖啡豆共计 ${stockText}</span><span class="lb-today-consumption">${secondLine}</span>`;\n' +
+  "      node.dataset.lbSummaryLayout = '2';\n" +
+  '    });\n' +
+  '  }\n' +
+  '\n' +
+  '  function simplifyBeanSummary(root = document) {\n' +
+  "    root.querySelectorAll('.preference-board-strip').forEach(node => node.remove());\n" +
+  "    root.querySelectorAll('.bean-consumption-summary > small').forEach(node => {\n" +
+  "      if (node.textContent.includes('咖啡因按阿拉比卡约12mg/g豆保守估算')) node.remove();\n" +
+  '    });\n' +
+  '    formatMobileBeanSummary(root);\n' +
+  '  }\n' +
+  '\n' +
+  '  function applyPolicy(root = document) {\n' +
+  '    ensurePolicyStyle();\n' +
+  '    simplifyAccountSync(root);\n' +
+  '    simplifyCollectionSettings(root);\n' +
+  '    simplifyBeanSummary(root);\n' +
+  '    document.documentElement.dataset.uiPolicyRevision = UI_POLICY_REVISION;\n' +
+  '  }\n' +
+  '\n' +
+  '  function observe(id) {\n' +
+  '    const node = document.getElementById(id);\n' +
+  '    if (!node || node[OBSERVED]) return;\n' +
+  '    node[OBSERVED] = true;\n' +
+  '    new MutationObserver(() => applyPolicy(node)).observe(node, { childList: true, subtree: true });\n' +
+  '  }\n' +
+  '\n' +
+  '  function boot() {\n' +
+  '    applyPolicy();\n' +
+  "    observe('settingsContent');\n" +
+  "    observe('beanGroups');\n" +
+  '  }\n' +
+  '\n' +
+  "  ['luckybean:settings-rendered', 'luckybean:account-panel-rendered', 'luckybean:app-refreshed', 'luckybean:local-app-ready']\n" +
+  '    .forEach(type => document.addEventListener(type, () => queueMicrotask(boot)));\n' +
+  '\n' +
+  "  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });\n" +
+  '  else boot();\n' +
+  '\n' +
+  '  globalThis.LuckyBeanUiPolicy124B = { revision: UI_POLICY_REVISION, apply: applyPolicy };\n' +
+  '}\n'
 
-    at file:///home/runner/work/luckybean/luckybean/tests/v123e-navigation-back-static.mjs:14:8
-    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+    at file:///home/runner/work/luckybean/luckybean/tests/v124b-ui-policy-regression.mjs:19:8 {
   generatedMessage: true,
   code: 'ERR_ASSERTION',
-  actual: '1.24B-main.4',
-  expected: '1.24B-main.3',
-  operator: 'strictEqual',
+  actual: '// LuckyBean 1.24B main.4 — canonical UI policy shared by Web and Android WebView.\n' +
+    "const UI_POLICY_REVISION = '1.24B-main.4';\n" +
+    '\n' +
+    'if (!globalThis.__LuckyBean124BUiPolicyLoaded) {\n' +
+    '  globalThis.__LuckyBean124BUiPolicyLoaded = true;\n' +
+    '\n' +
+    "  const STYLE_ID = 'luckybean-124b-ui-policy-style';\n" +
+    "  const OBSERVED = Symbol('luckybean124bUiPolicyObserved');\n" +
+    '\n' +
+    '  function ensurePolicyStyle() {\n' +
+    '    if (document.getElementById(STYLE_ID)) return;\n' +
+    "    const style = document.createElement('style');\n" +
+    '    style.id = STYLE_ID;\n' +
+    '    style.textContent = `\n' +
+    '      /* Coffee World: the visible map frame is always 2:1 (width:height). */\n' +
+    '      .v099g-world-map {\n' +
+    '        width: 100% !important;\n' +
+    '        aspect-ratio: 2 / 1 !important;\n' +
+    '        height: auto !important;\n' +
+    '        min-height: 0 !important;\n' +
+    '        max-height: none !important;\n' +
+    '      }\n' +
+    '      .v099g-world-map .jvm-container {\n' +
+    '        width: 100% !important;\n' +
+    '        height: 100% !important;\n' +
+    '        min-height: 0 !important;\n' +
+    '      }\n' +
+    '\n' +
+    '      /* Removed summary modules must never flash before mutation cleanup. */\n' +
+    '      .preference-board-strip,\n' +
+    '      .bean-consumption-summary > small {\n' +
+    '        display: none !important;\n' +
+    '      }\n' +
+    '\n' +
+    '      /* Expanded bean groups end with the card content; blank page space is outside the group. */\n' +
+    '      #beanGroups .active-group-panel {\n' +
+    '        min-height: 0 !important;\n' +
+    '        padding-bottom: 0 !important;\n' +
+    '      }\n' +
+    '      #beanGroups .active-group-panel > .group-collapse-zone {\n' +
+    '        display: none !important;\n' +
+    '      }\n' +
+    '\n' +
+    '      .bean-consumption-summary .lb-stock-total,\n' +
+    '      .bean-consumption-summary .lb-today-consumption {\n' +
+    '        display: inline;\n' +
+    '      }\n' +
+    '\n' +
+    '      @media (max-width: 720px) {\n' +
+    '        .bean-consumption-summary > p {\n' +
+    '          display: grid !important;\n' +
+    '          gap: .28rem !important;\n' +
+    '          margin: 0 !important;\n' +
+    '        }\n' +
+    '        .bean-consumption-summary .lb-stock-total {\n' +
+    '          display: block !important;\n' +
+    '          font-size: clamp(1.22rem, 5.2vw, 1.55rem) !important;\n' +
+    '          line-height: 1.25 !important;\n' +
+    '          font-weight: 700 !important;\n' +
+    '          letter-spacing: .01em !important;\n' +
+    '        }\n' +
+    '        .bean-consumption-summary .lb-today-consumption {\n' +
+    '          display: block !important;\n' +
+    '          font-size: .9rem !important;\n' +
+    '          line-height: 1.45 !important;\n' +
+    '        }\n' +
+    '      }\n' +
+    '    `;\n' +
+    '    document.head.append(style);\n' +
+    '  }\n' +
+    '\n' +
+    '  function simplifyAccountSync(root = document) {\n' +
+    "    root.querySelectorAll('[data-cloud-pull]').forEach(button => {\n" +
+    "      if (button.textContent !== '合并云端') button.textContent = '合并云端';\n" +
+    "      button.setAttribute('aria-label', '合并云端数据到本地');\n" +
+    '    });\n' +
+    '  }\n' +
+    '\n' +
+    '  function simplifyCollectionSettings(root = document) {\n' +
+    "    root.querySelectorAll('[data-v099p-data-analysis]').forEach(section => {\n" +
+    "      const heading = section.querySelector(':scope > h3');\n" +
+    "      if (heading && heading.textContent.trim() === '数藏分析') heading.remove();\n" +
+    "      const intro = [...section.querySelectorAll(':scope > p')].find(node =>\n" +
+    "        node.textContent.includes('从豆卡、冲煮与品鉴记录生成个人咖啡图谱')\n" +
+    '      );\n' +
+    '      intro?.remove();\n' +
+    '    });\n' +
+    '  }\n' +
+    '\n' +
+    '  function formatMobileBeanSummary(root = document) {\n' +
+    "    root.querySelectorAll('.bean-consumption-summary > p').forEach(node => {\n" +
+    "      if (node.dataset.lbSummaryLayout === '2') return;\n" +
+    "      const text = node.textContent.replace(/\\s+/g, ' ').trim();\n" +
+    '      const stockMatch = text.match(/现有咖啡豆\\s*([\\d.]+)\\s*(kg|g)/i);\n' +
+    '      const consumedMatch = text.match(/今日已饮用\\s*([\\d.]+)g豆/);\n' +
+    '      if (!stockMatch || !consumedMatch) return;\n' +
+    '\n' +
+    '      const stockValue = Number(stockMatch[1]);\n' +
+    "      const stockKg = stockMatch[2].toLowerCase() === 'kg' ? stockValue : stockValue / 1000;\n" +
+    '      const stockText = `${stockKg.toFixed(stockKg >= 10 ? 1 : 2)}kg`;\n' +
+    '      const consumedText = `${Number(consumedMatch[1]).toFixed(1)}g豆`;\n' +
+    '      const allowanceMatch = text.match(/参考上限还可使用约\\s*([\\d.]+)g豆/);\n' +
+    '      const exceededMatch = text.match(/参考上限已超过约\\s*([\\d.]+)mg咖啡因/);\n' +
+    '\n' +
+    '      let secondLine = `今日已饮用 ${consumedText}`;\n' +
+    '      if (allowanceMatch) secondLine += `，还可饮用 ${Number(allowanceMatch[1]).toFixed(1)}g豆（非罗布斯塔）`;\n' +
+    '      else if (exceededMatch) secondLine += `，参考上限已超过约${Number(exceededMatch[1]).toFixed(0)}mg咖啡因`;\n' +
+    '\n' +
+    '      node.innerHTML = `<span class="lb-stock-total">现有咖啡豆共计 ${stockText}</span><span class="lb-today-consumption">${secondLine}</span>`;\n' +
+    "      node.dataset.lbSummaryLayout = '2';\n" +
+    '    });\n' +
+    '  }\n' +
+    '\n' +
+    '  function simplifyBeanSummary(root = document) {\n' +
+    "    root.querySelectorAll('.preference-board-strip').forEach(node => node.remove());\n" +
+    "    root.querySelectorAll('.bean-consumption-summary > small').forEach(node => {\n" +
+    "      if (node.textContent.includes('咖啡因按阿拉比卡约12mg/g豆保守估算')) node.remove();\n" +
+    '    });\n' +
+    '    formatMobileBeanSummary(root);\n' +
+    '  }\n' +
+    '\n' +
+    '  function applyPolicy(root = document) {\n' +
+    '    ensurePolicyStyle();\n' +
+    '    simplifyAccountSync(root);\n' +
+    '    simplifyCollectionSettings(root);\n' +
+    '    simplifyBeanSummary(root);\n' +
+    '    document.documentElement.dataset.uiPolicyRevision = UI_POLICY_REVISION;\n' +
+    '  }\n' +
+    '\n' +
+    '  function observe(id) {\n' +
+    '    const node = document.getElementById(id);\n' +
+    '    if (!node || node[OBSERVED]) return;\n' +
+    '    node[OBSERVED] = true;\n' +
+    '    new MutationObserver(() => applyPolicy(node)).observe(node, { childList: true, subtree: true });\n' +
+    '  }\n' +
+    '\n' +
+    '  function boot() {\n' +
+    '    applyPolicy();\n' +
+    "    observe('settingsContent');\n" +
+    "    observe('beanGroups');\n" +
+    '  }\n' +
+    '\n' +
+    "  ['luckybean:settings-rendered', 'luckybean:account-panel-rendered', 'luckybean:app-refreshed', 'luckybean:local-app-ready']\n" +
+    '    .forEach(type => document.addEventListener(type, () => queueMicrotask(boot)));\n' +
+    '\n' +
+    "  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });\n" +
+    '  else boot();\n' +
+    '\n' +
+    '  globalThis.LuckyBeanUiPolicy124B = { revision: UI_POLICY_REVISION, apply: applyPolicy };\n' +
+    '}\n',
+  expected: /page\.addEventListener\('click'/,
+  operator: 'match',
   diff: 'simple'
 }
 
 Node.js v22.23.2
-::error file=tests/v123e-navigation-back-static.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: Expected values to be strictly equal:%0A+ actual - expected%0A%0A+ '1.24B-main.4'%0A- '1.24B-main.3'%0A              ^%0A%0A    at file:///home/runner/work/luckybean/luckybean/tests/v123e-navigation-back-static.mjs:14:8%0A    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)%0A    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)%0A    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {%0A  generatedMessage: true,%0A  code: 'ERR_ASSERTION',%0A  actual: '1.24B-main.4',%0A  expected: '1.24B-main.3',%0A  operator: 'strictEqual',%0A  diff: 'simple'%0A}%0A%0ANode.js v22.23.2
+::error file=tests/v124b-ui-policy-regression.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /page\.addEventListener\('click'/. Input:%0A%0A'// LuckyBean 1.24B main.4 — canonical UI policy shared by Web and Android WebView.\n' +%0A  "const UI_POLICY_REVISION = '1.24B-main.4';\n" +%0A  '\n' +%0A  'if (!globalThis.__LuckyBean124BUiPolicyLoaded) {\n' +%0A  '  globalThis.__LuckyBean124BUiPolicyLoaded = true;\n' +%0A  '\n' +%0A  "  const STYLE_ID = 'luckybean-124b-ui-policy-style';\n" +%0A  "  const OBSERVED = Symbol('luckybean124bUiPolicyObserved');\n" +%0A  '\n' +%0A  '  function ensurePolicyStyle() {\n' +%0A  '    if (document.getElementById(STYLE_ID)) return;\n' +%0A  "    const style = document.createElement('style');\n" +%0A  '    style.id = STYLE_ID;\n' +%0A  '    style.textContent = `\n' +%0A  '      /* Coffee World: the visible map frame is always 2:1 (width:height). */\n' +%0A  '      .v099g-world-map {\n' +%0A  '        width: 100%25 !important;\n' +%0A  '        aspect-ratio: 2 / 1 !important;\n' +%0A  '        height: auto !important;\n' +%0A  '        min-height: 0 !important;\n' +%0A  '        max-height: none !important;\n' +%0A  '      }\n' +%0A  '      .v099g-world-map .jvm-container {\n' +%0A  '        width: 100%25 !important;\n' +%0A  '        height: 100%25 !important;\n' +%0A  '        min-height: 0 !important;\n' +%0A  '      }\n' +%0A  '\n' +%0A  '      /* Removed summary modules must never flash before mutation cleanup. */\n' +%0A  '      .preference-board-strip,\n' +%0A  '      .bean-consumption-summary > small {\n' +%0A  '        display: none !important;\n' +%0A  '      }\n' +%0A  '\n' +%0A  '      /* Expanded bean groups end with the card content; blank page space is outside the group. */\n' +%0A  '      #beanGroups .active-group-panel {\n' +%0A  '        min-height: 0 !important;\n' +%0A  '        padding-bottom: 0 !important;\n' +%0A  '      }\n' +%0A  '      #beanGroups .active-group-panel > .group-collapse-zone {\n' +%0A  '        display: none !important;\n' +%0A  '      }\n' +%0A  '\n' +%0A  '      .bean-consumption-summary .lb-stock-total,\n' +%0A  '      .bean-consumption-summary .lb-today-consumption {\n' +%0A  '        display: inline;\n' +%0A  '      }\n' +%0A  '\n' +%0A  '      @media (max-width: 720px) {\n' +%0A  '        .bean-consumption-summary > p {\n' +%0A  '          display: grid !important;\n' +%0A  '          gap: .28rem !important;\n' +%0A  '          margin: 0 !important;\n' +%0A  '        }\n' +%0A  '        .bean-consumption-summary .lb-stock-total {\n' +%0A  '          display: block !important;\n' +%0A  '          font-size: clamp(1.22rem, 5.2vw, 1.55rem) !important;\n' +%0A  '          line-height: 1.25 !important;\n' +%0A  '          font-weight: 700 !important;\n' +%0A  '          letter-spacing: .01em !important;\n' +%0A  '        }\n' +%0A  '        .bean-consumption-summary .lb-today-consumption {\n' +%0A  '          display: block !important;\n' +%0A  '          font-size: .9rem !important;\n' +%0A  '          line-height: 1.45 !important;\n' +%0A  '        }\n' +%0A  '      }\n' +%0A  '    `;\n' +%0A  '    document.head.append(style);\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function simplifyAccountSync(root = document) {\n' +%0A  "    root.querySelectorAll('[data-cloud-pull]').forEach(button => {\n" +%0A  "      if (button.textContent !== '合并云端') button.textContent = '合并云端';\n" +%0A  "      button.setAttribute('aria-label', '合并云端数据到本地');\n" +%0A  '    });\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function simplifyCollectionSettings(root = document) {\n' +%0A  "    root.querySelectorAll('[data-v099p-data-analysis]').forEach(section => {\n" +%0A  "      const heading = section.querySelector(':scope > h3');\n" +%0A  "      if (heading && heading.textContent.trim() === '数藏分析') heading.remove();\n" +%0A  "      const intro = [...section.querySelectorAll(':scope > p')].find(node =>\n" +%0A  "        node.textContent.includes('从豆卡、冲煮与品鉴记录生成个人咖啡图谱')\n" +%0A  '      );\n' +%0A  '      intro?.remove();\n' +%0A  '    });\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function formatMobileBeanSummary(root = document) {\n' +%0A  "    root.querySelectorAll('.bean-consumption-summary > p').forEach(node => {\n" +%0A  "      if (node.dataset.lbSummaryLayout === '2') return;\n" +%0A  "      const text = node.textContent.replace(/\\s+/g, ' ').trim();\n" +%0A  '      const stockMatch = text.match(/现有咖啡豆\\s*([\\d.]+)\\s*(kg|g)/i);\n' +%0A  '      const consumedMatch = text.match(/今日已饮用\\s*([\\d.]+)g豆/);\n' +%0A  '      if (!stockMatch || !consumedMatch) return;\n' +%0A  '\n' +%0A  '      const stockValue = Number(stockMatch[1]);\n' +%0A  "      const stockKg = stockMatch[2].toLowerCase() === 'kg' ? stockValue : stockValue / 1000;\n" +%0A  '      const stockText = `${stockKg.toFixed(stockKg >= 10 ? 1 : 2)}kg`;\n' +%0A  '      const consumedText = `${Number(consumedMatch[1]).toFixed(1)}g豆`;\n' +%0A  '      const allowanceMatch = text.match(/参考上限还可使用约\\s*([\\d.]+)g豆/);\n' +%0A  '      const exceededMatch = text.match(/参考上限已超过约\\s*([\\d.]+)mg咖啡因/);\n' +%0A  '\n' +%0A  '      let secondLine = `今日已饮用 ${consumedText}`;\n' +%0A  '      if (allowanceMatch) secondLine += `，还可饮用 ${Number(allowanceMatch[1]).toFixed(1)}g豆（非罗布斯塔）`;\n' +%0A  '      else if (exceededMatch) secondLine += `，参考上限已超过约${Number(exceededMatch[1]).toFixed(0)}mg咖啡因`;\n' +%0A  '\n' +%0A  '      node.innerHTML = `<span class="lb-stock-total">现有咖啡豆共计 ${stockText}</span><span class="lb-today-consumption">${secondLine}</span>`;\n' +%0A  "      node.dataset.lbSummaryLayout = '2';\n" +%0A  '    });\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function simplifyBeanSummary(root = document) {\n' +%0A  "    root.querySelectorAll('.preference-board-strip').forEach(node => node.remove());\n" +%0A  "    root.querySelectorAll('.bean-consumption-summary > small').forEach(node => {\n" +%0A  "      if (node.textContent.includes('咖啡因按阿拉比卡约12mg/g豆保守估算')) node.remove();\n" +%0A  '    });\n' +%0A  '    formatMobileBeanSummary(root);\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function applyPolicy(root = document) {\n' +%0A  '    ensurePolicyStyle();\n' +%0A  '    simplifyAccountSync(root);\n' +%0A  '    simplifyCollectionSettings(root);\n' +%0A  '    simplifyBeanSummary(root);\n' +%0A  '    document.documentElement.dataset.uiPolicyRevision = UI_POLICY_REVISION;\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function observe(id) {\n' +%0A  '    const node = document.getElementById(id);\n' +%0A  '    if (!node || node[OBSERVED]) return;\n' +%0A  '    node[OBSERVED] = true;\n' +%0A  '    new MutationObserver(() => applyPolicy(node)).observe(node, { childList: true, subtree: true });\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function boot() {\n' +%0A  '    applyPolicy();\n' +%0A  "    observe('settingsContent');\n" +%0A  "    observe('beanGroups');\n" +%0A  '  }\n' +%0A  '\n' +%0A  "  ['luckybean:settings-rendered', 'luckybean:account-panel-rendered', 'luckybean:app-refreshed',
