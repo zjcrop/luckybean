@@ -1,1 +1,1 @@
-{"source_sha":"457958a4ad20304ff1f079295d366a8cded9f46a","version":"1.24B","install_status":0,"js_status":0,"static_status":1,"passed":false,"first_error":"AssertionError [ERR_ASSERTION]: the locked app version must be 1.23E","generated_at":"2026-08-24T08:50:36Z"}
+{"source_sha":"1cb56944b9df06656d36c3ffb508c7a458416f73","version":"1.24B","install_status":0,"js_status":0,"static_status":1,"passed":false,"first_error":"AssertionError [ERR_ASSERTION]: the locked app version must be 1.23E","generated_at":"2026-08-24T08:56:42Z"}
