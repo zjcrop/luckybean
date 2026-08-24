@@ -40,7 +40,7 @@ assert.match(sync, /function ensureAutomatic/);
 assert.doesNotMatch(sync, /ENABLE_KEY|setEnabled|reason: 'disabled'|emit\('disabled'/);
 assert.doesNotMatch(startup, /ensureLocalIdentity|LB-LOCAL-|getSetting|setSetting/);
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124b-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-2`/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-3`/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES = \[/);
 for (const prefix of [
   'luckybean-main-v123e-',
@@ -50,7 +50,7 @@ for (const prefix of [
   'luckybean-v121-account-test-',
   'luckybean-v122-cloud-safety-test-'
 ]) assert.ok(sw.includes(`'${prefix}'`), `missing legacy cache prefix ${prefix}`);
-assert.match(sw, /1\.24B-main\.2/);
+assert.match(sw, /1\.24B-main\.3/);
 assert.match(startup, /RELEASE_REVISION/);
 assert.match(startup, /serviceWorker\.register\(`\.\/sw\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`/);
 assert.match(startup, /await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`\)/);
