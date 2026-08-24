@@ -33,6 +33,9 @@ test('native OCR payload is translated, structured and handed to the bean form w
 
   await page.locator('#bagGalleryInput').setInputFiles({ name: 'beanbag.png', mimeType: 'image/png', buffer: PNG_1X1 });
   await expect(page.locator('#bagRecognizeBtn')).toBeEnabled();
+  // The mocked OCR blocks declare themselves as the package back. Keep the selected source role
+  // consistent so this UI test exercises translation/structuring rather than contradictory provenance.
+  await page.locator('[data-bag-role]').selectOption('back');
   await page.locator('#bagRecognizeBtn').click();
 
   const country = page.locator('[data-recognition-field="countryCode"]');
