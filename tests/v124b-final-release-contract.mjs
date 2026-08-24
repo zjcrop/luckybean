@@ -70,7 +70,7 @@ assert.match(groupNavigation, /luckybean:navigation-back/);
 assert.match(groupNavigation, /closeActiveGroup/);
 assert.doesNotMatch(groupNavigation, />收</);
 
-assert.match(about, /data-settings-key=\\"about\\"/);
+assert.match(about, /data-settings-key="about"/);
 assert.match(about, /zj_crop/);
 assert.match(about, /端茶倒水的秦始皇🐻/);
 assert.match(about, /lb-about-contact/);
