@@ -26,7 +26,8 @@ const tests = [
   'tests/v123e-brew-optimization-regression.mjs',
   'tests/v123e-recognition-pipeline-static.mjs',
   'tests/v124b-lifecycle-ocr-storage-regression.mjs',
-  'tests/v124b-final-release-contract.mjs'
+  'tests/v124b-final-release-contract.mjs',
+  'tests/v124b-complete-plan-contract.mjs'
 ];
 
 function annotation(text) {
@@ -46,7 +47,7 @@ for (const file of tests) {
 }
 
 process.stdout.write('\n[static] npm run test:recognition\n');
-const recognition = spawnSync('npm', ['run', 'test:recognition'], { encoding: 'utf8', env: process.env, shell: process.platform === 'win32' });
+const recognition = spawnSync('npm', ['run', 'test:recognition'], { encoding:'utf8', env:process.env, shell:process.platform === 'win32' });
 if (recognition.stdout) process.stdout.write(recognition.stdout);
 if (recognition.stderr) process.stderr.write(recognition.stderr);
 if (recognition.status !== 0) {
