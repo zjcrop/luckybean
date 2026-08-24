@@ -11,6 +11,7 @@
 - 非手冲工艺教程扩展为“关键参数 / 准备 / 制作步骤 / 完成判断 / 常见偏差与调整”，覆盖 Espresso、Ristretto、Lungo、AeroPress、摩卡壶、法压、冷萃、冰滴、虹吸、Cezve、Phin、南印度滤器，以及常见意式衍生饮品和特调。
 - 工艺参数只作为可靠起始参考，不将设备相关经验数值写成普适定律。
 - Android 与 Web 使用同一套内嵌资源；PR Android 安装门限提高到 300 秒，以避免大体积 APK 在 GitHub API 29 模拟器中因 ADB 安装耗时被误判失败。
+- Android APK 契约分别验证教程控制器的页面结构与配方数据的 `prep / finish / adjust` 字段，避免以错误文件位置作为发布条件。
 
 ## 发布验收
 
