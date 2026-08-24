@@ -21,6 +21,7 @@ const captureState = {
   recognitionDocument: null,
   analysis: null
 };
+let recognitionQueued = false;
 
 function esc(value) {
   return String(value ?? '')
@@ -83,6 +84,7 @@ function clearCapture({ keepOverlay = false } = {}) {
   captureState.blocks = [];
   captureState.recognitionDocument = null;
   captureState.analysis = null;
+  recognitionQueued = false;
   if (!keepOverlay && root()) root().innerHTML = '';
 }
 
@@ -182,8 +184,6 @@ async function addFiles(fileList) {
       const role = nextRole();
       const id = `bag_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
       const nativeSource = Boolean(prepared.nativeSource);
-      // Bind every Android-selected file in order before OCR. This prevents a native-only
-      // preview from consuming the URI that belongs to an earlier WebView-decodable image.
       const nativePreview = bindAndroidImageSource(id, nativeSource);
       const previewUrl = nativeSource ? nativePreview : URL.createObjectURL(prepared.blob);
       const warnings = [...(prepared.warnings || [])];
@@ -310,7 +310,6 @@ function bindOverlay() {
   document.querySelector('#bagGalleryBtn')?.addEventListener('click', () => document.querySelector('#bagGalleryInput')?.click());
   document.querySelector('#bagCameraInput')?.addEventListener('change', event => addFiles(event.target.files));
   document.querySelector('#bagGalleryInput')?.addEventListener('change', event => addFiles(event.target.files));
-  document.querySelector('#bagRecognizeBtn')?.addEventListener('click', () => setTimeout(() => runRecognition(), 0));
   document.querySelector('#bagManualBtn')?.addEventListener('click', () => openManualEntry());
   document.querySelector('#bagHandoffBtn')?.addEventListener('click', handoffToExistingParser);
   document.querySelector('#bagReanalyzeBtn')?.addEventListener('click', reanalyzeEditedText);
@@ -349,6 +348,19 @@ function interceptPhotoMode(event) {
   openPackageCapture();
 }
 
+function interceptRecognitionClick(event) {
+  const button = event.target.closest?.('#bagRecognizeBtn');
+  if (!button || button.disabled || captureState.busy || recognitionQueued) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  recognitionQueued = true;
+  setTimeout(async () => {
+    try { await runRecognition(); }
+    finally { recognitionQueued = false; }
+  }, 0);
+}
+
 document.addEventListener('click', interceptPhotoMode, true);
+document.addEventListener('click', interceptRecognitionClick, true);
 
 window.LuckyBeanPackageCapture = { open: openPackageCapture, capabilities: getRecognitionCapabilities };
