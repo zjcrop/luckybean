@@ -37,4 +37,4 @@ assert.doesNotMatch(controller, /RL-L0|SL28|GESHA|0\.78/);
 assert.match(sw, /features\/freshness-timeline-controller\.js/);
 assert.ok(sw.includes(`REVISION = '${releaseRevision}'`), 'service worker revision must match current release');
 
-console.log('LuckyBean 1.23E canonical one-line freshness timeline and stage grouping checks passed');
+console.log('LuckyBean 1.24B canonical one-line freshness timeline and stage grouping checks passed');

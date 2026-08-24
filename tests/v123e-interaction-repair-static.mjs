@@ -54,4 +54,4 @@ assert.doesNotMatch(index, /interaction-repair|gear-matching-controller|gear-reg
 assert.ok(sw.includes(`REVISION = '${releaseRevision}'`), 'service worker revision must match current release');
 assert.ok(sw.includes(`main-sync-${syncNumber}`), 'service worker cache generation must match current release');
 assert.doesNotMatch(sw, /interaction-repair|gear-matching-controller|gear-regression-fix-controller|legacy-timer-guard|experience-fixes-controller/);
-console.log('LuckyBean 1.23E canonical QR, bean matching, gear, flavor taxonomy, user-guide and upgrade release checks passed');
+console.log('LuckyBean 1.24B canonical QR, bean matching, gear, flavor taxonomy, user-guide and upgrade release checks passed');

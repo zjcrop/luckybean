@@ -69,4 +69,4 @@ assert.equal(envelope.contract, 'luckybean-match/1.1');
 assert.equal(envelope.match_vector.length, 8);
 assert.equal(envelope.target_vector.length, 8);
 assert.match(envelope.signature, /^LMS1-FC1-X[0-9A-F]{16}-Q\d+$/);
-console.log('LuckyBean 1.23E canonical gear binding, direct bean matching, QR runtime and upgrade release checks passed');
+console.log('LuckyBean 1.24B canonical gear binding, direct bean matching, QR runtime and upgrade release checks passed');

@@ -44,4 +44,4 @@ assert.ok(!gear.includes('MutationObserver'), 'gear editor must be event-driven'
 assert.equal(fs.existsSync(new URL('../src/features/gear-regression-fix-controller.js', import.meta.url)), false, 'legacy gear guard must stay deleted');
 assert.equal(fs.existsSync(new URL('../src/features/experience-fixes-controller.js', import.meta.url)), false, 'experience repair controller must stay deleted');
 
-console.log('v127 canonical cooling/gear ownership and 1.23E Android image pipeline static checks passed');
+console.log('v127 canonical cooling/gear ownership and 1.24B Android image pipeline static checks passed');
