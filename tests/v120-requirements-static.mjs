@@ -39,17 +39,18 @@ assert.match(auth, /唯一的服务器同步账号/);
 assert.match(sync, /function ensureAutomatic/);
 assert.doesNotMatch(sync, /ENABLE_KEY|setEnabled|reason: 'disabled'|emit\('disabled'/);
 assert.doesNotMatch(startup, /ensureLocalIdentity|LB-LOCAL-|getSetting|setSetting/);
-assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v123e-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-sync-\d+`/);
+assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124b-'/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-2`/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES = \[/);
 for (const prefix of [
+  'luckybean-main-v123e-',
   'luckybean-main-v123d-',
   'luckybean-main-v123-',
   'luckybean-v120-test-',
   'luckybean-v121-account-test-',
   'luckybean-v122-cloud-safety-test-'
 ]) assert.ok(sw.includes(`'${prefix}'`), `missing legacy cache prefix ${prefix}`);
-assert.match(sw, /1\.23E-main-sync\.\d+/);
+assert.match(sw, /1\.24B-main\.2/);
 assert.match(startup, /RELEASE_REVISION/);
 assert.match(startup, /serviceWorker\.register\(`\.\/sw\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`/);
 assert.match(startup, /await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`\)/);
@@ -85,4 +86,4 @@ for (const profile of listBrewProfiles()) {
   assert.ok(Array.isArray(plan.stages) && plan.stages.length > 0, `profile generated no stages: ${profile.id}`);
 }
 
-console.log('LuckyBean 1.23E single server account, mandatory automatic sync and all-profile checks passed');
+console.log('LuckyBean 1.24B single server account, mandatory automatic sync and all-profile checks passed');
