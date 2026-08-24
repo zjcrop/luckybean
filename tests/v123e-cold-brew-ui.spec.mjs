@@ -20,7 +20,7 @@ test('first row switches hot/cold and automatic/custom dose without adding anoth
   await expect(dose).toHaveClass(/lb-auto-field/);
   await expect(dose).toHaveText(/^\d+(?:\.\d+)?g$/);
   await expect(dose).not.toContainText('自动');
-  await expect(ratio).toHaveValue('recommended');
+  await expect(ratio).toHaveValue('auto');
   await expect(ratio).toHaveAttribute('data-source','auto');
   await expect(ratio).toHaveClass(/lb-auto-field/);
   await expect(page.locator('.lb-brew-five-row > [data-brew-row]')).toHaveCount(5);
