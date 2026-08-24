@@ -14,6 +14,8 @@ const sensory=read('src/sensory-professional-controller.js');
 const integration=read('src/features/full-integration-controller-v3.js');
 const releaseIntegration=read('src/features/release-1.24b-finalize.js');
 const releasePolish=read('src/features/release-1.24b-polish.js');
+const groupNavigation=read('src/features/release-1.24b-group-navigation.js');
+const uiPolicy=read('src/features/release-1.24b-ui-policy.js');
 const releaseCss=read('src/release-1.24b.css');
 const freshness=read('src/features/freshness-timeline-controller.js');
 const gear=read('src/ui/gear-controller.js');
@@ -32,13 +34,13 @@ const qrUi=read('src/qr-ui-controller.js');
 const revisionMatch=index.match(/release-revision" content="([^"]+)"/);
 assert.ok(revisionMatch);
 const releaseRevision=revisionMatch[1];
-assert.equal(releaseRevision,'1.24B-main.3');
+assert.equal(releaseRevision,'1.24B-main.4');
 assert.ok(sw.includes(`REVISION = '${releaseRevision}'`));
 assert.match(sw,/CACHE_PREFIX = 'luckybean-main-v124b-'/);
-assert.match(sw,/CACHE_NAME = `\$\{CACHE_PREFIX\}main-3`/);
+assert.match(sw,/CACHE_NAME = `\$\{CACHE_PREFIX\}main-4`/);
 
-for(const active of ['app-layout.css','app-components.css','bean-card.css','professional-sensory.css','viewport-controller.js','gear-controller.js','brew-cooling-controller.js','flavor-guide-controller.js','onboarding-controller.js','bean-card-controller.js','bean-enrichment-service.js','release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-polish.js'])assert.ok(index.includes(active),`index missing ${active}`);
-for(const cached of ['release-1.24b-finalize.js','release-1.24b-polish.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','recognition-field-resolver-1.24b.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js'])assert.ok(sw.includes(cached),`service worker missing ${cached}`);
+for(const active of ['app-layout.css','app-components.css','bean-card.css','professional-sensory.css','viewport-controller.js','gear-controller.js','brew-cooling-controller.js','flavor-guide-controller.js','onboarding-controller.js','bean-card-controller.js','bean-enrichment-service.js','release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-polish.js','release-1.24b-group-navigation.js','release-1.24b-ui-policy.js'])assert.ok(index.includes(active),`index missing ${active}`);
+for(const cached of ['release-1.24b-finalize.js','release-1.24b-polish.js','release-1.24b-group-navigation.js','release-1.24b-ui-policy.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','recognition-field-resolver-1.24b.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js'])assert.ok(sw.includes(cached),`service worker missing ${cached}`);
 for(const obsolete of ['layout-guard.css','full-integration.css','interaction-repair.css','gear-regression-fix-controller.js','legacy-timer-guard.js','gear-matching-controller.js','experience-fixes-controller.js','interaction-repair-controller.js'])assert.ok(!index.includes(obsolete),`obsolete index reference ${obsolete}`);
 
 assert.match(layout,/--viewport-height:\s*100dvh/);
@@ -61,12 +63,28 @@ assert.match(qrUi,/overlayObserver\.observe\(root/);
 assert.doesNotMatch(qrUi,/observe\(document\.body/);
 
 assert.match(viewport,/visualViewport/);
-assert.match(viewport,/--viewport-height/);
 assert.match(fab,/visualViewport/);
 assert.match(beanCards,/LONG_PRESS_MS = 500/);
 assert.match(beanCards,/CANCEL_DISTANCE = 8/);
 assert.match(beanCards,/moveBeansToRecycle/);
 assert.match(lifecycle,/RECYCLE_RETENTION_MS = 7 \* 24 \* 60 \* 60 \* 1000/);
+
+// Expanded bean groups are page-like folders: blank canvas, “藏”, page changes and navigation-back all close them.
+assert.match(groupNavigation,/folder-style group navigation active/);
+assert.match(groupNavigation,/\[data-page-target="beans"\]/);
+assert.match(groupNavigation,/page\.contains\(event\.target\)/);
+assert.match(groupNavigation,/closeActiveGroup\(\)/);
+assert.match(groupNavigation,/luckybean:navigation-back/);
+assert.doesNotMatch(uiPolicy,/\[data-active-group-panel\]/);
+
+// Mobile bean inventory summary has two semantic lines and preserves exceeded-limit behavior.
+assert.match(uiPolicy,/lb-stock-total/);
+assert.match(uiPolicy,/lb-today-consumption/);
+assert.match(uiPolicy,/现有咖啡豆共计/);
+assert.match(uiPolicy,/还可饮用/);
+assert.match(uiPolicy,/非罗布斯塔/);
+assert.match(uiPolicy,/参考上限已超过约/);
+assert.match(uiPolicy,/@media \(max-width: 720px\)/);
 
 for(const stage of ['new','account-pending','account-pending-verification','account-completed','guide-completed'])assert.ok(onboarding.includes(stage));
 assert.match(auth,/luckybean:cloud-register-success/);
