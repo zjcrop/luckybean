@@ -41,8 +41,26 @@ function injectStyle() {
 async function readState() {
   const settings = await getSetting('app.settings', {}) || {};
   settings.brew ||= {};
-  const mode = settings.brew.lbMode === 'other' ? 'other' : 'pourover';
-  const coffeeType = String(settings.brew.otherCoffeeType || 'espresso');
+  let mode = settings.brew.lbMode === 'other' ? 'other' : 'pourover';
+  let coffeeType = String(settings.brew.otherCoffeeType || '');
+  let changed = false;
+  // Migrate the previous 1.24B two-select state once, then neutralize it so the
+  // legacy enhancer can no longer disable hand-pour controls behind the new switch.
+  if (!coffeeType && settings.brew.extMethod && settings.brew.extMethod !== 'pourover') {
+    coffeeType = `method:${settings.brew.extMethod}`;
+    if (!settings.brew.lbMode) mode = 'other';
+    changed = true;
+  } else if (!coffeeType && settings.brew.beverageRecipe) {
+    coffeeType = `drink:${settings.brew.beverageRecipe}`;
+    if (!settings.brew.lbMode) mode = 'other';
+    changed = true;
+  }
+  if (!coffeeType) coffeeType = 'method:espresso';
+  if (settings.brew.extMethod !== 'pourover') { settings.brew.extMethod = 'pourover'; changed = true; }
+  if (settings.brew.beverageRecipe !== '') { settings.brew.beverageRecipe = ''; changed = true; }
+  if (settings.brew.lbMode !== mode) { settings.brew.lbMode = mode; changed = true; }
+  if (settings.brew.otherCoffeeType !== coffeeType) { settings.brew.otherCoffeeType = coffeeType; changed = true; }
+  if (changed) await setSetting('app.settings', settings);
   return { mode, coffeeType };
 }
 
@@ -51,6 +69,8 @@ async function saveState(mode, coffeeType) {
   settings.brew ||= {};
   settings.brew.lbMode = mode === 'other' ? 'other' : 'pourover';
   if (coffeeType) settings.brew.otherCoffeeType = coffeeType;
+  settings.brew.extMethod = 'pourover';
+  settings.brew.beverageRecipe = '';
   await setSetting('app.settings', settings);
 }
 
@@ -105,6 +125,11 @@ function updatePanel(panel, value) {
   $('[data-lb-other-steps]', panel).innerHTML = type.steps.map(step => `<li>${esc(step)}</li>`).join('');
 }
 
+function clearLegacyDisabledState(root) {
+  root.querySelectorAll('.lb-disabled-for-method').forEach(node => node.classList.remove('lb-disabled-for-method'));
+  root.querySelector('[data-lb-local-recipe]')?.remove();
+}
+
 async function render() {
   if (rendering) return;
   const root = $('#brewContent');
@@ -113,6 +138,7 @@ async function render() {
   try {
     injectStyle();
     const { mode, coffeeType } = await readState();
+    clearLegacyDisabledState(root);
     root.querySelectorAll('[data-lb-local-method-row]').forEach(node => { node.hidden = true; node.setAttribute('aria-hidden', 'true'); });
     let switchRow = $('[data-lb-brew-mode-switch]', root);
     if (!switchRow) {
@@ -122,7 +148,7 @@ async function render() {
       switchRow.innerHTML = `<span class="lb-mode-left">手冲</span><button class="lb-brew-switch" type="button" role="switch" aria-label="手冲与其他制作切换"><span></span></button><span class="lb-mode-right">其他</span>`;
       root.prepend(switchRow);
     }
-    const resolved = resolveCoffeeType(coffeeType.includes(':') ? coffeeType : `method:${coffeeType}`) || resolveCoffeeType('method:espresso');
+    const resolved = resolveCoffeeType(coffeeType) || resolveCoffeeType('method:espresso');
     let panel = $('[data-lb-other-brew-panel]', root);
     if (!panel) {
       panel = document.createElement('section');
