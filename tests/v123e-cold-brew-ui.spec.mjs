@@ -13,9 +13,16 @@ test.beforeEach(async ({ page }) => {
 
 test('first row switches hot/cold and automatic/custom dose without adding another row', async ({ page }) => {
   const row = page.locator('[data-brew-row="dose-ratio"]');
+  const dose = row.locator('#brewDose');
+  const ratio = row.locator('#brewRatio');
   await expect(row.locator('#brewServeMode')).toContainText('热');
-  await expect(row.locator('#brewDose')).toContainText('自动');
-  await expect(row.locator('#brewRatio')).toContainText('自动');
+  await expect(dose).toHaveAttribute('data-source','auto');
+  await expect(dose).toHaveClass(/lb-auto-field/);
+  await expect(dose).toHaveText(/^\d+(?:\.\d+)?g$/);
+  await expect(dose).not.toContainText('自动');
+  await expect(ratio).toHaveValue('auto');
+  await expect(ratio).toHaveAttribute('data-source','auto');
+  await expect(ratio).toHaveClass(/lb-auto-field/);
   await expect(page.locator('.lb-brew-five-row > [data-brew-row]')).toHaveCount(5);
 
   await row.locator('#brewServeMode').click();
@@ -28,4 +35,5 @@ test('first row switches hot/cold and automatic/custom dose without adding anoth
   await page.locator('#customDoseInput').fill('12.5');
   await page.locator('#saveDoseModeBtn').click();
   await expect(page.locator('#brewDose')).toContainText('12.5g');
+  await expect(page.locator('#brewDose')).not.toHaveAttribute('data-source','auto');
 });

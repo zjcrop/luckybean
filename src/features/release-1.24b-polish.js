@@ -1,3 +1,4 @@
+import './release-1.24b-brew-mode-controller.js';
 import { getSetting } from '../db.js';
 import { grinderReference, mapCustomGrinderRange } from '../services/grind-psd-reference-service.js';
 
@@ -62,4 +63,4 @@ function bindEscapeAndBack(){
 
 new MutationObserver(()=>bindCoolingHelp()).observe(document.documentElement,{childList:true,subtree:true});
 bindCoolingHelp(); interceptGrindButton(); bindEscapeAndBack();
-console.info('[LuckyBean] 1.24B help and Grind-PSD polish active');
+console.info('[LuckyBean] 1.24B help, Grind-PSD and brew-mode polish active');

@@ -6,9 +6,9 @@ const $ = (selector, root = document) => root?.querySelector?.(selector) || null
 const $$ = (selector, root = document) => root?.querySelectorAll ? [...root.querySelectorAll(selector)] : [];
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
 
-let queued = false;
 let beanMap = new Map();
 let beanObserver = null;
+let refreshBusy = false;
 
 function ratioFor(bean) { return clamp(Number(freshnessProfile(bean).progress || 0), 0, 1); }
 function stageFor(bean) {
@@ -26,55 +26,67 @@ async function refreshBeanMap() {
   const beans = await all('beans').catch(() => []);
   beanMap = new Map(beans.map(bean => [String(bean.id), bean]));
 }
+function decorateCard(card) {
+  if (!card?.matches?.('.bean-card.lb-one-line-bean[data-bean-id]')) return;
+  const bean = beanMap.get(String(card.dataset.beanId || ''));
+  if (!bean) return;
+  const profile = freshnessProfile(bean);
+  const progress = Math.round(ratioFor(bean) * 1000) / 10;
+  const signature = `${progress}:${profile.color}:${profile.label}:${profile.trend}`;
+  const existing = $('[data-lb-freshness-timeline]', card);
+  if (existing?.dataset.lbFreshnessSignature === signature) return;
+  existing?.remove();
+  card.insertAdjacentHTML('beforeend', timelineHtml(bean));
+  const inserted = $('[data-lb-freshness-timeline]', card);
+  if (inserted) inserted.dataset.lbFreshnessSignature = signature;
+}
 function decorateCards() {
   const root = $('#beanGroups');
   if (!root) return;
-  $$('.bean-card.lb-one-line-bean[data-bean-id]', root).forEach(card => {
-    const bean = beanMap.get(String(card.dataset.beanId || ''));
-    if (!bean) return;
-    const profile = freshnessProfile(bean);
-    const progress = Math.round(ratioFor(bean) * 1000) / 10;
-    const signature = `${progress}:${profile.color}:${profile.label}:${profile.trend}`;
-    const existing = $('[data-lb-freshness-timeline]', card);
-    if (existing?.dataset.lbFreshnessSignature === signature) return;
-    existing?.remove();
-    card.insertAdjacentHTML('beforeend', timelineHtml(bean));
-    const inserted = $('[data-lb-freshness-timeline]', card);
-    if (inserted) inserted.dataset.lbFreshnessSignature = signature;
-  });
-}
-function queueDecorate() {
-  if (queued) return;
-  queued = true;
-  requestAnimationFrame(() => {
-    queued = false;
-    decorateCards();
-  });
+  $$('.bean-card.lb-one-line-bean[data-bean-id]', root).forEach(decorateCard);
 }
 async function refreshTimelineCards() {
-  await refreshBeanMap();
-  queueDecorate();
+  // Use the already-cached bean map first so reopening 豆藏 never waits on IndexedDB.
+  // Then refresh the cache and reconcile once more in case data changed.
+  decorateCards();
+  if (refreshBusy) return;
+  refreshBusy = true;
+  try {
+    await refreshBeanMap();
+    decorateCards();
+  } finally {
+    refreshBusy = false;
+  }
+}
+function handleMutations(records) {
+  for (const record of records) {
+    const targetCard = record.target?.nodeType === 1 ? record.target.closest?.('.bean-card.lb-one-line-bean[data-bean-id]') : null;
+    if (targetCard) decorateCard(targetCard);
+    for (const node of record.addedNodes || []) {
+      if (node.nodeType !== 1) continue;
+      if (node.matches?.('.bean-card.lb-one-line-bean[data-bean-id]')) decorateCard(node);
+      node.querySelectorAll?.('.bean-card.lb-one-line-bean[data-bean-id]').forEach(decorateCard);
+    }
+  }
 }
 function bindContainerObserver() {
   const root = $('#beanGroups');
   if (!root || beanObserver) return;
-  beanObserver = new MutationObserver(records => {
-    if (records.some(record => [...record.addedNodes].some(node => node.nodeType === 1 && (node.matches?.('.bean-card[data-bean-id]') || node.querySelector?.('.bean-card[data-bean-id]'))))) queueDecorate();
-  });
-  beanObserver.observe(root, { childList: true, subtree: true });
+  beanObserver = new MutationObserver(handleMutations);
+  beanObserver.observe(root, { childList:true, subtree:true });
 }
 
 document.addEventListener('click', event => {
-  if (event.target.closest?.('#groupBtn,[data-page-target="beans"],[data-lb-freshness-stage],[data-group-back]')) setTimeout(queueDecorate, 20);
+  if (event.target.closest?.('#groupBtn,[data-page-target="beans"],[data-lb-freshness-stage],[data-group-back]')) decorateCards();
 }, true);
 document.addEventListener('luckybean:app-refreshed', refreshTimelineCards);
 document.addEventListener('luckybean:data-changed', refreshTimelineCards);
-document.addEventListener('luckybean:codebook-provider-activated', queueDecorate);
+document.addEventListener('luckybean:codebook-provider-activated', decorateCards);
 
 (async () => {
   await refreshBeanMap();
   bindContainerObserver();
-  queueDecorate();
+  decorateCards();
 })();
 
-globalThis.LuckyBeanFreshnessTimeline = { ratioFor, stageFor, render: refreshTimelineCards, refresh: queueDecorate };
+globalThis.LuckyBeanFreshnessTimeline = { ratioFor, stageFor, render:refreshTimelineCards, refresh:decorateCards };

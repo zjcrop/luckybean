@@ -33,6 +33,7 @@ test('native OCR payload is translated, structured and handed to the bean form w
 
   await page.locator('#bagGalleryInput').setInputFiles({ name: 'beanbag.png', mimeType: 'image/png', buffer: PNG_1X1 });
   await expect(page.locator('#bagRecognizeBtn')).toBeEnabled();
+  await page.locator('[data-bag-role]').selectOption('back');
   await page.locator('#bagRecognizeBtn').click();
 
   const country = page.locator('[data-recognition-field="countryCode"]');
