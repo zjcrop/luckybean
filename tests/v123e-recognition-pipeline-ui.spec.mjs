@@ -48,7 +48,7 @@ test('native OCR payload is translated, structured and handed to the bean form w
   }))));
   await page.locator('#bagRecognizeBtn').click();
   await page.waitForTimeout(1500);
-  console.log('[OCR-DIAG-AFTER]', JSON.stringify(await page.evaluate(() => {
+  const diagnostic = await page.evaluate(() => {
     let batch=null;
     try { batch=JSON.parse(localStorage.getItem('luckybean.recognition.batch.1.24b')||'null'); } catch { batch='parse-error'; }
     return {
@@ -62,7 +62,8 @@ test('native OCR payload is translated, structured and handed to the bean form w
       batch,
       overlayText: document.querySelector('[data-overlay="bag-capture"]')?.innerText?.slice(0,1800) || ''
     };
-  }))));
+  });
+  console.log('[OCR-DIAG-AFTER]', JSON.stringify(diagnostic));
   if(dialogs.length) console.log('[OCR-DIAG-DIALOGS]',JSON.stringify(dialogs));
 
   const country = page.locator('[data-recognition-field="countryCode"]');
