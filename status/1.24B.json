@@ -1,1 +1,1 @@
-{"source_sha":"e0edbb26854628efbcab5ab4b82de79a0760dd9e","version":"1.24B","install_status":0,"js_status":0,"static_status":1,"passed":false,"first_error":"AssertionError [ERR_ASSERTION]: missing 1.24B module release-1.24b-ui-policy.js","generated_at":"2026-08-24T16:00:10Z"}
+{"source_sha":"dca60f47402c3a0c6c6e32838c0a652dfcef0e92","version":"1.24B","install_status":0,"js_status":0,"static_status":1,"passed":false,"first_error":"AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:","generated_at":"2026-08-24T16:00:49Z"}
