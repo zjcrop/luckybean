@@ -14,25 +14,12 @@ function syncRatioSource(){
   ratio.addEventListener('change',apply);
 }
 
+const brewRoot=document.querySelector('#brewContent');
+if(brewRoot){
+  new MutationObserver(()=>syncRatioSource()).observe(brewRoot,{childList:true,subtree:true});
+}
 for(const eventName of ['luckybean:brew-rendered','luckybean:app-refreshed','luckybean:local-app-ready']){
   document.addEventListener(eventName,()=>queueMicrotask(syncRatioSource));
 }
+document.addEventListener('click',event=>{if(event.target.closest?.('[data-page-target="brew"]'))queueMicrotask(syncRatioSource);},true);
 queueMicrotask(syncRatioSource);
-
-function deferRecognitionClick(event){
-  const button=event.target.closest?.('#bagRecognizeBtn');
-  if(!button)return;
-  event.preventDefault();
-  event.stopImmediatePropagation();
-  document.removeEventListener('click',deferRecognitionClick,true);
-  setTimeout(()=>{
-    try{
-      const current=document.querySelector('#bagRecognizeBtn');
-      if(current&&!current.disabled)current.click();
-    }finally{
-      setTimeout(()=>document.addEventListener('click',deferRecognitionClick,true),0);
-    }
-  },0);
-}
-
-document.addEventListener('click',deferRecognitionClick,true);
