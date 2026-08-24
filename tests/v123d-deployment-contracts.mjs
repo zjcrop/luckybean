@@ -5,6 +5,7 @@ const read = path => fs.readFileSync(path, 'utf8');
 const app = read('src/app.js');
 const codebook = read('src/codebook.js');
 const index = read('index.html');
+const runtimeFeatures = read('src/features/runtime-features.js');
 const manifest = JSON.parse(read('manifest.webmanifest'));
 const sw = read('sw.js');
 const utils = read('src/utils.js');
@@ -46,7 +47,9 @@ assert.match(utils, /SCHEMA_VERSION = 9/);
 assert.equal(manifest.version, '1.24B');
 assert.match(index, /application-version" content="1\.24B"/);
 assert.match(index, /release-1\.24b\.css/);
-for (const module of ['release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-transit-controller.js','release-1.24b-group-navigation.js','release-1.24b-about-controller.js','release-1.24b-polish.js','release-1.24b-ui-policy.js']) assert.ok(index.includes(module), `missing 1.24B module ${module}`);
+for (const module of ['release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-transit-controller.js','release-1.24b-group-navigation.js','release-1.24b-about-controller.js','release-1.24b-polish.js']) assert.ok(index.includes(module), `missing direct 1.24B module ${module}`);
+for (const runtimeModule of ['release-1.24b-ui-policy.js','release-1.24b-brew-mode-controller.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js']) assert.ok(runtimeFeatures.includes(runtimeModule), `missing runtime 1.24B module ${runtimeModule}`);
+assert.match(runtimeFeatures, /1\.24B-main\.4/);
 
 for (const canonical of ['app-layout.css','app-components.css','professional-sensory.css','flavor-guide-controller.js','gear-controller.js','bean-card-controller.js','onboarding-controller.js']) assert.ok(index.includes(canonical), `missing canonical entry ${canonical}`);
 for (const obsolete of ['interaction-repair-controller.js','experience-fixes-controller.js','gear-matching-controller.js','gear-regression-fix-controller.js','legacy-timer-guard.js']) {
