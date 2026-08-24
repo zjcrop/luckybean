@@ -88,6 +88,7 @@ jobs:
           actual_cert=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')
           test -n "$actual_cert"
           test "$actual_cert" = "$expected_cert"
+          printf '%s' "$actual_cert" > /tmp/luckybean-cert-sha256.txt
       - name: Package release
         shell: bash
         run: |
@@ -112,3 +113,26 @@ jobs:
           else
             gh release create "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --target "$SOURCE_SHA" --title "LuckyBean 1.24B" --notes "1.24B main.2 signed release. APK certificate is verified against android/signing/CERT_SHA256.txt before publication."
           fi
+      - name: Write verifiable release receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          cert=$(cat /tmp/luckybean-cert-sha256.txt)
+          apk_sha=$(sha256sum dist/LuckyBean-1.24B-release.apk | awk '{print $1}')
+          web_sha=$(sha256sum dist/LuckyBean-1.24B-web.zip | awk '{print $1}')
+          receipt=$(mktemp)
+          printf '{"version":"1.24B","revision":"1.24B-main.2","source_sha":"%s","release_tag":"%s","apk":"LuckyBean-1.24B-release.apk","apk_sha256":"%s","web_sha256":"%s","certificate_sha256":"%s","certificate_verified":true,"published":true,"generated_at":"%s"}\n' "$SOURCE_SHA" "$RELEASE_TAG" "$apk_sha" "$web_sha" "$cert" "$(date -u +%FT%TZ)" > "$receipt"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          if git ls-remote --exit-code --heads origin release-status >/dev/null 2>&1; then
+            git fetch origin release-status:release-status
+            git switch release-status
+          else
+            git switch --orphan release-status
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+          mkdir -p status
+          cp "$receipt" status/1.24B.json
+          git add status/1.24B.json
+          git commit -m "release-status: LuckyBean 1.24B $SOURCE_SHA" || true
+          git push origin HEAD:release-status
