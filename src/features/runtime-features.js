@@ -17,7 +17,8 @@ const RUNTIME_FEATURES = Object.freeze([
   feature('bean-groups', '../bean-groups-controller.js'),
   feature('group-interaction', '../group-interaction-controller.js'),
   feature('ui-upgrade', '../ui-upgrade-controller.js'),
-  feature('origin-map', '../origin-map-controller.js')
+  feature('origin-map', '../origin-map-controller.js'),
+  feature('release-1.24b-freshness-detail', './release-1.24b-freshness-detail.js')
 ]);
 
 const failures = [];
