@@ -4,253 +4,375 @@
 
 
 [static] tests/v110-local-first-sync-static.mjs
+LuckyBean 1.24B main.4 local-first cache isolation and current BrewProfiles contract checks passed
+
+[static] tests/v120-core-contracts-static.mjs
+v1.2 core analysis, completed history, provider, spatial and environment-dialog contracts passed
+
+[static] tests/v120-requirements-static.mjs
 node:internal/modules/run_main:123
     triggerUncaughtException(
     ^
 
-AssertionError [ERR_ASSERTION]: The input did not match the regular expression /下载云端数据合并本地/. Input:
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /CACHE_NAME = `\$\{CACHE_PREFIX\}main-3`/. Input:
 
-'const STATUS_TEXT = {\n' +
-  "  authenticated:'服务器同步账户已登录', connecting:'正在连接服务器…', comparing:'正在核对本机与云端数据…', offline:'网络不可用，本地功能正常',\n" +
-  "  'signed-out':'尚未登录服务器同步账户', expired:'登录已超过7天，请重新登录', 'reauth-required':'服务器登录已失效，请重新登录',\n" +
-  "  syncing:'正在自动同步…', downloading:'正在读取服务器数据…', synced:'自动同步已完成', 'synced-preserved':'更新已同步，云端独有数据已保留',\n" +
-  "  downloaded:'服务器数据已自动恢复', idle:'服务器数据已是最新', error:'自动同步失败', conflict:'检测到多设备更新，正在合并两端数据',\n" +
-  "  'deletion-confirmation-required':'检测到云端数据可能被删除，等待确认', 'waiting-for-login':'登录后自动同步', 'legacy-encrypted':'检测到旧版加密服务器数据'\n" +
-  '};\n' +
-  'const ACCOUNT_HEADING = /^(?:账号|账户|云端|服务器同步|个人信息与云端储存|个人信息与云端存储)$/;\n' +
-  'const LEGACY_CONTROL_SELECTOR = [\n' +
-  "  '[data-v099p-cloud-panel]','[data-v099e-cloud-panel]','[data-v099f-account-sync]','#saveIdentityBtn','#settingsNickname','#settingsEmail','#settingsPhone','#settingsWechat','#settingsQq',\n" +
-  "  '#cloudSyncEnabled','#cloudSyncMode','#saveCloudSettingsBtn','#saveStorageSettingsBtn','[data-cloud-sync-toggle]','[data-cloud-sync-now][data-legacy-control]','[data-cloud-pull][data-legacy-control]'\n" +
-  "].join(',');\n" +
-  "let lastAuthState = document.documentElement.dataset.cloudAuth || 'signed-out';\n" +
-  "let lastSyncState = document.documentElement.dataset.cloudSync || 'idle';\n" +
-  'let lastDetail = {};\n' +
-  'let renderQueued = false;\n' +
-  "let lastAutomaticUserId = '';\n" +
-  "let deletionDialogFingerprint = '';\n" +
-  "let lastCompletionNotice = '';\n" +
+'// LuckyBean 1.24B: lifecycle, transit/frozen beans, serial OCR and compact UI.\n' +
+  "const REVISION = '1.24B-main.4';\n" +
+  "const CACHE_PREFIX = 'luckybean-main-v124b-';\n" +
+  'const CACHE_NAME = `${CACHE_PREFIX}main-4-folder2`;\n' +
+  'const LEGACY_CACHE_PREFIXES = [\n' +
+  "  'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',\n" +
+  "  'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',\n" +
+  "  'luckybean-v123-brewprofiles-integration-test-', 'luckybean-v200-foundation-'\n" +
+  '];\n' +
+  'const versioned = path => `${path}?v=${REVISION}`;\n' +
+  'const CORE = [\n' +
+  "  './',\n" +
+  "  './index.html',\n" +
+  "  './recognition-test.html',\n" +
+  "  versioned('./manifest.webmanifest'),\n" +
+  "  versioned('./styles.css'),\n" +
+  "  versioned('./src/release-1.24b.css'),\n" +
+  "  versioned('./src/release-1.24b.js'),\n" +
+  "  versioned('./src/features/release-1.24b-integration.js'),\n" +
+  "  versioned('./src/features/release-1.24b-finalize.js'),\n" +
+  "  versioned('./src/features/release-1.24b-transit-controller.js'),\n" +
+  "  versioned('./src/features/release-1.24b-group-navigation.js'),\n" +
+  "  versioned('./src/features/release-1.24b-about-controller.js'),\n" +
+  "  versioned('./src/features/release-1.24b-polish.js'),\n" +
+  "  versioned('./src/features/release-1.24b-ui-policy.js'),\n" +
+  "  versioned('./src/features/release-1.24b-brew-mode-controller.js'),\n" +
+  "  versioned('./src/features/release-1.24b-freshness-detail.js'),\n" +
+  "  versioned('./src/features/recognition-batch-progress-controller.js'),\n" +
+  "  versioned('./src/data/local-brew-recipes-1.24b.js'),\n" +
+  "  versioned('./src/services/grind-psd-reference-service.js'),\n" +
+  "  versioned('./src/domain/recognition/order-recognition-1.24b.js'),\n" +
+  "  versioned('./src/domain/recognition/recognition-field-resolver-1.24b.js'),\n" +
+  "  versioned('./src/ui/app-layout.css'),\n" +
+  "  versioned('./src/ui/app-components.css'),\n" +
+  "  versioned('./src/ui/bean-card.css'),\n" +
+  "  versioned('./src/ui/professional-sensory.css'),\n" +
+  "  versioned('./src/ui/sensory-wizard-actions.css'),\n" +
+  "  versioned('./src/ui/brew-optimization.css'),\n" +
+  "  versioned('./src/app.js'),\n" +
+  "  versioned('./src/domain/archive/luckybean-archive-codec.js'),\n" +
+  "  versioned('./src/domain/archive/luckybean-archive-service.js'),\n" +
+  "  versioned('./src/domain/beans/bean-consumption-summary.js'),\n" +
+  "  versioned('./src/domain/beans/bean-lifecycle-service.js'),\n" +
+  "  versioned('./src/domain/recognition/recognition-document.js'),\n" +
+  "  versioned('./src/domain/recognition/recognition-pipeline.js'),\n" +
+  "  versioned('./src/domain/recognition/recognition-date-classifier.js'),\n" +
+  "  versioned('./src/domain/recognition/recognition-date-review.js'),\n" +
+  "  versioned('./src/recognition-test-page.js'),\n" +
+  "  './contracts/luckybean-archive-v1.schema.json',\n" +
+  "  './contracts/recognition-document-v1.schema.json',\n" +
+  "  './contracts/recognition-date-decision-v1.schema.json',\n" +
+  "  './contracts/brew-optimization-v1.schema.json',\n" +
+  "  './contracts/brew-optimization-validation-v1.schema.json',\n" +
+  "  versioned('./src/core/startup-controller.js'),\n" +
+  "  versioned('./src/core/bootstrap.js'),\n" +
+  "  versioned('./src/services/cloud-auth-service.js'),\n" +
+  "  versioned('./src/services/cloud-sync-service.js'),\n" +
+  "  versioned('./src/services/cloud-sync-safety.js'),\n" +
+  "  versioned('./src/services/bean-enrichment-service.js'),\n" +
+  "  versioned('./src/cloud-codec.js'),\n" +
+  "  versioned('./src/services/brew-analysis-service.js'),\n" +
+  "  versioned('./src/services/brew-calculation-coordinator.js'),\n" +
+  "  versioned('./src/services/brew-api-client.js'),\n" +
+  "  versioned('./src/services/brew-profile-catalog-service.js'),\n" +
+  "  versioned('./src/services/local-reference-analysis.js'),\n" +
+  "  versioned('./src/services/provider-package-service.js'),\n" +
+  "  versioned('./src/services/codebook-reconciliation-service.js'),\n" +
+  "  versioned('./src/services/provider-bootstrap-controller.js'),\n" +
+  "  versioned('./src/ui/provider-status-panel.js'),\n" +
+  "  versioned('./src/ui/codebook-reconciliation-screen.js'),\n" +
+  "  versioned('./src/ui/codebook-reconciliation-screen.css'),\n" +
+  "  versioned('./src/domain/history/history-service.js'),\n" +
+  "  versioned('./src/domain/history/history-sensory-service.js'),\n" +
+  "  versioned('./src/domain/sensory/brew-optimization-assessment.js'),\n" +
+  "  versioned('./src/domain/history/history-comparison.js'),\n" +
+  "  versioned('./src/ui/brew-trend-panel.js'),\n" +
+  "  versioned('./src/ui/brew-trend-panel.css'),\n" +
+  "  versioned('./src/domain/history/history-migration.js'),\n" +
+  "  versioned('./src/ui/history/history-screen.js'),\n" +
+  "  versioned('./src/ui/history/history-screen.css'),\n" +
+  "  versioned('./src/renderers/brew-spatial-view.js'),\n" +
+  "  versioned('./src/renderers/brew-spatial-controller.js'),\n" +
+  "  versioned('./src/renderers/brew-spatial-view.css'),\n" +
+  "  versioned('./src/ui/viewport-controller.js'),\n" +
+  "  versioned('./src/ui/navigation-controller.js'),\n" +
+  "  versioned('./src/ui/account-sync-panel.js'),\n" +
+  "  versioned('./src/ui/appearance-controller.js'),\n" +
+  "  versioned('./src/ui/voice-settings-controller.js'),\n" +
+  "  versioned('./src/ui/gear-controller.js'),\n" +
+  "  versioned('./src/ui/grinder-controller.js'),\n" +
+  "  versioned('./src/ui/recognition-interaction-controller.js'),\n" +
+  "  versioned('./src/ui/brew-cooling-controller.js'),\n" +
+  "  versioned('./src/ui/flavor-guide-controller.js'),\n" +
+  "  versioned('./src/ui/onboarding-controller.js'),\n" +
+  "  versioned('./src/ui/bean-card-controller.js'),\n" +
+  "  versioned('./src/ui/fab-controller.js'),\n" +
+  "  versioned('./src/features/runtime-features.js'),\n" +
+  "  versioned('./src/features/full-integration-controller-v3.js'),\n" +
+  "  versioned('./src/features/freshness-timeline-controller.js'),\n" +
+  "  versioned('./src/data-migrations.js'),\n" +
+  "  versioned('./src/recognition-bridge.js'),\n" +
+  "  versioned('./src/image-quality.js'),\n" +
+  "  versioned('./src/recognition-web-ocr.js'),\n" +
+  "  versioned('./src/recognition-paddle-ocr.js'),\n" +
+  "  versioned('./src/recognition-quality-controller.js'),\n" +
+  "  versioned('./src/package-capture-controller.js'),\n" +
+  "  versioned('./src/direct-camera-controller.js'),\n" +
+  "  versioned('./src/qr-ui-controller.js'),\n" +
+  "  versioned('./src/integrity-ui-controller.js'),\n" +
+  "  versioned('./src/ui-layout-controller.js'),\n" +
+  "  versioned('./src/selection-controller.js'),\n" +
+  "  versioned('./src/feature-controller.js'),\n" +
+  "  versioned('./src/runtime-controller.js'),\n" +
+  "  versioned('./src/bean-groups-controller.js'),\n" +
+  "  versioned('./src/group-interaction-controller.js'),\n" +
+  "  versioned('./src/ui-upgrade-controller.js'),\n" +
+  "  versioned('./src/origin-map-controller.js'),\n" +
+  "  versioned('./public/app-logo.webp'),\n" +
+  "  versioned('./public/splash-art-red.webp'),\n" +
+  "  versioned('./public/splash-art-light.webp'),\n" +
+  "  versioned('./public/Luckybean-END.webp'),\n" +
+  "  './public/vendor/jsqr/jsQR.js',\n" +
+  "  './public/vendor/jsvectormap/jsvectormap.min.css',\n" +
+  "  './public/vendor/jsvectormap/jsvectormap.min.js',\n" +
+  "  './public/vendor/jsvectormap/world.js',\n" +
+  "  './public/fallback-codebook.json',\n" +
+  "  './public/legacy-flavor-map.json'\n" +
+  '];\n' +
   '\n' +
-  `const esc = value => String(value ?? '').replace(/[&<>'\\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));\n` +
-  'const session = () => globalThis.LuckyBeanCloudAuth?.getSession?.() || null;\n' +
-  'function completionNotice(message, detail = {}) {\n' +
-  "  const stamp = `${message}|${detail.restored ? JSON.stringify(detail.restored) : ''}|${Date.now() >> 11}`;\n" +
-  '  if (lastCompletionNotice === stamp) return;\n' +
-  '  lastCompletionNotice = stamp;\n' +
-  "  document.dispatchEvent(new CustomEvent('luckybean:user-notice', { detail:{ message, kind:'status-good' } }));\n" +
-  '}\n' +
-  "function headingText(section) { return String(section?.querySelector(':scope > summary > span')?.textContent || section?.querySelector(':scope > summary')?.textContent || '').trim(); }\n" +
-  'function accountSection(root) {\n' +
-  `  const exact = root.querySelector('.settings-category[data-settings-key="account"]');\n` +
-  '  if (exact) return exact;\n' +
-  "  return [...root.querySelectorAll('.settings-category')].find(section => ACCOUNT_HEADING.test(headingText(section)) || /账号|账户|服务器同步/.test(headingText(section)));\n" +
-  '}\n' +
-  'function normalizeAccountSection(section) {\n' +
-  '  if (!section) return;\n' +
-  "  section.dataset.settingsKey = 'account'; section.id ||= 'accountCategory';\n" +
-  "  const summary = section.querySelector(':scope > summary');\n" +
-  "  if (summary) summary.innerHTML = '<span>账户</span><small>唯一的登录与自动同步入口</small>';\n" +
-  '}\n' +
-  'function removeLegacyAccountUi(root, account) {\n' +
-  '  root.querySelectorAll(LEGACY_CONTROL_SELECTOR).forEach(node => node.remove());\n' +
-  "  [...root.querySelectorAll('.settings-category')]\n" +
-  "    .filter(section => section !== account && (section.dataset.settingsKey === 'account' || ACCOUNT_HEADING.test(headingText(section)) || /账号|账户|个人信息与云端储存|个人信息与云端存储|服务器同步/.test(headingText(section))))\n" +
-  '    .forEach(section => section.remove());\n' +
-  "  root.querySelectorAll('[data-cloud-account-panel]').forEach(node => node.remove());\n" +
-  '}\n' +
-  'async function panelState() {\n' +
-  '  const service = globalThis.LuckyBeanCloudSync;\n' +
-  '  const state = service?.getState ? await service.getState().catch(() => null) : null;\n' +
-  '  return {\n' +
-  "    email:session()?.user?.email || '',\n" +
-  "    main:service ? (STATUS_TEXT[lastSyncState] || STATUS_TEXT[lastAuthState] || '本地优先运行') : '同步服务正在初始化…',\n" +
-  "    last:state?.lastSuccessfulSyncAt ? new Date(state.lastSuccessfulSyncAt).toLocaleString('zh-CN') : '尚未完成同步',\n" +
-  "    error:lastDetail.error || lastDetail.message || '', state\n" +
-  '  };\n' +
-  '}\n' +
-  'async function ensureAutomaticSync(reason) {\n' +
-  "  const userId = session()?.user?.id || '';\n" +
-  "  if (!userId) { lastAutomaticUserId = ''; return false; }\n" +
-  "  if (reason === 'render' && lastAutomaticUserId === userId) return true;\n" +
-  '  lastAutomaticUserId = userId;\n' +
-  '  return Boolean(await globalThis.LuckyBeanCloudSync?.ensureAutomatic?.(reason));\n' +
-  '}\n' +
-  'function deletionSummary(detail = {}) {\n' +
-  "  if (detail.baselineUnknown) return '此手机尚未建立云端同步基线，而服务器已经有数据。继续用本机数据覆盖前必须确认。';\n" +
-  '  const ratio = Number(detail.ratioPct || 0);\n' +
-  "  return `检测到本机缺少云端中的 ${Number(detail.missingUnits || 0)} 项记录${ratio ? `，约占云端记录的 ${ratio}%` : ''}。`;\n" +
-  '}\n' +
-  'function closeDeletionDialog() {\n' +
-  "  const root = document.querySelector('#overlayRoot');\n" +
-  `  if (root?.querySelector('[data-overlay="cloud-deletion-review"]')) root.replaceChildren();\n` +
-  '}\n' +
-  'function openDeletionDialog(detail = lastDetail) {\n' +
-  "  const root = document.querySelector('#overlayRoot'); if (!root) return;\n" +
-  "  const fingerprint = detail?.fingerprint || detail?.state?.pendingDeletionFingerprint || '';\n" +
-  `  const existing = root.querySelector('[data-overlay="cloud-deletion-review"]');\n` +
-  '  if (existing && deletionDialogFingerprint === fingerprint) return;\n' +
-  '  if (root.children.length && !existing) return;\n' +
-  '  deletionDialogFingerprint = fingerprint;\n' +
-  '  root.innerHTML = `<div class="overlay" data-overlay="cloud-deletion-review"><div class="dialog cloud-deletion-review-dialog"><div class="dialog-header"><div><h2>确认云端删除</h2><p>自动同步已暂停删除操作</p></div><button class="close-button" type="button" data-cloud-deletion-close aria-label="关闭">×</button></div><p>${esc(deletionSummary(detail))}</p><p class="muted small">安全默认：保留服务器中本机缺少的数据，只上传本机新增和更新内容。只有明确确认后，才会删除服务器中的对应数据。</p>${detail?.largeDeletion ? \'<p class="status-bad">这是一次较大范围的数据减少，请核对后再确认删除。</p>\' : \'\'}<p class="muted small" data-cloud-deletion-message role="status"></p><div class="text-actions data-actions"><button class="button primary" type="button" data-cloud-deletion-preserve>保留云端数据并同步</button><button class="button danger" type="button" data-cloud-deletion-delete>删除云端缺失数据</button></div></div></div>`;\n' +
-  "  root.querySelector('[data-cloud-deletion-close]')?.addEventListener('click', closeDeletionDialog);\n" +
-  `  root.querySelector('[data-overlay="cloud-deletion-review"]')?.addEventListener('click', event => { if (event.target.matches('[data-overlay="cloud-deletion-review"]')) closeDeletionDialog(); });\n` +
-  "  root.querySelector('[data-cloud-deletion-preserve]')?.addEventListener('click', async () => {\n" +
-  "    const buttons = root.querySelectorAll('[data-cloud-deletion-preserve],[data-cloud-deletion-delete]'); buttons.forEach(button => { button.disabled = true; });\n" +
-  "    const message = root.querySelector('[data-cloud-deletion-message]'); if (message) message.textContent = '正在保留云端独有数据并同步本机更新…';\n" +
-  "    try { await globalThis.LuckyBeanCloudSync?.resolveDeletionDecision?.('preserve'); closeDeletionDialog(); }\n" +
-  "    catch (error) { if (message) message.textContent = error?.message || '处理失败'; buttons.forEach(button => { button.disabled = false; }); }\n" +
-  '  });\n' +
-  "  root.querySelector('[data-cloud-deletion-delete]')?.addEventListener('click', async event => {\n" +
-  '    const button = event.currentTarget;\n' +
-  "    if (button.dataset.confirmed !== '1') { button.dataset.confirmed = '1'; button.textContent = '再次点击确认删除'; return; }\n" +
-  "    const buttons = root.querySelectorAll('[data-cloud-deletion-preserve],[data-cloud-deletion-delete]'); buttons.forEach(node => { node.disabled = true; });\n" +
-  "    const message = root.querySelector('[data-cloud-deletion-message]'); if (message) message.textContent = '正在执行已确认的云端删除…';\n" +
-  "    try { await globalThis.LuckyBeanCloudSync?.resolveDeletionDecision?.('delete'); closeDeletionDialog(); }\n" +
-  "    catch (error) { if (message) message.textContent = error?.message || '处理失败'; buttons.forEach(node => { node.disabled = false; }); button.dataset.confirmed = ''; button.textContent = '删除云端缺失数据'; }\n" +
-  '  });\n' +
-  '}\n' +
+  "self.addEventListener('install', event => {\n" +
+  '  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));\n' +
+  '});\n' +
   '\n' +
-  'async function renderPanel() {\n' +
-  "  const root = document.querySelector('#settingsContent'); if (!root) return;\n" +
-  '  const account = accountSection(root); if (!account) return;\n' +
-  '  normalizeAccountSection(account); removeLegacyAccountUi(root, account);\n' +
-  "  const body = account.querySelector(':scope > .settings-category-body'); if (!body) return;\n" +
-  '  const info = await panelState();\n' +
-  '  const signedIn = Boolean(session()?.user?.id);\n' +
-  "  const reviewRequired = lastSyncState === 'deletion-confirmation-required' || info.state?.lastStatus === 'deletion-confirmation-required';\n" +
-  '  const reviewDetail = lastDetail?.fingerprint ? lastDetail : info.state?.pendingDeletionDetail || {};\n' +
-  "  const section = document.createElement('section');\n" +
-  "  section.className = 'cloud-account-panel single-sync-account-panel'; section.dataset.cloudAccountPanel = '1'; section.dataset.singleSyncAccount = '1';\n" +
-  '  section.innerHTML = signedIn\n' +
-  '    ? `<div class="setting-row"><div><h3>服务器同步账户</h3><p class="cloud-sync-status-line" data-cloud-status><i class="cloud-sync-indicator" data-state="${esc(lastSyncState)}" aria-hidden="true"></i><span>${esc(info.main)}${info.email ? ` · ${esc(info.email)}` : \'\'}</span></p><small class="muted">上次完成：${esc(info.last)}${info.error ? ` · ${esc(info.error)}` : \'\'}</small></div></div><p class="muted small">自动同步始终启用：登录后合并本机与服务器数据；之后本机新增、修改或删除会在约8秒后增量同步。</p>${reviewRequired ? `<div class="cloud-deletion-warning"><p class="status-bad">${esc(deletionSummary(reviewDetail))}</p><button class="button primary" type="button" data-cloud-deletion-review>处理云端删除确认</button></div>` : \'\'}<p class="muted small" data-cloud-manual-message role="status"></p><div class="text-actions data-actions"><button class="button" type="button" data-cloud-sync-now>立即同步</button><button class="button primary" type="button" data-cloud-pull>合并云端</button><button class="button subtle" type="button" data-cloud-logout>退出登录</button></div>`\n' +
-  '    : `<div class="setting-row"><div><h3>服务器同步账户</h3><p data-cloud-status>${esc(STATUS_TEXT[lastAuthState] || STATUS_TEXT[\'signed-out\'])}</p><small class="muted">本地功能无需登录</small></div></div><p class="muted small">登录后自动同步立即启用。没有第二套服务器登录，也没有额外同步开关。</p><div class="text-actions data-actions"><button class="button primary" type="button" data-cloud-login>登录 / 注册服务器同步</button></div>`;\n' +
-  '  body.replaceChildren(section);\n' +
-  "  section.querySelector('[data-cloud-login]')?.addEventListener('click', () => globalThis.LuckyBeanCl"... 3627 more characters
+  "self.addEventListener('activate', event => {\n" +
+  '  event.waitUntil((async () => {\n' +
+  '    const keys = await caches.keys();\n' +
+  '    await Promise.all(keys\n' +
+  '      .filter(key => (key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)\n' +
+  '        || LEGACY_CACHE_PREFIXES.some(prefix => key.startsWith(prefix)))\n' +
+  '      .map(key => caches.delete(key)));\n' +
+  '    await self.clients.claim();\n' +
+  '  })());\n' +
+  '});\n' +
+  '\n' +
+  "self.addEventListener('message', event => {\n" +
+  "  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();\n" +
+  '});\n' +
+  '\n' +
+  "self.addEventListener('fetch', event => {\n" +
+  '  const request = event.request;\n' +
+  "  if (request.method !== 'GET') return;\n" +
+  '  const url = new URL(request.url);\n' +
+  "  if (request.mode === 'navigate') {\n" +
+  "    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {\n" +
+  '      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+  '      return response;\n' +
+  "    }).catch(() => caches.match(request).then(cached => cached || caches.match('./index.html'))));\n" +
+  '    return;\n' +
+  '  }\n' +
+  '  if (url.origin === self.location.origin) {\n' +
+  "    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {\n" +
+  '      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+  '      return response;\n' +
+  '    }).catch(() => caches.match(request)));\n' +
+  '    return;\n' +
+  '  }\n' +
+  "  if (url.hostname === 'cdn.jsdelivr.net') {\n" +
+  '    event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {\n' +
+  '      caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+  '      return response;\n' +
+  '    })));\n' +
+  '  }\n' +
+  '});'
 
-    at file:///home/runner/work/luckybean/luckybean/tests/v110-local-first-sync-static.mjs:85:8
+    at file:///home/runner/work/luckybean/luckybean/tests/v120-requirements-static.mjs:43:8
     at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
   generatedMessage: true,
   code: 'ERR_ASSERTION',
-  actual: 'const STATUS_TEXT = {\n' +
-    "  authenticated:'服务器同步账户已登录', connecting:'正在连接服务器…', comparing:'正在核对本机与云端数据…', offline:'网络不可用，本地功能正常',\n" +
-    "  'signed-out':'尚未登录服务器同步账户', expired:'登录已超过7天，请重新登录', 'reauth-required':'服务器登录已失效，请重新登录',\n" +
-    "  syncing:'正在自动同步…', downloading:'正在读取服务器数据…', synced:'自动同步已完成', 'synced-preserved':'更新已同步，云端独有数据已保留',\n" +
-    "  downloaded:'服务器数据已自动恢复', idle:'服务器数据已是最新', error:'自动同步失败', conflict:'检测到多设备更新，正在合并两端数据',\n" +
-    "  'deletion-confirmation-required':'检测到云端数据可能被删除，等待确认', 'waiting-for-login':'登录后自动同步', 'legacy-encrypted':'检测到旧版加密服务器数据'\n" +
-    '};\n' +
-    'const ACCOUNT_HEADING = /^(?:账号|账户|云端|服务器同步|个人信息与云端储存|个人信息与云端存储)$/;\n' +
-    'const LEGACY_CONTROL_SELECTOR = [\n' +
-    "  '[data-v099p-cloud-panel]','[data-v099e-cloud-panel]','[data-v099f-account-sync]','#saveIdentityBtn','#settingsNickname','#settingsEmail','#settingsPhone','#settingsWechat','#settingsQq',\n" +
-    "  '#cloudSyncEnabled','#cloudSyncMode','#saveCloudSettingsBtn','#saveStorageSettingsBtn','[data-cloud-sync-toggle]','[data-cloud-sync-now][data-legacy-control]','[data-cloud-pull][data-legacy-control]'\n" +
-    "].join(',');\n" +
-    "let lastAuthState = document.documentElement.dataset.cloudAuth || 'signed-out';\n" +
-    "let lastSyncState = document.documentElement.dataset.cloudSync || 'idle';\n" +
-    'let lastDetail = {};\n' +
-    'let renderQueued = false;\n' +
-    "let lastAutomaticUserId = '';\n" +
-    "let deletionDialogFingerprint = '';\n" +
-    "let lastCompletionNotice = '';\n" +
+  actual: '// LuckyBean 1.24B: lifecycle, transit/frozen beans, serial OCR and compact UI.\n' +
+    "const REVISION = '1.24B-main.4';\n" +
+    "const CACHE_PREFIX = 'luckybean-main-v124b-';\n" +
+    'const CACHE_NAME = `${CACHE_PREFIX}main-4-folder2`;\n' +
+    'const LEGACY_CACHE_PREFIXES = [\n' +
+    "  'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',\n" +
+    "  'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',\n" +
+    "  'luckybean-v123-brewprofiles-integration-test-', 'luckybean-v200-foundation-'\n" +
+    '];\n' +
+    'const versioned = path => `${path}?v=${REVISION}`;\n' +
+    'const CORE = [\n' +
+    "  './',\n" +
+    "  './index.html',\n" +
+    "  './recognition-test.html',\n" +
+    "  versioned('./manifest.webmanifest'),\n" +
+    "  versioned('./styles.css'),\n" +
+    "  versioned('./src/release-1.24b.css'),\n" +
+    "  versioned('./src/release-1.24b.js'),\n" +
+    "  versioned('./src/features/release-1.24b-integration.js'),\n" +
+    "  versioned('./src/features/release-1.24b-finalize.js'),\n" +
+    "  versioned('./src/features/release-1.24b-transit-controller.js'),\n" +
+    "  versioned('./src/features/release-1.24b-group-navigation.js'),\n" +
+    "  versioned('./src/features/release-1.24b-about-controller.js'),\n" +
+    "  versioned('./src/features/release-1.24b-polish.js'),\n" +
+    "  versioned('./src/features/release-1.24b-ui-policy.js'),\n" +
+    "  versioned('./src/features/release-1.24b-brew-mode-controller.js'),\n" +
+    "  versioned('./src/features/release-1.24b-freshness-detail.js'),\n" +
+    "  versioned('./src/features/recognition-batch-progress-controller.js'),\n" +
+    "  versioned('./src/data/local-brew-recipes-1.24b.js'),\n" +
+    "  versioned('./src/services/grind-psd-reference-service.js'),\n" +
+    "  versioned('./src/domain/recognition/order-recognition-1.24b.js'),\n" +
+    "  versioned('./src/domain/recognition/recognition-field-resolver-1.24b.js'),\n" +
+    "  versioned('./src/ui/app-layout.css'),\n" +
+    "  versioned('./src/ui/app-components.css'),\n" +
+    "  versioned('./src/ui/bean-card.css'),\n" +
+    "  versioned('./src/ui/professional-sensory.css'),\n" +
+    "  versioned('./src/ui/sensory-wizard-actions.css'),\n" +
+    "  versioned('./src/ui/brew-optimization.css'),\n" +
+    "  versioned('./src/app.js'),\n" +
+    "  versioned('./src/domain/archive/luckybean-archive-codec.js'),\n" +
+    "  versioned('./src/domain/archive/luckybean-archive-service.js'),\n" +
+    "  versioned('./src/domain/beans/bean-consumption-summary.js'),\n" +
+    "  versioned('./src/domain/beans/bean-lifecycle-service.js'),\n" +
+    "  versioned('./src/domain/recognition/recognition-document.js'),\n" +
+    "  versioned('./src/domain/recognition/recognition-pipeline.js'),\n" +
+    "  versioned('./src/domain/recognition/recognition-date-classifier.js'),\n" +
+    "  versioned('./src/domain/recognition/recognition-date-review.js'),\n" +
+    "  versioned('./src/recognition-test-page.js'),\n" +
+    "  './contracts/luckybean-archive-v1.schema.json',\n" +
+    "  './contracts/recognition-document-v1.schema.json',\n" +
+    "  './contracts/recognition-date-decision-v1.schema.json',\n" +
+    "  './contracts/brew-optimization-v1.schema.json',\n" +
+    "  './contracts/brew-optimization-validation-v1.schema.json',\n" +
+    "  versioned('./src/core/startup-controller.js'),\n" +
+    "  versioned('./src/core/bootstrap.js'),\n" +
+    "  versioned('./src/services/cloud-auth-service.js'),\n" +
+    "  versioned('./src/services/cloud-sync-service.js'),\n" +
+    "  versioned('./src/services/cloud-sync-safety.js'),\n" +
+    "  versioned('./src/services/bean-enrichment-service.js'),\n" +
+    "  versioned('./src/cloud-codec.js'),\n" +
+    "  versioned('./src/services/brew-analysis-service.js'),\n" +
+    "  versioned('./src/services/brew-calculation-coordinator.js'),\n" +
+    "  versioned('./src/services/brew-api-client.js'),\n" +
+    "  versioned('./src/services/brew-profile-catalog-service.js'),\n" +
+    "  versioned('./src/services/local-reference-analysis.js'),\n" +
+    "  versioned('./src/services/provider-package-service.js'),\n" +
+    "  versioned('./src/services/codebook-reconciliation-service.js'),\n" +
+    "  versioned('./src/services/provider-bootstrap-controller.js'),\n" +
+    "  versioned('./src/ui/provider-status-panel.js'),\n" +
+    "  versioned('./src/ui/codebook-reconciliation-screen.js'),\n" +
+    "  versioned('./src/ui/codebook-reconciliation-screen.css'),\n" +
+    "  versioned('./src/domain/history/history-service.js'),\n" +
+    "  versioned('./src/domain/history/history-sensory-service.js'),\n" +
+    "  versioned('./src/domain/sensory/brew-optimization-assessment.js'),\n" +
+    "  versioned('./src/domain/history/history-comparison.js'),\n" +
+    "  versioned('./src/ui/brew-trend-panel.js'),\n" +
+    "  versioned('./src/ui/brew-trend-panel.css'),\n" +
+    "  versioned('./src/domain/history/history-migration.js'),\n" +
+    "  versioned('./src/ui/history/history-screen.js'),\n" +
+    "  versioned('./src/ui/history/history-screen.css'),\n" +
+    "  versioned('./src/renderers/brew-spatial-view.js'),\n" +
+    "  versioned('./src/renderers/brew-spatial-controller.js'),\n" +
+    "  versioned('./src/renderers/brew-spatial-view.css'),\n" +
+    "  versioned('./src/ui/viewport-controller.js'),\n" +
+    "  versioned('./src/ui/navigation-controller.js'),\n" +
+    "  versioned('./src/ui/account-sync-panel.js'),\n" +
+    "  versioned('./src/ui/appearance-controller.js'),\n" +
+    "  versioned('./src/ui/voice-settings-controller.js'),\n" +
+    "  versioned('./src/ui/gear-controller.js'),\n" +
+    "  versioned('./src/ui/grinder-controller.js'),\n" +
+    "  versioned('./src/ui/recognition-interaction-controller.js'),\n" +
+    "  versioned('./src/ui/brew-cooling-controller.js'),\n" +
+    "  versioned('./src/ui/flavor-guide-controller.js'),\n" +
+    "  versioned('./src/ui/onboarding-controller.js'),\n" +
+    "  versioned('./src/ui/bean-card-controller.js'),\n" +
+    "  versioned('./src/ui/fab-controller.js'),\n" +
+    "  versioned('./src/features/runtime-features.js'),\n" +
+    "  versioned('./src/features/full-integration-controller-v3.js'),\n" +
+    "  versioned('./src/features/freshness-timeline-controller.js'),\n" +
+    "  versioned('./src/data-migrations.js'),\n" +
+    "  versioned('./src/recognition-bridge.js'),\n" +
+    "  versioned('./src/image-quality.js'),\n" +
+    "  versioned('./src/recognition-web-ocr.js'),\n" +
+    "  versioned('./src/recognition-paddle-ocr.js'),\n" +
+    "  versioned('./src/recognition-quality-controller.js'),\n" +
+    "  versioned('./src/package-capture-controller.js'),\n" +
+    "  versioned('./src/direct-camera-controller.js'),\n" +
+    "  versioned('./src/qr-ui-controller.js'),\n" +
+    "  versioned('./src/integrity-ui-controller.js'),\n" +
+    "  versioned('./src/ui-layout-controller.js'),\n" +
+    "  versioned('./src/selection-controller.js'),\n" +
+    "  versioned('./src/feature-controller.js'),\n" +
+    "  versioned('./src/runtime-controller.js'),\n" +
+    "  versioned('./src/bean-groups-controller.js'),\n" +
+    "  versioned('./src/group-interaction-controller.js'),\n" +
+    "  versioned('./src/ui-upgrade-controller.js'),\n" +
+    "  versioned('./src/origin-map-controller.js'),\n" +
+    "  versioned('./public/app-logo.webp'),\n" +
+    "  versioned('./public/splash-art-red.webp'),\n" +
+    "  versioned('./public/splash-art-light.webp'),\n" +
+    "  versioned('./public/Luckybean-END.webp'),\n" +
+    "  './public/vendor/jsqr/jsQR.js',\n" +
+    "  './public/vendor/jsvectormap/jsvectormap.min.css',\n" +
+    "  './public/vendor/jsvectormap/jsvectormap.min.js',\n" +
+    "  './public/vendor/jsvectormap/world.js',\n" +
+    "  './public/fallback-codebook.json',\n" +
+    "  './public/legacy-flavor-map.json'\n" +
+    '];\n' +
     '\n' +
-    `const esc = value => String(value ?? '').replace(/[&<>'\\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));\n` +
-    'const session = () => globalThis.LuckyBeanCloudAuth?.getSession?.() || null;\n' +
-    'function completionNotice(message, detail = {}) {\n' +
-    "  const stamp = `${message}|${detail.restored ? JSON.stringify(detail.restored) : ''}|${Date.now() >> 11}`;\n" +
-    '  if (lastCompletionNotice === stamp) return;\n' +
-    '  lastCompletionNotice = stamp;\n' +
-    "  document.dispatchEvent(new CustomEvent('luckybean:user-notice', { detail:{ message, kind:'status-good' } }));\n" +
-    '}\n' +
-    "function headingText(section) { return String(section?.querySelector(':scope > summary > span')?.textContent || section?.querySelector(':scope > summary')?.textContent || '').trim(); }\n" +
-    'function accountSection(root) {\n' +
-    `  const exact = root.querySelector('.settings-category[data-settings-key="account"]');\n` +
-    '  if (exact) return exact;\n' +
-    "  return [...root.querySelectorAll('.settings-category')].find(section => ACCOUNT_HEADING.test(headingText(section)) || /账号|账户|服务器同步/.test(headingText(section)));\n" +
-    '}\n' +
-    'function normalizeAccountSection(section) {\n' +
-    '  if (!section) return;\n' +
-    "  section.dataset.settingsKey = 'account'; section.id ||= 'accountCategory';\n" +
-    "  const summary = section.querySelector(':scope > summary');\n" +
-    "  if (summary) summary.innerHTML = '<span>账户</span><small>唯一的登录与自动同步入口</small>';\n" +
-    '}\n' +
-    'function removeLegacyAccountUi(root, account) {\n' +
-    '  root.querySelectorAll(LEGACY_CONTROL_SELECTOR).forEach(node => node.remove());\n' +
-    "  [...root.querySelectorAll('.settings-category')]\n" +
-    "    .filter(section => section !== account && (section.dataset.settingsKey === 'account' || ACCOUNT_HEADING.test(headingText(section)) || /账号|账户|个人信息与云端储存|个人信息与云端存储|服务器同步/.test(headingText(section))))\n" +
-    '    .forEach(section => section.remove());\n' +
-    "  root.querySelectorAll('[data-cloud-account-panel]').forEach(node => node.remove());\n" +
-    '}\n' +
-    'async function panelState() {\n' +
-    '  const service = globalThis.LuckyBeanCloudSync;\n' +
-    '  const state = service?.getState ? await service.getState().catch(() => null) : null;\n' +
-    '  return {\n' +
-    "    email:session()?.user?.email || '',\n" +
-    "    main:service ? (STATUS_TEXT[lastSyncState] || STATUS_TEXT[lastAuthState] || '本地优先运行') : '同步服务正在初始化…',\n" +
-    "    last:state?.lastSuccessfulSyncAt ? new Date(state.lastSuccessfulSyncAt).toLocaleString('zh-CN') : '尚未完成同步',\n" +
-    "    error:lastDetail.error || lastDetail.message || '', state\n" +
-    '  };\n' +
-    '}\n' +
-    'async function ensureAutomaticSync(reason) {\n' +
-    "  const userId = session()?.user?.id || '';\n" +
-    "  if (!userId) { lastAutomaticUserId = ''; return false; }\n" +
-    "  if (reason === 'render' && lastAutomaticUserId === userId) return true;\n" +
-    '  lastAutomaticUserId = userId;\n' +
-    '  return Boolean(await globalThis.LuckyBeanCloudSync?.ensureAutomatic?.(reason));\n' +
-    '}\n' +
-    'function deletionSummary(detail = {}) {\n' +
-    "  if (detail.baselineUnknown) return '此手机尚未建立云端同步基线，而服务器已经有数据。继续用本机数据覆盖前必须确认。';\n" +
-    '  const ratio = Number(detail.ratioPct || 0);\n' +
-    "  return `检测到本机缺少云端中的 ${Number(detail.missingUnits || 0)} 项记录${ratio ? `，约占云端记录的 ${ratio}%` : ''}。`;\n" +
-    '}\n' +
-    'function closeDeletionDialog() {\n' +
-    "  const root = document.querySelector('#overlayRoot');\n" +
-    `  if (root?.querySelector('[data-overlay="cloud-deletion-review"]')) root.replaceChildren();\n` +
-    '}\n' +
-    'function openDeletionDialog(detail = lastDetail) {\n' +
-    "  const root = document.querySelector('#overlayRoot'); if (!root) return;\n" +
-    "  const fingerprint = detail?.fingerprint || detail?.state?.pendingDeletionFingerprint || '';\n" +
-    `  const existing = root.querySelector('[data-overlay="cloud-deletion-review"]');\n` +
-    '  if (existing && deletionDialogFingerprint === fingerprint) return;\n' +
-    '  if (root.children.length && !existing) return;\n' +
-    '  deletionDialogFingerprint = fingerprint;\n' +
-    '  root.innerHTML = `<div class="overlay" data-overlay="cloud-deletion-review"><div class="dialog cloud-deletion-review-dialog"><div class="dialog-header"><div><h2>确认云端删除</h2><p>自动同步已暂停删除操作</p></div><button class="close-button" type="button" data-cloud-deletion-close aria-label="关闭">×</button></div><p>${esc(deletionSummary(detail))}</p><p class="muted small">安全默认：保留服务器中本机缺少的数据，只上传本机新增和更新内容。只有明确确认后，才会删除服务器中的对应数据。</p>${detail?.largeDeletion ? \'<p class="status-bad">这是一次较大范围的数据减少，请核对后再确认删除。</p>\' : \'\'}<p class="muted small" data-cloud-deletion-message role="status"></p><div class="text-actions data-actions"><button class="button primary" type="button" data-cloud-deletion-preserve>保留云端数据并同步</button><button class="button danger" type="button" data-cloud-deletion-delete>删除云端缺失数据</button></div></div></div>`;\n' +
-    "  root.querySelector('[data-cloud-deletion-close]')?.addEventListener('click', closeDeletionDialog);\n" +
-    `  root.querySelector('[data-overlay="cloud-deletion-review"]')?.addEventListener('click', event => { if (event.target.matches('[data-overlay="cloud-deletion-review"]')) closeDeletionDialog(); });\n` +
-    "  root.querySelector('[data-cloud-deletion-preserve]')?.addEventListener('click', async () => {\n" +
-    "    const buttons = root.querySelectorAll('[data-cloud-deletion-preserve],[data-cloud-deletion-delete]'); buttons.forEach(button => { button.disabled = true; });\n" +
-    "    const message = root.querySelector('[data-cloud-deletion-message]'); if (message) message.textContent = '正在保留云端独有数据并同步本机更新…';\n" +
-    "    try { await globalThis.LuckyBeanCloudSync?.resolveDeletionDecision?.('preserve'); closeDeletionDialog(); }\n" +
-    "    catch (error) { if (message) message.textContent = error?.message || '处理失败'; buttons.forEach(button => { button.disabled = false; }); }\n" +
-    '  });\n' +
-    "  root.querySelector('[data-cloud-deletion-delete]')?.addEventListener('click', async event => {\n" +
-    '    const button = event.currentTarget;\n' +
-    "    if (button.dataset.confirmed !== '1') { button.dataset.confirmed = '1'; button.textContent = '再次点击确认删除'; return; }\n" +
-    "    const buttons = root.querySelectorAll('[data-cloud-deletion-preserve],[data-cloud-deletion-delete]'); buttons.forEach(node => { node.disabled = true; });\n" +
-    "    const message = root.querySelector('[data-cloud-deletion-message]'); if (message) message.textContent = '正在执行已确认的云端删除…';\n" +
-    "    try { await globalThis.LuckyBeanCloudSync?.resolveDeletionDecision?.('delete'); closeDeletionDialog(); }\n" +
-    "    catch (error) { if (message) message.textContent = error?.message || '处理失败'; buttons.forEach(node => { node.disabled = false; }); button.dataset.confirmed = ''; button.textContent = '删除云端缺失数据'; }\n" +
-    '  });\n' +
-    '}\n' +
+    "self.addEventListener('install', event => {\n" +
+    '  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));\n' +
+    '});\n' +
     '\n' +
-    'async function renderPanel() {\n' +
-    "  const root = document.querySelector('#settingsContent'); if (!root) return;\n" +
-    '  const account = accountSection(root); if (!account) return;\n' +
-    '  normalizeAccountSection(account); removeLegacyAccountUi(root, account);\n' +
-    "  const body = account.querySelector(':scope > .settings-category-body'); if (!body) return;\n" +
-    '  const info = await panelState();\n' +
-    '  const signedIn = Boolean(session()?.user?.id);\n' +
-    "  const reviewRequired = lastSyncState === 'deletion-confirmation-required' || info.state?.lastStatus === 'deletion-confirmation-required';\n" +
-    '  const reviewDetail = lastDetail?.fingerprint ? lastDetail : info.state?.pendingDeletionDetail || {};\n' +
-    "  const section = document.createElement('section');\n" +
-    "  section.className = 'cloud-account-panel single-sync-account-panel'; section.dataset.cloudAccountPanel = '1'; section.dataset.singleSyncAccount = '1';\n" +
-    '  section.innerHTML = signedIn\n' +
-    '    ? `<div class="setting-row"><div><h3>服务器同步账户</h3><p class="cloud-sync-status-line" data-cloud-status><i class="cloud-sync-indicator" data-state="${esc(lastSyncState)}" aria-hidden="true"></i><span>${esc(info.main)}${info.email ? ` · ${esc(info.email)}` : \'\'}</span></p><small class="muted">上次完成：${esc(info.last)}${info.error ? ` · ${esc(info.error)}` : \'\'}</small></div></div><p class="muted small">自动同步始终启用：登录后合并本机与服务器数据；之后本机新增、修改或删除会在约8秒后增量同步。</p>${reviewRequired ? `<div class="cloud-deletion-warning"><p class="status-bad">${esc(deletionSummary(reviewDetail))}</p><button class="button primary" type="button" data-cloud-deletion-review>处理云端删除确认</button></div>` : \'\'}<p class="muted small" data-cloud-manual-message role="status"></p><div class="text-actions data-actions"><button class="button" type="button" data-cloud-sync-now>立即同步</button><button class="button primary" type="button" data-cloud-pull>合并云端</button><button class="button subtle" type="button" data-cloud-logout>退出登录</button></div>`\n' +
-    '    : `<div class="setting-row"><div><h3>服务器同步账户</h3><p data-cloud-status>${esc(STATUS_TEXT[lastAuthState] || STATUS_TEXT[\'signed-out\'])}</p><small class="muted">本地功能无需登录</small></div></div><p class="muted small">登录后自动同步立即启用。没有第二套服务器登录，也没有额外同步开关。</p><div class="text-actions data-actions"><button class="button primary" type="button" data-cloud-login>登录 / 注册服务器同步</button></div>`;\n' +
-    '  body.replaceChildren(section);\n' +
-    "  section.querySelector('[data-cloud-login]')?.addEventListener('click', () => globalThis.LuckyBeanCl"... 3627 more characters,
-  expected: /下载云端数据合并本地/,
+    "self.addEventListener('activate', event => {\n" +
+    '  event.waitUntil((async () => {\n' +
+    '    const keys = await caches.keys();\n' +
+    '    await Promise.all(keys\n' +
+    '      .filter(key => (key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)\n' +
+    '        || LEGACY_CACHE_PREFIXES.some(prefix => key.startsWith(prefix)))\n' +
+    '      .map(key => caches.delete(key)));\n' +
+    '    await self.clients.claim();\n' +
+    '  })());\n' +
+    '});\n' +
+    '\n' +
+    "self.addEventListener('message', event => {\n" +
+    "  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();\n" +
+    '});\n' +
+    '\n' +
+    "self.addEventListener('fetch', event => {\n" +
+    '  const request = event.request;\n' +
+    "  if (request.method !== 'GET') return;\n" +
+    '  const url = new URL(request.url);\n' +
+    "  if (request.mode === 'navigate') {\n" +
+    "    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {\n" +
+    '      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+    '      return response;\n' +
+    "    }).catch(() => caches.match(request).then(cached => cached || caches.match('./index.html'))));\n" +
+    '    return;\n' +
+    '  }\n' +
+    '  if (url.origin === self.location.origin) {\n' +
+    "    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {\n" +
+    '      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+    '      return response;\n' +
+    '    }).catch(() => caches.match(request)));\n' +
+    '    return;\n' +
+    '  }\n' +
+    "  if (url.hostname === 'cdn.jsdelivr.net') {\n" +
+    '    event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {\n' +
+    '      caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+    '      return response;\n' +
+    '    })));\n' +
+    '  }\n' +
+    '});',
+  expected: /CACHE_NAME = `\$\{CACHE_PREFIX\}main-3`/,
   operator: 'match',
   diff: 'simple'
 }
 
 Node.js v22.23.2
-::error file=tests/v110-local-first-sync-static.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /下载云端数据合并本地/. Input:%0A%0A'const STATUS_TEXT = {\n' +%0A  "  authenticated:'服务器同步账户已登录', connecting:'正在连接服务器…', comparing:'正在核对本机与云端数据…', offline:'网络不可用，本地功能正常',\n" +%0A  "  'signed-out':'尚未登录服务器同步账户', expired:'登录已超过7天，请重新登录', 'reauth-required':'服务器登录已失效，请重新登录',\n" +%0A  "  syncing:'正在自动同步…', downloading:'正在读取服务器数据…', synced:'自动同步已完成', 'synced-preserved':'更新已同步，云端独有数据已保留',\n" +%0A  "  downloaded:'服务器数据已自动恢复', idle:'服务器数据已是最新', error:'自动同步失败', conflict:'检测到多设备更新，正在合并两端数据',\n" +%0A  "  'deletion-confirmation-required':'检测到云端数据可能被删除，等待确认', 'waiting-for-login':'登录后自动同步', 'legacy-encrypted':'检测到旧版加密服务器数据'\n" +%0A  '};\n' +%0A  'const ACCOUNT_HEADING = /^(?:账号|账户|云端|服务器同步|个人信息与云端储存|个人信息与云端存储)$/;\n' +%0A  'const LEGACY_CONTROL_SELECTOR = [\n' +%0A  "  '[data-v099p-cloud-panel]','[data-v099e-cloud-panel]','[data-v099f-account-sync]','#saveIdentityBtn','#settingsNickname','#settingsEmail','#settingsPhone','#settingsWechat','#settingsQq',\n" +%0A  "  '#cloudSyncEnabled','#cloudSyncMode','#saveCloudSettingsBtn','#saveStorageSettingsBtn','[data-cloud-sync-toggle]','[data-cloud-sync-now][data-legacy-control]','[data-cloud-pull][data-legacy-control]'\n" +%0A  "].join(',');\n" +%0A  "let lastAuthState = document.documentElement.dataset.cloudAuth || 'signed-out';\n" +%0A  "let lastSyncState = document.documentElement.dataset.cloudSync || 'idle';\n" +%0A  'let lastDetail = {};\n' +%0A  'let renderQueued = false;\n' +%0A  "let lastAutomaticUserId = '';\n" +%0A  "let deletionDialogFingerprint = '';\n" +%0A  "let lastCompletionNotice = '';\n" +%0A  '\n' +%0A  `const esc = value => String(value ?? '').replace(/[&<>'\\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));\n` +%0A  'const session = () => globalThis.LuckyBeanCloudAuth?.getSession?.() || null;\n' +%0A  'function completionNotice(message, detail = {}) {\n' +%0A  "  const stamp = `${message}|${detail.restored ? JSON.stringify(detail.restored) : ''}|${Date.now() >> 11}`;\n" +%0A  '  if (lastCompletionNotice === stamp) return;\n' +%0A  '  lastCompletionNotice = stamp;\n' +%0A  "  document.dispatchEvent(new CustomEvent('luckybean:user-notice', { detail:{ message, kind:'status-good' } }));\n" +%0A  '}\n' +%0A  "function headingText(section) { return String(section?.querySelector(':scope > summary > span')?.textContent || section?.querySelector(':scope > summary')?.textContent || '').trim(); }\n" +%0A  'function accountSection(root) {\n' +%0A  `  const exact = root.querySelector('.settings-category[data-settings-key="account"]');\n` +%0A  '  if (exact) return exact;\n' +%0A  "  return [...root.querySelectorAll('.settings-category')].find(section => ACCOUNT_HEADING.test(headingText(section)) || /账号|账户|服务器同步/.test(headingText(section)));\n" +%0A  '}\n' +%0A  'function normalizeAccountSection(section) {\n' +%0A  '  if (!section) return;\n' +%0A  "  section.dataset.settingsKey = 'account'; section.id ||= 'accountCategory';\n" +%0A  "  const summary = section.querySelector(':scope > summary');\n" +%0A  "  if (summary) summary.innerHTML = '<span>账户</span><small>唯一的登录与自动同步入口</small>';\n" +%0A  '}\n' +%0A  'function removeLegacyAccountUi(root, account) {\n' +%0A  '  root.querySelectorAll(LEGACY_CONTROL_SELECTOR).forEach(node => node.remove());\n' +%0A  "  [...root.querySelectorAll('.settings-category')]\n" +%0A  "    .filter(section => section !== account && (section.dataset.settingsKey === 'account' || ACCOUNT_HEADING.test(headingText(section)) || /账号|账户|个人信息与云端储存|个人信息与云端存储|服务器同步/.test(headingText(section))))\n" +%0A  '    .forEach(section => section.remove());\n' +%0A  "  root.querySelectorAll('[data-cloud-account-panel]').forEach(node => node.remove());\n" +%0A  '}\n' +%0A  'async function panelState() {\n' +%0A  '  const service = globalThis.LuckyBeanCloudSync;\n' +%0A  '  const state = service?.getState ? await service.getState().catch(() => null) : null;\n' +%0A  '  return {\n' +%0A  "    email:session()?.user?.email || '',\n" +%0A  "    main:service ? (STATUS_TEXT[lastSyncState] || STATUS_TEXT[lastAuthState] || '本地优先运行') : '同步服务正在初始化…',\n" +%0A  "    last:state?.lastSuccessfulSyncAt ? new Date(state.lastSuccessfulSyncAt).toLocaleString('zh-CN') : '尚未完成同步',\n" +%0A  "    error:lastDetail.error || lastDetail.message || '', state\n" +%0A  '  };\n' +%0A  '}\n' +%0A  'async function ensureAutomaticSync(reason) {\n' +%0A  "  const userId = session()?.user?.id || '';\n" +%0A  "  if (!userId) { lastAutomaticUserId = ''; return false; }\n" +%0A  "  if (reason === 'render' && lastAutomaticUserId === userId) return true;\n" +%0A  '  lastAutomaticUserId = userId;\n' +%0A  '  return Boolean(await globalThis.LuckyBeanCloudSync?.ensureAutomatic?.(reason));\n' +%0A  '}\n' +%0A  'function deletionSummary(detail = {}) {\n' +%0A  "  if (detail.baselineUnknown) return '此手机尚未建立云端同步基线，而服务器已经有数据。继续用本机数据覆盖前必须确认。';\n" +%0A  '  const ratio = Number(detail.ratioPct || 0);\n' +%0A  "  return `检测到本机缺少云端中的 ${Number(detail.missingUnits || 0)} 项记录${ratio ? `，约占云端记录的 ${ratio}%25` : ''}。`;\n" +%0A  '}\n' +%0A  'function closeDeletionDialog() {\n' +%0A  "  const root = document.querySelector('#overlayRoot');\n" +%0A  `  if (root?.querySelector('[data-overlay="cloud-deletion-review"]')) root.replaceChildren();\n` +%0A  '}\n' +%0A  'function openDeletionDialog(detail = lastDetail) {\n' +%0A  "  const root = document.querySelector('#overlayRoot'); if (!root) return;\n" +%0A  "  const fingerprint = detail?.fingerprint || detail?.state?.pendingDeletionFingerprint || '';\n" +%0A  `  const existing = root.querySelector('[data-overlay="cloud-deletion-review"]');\n` +%0A  '  if (existing && deletionDialogFingerprint === fingerprint) return;\n' +%0A  '  if (root.children.length && !existing) return;\n' +%0A  '  deletionDialogFingerprint = fingerprint;\n' +%0A  '  root.innerHTML = `<div class="overlay" data-overlay="cloud-deletion-review"><div class="dialog cloud-deletion-review-dialog"><div class="dialog-header"><div><h2>确认云端删除</h2><p>自动同步已暂停删除操作</p></div><button class="close-button" type="button" data-cloud-deletion-close aria-label="关闭">×</button></div><p>${esc(deletionSummary(detail))}</p><p class="muted small">安全默认：保留服务器中本机缺少的数据，只上传本机新增和更新内容。只有明确确认后，才会删除服务器中的对应数据。</p>${detail?.largeDeletion ? \'<p class="status-bad">这是一次较大范围的数据减少，请核对后再确认删除。</p>\' : \'\'}<p class="muted small" data-cloud-deletion-message role="status"></p><div class="text-actions data-actions"><button class="button primary" type="button" data-cloud-deletion-preserve>保留云端数据并同步</button><button class="button danger" type="button" data-cloud-deletion-delete>删除云端缺失数据</button></div></div></div>`;\n' +%0A  "  root.querySelector('[data-cloud-deletion-close]')?.addEventListener('click', closeDeletionDialog);\n" +%0A  `  root.querySelector('[data-overlay="cloud-deletion-review"]')?.addEventListener('click', event => { if (even
+::error file=tests/v120-requirements-static.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /CACHE_NAME = `\$\{CACHE_PREFIX\}main-3`/. Input:%0A%0A'// LuckyBean 1.24B: lifecycle, transit/frozen beans, serial OCR and compact UI.\n' +%0A  "const REVISION = '1.24B-main.4';\n" +%0A  "const CACHE_PREFIX = 'luckybean-main-v124b-';\n" +%0A  'const CACHE_NAME = `${CACHE_PREFIX}main-4-folder2`;\n' +%0A  'const LEGACY_CACHE_PREFIXES = [\n' +%0A  "  'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',\n" +%0A  "  'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',\n" +%0A  "  'luckybean-v123-brewprofiles-integration-test-', 'luckybean-v200-foundation-'\n" +%0A  '];\n' +%0A  'const versioned = path => `${path}?v=${REVISION}`;\n' +%0A  'const CORE = [\n' +%0A  "  './',\n" +%0A  "  './index.html',\n" +%0A  "  './recognition-test.html',\n" +%0A  "  versioned('./manifest.webmanifest'),\n" +%0A  "  versioned('./styles.css'),\n" +%0A  "  versioned('./src/release-1.24b.css'),\n" +%0A  "  versioned('./src/release-1.24b.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-integration.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-finalize.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-transit-controller.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-group-navigation.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-about-controller.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-polish.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-ui-policy.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-brew-mode-controller.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-freshness-detail.js'),\n" +%0A  "  versioned('./src/features/recognition-batch-progress-controller.js'),\n" +%0A  "  versioned('./src/data/local-brew-recipes-1.24b.js'),\n" +%0A  "  versioned('./src/services/grind-psd-reference-service.js'),\n" +%0A  "  versioned('./src/domain/recognition/order-recognition-1.24b.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-field-resolver-1.24b.js'),\n" +%0A  "  versioned('./src/ui/app-layout.css'),\n" +%0A  "  versioned('./src/ui/app-components.css'),\n" +%0A  "  versioned('./src/ui/bean-card.css'),\n" +%0A  "  versioned('./src/ui/professional-sensory.css'),\n" +%0A  "  versioned('./src/ui/sensory-wizard-actions.css'),\n" +%0A  "  versioned('./src/ui/brew-optimization.css'),\n" +%0A  "  versioned('./src/app.js'),\n" +%0A  "  versioned('./src/domain/archive/luckybean-archive-codec.js'),\n" +%0A  "  versioned('./src/domain/archive/luckybean-archive-service.js'),\n" +%0A  "  versioned('./src/domain/beans/bean-consumption-summary.js'),\n" +%0A  "  versioned('./src/domain/beans/bean-lifecycle-service.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-document.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-pipeline.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-date-classifier.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-date-review.js'),\n" +%0A  "  versioned('./src/recognition-test-page.js'),\n" +%0A  "  './contracts/luckybean-archive-v1.schema.json',\n" +%0A  "  './contracts/recognition-document-v1.schema.json',\n" +%0A  "  './contracts/recognition-date-decision-v1.schema.json',\n" +%0A  "  './contracts/brew-optimization-v1.schema.json',\n" +%0A  "  './contracts/brew-optimization-validation-v1.schema.json',\n" +%0A  "  versioned('./src/core/startup-controller.js'),\n" +%0A  "  versioned('./src/core/bootstrap.js'),\n" +%0A  "  versioned('./src/services/cloud-auth-service.js'),\n" +%0A  "  versioned('./src/services/cloud-sync-service.js'),\n" +%0A  "  versioned('./src/services/cloud-sync-safety.js'),\n" +%0A  "  versioned('./src/services/bean-enrichment-service.js'),\n" +%0A  "  versioned('./src/cloud-codec.js'),\n" +%0A  "  versioned('./src/services/brew-analysis-service.js'),\n" +%0A  "  versioned('./src/services/brew-calculation-coordinator.js'),\n" +%0A  "  versioned('./src/services/brew-api-client.js'),\n" +%0A  "  versioned('./src/services/brew-profile-catalog-service.js'),\n" +%0A  "  versioned('./src/services/local-reference-analysis.js'),\n" +%0A  "  versioned('./src/services/provider-package-service.js'),\n" +%0A  "  versioned('./src/services/codebook-reconciliation-service.js'),\n" +%0A  "  versioned('./src/services/provider-bootstrap-controller.js'),\n" +%0A  "  versioned('./src/ui/provider-status-panel.js'),\n" +%0A  "  versioned('./src/ui/codebook-reconciliation-screen.js'),\n" +%0A  "  versioned('./src/ui/codebook-reconciliation-screen.css'),\n" +%0A  "  versioned('./src/domain/history/history-service.js'),\n" +%0A  "  versioned('./src/domain/history/history-sensory-service.js'),\n" +%0A  "  versioned('./src/domain/sensory/brew-optimization-assessment.js'),\n" +%0A  "  versioned('./src/domain/history/history-comparison.js'),\n" +%0A  "  versioned('./src/ui/brew-trend-panel.js'),\n" +%0A  "  versioned('./src/ui/brew-trend-panel.css'),\n" +%0A  "  versioned('./src/domain/history/history-migration.js'),\n" +%0A  "  versioned('./src/ui/history/history-screen.js'),\n" +%0A  "  versioned('./src/ui/history/history-screen.css'),\n" +%0A  "  versioned('./src/renderers/brew-spatial-view.js'),\n" +%0A  "  versioned('./src/renderers/brew-spatial-controller.js'),\n" +%0A  "  versioned('./src/renderers/brew-spatial-view.css'),\n" +%0A  "  versioned('./src/ui/viewport-controller.js'),\n" +%0A  "  versioned('./src/ui/navigation-controller.js'),\n" +%0A  "  versioned('./src/ui/account-sync-panel.js'),\n" +%0A  "  versioned('./src/ui/appearance-controller.js'),\n" +%0A  "  versioned('./src/ui/voice-settings-controller.js'),\n" +%0A  "  versioned('./src/ui/gear-controller.js'),\n" +%0A  "  versioned('./src/ui/grinder-controller.js'),\n" +%0A  "  versioned('./src/ui/recognition-interaction-controller.js'),\n" +%0A  "  versioned('./src/ui/brew-cooling-controller.js'),\n" +%0A  "  versioned('./src/ui/flavor-guide-controller.js'),\n" +%0A  "  versioned('./src/ui/onboarding-controller.js'),\n" +%0A  "  versioned('./src/ui/bean-card-controller.js'),\n" +%0A  "  versioned('./src/ui/fab-controller.js'),\n" +%0A  "  versioned('./src/features/runtime-features.js'),\n" +%0A  "  versioned('./src/features/full-integration-controller-v3.js'),\n" +%0A  "  versioned('./src/features/freshness-timeline-controller.js'),\n" +%0A  "  versioned('./src/data-migrations.js'),\n" +%0A  "  versioned('./src/recognition-bridge.js'),\n" +%0A  "  versioned('./src/image-quality.js'),\n" +%0A  "  versioned('./src/recognition-web-ocr.js'),\n" +%0A  "  versioned('./src/recognition-paddle-ocr.js'),\n" +%0A  "  versioned('./src/recognition-quality-controller.js'),\n" +%0A  "  versioned('./src/package-capture-controller.js'),\n" +%0A  "  versioned('./src/direct-camera-controller.js'),\n" +%0A  "  versioned('./src/qr-ui-controller.js'),\n" +%0A 
