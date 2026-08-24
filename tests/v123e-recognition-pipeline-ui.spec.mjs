@@ -4,10 +4,6 @@ const BASE_URL = 'http://127.0.0.1:4173';
 const PNG_1X1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
 
 test('native OCR payload is translated, structured and handed to the bean form without the legacy parser race', async ({ page }) => {
-  const dialogs=[];
-  page.on('console', msg => console.log(`[BROWSER:${msg.type()}] ${msg.text()}`));
-  page.on('pageerror', error => console.log(`[PAGEERROR] ${error.message}`));
-  page.on('dialog', async dialog => { dialogs.push(dialog.message()); console.log(`[OCR-DIALOG] ${dialog.message()}`); await dialog.dismiss(); });
   await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/, route => route.abort('failed'));
   await page.goto(`${BASE_URL}/?recognition-pipeline=2`, { waitUntil: 'domcontentloaded' });
   await page.locator('#splashScreen').click();
@@ -17,7 +13,6 @@ test('native OCR payload is translated, structured and handed to the bean form w
     const box = (left, top, right, bottom) => [[left, top], [right, top], [right, bottom], [left, bottom]];
     globalThis.LuckyBeanRecognitionBridge = {
       async recognizeCoffeeBag(payload) {
-        console.log('[OCR-MOCK-CALLED]', JSON.stringify(payload.images.map(image=>({id:image.id,role:image.role,nativeSource:image.nativeSource,dataUrlLength:String(image.dataUrl||'').length}))));
         const imageId = payload.images[0].id;
         const rows = [
           ['COUNTRY', 'ETHIOPIA'], ['REGION', 'GUJI'], ['PROCESS', 'WASHED'],
@@ -39,32 +34,7 @@ test('native OCR payload is translated, structured and handed to the bean form w
   await page.locator('#bagGalleryInput').setInputFiles({ name: 'beanbag.png', mimeType: 'image/png', buffer: PNG_1X1 });
   await expect(page.locator('#bagRecognizeBtn')).toBeEnabled();
   await page.locator('[data-bag-role]').selectOption('back');
-  console.log('[OCR-DIAG-BEFORE]', JSON.stringify(await page.evaluate(() => ({
-    capabilities: globalThis.LuckyBeanPackageCapture?.capabilities?.(),
-    buttonText: document.querySelector('#bagRecognizeBtn')?.textContent,
-    buttonDisabled: document.querySelector('#bagRecognizeBtn')?.disabled,
-    role: document.querySelector('[data-bag-role]')?.value,
-    overlayPresent: Boolean(document.querySelector('[data-overlay="bag-capture"]'))
-  }))));
   await page.locator('#bagRecognizeBtn').click();
-  await page.waitForTimeout(1500);
-  const diagnostic = await page.evaluate(() => {
-    let batch=null;
-    try { batch=JSON.parse(localStorage.getItem('luckybean.recognition.batch.1.24b')||'null'); } catch { batch='parse-error'; }
-    return {
-      capabilities: globalThis.LuckyBeanPackageCapture?.capabilities?.(),
-      buttonText: document.querySelector('#bagRecognizeBtn')?.textContent,
-      buttonDisabled: document.querySelector('#bagRecognizeBtn')?.disabled,
-      semanticCount: document.querySelectorAll('[data-recognition-field]').length,
-      resultPresent: Boolean(document.querySelector('.bag-recognition-result')),
-      summary: document.querySelector('.bag-semantic-summary')?.textContent || '',
-      rawText: document.querySelector('#bagOcrText')?.value || '',
-      batch,
-      overlayText: document.querySelector('[data-overlay="bag-capture"]')?.innerText?.slice(0,1800) || ''
-    };
-  });
-  console.log('[OCR-DIAG-AFTER]', JSON.stringify(diagnostic));
-  if(dialogs.length) console.log('[OCR-DIAG-DIALOGS]',JSON.stringify(dialogs));
 
   const country = page.locator('[data-recognition-field="countryCode"]');
   await expect(country).toContainText('埃塞俄比亚', { timeout: 15000 });
