@@ -1,7 +1,7 @@
 // LuckyBean 1.24B: lifecycle, transit/frozen beans, serial OCR and compact UI.
-const REVISION = '1.24B-main.2';
+const REVISION = '1.24B-main.3';
 const CACHE_PREFIX = 'luckybean-main-v124b-';
-const CACHE_NAME = `${CACHE_PREFIX}main-2`;
+const CACHE_NAME = `${CACHE_PREFIX}main-3`;
 const LEGACY_CACHE_PREFIXES = [
   'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
   'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',
@@ -22,9 +22,11 @@ const CORE = [
   versioned('./src/features/release-1.24b-group-navigation.js'),
   versioned('./src/features/release-1.24b-about-controller.js'),
   versioned('./src/features/release-1.24b-polish.js'),
+  versioned('./src/features/release-1.24b-freshness-detail.js'),
   versioned('./src/data/local-brew-recipes-1.24b.js'),
   versioned('./src/services/grind-psd-reference-service.js'),
   versioned('./src/domain/recognition/order-recognition-1.24b.js'),
+  versioned('./src/domain/recognition/recognition-field-resolver-1.24b.js'),
   versioned('./src/ui/app-layout.css'),
   versioned('./src/ui/app-components.css'),
   versioned('./src/ui/bean-card.css'),
