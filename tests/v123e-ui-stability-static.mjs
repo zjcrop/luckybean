@@ -84,7 +84,7 @@ assert.match(releaseCss,/\.lb-freshness-detail-layer/);
 assert.match(releaseIntegration,/data-lb-transit-section/);
 assert.match(releaseIntegration,/data-lb-local-method-row/);
 assert.match(releaseIntegration,/注册信息已提交/);
-assert.match(releaseIntegration,/灰色|data-tone=\\"muted\\"/);
+assert.ok(releaseIntegration.includes('data-tone="muted"'));
 assert.match(releaseIntegration,/fineAnchor/);
 assert.match(releasePolish,/grinderReference/);
 assert.match(releasePolish,/openCenteredHelp/);
