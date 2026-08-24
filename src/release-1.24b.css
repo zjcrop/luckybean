@@ -5,6 +5,9 @@
 .lb-bean-card[data-tone="muted"]{filter:grayscale(.78);opacity:.68}
 .lb-bean-card[data-tone="muted"] .compact-pick{opacity:.4;cursor:not-allowed}
 .lb-bean-card[data-tone="frozen"]{outline:1px solid rgba(80,140,220,.4)}
+.lb-transit-summary{display:flex;justify-content:space-between;align-items:baseline;gap:.6rem;margin:.2rem 0 .45rem;padding:0 .12rem;color:rgba(220,220,220,.76)}
+.lb-transit-summary strong{font-size:.82rem}
+.lb-transit-summary span{font-size:.72rem;text-align:right;opacity:.72}
 .lb-pending-field{color:#c6a15b!important;font-weight:700!important;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .lb-bean-detail{display:flex;flex-direction:column;gap:.28rem;line-height:1.32}
 .lb-bean-detail .field{display:flex;gap:.4rem;align-items:baseline;flex-wrap:wrap;margin:0;padding:0}
@@ -44,4 +47,5 @@
 html[data-theme="light"] .lb-centered-help-layer{background:rgba(48,43,35,.34)}
 html[data-theme="light"] .lb-centered-help-card{background:#f8f4eb;color:#1d1b18;border-color:rgba(150,112,52,.42);box-shadow:0 18px 60px rgba(57,46,30,.18)}
 html[data-theme="light"] .lb-centered-help-card p{color:#4c4740}
-@media(max-width:420px){.lb-bean-detail .field-value{font-size:.86rem}.lb-freshness-mini{height:56px}.lb-bean-actions button{font-size:.78rem}.lb-centered-help-layer{padding:18px}.lb-centered-help-card{width:min(92vw,460px);padding:22px 18px 19px}}
+html[data-theme="light"] .lb-transit-summary{color:rgba(55,55,55,.72)}
+@media(max-width:420px){.lb-bean-detail .field-value{font-size:.86rem}.lb-freshness-mini{height:56px}.lb-bean-actions button{font-size:.78rem}.lb-centered-help-layer{padding:18px}.lb-centered-help-card{width:min(92vw,460px);padding:22px 18px 19px}.lb-transit-summary{align-items:flex-start;flex-direction:column;gap:.08rem}.lb-transit-summary span{text-align:left}}
