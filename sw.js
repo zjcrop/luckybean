@@ -85,6 +85,8 @@ const CORE = [
   versioned('./src/ui/appearance-controller.js'),
   versioned('./src/ui/voice-settings-controller.js'),
   versioned('./src/ui/gear-controller.js'),
+  versioned('./src/ui/grinder-controller.js'),
+  versioned('./src/ui/recognition-interaction-controller.js'),
   versioned('./src/ui/brew-cooling-controller.js'),
   versioned('./src/ui/flavor-guide-controller.js'),
   versioned('./src/ui/onboarding-controller.js'),
