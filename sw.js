@@ -22,6 +22,7 @@ const CORE = [
   versioned('./src/features/release-1.24b-group-navigation.js'),
   versioned('./src/features/release-1.24b-about-controller.js'),
   versioned('./src/features/release-1.24b-polish.js'),
+  versioned('./src/features/release-1.24b-brew-mode-controller.js'),
   versioned('./src/features/release-1.24b-freshness-detail.js'),
   versioned('./src/features/recognition-batch-progress-controller.js'),
   versioned('./src/data/local-brew-recipes-1.24b.js'),
