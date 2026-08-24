@@ -65,7 +65,7 @@ test('cloud panel exposes status and both recovery actions', async () => {
   const panel = await read('src/ui/account-sync-panel.js');
   assert.match(panel, /cloud-sync-indicator/);
   assert.match(panel, /立即同步/);
-  assert.match(panel, /下载云端数据合并本地/);
+  assert.match(panel, /合并云端/);
   assert.match(panel, /LuckyBeanCloudSync\?\.pullNow/);
   const sync = await read('src/services/cloud-sync-service.js');
   assert.match(sync, /markMergeBackPending/);
