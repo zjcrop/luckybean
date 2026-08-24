@@ -1,8 +1,9 @@
+import './release-1.24b-brew-mode-controller.js';
 import { getSetting } from '../db.js';
 import { grinderReference, mapCustomGrinderRange } from '../services/grind-psd-reference-service.js';
 
 const $ = (s,r=document) => r?.querySelector?.(s) || null;
-const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 
 function closeHelp(){ document.querySelector('[data-lb-centered-help]')?.remove(); }
 function openCenteredHelp(title, body){
@@ -62,4 +63,4 @@ function bindEscapeAndBack(){
 
 new MutationObserver(()=>bindCoolingHelp()).observe(document.documentElement,{childList:true,subtree:true});
 bindCoolingHelp(); interceptGrindButton(); bindEscapeAndBack();
-console.info('[LuckyBean] 1.24B help and Grind-PSD polish active');
+console.info('[LuckyBean] 1.24B help, Grind-PSD and brew-mode polish active');
