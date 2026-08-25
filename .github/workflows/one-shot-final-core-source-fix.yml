@@ -39,3 +39,5 @@ jobs:
           git add src/app.js src/group-interaction-controller.js tests/v123e-ui-stability-static.mjs
           git commit -m 'fix: render final grouping and brew labels at source'
           git push origin HEAD:main
+
+# Triggered after registration; remove after the migration commit lands.
