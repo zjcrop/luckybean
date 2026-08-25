@@ -26,7 +26,11 @@ if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
         min-height: 0 !important;
       }
 
-      /* The compact leaderboard remains part of 豆藏; only obsolete helper copy is hidden. */
+      /* 豆藏 keeps the compact personal leaderboard immediately after the digest. */
+      .preference-board-strip {
+        display: flex;
+      }
+      /* Only obsolete explanatory copy is removed from the compact digest. */
       .bean-consumption-summary > small {
         display: none !important;
       }
