@@ -1,1 +1,1 @@
-{"source_sha":"b4439a55979a2eca7185f8d2855054c7fc14c8b5","version":"1.24B","install_status":0,"js_status":0,"static_status":0,"passed":true,"first_error":"","generated_at":"2026-08-25T03:58:44Z"}
+{"source_sha":"bd5c0fc69a8f6e27461138ef04f621cd029376ed","version":"1.24B","install_status":0,"js_status":0,"static_status":1,"passed":false,"first_error":"AssertionError [ERR_ASSERTION]: The input did not match the regular expression /on:\\n\\s+push:\\n\\s+branches: \\[main\\]/. Input:","generated_at":"2026-08-25T05:51:23Z"}

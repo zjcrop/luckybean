@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 5.364144
+  duration_ms: 5.223671
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 2.064255
+  duration_ms: 2.184613
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 2.357314
+  duration_ms: 2.318783
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 1.828864
+  duration_ms: 1.834848
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.781974
+  duration_ms: 0.823158
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.628252
+  duration_ms: 2.677593
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.821959
+  duration_ms: 0.837976
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 21.741238
+# duration_ms 21.831555
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 5.684082
+  duration_ms: 5.870219
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 3.631609
+  duration_ms: 3.629112
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 3.524809
+  duration_ms: 3.626216
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 2.853172
+  duration_ms: 2.841579
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 2.262065
+  duration_ms: 2.298776
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 1.108435
+  duration_ms: 1.124141
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 24.916834
+# duration_ms 25.277012
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -175,569 +175,389 @@ Recognition document is the single translated and structured bean-entry source
 LuckyBean 1.24B lifecycle, serial OCR, transit/frozen storage, order parsing and local brew regression checks passed
 
 [static] tests/v124b-final-release-contract.mjs
-LuckyBean 1.24B main.4 final release contract with canonical group state, shared sorting and text brew UI passed
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
 
-[static] tests/v124b-complete-plan-contract.mjs
-LuckyBean 1.24B main.4 complete modification-plan contract with canonical groups, shared sorting and text brew UI passed
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /on:\n\s+push:\n\s+branches: \[main\]/. Input:
 
-[static] tests/v124b-ui-policy-regression.mjs
-LuckyBean 1.24B canonical folder state, visible preference leaderboard, shared live-preview sorting, text brew UI and Web/Android parity contracts passed
+'name: LuckyBean main signed release\n' +
+  '\n' +
+  'on:\n' +
+  '  workflow_run:\n' +
+  '    workflows: ["LuckyBean main web deploy"]\n' +
+  '    types: [completed]\n' +
+  '  workflow_dispatch:\n' +
+  '\n' +
+  'permissions:\n' +
+  '  actions: read\n' +
+  '  contents: write\n' +
+  '\n' +
+  'concurrency:\n' +
+  '  group: luckybean-main-signed-release\n' +
+  '  cancel-in-progress: true\n' +
+  '\n' +
+  'jobs:\n' +
+  '  build:\n' +
+  '    if: >-\n' +
+  "      github.event_name == 'workflow_dispatch' ||\n" +
+  "      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')\n" +
+  '    runs-on: ubuntu-24.04\n' +
+  '    timeout-minutes: 30\n' +
+  '    env:\n' +
+  "      SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}\n" +
+  '      RELEASE_TAG: v1.24B-main.4\n' +
+  '    steps:\n' +
+  '      - uses: actions/checkout@v7.0.1\n' +
+  '        with:\n' +
+  '          ref: ${{ env.SOURCE_SHA }}\n' +
+  '          fetch-depth: 1\n' +
+  '      - name: Verify final release gates\n' +
+  '        env:\n' +
+  '          GH_TOKEN: ${{ github.token }}\n' +
+  '        shell: bash\n' +
+  '        run: |\n' +
+  '          set -euo pipefail\n' +
+  `          current_main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')\n` +
+  '          test "$current_main" = "$SOURCE_SHA"\n' +
+  '\n' +
+  `          pages_json=$(gh api "repos/$GITHUB_REPOSITORY/contents/status/1.24B.json?ref=pages-status" --jq '.content' | base64 --decode)\n` +
+  `          test "$(printf '%s' "$pages_json" | jq -r '.source_sha')" = "$SOURCE_SHA"\n` +
+  `          test "$(printf '%s' "$pages_json" | jq -r '.verified')" = "true"\n` +
+  '\n' +
+  '          test_status=missing\n' +
+  '          test_conclusion=missing\n' +
+  '          for attempt in {1..90}; do\n' +
+  '            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/test-main.yml/runs?branch=main&head_sha=$SOURCE_SHA&per_page=1")\n' +
+  `            test_status=$(printf '%s' "$runs" | jq -r '.workflow_runs[0].status // "missing"')\n` +
+  `            test_conclusion=$(printf '%s' "$runs" | jq -r '.workflow_runs[0].conclusion // ""')\n` +
+  '            if [ "$test_status" = "completed" ]; then\n' +
+  '              test "$test_conclusion" = "success"\n' +
+  '              break\n' +
+  '            fi\n' +
+  '            sleep 5\n' +
+  '          done\n' +
+  '          test "$test_status" = "completed"\n' +
+  '          test "$test_conclusion" = "success"\n' +
+  '\n' +
+  `          current_main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')\n` +
+  '          test "$current_main" = "$SOURCE_SHA"\n' +
+  `          printf 'Pages verified and main tests passed for %s\\n' "$SOURCE_SHA"\n` +
+  '      - uses: actions/setup-node@v7.0.0\n' +
+  '        with:\n' +
+  '          node-version: 22\n' +
+  '          cache: npm\n' +
+  '      - uses: actions/setup-java@v5.7.0\n' +
+  '        with:\n' +
+  '          distribution: temurin\n' +
+  "          java-version: '17'\n" +
+  '      - uses: android-actions/setup-android@v4.0.1\n' +
+  '      - name: Install Android build tools\n' +
+  "        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'\n" +
+  '      - uses: gradle/actions/setup-gradle@v6.3.0\n' +
+  '        with:\n' +
+  "          gradle-version: '8.9'\n" +
+  '      - run: npm ci\n' +
+  '      - run: npm audit --audit-level=high\n' +
+  '      - name: Validate source\n' +
+  '        run: |\n' +
+  "          find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check\n" +
+  '          npm run test:static\n' +
+  `          grep -Fq 'release-revision" content="1.24B-main.4"' index.html\n` +
+  "          grep -Fq 'release-1.24b-polish.js?v=1.24B-main.4' index.html\n" +
+  "          grep -Fq 'release-1.24b-transit-controller.js?v=1.24B-main.4' index.html\n" +
+  "          grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.4' index.html\n" +
+  "          grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.4' index.html\n" +
+  `          grep -Fq "REVISION = '1.24B-main.4'" sw.js\n` +
+  "          grep -Fq 'main-4-interaction3' sw.js\n" +
+  "          grep -Fq 'release-1.24b-ui-policy.js' sw.js\n" +
+  "          grep -Fq 'src/ui/sortable-controller.js' sw.js\n" +
+  "          grep -Fq 'sensory-tag-sort-controller.js' sw.js\n" +
+  `          grep -Fq "feature('shared-sortable'" src/features/runtime-features.js\n` +
+  "          grep -Fq 'sensory-tag-sort-controller.js' src/features/runtime-features.js\n" +
+  "          grep -Fq 'async function closeActiveGroup' src/bean-groups-controller.js\n" +
+  "          ! grep -Fq 'data-v099t-group-back' src/bean-groups-controller.js\n" +
+  "          grep -Fq 'api.closeActiveGroup' src/features/release-1.24b-group-navigation.js\n" +
+  "          ! grep -Fq 'data-v099t-group-back' src/features/release-1.24b-group-navigation.js\n" +
+  "          grep -Fq 'lb-sort-ghost' src/ui/sortable-controller.js\n" +
+  "          grep -Fq 'lb-sort-placeholder' src/ui/sortable-controller.js\n" +
+  "          grep -Fq 'onPreview' src/ui/sortable-controller.js\n" +
+  "          grep -Fq 'onCommit' src/ui/sortable-controller.js\n" +
+  "          grep -Fq 'LuckyBeanSortable' src/features/sensory-tag-sort-controller.js\n" +
+  "          grep -Fq '双击移除' src/features/sensory-tag-sort-controller.js\n" +
+  "          grep -Fq '实时预览松手后的顺序' src/features/sensory-tag-sort-controller.js\n" +
+  "          grep -Fq 'professional-sensory-complete' src/features/sensory-tag-sort-controller.js\n" +
+  `          grep -Fq "UI_POLICY_REVISION = '1.24B-main.4'" src/features/release-1.24b-ui-policy.js\n` +
+  `          grep -Fq "button.textContent = '合并云端'" src/features/release-1.24b-ui-policy.js\n` +
+  "          grep -Fq 'aspect-ratio: 2 / 1' src/features/release-1.24b-ui-policy.js\n" +
+  "          grep -Fq '#brewContent button:not(.lb-brew-switch)' src/features/release-1.24b-ui-policy.js\n" +
+  `          grep -Fq "observe('brewContent')" src/features/release-1.24b-ui-policy.js\n` +
+  "          grep -Fq 'release-1.24b-freshness-detail.js' sw.js\n" +
+  "          grep -Fq 'recognition-batch-progress-controller.js' sw.js\n" +
+  "          grep -Fq 'recognition-field-resolver-1.24b.js' sw.js\n" +
+  "          grep -Fq 'grind-psd-reference-service.js' sw.js\n" +
+  '      - name: Synchronize Android runtime version marker\n' +
+  '        shell: bash\n' +
+  '        run: |\n' +
+  '          set -euo pipefail\n' +
+  '          file=android/app/src/main/java/com/luckybean/app/MainActivity.java\n' +
+  `          grep -Fq 'LuckyBeanAndroid/1.24B' "$file"\n` +
+  `          ! grep -Fq 'LuckyBeanAndroid/1.23E' "$file"\n` +
+  '      - name: Restore official release keystore\n' +
+  '        shell: bash\n' +
+  '        env:\n' +
+  '          LUCKYBEAN_KEYSTORE_B64: ${{ secrets.LUCKYBEAN_KEYSTORE_B64 }}\n' +
+  '        run: |\n' +
+  '          set -euo pipefail\n' +
+  '          test -n "$LUCKYBEAN_KEYSTORE_B64"\n' +
+  `          printf '%s' "$LUCKYBEAN_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/luckybean-release.jks"\n` +
+  '          chmod 600 "$RUNNER_TEMP/luckybean-release.jks"\n' +
+  '      - name: Build signed APK\n' +
+  '        env:\n' +
+  '          LUCKYBEAN_KEYSTORE_FILE: ${{ runner.temp }}/luckybean-release.jks\n' +
+  '          LUCKYBEAN_STORE_PASSWORD: ${{ secrets.LUCKYBEAN_STORE_PASSWORD }}\n' +
+  '          LUCKYBEAN_KEY_ALIAS: ${{ secrets.LUCKYBEAN_KEY_ALIAS }}\n' +
+  '          LUCKYBEAN_KEY_PASSWORD: ${{ secrets.LUCKYBEAN_KEY_PASSWORD }}\n' +
+  '        run: gradle --no-daemon -p android :app:assembleRelease\n' +
+  '      - name: Verify package, embedded source, and certificate\n' +
+  '        shell: bash\n' +
+  '        run: |\n' +
+  '          set -euo pipefail\n' +
+  '          apk=android/app/build/outputs/apk/release/app-release.apk\n' +
+  '          test -f "$apk"\n' +
+  `          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"\n` +
+  "          grep -Fq 'LuckyBeanAndroid/1.24B' android/app/src/main/java/com/luckybean/app/MainActivity.java\n" +
+  '          for asset in \\\n' +
+  '            assets/web-cache/src/features/release-1.24b-integration.js \\\n' +
+  '            assets/web-cache/src/features/release-1.24b-finalize.js \\\n' +
+  '            assets/web-cache/src/features/release-1.24b-transit-controller.js \\\n' +
+  '            assets/web-cache/src/features/release-1.24b-group-navigation.js \\\n' +
+  '            assets/web-cache/src/features/release-1.24b-about-controller.js \\\n' +
+  '            assets/web-cache/src/features/release-1.24b-polish.js \\\n' +
+  '            assets/web-cache/src/features/release-1.24b-ui-policy.js \\\n' +
+  '            assets/web-cache/src/features/release-1.24b-freshness-detail.js \\\n' +
+  '            assets/web-cache/src/features/recognition-batch-progress-controller.js \\\n' +
+  '            assets/web-cache/src/ui/sortable-controller.js \\\n' +
+  '            assets/web-cache/src/features/sensory-tag-sort-controller.js \\\n' +
+  '            assets/web-cache/src/features/runtime-features.js \\\n' +
+  '            assets/web-cache/src/bean-groups-controller.js \\\n' +
+  '            assets/web-cache/src/domain/recognition/recognition-field-resolver-1.24b.js \\\n' +
+  '            assets/web-cache/src/services/grind-psd-reference-service.js \\\n' +
+  '            assets/web-cache/src/domain/recognition/order-recognition-1.24b.js \\\n' +
+  '            assets/web-cache/src/data/local-brew-recipes-1.24b.js \\\n' +
+  '            assets/web-cache/src/release-1.24b.js; do\n' +
+  '            unzip -l "$apk" | grep -Fq "$asset"\n' +
+  '          done\n' +
+  `          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-revision" content="1.24B-main.4"'\n` +
+  `          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-polish.js?v=1.24B-main.4'\n` +
+  `          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-transit-controller.js?v=1.24B-main.4'\n` +
+  `          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.4'\n` +
+  `          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.4'\n` +
+  `          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '1.24B-main.4'"\n` +
+  `          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'main-4-interaction3'\n` +
+  `          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'src/ui/sortable-controller.js'\n` +
+  `          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'sensory-tag-sort-controller.js'\n` +
+  `          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq "feature('shared-sortable'"\n` +
+  `          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq 'sensory-tag-sort-controller.js'\n` +
+  `          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'lb-sort-ghost'\n` +
+  `          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'lb-sort-placeholder'\n` +
+  `          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'onPreview'\n` +
+  `          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'onCommit'\n` +
+  '          unzip -p "$apk" assets/web-cache/src/features'... 7132 more characters
 
-[static] npm run test:recognition
+    at file:///home/runner/work/luckybean/luckybean/tests/v124b-final-release-contract.mjs:148:8
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 'name: LuckyBean main signed release\n' +
+    '\n' +
+    'on:\n' +
+    '  workflow_run:\n' +
+    '    workflows: ["LuckyBean main web deploy"]\n' +
+    '    types: [completed]\n' +
+    '  workflow_dispatch:\n' +
+    '\n' +
+    'permissions:\n' +
+    '  actions: read\n' +
+    '  contents: write\n' +
+    '\n' +
+    'concurrency:\n' +
+    '  group: luckybean-main-signed-release\n' +
+    '  cancel-in-progress: true\n' +
+    '\n' +
+    'jobs:\n' +
+    '  build:\n' +
+    '    if: >-\n' +
+    "      github.event_name == 'workflow_dispatch' ||\n" +
+    "      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')\n" +
+    '    runs-on: ubuntu-24.04\n' +
+    '    timeout-minutes: 30\n' +
+    '    env:\n' +
+    "      SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}\n" +
+    '      RELEASE_TAG: v1.24B-main.4\n' +
+    '    steps:\n' +
+    '      - uses: actions/checkout@v7.0.1\n' +
+    '        with:\n' +
+    '          ref: ${{ env.SOURCE_SHA }}\n' +
+    '          fetch-depth: 1\n' +
+    '      - name: Verify final release gates\n' +
+    '        env:\n' +
+    '          GH_TOKEN: ${{ github.token }}\n' +
+    '        shell: bash\n' +
+    '        run: |\n' +
+    '          set -euo pipefail\n' +
+    `          current_main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')\n` +
+    '          test "$current_main" = "$SOURCE_SHA"\n' +
+    '\n' +
+    `          pages_json=$(gh api "repos/$GITHUB_REPOSITORY/contents/status/1.24B.json?ref=pages-status" --jq '.content' | base64 --decode)\n` +
+    `          test "$(printf '%s' "$pages_json" | jq -r '.source_sha')" = "$SOURCE_SHA"\n` +
+    `          test "$(printf '%s' "$pages_json" | jq -r '.verified')" = "true"\n` +
+    '\n' +
+    '          test_status=missing\n' +
+    '          test_conclusion=missing\n' +
+    '          for attempt in {1..90}; do\n' +
+    '            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/test-main.yml/runs?branch=main&head_sha=$SOURCE_SHA&per_page=1")\n' +
+    `            test_status=$(printf '%s' "$runs" | jq -r '.workflow_runs[0].status // "missing"')\n` +
+    `            test_conclusion=$(printf '%s' "$runs" | jq -r '.workflow_runs[0].conclusion // ""')\n` +
+    '            if [ "$test_status" = "completed" ]; then\n' +
+    '              test "$test_conclusion" = "success"\n' +
+    '              break\n' +
+    '            fi\n' +
+    '            sleep 5\n' +
+    '          done\n' +
+    '          test "$test_status" = "completed"\n' +
+    '          test "$test_conclusion" = "success"\n' +
+    '\n' +
+    `          current_main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')\n` +
+    '          test "$current_main" = "$SOURCE_SHA"\n' +
+    `          printf 'Pages verified and main tests passed for %s\\n' "$SOURCE_SHA"\n` +
+    '      - uses: actions/setup-node@v7.0.0\n' +
+    '        with:\n' +
+    '          node-version: 22\n' +
+    '          cache: npm\n' +
+    '      - uses: actions/setup-java@v5.7.0\n' +
+    '        with:\n' +
+    '          distribution: temurin\n' +
+    "          java-version: '17'\n" +
+    '      - uses: android-actions/setup-android@v4.0.1\n' +
+    '      - name: Install Android build tools\n' +
+    "        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'\n" +
+    '      - uses: gradle/actions/setup-gradle@v6.3.0\n' +
+    '        with:\n' +
+    "          gradle-version: '8.9'\n" +
+    '      - run: npm ci\n' +
+    '      - run: npm audit --audit-level=high\n' +
+    '      - name: Validate source\n' +
+    '        run: |\n' +
+    "          find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check\n" +
+    '          npm run test:static\n' +
+    `          grep -Fq 'release-revision" content="1.24B-main.4"' index.html\n` +
+    "          grep -Fq 'release-1.24b-polish.js?v=1.24B-main.4' index.html\n" +
+    "          grep -Fq 'release-1.24b-transit-controller.js?v=1.24B-main.4' index.html\n" +
+    "          grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.4' index.html\n" +
+    "          grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.4' index.html\n" +
+    `          grep -Fq "REVISION = '1.24B-main.4'" sw.js\n` +
+    "          grep -Fq 'main-4-interaction3' sw.js\n" +
+    "          grep -Fq 'release-1.24b-ui-policy.js' sw.js\n" +
+    "          grep -Fq 'src/ui/sortable-controller.js' sw.js\n" +
+    "          grep -Fq 'sensory-tag-sort-controller.js' sw.js\n" +
+    `          grep -Fq "feature('shared-sortable'" src/features/runtime-features.js\n` +
+    "          grep -Fq 'sensory-tag-sort-controller.js' src/features/runtime-features.js\n" +
+    "          grep -Fq 'async function closeActiveGroup' src/bean-groups-controller.js\n" +
+    "          ! grep -Fq 'data-v099t-group-back' src/bean-groups-controller.js\n" +
+    "          grep -Fq 'api.closeActiveGroup' src/features/release-1.24b-group-navigation.js\n" +
+    "          ! grep -Fq 'data-v099t-group-back' src/features/release-1.24b-group-navigation.js\n" +
+    "          grep -Fq 'lb-sort-ghost' src/ui/sortable-controller.js\n" +
+    "          grep -Fq 'lb-sort-placeholder' src/ui/sortable-controller.js\n" +
+    "          grep -Fq 'onPreview' src/ui/sortable-controller.js\n" +
+    "          grep -Fq 'onCommit' src/ui/sortable-controller.js\n" +
+    "          grep -Fq 'LuckyBeanSortable' src/features/sensory-tag-sort-controller.js\n" +
+    "          grep -Fq '双击移除' src/features/sensory-tag-sort-controller.js\n" +
+    "          grep -Fq '实时预览松手后的顺序' src/features/sensory-tag-sort-controller.js\n" +
+    "          grep -Fq 'professional-sensory-complete' src/features/sensory-tag-sort-controller.js\n" +
+    `          grep -Fq "UI_POLICY_REVISION = '1.24B-main.4'" src/features/release-1.24b-ui-policy.js\n` +
+    `          grep -Fq "button.textContent = '合并云端'" src/features/release-1.24b-ui-policy.js\n` +
+    "          grep -Fq 'aspect-ratio: 2 / 1' src/features/release-1.24b-ui-policy.js\n" +
+    "          grep -Fq '#brewContent button:not(.lb-brew-switch)' src/features/release-1.24b-ui-policy.js\n" +
+    `          grep -Fq "observe('brewContent')" src/features/release-1.24b-ui-policy.js\n` +
+    "          grep -Fq 'release-1.24b-freshness-detail.js' sw.js\n" +
+    "          grep -Fq 'recognition-batch-progress-controller.js' sw.js\n" +
+    "          grep -Fq 'recognition-field-resolver-1.24b.js' sw.js\n" +
+    "          grep -Fq 'grind-psd-reference-service.js' sw.js\n" +
+    '      - name: Synchronize Android runtime version marker\n' +
+    '        shell: bash\n' +
+    '        run: |\n' +
+    '          set -euo pipefail\n' +
+    '          file=android/app/src/main/java/com/luckybean/app/MainActivity.java\n' +
+    `          grep -Fq 'LuckyBeanAndroid/1.24B' "$file"\n` +
+    `          ! grep -Fq 'LuckyBeanAndroid/1.23E' "$file"\n` +
+    '      - name: Restore official release keystore\n' +
+    '        shell: bash\n' +
+    '        env:\n' +
+    '          LUCKYBEAN_KEYSTORE_B64: ${{ secrets.LUCKYBEAN_KEYSTORE_B64 }}\n' +
+    '        run: |\n' +
+    '          set -euo pipefail\n' +
+    '          test -n "$LUCKYBEAN_KEYSTORE_B64"\n' +
+    `          printf '%s' "$LUCKYBEAN_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/luckybean-release.jks"\n` +
+    '          chmod 600 "$RUNNER_TEMP/luckybean-release.jks"\n' +
+    '      - name: Build signed APK\n' +
+    '        env:\n' +
+    '          LUCKYBEAN_KEYSTORE_FILE: ${{ runner.temp }}/luckybean-release.jks\n' +
+    '          LUCKYBEAN_STORE_PASSWORD: ${{ secrets.LUCKYBEAN_STORE_PASSWORD }}\n' +
+    '          LUCKYBEAN_KEY_ALIAS: ${{ secrets.LUCKYBEAN_KEY_ALIAS }}\n' +
+    '          LUCKYBEAN_KEY_PASSWORD: ${{ secrets.LUCKYBEAN_KEY_PASSWORD }}\n' +
+    '        run: gradle --no-daemon -p android :app:assembleRelease\n' +
+    '      - name: Verify package, embedded source, and certificate\n' +
+    '        shell: bash\n' +
+    '        run: |\n' +
+    '          set -euo pipefail\n' +
+    '          apk=android/app/build/outputs/apk/release/app-release.apk\n' +
+    '          test -f "$apk"\n' +
+    `          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"\n` +
+    "          grep -Fq 'LuckyBeanAndroid/1.24B' android/app/src/main/java/com/luckybean/app/MainActivity.java\n" +
+    '          for asset in \\\n' +
+    '            assets/web-cache/src/features/release-1.24b-integration.js \\\n' +
+    '            assets/web-cache/src/features/release-1.24b-finalize.js \\\n' +
+    '            assets/web-cache/src/features/release-1.24b-transit-controller.js \\\n' +
+    '            assets/web-cache/src/features/release-1.24b-group-navigation.js \\\n' +
+    '            assets/web-cache/src/features/release-1.24b-about-controller.js \\\n' +
+    '            assets/web-cache/src/features/release-1.24b-polish.js \\\n' +
+    '            assets/web-cache/src/features/release-1.24b-ui-policy.js \\\n' +
+    '            assets/web-cache/src/features/release-1.24b-freshness-detail.js \\\n' +
+    '            assets/web-cache/src/features/recognition-batch-progress-controller.js \\\n' +
+    '            assets/web-cache/src/ui/sortable-controller.js \\\n' +
+    '            assets/web-cache/src/features/sensory-tag-sort-controller.js \\\n' +
+    '            assets/web-cache/src/features/runtime-features.js \\\n' +
+    '            assets/web-cache/src/bean-groups-controller.js \\\n' +
+    '            assets/web-cache/src/domain/recognition/recognition-field-resolver-1.24b.js \\\n' +
+    '            assets/web-cache/src/services/grind-psd-reference-service.js \\\n' +
+    '            assets/web-cache/src/domain/recognition/order-recognition-1.24b.js \\\n' +
+    '            assets/web-cache/src/data/local-brew-recipes-1.24b.js \\\n' +
+    '            assets/web-cache/src/release-1.24b.js; do\n' +
+    '            unzip -l "$apk" | grep -Fq "$asset"\n' +
+    '          done\n' +
+    `          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-revision" content="1.24B-main.4"'\n` +
+    `          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-polish.js?v=1.24B-main.4'\n` +
+    `          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-transit-controller.js?v=1.24B-main.4'\n` +
+    `          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.4'\n` +
+    `          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.4'\n` +
+    `          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '1.24B-main.4'"\n` +
+    `          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'main-4-interaction3'\n` +
+    `          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'src/ui/sortable-controller.js'\n` +
+    `          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'sensory-tag-sort-controller.js'\n` +
+    `          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq "feature('shared-sortable'"\n` +
+    `          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq 'sensory-tag-sort-controller.js'\n` +
+    `          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'lb-sort-ghost'\n` +
+    `          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'lb-sort-placeholder'\n` +
+    `          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'onPreview'\n` +
+    `          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'onCommit'\n` +
+    '          unzip -p "$apk" assets/web-cache/src/features'... 7132 more characters,
+  expected: /on:\n\s+push:\n\s+branches: \[main\]/,
+  operator: 'match',
+  diff: 'simple'
+}
 
-> luckybean-static-app@1.24.2 test:recognition
-> node --test test/*.test.js
-
-TAP version 13
-# Subtest: sums every bean remaining weight and counts authoritative consumption events once
-ok 1 - sums every bean remaining weight and counts authoritative consumption events once
-  ---
-  duration_ms: 2.433617
-  type: 'test'
-  ...
-# Subtest: restored mistaken brew is removed from today total
-ok 2 - restored mistaken brew is removed from today total
-  ---
-  duration_ms: 0.382176
-  type: 'test'
-  ...
-# Subtest: warns when latest completed consumption is within the configured sleep buffer
-ok 3 - warns when latest completed consumption is within the configured sleep buffer
-  ---
-  duration_ms: 0.450504
-  type: 'test'
-  ...
-# Subtest: uses a higher caffeine estimate for robusta beans
-ok 4 - uses a higher caffeine estimate for robusta beans
-  ---
-  duration_ms: 1.158269
-  type: 'test'
-  ...
-# Subtest: brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
-ok 5 - brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
-  ---
-  duration_ms: 1.012236
-  type: 'test'
-  ...
-# Subtest: production analysis envelope adapts into a plan accepted by the page validator
-ok 6 - production analysis envelope adapts into a plan accepted by the page validator
-  ---
-  duration_ms: 0.96139
-  type: 'test'
-  ...
-# Subtest: unknown analysis contracts and unversioned legacy plans remain rejected
-ok 7 - unknown analysis contracts and unversioned legacy plans remain rejected
-  ---
-  duration_ms: 0.479678
-  type: 'test'
-  ...
-# Subtest: cold brew validates stage water against brew water and recipe total independently
-ok 8 - cold brew validates stage water against brew water and recipe total independently
-  ---
-  duration_ms: 0.35783
-  type: 'test'
-  ...
-# Subtest: 参数重算保留同一豆卡已经实际采用的方案
-ok 9 - 参数重算保留同一豆卡已经实际采用的方案
-  ---
-  duration_ms: 2.723379
-  type: 'test'
-  ...
-# Subtest: 不同豆卡或手动选择方案时不会沿用旧方案
-ok 10 - 不同豆卡或手动选择方案时不会沿用旧方案
-  ---
-  duration_ms: 1.172295
-  type: 'test'
-  ...
-# Subtest: 并发计算采用 latest-wins，旧结果不能覆盖新结果
-ok 11 - 并发计算采用 latest-wins，旧结果不能覆盖新结果
-  ---
-  duration_ms: 0.566
-  type: 'test'
-  ...
-# Subtest: 总分低于预测分不会单独触发冲煮优化
-ok 12 - 总分低于预测分不会单独触发冲煮优化
-  ---
-  duration_ms: 2.848553
-  type: 'test'
-  ...
-# Subtest: 品鉴后的具体负面维度触发可解释优化
-ok 13 - 品鉴后的具体负面维度触发可解释优化
-  ---
-  duration_ms: 0.93949
-  type: 'test'
-  ...
-# Subtest: 雷达轴只比较同组平均且无完成冲煮时不提示优化
-ok 14 - 雷达轴只比较同组平均且无完成冲煮时不提示优化
-  ---
-  duration_ms: 1.430068
-  type: 'test'
-  ...
-# Subtest: 实际执行明显偏离方案时不把负面结果归因于方案
-ok 15 - 实际执行明显偏离方案时不把负面结果归因于方案
-  ---
-  duration_ms: 0.484537
-  type: 'test'
-  ...
-# Subtest: 个人靶区至少三次证据后才改变，标准靶区保持不变
-ok 16 - 个人靶区至少三次证据后才改变，标准靶区保持不变
-  ---
-  duration_ms: 1.23936
-  type: 'test'
-  ...
-# Subtest: accepts a catalog with balanced hot and cold auto-recommend profiles
-ok 17 - accepts a catalog with balanced hot and cold auto-recommend profiles
-  ---
-  duration_ms: 1.127211
-  type: 'test'
-  ...
-# Subtest: rejects a catalog whose declared profile count differs from the payload
-ok 18 - rejects a catalog whose declared profile count differs from the payload
-  ---
-  duration_ms: 0.210925
-  type: 'test'
-  ...
-# Subtest: rejects a cold profile whose recipe water does not equal brew water + ice + bypass
-ok 19 - rejects a cold profile whose recipe water does not equal brew water + ice + bypass
-  ---
-  duration_ms: 1.135576
-  type: 'test'
-  ...
-# Subtest: rejects catalogs that cannot auto-recommend in both hot and cold modes
-ok 20 - rejects catalogs that cannot auto-recommend in both hot and cold modes
-  ---
-  duration_ms: 0.207288
-  type: 'test'
-  ...
-# Subtest: archive round-trip preserves every portable store
-ok 21 - archive round-trip preserves every portable store
-  ---
-  duration_ms: 18.349445
-  type: 'test'
-  ...
-# Subtest: archive rejects tampered store data
-ok 22 - archive rejects tampered store data
-  ---
-  duration_ms: 3.458846
-  type: 'test'
-  ...
-# Subtest: legacy 1.2.x JSON backup migrates without inventing records
-ok 23 - legacy 1.2.x JSON backup migrates without inventing records
-  ---
-  duration_ms: 0.595405
-  type: 'test'
-  ...
-# Subtest: future schema cannot be imported
-ok 24 - future schema cannot be imported
-  ---
-  duration_ms: 3.98446
-  type: 'test'
-  ...
-# Subtest: production date never falls back to roast date
-ok 25 - production date never falls back to roast date
-  ---
-  duration_ms: 6.998243
-  type: 'test'
-  ...
-# Subtest: best before and expiry dates are excluded from roast date
-ok 26 - best before and expiry dates are excluded from roast date
-  ---
-  duration_ms: 7.632851
-  type: 'test'
-  ...
-# Subtest: explicit roast date is auto-filled while other dates remain excluded
-ok 27 - explicit roast date is auto-filled while other dates remain excluded
-  ---
-  duration_ms: 1.471645
-  type: 'test'
-  ...
-# Subtest: unlabelled date requires confirmation and is never silently filled
-ok 28 - unlabelled date requires confirmation and is never silently filled
-  ---
-  duration_ms: 1.615686
-  type: 'test'
-  ...
-# Subtest: date photo role increases provenance but does not bypass confirmation
-ok 29 - date photo role increases provenance but does not bypass confirmation
-  ---
-  duration_ms: 0.983191
-  type: 'test'
-  ...
-# Subtest: invalid calendar dates are rejected
-ok 30 - invalid calendar dates are rejected
-  ---
-  duration_ms: 1.835657
-  type: 'test'
-  ...
-# Subtest: 30-case date ownership golden set has zero silent non-roast assignments
-    # Subtest: 烘焙日期：2026-07-28
-    ok 1 - 烘焙日期：2026-07-28
-      ---
-      duration_ms: 6.469593
-      type: 'test'
-      ...
-    # Subtest: ROAST DATE 2026/07/28
-    ok 2 - ROAST DATE 2026/07/28
-      ---
-      duration_ms: 1.154672
-      type: 'test'
-      ...
-    # Subtest: ROASTED ON 2026.7.8
-    ok 3 - ROASTED ON 2026.7.8
-      ---
-      duration_ms: 0.361056
-      type: 'test'
-      ...
-    # Subtest: 焙炒日期 2026年7月28日
-    ok 4 - 焙炒日期 2026年7月28日
-      ---
-      duration_ms: 0.622415
-      type: 'test'
-      ...
-    # Subtest: RST DATE 20260728
-    ok 5 - RST DATE 20260728
-      ---
-      duration_ms: 0.422461
-      type: 'test'
-      ...
-    # Subtest: ROAST ON 28 JUL 2026
-    ok 6 - ROAST ON 28 JUL 2026
-      ---
-      duration_ms: 0.642733
-      type: 'test'
-      ...
-    # Subtest: ROAST DATE JUL 28 2026
-    ok 7 - ROAST DATE JUL 28 2026
-      ---
-      duration_ms: 1.427473
-      type: 'test'
-      ...
-    # Subtest: 出炉日期 26年7月28日
-    ok 8 - 出炉日期 26年7月28日
-      ---
-      duration_ms: 1.444224
-      type: 'test'
-      ...
-    # Subtest: 烘焙日 26-07-28
-    ok 9 - 烘焙日 26-07-28
-      ---
-      duration_ms: 1.321955
-      type: 'test'
-      ...
-    # Subtest: 烘烤日期 26.0728
-    ok 10 - 烘烤日期 26.0728
-      ---
-      duration_ms: 0.54512
-      type: 'test'
-      ...
-    # Subtest: 生产日期：2026-07-21
-    ok 11 - 生产日期：2026-07-21
-      ---
-      duration_ms: 0.565859
-      type: 'test'
-      ...
-    # Subtest: MFG DATE 2026/07/21
-    ok 12 - MFG DATE 2026/07/21
-      ---
-      duration_ms: 0.295233
-      type: 'test'
-      ...
-    # Subtest: MFD 20260721
-    ok 13 - MFD 20260721
-      ---
-      duration_ms: 0.2353
-      type: 'test'
-      ...
-    # Subtest: 包装日期 2026.07.22
-    ok 14 - 包装日期 2026.07.22
-      ---
-      duration_ms: 0.296947
-      type: 'test'
-      ...
-    # Subtest: PACKED ON 2026-07-22
-    ok 15 - PACKED ON 2026-07-22
-      ---
-      duration_ms: 0.612317
-      type: 'test'
-      ...
-    # Subtest: PKD 20260722
-    ok 16 - PKD 20260722
-      ---
-      duration_ms: 0.395501
-      type: 'test'
-      ...
-    # Subtest: 最佳赏味期 2026-10-28
-    ok 17 - 最佳赏味期 2026-10-28
-      ---
-      duration_ms: 0.412422
-      type: 'test'
-      ...
-    # Subtest: BEST BEFORE 2026/10/28
-    ok 18 - BEST BEFORE 2026/10/28
-      ---
-      duration_ms: 0.423704
-      type: 'test'
-      ...
-    # Subtest: BBE 28 OCT 2026
-    ok 19 - BBE 28 OCT 2026
-      ---
-      duration_ms: 0.357089
-      type: 'test'
-      ...
-    # Subtest: 有效期至 2027年1月5日
-    ok 20 - 有效期至 2027年1月5日
-      ---
-      duration_ms: 0.407453
-      type: 'test'
-      ...
-    # Subtest: EXP 2027-01-05
-    ok 21 - EXP 2027-01-05
-      ---
-      duration_ms: 0.350006
-      type: 'test'
-      ...
-    # Subtest: USE BY JAN 5 2027
-    ok 22 - USE BY JAN 5 2027
-      ---
-      duration_ms: 0.361677
-      type: 'test'
-      ...
-    # Subtest: 埃塞俄比亚 / 2026-07-28
-    ok 23 - 埃塞俄比亚 / 2026-07-28
-      ---
-      duration_ms: 1.117352
-      type: 'test'
-      ...
-    # Subtest: DATE 2026/07/28
-    ok 24 - DATE 2026/07/28
-      ---
-      duration_ms: 0.29385
-      type: 'test'
-      ...
-    # Subtest: LOT 20260728
-    ok 25 - LOT 20260728
-      ---
-      duration_ms: 0.295804
-      type: 'test'
-      ...
-    # Subtest: 2026年7月28日
-    ok 26 - 2026年7月28日
-      ---
-      duration_ms: 0.306404
-      type: 'test'
-      ...
-    # Subtest: 28/07/2026
-    ok 27 - 28/07/2026
-      ---
-      duration_ms: 0.701282
-      type: 'test'
-      ...
-    # Subtest: 07/08/2026
-    ok 28 - 07/08/2026
-      ---
-      duration_ms: 0.460022
-      type: 'test'
-      ...
-    # Subtest: ROAST DATE 07/08/2026
-    ok 29 - ROAST DATE 07/08/2026
-      ---
-      duration_ms: 0.489376
-      type: 'test'
-      ...
-    # Subtest: ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
-    ok 30 - ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
-      ---
-      duration_ms: 0.595295
-      type: 'test'
-      ...
-    1..30
-ok 31 - 30-case date ownership golden set has zero silent non-roast assignments
-  ---
-  duration_ms: 27.830379
-  type: 'test'
-  ...
-# Subtest: review model exposes automatic, excluded and unresolved candidates together
-ok 32 - review model exposes automatic, excluded and unresolved candidates together
-  ---
-  duration_ms: 8.888726
-  type: 'test'
-  ...
-# Subtest: unresolved candidate requires an explicit date assignment before confirmation
-ok 33 - unresolved candidate requires an explicit date assignment before confirmation
-  ---
-  duration_ms: 0.66791
-  type: 'test'
-  ...
-# Subtest: user confirmation retains source provenance instead of inventing confidence 1
-ok 34 - user confirmation retains source provenance instead of inventing confidence 1
-  ---
-  duration_ms: 0.629289
-  type: 'test'
-  ...
-# Subtest: two roast date selections are rejected
-ok 35 - two roast date selections are rejected
-  ---
-  duration_ms: 1.191901
-  type: 'test'
-  ...
-# Subtest: candidate value cannot be replaced with an unrecognized date
-ok 36 - candidate value cannot be replaced with an unrecognized date
-  ---
-  duration_ms: 0.426288
-  type: 'test'
-  ...
-# Subtest: stale or fabricated candidate id is rejected
-ok 37 - stale or fabricated candidate id is rejected
-  ---
-  duration_ms: 0.653063
-  type: 'test'
-  ...
-# Subtest: all candidates may be ignored without silently restoring automatic roast date
-ok 38 - all candidates may be ignored without silently restoring automatic roast date
-  ---
-  duration_ms: 1.07328
-  type: 'test'
-  ...
-# Subtest: ambiguous day-month candidate can only resolve to one offered value
-ok 39 - ambiguous day-month candidate can only resolve to one offered value
-  ---
-  duration_ms: 1.451277
-  type: 'test'
-  ...
-# Subtest: duplicate submission of the same candidate is rejected
-ok 40 - duplicate submission of the same candidate is rejected
-  ---
-  duration_ms: 0.79588
-  type: 'test'
-  ...
-# Subtest: numeric Ethiopian variety codes are split into independent exact candidates
-ok 41 - numeric Ethiopian variety codes are split into independent exact candidates
-  ---
-  duration_ms: 28.452952
-  type: 'test'
-  ...
-# Subtest: multiple labeled varieties stay unresolved instead of silently choosing the first code
-ok 42 - multiple labeled varieties stay unresolved instead of silently choosing the first code
-  ---
-  duration_ms: 13.16331
-  type: 'test'
-  ...
-# Subtest: spaced alphanumeric variety codes survive OCR tokenization
-ok 43 - spaced alphanumeric variety codes survive OCR tokenization
-  ---
-  duration_ms: 4.86026
-  type: 'test'
-  ...
-# Subtest: explicit numeric roast levels map only within the labeled 0-6 scale
-ok 44 - explicit numeric roast levels map only within the labeled 0-6 scale
-  ---
-  duration_ms: 1.105981
-  type: 'test'
-  ...
-# Subtest: mixed label layouts preserve separate variety and roast evidence
-ok 45 - mixed label layouts preserve separate variety and roast evidence
-  ---
-  duration_ms: 2.138173
-  type: 'test'
-  ...
-# Subtest: equally exact codebook candidates remain a manual choice
-ok 46 - equally exact codebook candidates remain a manual choice
-  ---
-  duration_ms: 3.397361
-  type: 'test'
-  ...
-# Subtest: unsupported region evidence has no reliable candidates
-ok 47 - unsupported region evidence has no reliable candidates
-  ---
-  duration_ms: 3.532194
-  type: 'test'
-  ...
-# Subtest: recognition review UI contains only unresolved fields and disappears when none remain
-ok 48 - recognition review UI contains only unresolved fields and disappears when none remain
-  ---
-  duration_ms: 1.574077
-  type: 'test'
-  ...
-# Subtest: recognition provenance remains persisted for audit without becoming confirmed-field UI
-ok 49 - recognition provenance remains persisted for audit without becoming confirmed-field UI
-  ---
-  duration_ms: 0.236122
-  type: 'test'
-  ...
-# Subtest: confirmed roast date is still saved from the final form value
-ok 50 - confirmed roast date is still saved from the final form value
-  ---
-  duration_ms: 0.467585
-  type: 'test'
-  ...
-# Subtest: custom dropdown opens its editor after select change dispatch completes
-ok 51 - custom dropdown opens its editor after select change dispatch completes
-  ---
-  duration_ms: 1.83692
-  type: 'test'
-  ...
-# Subtest: reversed inline key-value keeps the semantic field association
-ok 52 - reversed inline key-value keeps the semantic field association
-  ---
-  duration_ms: 3.299117
-  type: 'test'
-  ...
-# Subtest: same-row value before label is paired by geometry and field semantics
-ok 53 - same-row value before label is paired by geometry and field semantics
-  ---
-  duration_ms: 1.12715
-  type: 'test'
-  ...
-# Subtest: vertical title and value are paired in either reading direction
-ok 54 - vertical title and value are paired in either reading direction
-  ---
-  duration_ms: 0.726671
-  type: 'test'
-  ...
-# Subtest: standalone unordered coffee entities remain available instead of being forced into unrelated fields
-ok 55 - standalone unordered coffee entities remain available instead of being forced into unrelated fields
-  ---
-  duration_ms: 1.81572
-  type: 'test'
-  ...
-# Subtest: range hyphen is preserved as value content rather than treated as a field separator
-ok 56 - range hyphen is preserved as value content rather than treated as a field separator
-  ---
-  duration_ms: 0.783617
-  type: 'test'
-  ...
-# Subtest: English labels and coffee values become Chinese canonical bean fields
-ok 57 - English labels and coffee values become Chinese canonical bean fields
-  ---
-  duration_ms: 19.634093
-  type: 'test'
-  ...
-# Subtest: unknown proper names are preserved and explicitly marked for review
-ok 58 - unknown proper names are preserved and explicitly marked for review
-  ---
-  duration_ms: 11.339762
-  type: 'test'
-  ...
-# Subtest: explicit numeric fields are parsed while unrelated numbers stay isolated
-ok 59 - explicit numeric fields are parsed while unrelated numbers stay isolated
-  ---
-  duration_ms: 10.036703
-  type: 'test'
-  ...
-# Subtest: Chinese, reverse-labelled and vertical fields share one canonical pipeline
-ok 60 - Chinese, reverse-labelled and vertical fields share one canonical pipeline
-  ---
-  duration_ms: 7.231831
-  type: 'test'
-  ...
-1..60
-# tests 90
-# suites 0
-# pass 90
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 471.999137
-
-All LuckyBean static and recognition regression checks passed
+Node.js v22.23.2
+::error file=tests/v124b-final-release-contract.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /on:\n\s+push:\n\s+branches: \[main\]/. Input:%0A%0A'name: LuckyBean main signed release\n' +%0A  '\n' +%0A  'on:\n' +%0A  '  workflow_run:\n' +%0A  '    workflows: ["LuckyBean main web deploy"]\n' +%0A  '    types: [completed]\n' +%0A  '  workflow_dispatch:\n' +%0A  '\n' +%0A  'permissions:\n' +%0A  '  actions: read\n' +%0A  '  contents: write\n' +%0A  '\n' +%0A  'concurrency:\n' +%0A  '  group: luckybean-main-signed-release\n' +%0A  '  cancel-in-progress: true\n' +%0A  '\n' +%0A  'jobs:\n' +%0A  '  build:\n' +%0A  '    if: >-\n' +%0A  "      github.event_name == 'workflow_dispatch' ||\n" +%0A  "      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')\n" +%0A  '    runs-on: ubuntu-24.04\n' +%0A  '    timeout-minutes: 30\n' +%0A  '    env:\n' +%0A  "      SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}\n" +%0A  '      RELEASE_TAG: v1.24B-main.4\n' +%0A  '    steps:\n' +%0A  '      - uses: actions/checkout@v7.0.1\n' +%0A  '        with:\n' +%0A  '          ref: ${{ env.SOURCE_SHA }}\n' +%0A  '          fetch-depth: 1\n' +%0A  '      - name: Verify final release gates\n' +%0A  '        env:\n' +%0A  '          GH_TOKEN: ${{ github.token }}\n' +%0A  '        shell: bash\n' +%0A  '        run: |\n' +%0A  '          set -euo pipefail\n' +%0A  `          current_main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')\n` +%0A  '          test "$current_main" = "$SOURCE_SHA"\n' +%0A  '\n' +%0A  `          pages_json=$(gh api "repos/$GITHUB_REPOSITORY/contents/status/1.24B.json?ref=pages-status" --jq '.content' | base64 --decode)\n` +%0A  `          test "$(printf '%25s' "$pages_json" | jq -r '.source_sha')" = "$SOURCE_SHA"\n` +%0A  `          test "$(printf '%25s' "$pages_json" | jq -r '.verified')" = "true"\n` +%0A  '\n' +%0A  '          test_status=missing\n' +%0A  '          test_conclusion=missing\n' +%0A  '          for attempt in {1..90}; do\n' +%0A  '            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/test-main.yml/runs?branch=main&head_sha=$SOURCE_SHA&per_page=1")\n' +%0A  `            test_status=$(printf '%25s' "$runs" | jq -r '.workflow_runs[0].status // "missing"')\n` +%0A  `            test_conclusion=$(printf '%25s' "$runs" | jq -r '.workflow_runs[0].conclusion // ""')\n` +%0A  '            if [ "$test_status" = "completed" ]; then\n' +%0A  '              test "$test_conclusion" = "success"\n' +%0A  '              break\n' +%0A  '            fi\n' +%0A  '            sleep 5\n' +%0A  '          done\n' +%0A  '          test "$test_status" = "completed"\n' +%0A  '          test "$test_conclusion" = "success"\n' +%0A  '\n' +%0A  `          current_main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')\n` +%0A  '          test "$current_main" = "$SOURCE_SHA"\n' +%0A  `          printf 'Pages verified and main tests passed for %25s\\n' "$SOURCE_SHA"\n` +%0A  '      - uses: actions/setup-node@v7.0.0\n' +%0A  '        with:\n' +%0A  '          node-version: 22\n' +%0A  '          cache: npm\n' +%0A  '      - uses: actions/setup-java@v5.7.0\n' +%0A  '        with:\n' +%0A  '          distribution: temurin\n' +%0A  "          java-version: '17'\n" +%0A  '      - uses: android-actions/setup-android@v4.0.1\n' +%0A  '      - name: Install Android build tools\n' +%0A  "        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'\n" +%0A  '      - uses: gradle/actions/setup-gradle@v6.3.0\n' +%0A  '        with:\n' +%0A  "          gradle-version: '8.9'\n" +%0A  '      - run: npm ci\n' +%0A  '      - run: npm audit --audit-level=high\n' +%0A  '      - name: Validate source\n' +%0A  '        run: |\n' +%0A  "          find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check\n" +%0A  '          npm run test:static\n' +%0A  `          grep -Fq 'release-revision" content="1.24B-main.4"' index.html\n` +%0A  "          grep -Fq 'release-1.24b-polish.js?v=1.24B-main.4' index.html\n" +%0A  "          grep -Fq 'release-1.24b-transit-controller.js?v=1.24B-main.4' index.html\n" +%0A  "          grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.4' index.html\n" +%0A  "          grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.4' index.html\n" +%0A  `          grep -Fq "REVISION = '1.24B-main.4'" sw.js\n` +%0A  "          grep -Fq 'main-4-interaction3' sw.js\n" +%0A  "          grep -Fq 'release-1.24b-ui-policy.js' sw.js\n" +%0A  "          grep -Fq 'src/ui/sortable-controller.js' sw.js\n" +%0A  "          grep -Fq 'sensory-tag-sort-controller.js' sw.js\n" +%0A  `          grep -Fq "feature('shared-sortable'" src/features/runtime-features.js\n` +%0A  "          grep -Fq 'sensory-tag-sort-controller.js' src/features/runtime-features.js\n" +%0A  "          grep -Fq 'async function closeActiveGroup' src/bean-groups-controller.js\n" +%0A  "          ! grep -Fq 'data-v099t-group-back' src/bean-groups-controller.js\n" +%0A  "          grep -Fq 'api.closeActiveGroup' src/features/release-1.24b-group-navigation.js\n" +%0A  "          ! grep -Fq 'data-v099t-group-back' src/features/release-1.24b-group-navigation.js\n" +%0A  "          grep -Fq 'lb-sort-ghost' src/ui/sortable-controller.js\n" +%0A  "          grep -Fq 'lb-sort-placeholder' src/ui/sortable-controller.js\n" +%0A  "          grep -Fq 'onPreview' src/ui/sortable-controller.js\n" +%0A  "          grep -Fq 'onCommit' src/ui/sortable-controller.js\n" +%0A  "          grep -Fq 'LuckyBeanSortable' src/features/sensory-tag-sort-controller.js\n" +%0A  "          grep -Fq '双击移除' src/features/sensory-tag-sort-controller.js\n" +%0A  "          grep -Fq '实时预览松手后的顺序' src/features/sensory-tag-sort-controller.js\n" +%0A  "          grep -Fq 'professional-sensory-complete' src/features/sensory-tag-sort-controller.js\n" +%0A  `          grep -Fq "UI_POLICY_REVISION = '1.24B-main.4'" src/features/release-1.24b-ui-policy.js\n` +%0A  `          grep -Fq "button.textContent = '合并云端'" src/features/release-1.24b-ui-policy.js\n` +%0A  "          grep -Fq 'aspect-ratio: 2 / 1' src/features/release-1.24b-ui-policy.js\n" +%0A  "          grep -Fq '#brewContent button:not(.lb-brew-switch)' src/features/release-1.24b-ui-policy.js\n" +%0A  `          grep -Fq "observe('brewContent')" src/features/release-1.24b-ui-policy.js\n` +%0A  "          grep -Fq 'release-1.24b-freshness-detail.js' sw.js\n" +%0A  "          grep -Fq 'recognition-batch-progress-controller.js' sw.js\n" +%0A  "          grep -Fq 'recognition-field-resolver-1.24b.js' sw.js\n" +%0A  "          grep -Fq 'grind-psd-reference-service.js' sw.js\n" +%0A  '      - name: Synchronize Android runtime version marker\n' +%0A  '        shell: bash\n' +%0A  '        run: |\n' +%0A  '          set -euo pipefail\n' +%0A  '          file=android/app/src/main/java/com/luckybean/a
