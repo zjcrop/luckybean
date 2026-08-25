@@ -54,6 +54,10 @@ function replaceRoastCodes(text) {
   return String(text || '').replace(/RL\s*[‐‑‒–—―−﹣－-]\s*L\s*([0-6])/gi, (_, level) => ROAST_LABELS[`RL-L${level}`] || _);
 }
 
+function notice(message, kind = 'status-good') {
+  document.dispatchEvent(new CustomEvent('luckybean:user-notice', { detail: { message, kind } }));
+}
+
 function ensureStyles() {
   if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement('style');
@@ -82,10 +86,21 @@ function ensureStyles() {
     .v095-wizard-actions [data-v095-prev] { grid-column: 2 !important; grid-row: 1 !important; }
     .v095-wizard-actions [data-v095-next] { grid-column: 3 !important; grid-row: 1 !important; }
 
-    /* Pending OCR evidence is an editor launcher, not inert evidence copy. */
+    /* Pending OCR rows are editor launchers rather than inert evidence copy. */
+    .bag-semantic-row.review[data-recognition-field],
     [data-recognition-review="pending"] .evidence-row[data-evidence-field] {
       cursor: pointer;
       outline: none;
+    }
+    .bag-semantic-row.review[data-recognition-field] {
+      border-color: var(--active) !important;
+    }
+    .bag-semantic-row.review[data-recognition-field]::after {
+      content: '点击编辑并确认';
+      display: block;
+      color: var(--active);
+      font-size: 11px;
+      margin-top: 6px;
     }
     [data-recognition-review="pending"] .evidence-row[data-evidence-field]:focus-visible,
     [data-recognition-review="pending"] .evidence-row[data-evidence-field].recognition-review-editing {
@@ -173,13 +188,13 @@ function clearRecognitionEditor(form) {
 
 function activateRecognitionEditor(row) {
   const form = row.closest('form#beanForm');
-  if (!form) return;
+  if (!form) return false;
   const field = String(row.dataset.evidenceField || '');
   const controlId = FIELD_CONTROLS[field];
   const control = controlId ? form.querySelector(`#${CSS.escape(controlId)}`) : null;
   if (!control) {
-    document.dispatchEvent(new CustomEvent('luckybean:user-notice', { detail: { message: '该识别项需要在豆卡表单中手工确认', kind: 'status-warn' } }));
-    return;
+    notice('该识别项需要在豆卡表单中手工确认', 'status-warn');
+    return false;
   }
   clearRecognitionEditor(form);
   row.classList.add('recognition-review-editing');
@@ -193,6 +208,7 @@ function activateRecognitionEditor(row) {
   fieldRoot?.append(confirm);
   fieldRoot?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   requestAnimationFrame(() => control.focus({ preventScroll: true }));
+  return true;
 }
 
 function confirmRecognitionEditor(button) {
@@ -205,7 +221,7 @@ function confirmRecognitionEditor(button) {
   if (!control || !row) return;
   const value = fieldDisplayValue(control, field);
   if (!value) {
-    document.dispatchEvent(new CustomEvent('luckybean:user-notice', { detail: { message: '请先填写该字段，再确认', kind: 'status-warn' } }));
+    notice('请先填写该字段，再确认', 'status-warn');
     control.focus();
     return;
   }
@@ -215,7 +231,7 @@ function confirmRecognitionEditor(button) {
   const section = form.querySelector('[data-recognition-review="pending"]');
   if (section && !section.querySelector('.evidence-row[data-evidence-field]')) section.remove();
   document.dispatchEvent(new CustomEvent('luckybean:recognition-field-confirmed', { detail: { field, value } }));
-  document.dispatchEvent(new CustomEvent('luckybean:user-notice', { detail: { message: `${value} 已确认`, kind: 'status-good' } }));
+  notice(`${value} 已确认`, 'status-good');
 }
 
 function decorateRecognitionRows(root = document) {
@@ -228,7 +244,46 @@ function decorateRecognitionRows(root = document) {
     const label = row.firstElementChild?.textContent?.trim() || field;
     row.setAttribute('aria-label', `编辑并确认${label}`);
   });
+  root.querySelectorAll?.('.bag-semantic-row.review[data-recognition-field]').forEach(row => {
+    if (row.dataset.recognitionInteractive === '1') return;
+    row.dataset.recognitionInteractive = '1';
+    row.setAttribute('role', 'button');
+    row.setAttribute('tabindex', '0');
+    const label = row.querySelector('.bag-semantic-label strong')?.textContent?.trim() || row.dataset.recognitionField || '';
+    row.setAttribute('aria-label', `编辑并确认${label}`);
+  });
   semanticizeVisibleRoastCodes(root);
+}
+
+function openPackageReviewEditor(row) {
+  const field = String(row.dataset.recognitionField || '');
+  if (!field) return;
+  const handoff = document.querySelector('#bagHandoffBtn');
+  if (!handoff || handoff.disabled) {
+    notice('请先完成识别文字整理，再编辑待确认项', 'status-warn');
+    return;
+  }
+  handoff.click();
+  let attempts = 0;
+  const locate = () => {
+    attempts += 1;
+    const form = document.querySelector('form#beanForm');
+    const pending = form?.querySelector(`[data-recognition-review="pending"] .evidence-row[data-evidence-field="${CSS.escape(field)}"]`);
+    if (pending && activateRecognitionEditor(pending)) return;
+    if (form && attempts >= 10) {
+      const controlId = FIELD_CONTROLS[field];
+      const control = controlId ? form.querySelector(`#${CSS.escape(controlId)}`) : null;
+      if (control) {
+        const fieldRoot = control.closest('.form-field');
+        fieldRoot?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        control.focus({ preventScroll: true });
+        notice('已进入对应字段，请编辑后保存豆卡', 'status-warn');
+      }
+      return;
+    }
+    if (attempts < 40) setTimeout(locate, 50);
+  };
+  setTimeout(locate, 0);
 }
 
 async function normalizeStoredRoastCodes() {
@@ -270,6 +325,13 @@ document.addEventListener('click', event => {
     confirmRecognitionEditor(confirm);
     return;
   }
+  const packageRow = event.target.closest?.('.bag-semantic-row.review[data-recognition-field]');
+  if (packageRow) {
+    event.preventDefault();
+    event.stopPropagation();
+    openPackageReviewEditor(packageRow);
+    return;
+  }
   const row = event.target.closest?.('[data-recognition-review="pending"] .evidence-row[data-evidence-field]');
   if (!row) return;
   event.preventDefault();
@@ -278,6 +340,12 @@ document.addEventListener('click', event => {
 
 document.addEventListener('keydown', event => {
   if (!['Enter', ' '].includes(event.key)) return;
+  const packageRow = event.target.closest?.('.bag-semantic-row.review[data-recognition-field]');
+  if (packageRow) {
+    event.preventDefault();
+    openPackageReviewEditor(packageRow);
+    return;
+  }
   const row = event.target.closest?.('[data-recognition-review="pending"] .evidence-row[data-evidence-field]');
   if (!row) return;
   event.preventDefault();
@@ -296,4 +364,4 @@ observer.observe(document.documentElement, { childList: true, subtree: true });
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => apply(document), { once: true });
 else apply(document);
 
-export const followupUiRevision = '1.24B-followup.2';
+export const followupUiRevision = '1.24B-followup.3';
