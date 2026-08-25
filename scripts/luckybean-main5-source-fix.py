@@ -34,9 +34,7 @@ listener = """document.addEventListener('luckybean:recognition-field-confirmed',
   const reviewFields = Array.isArray(recognition.reviewFields) ? recognition.reviewFields : [];
   recognition.reviewFields = reviewFields.filter(key => String(key) !== field);
   source.evidence ||= {};
-  source.confidence ||= {};
   if (event.detail?.value != null) source.evidence[field] = event.detail.value;
-  source.confidence[field] = 1;
 });
 """
 if listener not in text:
@@ -146,6 +144,7 @@ test('1.24B main.5 sensory and recognition source regressions stay fixed', () =>
   assert.equal(app.includes('专业标签、雷达图和评分会另行结构化保存'), false);
   assert.match(app, /luckybean:recognition-field-confirmed/);
   assert.match(app, /recognition\\.reviewFields = reviewFields\\.filter/);
+  assert.equal(app.includes('source.confidence[field] = 1'), false);
   assert.match(css, /\\.v095-radar-stage svg text \\{ fill: var\\(--text/);
   assert.match(css, /\\.v095-wizard-actions \\{[\\s\\S]*position: fixed;[\\s\\S]*bottom: 0;/);
   assert.match(integration, /valueLine\\('烘焙度', roastDisplayName\\(bean\\)\\)/);
