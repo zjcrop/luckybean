@@ -62,17 +62,22 @@ test('private gear catalog editors remain closed, aligned, editable and persiste
   await expect(page.locator('#dMass')).toHaveValue('260');
   await page.locator('[data-close-overlay]').click();
 
-  // Full-page navigation tears down the running UI while preserving IndexedDB, which is the persistence contract under test.
-  await openApp(page, 'requirements-gear-catalog-persisted=1', { installFixture:false });
-  await page.locator('[data-page-target="settings"]').click();
-  await page.locator('#privateGearCategory > summary').click();
-  for (const kind of ['filter', 'dripper', 'grinder']) await expect(page.locator(`[data-gear-kind="${kind}"]`)).not.toHaveAttribute('open', '');
-  await page.locator('[data-gear-kind="filter"] > summary').click();
-  await expect(page.locator('[data-filter-item]')).toContainText('测试品牌 测试滤纸');
-  await page.locator('[data-gear-kind="filter"] > summary').click();
-  await page.locator('[data-gear-kind="dripper"] > summary').click();
-  await expect(page.locator('[data-dripper-item]').filter({ hasText: '测试滤杯' })).toHaveCount(1);
-  await page.locator('[data-gear-kind="dripper"] > summary').click();
-  await page.locator('[data-gear-kind="grinder"] > summary').click();
-  await expect(page.locator('[data-grinder-item]')).toContainText('测试磨豆机');
+  // Restart the UI on a fresh Page in the same BrowserContext. This preserves the
+  // origin's IndexedDB/localStorage like an app restart, while eliminating teardown
+  // navigation races from the old document. Persistence assertions remain unchanged.
+  const context = page.context();
+  await page.close();
+  const reopenedPage = await context.newPage();
+  await openApp(reopenedPage, 'requirements-gear-catalog-persisted=1');
+  await reopenedPage.locator('[data-page-target="settings"]').click();
+  await reopenedPage.locator('#privateGearCategory > summary').click();
+  for (const kind of ['filter', 'dripper', 'grinder']) await expect(reopenedPage.locator(`[data-gear-kind="${kind}"]`)).not.toHaveAttribute('open', '');
+  await reopenedPage.locator('[data-gear-kind="filter"] > summary').click();
+  await expect(reopenedPage.locator('[data-filter-item]')).toContainText('测试品牌 测试滤纸');
+  await reopenedPage.locator('[data-gear-kind="filter"] > summary').click();
+  await reopenedPage.locator('[data-gear-kind="dripper"] > summary').click();
+  await expect(reopenedPage.locator('[data-dripper-item]').filter({ hasText: '测试滤杯' })).toHaveCount(1);
+  await reopenedPage.locator('[data-gear-kind="dripper"] > summary').click();
+  await reopenedPage.locator('[data-gear-kind="grinder"] > summary').click();
+  await expect(reopenedPage.locator('[data-grinder-item]')).toContainText('测试磨豆机');
 });
