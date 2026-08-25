@@ -21,7 +21,8 @@ const RUNTIME_FEATURES = Object.freeze([
   feature('recognition-batch-progress', './recognition-batch-progress-controller.js'),
   feature('release-1.24b-freshness-detail', './release-1.24b-freshness-detail.js'),
   feature('release-1.24b-brew-mode', './release-1.24b-brew-mode-controller.js'),
-  feature('release-1.24b-ui-policy', './release-1.24b-ui-policy.js')
+  feature('release-1.24b-ui-policy', './release-1.24b-ui-policy.js'),
+  feature('sensory-tag-sort', './sensory-tag-sort-controller.js')
 ]);
 
 const failures = [];
