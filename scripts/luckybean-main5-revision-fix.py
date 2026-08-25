@@ -13,6 +13,7 @@ for p in files:
         continue
     text = p.read_text(encoding='utf-8')
     next_text = text.replace('1.24B-main.4', '1.24B-main.5')
+    next_text = next_text.replace(r'1\.24B-main\.4', r'1\.24B-main\.5')
     next_text = next_text.replace('main-4-interaction3', 'main-5-sensory1')
     if next_text != text:
         p.write_text(next_text, encoding='utf-8')
