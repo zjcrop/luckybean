@@ -605,7 +605,7 @@ function filteredBeans({ includeArchived = false } = {}) {
 function groupKey(bean, method) {
   if (method === 'variety') return codeName('varieties', bean.varietyCode, '未记录豆种');
   if (method === 'roast') return ROAST_NAME.get(bean.roastCode) || '未记录烘焙度';
-  if (method === 'process') return codeName('processes', bean.processCode, '未记录工法');
+  if (method === 'process') return codeName('processes', bean.processCode, '未记录处理法');
   return codeName('countries', bean.countryCode, '未记录国家');
 }
 function beanCardHtml(bean) {
@@ -936,15 +936,8 @@ async function recommendBean(mode) {
 async function focusRecommendedBean(bean, { automatic = true, settle = true, openDetail = false, duration = 800 } = {}) {
   if (!bean) return;
   state.groupAnimationMode = automatic ? 'auto' : 'manual';
-  const visible = filteredBeans();
   state.recommendedBeanId = bean.id;
-  if (visible.length > 6) {
-    setBeanGroupMode('native');
-    openBeanGroupState(groupKey(bean, state.settings.groupMethod || 'country'));
-  } else {
-    closeBeanGroupState();
-  }
-  renderBeans();
+  openBeanGroup(groupKey(bean, state.settings.groupMethod || 'country'), { animation: state.groupAnimationMode });
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const card = document.querySelector(`[data-bean-id="${CSS.escape(bean.id)}"]`);
   if (card) {

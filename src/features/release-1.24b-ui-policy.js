@@ -26,19 +26,20 @@ if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
         min-height: 0 !important;
       }
 
-      /* 豆藏 keeps the compact personal leaderboard immediately after the digest. */
+      /* Retired preference leaderboard must never re-enter the bean page. */
       .preference-board-strip {
-        display: flex;
+        display: none !important;
       }
       /* Only obsolete explanatory copy is removed from the compact digest. */
       .bean-consumption-summary > small {
         display: none !important;
       }
 
-      /* Expanded bean groups end with card content. Folder closing is state-driven, not a hidden button. */
-      #beanGroups .active-group-panel {
-        min-height: 0 !important;
-        padding-bottom: 0 !important;
+      /* Every group renderer ends with the same normal-flow blank close surface. */
+      #beanGroups .active-group-panel { min-height: 0 !important; padding-bottom: 0 !important; }
+      #beanGroups .bean-group-dismiss-surface {
+        display: block !important; width: 100% !important; min-height: clamp(100px, 16vh, 160px) !important;
+        padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important;
       }
 
       .bean-consumption-summary .lb-stock-total,
@@ -97,9 +98,9 @@ if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
         }
         .bean-consumption-summary .lb-stock-total {
           display: block !important;
-          font-size: clamp(1.22rem, 5.2vw, 1.55rem) !important;
-          line-height: 1.25 !important;
-          font-weight: 700 !important;
+          font-size: .94rem !important;
+          line-height: 1.38 !important;
+          font-weight: 600 !important;
           letter-spacing: .01em !important;
         }
         .bean-consumption-summary .lb-today-consumption {
