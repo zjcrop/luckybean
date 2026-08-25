@@ -25,6 +25,16 @@ async function snapshot(page){
   return page.evaluate(()=>globalThis.LuckyBeanFabController.snapshot());
 }
 
+function isInsideBounds(state){
+  if(!state?.measurable||!state?.bounds)return false;
+  return state.rect.width>=20
+    && state.rect.height>=20
+    && state.rect.left>=state.bounds.minX-1
+    && state.rect.top>=state.bounds.minY-1
+    && state.rect.left<=state.bounds.maxX+1
+    && state.rect.top<=state.bounds.maxY+1;
+}
+
 function expectInsideBounds(state){
   expect(state.measurable).toBe(true);
   expect(state.rect.width).toBeGreaterThanOrEqual(20);
@@ -35,13 +45,18 @@ function expectInsideBounds(state){
   expect(state.rect.top).toBeLessThanOrEqual(state.bounds.maxY+1);
 }
 
+async function expectEventuallyInside(page){
+  await expect.poll(async()=>isInsideBounds(await snapshot(page)),{timeout:3000}).toBe(true);
+  expectInsideBounds(await snapshot(page));
+}
+
 test('legacy off-screen FAB position migrates once and stays inside the bean viewport',async({page})=>{
   await openApp(page,{legacy:{x:99999,y:99999}});
 
   await expect.poll(()=>page.evaluate(()=>globalThis.LuckyBeanRuntimeFeatures?.loaded?.includes('ui-layout'))).toBe(true);
+  await expectEventuallyInside(page);
   const first=await snapshot(page);
   expect(first.owner).toBe('canonical');
-  expectInsideBounds(first);
 
   const storage=await page.evaluate(({V1,V2})=>({v1:localStorage.getItem(V1),v2:JSON.parse(localStorage.getItem(V2)||'null'),guard:document.querySelector('#fabWrap')?.dataset.v097DragBound}),{V1,V2});
   expect(storage.v1).toBeNull();
@@ -53,23 +68,20 @@ test('legacy off-screen FAB position migrates once and stays inside the bean vie
   expect(storage.v2?.ry).toBeLessThanOrEqual(1);
 
   await page.setViewportSize({width:844,height:390});
-  await expect.poll(async()=>Boolean((await snapshot(page)).measurable)).toBe(true);
-  expectInsideBounds(await snapshot(page));
+  await expectEventuallyInside(page);
   await expect.poll(()=>page.evaluate(V1=>localStorage.getItem(V1),V1)).toBeNull();
 
   await page.locator('[data-page-target="brew"]').click();
   await expect(page.locator('#fabWrap')).toBeHidden();
   await page.locator('[data-page-target="beans"]').click();
   await expect(page.locator('#fabWrap')).toBeVisible();
-  await expect.poll(async()=>Boolean((await snapshot(page)).measurable)).toBe(true);
-  expectInsideBounds(await snapshot(page));
+  await expectEventuallyInside(page);
 });
 
 test('invalid relative coordinates self-heal and dragging never recreates v1 ownership',async({page})=>{
   await openApp(page,{relative:{version:2,rx:9,ry:-4}});
 
-  let state=await snapshot(page);
-  expectInsideBounds(state);
+  await expectEventuallyInside(page);
   let saved=await page.evaluate(({V1,V2})=>({v1:localStorage.getItem(V1),v2:JSON.parse(localStorage.getItem(V2)||'null')}),{V1,V2});
   expect(saved.v1).toBeNull();
   expect(saved.v2.rx).toBeGreaterThanOrEqual(0);
@@ -87,8 +99,7 @@ test('invalid relative coordinates self-heal and dragging never recreates v1 own
   await page.mouse.up();
 
   await expect.poll(()=>page.evaluate(V1=>localStorage.getItem(V1),V1)).toBeNull();
-  state=await snapshot(page);
-  expectInsideBounds(state);
+  await expectEventuallyInside(page);
   saved=await page.evaluate(V2=>JSON.parse(localStorage.getItem(V2)||'null'),V2);
   expect(saved.version).toBe(2);
   expect(saved.rx).toBeGreaterThanOrEqual(0);
