@@ -18,9 +18,10 @@ const [policy, app, beanGroups, groupNavigation, sharedSort, sensorySort, runtim
 assert.match(policy, /UI_POLICY_REVISION = '1\.24B-main\.4'/);
 assert.match(policy, /button\.textContent = '合并云端'/);
 assert.match(policy, /aspect-ratio:\s*2\s*\/\s*1/);
-// The compact preference leaderboard is owned by the bean renderer; UI policy must not hide or remove it.
+// The bean renderer owns leaderboard creation; UI policy explicitly preserves it as visible.
 assert.match(app, /preference-board-strip/);
-assert.doesNotMatch(policy, /\.preference-board-strip/);
+assert.match(policy, /\.preference-board-strip\s*\{[^}]*display:\s*flex\s*;/s);
+assert.doesNotMatch(policy, /\.preference-board-strip\s*\{[^}]*display:\s*none/i);
 assert.match(policy, /\.bean-consumption-summary > small/);
 assert.match(policy, /数藏分析/);
 assert.match(policy, /从豆卡、冲煮与品鉴记录生成个人咖啡图谱/);
@@ -88,4 +89,4 @@ assert.match(androidGradle, /include 'src\/\*\*'/);
 assert.match(androidGradle, /versionName '1\.24B'/);
 assert.match(androidGradle, /versionCode 102402/);
 
-console.log('LuckyBean 1.24B canonical folder state, shared live-preview sorting, text brew UI and Web/Android parity contracts passed');
+console.log('LuckyBean 1.24B canonical folder state, visible preference leaderboard, shared live-preview sorting, text brew UI and Web/Android parity contracts passed');
