@@ -3,13 +3,17 @@ import { test, expect } from '@playwright/test';
 const BASE_URL = 'http://127.0.0.1:4173';
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('luckybean.onboarding.v2', JSON.stringify({ stage:'existing-user', updatedAt:new Date().toISOString(), reason:'bean-summary-test' }));
+  });
   await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/, route => route.abort('failed'));
 });
 
-test('bean digest precedes leaderboard and analytics live only in settings data collection', async ({ page }) => {
+test('bean digest stays concise while preference analytics live only in settings data collection', async ({ page }) => {
   await page.goto(`${BASE_URL}/?bean-summary=1`, { waitUntil:'domcontentloaded' });
   await page.locator('#splashScreen').click();
   await expect(page.locator('#appShell')).toBeVisible({ timeout:15000 });
+  await page.waitForFunction(() => document.documentElement.dataset.startup === 'ready');
   await page.evaluate(async () => {
     const db = await import('/src/db.js');
     const now = new Date();
@@ -23,27 +27,6 @@ test('bean digest precedes leaderboard and analytics live only in settings data 
       { id:'summary-use-a', beanId:'summary-a', type:'brew-consume', amountG:-15, createdAt:late.toISOString() },
       { id:'summary-use-b', beanId:'summary-b', type:'brew-consume', amountG:-30, createdAt:late.toISOString() }
     ]);
-    await db.put('sensoryRecords', {
-      id:'summary-score',
-      beanId:'summary-a',
-      brewSessionId:'',
-      planReference:'',
-      profileId:'',
-      sensorySource:'independent',
-      engineVersion:'',
-      profileVersion:'',
-      evaluationMode:'note',
-      sourceMode:'independent-note-v125',
-      answers:{ floral:{ 1:['无'] }, fruit:{ 1:['无'] }, other:{ 1:['无'], 2:['无'], 3:['无'] } },
-      autoScore:0,
-      subjectiveScore:88,
-      score:88,
-      scoreDelta:88,
-      naturalNote:'测试荐榜数据',
-      preferenceTags:[],
-      direct:true,
-      createdAt:now.toISOString()
-    });
     await new Promise(resolve => {
       const onRefreshed = event => {
         if (event.detail?.source !== 'bean-summary-test') return;
@@ -56,14 +39,14 @@ test('bean digest precedes leaderboard and analytics live only in settings data 
   });
 
   const summary = page.locator('.bean-consumption-summary');
-  const leaderboard = page.locator('.preference-board-strip');
   await expect(summary).toContainText('现有咖啡豆共计 1.25kg');
   await expect(summary).toContainText('今日已饮用 45.0g豆');
   await expect(summary).toContainText('已经超量喽，可能影响身体健康');
   await expect(summary).toContainText('可能妨碍入睡，要不明天再喝？');
-  await expect(leaderboard).toBeVisible();
-  expect(await summary.evaluate((node, other) => Boolean(node.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_FOLLOWING), await leaderboard.elementHandle())).toBe(true);
+  await expect(page.locator('.preference-board-strip')).toHaveCount(0);
+  await expect(page.locator('.bean-consumption-summary > small')).toHaveCount(0);
   await expect(page.locator('#v099fBeanModules')).toHaveCount(0);
+  await expect(page.locator('html')).toHaveAttribute('data-ui-policy-revision', '1.24B-main.4');
 
   await page.locator('[data-page-target="settings"]').click();
   const dataCollection = page.locator('#settingsContent .data-category');
