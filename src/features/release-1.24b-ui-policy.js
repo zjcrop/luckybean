@@ -32,19 +32,59 @@ if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
         display: none !important;
       }
 
-      /* Expanded bean groups end with the card content; blank page space is outside the group. */
+      /* Expanded bean groups end with card content. Folder closing is state-driven, not a hidden button. */
       #beanGroups .active-group-panel {
         min-height: 0 !important;
         padding-bottom: 0 !important;
-      }
-      #beanGroups .active-group-panel > .group-collapse-zone {
-        display: none !important;
       }
 
       .bean-consumption-summary .lb-stock-total,
       .bean-consumption-summary .lb-today-consumption {
         display: inline;
       }
+
+      /* Small Brew: retain semantic buttons but remove button-shaped visual noise. */
+      #brewContent button:not(.lb-brew-switch),
+      #brewContent .button:not(.lb-brew-switch) {
+        appearance: none !important;
+        background: transparent !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        min-height: 0 !important;
+        padding: .22rem .08rem !important;
+        color: var(--clickable, var(--text)) !important;
+        text-align: inherit;
+        line-height: 1.35;
+      }
+      #brewContent button:not(.lb-brew-switch):hover,
+      #brewContent button:not(.lb-brew-switch):focus-visible {
+        text-decoration: underline;
+        text-underline-offset: .2em;
+        outline: none;
+      }
+      #brewContent button[aria-pressed="true"]:not(.lb-brew-switch),
+      #brewContent button.active:not(.lb-brew-switch),
+      #brewContent .button.primary:not(.lb-brew-switch),
+      #brewContent [data-lb-other-complete] {
+        color: var(--active, var(--text)) !important;
+        font-weight: 750 !important;
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: .24em;
+      }
+      #brewContent .lb-other-brew-panel {
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        padding-inline: 0 !important;
+      }
+      #brewContent .lb-other-actions {
+        border-top: 1px solid color-mix(in srgb, var(--border, currentColor) 45%, transparent);
+        padding-top: 10px;
+      }
+      #brewContent .lb-other-actions [data-lb-other-back] { text-align: left !important; }
+      #brewContent .lb-other-actions [data-lb-other-complete] { text-align: right !important; }
 
       @media (max-width: 720px) {
         .bean-consumption-summary > p {
@@ -138,6 +178,7 @@ if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
     applyPolicy();
     observe('settingsContent');
     observe('beanGroups');
+    observe('brewContent');
   }
 
   ['luckybean:settings-rendered', 'luckybean:account-panel-rendered', 'luckybean:app-refreshed', 'luckybean:local-app-ready']
