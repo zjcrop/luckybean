@@ -4,455 +4,373 @@
 
 
 [static] tests/v110-local-first-sync-static.mjs
-LuckyBean 1.24B main.4 local-first, interaction3 cache isolation and current BrewProfiles contract checks passed
-
-[static] tests/v120-core-contracts-static.mjs
-v1.2 core analysis, completed history, provider, spatial and environment-dialog contracts passed
-
-[static] tests/v120-requirements-static.mjs
-LuckyBean 1.24B single server account, mandatory sync, interaction3 cache, shared sorting and all-profile checks passed
-
-[static] tests/v122-cloud-sync-safety.mjs
-v1.23D cloud union baseline and deletion propagation checks passed
-
-[static] tests/v123-brewprofiles-integration.mjs
-TAP version 13
-# Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
-ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
-  ---
-  duration_ms: 5.356306
-  type: 'test'
-  ...
-# Subtest: catalog is authoritative, cached, and includes all six competition profiles
-ok 2 - catalog is authoritative, cached, and includes all six competition profiles
-  ---
-  duration_ms: 2.109022
-  type: 'test'
-  ...
-# Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
-ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
-  ---
-  duration_ms: 2.445402
-  type: 'test'
-  ...
-# Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
-ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
-  ---
-  duration_ms: 1.847241
-  type: 'test'
-  ...
-# Subtest: client rejects empty or incomplete target geometry
-ok 5 - client rejects empty or incomplete target geometry
-  ---
-  duration_ms: 0.837249
-  type: 'test'
-  ...
-# Subtest: new plan generation never converts an API failure into a fake successful 3D scene
-ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
-  ---
-  duration_ms: 2.616422
-  type: 'test'
-  ...
-# Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
-ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
-  ---
-  duration_ms: 0.858239
-  type: 'test'
-  ...
-1..7
-# tests 7
-# suites 0
-# pass 7
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 21.982949
-
-[static] tests/v123d-main-parity.mjs
-TAP version 13
-# Subtest: all pages use the same red seal slot geometry
-ok 1 - all pages use the same red seal slot geometry
-  ---
-  duration_ms: 5.733222
-  type: 'test'
-  ...
-# Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
-ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
-  ---
-  duration_ms: 3.663504
-  type: 'test'
-  ...
-# Subtest: about section contains the shipped illustration
-ok 3 - about section contains the shipped illustration
-  ---
-  duration_ms: 3.503494
-  type: 'test'
-  ...
-# Subtest: settings data collection owns coffee world and preference profile
-ok 4 - settings data collection owns coffee world and preference profile
-  ---
-  duration_ms: 2.943816
-  type: 'test'
-  ...
-# Subtest: bean page shows inventory and health digest above its leaderboard
-ok 5 - bean page shows inventory and health digest above its leaderboard
-  ---
-  duration_ms: 2.346256
-  type: 'test'
-  ...
-# Subtest: cloud panel exposes status and both recovery actions
-ok 6 - cloud panel exposes status and both recovery actions
-  ---
-  duration_ms: 1.10501
-  type: 'test'
-  ...
-1..6
-# tests 6
-# suites 0
-# pass 6
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 25.093597
-
-[static] tests/v124-stable-data-format.mjs
-Stable cross-project brew data is version-independent and uses the fixed six-target contract.
-
-[static] tests/v125-root-state-models.mjs
-v1.2.5 independent sensory state machines and LuckyBean 1.24B Android package contracts passed
-
-[static] tests/v123d-deployment-contracts.mjs
 node:internal/modules/run_main:123
     triggerUncaughtException(
     ^
 
-AssertionError [ERR_ASSERTION]: The input did not match the regular expression /canonical folder-state navigation active/. Input:
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-interaction3`/. Input:
 
-'const $=(s,r=document)=>r?.querySelector?.(s)||null;\n' +
-  'let gesture=null;\n' +
-  'let closing=false;\n' +
-  'let syncQueued=false;\n' +
+'// LuckyBean 1.24B: lifecycle, transit/frozen beans, serial OCR and compact UI.\n' +
+  "const REVISION = '1.24B-main.4';\n" +
+  "const CACHE_PREFIX = 'luckybean-main-v124b-';\n" +
+  'const CACHE_NAME = `${CACHE_PREFIX}main-4-interaction4`;\n' +
+  'const LEGACY_CACHE_PREFIXES = [\n' +
+  "  'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',\n" +
+  "  'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',\n" +
+  "  'luckybean-v123-brewprofiles-integration-test-', 'luckybean-v200-foundation-'\n" +
+  '];\n' +
+  'const versioned = path => `${path}?v=${REVISION}`;\n' +
+  'const CORE = [\n' +
+  "  './',\n" +
+  "  './index.html',\n" +
+  "  './recognition-test.html',\n" +
+  "  versioned('./manifest.webmanifest'),\n" +
+  "  versioned('./styles.css'),\n" +
+  "  versioned('./src/release-1.24b.css'),\n" +
+  "  versioned('./src/release-1.24b.js'),\n" +
+  "  versioned('./src/features/release-1.24b-integration.js'),\n" +
+  "  versioned('./src/features/release-1.24b-finalize.js'),\n" +
+  "  versioned('./src/features/release-1.24b-transit-controller.js'),\n" +
+  "  versioned('./src/features/release-1.24b-group-navigation.js'),\n" +
+  "  versioned('./src/features/release-1.24b-about-controller.js'),\n" +
+  "  versioned('./src/features/release-1.24b-polish.js'),\n" +
+  "  versioned('./src/features/release-1.24b-ui-policy.js'),\n" +
+  "  versioned('./src/features/release-1.24b-brew-mode-controller.js'),\n" +
+  "  versioned('./src/features/release-1.24b-freshness-detail.js'),\n" +
+  "  versioned('./src/features/recognition-batch-progress-controller.js'),\n" +
+  "  versioned('./src/ui/sortable-controller.js'),\n" +
+  "  versioned('./src/features/sensory-tag-sort-controller.js'),\n" +
+  "  versioned('./src/data/local-brew-recipes-1.24b.js'),\n" +
+  "  versioned('./src/services/grind-psd-reference-service.js'),\n" +
+  "  versioned('./src/domain/recognition/order-recognition-1.24b.js'),\n" +
+  "  versioned('./src/domain/recognition/recognition-field-resolver-1.24b.js'),\n" +
+  "  versioned('./src/ui/app-layout.css'),\n" +
+  "  versioned('./src/ui/app-components.css'),\n" +
+  "  versioned('./src/ui/bean-card.css'),\n" +
+  "  versioned('./src/ui/professional-sensory.css'),\n" +
+  "  versioned('./src/ui/sensory-wizard-actions.css'),\n" +
+  "  versioned('./src/ui/brew-optimization.css'),\n" +
+  "  versioned('./src/app.js'),\n" +
+  "  versioned('./src/domain/archive/luckybean-archive-codec.js'),\n" +
+  "  versioned('./src/domain/archive/luckybean-archive-service.js'),\n" +
+  "  versioned('./src/domain/beans/bean-consumption-summary.js'),\n" +
+  "  versioned('./src/domain/beans/bean-lifecycle-service.js'),\n" +
+  "  versioned('./src/domain/recognition/recognition-document.js'),\n" +
+  "  versioned('./src/domain/recognition/recognition-pipeline.js'),\n" +
+  "  versioned('./src/domain/recognition/recognition-date-classifier.js'),\n" +
+  "  versioned('./src/domain/recognition/recognition-date-review.js'),\n" +
+  "  versioned('./src/recognition-test-page.js'),\n" +
+  "  './contracts/luckybean-archive-v1.schema.json',\n" +
+  "  './contracts/recognition-document-v1.schema.json',\n" +
+  "  './contracts/recognition-date-decision-v1.schema.json',\n" +
+  "  './contracts/brew-optimization-v1.schema.json',\n" +
+  "  './contracts/brew-optimization-validation-v1.schema.json',\n" +
+  "  versioned('./src/core/startup-controller.js'),\n" +
+  "  versioned('./src/core/bootstrap.js'),\n" +
+  "  versioned('./src/services/cloud-auth-service.js'),\n" +
+  "  versioned('./src/services/cloud-sync-service.js'),\n" +
+  "  versioned('./src/services/cloud-sync-safety.js'),\n" +
+  "  versioned('./src/services/bean-enrichment-service.js'),\n" +
+  "  versioned('./src/cloud-codec.js'),\n" +
+  "  versioned('./src/services/brew-analysis-service.js'),\n" +
+  "  versioned('./src/services/brew-calculation-coordinator.js'),\n" +
+  "  versioned('./src/services/brew-api-client.js'),\n" +
+  "  versioned('./src/services/brew-profile-catalog-service.js'),\n" +
+  "  versioned('./src/services/local-reference-analysis.js'),\n" +
+  "  versioned('./src/services/provider-package-service.js'),\n" +
+  "  versioned('./src/services/codebook-reconciliation-service.js'),\n" +
+  "  versioned('./src/services/provider-bootstrap-controller.js'),\n" +
+  "  versioned('./src/ui/provider-status-panel.js'),\n" +
+  "  versioned('./src/ui/codebook-reconciliation-screen.js'),\n" +
+  "  versioned('./src/ui/codebook-reconciliation-screen.css'),\n" +
+  "  versioned('./src/domain/history/history-service.js'),\n" +
+  "  versioned('./src/domain/history/history-sensory-service.js'),\n" +
+  "  versioned('./src/domain/sensory/brew-optimization-assessment.js'),\n" +
+  "  versioned('./src/domain/history/history-comparison.js'),\n" +
+  "  versioned('./src/ui/brew-trend-panel.js'),\n" +
+  "  versioned('./src/ui/brew-trend-panel.css'),\n" +
+  "  versioned('./src/domain/history/history-migration.js'),\n" +
+  "  versioned('./src/ui/history/history-screen.js'),\n" +
+  "  versioned('./src/ui/history/history-screen.css'),\n" +
+  "  versioned('./src/renderers/brew-spatial-view.js'),\n" +
+  "  versioned('./src/renderers/brew-spatial-controller.js'),\n" +
+  "  versioned('./src/renderers/brew-spatial-view.css'),\n" +
+  "  versioned('./src/ui/viewport-controller.js'),\n" +
+  "  versioned('./src/ui/navigation-controller.js'),\n" +
+  "  versioned('./src/ui/account-sync-panel.js'),\n" +
+  "  versioned('./src/ui/appearance-controller.js'),\n" +
+  "  versioned('./src/ui/voice-settings-controller.js'),\n" +
+  "  versioned('./src/ui/gear-controller.js'),\n" +
+  "  versioned('./src/ui/grinder-controller.js'),\n" +
+  "  versioned('./src/ui/recognition-interaction-controller.js'),\n" +
+  "  versioned('./src/ui/brew-cooling-controller.js'),\n" +
+  "  versioned('./src/ui/flavor-guide-controller.js'),\n" +
+  "  versioned('./src/ui/onboarding-controller.js'),\n" +
+  "  versioned('./src/ui/bean-card-controller.js'),\n" +
+  "  versioned('./src/ui/fab-controller.js'),\n" +
+  "  versioned('./src/features/runtime-features.js'),\n" +
+  "  versioned('./src/features/full-integration-controller-v3.js'),\n" +
+  "  versioned('./src/features/freshness-timeline-controller.js'),\n" +
+  "  versioned('./src/data-migrations.js'),\n" +
+  "  versioned('./src/recognition-bridge.js'),\n" +
+  "  versioned('./src/image-quality.js'),\n" +
+  "  versioned('./src/recognition-web-ocr.js'),\n" +
+  "  versioned('./src/recognition-paddle-ocr.js'),\n" +
+  "  versioned('./src/recognition-quality-controller.js'),\n" +
+  "  versioned('./src/package-capture-controller.js'),\n" +
+  "  versioned('./src/direct-camera-controller.js'),\n" +
+  "  versioned('./src/qr-ui-controller.js'),\n" +
+  "  versioned('./src/integrity-ui-controller.js'),\n" +
+  "  versioned('./src/ui-layout-controller.js'),\n" +
+  "  versioned('./src/selection-controller.js'),\n" +
+  "  versioned('./src/feature-controller.js'),\n" +
+  "  versioned('./src/runtime-controller.js'),\n" +
+  "  versioned('./src/bean-groups-controller.js'),\n" +
+  "  versioned('./src/group-interaction-controller.js'),\n" +
+  "  versioned('./src/ui-upgrade-controller.js'),\n" +
+  "  versioned('./src/origin-map-controller.js'),\n" +
+  "  versioned('./public/app-logo.webp'),\n" +
+  "  versioned('./public/splash-art-red.webp'),\n" +
+  "  versioned('./public/splash-art-light.webp'),\n" +
+  "  versioned('./public/Luckybean-END.webp'),\n" +
+  "  './public/vendor/jsqr/jsQR.js',\n" +
+  "  './public/vendor/jsvectormap/jsvectormap.min.css',\n" +
+  "  './public/vendor/jsvectormap/jsvectormap.min.js',\n" +
+  "  './public/vendor/jsvectormap/world.js',\n" +
+  "  './public/fallback-codebook.json',\n" +
+  "  './public/legacy-flavor-map.json'\n" +
+  '];\n' +
   '\n' +
-  'function groupApi(){return globalThis.LuckyBeanV099tBeanGroups||null;}\n' +
-  "function nativePanel(){return $('#beanGroups [data-active-group-panel]');}\n" +
-  'function hasControllerGroup(){return Boolean(groupApi()?.hasActiveGroup?.());}\n' +
-  'function hasNativeGroup(){return Boolean(nativePanel());}\n' +
-  'function hasActiveGroup(){return hasControllerGroup()||hasNativeGroup();}\n' +
-  `function isInteractive(target){return Boolean(target?.closest?.('button,a,input,select,textarea,.bean-card,[role="button"]'));}\n` +
-  "function isBeanPageVisible(){return $('#pageBeans')?.classList?.contains('active');}\n" +
+  "self.addEventListener('install', event => {\n" +
+  '  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));\n' +
+  '});\n' +
   '\n' +
-  'function injectStyle(){\n' +
-  "  if($('#lb124bGroupNavigationStyle'))return;\n" +
-  "  const style=document.createElement('style');\n" +
-  "  style.id='lb124bGroupNavigationStyle';\n" +
-  '  style.textContent=`\n' +
-  '    #beanGroups .lb-group-dismiss-zone{\n' +
-  '      display:block;width:100%;min-height:clamp(100px,16vh,160px);margin:8px 0 0;padding:0;\n' +
-  '      appearance:none;border:0;background:transparent;color:transparent;box-shadow:none;cursor:pointer;\n' +
-  '      -webkit-tap-highlight-color:transparent;touch-action:manipulation;\n' +
-  '    }\n' +
-  '    #beanGroups .lb-group-dismiss-zone:focus-visible{outline:1px dashed color-mix(in srgb,var(--active,currentColor) 55%,transparent);outline-offset:-8px;}\n' +
-  '    #beanGroups .active-group-panel,#beanGroups .group-grid{animation:lbGroupEnter 170ms cubic-bezier(.2,.8,.2,1) both;}\n' +
-  '    @keyframes lbGroupEnter{from{opacity:.72;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}\n' +
-  '    @media (prefers-reduced-motion:reduce){#beanGroups .active-group-panel,#beanGroups .group-grid{animation:none!important}}\n' +
-  '  `;\n' +
-  '  document.head.append(style);\n' +
-  '}\n' +
+  "self.addEventListener('activate', event => {\n" +
+  '  event.waitUntil((async () => {\n' +
+  '    const keys = await caches.keys();\n' +
+  '    await Promise.all(keys\n' +
+  '      .filter(key => (key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)\n' +
+  '        || LEGACY_CACHE_PREFIXES.some(prefix => key.startsWith(prefix)))\n' +
+  '      .map(key => caches.delete(key)));\n' +
+  '    await self.clients.claim();\n' +
+  '  })());\n' +
+  '});\n' +
   '\n' +
-  'function normalizeGroupMenu(){\n' +
-  `  document.querySelectorAll('[data-group-method="process"]').forEach(button=>{\n` +
-  "    const text=button.textContent||'';\n" +
-  "    if(text.includes('处理工法'))button.textContent=text.replace(/处理工法/g,'处理法');\n" +
-  '  });\n' +
-  '}\n' +
+  "self.addEventListener('message', event => {\n" +
+  "  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();\n" +
+  '});\n' +
   '\n' +
-  'function ensureDismissZone(){\n' +
-  "  const root=$('#beanGroups');\n" +
-  '  if(!root)return;\n' +
-  "  const existing=$('[data-lb-group-dismiss-zone]',root);\n" +
-  '  if(!isBeanPageVisible()||!hasActiveGroup()){\n' +
-  '    existing?.remove();\n' +
+  "self.addEventListener('fetch', event => {\n" +
+  '  const request = event.request;\n' +
+  "  if (request.method !== 'GET') return;\n" +
+  '  const url = new URL(request.url);\n' +
+  "  if (request.mode === 'navigate') {\n" +
+  "    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {\n" +
+  '      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+  '      return response;\n' +
+  "    }).catch(() => caches.match(request).then(cached => cached || caches.match('./index.html'))));\n" +
   '    return;\n' +
   '  }\n' +
-  '  if(existing)return;\n' +
-  "  const zone=document.createElement('button');\n" +
-  "  zone.type='button';\n" +
-  "  zone.className='lb-group-dismiss-zone';\n" +
-  "  zone.dataset.lbGroupDismissZone='1';\n" +
-  "  zone.setAttribute('aria-label','关闭当前分组并返回分组列表');\n" +
-  "  zone.title='返回分组列表';\n" +
-  "  zone.addEventListener('click',event=>{\n" +
-  '    event.preventDefault();\n' +
-  '    event.stopPropagation();\n' +
-  '    closeActiveGroup();\n' +
-  '  });\n' +
-  '  root.append(zone);\n' +
-  '}\n' +
-  '\n' +
-  'function syncUi(){\n' +
-  '  syncQueued=false;\n' +
-  '  injectStyle();\n' +
-  '  normalizeGroupMenu();\n' +
-  '  ensureDismissZone();\n' +
-  '}\n' +
-  'function queueSync(){\n' +
-  '  if(syncQueued)return;\n' +
-  '  syncQueued=true;\n' +
-  '  requestAnimationFrame(syncUi);\n' +
-  '}\n' +
-  '\n' +
-  'function closeNativeGroup(){\n' +
-  '  const panel=nativePanel();\n' +
-  '  if(!panel)return false;\n' +
-  '  closing=true;\n' +
-  '  try{\n' +
-  "    panel.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));\n" +
-  '  }finally{\n' +
-  '    closing=false;\n' +
+  '  if (url.origin === self.location.origin) {\n' +
+  "    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {\n" +
+  '      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+  '      return response;\n' +
+  '    }).catch(() => caches.match(request)));\n' +
+  '    return;\n' +
   '  }\n' +
-  '  return true;\n' +
-  '}\n' +
-  '\n' +
-  'function closeControllerGroup(){\n' +
-  '  const api=groupApi();\n' +
-  '  if(!api?.hasActiveGroup?.())return false;\n' +
-  "  api.closeActiveGroup?.().catch?.(error=>console.warn('豆藏分组关闭失败',error)).finally?.(queueSync);\n" +
-  '  return true;\n' +
-  '}\n' +
-  '\n' +
-  'function closeActiveGroup(){\n' +
-  '  if(closing)return false;\n' +
-  '  const controllerClosed=closeControllerGroup();\n' +
-  '  const nativeClosed=closeNativeGroup();\n' +
-  '  const closed=controllerClosed||nativeClosed;\n' +
-  '  if(closed){\n' +
-  '    queueSync();\n' +
-  "    document.dispatchEvent(new CustomEvent('luckybean:bean-group-dismissed'));\n" +
+  "  if (url.hostname === 'cdn.jsdelivr.net') {\n" +
+  '    event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {\n' +
+  '      caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+  '      return response;\n' +
+  '    })));\n' +
   '  }\n' +
-  '  return closed;\n' +
-  '}\n' +
-  '\n' +
-  'function bindPageLevelDismiss(){\n' +
-  "  if(document.documentElement.dataset.lb124bPageGroupDismiss==='3')return;\n" +
-  "  document.documentElement.dataset.lb124bPageGroupDismiss='3';\n" +
-  '\n' +
-  "  document.addEventListener('click',event=>{\n" +
-  '    if(closing)return;\n' +
-  "    if(event.target.closest?.('#groupBtn')){queueMicrotask(queueSync);return;}\n" +
-  '    if(!hasActiveGroup())return;\n' +
-  '\n' +
-  "    const pageTarget=event.target.closest?.('[data-page-target]');\n" +
-  '    if(pageTarget){\n' +
-  '      closeActiveGroup();\n' +
-  '      return;\n' +
-  '    }\n' +
-  '\n' +
-  '    if(!isBeanPageVisible())return;\n' +
-  "    const page=$('#pageBeans');\n" +
-  '    if(!page?.contains(event.target))return;\n' +
-  '    if(isInteractive(event.target))return;\n' +
-  '    closeActiveGroup();\n' +
-  '  },{capture:true});\n' +
-  '\n' +
-  "  document.addEventListener('pointerdown',event=>{\n" +
-  '    if(closing||!hasActiveGroup()||!isBeanPageVisible()||isInteractive(event.target))return;\n' +
-  "    const page=$('#pageBeans');\n" +
-  '    if(!page?.contains(event.target))return;\n' +
-  '    gesture={id:event.pointerId,x:event.clientX,y:event.clientY};\n' +
-  '  },{capture:true,passive:true});\n' +
-  '\n' +
-  "  document.addEventListener('pointerup',event=>{\n" +
-  '    if(!gesture||gesture.id!==event.pointerId)return;\n' +
-  '    const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;\n' +
-  '    gesture=null;\n' +
-  '    if(dx<=-72&&Math.abs(dx)>Math.abs(dy)*1.35)closeActiveGroup();\n' +
-  '  },{capture:true,passive:true});\n' +
-  '\n' +
-  '  const observer=new MutationObserver(queueSync);\n' +
-  '  observer.observe(document.documentElement,{childList:true,subtree:true});\n' +
-  '}\n' +
-  '\n' +
-  "document.addEventListener('luckybean:navigation-back',event=>{\n" +
-  '  if(closeActiveGroup())event.preventDefault?.();\n' +
-  '});\n' +
-  "document.addEventListener('luckybean:data-changed',queueSync);\n" +
-  "document.addEventListener('luckybean:app-refreshed',queueSync);\n" +
-  '\n' +
-  'injectStyle();\n' +
-  'bindPageLevelDismiss();\n' +
-  'queueSync();\n' +
-  '\n' +
-  'globalThis.LuckyBean124BGroupNavigation={close:closeActiveGroup,hasActiveGroup,sync:queueSync};\n' +
-  "console.info('[LuckyBean] 1.24B unified bean-group navigation active');\n"
+  '});'
 
-    at file:///home/runner/work/luckybean/luckybean/tests/v123d-deployment-contracts.mjs:109:8
+    at file:///home/runner/work/luckybean/luckybean/tests/v110-local-first-sync-static.mjs:116:8
     at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
   generatedMessage: true,
   code: 'ERR_ASSERTION',
-  actual: 'const $=(s,r=document)=>r?.querySelector?.(s)||null;\n' +
-    'let gesture=null;\n' +
-    'let closing=false;\n' +
-    'let syncQueued=false;\n' +
+  actual: '// LuckyBean 1.24B: lifecycle, transit/frozen beans, serial OCR and compact UI.\n' +
+    "const REVISION = '1.24B-main.4';\n" +
+    "const CACHE_PREFIX = 'luckybean-main-v124b-';\n" +
+    'const CACHE_NAME = `${CACHE_PREFIX}main-4-interaction4`;\n' +
+    'const LEGACY_CACHE_PREFIXES = [\n' +
+    "  'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',\n" +
+    "  'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',\n" +
+    "  'luckybean-v123-brewprofiles-integration-test-', 'luckybean-v200-foundation-'\n" +
+    '];\n' +
+    'const versioned = path => `${path}?v=${REVISION}`;\n' +
+    'const CORE = [\n' +
+    "  './',\n" +
+    "  './index.html',\n" +
+    "  './recognition-test.html',\n" +
+    "  versioned('./manifest.webmanifest'),\n" +
+    "  versioned('./styles.css'),\n" +
+    "  versioned('./src/release-1.24b.css'),\n" +
+    "  versioned('./src/release-1.24b.js'),\n" +
+    "  versioned('./src/features/release-1.24b-integration.js'),\n" +
+    "  versioned('./src/features/release-1.24b-finalize.js'),\n" +
+    "  versioned('./src/features/release-1.24b-transit-controller.js'),\n" +
+    "  versioned('./src/features/release-1.24b-group-navigation.js'),\n" +
+    "  versioned('./src/features/release-1.24b-about-controller.js'),\n" +
+    "  versioned('./src/features/release-1.24b-polish.js'),\n" +
+    "  versioned('./src/features/release-1.24b-ui-policy.js'),\n" +
+    "  versioned('./src/features/release-1.24b-brew-mode-controller.js'),\n" +
+    "  versioned('./src/features/release-1.24b-freshness-detail.js'),\n" +
+    "  versioned('./src/features/recognition-batch-progress-controller.js'),\n" +
+    "  versioned('./src/ui/sortable-controller.js'),\n" +
+    "  versioned('./src/features/sensory-tag-sort-controller.js'),\n" +
+    "  versioned('./src/data/local-brew-recipes-1.24b.js'),\n" +
+    "  versioned('./src/services/grind-psd-reference-service.js'),\n" +
+    "  versioned('./src/domain/recognition/order-recognition-1.24b.js'),\n" +
+    "  versioned('./src/domain/recognition/recognition-field-resolver-1.24b.js'),\n" +
+    "  versioned('./src/ui/app-layout.css'),\n" +
+    "  versioned('./src/ui/app-components.css'),\n" +
+    "  versioned('./src/ui/bean-card.css'),\n" +
+    "  versioned('./src/ui/professional-sensory.css'),\n" +
+    "  versioned('./src/ui/sensory-wizard-actions.css'),\n" +
+    "  versioned('./src/ui/brew-optimization.css'),\n" +
+    "  versioned('./src/app.js'),\n" +
+    "  versioned('./src/domain/archive/luckybean-archive-codec.js'),\n" +
+    "  versioned('./src/domain/archive/luckybean-archive-service.js'),\n" +
+    "  versioned('./src/domain/beans/bean-consumption-summary.js'),\n" +
+    "  versioned('./src/domain/beans/bean-lifecycle-service.js'),\n" +
+    "  versioned('./src/domain/recognition/recognition-document.js'),\n" +
+    "  versioned('./src/domain/recognition/recognition-pipeline.js'),\n" +
+    "  versioned('./src/domain/recognition/recognition-date-classifier.js'),\n" +
+    "  versioned('./src/domain/recognition/recognition-date-review.js'),\n" +
+    "  versioned('./src/recognition-test-page.js'),\n" +
+    "  './contracts/luckybean-archive-v1.schema.json',\n" +
+    "  './contracts/recognition-document-v1.schema.json',\n" +
+    "  './contracts/recognition-date-decision-v1.schema.json',\n" +
+    "  './contracts/brew-optimization-v1.schema.json',\n" +
+    "  './contracts/brew-optimization-validation-v1.schema.json',\n" +
+    "  versioned('./src/core/startup-controller.js'),\n" +
+    "  versioned('./src/core/bootstrap.js'),\n" +
+    "  versioned('./src/services/cloud-auth-service.js'),\n" +
+    "  versioned('./src/services/cloud-sync-service.js'),\n" +
+    "  versioned('./src/services/cloud-sync-safety.js'),\n" +
+    "  versioned('./src/services/bean-enrichment-service.js'),\n" +
+    "  versioned('./src/cloud-codec.js'),\n" +
+    "  versioned('./src/services/brew-analysis-service.js'),\n" +
+    "  versioned('./src/services/brew-calculation-coordinator.js'),\n" +
+    "  versioned('./src/services/brew-api-client.js'),\n" +
+    "  versioned('./src/services/brew-profile-catalog-service.js'),\n" +
+    "  versioned('./src/services/local-reference-analysis.js'),\n" +
+    "  versioned('./src/services/provider-package-service.js'),\n" +
+    "  versioned('./src/services/codebook-reconciliation-service.js'),\n" +
+    "  versioned('./src/services/provider-bootstrap-controller.js'),\n" +
+    "  versioned('./src/ui/provider-status-panel.js'),\n" +
+    "  versioned('./src/ui/codebook-reconciliation-screen.js'),\n" +
+    "  versioned('./src/ui/codebook-reconciliation-screen.css'),\n" +
+    "  versioned('./src/domain/history/history-service.js'),\n" +
+    "  versioned('./src/domain/history/history-sensory-service.js'),\n" +
+    "  versioned('./src/domain/sensory/brew-optimization-assessment.js'),\n" +
+    "  versioned('./src/domain/history/history-comparison.js'),\n" +
+    "  versioned('./src/ui/brew-trend-panel.js'),\n" +
+    "  versioned('./src/ui/brew-trend-panel.css'),\n" +
+    "  versioned('./src/domain/history/history-migration.js'),\n" +
+    "  versioned('./src/ui/history/history-screen.js'),\n" +
+    "  versioned('./src/ui/history/history-screen.css'),\n" +
+    "  versioned('./src/renderers/brew-spatial-view.js'),\n" +
+    "  versioned('./src/renderers/brew-spatial-controller.js'),\n" +
+    "  versioned('./src/renderers/brew-spatial-view.css'),\n" +
+    "  versioned('./src/ui/viewport-controller.js'),\n" +
+    "  versioned('./src/ui/navigation-controller.js'),\n" +
+    "  versioned('./src/ui/account-sync-panel.js'),\n" +
+    "  versioned('./src/ui/appearance-controller.js'),\n" +
+    "  versioned('./src/ui/voice-settings-controller.js'),\n" +
+    "  versioned('./src/ui/gear-controller.js'),\n" +
+    "  versioned('./src/ui/grinder-controller.js'),\n" +
+    "  versioned('./src/ui/recognition-interaction-controller.js'),\n" +
+    "  versioned('./src/ui/brew-cooling-controller.js'),\n" +
+    "  versioned('./src/ui/flavor-guide-controller.js'),\n" +
+    "  versioned('./src/ui/onboarding-controller.js'),\n" +
+    "  versioned('./src/ui/bean-card-controller.js'),\n" +
+    "  versioned('./src/ui/fab-controller.js'),\n" +
+    "  versioned('./src/features/runtime-features.js'),\n" +
+    "  versioned('./src/features/full-integration-controller-v3.js'),\n" +
+    "  versioned('./src/features/freshness-timeline-controller.js'),\n" +
+    "  versioned('./src/data-migrations.js'),\n" +
+    "  versioned('./src/recognition-bridge.js'),\n" +
+    "  versioned('./src/image-quality.js'),\n" +
+    "  versioned('./src/recognition-web-ocr.js'),\n" +
+    "  versioned('./src/recognition-paddle-ocr.js'),\n" +
+    "  versioned('./src/recognition-quality-controller.js'),\n" +
+    "  versioned('./src/package-capture-controller.js'),\n" +
+    "  versioned('./src/direct-camera-controller.js'),\n" +
+    "  versioned('./src/qr-ui-controller.js'),\n" +
+    "  versioned('./src/integrity-ui-controller.js'),\n" +
+    "  versioned('./src/ui-layout-controller.js'),\n" +
+    "  versioned('./src/selection-controller.js'),\n" +
+    "  versioned('./src/feature-controller.js'),\n" +
+    "  versioned('./src/runtime-controller.js'),\n" +
+    "  versioned('./src/bean-groups-controller.js'),\n" +
+    "  versioned('./src/group-interaction-controller.js'),\n" +
+    "  versioned('./src/ui-upgrade-controller.js'),\n" +
+    "  versioned('./src/origin-map-controller.js'),\n" +
+    "  versioned('./public/app-logo.webp'),\n" +
+    "  versioned('./public/splash-art-red.webp'),\n" +
+    "  versioned('./public/splash-art-light.webp'),\n" +
+    "  versioned('./public/Luckybean-END.webp'),\n" +
+    "  './public/vendor/jsqr/jsQR.js',\n" +
+    "  './public/vendor/jsvectormap/jsvectormap.min.css',\n" +
+    "  './public/vendor/jsvectormap/jsvectormap.min.js',\n" +
+    "  './public/vendor/jsvectormap/world.js',\n" +
+    "  './public/fallback-codebook.json',\n" +
+    "  './public/legacy-flavor-map.json'\n" +
+    '];\n' +
     '\n' +
-    'function groupApi(){return globalThis.LuckyBeanV099tBeanGroups||null;}\n' +
-    "function nativePanel(){return $('#beanGroups [data-active-group-panel]');}\n" +
-    'function hasControllerGroup(){return Boolean(groupApi()?.hasActiveGroup?.());}\n' +
-    'function hasNativeGroup(){return Boolean(nativePanel());}\n' +
-    'function hasActiveGroup(){return hasControllerGroup()||hasNativeGroup();}\n' +
-    `function isInteractive(target){return Boolean(target?.closest?.('button,a,input,select,textarea,.bean-card,[role="button"]'));}\n` +
-    "function isBeanPageVisible(){return $('#pageBeans')?.classList?.contains('active');}\n" +
+    "self.addEventListener('install', event => {\n" +
+    '  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));\n' +
+    '});\n' +
     '\n' +
-    'function injectStyle(){\n' +
-    "  if($('#lb124bGroupNavigationStyle'))return;\n" +
-    "  const style=document.createElement('style');\n" +
-    "  style.id='lb124bGroupNavigationStyle';\n" +
-    '  style.textContent=`\n' +
-    '    #beanGroups .lb-group-dismiss-zone{\n' +
-    '      display:block;width:100%;min-height:clamp(100px,16vh,160px);margin:8px 0 0;padding:0;\n' +
-    '      appearance:none;border:0;background:transparent;color:transparent;box-shadow:none;cursor:pointer;\n' +
-    '      -webkit-tap-highlight-color:transparent;touch-action:manipulation;\n' +
-    '    }\n' +
-    '    #beanGroups .lb-group-dismiss-zone:focus-visible{outline:1px dashed color-mix(in srgb,var(--active,currentColor) 55%,transparent);outline-offset:-8px;}\n' +
-    '    #beanGroups .active-group-panel,#beanGroups .group-grid{animation:lbGroupEnter 170ms cubic-bezier(.2,.8,.2,1) both;}\n' +
-    '    @keyframes lbGroupEnter{from{opacity:.72;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}\n' +
-    '    @media (prefers-reduced-motion:reduce){#beanGroups .active-group-panel,#beanGroups .group-grid{animation:none!important}}\n' +
-    '  `;\n' +
-    '  document.head.append(style);\n' +
-    '}\n' +
+    "self.addEventListener('activate', event => {\n" +
+    '  event.waitUntil((async () => {\n' +
+    '    const keys = await caches.keys();\n' +
+    '    await Promise.all(keys\n' +
+    '      .filter(key => (key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)\n' +
+    '        || LEGACY_CACHE_PREFIXES.some(prefix => key.startsWith(prefix)))\n' +
+    '      .map(key => caches.delete(key)));\n' +
+    '    await self.clients.claim();\n' +
+    '  })());\n' +
+    '});\n' +
     '\n' +
-    'function normalizeGroupMenu(){\n' +
-    `  document.querySelectorAll('[data-group-method="process"]').forEach(button=>{\n` +
-    "    const text=button.textContent||'';\n" +
-    "    if(text.includes('处理工法'))button.textContent=text.replace(/处理工法/g,'处理法');\n" +
-    '  });\n' +
-    '}\n' +
+    "self.addEventListener('message', event => {\n" +
+    "  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();\n" +
+    '});\n' +
     '\n' +
-    'function ensureDismissZone(){\n' +
-    "  const root=$('#beanGroups');\n" +
-    '  if(!root)return;\n' +
-    "  const existing=$('[data-lb-group-dismiss-zone]',root);\n" +
-    '  if(!isBeanPageVisible()||!hasActiveGroup()){\n' +
-    '    existing?.remove();\n' +
+    "self.addEventListener('fetch', event => {\n" +
+    '  const request = event.request;\n' +
+    "  if (request.method !== 'GET') return;\n" +
+    '  const url = new URL(request.url);\n' +
+    "  if (request.mode === 'navigate') {\n" +
+    "    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {\n" +
+    '      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+    '      return response;\n' +
+    "    }).catch(() => caches.match(request).then(cached => cached || caches.match('./index.html'))));\n" +
     '    return;\n' +
     '  }\n' +
-    '  if(existing)return;\n' +
-    "  const zone=document.createElement('button');\n" +
-    "  zone.type='button';\n" +
-    "  zone.className='lb-group-dismiss-zone';\n" +
-    "  zone.dataset.lbGroupDismissZone='1';\n" +
-    "  zone.setAttribute('aria-label','关闭当前分组并返回分组列表');\n" +
-    "  zone.title='返回分组列表';\n" +
-    "  zone.addEventListener('click',event=>{\n" +
-    '    event.preventDefault();\n' +
-    '    event.stopPropagation();\n' +
-    '    closeActiveGroup();\n' +
-    '  });\n' +
-    '  root.append(zone);\n' +
-    '}\n' +
-    '\n' +
-    'function syncUi(){\n' +
-    '  syncQueued=false;\n' +
-    '  injectStyle();\n' +
-    '  normalizeGroupMenu();\n' +
-    '  ensureDismissZone();\n' +
-    '}\n' +
-    'function queueSync(){\n' +
-    '  if(syncQueued)return;\n' +
-    '  syncQueued=true;\n' +
-    '  requestAnimationFrame(syncUi);\n' +
-    '}\n' +
-    '\n' +
-    'function closeNativeGroup(){\n' +
-    '  const panel=nativePanel();\n' +
-    '  if(!panel)return false;\n' +
-    '  closing=true;\n' +
-    '  try{\n' +
-    "    panel.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));\n" +
-    '  }finally{\n' +
-    '    closing=false;\n' +
+    '  if (url.origin === self.location.origin) {\n' +
+    "    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {\n" +
+    '      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+    '      return response;\n' +
+    '    }).catch(() => caches.match(request)));\n' +
+    '    return;\n' +
     '  }\n' +
-    '  return true;\n' +
-    '}\n' +
-    '\n' +
-    'function closeControllerGroup(){\n' +
-    '  const api=groupApi();\n' +
-    '  if(!api?.hasActiveGroup?.())return false;\n' +
-    "  api.closeActiveGroup?.().catch?.(error=>console.warn('豆藏分组关闭失败',error)).finally?.(queueSync);\n" +
-    '  return true;\n' +
-    '}\n' +
-    '\n' +
-    'function closeActiveGroup(){\n' +
-    '  if(closing)return false;\n' +
-    '  const controllerClosed=closeControllerGroup();\n' +
-    '  const nativeClosed=closeNativeGroup();\n' +
-    '  const closed=controllerClosed||nativeClosed;\n' +
-    '  if(closed){\n' +
-    '    queueSync();\n' +
-    "    document.dispatchEvent(new CustomEvent('luckybean:bean-group-dismissed'));\n" +
+    "  if (url.hostname === 'cdn.jsdelivr.net') {\n" +
+    '    event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {\n' +
+    '      caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+    '      return response;\n' +
+    '    })));\n' +
     '  }\n' +
-    '  return closed;\n' +
-    '}\n' +
-    '\n' +
-    'function bindPageLevelDismiss(){\n' +
-    "  if(document.documentElement.dataset.lb124bPageGroupDismiss==='3')return;\n" +
-    "  document.documentElement.dataset.lb124bPageGroupDismiss='3';\n" +
-    '\n' +
-    "  document.addEventListener('click',event=>{\n" +
-    '    if(closing)return;\n' +
-    "    if(event.target.closest?.('#groupBtn')){queueMicrotask(queueSync);return;}\n" +
-    '    if(!hasActiveGroup())return;\n' +
-    '\n' +
-    "    const pageTarget=event.target.closest?.('[data-page-target]');\n" +
-    '    if(pageTarget){\n' +
-    '      closeActiveGroup();\n' +
-    '      return;\n' +
-    '    }\n' +
-    '\n' +
-    '    if(!isBeanPageVisible())return;\n' +
-    "    const page=$('#pageBeans');\n" +
-    '    if(!page?.contains(event.target))return;\n' +
-    '    if(isInteractive(event.target))return;\n' +
-    '    closeActiveGroup();\n' +
-    '  },{capture:true});\n' +
-    '\n' +
-    "  document.addEventListener('pointerdown',event=>{\n" +
-    '    if(closing||!hasActiveGroup()||!isBeanPageVisible()||isInteractive(event.target))return;\n' +
-    "    const page=$('#pageBeans');\n" +
-    '    if(!page?.contains(event.target))return;\n' +
-    '    gesture={id:event.pointerId,x:event.clientX,y:event.clientY};\n' +
-    '  },{capture:true,passive:true});\n' +
-    '\n' +
-    "  document.addEventListener('pointerup',event=>{\n" +
-    '    if(!gesture||gesture.id!==event.pointerId)return;\n' +
-    '    const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;\n' +
-    '    gesture=null;\n' +
-    '    if(dx<=-72&&Math.abs(dx)>Math.abs(dy)*1.35)closeActiveGroup();\n' +
-    '  },{capture:true,passive:true});\n' +
-    '\n' +
-    '  const observer=new MutationObserver(queueSync);\n' +
-    '  observer.observe(document.documentElement,{childList:true,subtree:true});\n' +
-    '}\n' +
-    '\n' +
-    "document.addEventListener('luckybean:navigation-back',event=>{\n" +
-    '  if(closeActiveGroup())event.preventDefault?.();\n' +
-    '});\n' +
-    "document.addEventListener('luckybean:data-changed',queueSync);\n" +
-    "document.addEventListener('luckybean:app-refreshed',queueSync);\n" +
-    '\n' +
-    'injectStyle();\n' +
-    'bindPageLevelDismiss();\n' +
-    'queueSync();\n' +
-    '\n' +
-    'globalThis.LuckyBean124BGroupNavigation={close:closeActiveGroup,hasActiveGroup,sync:queueSync};\n' +
-    "console.info('[LuckyBean] 1.24B unified bean-group navigation active');\n",
-  expected: /canonical folder-state navigation active/,
+    '});',
+  expected: /CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-interaction3`/,
   operator: 'match',
   diff: 'simple'
 }
 
 Node.js v22.23.2
-::error file=tests/v123d-deployment-contracts.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /canonical folder-state navigation active/. Input:%0A%0A'const $=(s,r=document)=>r?.querySelector?.(s)||null;\n' +%0A  'let gesture=null;\n' +%0A  'let closing=false;\n' +%0A  'let syncQueued=false;\n' +%0A  '\n' +%0A  'function groupApi(){return globalThis.LuckyBeanV099tBeanGroups||null;}\n' +%0A  "function nativePanel(){return $('#beanGroups [data-active-group-panel]');}\n" +%0A  'function hasControllerGroup(){return Boolean(groupApi()?.hasActiveGroup?.());}\n' +%0A  'function hasNativeGroup(){return Boolean(nativePanel());}\n' +%0A  'function hasActiveGroup(){return hasControllerGroup()||hasNativeGroup();}\n' +%0A  `function isInteractive(target){return Boolean(target?.closest?.('button,a,input,select,textarea,.bean-card,[role="button"]'));}\n` +%0A  "function isBeanPageVisible(){return $('#pageBeans')?.classList?.contains('active');}\n" +%0A  '\n' +%0A  'function injectStyle(){\n' +%0A  "  if($('#lb124bGroupNavigationStyle'))return;\n" +%0A  "  const style=document.createElement('style');\n" +%0A  "  style.id='lb124bGroupNavigationStyle';\n" +%0A  '  style.textContent=`\n' +%0A  '    #beanGroups .lb-group-dismiss-zone{\n' +%0A  '      display:block;width:100%25;min-height:clamp(100px,16vh,160px);margin:8px 0 0;padding:0;\n' +%0A  '      appearance:none;border:0;background:transparent;color:transparent;box-shadow:none;cursor:pointer;\n' +%0A  '      -webkit-tap-highlight-color:transparent;touch-action:manipulation;\n' +%0A  '    }\n' +%0A  '    #beanGroups .lb-group-dismiss-zone:focus-visible{outline:1px dashed color-mix(in srgb,var(--active,currentColor) 55%25,transparent);outline-offset:-8px;}\n' +%0A  '    #beanGroups .active-group-panel,#beanGroups .group-grid{animation:lbGroupEnter 170ms cubic-bezier(.2,.8,.2,1) both;}\n' +%0A  '    @keyframes lbGroupEnter{from{opacity:.72;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}\n' +%0A  '    @media (prefers-reduced-motion:reduce){#beanGroups .active-group-panel,#beanGroups .group-grid{animation:none!important}}\n' +%0A  '  `;\n' +%0A  '  document.head.append(style);\n' +%0A  '}\n' +%0A  '\n' +%0A  'function normalizeGroupMenu(){\n' +%0A  `  document.querySelectorAll('[data-group-method="process"]').forEach(button=>{\n` +%0A  "    const text=button.textContent||'';\n" +%0A  "    if(text.includes('处理工法'))button.textContent=text.replace(/处理工法/g,'处理法');\n" +%0A  '  });\n' +%0A  '}\n' +%0A  '\n' +%0A  'function ensureDismissZone(){\n' +%0A  "  const root=$('#beanGroups');\n" +%0A  '  if(!root)return;\n' +%0A  "  const existing=$('[data-lb-group-dismiss-zone]',root);\n" +%0A  '  if(!isBeanPageVisible()||!hasActiveGroup()){\n' +%0A  '    existing?.remove();\n' +%0A  '    return;\n' +%0A  '  }\n' +%0A  '  if(existing)return;\n' +%0A  "  const zone=document.createElement('button');\n" +%0A  "  zone.type='button';\n" +%0A  "  zone.className='lb-group-dismiss-zone';\n" +%0A  "  zone.dataset.lbGroupDismissZone='1';\n" +%0A  "  zone.setAttribute('aria-label','关闭当前分组并返回分组列表');\n" +%0A  "  zone.title='返回分组列表';\n" +%0A  "  zone.addEventListener('click',event=>{\n" +%0A  '    event.preventDefault();\n' +%0A  '    event.stopPropagation();\n' +%0A  '    closeActiveGroup();\n' +%0A  '  });\n' +%0A  '  root.append(zone);\n' +%0A  '}\n' +%0A  '\n' +%0A  'function syncUi(){\n' +%0A  '  syncQueued=false;\n' +%0A  '  injectStyle();\n' +%0A  '  normalizeGroupMenu();\n' +%0A  '  ensureDismissZone();\n' +%0A  '}\n' +%0A  'function queueSync(){\n' +%0A  '  if(syncQueued)return;\n' +%0A  '  syncQueued=true;\n' +%0A  '  requestAnimationFrame(syncUi);\n' +%0A  '}\n' +%0A  '\n' +%0A  'function closeNativeGroup(){\n' +%0A  '  const panel=nativePanel();\n' +%0A  '  if(!panel)return false;\n' +%0A  '  closing=true;\n' +%0A  '  try{\n' +%0A  "    panel.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));\n" +%0A  '  }finally{\n' +%0A  '    closing=false;\n' +%0A  '  }\n' +%0A  '  return true;\n' +%0A  '}\n' +%0A  '\n' +%0A  'function closeControllerGroup(){\n' +%0A  '  const api=groupApi();\n' +%0A  '  if(!api?.hasActiveGroup?.())return false;\n' +%0A  "  api.closeActiveGroup?.().catch?.(error=>console.warn('豆藏分组关闭失败',error)).finally?.(queueSync);\n" +%0A  '  return true;\n' +%0A  '}\n' +%0A  '\n' +%0A  'function closeActiveGroup(){\n' +%0A  '  if(closing)return false;\n' +%0A  '  const controllerClosed=closeControllerGroup();\n' +%0A  '  const nativeClosed=closeNativeGroup();\n' +%0A  '  const closed=controllerClosed||nativeClosed;\n' +%0A  '  if(closed){\n' +%0A  '    queueSync();\n' +%0A  "    document.dispatchEvent(new CustomEvent('luckybean:bean-group-dismissed'));\n" +%0A  '  }\n' +%0A  '  return closed;\n' +%0A  '}\n' +%0A  '\n' +%0A  'function bindPageLevelDismiss(){\n' +%0A  "  if(document.documentElement.dataset.lb124bPageGroupDismiss==='3')return;\n" +%0A  "  document.documentElement.dataset.lb124bPageGroupDismiss='3';\n" +%0A  '\n' +%0A  "  document.addEventListener('click',event=>{\n" +%0A  '    if(closing)return;\n' +%0A  "    if(event.target.closest?.('#groupBtn')){queueMicrotask(queueSync);return;}\n" +%0A  '    if(!hasActiveGroup())return;\n' +%0A  '\n' +%0A  "    const pageTarget=event.target.closest?.('[data-page-target]');\n" +%0A  '    if(pageTarget){\n' +%0A  '      closeActiveGroup();\n' +%0A  '      return;\n' +%0A  '    }\n' +%0A  '\n' +%0A  '    if(!isBeanPageVisible())return;\n' +%0A  "    const page=$('#pageBeans');\n" +%0A  '    if(!page?.contains(event.target))return;\n' +%0A  '    if(isInteractive(event.target))return;\n' +%0A  '    closeActiveGroup();\n' +%0A  '  },{capture:true});\n' +%0A  '\n' +%0A  "  document.addEventListener('pointerdown',event=>{\n" +%0A  '    if(closing||!hasActiveGroup()||!isBeanPageVisible()||isInteractive(event.target))return;\n' +%0A  "    const page=$('#pageBeans');\n" +%0A  '    if(!page?.contains(event.target))return;\n' +%0A  '    gesture={id:event.pointerId,x:event.clientX,y:event.clientY};\n' +%0A  '  },{capture:true,passive:true});\n' +%0A  '\n' +%0A  "  document.addEventListener('pointerup',event=>{\n" +%0A  '    if(!gesture||gesture.id!==event.pointerId)return;\n' +%0A  '    const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;\n' +%0A  '    gesture=null;\n' +%0A  '    if(dx<=-72&&Math.abs(dx)>Math.abs(dy)*1.35)closeActiveGroup();\n' +%0A  '  },{capture:true,passive:true});\n' +%0A  '\n' +%0A  '  const observer=new MutationObserver(queueSync);\n' +%0A  '  observer.observe(document.documentElement,{childList:true,subtree:true});\n' +%0A  '}\n' +%0A  '\n' +%0A  "document.addEventListener('luckybean:navigation-back',event=>{\n" +%0A  '  if(closeActiveGroup())event.preventDefault?.();\n' +%0A  '});\n' +%0A  "document.addEventListener('luckybean:data-changed',queueSync);\n" +%0A  "document.addEventListener('luckybean:app-refreshed',queueSync);\n" +%0A  '\n' +%0A  'injectStyle();\n' 
+::error file=tests/v110-local-first-sync-static.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-interaction3`/. Input:%0A%0A'// LuckyBean 1.24B: lifecycle, transit/frozen beans, serial OCR and compact UI.\n' +%0A  "const REVISION = '1.24B-main.4';\n" +%0A  "const CACHE_PREFIX = 'luckybean-main-v124b-';\n" +%0A  'const CACHE_NAME = `${CACHE_PREFIX}main-4-interaction4`;\n' +%0A  'const LEGACY_CACHE_PREFIXES = [\n' +%0A  "  'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',\n" +%0A  "  'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',\n" +%0A  "  'luckybean-v123-brewprofiles-integration-test-', 'luckybean-v200-foundation-'\n" +%0A  '];\n' +%0A  'const versioned = path => `${path}?v=${REVISION}`;\n' +%0A  'const CORE = [\n' +%0A  "  './',\n" +%0A  "  './index.html',\n" +%0A  "  './recognition-test.html',\n" +%0A  "  versioned('./manifest.webmanifest'),\n" +%0A  "  versioned('./styles.css'),\n" +%0A  "  versioned('./src/release-1.24b.css'),\n" +%0A  "  versioned('./src/release-1.24b.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-integration.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-finalize.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-transit-controller.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-group-navigation.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-about-controller.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-polish.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-ui-policy.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-brew-mode-controller.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-freshness-detail.js'),\n" +%0A  "  versioned('./src/features/recognition-batch-progress-controller.js'),\n" +%0A  "  versioned('./src/ui/sortable-controller.js'),\n" +%0A  "  versioned('./src/features/sensory-tag-sort-controller.js'),\n" +%0A  "  versioned('./src/data/local-brew-recipes-1.24b.js'),\n" +%0A  "  versioned('./src/services/grind-psd-reference-service.js'),\n" +%0A  "  versioned('./src/domain/recognition/order-recognition-1.24b.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-field-resolver-1.24b.js'),\n" +%0A  "  versioned('./src/ui/app-layout.css'),\n" +%0A  "  versioned('./src/ui/app-components.css'),\n" +%0A  "  versioned('./src/ui/bean-card.css'),\n" +%0A  "  versioned('./src/ui/professional-sensory.css'),\n" +%0A  "  versioned('./src/ui/sensory-wizard-actions.css'),\n" +%0A  "  versioned('./src/ui/brew-optimization.css'),\n" +%0A  "  versioned('./src/app.js'),\n" +%0A  "  versioned('./src/domain/archive/luckybean-archive-codec.js'),\n" +%0A  "  versioned('./src/domain/archive/luckybean-archive-service.js'),\n" +%0A  "  versioned('./src/domain/beans/bean-consumption-summary.js'),\n" +%0A  "  versioned('./src/domain/beans/bean-lifecycle-service.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-document.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-pipeline.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-date-classifier.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-date-review.js'),\n" +%0A  "  versioned('./src/recognition-test-page.js'),\n" +%0A  "  './contracts/luckybean-archive-v1.schema.json',\n" +%0A  "  './contracts/recognition-document-v1.schema.json',\n" +%0A  "  './contracts/recognition-date-decision-v1.schema.json',\n" +%0A  "  './contracts/brew-optimization-v1.schema.json',\n" +%0A  "  './contracts/brew-optimization-validation-v1.schema.json',\n" +%0A  "  versioned('./src/core/startup-controller.js'),\n" +%0A  "  versioned('./src/core/bootstrap.js'),\n" +%0A  "  versioned('./src/services/cloud-auth-service.js'),\n" +%0A  "  versioned('./src/services/cloud-sync-service.js'),\n" +%0A  "  versioned('./src/services/cloud-sync-safety.js'),\n" +%0A  "  versioned('./src/services/bean-enrichment-service.js'),\n" +%0A  "  versioned('./src/cloud-codec.js'),\n" +%0A  "  versioned('./src/services/brew-analysis-service.js'),\n" +%0A  "  versioned('./src/services/brew-calculation-coordinator.js'),\n" +%0A  "  versioned('./src/services/brew-api-client.js'),\n" +%0A  "  versioned('./src/services/brew-profile-catalog-service.js'),\n" +%0A  "  versioned('./src/services/local-reference-analysis.js'),\n" +%0A  "  versioned('./src/services/provider-package-service.js'),\n" +%0A  "  versioned('./src/services/codebook-reconciliation-service.js'),\n" +%0A  "  versioned('./src/services/provider-bootstrap-controller.js'),\n" +%0A  "  versioned('./src/ui/provider-status-panel.js'),\n" +%0A  "  versioned('./src/ui/codebook-reconciliation-screen.js'),\n" +%0A  "  versioned('./src/ui/codebook-reconciliation-screen.css'),\n" +%0A  "  versioned('./src/domain/history/history-service.js'),\n" +%0A  "  versioned('./src/domain/history/history-sensory-service.js'),\n" +%0A  "  versioned('./src/domain/sensory/brew-optimization-assessment.js'),\n" +%0A  "  versioned('./src/domain/history/history-comparison.js'),\n" +%0A  "  versioned('./src/ui/brew-trend-panel.js'),\n" +%0A  "  versioned('./src/ui/brew-trend-panel.css'),\n" +%0A  "  versioned('./src/domain/history/history-migration.js'),\n" +%0A  "  versioned('./src/ui/history/history-screen.js'),\n" +%0A  "  versioned('./src/ui/history/history-screen.css'),\n" +%0A  "  versioned('./src/renderers/brew-spatial-view.js'),\n" +%0A  "  versioned('./src/renderers/brew-spatial-controller.js'),\n" +%0A  "  versioned('./src/renderers/brew-spatial-view.css'),\n" +%0A  "  versioned('./src/ui/viewport-controller.js'),\n" +%0A  "  versioned('./src/ui/navigation-controller.js'),\n" +%0A  "  versioned('./src/ui/account-sync-panel.js'),\n" +%0A  "  versioned('./src/ui/appearance-controller.js'),\n" +%0A  "  versioned('./src/ui/voice-settings-controller.js'),\n" +%0A  "  versioned('./src/ui/gear-controller.js'),\n" +%0A  "  versioned('./src/ui/grinder-controller.js'),\n" +%0A  "  versioned('./src/ui/recognition-interaction-controller.js'),\n" +%0A  "  versioned('./src/ui/brew-cooling-controller.js'),\n" +%0A  "  versioned('./src/ui/flavor-guide-controller.js'),\n" +%0A  "  versioned('./src/ui/onboarding-controller.js'),\n" +%0A  "  versioned('./src/ui/bean-card-controller.js'),\n" +%0A  "  versioned('./src/ui/fab-controller.js'),\n" +%0A  "  versioned('./src/features/runtime-features.js'),\n" +%0A  "  versioned('./src/features/full-integration-controller-v3.js'),\n" +%0A  "  versioned('./src/features/freshness-timeline-controller.js'),\n" +%0A  "  versioned('./src/data-migrations.js'),\n" +%0A  "  versioned('./src/recognition-bridge.js'),\n" +%0A  "  versioned('./src/image-quality.js'),\n" +%0A  "  versioned('./src/recognition-web-ocr.js'),\n" +%0A  "  versioned('./src/recognition-paddle-ocr.js'),\n" +%0A  "  versioned('./src/recognition-quality-controller.js'),\n" +%0A  "  versioned('./src/packa
