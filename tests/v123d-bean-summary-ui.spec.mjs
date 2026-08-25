@@ -23,7 +23,27 @@ test('bean digest precedes leaderboard and analytics live only in settings data 
       { id:'summary-use-a', beanId:'summary-a', type:'brew-consume', amountG:-15, createdAt:late.toISOString() },
       { id:'summary-use-b', beanId:'summary-b', type:'brew-consume', amountG:-30, createdAt:late.toISOString() }
     ]);
-    await db.put('sensoryRecords', { id:'summary-score', beanId:'summary-a', subjectiveScore:88, createdAt:now.toISOString() });
+    await db.put('sensoryRecords', {
+      id:'summary-score',
+      beanId:'summary-a',
+      brewSessionId:'',
+      planReference:'',
+      profileId:'',
+      sensorySource:'independent',
+      engineVersion:'',
+      profileVersion:'',
+      evaluationMode:'note',
+      sourceMode:'independent-note-v125',
+      answers:{ floral:{ 1:['无'] }, fruit:{ 1:['无'] }, other:{ 1:['无'], 2:['无'], 3:['无'] } },
+      autoScore:0,
+      subjectiveScore:88,
+      score:88,
+      scoreDelta:88,
+      naturalNote:'测试荐榜数据',
+      preferenceTags:[],
+      direct:true,
+      createdAt:now.toISOString()
+    });
     await new Promise(resolve => {
       document.addEventListener('luckybean:app-refreshed', resolve, { once:true });
       document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail:{ source:'bean-summary-test' } }));

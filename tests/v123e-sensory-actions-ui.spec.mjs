@@ -60,19 +60,19 @@ test('selected sensory tags use single activate, double remove and live-preview 
   await expect(page.locator('.v095-sort-hint')).toContainText('双击移除');
   await expect(page.locator('.v095-sort-hint')).toContainText('实时预览');
 
-  const berry = page.locator('[data-v120-selected-tag="莓果"]');
+  const berry = list.locator('[data-v120-selected-tag="莓果"]:not(.lb-sort-ghost)');
   await berry.click();
   await page.waitForTimeout(300);
   await expect(berry).toHaveClass(/lb-sort-active/);
 
-  const first = page.locator('[data-v120-selected-tag="花香"]');
-  const third = page.locator('[data-v120-selected-tag="茶感"]');
+  const first = list.locator('[data-v120-selected-tag="花香"]:not(.lb-sort-ghost)');
+  const third = list.locator('[data-v120-selected-tag="茶感"]:not(.lb-sort-ghost)');
   const firstBox = await first.boundingBox();
   const thirdBox = await third.boundingBox();
   expect(firstBox).toBeTruthy();
   expect(thirdBox).toBeTruthy();
 
-  // Long press the entire tag body; sorting must show a floating ghost and a live placeholder.
+  // Long press the source tag itself; the generated ghost clone must not replace the source locator.
   await page.mouse.move(firstBox.x + firstBox.width * 0.35, firstBox.y + firstBox.height / 2);
   await page.mouse.down();
   await page.waitForTimeout(410);
