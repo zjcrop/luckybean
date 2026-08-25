@@ -1,1 +1,1 @@
-{"source_sha":"84794e5e40ed1aa001f1514e04a92d5fad832709","version":"1.24B","install_status":0,"js_status":0,"static_status":0,"passed":true,"first_error":"","generated_at":"2026-08-25T07:50:27Z"}
+{"source_sha":"6acbfc3f6eaa4ae082d7d0ddd7825632189dac8f","version":"1.24B","install_status":0,"js_status":0,"static_status":1,"passed":false,"first_error":"AssertionError [ERR_ASSERTION]: The input did not match the regular expression /canonical folder-state navigation active/. Input:","generated_at":"2026-08-25T08:06:47Z"}
