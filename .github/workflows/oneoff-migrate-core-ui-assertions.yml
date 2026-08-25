@@ -1,0 +1,53 @@
+name: One-off migrate current core UI assertions
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/oneoff-migrate-core-ui-assertions.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+      - name: Migrate only obsolete current-UI assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          patches = {
+            Path('tests/v120-requirements-ui.spec.mjs'): [
+              ("toHaveText('下载云端数据合并本地')", "toHaveText('合并云端')"),
+            ],
+            Path('tests/v123e-ui-stability-static.mjs'): [
+              ("MOVE_CANCEL_DISTANCE = 12", "MOVE_CANCEL_DISTANCE = 14"),
+            ],
+          }
+          for path, replacements in patches.items():
+              text = path.read_text()
+              for old, new in replacements:
+                  count = text.count(old)
+                  if count != 1:
+                      raise SystemExit(f'{path}: expected exactly one {old!r}, got {count}')
+                  text = text.replace(old, new)
+              path.write_text(text)
+          PY
+          git diff --check
+          git diff -- tests/v120-requirements-ui.spec.mjs tests/v123e-ui-stability-static.mjs
+      - name: Commit exact migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add tests/v120-requirements-ui.spec.mjs tests/v123e-ui-stability-static.mjs
+          git commit -m 'test: migrate current UI core assertions'
+          git push origin HEAD:main
