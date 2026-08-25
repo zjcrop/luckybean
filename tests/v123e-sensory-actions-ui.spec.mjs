@@ -2,6 +2,11 @@ import { test, expect } from '@playwright/test';
 
 const BASE_URL = 'http://127.0.0.1:4173';
 
+async function enterApp(page) {
+  await page.locator('#splashScreen').click();
+  await expect(page.locator('#appShell')).toBeVisible({ timeout:15000 });
+}
+
 test('cupping actions stay one row in cancel-previous-next order with equal sizing', async ({ page }) => {
   await page.goto(`${BASE_URL}/?sensory-actions=1`, { waitUntil:'domcontentloaded' });
   await page.setViewportSize({ width:360, height:740 });
@@ -28,6 +33,7 @@ test('cupping actions stay one row in cancel-previous-next order with equal sizi
 test('selected sensory tags use single activate, double remove and live-preview long-press sorting', async ({ page }) => {
   await page.goto(`${BASE_URL}/?sensory-sort=1`, { waitUntil:'domcontentloaded' });
   await page.setViewportSize({ width:390, height:760 });
+  await enterApp(page);
   await page.waitForFunction(() => globalThis.LuckyBeanRuntimeFeatures?.loaded?.includes('shared-sortable') && globalThis.LuckyBeanRuntimeFeatures?.loaded?.includes('sensory-tag-sort'));
 
   await page.evaluate(() => {
@@ -101,6 +107,7 @@ test('selected sensory tags use single activate, double remove and live-preview 
 
 test('double click removes a selected sensory tag without changing the vocabulary', async ({ page }) => {
   await page.goto(`${BASE_URL}/?sensory-sort-remove=1`, { waitUntil:'domcontentloaded' });
+  await enterApp(page);
   await page.waitForFunction(() => globalThis.LuckyBeanRuntimeFeatures?.loaded?.includes('shared-sortable'));
   await page.evaluate(() => {
     const overlay = document.createElement('div');

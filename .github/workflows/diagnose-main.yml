@@ -60,7 +60,7 @@ jobs:
           . /tmp/gate-status
           overall=false
           if [ "$install" = 0 ] && [ "$js" = 0 ] && [ "$static" = 0 ]; then overall=true; fi
-          first_error=$(grep -m1 -E 'AssertionError|Static regression failed|ERR_ASSERTION|Error:' /tmp/static.log 2>/dev/null | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))')
+          first_error=$( { grep -m1 -E 'AssertionError|Static regression failed|ERR_ASSERTION|Error:' /tmp/static.log 2>/dev/null || true; } | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))' )
           receipt=$(mktemp)
           printf '{"source_sha":"%s","version":"1.24B","install_status":%s,"js_status":%s,"static_status":%s,"passed":%s,"first_error":%s,"generated_at":"%s"}\n' "$GITHUB_SHA" "$install" "$js" "$static" "$overall" "$first_error" "$(date -u +%FT%TZ)" > "$receipt"
           git config user.name github-actions[bot]

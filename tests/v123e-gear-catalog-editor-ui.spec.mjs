@@ -3,8 +3,8 @@ import { installBrewProfilesBrowserFixture } from './helpers/brewprofiles-browse
 
 const BASE_URL = 'http://127.0.0.1:4173';
 
-async function openApp(page, suffix) {
-  await installBrewProfilesBrowserFixture(page);
+async function openApp(page, suffix, { installFixture = true } = {}) {
+  if (installFixture) await installBrewProfilesBrowserFixture(page);
   await page.goto(`${BASE_URL}/?${suffix}`, { waitUntil: 'domcontentloaded' });
   await page.locator('#splashScreen').click();
   await expect(page.locator('#appShell')).toBeVisible({ timeout: 15000 });
@@ -62,18 +62,17 @@ test('private gear catalog editors remain closed, aligned, editable and persiste
   await expect(page.locator('#dMass')).toHaveValue('260');
   await page.locator('[data-close-overlay]').click();
 
-  const persistedPage = await page.context().newPage();
-  await openApp(persistedPage, 'requirements-gear-catalog-persisted=1');
-  await persistedPage.locator('[data-page-target="settings"]').click();
-  await persistedPage.locator('#privateGearCategory > summary').click();
-  for (const kind of ['filter', 'dripper', 'grinder']) await expect(persistedPage.locator(`[data-gear-kind="${kind}"]`)).not.toHaveAttribute('open', '');
-  await persistedPage.locator('[data-gear-kind="filter"] > summary').click();
-  await expect(persistedPage.locator('[data-filter-item]')).toContainText('测试品牌 测试滤纸');
-  await persistedPage.locator('[data-gear-kind="filter"] > summary').click();
-  await persistedPage.locator('[data-gear-kind="dripper"] > summary').click();
-  await expect(persistedPage.locator('[data-dripper-item]').filter({ hasText: '测试滤杯' })).toHaveCount(1);
-  await persistedPage.locator('[data-gear-kind="dripper"] > summary').click();
-  await persistedPage.locator('[data-gear-kind="grinder"] > summary').click();
-  await expect(persistedPage.locator('[data-grinder-item]')).toContainText('测试磨豆机');
-  await persistedPage.close();
+  // Full-page navigation tears down the running UI while preserving IndexedDB, which is the persistence contract under test.
+  await openApp(page, 'requirements-gear-catalog-persisted=1', { installFixture:false });
+  await page.locator('[data-page-target="settings"]').click();
+  await page.locator('#privateGearCategory > summary').click();
+  for (const kind of ['filter', 'dripper', 'grinder']) await expect(page.locator(`[data-gear-kind="${kind}"]`)).not.toHaveAttribute('open', '');
+  await page.locator('[data-gear-kind="filter"] > summary').click();
+  await expect(page.locator('[data-filter-item]')).toContainText('测试品牌 测试滤纸');
+  await page.locator('[data-gear-kind="filter"] > summary').click();
+  await page.locator('[data-gear-kind="dripper"] > summary').click();
+  await expect(page.locator('[data-dripper-item]').filter({ hasText: '测试滤杯' })).toHaveCount(1);
+  await page.locator('[data-gear-kind="dripper"] > summary').click();
+  await page.locator('[data-gear-kind="grinder"] > summary').click();
+  await expect(page.locator('[data-grinder-item]')).toContainText('测试磨豆机');
 });

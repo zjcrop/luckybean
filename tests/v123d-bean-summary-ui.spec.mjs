@@ -24,7 +24,10 @@ test('bean digest precedes leaderboard and analytics live only in settings data 
       { id:'summary-use-b', beanId:'summary-b', type:'brew-consume', amountG:-30, createdAt:late.toISOString() }
     ]);
     await db.put('sensoryRecords', { id:'summary-score', beanId:'summary-a', subjectiveScore:88, createdAt:now.toISOString() });
-    document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail:{ source:'bean-summary-test' } }));
+    await new Promise(resolve => {
+      document.addEventListener('luckybean:app-refreshed', resolve, { once:true });
+      document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail:{ source:'bean-summary-test' } }));
+    });
   });
 
   const summary = page.locator('.bean-consumption-summary');
