@@ -14,7 +14,8 @@ const specs = [
   'tests/v123e-recognition-pipeline-ui.spec.mjs',
   'tests/v123e-cold-brew-ui.spec.mjs',
   'tests/v124b-brew-mode-freshness-ui.spec.mjs',
-  'tests/v124b-group-brew-regression.spec.mjs'
+  'tests/v124b-group-brew-regression.spec.mjs',
+  'tests/v124b-fab-regression.spec.mjs'
 ];
 
 function annotation(text) {
