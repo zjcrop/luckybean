@@ -11,6 +11,8 @@ const layout=read('src/ui/app-layout.css');
 const components=read('src/ui/app-components.css');
 const sensoryCss=read('src/ui/professional-sensory.css');
 const sensory=read('src/sensory-professional-controller.js');
+const sensorySort=read('src/features/sensory-tag-sort-controller.js');
+const beanGroups=read('src/bean-groups-controller.js');
 const integration=read('src/features/full-integration-controller-v3.js');
 const releaseIntegration=read('src/features/release-1.24b-finalize.js');
 const releasePolish=read('src/features/release-1.24b-polish.js');
@@ -40,8 +42,8 @@ assert.match(sw,/CACHE_PREFIX = 'luckybean-main-v124b-'/);
 assert.match(sw,/CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-folder2`/);
 
 for(const active of ['app-layout.css','app-components.css','bean-card.css','professional-sensory.css','viewport-controller.js','gear-controller.js','brew-cooling-controller.js','flavor-guide-controller.js','onboarding-controller.js','bean-card-controller.js','bean-enrichment-service.js','release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-polish.js','release-1.24b-group-navigation.js'])assert.ok(index.includes(active),`index missing ${active}`);
-for(const runtimeActive of ['release-1.24b-ui-policy.js','release-1.24b-brew-mode-controller.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js'])assert.ok(runtimeFeatures.includes(runtimeActive),`runtime graph missing ${runtimeActive}`);
-for(const cached of ['release-1.24b-finalize.js','release-1.24b-polish.js','release-1.24b-group-navigation.js','release-1.24b-ui-policy.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','recognition-field-resolver-1.24b.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js'])assert.ok(sw.includes(cached),`service worker missing ${cached}`);
+for(const runtimeActive of ['release-1.24b-ui-policy.js','release-1.24b-brew-mode-controller.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','sensory-tag-sort-controller.js'])assert.ok(runtimeFeatures.includes(runtimeActive),`runtime graph missing ${runtimeActive}`);
+for(const cached of ['release-1.24b-finalize.js','release-1.24b-polish.js','release-1.24b-group-navigation.js','release-1.24b-ui-policy.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','sensory-tag-sort-controller.js','recognition-field-resolver-1.24b.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js'])assert.ok(sw.includes(cached),`service worker missing ${cached}`);
 for(const obsolete of ['layout-guard.css','full-integration.css','interaction-repair.css','gear-regression-fix-controller.js','legacy-timer-guard.js','gear-matching-controller.js','experience-fixes-controller.js','interaction-repair-controller.js'])assert.ok(!index.includes(obsolete),`obsolete index reference ${obsolete}`);
 
 assert.match(layout,/--viewport-height:\s*100dvh/);
@@ -49,6 +51,11 @@ assert.match(layout,/\.overlay\s*\{[\s\S]*overflow:\s*hidden/);
 assert.match(layout,/prefers-reduced-motion/);
 assert.match(sensory,/LONG_PRESS_MS = 480/);
 assert.match(sensory,/DRAG_CANCEL_DISTANCE = 8/);
+assert.match(sensorySort,/LONG_PRESS_MS = 320/);
+assert.match(sensorySort,/MOVE_CANCEL_DISTANCE = 12/);
+assert.match(sensorySort,/setPointerCapture/);
+assert.match(sensorySort,/event\.stopPropagation\(\)/);
+assert.match(sensorySort,/professional-sensory-complete/);
 assert.match(sensoryCss,/--cup-tag-selected-bg:\s*#050505/);
 assert.match(sensoryCss,/--cup-defect-selected-bg/);
 
@@ -71,13 +78,18 @@ assert.match(beanCards,/CANCEL_DISTANCE = 8/);
 assert.match(beanCards,/moveBeansToRecycle/);
 assert.match(lifecycle,/RECYCLE_RETENTION_MS = 7 \* 24 \* 60 \* 60 \* 1000/);
 
-// Expanded bean groups are page-like folders: blank canvas, “藏”, page changes and navigation-back all close them.
-assert.match(groupNavigation,/folder-style group navigation active/);
+// Expanded bean groups are page-like folders. The state owner closes them directly; no hidden “收” button remains.
+assert.match(beanGroups,/async function closeActiveGroup/);
+assert.match(beanGroups,/hasActiveGroup: \(\) => Boolean\(activeGroup\)/);
+assert.doesNotMatch(beanGroups,/data-v099t-group-back|>收</);
+assert.match(groupNavigation,/canonical folder-state navigation active/);
+assert.match(groupNavigation,/LuckyBeanV099tBeanGroups/);
+assert.match(groupNavigation,/api\.closeActiveGroup/);
 assert.match(groupNavigation,/\[data-page-target\]/);
 assert.match(groupNavigation,/page\?\.contains\(event\.target\)/);
-assert.match(groupNavigation,/button\[data-v099t-group-back\]/);
 assert.match(groupNavigation,/capture:true/);
 assert.match(groupNavigation,/luckybean:navigation-back/);
+assert.doesNotMatch(groupNavigation,/back\.click|data-v099t-group-back/);
 assert.doesNotMatch(uiPolicy,/\[data-active-group-panel\]/);
 
 // Mobile bean inventory summary has two semantic lines and preserves exceeded-limit behavior.
