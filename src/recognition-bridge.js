@@ -78,11 +78,10 @@ async function nativeRecognize(images, options) {
   return { ...result, engine:result?.engine || 'native-ppocr' };
 }
 
-async function webProviderRecognize(images, options) {
-  const provider = globalThis.LuckyBeanPaddleOCR || globalThis.LuckyBeanWebOCR;
+async function invokeWebProvider(provider, images, options, fallbackEngine) {
   if (typeof provider?.recognizeCoffeeBag === 'function') {
     const result = await provider.recognizeCoffeeBag(images, options);
-    return { ...result, engine:result?.engine || 'web-ppocr' };
+    return { ...result, engine:result?.engine || fallbackEngine };
   }
   if (typeof provider?.recognize === 'function') {
     const results = [];
@@ -90,9 +89,27 @@ async function webProviderRecognize(images, options) {
       const value = await provider.recognize(image.blob, options);
       results.push({ imageId:image.id, value });
     }
-    return { engine:'web-ppocr', results };
+    return { engine:fallbackEngine, results };
   }
   return null;
+}
+
+async function webProviderRecognize(images, options) {
+  const providers = [
+    ['paddle', globalThis.LuckyBeanPaddleOCR, 'web-ppocr'],
+    ['web', globalThis.LuckyBeanWebOCR, 'web-tesseract']
+  ].filter(([, provider]) => provider);
+  if (!providers.length) return null;
+  const failures = [];
+  for (const [name, provider, fallbackEngine] of providers) {
+    try {
+      const result = await invokeWebProvider(provider, images, options, fallbackEngine);
+      if (result) return result;
+    } catch (error) {
+      failures.push(`${name}:${error?.message || error}`);
+    }
+  }
+  throw new Error(`网页 OCR provider 均失败：${failures.join(' | ')}`);
 }
 
 async function textDetectorRecognize(images) {
@@ -178,51 +195,43 @@ export async function recognizeCoffeeBag(images, options = {}) {
   const allBlocks = [];
   const perImage = [];
   let engine = '';
-  const total = images.length;
   const batch=newBatch(images);
   safeStoreBatch(batch);
-
   for (let index=0; index<images.length; index+=1) {
-    const image = images[index];
-    const order = index + 1;
+    const image=images[index];
     const task=batch.tasks[index];
-    const taskId = task.taskId;
-    batch.currentTask=order;
+    batch.currentTask=index+1;
     task.status='processing';
     safeStoreBatch(batch);
-    options.onProgress?.({ taskId, order, total, imageId:image.id, status:'processing', batchId:batch.batchId });
     try {
-      const result = await recognizeSingleImage(image, options);
-      engine ||= result.engine || 'OCR';
-      const blocks = collectBlocks(result, [image]);
-      const text=blocks.map(block=>block.text).join('\n') || cleanText(result.fullText||'');
-      allBlocks.push(...blocks);
-      const completed={ taskId, order, imageId:image.id, engine:result.engine || engine, blocks, status:'completed', text };
-      perImage.push(completed);
+      const result=await recognizeSingleImage(image,options);
+      const blocks=collectBlocks(result,[image]);
+      engine=result?.engine||engine||'unknown';
+      task.engine=engine;
+      task.blocks=blocks;
+      task.text=blocks.map(block=>block.text).join('\n') || cleanText(result?.fullText);
       task.status='completed';
-      Object.assign(task,{engine:completed.engine,text,blocks,error:null,completedAt:new Date().toISOString()});
+      allBlocks.push(...blocks);
+      perImage.push({ imageId:image.id, engine, blocks, fullText:task.text });
       safeStoreBatch(batch);
-      options.onProgress?.({ taskId, order, total, imageId:image.id, status:'completed', batchId:batch.batchId });
-    } catch (error) {
-      const message=String(error?.message || error);
-      const failed={ taskId, order, imageId:image.id, status:'failed', error:message };
-      perImage.push(failed);
-      Object.assign(task,{status:'failed',error:message,failedAt:new Date().toISOString()});
+    } catch(error) {
+      task.status='failed';
+      task.error=String(error?.message||error);
       batch.status='paused';
       safeStoreBatch(batch);
-      options.onProgress?.({ taskId, order, total, imageId:image.id, status:'failed', error:message, batchId:batch.batchId });
       throw error;
     }
   }
-
-  const blocks = deduplicateBlocks(allBlocks);
-  const groupedText = images.map(image => {
-    const text = blocks.filter(block => block.imageId === image.id).map(block => block.text).join('\n');
-    return text ? `【${image.roleLabel || image.role || '豆袋照片'}】\n${text}` : '';
-  }).filter(Boolean);
-  const fullText = groupedText.join('\n\n') || blocks.map(block => block.text).join('\n');
   batch.status='completed';
-  batch.completedAt=new Date().toISOString();
   safeStoreBatch(batch);
-  return { engine:engine || 'OCR', blocks, fullText, results:perImage, serial:true, queueConcurrency:1, batch };
+  const blocks=deduplicateBlocks(allBlocks);
+  return {
+    engine:engine||'unknown',
+    blocks,
+    fullText:perImage.map(item=>item.fullText).filter(Boolean).join('\n\n'),
+    results:perImage,
+    serial:true,
+    queueConcurrency:1,
+    batch
+  };
 }
