@@ -134,8 +134,9 @@ if (wrap && !globalThis.__LuckyBeanFabControllerLoaded) {
     if (stored?.type === 'relative') {
       const x = bounds.minX + stored.rx * Math.max(1, bounds.maxX - bounds.minX);
       const y = bounds.minY + stored.ry * Math.max(1, bounds.maxY - bounds.minY);
-      const applied = apply(x, y);
-      if (applied) savePosition(clampPosition(x, y).x, clampPosition(x, y).y, bounds);
+      const next = clampPosition(x, y);
+      const applied = apply(next.x, next.y);
+      if (applied) savePosition(next.x, next.y, next.bounds);
       return applied;
     }
 
@@ -169,10 +170,30 @@ if (wrap && !globalThis.__LuckyBeanFabControllerLoaded) {
   function scheduleRestore() {
     if (scheduled) return;
     scheduled = true;
-    requestAnimationFrame(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
       scheduled = false;
       restore();
-    });
+      repair();
+    }));
+  }
+
+  // Browser chrome, WebView insets, rotation and Playwright/mobile viewport resizing can
+  // settle over more than one layout pass. Re-run against the final viewport without ever
+  // trusting an old absolute top/left value.
+  let viewportGeneration = 0;
+  function settleViewport() {
+    const generation = ++viewportGeneration;
+    const settle = delay => setTimeout(() => {
+      if (generation !== viewportGeneration) return;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (generation !== viewportGeneration) return;
+        restore();
+        repair();
+      }));
+    }, delay);
+    settle(0);
+    settle(80);
+    settle(220);
   }
 
   let drag = null;
@@ -214,12 +235,12 @@ if (wrap && !globalThis.__LuckyBeanFabControllerLoaded) {
   }).observe(wrap, { attributes:true, attributeFilter:['class'] });
 
   document.addEventListener('luckybean:local-app-ready', scheduleRestore);
-  document.addEventListener('luckybean:viewport-changed', scheduleRestore);
+  document.addEventListener('luckybean:viewport-changed', settleViewport);
   globalThis.addEventListener('pageshow', scheduleRestore);
-  globalThis.addEventListener('resize', scheduleRestore);
-  globalThis.addEventListener('orientationchange', scheduleRestore);
-  globalThis.visualViewport?.addEventListener?.('resize', scheduleRestore);
-  globalThis.visualViewport?.addEventListener?.('scroll', scheduleRestore);
+  globalThis.addEventListener('resize', settleViewport);
+  globalThis.addEventListener('orientationchange', settleViewport);
+  globalThis.visualViewport?.addEventListener?.('resize', settleViewport);
+  globalThis.visualViewport?.addEventListener?.('scroll', settleViewport);
 
   // If this module is evaluated after local-app-ready, this performs the same safe check.
   scheduleRestore();
