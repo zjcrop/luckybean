@@ -15,6 +15,10 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
   const MODE_REMAINING = 'remaining-50';
   const SELECTED_KEY = 'luckybean.selected.bean.v098';
   const CACHE_TTL = 30000;
+  const ROAST_LABELS = Object.freeze({
+    'RL-L0': '极浅烘', 'RL-L1': '浅烘', 'RL-L2': '浅中烘', 'RL-L3': '中烘',
+    'RL-L4': '中深烘', 'RL-L5': '深烘', 'RL-L6': '极深烘'
+  });
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
@@ -129,6 +133,19 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
     await Promise.all([setSetting(MODE_KEY, mode), setSetting(LEGACY_MODE_KEY, MODE_NATIVE)]);
   }
 
+  async function nativeGroupMethod() {
+    const settings = await getSetting('app.settings', {});
+    const method = String(settings?.groupMethod || 'country');
+    return ['country', 'variety', 'roast', 'process'].includes(method) ? method : 'country';
+  }
+
+  function nativeGroupKey(bean, index, method) {
+    if (method === 'variety') return labelFor(index, 'varieties', bean.varietyCode, '未记录豆种');
+    if (method === 'roast') return ROAST_LABELS[bean.roastCode] || '未记录烘焙度';
+    if (method === 'process') return labelFor(index, 'processes', bean.processCode, '未记录处理法');
+    return labelFor(index, 'countries', bean.countryCode, '未记录国家');
+  }
+
   function groupData(active, mode) {
     if (mode === MODE_FRESHNESS) {
       const order = ['养豆中', '味正盛', '味将尽'];
@@ -222,13 +239,27 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
     return beans[Math.floor(Math.random() * beans.length)];
   }
 
-  async function animateBean(bean, { persist = false, duration = 720 } = {}) {
+  async function openRecommendationTarget(bean, index) {
     const mode = await getMode();
-    openBeanGroupState(mode === MODE_FRESHNESS ? freshnessStage(bean) : String(Math.floor(Math.max(0, Number(bean.remainingWeight || 0)) / 50) * 50));
-    if (persist) { selectedId = bean.id; localStorage.setItem(SELECTED_KEY, selectedId); }
+    if (mode === MODE_NATIVE) {
+      const method = await nativeGroupMethod();
+      const key = nativeGroupKey(bean, index, method);
+      const api = globalThis.LuckyBeanBeanGroupState;
+      if (!api?.open?.(key)) throw new Error('原生分组状态接口不可用');
+      return;
+    }
+    const key = mode === MODE_FRESHNESS
+      ? freshnessStage(bean)
+      : String(Math.floor(Math.max(0, Number(bean.remainingWeight || 0)) / 50) * 50);
+    openBeanGroupState(key);
     const container = $('#beanGroups');
     if (container) delete container.dataset.v099tGroupKey;
     await render({ force: true });
+  }
+
+  async function animateBean(bean, index, { persist = false, duration = 720 } = {}) {
+    if (persist) { selectedId = bean.id; localStorage.setItem(SELECTED_KEY, selectedId); }
+    await openRecommendationTarget(bean, index);
     await nextFrames();
     const card = $(`#beanGroups [data-bean-id="${CSS.escape(bean.id)}"]`);
     if (!card) return wait(duration);
@@ -257,11 +288,11 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
           const pool = active.length > 1 ? active.filter(bean => bean.id !== previous) : active;
           selected = pool[Math.floor(Math.random() * pool.length)];
           previous = selected.id;
-          await animateBean(selected, { persist: step === rounds - 1, duration: step === rounds - 1 ? 820 : 420 });
+          await animateBean(selected, index, { persist: step === rounds - 1, duration: step === rounds - 1 ? 820 : 420 });
         }
       } else {
         selected = pickBean(mode, active, scoreMap);
-        await animateBean(selected, { persist: true, duration: 820 });
+        await animateBean(selected, index, { persist: true, duration: 820 });
       }
       toast(`已选：${labelFor(index, 'countries', selected.countryCode, '未定国家')} · ${labelFor(index, 'varieties', selected.varietyCode, '未定豆种')}`, 'recommendation');
     } finally { recommendationBusy = false; }
@@ -276,7 +307,7 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
       return;
     }
     const recommendation = event.target.closest?.('[data-recommend-mode]');
-    if (recommendation && [MODE_FRESHNESS, MODE_REMAINING].includes(mode)) {
+    if (recommendation) {
       event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
       runRecommendation(recommendation.dataset.recommendMode).catch(error => toast(error.message, 'status-bad'));
       return;
