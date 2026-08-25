@@ -1,5 +1,5 @@
 const LONG_PRESS_MS = 320;
-const MOVE_CANCEL_DISTANCE = 12;
+const MOVE_CANCEL_DISTANCE = 14;
 const STEP_TITLES = Object.freeze({
   dry:'干香 / 湿香', high:'高温', mid:'中温', low:'低温', aftertaste:'余韵', acidity:'酸质', sweetness:'甜感', mouthfeel:'口感'
 });
@@ -15,9 +15,10 @@ if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {
     const style = document.createElement('style');
     style.id = 'luckybean-sensory-sort-style';
     style.textContent = `
+      .v120-selected-tag { touch-action:pan-y; }
       .v120-selected-tag-list.lb-sort-mode { touch-action:none; user-select:none; -webkit-user-select:none; }
       .v120-selected-tag-list.lb-sort-mode .v120-selected-tag { transition:transform .12s ease, opacity .12s ease, box-shadow .12s ease; }
-      .v120-selected-tag.lb-sort-dragging { z-index:3; transform:scale(1.06); opacity:.92; box-shadow:0 8px 22px rgba(0,0,0,.26); }
+      .v120-selected-tag.lb-sort-dragging { position:relative; z-index:3; transform:scale(1.06); opacity:.92; box-shadow:0 8px 22px rgba(0,0,0,.26); }
       .v120-selected-tag.lb-sort-target { outline:1px dashed var(--cup-tag-selected-border); outline-offset:3px; }
       .cupping-drag-handle { pointer-events:none; }
       .v095-sort-hint::after { content:' 长按任一已选标签即可进入排序。'; }
@@ -51,27 +52,36 @@ if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {
     document.querySelectorAll('.v120-selected-tag-list[data-v120-selected-list]').forEach(applyOrder);
   }
 
-  function clearVisualState() {
-    if (!drag) return;
-    drag.list.classList.remove('lb-sort-mode');
-    drag.chip.classList.remove('lb-sort-dragging');
-    drag.list.querySelectorAll('.lb-sort-target').forEach(node => node.classList.remove('lb-sort-target'));
+  function clearVisualState(state = drag) {
+    if (!state) return;
+    state.list.classList.remove('lb-sort-mode');
+    state.chip.classList.remove('lb-sort-dragging');
+    state.list.querySelectorAll('.lb-sort-target').forEach(node => node.classList.remove('lb-sort-target'));
     document.body.classList.remove('lb-sensory-sorting');
+  }
+
+  function releaseCapture(state) {
+    if (!state) return;
+    try {
+      if (state.chip.hasPointerCapture?.(state.id)) state.chip.releasePointerCapture?.(state.id);
+    } catch {}
   }
 
   function cancelPending() {
     if (!drag) return;
-    clearTimeout(drag.timer);
-    if (!drag.active) drag = null;
+    const state = drag;
+    clearTimeout(state.timer);
+    clearVisualState(state);
+    releaseCapture(state);
+    drag = null;
   }
 
-  function activateDrag() {
-    if (!drag || drag.active) return;
+  function activateDrag(id) {
+    if (!drag || drag.id !== id || drag.active) return;
     drag.active = true;
     drag.list.classList.add('lb-sort-mode');
     drag.chip.classList.add('lb-sort-dragging');
     document.body.classList.add('lb-sensory-sorting');
-    drag.chip.setPointerCapture?.(drag.id);
     navigator.vibrate?.(10);
   }
 
@@ -109,8 +119,8 @@ if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {
 
   function finishDrag(event) {
     if (!drag || drag.id !== event.pointerId) return;
-    clearTimeout(drag.timer);
     const finished = drag;
+    clearTimeout(finished.timer);
     if (finished.active) {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -118,9 +128,9 @@ if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {
       orders.set(stepId, tagsFrom(finished.list));
       finished.chip.dataset.lbSortSuppressClick = '1';
       setTimeout(() => { delete finished.chip.dataset.lbSortSuppressClick; }, 360);
-      finished.chip.releasePointerCapture?.(event.pointerId);
     }
-    clearVisualState();
+    clearVisualState(finished);
+    releaseCapture(finished);
     drag = null;
   }
 
@@ -129,16 +139,18 @@ if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {
     const chip = event.target.closest?.('[data-v120-selected-tag]');
     const list = chip?.closest?.('[data-v120-selected-list]');
     if (!chip || !list) return;
-    if (drag) cancelPending();
+    cancelPending();
     applyOrder(list);
     drag = {
       id:event.pointerId, chip, list,
       startX:event.clientX, startY:event.clientY,
       active:false, timer:null
     };
-    // Prevent the legacy handle-only pointer state machine from seeing this pointerdown.
-    event.stopPropagation();
-    drag.timer = setTimeout(activateDrag, LONG_PRESS_MS);
+    // Window capture owns this gesture before legacy document/element listeners can claim the handle.
+    event.stopImmediatePropagation();
+    try { chip.setPointerCapture?.(event.pointerId); } catch {}
+    const id = event.pointerId;
+    drag.timer = setTimeout(() => activateDrag(id), LONG_PRESS_MS);
   }
 
   function reorderCompletion(detail) {
@@ -158,10 +170,10 @@ if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {
     }
   }
 
-  document.addEventListener('pointerdown', beginDrag, true);
-  document.addEventListener('pointermove', moveDrag, { capture:true, passive:false });
-  document.addEventListener('pointerup', finishDrag, true);
-  document.addEventListener('pointercancel', finishDrag, true);
+  window.addEventListener('pointerdown', beginDrag, true);
+  window.addEventListener('pointermove', moveDrag, { capture:true, passive:false });
+  window.addEventListener('pointerup', finishDrag, true);
+  window.addEventListener('pointercancel', finishDrag, true);
   document.addEventListener('click', event => {
     const chip = event.target.closest?.('[data-v120-selected-tag]');
     if (chip?.dataset.lbSortSuppressClick === '1') {
