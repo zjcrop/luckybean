@@ -1,5 +1,6 @@
 import './release-1.24b-brew-mode-controller.js';
 import './release-1.24b-ui-policy.js';
+import '../ui/release-1.24b-followup-controller.js';
 import { getSetting } from '../db.js';
 import { grinderReference, mapCustomGrinderRange } from '../services/grind-psd-reference-service.js';
 
