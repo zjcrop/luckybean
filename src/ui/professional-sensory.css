@@ -73,15 +73,15 @@ html[data-theme="light"] {
   color: var(--cup-tag-selected-text);
   font-weight: 700;
 }
-.v120-selected-tag { gap: 8px; cursor: pointer; }
+.v120-selected-tag { gap: 8px; cursor: pointer; transition: border-color .12s ease, box-shadow .12s ease, opacity .12s ease; }
+.v120-selected-tag.lb-sort-active { border-color: var(--cup-tag-selected-border); box-shadow: inset 0 0 0 1px color-mix(in srgb,var(--cup-tag-selected-border) 45%,transparent); }
 .cupping-drag-handle {
   width: 18px;
   height: 24px;
   flex: 0 0 18px;
   display: inline-grid;
   place-items: center;
-  touch-action: none;
-  cursor: grab;
+  pointer-events: none;
 }
 .cupping-drag-handle::before {
   content: '';
@@ -90,16 +90,26 @@ html[data-theme="light"] {
   border-radius: 50%;
   background: var(--cup-drag-dot);
   opacity: .72;
-  transition: transform .12s ease, opacity .12s ease;
 }
-.cupping-drag-handle.pressing::before { opacity: .88; transform: scale(1.18); }
-.cupping-drag-handle.active::before { opacity: 1; transform: scale(1.34); }
-.v120-selected-tag.dragging {
-  transform: scale(1.03);
-  opacity: .94;
-  border-color: var(--cup-tag-selected-border);
-  box-shadow: 0 5px 16px rgba(0,0,0,.18);
+.v120-selected-tag-list.lb-sort-mode { touch-action:none; user-select:none; -webkit-user-select:none; }
+.v120-selected-tag-list.lb-sort-mode .v120-selected-tag { transition:transform .15s cubic-bezier(.2,.8,.2,1), opacity .12s ease, box-shadow .12s ease; }
+.lb-sort-placeholder {
+  box-sizing:border-box;
+  display:inline-block;
+  border:1px dashed var(--cup-tag-selected-border);
+  border-radius:7px;
+  background:color-mix(in srgb,var(--cup-tag-selected-border) 10%,transparent);
+  opacity:.78;
 }
+.lb-sort-ghost {
+  box-sizing:border-box;
+  border-color:var(--cup-tag-selected-border)!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.30)!important;
+  opacity:.96!important;
+  transition:none!important;
+}
+.lb-sort-source { opacity:0!important; }
+body.lb-sort-body-active { overscroll-behavior:contain; }
 
 .cupping-defect-tag {
   border-color: var(--cup-defect-border);
