@@ -37,4 +37,4 @@ jobs:
           git commit -m 'fix: render brew automatic state from canonical settings'
           git push origin HEAD:main
 
-# Exact two-fragment migration trigger; remove after the source commit lands.
+# Stable-expression migration trigger; remove after source commit lands.
