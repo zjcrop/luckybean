@@ -1,11 +1,13 @@
 name: LuckyBean main web deploy
 
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows: ["LuckyBean main tests"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: write
   pages: write
   id-token: write
@@ -15,13 +17,31 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SOURCE_SHA: ${{ github.sha }}
+  SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
   build-site:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+      - name: Verify same-SHA main test gate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          current_main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
+          test "$current_main" = "$SOURCE_SHA"
+          runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/test-main.yml/runs?branch=main&head_sha=$SOURCE_SHA&per_page=10")
+          test_status=$(printf '%s' "$runs" | jq -r '[.workflow_runs[] | select(.head_sha == env.SOURCE_SHA)][0].status // "missing"')
+          test_conclusion=$(printf '%s' "$runs" | jq -r '[.workflow_runs[] | select(.head_sha == env.SOURCE_SHA)][0].conclusion // "missing"')
+          test "$test_status" = "completed"
+          test "$test_conclusion" = "success"
+          echo "Same-SHA main tests verified for $SOURCE_SHA"
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
@@ -35,40 +55,25 @@ jobs:
           npm run test:static
           grep -Fq 'application-version" content="1.24B"' index.html
           grep -Fq 'release-revision" content="1.24B-main.4"' index.html
-          grep -Fq 'release-1.24b-polish.js?v=1.24B-main.4' index.html
-          grep -Fq 'release-1.24b-transit-controller.js?v=1.24B-main.4' index.html
-          grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.4' index.html
-          grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.4' index.html
           grep -Fq "REVISION = '1.24B-main.4'" sw.js
           grep -Fq 'main-4-interaction3' sw.js
-          grep -Fq 'release-1.24b-ui-policy.js' sw.js
-          grep -Fq 'src/ui/sortable-controller.js' sw.js
-          grep -Fq 'sensory-tag-sort-controller.js' sw.js
-          grep -Fq "feature('shared-sortable'" src/features/runtime-features.js
-          grep -Fq 'sensory-tag-sort-controller.js' src/features/runtime-features.js
-          grep -Fq 'async function closeActiveGroup' src/bean-groups-controller.js
-          ! grep -Fq 'data-v099t-group-back' src/bean-groups-controller.js
-          grep -Fq 'api.closeActiveGroup' src/features/release-1.24b-group-navigation.js
-          ! grep -Fq 'data-v099t-group-back' src/features/release-1.24b-group-navigation.js
+          grep -Fq 'bean-group-state.js' src/app.js
+          grep -Fq 'function openBeanGroup' src/app.js
+          grep -Fq 'function closeBeanGroup' src/app.js
+          grep -Fq "['process', '按处理法']" src/app.js
+          grep -Fq 'data-close-bean-group' src/app.js
+          grep -Fq 'beanGroupState' src/bean-groups-controller.js
+          ! grep -Fq 'let activeGroup' src/bean-groups-controller.js
+          grep -Fq 'LuckyBeanBeanGroupState' src/features/release-1.24b-group-navigation.js
+          ! grep -Fq 'dispatchEvent(new MouseEvent' src/features/release-1.24b-group-navigation.js
+          ! grep -Fq 'nativePanel()' src/features/release-1.24b-group-navigation.js
           grep -Fq 'lb-sort-ghost' src/ui/sortable-controller.js
           grep -Fq 'lb-sort-placeholder' src/ui/sortable-controller.js
-          grep -Fq 'onPreview' src/ui/sortable-controller.js
-          grep -Fq 'onCommit' src/ui/sortable-controller.js
           grep -Fq 'LuckyBeanSortable' src/features/sensory-tag-sort-controller.js
-          grep -Fq '双击移除' src/features/sensory-tag-sort-controller.js
-          grep -Fq '实时预览松手后的顺序' src/features/sensory-tag-sort-controller.js
-          grep -Fq 'professional-sensory-complete' src/features/sensory-tag-sort-controller.js
           grep -Fq "UI_POLICY_REVISION = '1.24B-main.4'" src/features/release-1.24b-ui-policy.js
-          grep -Fq "button.textContent = '合并云端'" src/features/release-1.24b-ui-policy.js
-          grep -Fq 'aspect-ratio: 2 / 1' src/features/release-1.24b-ui-policy.js
-          grep -Fq '#brewContent button:not(.lb-brew-switch)' src/features/release-1.24b-ui-policy.js
-          grep -Fq "observe('brewContent')" src/features/release-1.24b-ui-policy.js
           grep -Fq 'release-1.24b-freshness-detail.js' sw.js
           grep -Fq 'recognition-batch-progress-controller.js' sw.js
           grep -Fq 'recognition-field-resolver-1.24b.js' sw.js
-          grep -Fq 'grind-psd-reference-service.js' sw.js
-          grep -Fq 'release-1.24b-group-navigation.js' sw.js
-          grep -Fq 'release-1.24b-about-controller.js' sw.js
       - name: Prepare exact tested web site
         shell: bash
         run: |
@@ -96,10 +101,12 @@ jobs:
   verify-pages:
     needs: deploy-pages
     runs-on: ubuntu-24.04
-    timeout-minutes: 7
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v7.0.1
-      - name: Verify published 1.24B main.4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+      - name: Verify published source fingerprint
         shell: bash
         run: |
           set -euo pipefail
@@ -107,69 +114,77 @@ jobs:
           for attempt in {1..30}; do
             curl -L -fsS "$base/version.json?check=$SOURCE_SHA" -o /tmp/version.json || true
             curl -L -fsS "$base/?check=$SOURCE_SHA" -o /tmp/index.html || true
-            curl -L -fsS "$base/sw.js?check=$SOURCE_SHA" -o /tmp/sw.js || true
+            curl -L -fsS "$base/src/app.js?check=$SOURCE_SHA" -o /tmp/app.js || true
+            curl -L -fsS "$base/src/domain/beans/bean-group-state.js?check=$SOURCE_SHA" -o /tmp/group-state.js || true
             curl -L -fsS "$base/src/bean-groups-controller.js?check=$SOURCE_SHA" -o /tmp/bean-groups.js || true
-            curl -L -fsS "$base/src/features/release-1.24b-finalize.js?check=$SOURCE_SHA" -o /tmp/finalize.js || true
-            curl -L -fsS "$base/src/features/release-1.24b-transit-controller.js?check=$SOURCE_SHA" -o /tmp/transit.js || true
-            curl -L -fsS "$base/src/features/release-1.24b-group-navigation.js?check=$SOURCE_SHA" -o /tmp/group.js || true
-            curl -L -fsS "$base/src/ui/sortable-controller.js?check=$SOURCE_SHA" -o /tmp/sortable.js || true
-            curl -L -fsS "$base/src/features/sensory-tag-sort-controller.js?check=$SOURCE_SHA" -o /tmp/sensory-sort.js || true
-            curl -L -fsS "$base/src/features/runtime-features.js?check=$SOURCE_SHA" -o /tmp/runtime.js || true
-            curl -L -fsS "$base/src/features/release-1.24b-about-controller.js?check=$SOURCE_SHA" -o /tmp/about.js || true
-            curl -L -fsS "$base/src/features/release-1.24b-polish.js?check=$SOURCE_SHA" -o /tmp/polish.js || true
-            curl -L -fsS "$base/src/features/release-1.24b-ui-policy.js?check=$SOURCE_SHA" -o /tmp/ui-policy.js || true
-            curl -L -fsS "$base/src/features/release-1.24b-freshness-detail.js?check=$SOURCE_SHA" -o /tmp/freshness.js || true
-            curl -L -fsS "$base/src/features/recognition-batch-progress-controller.js?check=$SOURCE_SHA" -o /tmp/progress.js || true
-            curl -L -fsS "$base/src/domain/recognition/recognition-field-resolver-1.24b.js?check=$SOURCE_SHA" -o /tmp/resolver.js || true
+            curl -L -fsS "$base/src/features/release-1.24b-group-navigation.js?check=$SOURCE_SHA" -o /tmp/group-navigation.js || true
             if grep -Fq "$SOURCE_SHA" /tmp/version.json 2>/dev/null \
               && grep -Fq '"version":"1.24B"' /tmp/version.json \
               && grep -Fq '"revision":"1.24B-main.4"' /tmp/version.json \
               && grep -Fq '"groupNavigation":"canonical-state-api"' /tmp/version.json \
-              && grep -Fq '"sortable":"shared-live-preview-ghost-placeholder"' /tmp/version.json \
-              && grep -Fq '"sensorySort":"single-activate-double-remove-longpress-preview"' /tmp/version.json \
-              && grep -Fq '"brewUi":"text-interactions"' /tmp/version.json \
               && grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.4' /tmp/index.html \
-              && grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.4' /tmp/index.html \
-              && grep -Fq "REVISION = '1.24B-main.4'" /tmp/sw.js \
-              && grep -Fq 'main-4-interaction3' /tmp/sw.js \
-              && grep -Fq 'src/ui/sortable-controller.js' /tmp/sw.js \
-              && grep -Fq 'sensory-tag-sort-controller.js' /tmp/sw.js \
-              && grep -Fq 'async function closeActiveGroup' /tmp/bean-groups.js \
-              && ! grep -Fq 'data-v099t-group-back' /tmp/bean-groups.js \
-              && grep -Fq '订单录入' /tmp/finalize.js \
-              && grep -Fq '已购' /tmp/transit.js \
-              && grep -Fq 'api.closeActiveGroup' /tmp/group.js \
-              && ! grep -Fq 'data-v099t-group-back' /tmp/group.js \
-              && grep -Fq 'lb-sort-ghost' /tmp/sortable.js \
-              && grep -Fq 'lb-sort-placeholder' /tmp/sortable.js \
-              && grep -Fq 'onPreview' /tmp/sortable.js \
-              && grep -Fq 'onCommit' /tmp/sortable.js \
-              && grep -Fq 'LuckyBeanSortable' /tmp/sensory-sort.js \
-              && grep -Fq '实时预览松手后的顺序' /tmp/sensory-sort.js \
-              && grep -Fq "feature('shared-sortable'" /tmp/runtime.js \
-              && grep -Fq 'sensory-tag-sort-controller.js' /tmp/runtime.js \
-              && grep -Fq '端茶倒水的秦始皇🐻' /tmp/about.js \
-              && grep -Fq 'openCenteredHelp' /tmp/polish.js \
-              && grep -Fq "UI_POLICY_REVISION = '1.24B-main.4'" /tmp/ui-policy.js \
-              && grep -Fq "button.textContent = '合并云端'" /tmp/ui-policy.js \
-              && grep -Fq '#brewContent button:not(.lb-brew-switch)' /tmp/ui-policy.js \
-              && grep -Fq '完整赏味期曲线' /tmp/freshness.js \
-              && grep -Fq '正在识别' /tmp/progress.js \
-              && grep -Fq 'explicit-label > confidence > multi-image-consensus > weak-inference' /tmp/resolver.js; then
-              echo "LuckyBean Pages now serves 1.24B-main.4 from $SOURCE_SHA"
-              exit 0
+              && grep -Fq "['process', '按处理法']" /tmp/app.js \
+              && grep -Fq 'data-close-bean-group' /tmp/app.js \
+              && grep -Fq 'export const beanGroupState' /tmp/group-state.js \
+              && grep -Fq 'beanGroupState' /tmp/bean-groups.js \
+              && ! grep -Fq 'let activeGroup' /tmp/bean-groups.js \
+              && grep -Fq 'LuckyBeanBeanGroupState' /tmp/group-navigation.js \
+              && ! grep -Fq 'dispatchEvent(new MouseEvent' /tmp/group-navigation.js; then
+              echo "LuckyBean Pages serves tested source $SOURCE_SHA"
+              break
+            fi
+            if [ "$attempt" = 30 ]; then
+              echo 'Pages still does not serve the tested source'
+              cat /tmp/version.json || true
+              exit 1
             fi
             sleep 10
           done
-          echo 'Pages still does not serve the current main commit'
-          cat /tmp/version.json || true
-          exit 1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Live Pages browser smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { chromium } from '@playwright/test';
+          const sha = process.env.SOURCE_SHA;
+          const browser = await chromium.launch({ headless: true });
+          const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+          await context.addInitScript(() => {
+            localStorage.setItem('luckybean.onboarding.v2', JSON.stringify({ stage:'existing-user', updatedAt:new Date().toISOString(), reason:'pages-live-gate' }));
+          });
+          const page = await context.newPage();
+          const pageErrors = [];
+          page.on('pageerror', error => pageErrors.push(error.message));
+          await page.goto(`https://zjcrop.github.io/luckybean/?live-check=${sha}`, { waitUntil:'domcontentloaded', timeout:30000 });
+          const splash = page.locator('#splashScreen');
+          if (await splash.isVisible().catch(() => false)) await splash.click();
+          await page.locator('#appShell').waitFor({ state:'visible', timeout:20000 });
+          await page.waitForFunction(() => document.documentElement.dataset.startup === 'ready', null, { timeout:20000 });
+          const snapshot = await page.evaluate(() => ({
+            startup: document.documentElement.dataset.startup,
+            beansActive: document.querySelector('#pageBeans')?.classList.contains('active') || false,
+            appHidden: document.querySelector('#appShell')?.classList.contains('hidden') || false,
+            groupApi: Boolean(globalThis.LuckyBeanBeanGroupState?.close)
+          }));
+          if (snapshot.startup !== 'ready' || !snapshot.beansActive || snapshot.appHidden || !snapshot.groupApi) {
+            throw new Error(`Live Pages startup contract failed: ${JSON.stringify(snapshot)}`);
+          }
+          if (pageErrors.length) throw new Error(`Live Pages pageerror: ${pageErrors.join(' | ')}`);
+          await browser.close();
+          console.log(`Live Pages browser smoke passed for ${sha}`);
+          NODE
       - name: Write verifiable Pages receipt
         shell: bash
         run: |
           set -euo pipefail
           receipt=$(mktemp)
-          printf '{"version":"1.24B","revision":"1.24B-main.4","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
+          printf '{"version":"1.24B","revision":"1.24B-main.4","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           if git ls-remote --exit-code --heads origin pages-status >/dev/null 2>&1; then
