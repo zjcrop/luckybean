@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [policy, beanGroups, groupNavigation, sensorySort, runtime, polish, index, serviceWorker, androidGradle] = await Promise.all([
+const [policy, beanGroups, groupNavigation, sharedSort, sensorySort, runtime, polish, index, serviceWorker, androidGradle] = await Promise.all([
   readFile('src/features/release-1.24b-ui-policy.js', 'utf8'),
   readFile('src/bean-groups-controller.js', 'utf8'),
   readFile('src/features/release-1.24b-group-navigation.js', 'utf8'),
+  readFile('src/ui/sortable-controller.js', 'utf8'),
   readFile('src/features/sensory-tag-sort-controller.js', 'utf8'),
   readFile('src/features/runtime-features.js', 'utf8'),
   readFile('src/features/release-1.24b-polish.js', 'utf8'),
@@ -26,14 +27,18 @@ assert.match(policy, /现有咖啡豆共计/);
 assert.match(policy, /还可饮用/);
 assert.match(policy, /非罗布斯塔/);
 assert.match(policy, /@media \(max-width: 720px\)/);
-assert.match(policy, /min-height:\s*0\s*!important/);
-assert.match(policy, /group-collapse-zone/);
+assert.match(policy, /#brewContent button:not\(\.lb-brew-switch\)/);
+assert.match(policy, /background:\s*transparent\s*!important/);
+assert.match(policy, /border:\s*0\s*!important/);
+assert.match(policy, /observe\('brewContent'\)/);
+assert.match(policy, /\.lb-other-brew-panel/);
 // Group state has one owner; UI policy contains only visual policy and never owns close navigation.
 assert.doesNotMatch(policy, /page\.addEventListener\('click'/);
-assert.doesNotMatch(policy, /data-active-group-panel/);
+assert.doesNotMatch(policy, /data-active-group-panel|group-collapse-zone/);
 
 assert.match(beanGroups, /async function closeActiveGroup/);
 assert.match(beanGroups, /hasActiveGroup: \(\) => Boolean\(activeGroup\)/);
+assert.match(beanGroups, /activeGroup: \(\) => activeGroup/);
 assert.doesNotMatch(beanGroups, /data-v099t-group-back|>收</);
 assert.match(groupNavigation, /LuckyBeanV099tBeanGroups/);
 assert.match(groupNavigation, /api\.closeActiveGroup/);
@@ -41,13 +46,28 @@ assert.match(groupNavigation, /canonical folder-state navigation active/);
 assert.match(groupNavigation, /\[data-page-target\]/);
 assert.match(groupNavigation, /capture:true/);
 assert.match(groupNavigation, /luckybean:navigation-back/);
-assert.doesNotMatch(groupNavigation, /data-v099t-group-back|back\.click/);
+assert.doesNotMatch(groupNavigation, /data-v099t-group-back|back\.click|\.bean-grid/);
 
-assert.match(sensorySort, /LONG_PRESS_MS = 320/);
-assert.match(sensorySort, /setPointerCapture/);
+// All user-orderable scenes share one live-preview engine.
+assert.match(sharedSort, /globalThis\.LuckyBeanSortable = \{ register \}/);
+assert.match(sharedSort, /lb-sort-ghost/);
+assert.match(sharedSort, /lb-sort-placeholder/);
+assert.match(sharedSort, /onPreview/);
+assert.match(sharedSort, /onCommit/);
+assert.match(sharedSort, /setPointerCapture/);
+assert.match(sharedSort, /navigator\.vibrate/);
+assert.match(sharedSort, /EDGE_SCROLL_PX/);
+assert.match(sharedSort, /DOUBLE_CLICK_MS/);
+assert.match(sharedSort, /previewOrder/);
+assert.match(sensorySort, /LuckyBeanSortable/);
+assert.match(sensorySort, /双击移除/);
+assert.match(sensorySort, /实时预览松手后的顺序/);
 assert.match(sensorySort, /professional-sensory-complete/);
 assert.match(sensorySort, /professionalData\?\.selections/);
+assert.doesNotMatch(sensorySort, /setPointerCapture|elementFromPoint|LONG_PRESS_MS\s*=/);
 
+assert.match(runtime, /shared-sortable/);
+assert.ok(runtime.indexOf("feature('shared-sortable'") < runtime.indexOf("feature('sensory-tag-sort'"), 'shared sorter must load before sensory adapter');
 assert.match(runtime, /release-1\.24b-ui-policy\.js/);
 assert.match(runtime, /sensory-tag-sort-controller\.js/);
 assert.match(runtime, /1\.24B-main\.4/);
@@ -55,13 +75,14 @@ assert.match(polish, /import '\.\/release-1\.24b-ui-policy\.js';/);
 assert.match(index, /release-revision" content="1\.24B-main\.4"/);
 assert.match(index, /release-1\.24b-polish\.js\?v=1\.24B-main\.4/);
 assert.match(serviceWorker, /REVISION = '1\.24B-main\.4'/);
-assert.match(serviceWorker, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-folder2`/);
+assert.match(serviceWorker, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-interaction3`/);
 assert.match(serviceWorker, /release-1\.24b-ui-policy\.js/);
 assert.match(serviceWorker, /release-1\.24b-group-navigation\.js/);
+assert.match(serviceWorker, /src\/ui\/sortable-controller\.js/);
 assert.match(serviceWorker, /sensory-tag-sort-controller\.js/);
 
 assert.match(androidGradle, /include 'src\/\*\*'/);
 assert.match(androidGradle, /versionName '1\.24B'/);
 assert.match(androidGradle, /versionCode 102402/);
 
-console.log('LuckyBean 1.24B main.4 UI policy + canonical folder state + sensory sort ownership regression contract passed');
+console.log('LuckyBean 1.24B canonical folder state, shared live-preview sorting, text brew UI and Web/Android parity contracts passed');
