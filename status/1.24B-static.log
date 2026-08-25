@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 5.181802
+  duration_ms: 3.998189
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 2.652149
+  duration_ms: 1.718564
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 3.001212
+  duration_ms: 1.940702
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 1.937697
+  duration_ms: 1.493853
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.796324
+  duration_ms: 0.65485
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.723615
+  duration_ms: 2.1209
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.842734
+  duration_ms: 0.678678
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 23.000731
+# duration_ms 16.977948
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 5.62017
+  duration_ms: 4.230028
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 3.765067
+  duration_ms: 2.879722
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 3.808854
+  duration_ms: 2.846063
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 2.87303
+  duration_ms: 2.140194
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 2.389244
+  duration_ms: 1.81016
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 1.01975
+  duration_ms: 0.757939
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 25.157797
+# duration_ms 19.054449
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -164,7 +164,7 @@ node:internal/modules/run_main:123
     triggerUncaughtException(
     ^
 
-AssertionError [ERR_ASSERTION]: The input did not match the regular expression /MOVE_CANCEL_DISTANCE = 12/. Input:
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /event\.stopPropagation\(\)/. Input:
 
 'const LONG_PRESS_MS = 320;\n' +
   'const MOVE_CANCEL_DISTANCE = 14;\n' +
@@ -363,7 +363,7 @@ AssertionError [ERR_ASSERTION]: The input did not match the regular expression /
   '  globalThis.LuckyBeanSensoryTagSort = { sync:syncLists, orders };\n' +
   '}\n'
 
-    at file:///home/runner/work/luckybean/luckybean/tests/v123e-ui-stability-static.mjs:55:8
+    at file:///home/runner/work/luckybean/luckybean/tests/v123e-ui-stability-static.mjs:57:8
     at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
@@ -565,10 +565,10 @@ AssertionError [ERR_ASSERTION]: The input did not match the regular expression /
     '  ensureStyle();\n' +
     '  globalThis.LuckyBeanSensoryTagSort = { sync:syncLists, orders };\n' +
     '}\n',
-  expected: /MOVE_CANCEL_DISTANCE = 12/,
+  expected: /event\.stopPropagation\(\)/,
   operator: 'match',
   diff: 'simple'
 }
 
 Node.js v22.23.2
-::error file=tests/v123e-ui-stability-static.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /MOVE_CANCEL_DISTANCE = 12/. Input:%0A%0A'const LONG_PRESS_MS = 320;\n' +%0A  'const MOVE_CANCEL_DISTANCE = 14;\n' +%0A  'const STEP_TITLES = Object.freeze({\n' +%0A  "  dry:'干香 / 湿香', high:'高温', mid:'中温', low:'低温', aftertaste:'余韵', acidity:'酸质', sweetness:'甜感', mouthfeel:'口感'\n" +%0A  '});\n' +%0A  '\n' +%0A  'if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {\n' +%0A  '  globalThis.__LuckyBeanSensoryTagSortLoaded = true;\n' +%0A  '\n' +%0A  '  const orders = new Map();\n' +%0A  '  let drag = null;\n' +%0A  '\n' +%0A  '  function ensureStyle() {\n' +%0A  "    if (document.getElementById('luckybean-sensory-sort-style')) return;\n" +%0A  "    const style = document.createElement('style');\n" +%0A  "    style.id = 'luckybean-sensory-sort-style';\n" +%0A  '    style.textContent = `\n' +%0A  '      .v120-selected-tag { touch-action:pan-y; }\n' +%0A  '      .v120-selected-tag-list.lb-sort-mode { touch-action:none; user-select:none; -webkit-user-select:none; }\n' +%0A  '      .v120-selected-tag-list.lb-sort-mode .v120-selected-tag { transition:transform .12s ease, opacity .12s ease, box-shadow .12s ease; }\n' +%0A  '      .v120-selected-tag.lb-sort-dragging { position:relative; z-index:3; transform:scale(1.06); opacity:.92; box-shadow:0 8px 22px rgba(0,0,0,.26); }\n' +%0A  '      .v120-selected-tag.lb-sort-target { outline:1px dashed var(--cup-tag-selected-border); outline-offset:3px; }\n' +%0A  '      .cupping-drag-handle { pointer-events:none; }\n' +%0A  "      .v095-sort-hint::after { content:' 长按任一已选标签即可进入排序。'; }\n" +%0A  '      body.lb-sensory-sorting { overscroll-behavior:contain; }\n' +%0A  '    `;\n' +%0A  '    document.head.append(style);\n' +%0A  '  }\n' +%0A  '\n' +%0A  "  function stepIdFor(list) { return String(list?.dataset?.v120SelectedList || ''); }\n" +%0A  "  function chips(list) { return [...list.querySelectorAll('[data-v120-selected-tag]')]; }\n" +%0A  "  function tagsFrom(list) { return chips(list).map(node => String(node.dataset.v120SelectedTag || '')).filter(Boolean); }\n" +%0A  '\n' +%0A  '  function normalizedOrder(stepId, current) {\n' +%0A  '    const saved = orders.get(stepId) || [];\n' +%0A  '    const currentSet = new Set(current);\n' +%0A  '    return [...saved.filter(tag => currentSet.has(tag)), ...current.filter(tag => !saved.includes(tag))];\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function applyOrder(list) {\n' +%0A  '    const stepId = stepIdFor(list);\n' +%0A  '    if (!stepId) return;\n' +%0A  '    const current = tagsFrom(list);\n' +%0A  '    if (!current.length) return;\n' +%0A  '    const order = normalizedOrder(stepId, current);\n' +%0A  '    orders.set(stepId, order);\n' +%0A  '    const byTag = new Map(chips(list).map(node => [node.dataset.v120SelectedTag, node]));\n' +%0A  '    for (const tag of order) if (byTag.get(tag)) list.append(byTag.get(tag));\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function syncLists() {\n' +%0A  "    document.querySelectorAll('.v120-selected-tag-list[data-v120-selected-list]').forEach(applyOrder);\n" +%0A  '  }\n' +%0A  '\n' +%0A  '  function clearVisualState(state = drag) {\n' +%0A  '    if (!state) return;\n' +%0A  "    state.list.classList.remove('lb-sort-mode');\n" +%0A  "    state.chip.classList.remove('lb-sort-dragging');\n" +%0A  "    state.list.querySelectorAll('.lb-sort-target').forEach(node => node.classList.remove('lb-sort-target'));\n" +%0A  "    document.body.classList.remove('lb-sensory-sorting');\n" +%0A  '  }\n' +%0A  '\n' +%0A  '  function releaseCapture(state) {\n' +%0A  '    if (!state) return;\n' +%0A  '    try {\n' +%0A  '      if (state.chip.hasPointerCapture?.(state.id)) state.chip.releasePointerCapture?.(state.id);\n' +%0A  '    } catch {}\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function cancelPending() {\n' +%0A  '    if (!drag) return;\n' +%0A  '    const state = drag;\n' +%0A  '    clearTimeout(state.timer);\n' +%0A  '    clearVisualState(state);\n' +%0A  '    releaseCapture(state);\n' +%0A  '    drag = null;\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function activateDrag(id) {\n' +%0A  '    if (!drag || drag.id !== id || drag.active) return;\n' +%0A  '    drag.active = true;\n' +%0A  "    drag.list.classList.add('lb-sort-mode');\n" +%0A  "    drag.chip.classList.add('lb-sort-dragging');\n" +%0A  "    document.body.classList.add('lb-sensory-sorting');\n" +%0A  '    navigator.vibrate?.(10);\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function nearestTarget(list, chip, x, y) {\n' +%0A  '    const candidates = chips(list).filter(node => node !== chip);\n' +%0A  '    let best = null;\n' +%0A  '    let bestDistance = Infinity;\n' +%0A  '    for (const node of candidates) {\n' +%0A  '      const rect = node.getBoundingClientRect();\n' +%0A  '      const cx = rect.left + rect.width / 2;\n' +%0A  '      const cy = rect.top + rect.height / 2;\n' +%0A  '      const distance = (x - cx) ** 2 + (y - cy) ** 2;\n' +%0A  '      if (distance < bestDistance) { bestDistance = distance; best = { node, rect, cx, cy }; }\n' +%0A  '    }\n' +%0A  '    return best;\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function moveDrag(event) {\n' +%0A  '    if (!drag || drag.id !== event.pointerId) return;\n' +%0A  '    if (!drag.active) {\n' +%0A  '      if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > MOVE_CANCEL_DISTANCE) cancelPending();\n' +%0A  '      return;\n' +%0A  '    }\n' +%0A  '    event.preventDefault();\n' +%0A  '    event.stopImmediatePropagation();\n' +%0A  '    const target = nearestTarget(drag.list, drag.chip, event.clientX, event.clientY);\n' +%0A  '    if (!target) return;\n' +%0A  "    drag.list.querySelectorAll('.lb-sort-target').forEach(node => node.classList.remove('lb-sort-target'));\n" +%0A  "    target.node.classList.add('lb-sort-target');\n" +%0A  '    const sameRow = Math.abs(event.clientY - target.cy) < target.rect.height * .65;\n' +%0A  '    const before = sameRow ? event.clientX < target.cx : event.clientY < target.cy;\n' +%0A  '    const anchor = before ? target.node : target.node.nextSibling;\n' +%0A  '    if (anchor !== drag.chip && anchor !== drag.chip.nextSibling) drag.list.insertBefore(drag.chip, anchor);\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function finishDrag(event) {\n' +%0A  '    if (!drag || drag.id !== event.pointerId) return;\n' +%0A  '    const finished = drag;\n' +%0A  '    clearTimeout(finished.timer);\n' +%0A  '    if (finished.active) {\n' +%0A  '      event.preventDefault();\n' +%0A  '      event.stopImmediatePropagation();\n' +%0A  '      const stepId = stepIdFor(finished.list);\n' +%0A  '      orders.set(stepId, tagsFrom(finished.list));\n' +%0A  "      finished.chip.dataset.lbSortSuppressClick = '1';\n" +%0A  '      setTimeout(() => { delete finished.chip.dataset.lbSortSuppressClick; }, 360);\n' +%0A  '    }\n' +%0A  '    clearVisualState(finished);\n' +%0A  '    releaseCapture(finished);\n' +%0A  '    
+::error file=tests/v123e-ui-stability-static.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /event\.stopPropagation\(\)/. Input:%0A%0A'const LONG_PRESS_MS = 320;\n' +%0A  'const MOVE_CANCEL_DISTANCE = 14;\n' +%0A  'const STEP_TITLES = Object.freeze({\n' +%0A  "  dry:'干香 / 湿香', high:'高温', mid:'中温', low:'低温', aftertaste:'余韵', acidity:'酸质', sweetness:'甜感', mouthfeel:'口感'\n" +%0A  '});\n' +%0A  '\n' +%0A  'if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {\n' +%0A  '  globalThis.__LuckyBeanSensoryTagSortLoaded = true;\n' +%0A  '\n' +%0A  '  const orders = new Map();\n' +%0A  '  let drag = null;\n' +%0A  '\n' +%0A  '  function ensureStyle() {\n' +%0A  "    if (document.getElementById('luckybean-sensory-sort-style')) return;\n" +%0A  "    const style = document.createElement('style');\n" +%0A  "    style.id = 'luckybean-sensory-sort-style';\n" +%0A  '    style.textContent = `\n' +%0A  '      .v120-selected-tag { touch-action:pan-y; }\n' +%0A  '      .v120-selected-tag-list.lb-sort-mode { touch-action:none; user-select:none; -webkit-user-select:none; }\n' +%0A  '      .v120-selected-tag-list.lb-sort-mode .v120-selected-tag { transition:transform .12s ease, opacity .12s ease, box-shadow .12s ease; }\n' +%0A  '      .v120-selected-tag.lb-sort-dragging { position:relative; z-index:3; transform:scale(1.06); opacity:.92; box-shadow:0 8px 22px rgba(0,0,0,.26); }\n' +%0A  '      .v120-selected-tag.lb-sort-target { outline:1px dashed var(--cup-tag-selected-border); outline-offset:3px; }\n' +%0A  '      .cupping-drag-handle { pointer-events:none; }\n' +%0A  "      .v095-sort-hint::after { content:' 长按任一已选标签即可进入排序。'; }\n" +%0A  '      body.lb-sensory-sorting { overscroll-behavior:contain; }\n' +%0A  '    `;\n' +%0A  '    document.head.append(style);\n' +%0A  '  }\n' +%0A  '\n' +%0A  "  function stepIdFor(list) { return String(list?.dataset?.v120SelectedList || ''); }\n" +%0A  "  function chips(list) { return [...list.querySelectorAll('[data-v120-selected-tag]')]; }\n" +%0A  "  function tagsFrom(list) { return chips(list).map(node => String(node.dataset.v120SelectedTag || '')).filter(Boolean); }\n" +%0A  '\n' +%0A  '  function normalizedOrder(stepId, current) {\n' +%0A  '    const saved = orders.get(stepId) || [];\n' +%0A  '    const currentSet = new Set(current);\n' +%0A  '    return [...saved.filter(tag => currentSet.has(tag)), ...current.filter(tag => !saved.includes(tag))];\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function applyOrder(list) {\n' +%0A  '    const stepId = stepIdFor(list);\n' +%0A  '    if (!stepId) return;\n' +%0A  '    const current = tagsFrom(list);\n' +%0A  '    if (!current.length) return;\n' +%0A  '    const order = normalizedOrder(stepId, current);\n' +%0A  '    orders.set(stepId, order);\n' +%0A  '    const byTag = new Map(chips(list).map(node => [node.dataset.v120SelectedTag, node]));\n' +%0A  '    for (const tag of order) if (byTag.get(tag)) list.append(byTag.get(tag));\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function syncLists() {\n' +%0A  "    document.querySelectorAll('.v120-selected-tag-list[data-v120-selected-list]').forEach(applyOrder);\n" +%0A  '  }\n' +%0A  '\n' +%0A  '  function clearVisualState(state = drag) {\n' +%0A  '    if (!state) return;\n' +%0A  "    state.list.classList.remove('lb-sort-mode');\n" +%0A  "    state.chip.classList.remove('lb-sort-dragging');\n" +%0A  "    state.list.querySelectorAll('.lb-sort-target').forEach(node => node.classList.remove('lb-sort-target'));\n" +%0A  "    document.body.classList.remove('lb-sensory-sorting');\n" +%0A  '  }\n' +%0A  '\n' +%0A  '  function releaseCapture(state) {\n' +%0A  '    if (!state) return;\n' +%0A  '    try {\n' +%0A  '      if (state.chip.hasPointerCapture?.(state.id)) state.chip.releasePointerCapture?.(state.id);\n' +%0A  '    } catch {}\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function cancelPending() {\n' +%0A  '    if (!drag) return;\n' +%0A  '    const state = drag;\n' +%0A  '    clearTimeout(state.timer);\n' +%0A  '    clearVisualState(state);\n' +%0A  '    releaseCapture(state);\n' +%0A  '    drag = null;\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function activateDrag(id) {\n' +%0A  '    if (!drag || drag.id !== id || drag.active) return;\n' +%0A  '    drag.active = true;\n' +%0A  "    drag.list.classList.add('lb-sort-mode');\n" +%0A  "    drag.chip.classList.add('lb-sort-dragging');\n" +%0A  "    document.body.classList.add('lb-sensory-sorting');\n" +%0A  '    navigator.vibrate?.(10);\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function nearestTarget(list, chip, x, y) {\n' +%0A  '    const candidates = chips(list).filter(node => node !== chip);\n' +%0A  '    let best = null;\n' +%0A  '    let bestDistance = Infinity;\n' +%0A  '    for (const node of candidates) {\n' +%0A  '      const rect = node.getBoundingClientRect();\n' +%0A  '      const cx = rect.left + rect.width / 2;\n' +%0A  '      const cy = rect.top + rect.height / 2;\n' +%0A  '      const distance = (x - cx) ** 2 + (y - cy) ** 2;\n' +%0A  '      if (distance < bestDistance) { bestDistance = distance; best = { node, rect, cx, cy }; }\n' +%0A  '    }\n' +%0A  '    return best;\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function moveDrag(event) {\n' +%0A  '    if (!drag || drag.id !== event.pointerId) return;\n' +%0A  '    if (!drag.active) {\n' +%0A  '      if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > MOVE_CANCEL_DISTANCE) cancelPending();\n' +%0A  '      return;\n' +%0A  '    }\n' +%0A  '    event.preventDefault();\n' +%0A  '    event.stopImmediatePropagation();\n' +%0A  '    const target = nearestTarget(drag.list, drag.chip, event.clientX, event.clientY);\n' +%0A  '    if (!target) return;\n' +%0A  "    drag.list.querySelectorAll('.lb-sort-target').forEach(node => node.classList.remove('lb-sort-target'));\n" +%0A  "    target.node.classList.add('lb-sort-target');\n" +%0A  '    const sameRow = Math.abs(event.clientY - target.cy) < target.rect.height * .65;\n' +%0A  '    const before = sameRow ? event.clientX < target.cx : event.clientY < target.cy;\n' +%0A  '    const anchor = before ? target.node : target.node.nextSibling;\n' +%0A  '    if (anchor !== drag.chip && anchor !== drag.chip.nextSibling) drag.list.insertBefore(drag.chip, anchor);\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function finishDrag(event) {\n' +%0A  '    if (!drag || drag.id !== event.pointerId) return;\n' +%0A  '    const finished = drag;\n' +%0A  '    clearTimeout(finished.timer);\n' +%0A  '    if (finished.active) {\n' +%0A  '      event.preventDefault();\n' +%0A  '      event.stopImmediatePropagation();\n' +%0A  '      const stepId = stepIdFor(finished.list);\n' +%0A  '      orders.set(stepId, tagsFrom(finished.list));\n' +%0A  "      finished.chip.dataset.lbSortSuppressClick = '1';\n" +%0A  '      setTimeout(() => { delete finished.chip.dataset.lbSortSuppressClick; }, 360);\n' +%0A  '    }\n' +%0A  '    clearVisualState(finished);\n' +%0A  '    releaseCapture(finished);\n' +%0A  '   
