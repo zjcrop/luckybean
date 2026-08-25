@@ -80,7 +80,7 @@ test('one server login keeps automatic sync and exposes manual sync recovery act
   await expect(page.locator('[data-cloud-logout]')).toHaveCount(1);
   await expect(page.locator('[data-cloud-sync-toggle]')).toHaveCount(0);
   await expect(page.locator('[data-cloud-sync-now]')).toHaveText('立即同步');
-  await expect(page.locator('[data-cloud-pull]')).toHaveText('下载云端数据合并本地');
+  await expect(page.locator('[data-cloud-pull]')).toHaveText('合并云端');
   await expect(page.locator('.cloud-sync-indicator')).toHaveCount(1);
   await page.locator('[data-cloud-sync-now]').click();
   await page.locator('[data-cloud-pull]').click();

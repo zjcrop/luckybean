@@ -52,7 +52,7 @@ assert.match(layout,/prefers-reduced-motion/);
 assert.match(sensory,/LONG_PRESS_MS = 480/);
 assert.match(sensory,/DRAG_CANCEL_DISTANCE = 8/);
 assert.match(sensorySort,/LONG_PRESS_MS = 320/);
-assert.match(sensorySort,/MOVE_CANCEL_DISTANCE = 12/);
+assert.match(sensorySort,/MOVE_CANCEL_DISTANCE = 14/);
 assert.match(sensorySort,/setPointerCapture/);
 assert.match(sensorySort,/event\.stopPropagation\(\)/);
 assert.match(sensorySort,/professional-sensory-complete/);
