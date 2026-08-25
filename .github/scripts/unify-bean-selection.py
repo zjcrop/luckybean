@@ -1,6 +1,7 @@
 from pathlib import Path
 import re
 
+# One-shot migration. This file is removed after the resulting source commit is verified.
 
 def replace_once(text, old, new, label):
     count = text.count(old)
