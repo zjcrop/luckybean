@@ -67,8 +67,6 @@ const REQUIRED_FIELDS = Object.freeze([
 let codebookPromise;
 let syncQueued = false;
 let historyBusy = false;
-let fabDrag = null;
-let suppressFabClick = false;
 
 function codebook() {
   if (!codebookPromise) codebookPromise = loadCodebook().then(result => result.data);
@@ -177,7 +175,6 @@ function recognitionFragments(text) {
     .replace(/[|；;]/g, '\n')
     .replace(LINE_LABEL_INSERTION, '\n$2:')
     .replace(INLINE_LABEL_INSERTION, '$1\n$2:');
-
   const fields = Object.create(null);
   const free = [];
   for (const rawChunk of normalized.split(/\n+/)) {
@@ -393,94 +390,6 @@ export async function autoFillRecognition(text, { overwrite = true } = {}) {
   globalThis.LuckyBeanIntegrityUI?.refresh?.();
 }
 
-function fabBounds(width, height) {
-  const margin = 10;
-  const navTop = $('#bottomNav')?.getBoundingClientRect().top || innerHeight;
-  return {
-    minX: margin,
-    maxX: Math.max(margin, innerWidth - width - margin),
-    minY: margin,
-    maxY: Math.max(margin, navTop - height - margin)
-  };
-}
-
-function clampFabPosition(x, y, node) {
-  const rect = node.getBoundingClientRect();
-  const bounds = fabBounds(rect.width, rect.height);
-  return {
-    x: Math.min(bounds.maxX, Math.max(bounds.minX, x)),
-    y: Math.min(bounds.maxY, Math.max(bounds.minY, y))
-  };
-}
-
-function applyFabPosition(position, node = $('#fabWrap')) {
-  if (!node || !position) return;
-  const next = clampFabPosition(Number(position.x), Number(position.y), node);
-  node.style.left = `${next.x}px`;
-  node.style.top = `${next.y}px`;
-  node.style.right = 'auto';
-  node.style.bottom = 'auto';
-  node.dataset.v097Floating = '1';
-}
-
-function restoreFabPosition() {
-  const node = $('#fabWrap');
-  if (!node || node.dataset.v097DragBound === '1') return;
-  node.dataset.v097DragBound = '1';
-
-  try {
-    const saved = JSON.parse(localStorage.getItem('luckybean.fab.position.v1') || 'null');
-    if (saved) requestAnimationFrame(() => applyFabPosition(saved, node));
-  } catch { /* Ignore invalid legacy position. */ }
-
-  node.addEventListener('pointerdown', event => {
-    if (event.button !== undefined && event.button !== 0) return;
-    const rect = node.getBoundingClientRect();
-    fabDrag = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      originX: rect.left,
-      originY: rect.top,
-      moved: false
-    };
-    node.setPointerCapture?.(event.pointerId);
-    node.classList.add('is-dragging');
-  });
-
-  node.addEventListener('pointermove', event => {
-    if (!fabDrag || event.pointerId !== fabDrag.pointerId) return;
-    const deltaX = event.clientX - fabDrag.startX;
-    const deltaY = event.clientY - fabDrag.startY;
-    if (!fabDrag.moved && Math.hypot(deltaX, deltaY) < 6) return;
-    fabDrag.moved = true;
-    event.preventDefault();
-    applyFabPosition({ x: fabDrag.originX + deltaX, y: fabDrag.originY + deltaY }, node);
-  });
-
-  const finish = event => {
-    if (!fabDrag || event.pointerId !== fabDrag.pointerId) return;
-    const moved = fabDrag.moved;
-    fabDrag = null;
-    node.classList.remove('is-dragging');
-    node.releasePointerCapture?.(event.pointerId);
-    if (!moved) return;
-
-    suppressFabClick = true;
-    const rect = node.getBoundingClientRect();
-    localStorage.setItem('luckybean.fab.position.v1', JSON.stringify({ x: rect.left, y: rect.top }));
-    setTimeout(() => { suppressFabClick = false; }, 0);
-  };
-
-  node.addEventListener('pointerup', finish);
-  node.addEventListener('pointercancel', finish);
-  node.addEventListener('click', event => {
-    if (!suppressFabClick) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-  }, true);
-}
-
 function blankGroupCollapse(event) {
   const collapseZone = event.target.closest?.('.group-collapse-zone,[data-collapse-group]');
   if (collapseZone) return;
@@ -499,7 +408,6 @@ function enhanceCollapseTarget() {
 function sync() {
   compactBrewHistory().catch(console.error);
   $$('.trajectory-chart.detailed').forEach(preserveTrajectoryChart);
-  restoreFabPosition();
   enhanceCollapseTarget();
 }
 
@@ -517,13 +425,6 @@ if (typeof document !== 'undefined') {
   document.addEventListener('click', event => {
     if (!event.target.closest?.('[data-page-target="settings"]')) return;
     requestAnimationFrame(() => document.dispatchEvent(new CustomEvent('luckybean:settings-rendered')));
-  });
-  window.addEventListener('resize', () => {
-    const node = $('#fabWrap');
-    if (node?.dataset.v097Floating === '1') {
-      const rect = node.getBoundingClientRect();
-      applyFabPosition({ x: rect.left, y: rect.top }, node);
-    }
   });
   document.addEventListener('luckybean:app-refreshed', queueSync);
   for (const selector of ['#beanGroups', '#brewContent', '#overlayRoot']) {
