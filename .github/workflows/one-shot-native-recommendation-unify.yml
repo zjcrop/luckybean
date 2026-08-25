@@ -1,0 +1,51 @@
+name: One-shot native recommendation unification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/one-shot-native-recommendation-unify.py'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply guarded source migration
+        run: python3 scripts/one-shot-native-recommendation-unify.py
+      - name: Validate migrated source
+        run: |
+          node --check src/app.js
+          node --check src/bean-groups-controller.js
+          npm run test:static
+          ! grep -Fq 'recommendationExpandedAll' src/app.js
+          ! grep -Fq 'recommendation-all-groups' src/app.js
+          ! grep -Fq 'data-all-groups' src/app.js
+          grep -Fq "openBeanGroupState(groupKey(bean, state.settings.groupMethod || 'country'))" src/app.js
+          grep -Fq "['price', '价冠', '#000000', false]" src/app.js
+          grep -Fq "['remaining', '拾余', '#808080', false]" src/app.js
+          grep -Fq "beanGroupState, setBeanGroupMode, openBeanGroupState, closeBeanGroupState" src/bean-groups-controller.js
+          ! grep -Fq 'let activeGroup' src/bean-groups-controller.js
+          grep -Fq 'LuckyBeanBeanGroupState' src/features/release-1.24b-group-navigation.js
+          ! grep -Fq 'dispatchEvent(new MouseEvent' src/features/release-1.24b-group-navigation.js
+      - name: Commit migrated formal source
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/app.js .github/workflows/build-main.yml
+          git diff --cached --quiet && { echo 'No migration changes'; exit 1; }
+          git commit -m 'fix: unify recommendation grouping and release gates'
+          git push origin HEAD:main
