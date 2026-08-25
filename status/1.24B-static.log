@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 4.018315
+  duration_ms: 5.598675
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 11.499599
+  duration_ms: 1.985445
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 1.944586
+  duration_ms: 2.619682
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 1.51036
+  duration_ms: 1.926515
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.579383
+  duration_ms: 0.908781
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.117084
+  duration_ms: 2.818334
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.643328
+  duration_ms: 0.910904
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 26.788432
+# duration_ms 22.87008
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 4.362498
+  duration_ms: 6.018471
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 2.955122
+  duration_ms: 3.728506
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 2.872999
+  duration_ms: 3.91706
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 2.252075
+  duration_ms: 3.178186
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 1.831588
+  duration_ms: 2.499095
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 0.768014
+  duration_ms: 1.292799
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 19.748697
+# duration_ms 26.894623
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -165,6 +165,11 @@ AssertionError [ERR_ASSERTION]: The input did not match the regular expression /
   '    for (const tag of order) if (byTag.get(tag)) list.append(byTag.get(tag));\n' +
   '  }\n' +
   '\n' +
+  '  function updateHint(list) {\n' +
+  "    const hint = list.previousElementSibling?.matches?.('.v095-sort-hint') ? list.previousElementSibling : list.parentElement?.querySelector?.('.v095-sort-hint');\n" +
+  "    if (hint) hint.textContent = '单击激活标签；双击移除；长按任一已选标签进入排序。拖动时会实时预览松手后的顺序。';\n" +
+  '  }\n' +
+  '\n' +
   '  function activateTag(list, id, item) {\n' +
   "    chips(list).forEach(chip => chip.classList.toggle('lb-sort-active', chip === item));\n" +
   "    item.setAttribute('aria-current', 'true');\n" +
@@ -188,6 +193,7 @@ AssertionError [ERR_ASSERTION]: The input did not match the regular expression /
   '    if (!list || bound.has(list)) return;\n' +
   '    const sorter = globalThis.LuckyBeanSortable;\n' +
   '    if (!sorter?.register) return;\n' +
+  '    updateHint(list);\n' +
   '    applyOrder(list);\n' +
   '    sorter.register(list, {\n' +
   "      itemSelector:'[data-v120-selected-tag]',\n" +
@@ -217,6 +223,7 @@ AssertionError [ERR_ASSERTION]: The input did not match the regular expression /
   '  function syncLists() {\n' +
   '    syncQueued = false;\n' +
   "    document.querySelectorAll('.v120-selected-tag-list[data-v120-selected-list]').forEach(list => {\n" +
+  '      updateHint(list);\n' +
   '      applyOrder(list);\n' +
   '      bindList(list);\n' +
   '    });\n' +
@@ -315,6 +322,11 @@ AssertionError [ERR_ASSERTION]: The input did not match the regular expression /
     '    for (const tag of order) if (byTag.get(tag)) list.append(byTag.get(tag));\n' +
     '  }\n' +
     '\n' +
+    '  function updateHint(list) {\n' +
+    "    const hint = list.previousElementSibling?.matches?.('.v095-sort-hint') ? list.previousElementSibling : list.parentElement?.querySelector?.('.v095-sort-hint');\n" +
+    "    if (hint) hint.textContent = '单击激活标签；双击移除；长按任一已选标签进入排序。拖动时会实时预览松手后的顺序。';\n" +
+    '  }\n' +
+    '\n' +
     '  function activateTag(list, id, item) {\n' +
     "    chips(list).forEach(chip => chip.classList.toggle('lb-sort-active', chip === item));\n" +
     "    item.setAttribute('aria-current', 'true');\n" +
@@ -338,6 +350,7 @@ AssertionError [ERR_ASSERTION]: The input did not match the regular expression /
     '    if (!list || bound.has(list)) return;\n' +
     '    const sorter = globalThis.LuckyBeanSortable;\n' +
     '    if (!sorter?.register) return;\n' +
+    '    updateHint(list);\n' +
     '    applyOrder(list);\n' +
     '    sorter.register(list, {\n' +
     "      itemSelector:'[data-v120-selected-tag]',\n" +
@@ -367,6 +380,7 @@ AssertionError [ERR_ASSERTION]: The input did not match the regular expression /
     '  function syncLists() {\n' +
     '    syncQueued = false;\n' +
     "    document.querySelectorAll('.v120-selected-tag-list[data-v120-selected-list]').forEach(list => {\n" +
+    '      updateHint(list);\n' +
     '      applyOrder(list);\n' +
     '      bindList(list);\n' +
     '    });\n' +
@@ -429,4 +443,4 @@ AssertionError [ERR_ASSERTION]: The input did not match the regular expression /
 }
 
 Node.js v22.23.2
-::error file=tests/v123d-deployment-contracts.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /LONG_PRESS_MS = 320/. Input:%0A%0A'// Sensory adapter for the shared LuckyBean sortable interaction engine.\n' +%0A  '// The shared controller owns pointer/click gestures; this adapter only maps sensory state to it.\n' +%0A  'const STEP_TITLES = Object.freeze({\n' +%0A  "  dry:'干香 / 湿香', high:'高温', mid:'中温', low:'低温', aftertaste:'余韵', acidity:'酸质', sweetness:'甜感', mouthfeel:'口感'\n" +%0A  '});\n' +%0A  '\n' +%0A  'if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {\n' +%0A  '  globalThis.__LuckyBeanSensoryTagSortLoaded = true;\n' +%0A  '\n' +%0A  '  const orders = new Map();\n' +%0A  '  const bound = new WeakSet();\n' +%0A  '  let syncQueued = false;\n' +%0A  '\n' +%0A  `  const escSelector = value => globalThis.CSS?.escape ? CSS.escape(String(value)) : String(value).replace(/["\\\\]/g, '\\\\$&');\n` +%0A  "  const stepIdFor = list => String(list?.dataset?.v120SelectedList || '');\n" +%0A  "  const chips = list => [...list.querySelectorAll('[data-v120-selected-tag]')];\n" +%0A  "  const tagsFrom = list => chips(list).map(node => String(node.dataset.v120SelectedTag || '')).filter(Boolean);\n" +%0A  '\n' +%0A  '  function normalizedOrder(stepId, current) {\n' +%0A  '    const saved = orders.get(stepId) || [];\n' +%0A  '    const currentSet = new Set(current);\n' +%0A  '    return [...saved.filter(tag => currentSet.has(tag)), ...current.filter(tag => !saved.includes(tag))];\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function applyOrder(list) {\n' +%0A  '    const stepId = stepIdFor(list);\n' +%0A  '    if (!stepId) return;\n' +%0A  '    const current = tagsFrom(list);\n' +%0A  '    if (!current.length) return;\n' +%0A  '    const order = normalizedOrder(stepId, current);\n' +%0A  '    orders.set(stepId, order);\n' +%0A  '    const byTag = new Map(chips(list).map(node => [node.dataset.v120SelectedTag, node]));\n' +%0A  '    for (const tag of order) if (byTag.get(tag)) list.append(byTag.get(tag));\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function activateTag(list, id, item) {\n' +%0A  "    chips(list).forEach(chip => chip.classList.toggle('lb-sort-active', chip === item));\n" +%0A  "    item.setAttribute('aria-current', 'true');\n" +%0A  "    for (const chip of chips(list)) if (chip !== item) chip.removeAttribute('aria-current');\n" +%0A  '  }\n' +%0A  '\n' +%0A  '  function removeTag(list, id, item) {\n' +%0A  "    const overlay = list.closest('#v095ProfessionalOverlay') || document;\n" +%0A  '    const pool = overlay.querySelector(`[data-v095-tag="${escSelector(id)}"]`);\n' +%0A  '    if (pool) {\n' +%0A  '      // Let the canonical sensory controller mutate wizard.selections and rerender.\n' +%0A  '      pool.click();\n' +%0A  '      return;\n' +%0A  '    }\n' +%0A  '    item.remove();\n' +%0A  '    const stepId = stepIdFor(list);\n' +%0A  '    orders.set(stepId, tagsFrom(list));\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function bindList(list) {\n' +%0A  '    if (!list || bound.has(list)) return;\n' +%0A  '    const sorter = globalThis.LuckyBeanSortable;\n' +%0A  '    if (!sorter?.register) return;\n' +%0A  '    applyOrder(list);\n' +%0A  '    sorter.register(list, {\n' +%0A  "      itemSelector:'[data-v120-selected-tag]',\n" +%0A  '      getId:item => item.dataset.v120SelectedTag,\n' +%0A  '      longPressMs:360,\n' +%0A  '      doubleClickMs:250,\n' +%0A  '      onActivate:(id, item) => activateTag(list, id, item),\n' +%0A  '      onRemove:(id, item) => removeTag(list, id, item),\n' +%0A  '      onPreview:order => {\n' +%0A  "        list.dataset.lbSortPreview = order.join('|');\n" +%0A  '      },\n' +%0A  '      onSortStart:() => {\n' +%0A  "        list.dataset.lbSortState = 'sorting';\n" +%0A  '      },\n' +%0A  '      onCommit:order => {\n' +%0A  '        orders.set(stepIdFor(list), [...order]);\n' +%0A  "        list.dataset.lbSortCommitted = order.join('|');\n" +%0A  '      },\n' +%0A  '      onSortEnd:() => {\n' +%0A  '        delete list.dataset.lbSortState;\n' +%0A  '        delete list.dataset.lbSortPreview;\n' +%0A  '      }\n' +%0A  '    });\n' +%0A  '    bound.add(list);\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function syncLists() {\n' +%0A  '    syncQueued = false;\n' +%0A  "    document.querySelectorAll('.v120-selected-tag-list[data-v120-selected-list]').forEach(list => {\n" +%0A  '      applyOrder(list);\n' +%0A  '      bindList(list);\n' +%0A  '    });\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function queueSync() {\n' +%0A  '    if (syncQueued) return;\n' +%0A  '    syncQueued = true;\n' +%0A  '    queueMicrotask(syncLists);\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function reorderCompletion(detail) {\n' +%0A  '    const selections = detail?.professionalData?.selections;\n' +%0A  '    if (!selections) return;\n' +%0A  '    for (const [stepId, current] of Object.entries(selections)) {\n' +%0A  '      if (!Array.isArray(current)) continue;\n' +%0A  '      const order = normalizedOrder(stepId, current.map(String));\n' +%0A  '      selections[stepId] = order;\n' +%0A  '      const title = STEP_TITLES[stepId];\n' +%0A  '      if (!title || !Array.isArray(detail.summary)) continue;\n' +%0A  '      const prefix = `${title}：`;\n' +%0A  '      const index = detail.summary.findIndex(line => String(line).startsWith(prefix));\n' +%0A  '      if (index < 0) continue;\n' +%0A  '      const intensity = detail.professionalData?.intensities?.[stepId];\n' +%0A  "      detail.summary[index] = `${title}：${order.join('、')}；强度 ${Number(intensity ?? 0).toFixed(1)}`;\n" +%0A  '    }\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  const observer = new MutationObserver(records => {\n' +%0A  '    for (const record of records) {\n' +%0A  '      for (const node of record.addedNodes) {\n' +%0A  '        if (node.nodeType !== 1) continue;\n' +%0A  "        if (node.matches?.('.v120-selected-tag-list[data-v120-selected-list]') || node.querySelector?.('.v120-selected-tag-list[data-v120-selected-list]')) {\n" +%0A  '          queueSync();\n' +%0A  '          return;\n' +%0A  '        }\n' +%0A  '      }\n' +%0A  '    }\n' +%0A  '  });\n' +%0A  '  observer.observe(document.documentElement, { childList:true, subtree:true });\n' +%0A  '\n' +%0A  "  document.addEventListener('luckybean:sensory-rendered', queueSync);\n" +%0A  "  document.addEventListener('luckybean:edit-professional-sensory', () => { orders.clear(); queueSync(); }, true);\n" +%0A  "  document.addEventListener('click', event => {\n" +%0A  `    if (event.target.closest?.('[data-v095-mode="professional"]')) { orders.clear(); queueSync(); }\n` +%0A  "    if (event.target.closest?.('[data-v095-tag],[data-v095-next],[data-v095-prev]')) queueSync();\n" +%0A  "    if (event.target.closest?.('[data-v095-close],[data-v095-cancel]')) orders.clear();\n" +%0A  '  }, true);\n' +%0A  "  document.addEventListener('luckybean:professional-sensory-complete', event => {\n" +%0A  '    reorderCompletion(event.detail);\n' +%0
+::error file=tests/v123d-deployment-contracts.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /LONG_PRESS_MS = 320/. Input:%0A%0A'// Sensory adapter for the shared LuckyBean sortable interaction engine.\n' +%0A  '// The shared controller owns pointer/click gestures; this adapter only maps sensory state to it.\n' +%0A  'const STEP_TITLES = Object.freeze({\n' +%0A  "  dry:'干香 / 湿香', high:'高温', mid:'中温', low:'低温', aftertaste:'余韵', acidity:'酸质', sweetness:'甜感', mouthfeel:'口感'\n" +%0A  '});\n' +%0A  '\n' +%0A  'if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {\n' +%0A  '  globalThis.__LuckyBeanSensoryTagSortLoaded = true;\n' +%0A  '\n' +%0A  '  const orders = new Map();\n' +%0A  '  const bound = new WeakSet();\n' +%0A  '  let syncQueued = false;\n' +%0A  '\n' +%0A  `  const escSelector = value => globalThis.CSS?.escape ? CSS.escape(String(value)) : String(value).replace(/["\\\\]/g, '\\\\$&');\n` +%0A  "  const stepIdFor = list => String(list?.dataset?.v120SelectedList || '');\n" +%0A  "  const chips = list => [...list.querySelectorAll('[data-v120-selected-tag]')];\n" +%0A  "  const tagsFrom = list => chips(list).map(node => String(node.dataset.v120SelectedTag || '')).filter(Boolean);\n" +%0A  '\n' +%0A  '  function normalizedOrder(stepId, current) {\n' +%0A  '    const saved = orders.get(stepId) || [];\n' +%0A  '    const currentSet = new Set(current);\n' +%0A  '    return [...saved.filter(tag => currentSet.has(tag)), ...current.filter(tag => !saved.includes(tag))];\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function applyOrder(list) {\n' +%0A  '    const stepId = stepIdFor(list);\n' +%0A  '    if (!stepId) return;\n' +%0A  '    const current = tagsFrom(list);\n' +%0A  '    if (!current.length) return;\n' +%0A  '    const order = normalizedOrder(stepId, current);\n' +%0A  '    orders.set(stepId, order);\n' +%0A  '    const byTag = new Map(chips(list).map(node => [node.dataset.v120SelectedTag, node]));\n' +%0A  '    for (const tag of order) if (byTag.get(tag)) list.append(byTag.get(tag));\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function updateHint(list) {\n' +%0A  "    const hint = list.previousElementSibling?.matches?.('.v095-sort-hint') ? list.previousElementSibling : list.parentElement?.querySelector?.('.v095-sort-hint');\n" +%0A  "    if (hint) hint.textContent = '单击激活标签；双击移除；长按任一已选标签进入排序。拖动时会实时预览松手后的顺序。';\n" +%0A  '  }\n' +%0A  '\n' +%0A  '  function activateTag(list, id, item) {\n' +%0A  "    chips(list).forEach(chip => chip.classList.toggle('lb-sort-active', chip === item));\n" +%0A  "    item.setAttribute('aria-current', 'true');\n" +%0A  "    for (const chip of chips(list)) if (chip !== item) chip.removeAttribute('aria-current');\n" +%0A  '  }\n' +%0A  '\n' +%0A  '  function removeTag(list, id, item) {\n' +%0A  "    const overlay = list.closest('#v095ProfessionalOverlay') || document;\n" +%0A  '    const pool = overlay.querySelector(`[data-v095-tag="${escSelector(id)}"]`);\n' +%0A  '    if (pool) {\n' +%0A  '      // Let the canonical sensory controller mutate wizard.selections and rerender.\n' +%0A  '      pool.click();\n' +%0A  '      return;\n' +%0A  '    }\n' +%0A  '    item.remove();\n' +%0A  '    const stepId = stepIdFor(list);\n' +%0A  '    orders.set(stepId, tagsFrom(list));\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function bindList(list) {\n' +%0A  '    if (!list || bound.has(list)) return;\n' +%0A  '    const sorter = globalThis.LuckyBeanSortable;\n' +%0A  '    if (!sorter?.register) return;\n' +%0A  '    updateHint(list);\n' +%0A  '    applyOrder(list);\n' +%0A  '    sorter.register(list, {\n' +%0A  "      itemSelector:'[data-v120-selected-tag]',\n" +%0A  '      getId:item => item.dataset.v120SelectedTag,\n' +%0A  '      longPressMs:360,\n' +%0A  '      doubleClickMs:250,\n' +%0A  '      onActivate:(id, item) => activateTag(list, id, item),\n' +%0A  '      onRemove:(id, item) => removeTag(list, id, item),\n' +%0A  '      onPreview:order => {\n' +%0A  "        list.dataset.lbSortPreview = order.join('|');\n" +%0A  '      },\n' +%0A  '      onSortStart:() => {\n' +%0A  "        list.dataset.lbSortState = 'sorting';\n" +%0A  '      },\n' +%0A  '      onCommit:order => {\n' +%0A  '        orders.set(stepIdFor(list), [...order]);\n' +%0A  "        list.dataset.lbSortCommitted = order.join('|');\n" +%0A  '      },\n' +%0A  '      onSortEnd:() => {\n' +%0A  '        delete list.dataset.lbSortState;\n' +%0A  '        delete list.dataset.lbSortPreview;\n' +%0A  '      }\n' +%0A  '    });\n' +%0A  '    bound.add(list);\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function syncLists() {\n' +%0A  '    syncQueued = false;\n' +%0A  "    document.querySelectorAll('.v120-selected-tag-list[data-v120-selected-list]').forEach(list => {\n" +%0A  '      updateHint(list);\n' +%0A  '      applyOrder(list);\n' +%0A  '      bindList(list);\n' +%0A  '    });\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function queueSync() {\n' +%0A  '    if (syncQueued) return;\n' +%0A  '    syncQueued = true;\n' +%0A  '    queueMicrotask(syncLists);\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function reorderCompletion(detail) {\n' +%0A  '    const selections = detail?.professionalData?.selections;\n' +%0A  '    if (!selections) return;\n' +%0A  '    for (const [stepId, current] of Object.entries(selections)) {\n' +%0A  '      if (!Array.isArray(current)) continue;\n' +%0A  '      const order = normalizedOrder(stepId, current.map(String));\n' +%0A  '      selections[stepId] = order;\n' +%0A  '      const title = STEP_TITLES[stepId];\n' +%0A  '      if (!title || !Array.isArray(detail.summary)) continue;\n' +%0A  '      const prefix = `${title}：`;\n' +%0A  '      const index = detail.summary.findIndex(line => String(line).startsWith(prefix));\n' +%0A  '      if (index < 0) continue;\n' +%0A  '      const intensity = detail.professionalData?.intensities?.[stepId];\n' +%0A  "      detail.summary[index] = `${title}：${order.join('、')}；强度 ${Number(intensity ?? 0).toFixed(1)}`;\n" +%0A  '    }\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  const observer = new MutationObserver(records => {\n' +%0A  '    for (const record of records) {\n' +%0A  '      for (const node of record.addedNodes) {\n' +%0A  '        if (node.nodeType !== 1) continue;\n' +%0A  "        if (node.matches?.('.v120-selected-tag-list[data-v120-selected-list]') || node.querySelector?.('.v120-selected-tag-list[data-v120-selected-list]')) {\n" +%0A  '          queueSync();\n' +%0A  '          return;\n' +%0A  '        }\n' +%0A  '      }\n' +%0A  '    }\n' +%0A  '  });\n' +%0A  '  observer.observe(document.documentElement, { childList:true, subtree:true });\n' +%0A  '\n' +%0A  "  document.addEventListener('luckybean:sensory-rendered', queueSync);\n" +%0A  "  document.addEventListener('luckybean:edit-professional-sensory', () => { orders.clear(); queueSync(); }, true);\n" +%0A  "  document.addEventListener('click', event => {\n" +%0A  `    if (event.target.closest?.('[data-v095-mode="professional"]')) { orders.clear(
