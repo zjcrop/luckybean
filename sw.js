@@ -26,6 +26,7 @@ const CORE = [
   versioned('./src/features/release-1.24b-brew-mode-controller.js'),
   versioned('./src/features/release-1.24b-freshness-detail.js'),
   versioned('./src/features/recognition-batch-progress-controller.js'),
+  versioned('./src/features/sensory-tag-sort-controller.js'),
   versioned('./src/data/local-brew-recipes-1.24b.js'),
   versioned('./src/services/grind-psd-reference-service.js'),
   versioned('./src/domain/recognition/order-recognition-1.24b.js'),
