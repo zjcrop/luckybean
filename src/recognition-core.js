@@ -2,6 +2,15 @@
 // This file intentionally re-exports LuckyBean's production recognition modules;
 // downstream apps must consume these implementations rather than reimplementing them.
 
+export { preparePackageImage } from './image-quality.js';
+export {
+  recognizeCoffeeBag,
+  getRecognitionCapabilities,
+  getRecognitionBatchSnapshot,
+  clearRecognitionBatchSnapshot,
+  RecognitionUnavailableError
+} from './recognition-bridge.js';
+
 export {
   RECOGNITION_DOCUMENT_SCHEMA,
   RECOGNITION_FIELD_ALIASES,
