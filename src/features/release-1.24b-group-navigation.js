@@ -2,7 +2,7 @@ const $=(s,r=document)=>r?.querySelector?.(s)||null;
 let gesture=null;
 
 function activePanel(){return $('#beanGroups .active-group-panel');}
-function isInteractive(target){return Boolean(target?.closest?.('button,a,input,select,textarea,.bean-card,.bean-grid,[role="button"]'));}
+function isInteractive(target){return Boolean(target?.closest?.('button,a,input,select,textarea,.bean-card,[role="button"]'));}
 function isBeanPageVisible(){return $('#pageBeans')?.classList?.contains('active');}
 
 function closeActiveGroup(){
@@ -19,15 +19,13 @@ function bindRoot(){
   if(!root||root.dataset.lb124bGroupNavigation==='1')return;
   root.dataset.lb124bGroupNavigation='1';
 
-  // An expanded group behaves like an opened folder page: clicking its blank canvas closes it.
+  // An expanded group behaves like an opened folder page: any non-control blank canvas inside it closes the folder.
   root.addEventListener('click',event=>{
     const panel=activePanel();
     if(!panel||!panel.contains(event.target)||isInteractive(event.target))return;
-    if(event.target===panel||event.target.closest?.('.active-group-title')||event.target.closest?.('[data-v099t-group-root]')===panel){
-      event.preventDefault();
-      event.stopPropagation();
-      closeActiveGroup();
-    }
+    event.preventDefault();
+    event.stopPropagation();
+    closeActiveGroup();
   });
 
   root.addEventListener('pointerdown',event=>{
@@ -61,7 +59,7 @@ function bindPageLevelDismiss(){
     const page=$('#pageBeans');
     if(!page?.contains(event.target))return;
 
-    // Content inside the opened folder stays interactive. Any non-control space outside it is the parent folder canvas.
+    // Outside the opened folder, only actual controls remain non-dismiss targets.
     if(panel.contains(event.target))return;
     if(event.target.closest?.('#groupBtn,#manageBtn,#themeToggleBtn,[data-open-group],.bean-card,button,a,input,select,textarea,[role="button"]'))return;
     closeActiveGroup();
