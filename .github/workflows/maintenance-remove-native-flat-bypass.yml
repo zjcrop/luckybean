@@ -1,0 +1,30 @@
+name: One-shot remove native flat grouping bypass
+on:
+  push:
+    branches: [main]
+    paths: ['.github/scripts/remove-native-flat-bypass.py']
+permissions:
+  contents: write
+jobs:
+  migrate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+      - run: python3 .github/scripts/remove-native-flat-bypass.py
+      - run: |
+          node --check src/app.js
+          ! grep -Fq 'if (beans.length <= 6)' src/app.js
+          grep -Fq "openBeanGroup(groupKey(bean, state.settings.groupMethod || 'country')" src/app.js
+      - run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/app.js tests/v124b-group-brew-regression.spec.mjs tests/v124b-selection-mode-single-group.spec.mjs
+          git diff --cached --quiet && exit 0
+          git commit -m 'fix: keep native bean grouping canonical at every list size'
+          git push origin HEAD:main
