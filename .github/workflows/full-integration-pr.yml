@@ -54,16 +54,25 @@ jobs:
           unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.1'"
           unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_SPATIAL_CONTRACT = 'brew-spatial/1.3'"
           unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_FLAVOR_STATE_CONTRACT = 'brew-flavor-state/1.0'"
-          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq "release-1.24b-ui-policy.js"
-          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq "release-1.24b-brew-mode-controller.js"
-          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq "1.24B-main.4"
-          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'button[data-v099t-group-back]'
-          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'folder-style group navigation active'
+          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq 'release-1.24b-ui-policy.js'
+          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq 'release-1.24b-brew-mode-controller.js'
+          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq 'sensory-tag-sort-controller.js'
+          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq '1.24B-main.4'
+          unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'async function closeActiveGroup'
+          unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'hasActiveGroup: () => Boolean(activeGroup)'
+          ! unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'data-v099t-group-back'
+          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'api.closeActiveGroup'
+          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'canonical folder-state navigation active'
+          ! unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'data-v099t-group-back'
+          unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq 'LONG_PRESS_MS = 320'
+          unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq 'setPointerCapture'
+          unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq 'professional-sensory-complete'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq 'lb-stock-total'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq 'lb-today-consumption'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq '非罗布斯塔'
           unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '1.24B-main.4'"
           unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'main-4-folder2'
+          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'sensory-tag-sort-controller.js'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-brew-mode-controller.js | grep -Fq 'data-lb-other-complete'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-brew-mode-controller.js | grep -Fq "type:'brew-consume'"
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-brew-mode-controller.js | grep -Fq '常见偏差与调整'
@@ -120,7 +129,7 @@ jobs:
           mkdir -p dist
           cp android/app/build/outputs/apk/debug/app-debug.apk dist/LuckyBean-1.24B-full-integration-debug.apk
           sha256sum dist/LuckyBean-1.24B-full-integration-debug.apk > dist/SHA256SUMS.txt
-          printf 'source_sha=%s\nbranch=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.4\ncache=main-4-folder2\ngroup_navigation=folder-style-canonical-back\nmobile_stock_summary=two-line\nother_brew_completion=inventory-event-sensory-handoff\nother_brew_tutorials=detailed\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist/BUILD_PROVENANCE.txt
+          printf 'source_sha=%s\nbranch=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.4\ncache=main-4-folder2\ngroup_navigation=canonical-state-api\nsensory_sort=longpress-pointer-capture\nmobile_stock_summary=two-line\nother_brew_completion=inventory-event-sensory-handoff\nother_brew_tutorials=detailed\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist/BUILD_PROVENANCE.txt
       - name: Upload Android build diagnostics
         if: always()
         uses: actions/upload-artifact@v7.0.1
