@@ -16,7 +16,7 @@ tests/v110-local-first-sync-static.mjs:120:assert.match(sw, /'luckybean-main-v12
 tests/v123e-interaction-repair-ui.spec.mjs:7:  await page.goto(`${BASE_URL}/?v123e-canonical-interaction=1`, { waitUntil:'domcontentloaded' });
 tests/v122-cloud-sync-safety.mjs:61:console.log('v1.23D cloud union baseline and deletion propagation checks passed');
 tests/v123e-navigation-back-static.mjs:39:assert.ok(versionCode > 102315, `upgrade versionCode must exceed previous signed build: ${versionCode}`);
-tests/v123d-deployment-contracts.mjs:73:assert.match(sw, /luckybean-main-v123e-/);
+tests/v123d-deployment-contracts.mjs:74:assert.match(sw, /luckybean-main-v123e-/);
 scripts/run-core-tests.mjs:7:  'tests/v123d-bean-summary-ui.spec.mjs',
 scripts/run-core-tests.mjs:9:  'tests/v123e-freshness-timeline-ui.spec.mjs',
 scripts/run-core-tests.mjs:10:  'tests/v123e-interaction-repair-ui.spec.mjs',
