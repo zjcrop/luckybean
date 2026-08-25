@@ -1,1 +1,1 @@
-{"source_sha":"683863cd831007dcf382d1255121040f7d299c88","version":"1.24B","install_status":0,"js_status":0,"static_status":1,"passed":false,"first_error":"AssertionError [ERR_ASSERTION]: service worker cache generation must match current release","generated_at":"2026-08-25T01:28:59Z"}
+{"source_sha":"e53004b0d8ff187cdd87d67a7094a84a1d8314db","version":"1.24B","install_status":0,"js_status":0,"static_status":0,"passed":true,"first_error":"","generated_at":"2026-08-25T03:32:34Z"}
