@@ -37,7 +37,8 @@ test('catalog is authoritative, cached, and includes all six competition profile
 test('ratio defaults to automatic recommendation while preserving explicit manual override', async () => {
   const app = await read('src/app.js');
   assert.match(app, /ratioMode: 'auto'/);
-  assert.match(app, /ratioRecommendedLabel = `自动 · 1:\$\{Number\(settings\.ratio \|\| 15\.5\)\}`/);
+  assert.match(app, /ratioRecommendedLabel = `1:\$\{Number\(settings\.ratio \|\| 15\.5\)\}`/);
+  assert.doesNotMatch(app, /ratioRecommendedLabel = `自动 ·/);
   assert.match(app, /ratioMode = ratioSelection === 'auto' \? 'auto' : 'manual'/);
   assert.match(app, /\[10,11,12,13,14,14\.5,15,15\.5,16,16\.5,17,18\]/);
 });
