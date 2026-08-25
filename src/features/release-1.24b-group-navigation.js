@@ -10,6 +10,8 @@ function injectStyle(){
     .bean-consumption-summary .lb-stock-total{font-size:.98rem!important;line-height:1.38!important;font-weight:600!important;letter-spacing:0!important;}
     :where(.popup-menu,.recommend-menu,.popup-menu button,.recommend-menu button,#brewContent button,#brewContent select,#brewContent option,#brewContent input,.dialog select,.dialog option){font-family:DengXian,"Microsoft YaHei UI","Noto Sans CJK SC","Noto Sans SC","PingFang SC",system-ui,sans-serif!important;font-synthesis:none;}
     .popup-menu,.recommend-menu{transform-origin:top center;animation:lbMenuEnter 145ms cubic-bezier(.2,.8,.2,1) both;}
+    .recommend-menu [data-recommend-mode="remaining"] .recommend-dot{background:#808080!important;}
+    .recommend-menu [data-recommend-mode="price"] .recommend-dot{background:#000!important;}
     @keyframes lbMenuEnter{from{opacity:0;transform:translateY(-4px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
     #brewContent .lb-auto-note{display:none!important;}
     #brewContent :is(.lb-auto-field,.model-recommended){background:transparent!important;border:0!important;border-bottom:1px solid color-mix(in srgb,var(--active,currentColor) 58%,transparent)!important;border-radius:0!important;box-shadow:none!important;font-weight:inherit!important;text-decoration:none!important;}
