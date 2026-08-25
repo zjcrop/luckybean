@@ -99,7 +99,7 @@ const state = {
   brewProfileOverride: null, brewDripperOverride: null, brewEntryMode: 'normal',
   beanFormSource: null, beanFormDraft: null, cameraScanner: null,
   timer: { interval: null, paused: false, stageIndex: 0, remaining: 0, actionCues:new Set() }, currentExecution: null,
-  get activeGroupKey(){ return beanGroupState.groupKey; }, set activeGroupKey(value){ value ? openBeanGroupState(value) : closeBeanGroupState(); }, groupAnimationMode: 'manual', recommendationTimer: null, recommendationRun: false, recommendationExpandedAll: false, recommendationPromptMemory: {}, preferenceBoardOpen: false, settingsFocusFilterId: '',
+  get activeGroupKey(){ return beanGroupState.groupKey; }, set activeGroupKey(value){ value ? openBeanGroupState(value) : closeBeanGroupState(); }, groupAnimationMode: 'manual', recommendationTimer: null, recommendationRun: false, recommendationPromptMemory: {}, preferenceBoardOpen: false, settingsFocusFilterId: '',
   evaluation: null, pendingSensoryContext: null, sensoryHistoryOpen: false, sensoryFilter: { beanId: '', minScore: '', maxScore: '', start: '', end: '', expanded: false }
 };
 
@@ -107,7 +107,6 @@ function openBeanGroup(groupKey, { animation = 'manual' } = {}) {
   const key = String(groupKey || '').trim();
   if (!key) return false;
   state.groupAnimationMode = animation;
-  state.recommendationExpandedAll = false;
   setBeanGroupMode('native');
   openBeanGroupState(key);
   renderBeans();
@@ -116,10 +115,9 @@ function openBeanGroup(groupKey, { animation = 'manual' } = {}) {
 }
 
 function closeBeanGroup({ render = true } = {}) {
-  const changed = hasActiveBeanGroup() || state.recommendationExpandedAll;
+  const changed = hasActiveBeanGroup();
   if (!changed) return false;
   state.groupAnimationMode = 'manual';
-  state.recommendationExpandedAll = false;
   const mode = beanGroupState.mode;
   closeBeanGroupState();
   if (render && mode === 'native') renderBeans();
@@ -689,8 +687,7 @@ function renderBeans() {
   bar.innerHTML = filterParts.length ? `${filterParts.map(value => `<span class="tag">${esc(value)}</span>`).join('')}<button class="button subtle small" id="clearActiveFilters" type="button">清除</button>` : '';
   if (!beans.length) {
     state.activeGroupKey = null;
-    state.recommendationExpandedAll = false;
-    const hasActiveBeans = state.beans.some(bean => !bean.archived && Number(bean.remainingWeight) > 0);
+      const hasActiveBeans = state.beans.some(bean => !bean.archived && Number(bean.remainingWeight) > 0);
     container.innerHTML = hasActiveBeans
       ? `${board}<div class="empty-state"><strong>没有符合条件的豆卡</strong><p>请调整搜索或筛选条件。</p></div>`
       : `${board}<button class="empty-state empty-bean-entry" type="button" data-empty-add-bean><strong>添加第一支咖啡豆小酌一杯吧</strong><p>点击建立第一张豆卡</p></button>`;
@@ -709,10 +706,6 @@ function renderBeans() {
     groups.get(key).push(bean);
   }
   if (state.activeGroupKey && !groups.has(state.activeGroupKey)) state.activeGroupKey = null;
-  if (state.recommendationExpandedAll) {
-    container.innerHTML = `${board}<div class="recommendation-all-groups" data-all-groups>${[...groups.entries()].map(([label, items], index) => `<section class="recommendation-group" style="--group-order:${index}"><div class="active-group-title"><span>${esc(label)}</span><small>${items.length}只</small></div><div class="bean-grid compact-grid vertical-recommendation-grid">${items.map(beanCardHtml).join('')}</div></section>`).join('')}<div class="group-collapse-zone" data-collapse-group><button class="group-collapse" type="button">收</button></div></div>`;
-    return;
-  }
   if (!state.activeGroupKey) {
     container.innerHTML = `${board}<div class="bean-grid compact-grid group-grid bean-grid-animated ${state.groupAnimationMode === 'auto' ? 'auto-motion' : 'manual-motion'}">${[...groups.entries()].map(([label, items]) => groupCardHtml(label, items)).join('')}</div>`;
     return;
@@ -902,7 +895,7 @@ function openRecommendMenu() {
   const popup = document.createElement('div'); popup.className = 'recommend-menu';
   const items = [
     ['leaderboard', '榜魁', '#c9a45f', false], ['freshness', '味盛', '#5e9a68', false],
-    ['price', '价冠', '#c9a45f', false], ['remaining', '拾余', '#f1f1ed', false], ['random', '拈签', '#e88b3d', true]
+    ['price', '价冠', '#000000', false], ['remaining', '拾余', '#808080', false], ['random', '拈签', '#e88b3d', true]
   ];
   popup.innerHTML = items.map(([mode, label, color, large]) => `<button type="button" class="recommend-option" data-recommend-mode="${mode}" aria-label="${label}"><span class="recommend-label">${label}</span><span class="recommend-dot${large?' random':''}" style="background:${color}"></span></button>`).join('');
   document.body.append(popup); positionPopup($('#fabRecommendBtn'), popup, { above: true });
@@ -914,11 +907,7 @@ async function recommendBean(mode) {
   if (!beans.length) return toast('没有可推荐的豆卡');
   if (state.recommendationRun) return;
   state.recommendationRun = true;
-  state.recommendationExpandedAll = beans.length > 6;
-  state.activeGroupKey = null;
   state.groupAnimationMode = 'auto';
-  renderBeans();
-  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   let selected;
   try {
     if (mode === 'leaderboard') selected = [...beans].sort((a,b)=>recommendationScore(b)-recommendationScore(a))[0];
@@ -948,9 +937,13 @@ async function focusRecommendedBean(bean, { automatic = true, settle = true, ope
   if (!bean) return;
   state.groupAnimationMode = automatic ? 'auto' : 'manual';
   const visible = filteredBeans();
-  state.recommendationExpandedAll = visible.length > 6;
-  state.activeGroupKey = null;
   state.recommendedBeanId = bean.id;
+  if (visible.length > 6) {
+    setBeanGroupMode('native');
+    openBeanGroupState(groupKey(bean, state.settings.groupMethod || 'country'));
+  } else {
+    closeBeanGroupState();
+  }
   renderBeans();
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const card = document.querySelector(`[data-bean-id="${CSS.escape(bean.id)}"]`);
