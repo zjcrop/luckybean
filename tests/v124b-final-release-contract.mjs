@@ -3,6 +3,7 @@ import fs from 'node:fs';
 
 const read = path => fs.readFileSync(path, 'utf8');
 
+const app = read('src/app.js');
 const index = read('index.html');
 const sw = read('sw.js');
 const runtime = read('src/features/runtime-features.js');
@@ -10,6 +11,7 @@ const release = read('src/release-1.24b.js');
 const integration = read('src/features/release-1.24b-integration.js');
 const finalize = read('src/features/release-1.24b-finalize.js');
 const transit = read('src/features/release-1.24b-transit-controller.js');
+const beanGroupState = read('src/domain/beans/bean-group-state.js');
 const beanGroups = read('src/bean-groups-controller.js');
 const groupNavigation = read('src/features/release-1.24b-group-navigation.js');
 const sharedSort = read('src/ui/sortable-controller.js');
@@ -83,16 +85,22 @@ assert.match(css, /grid-template-columns:minmax\(88px,.38fr\)/);
 assert.match(css, /\.lb-bean-detail .*white-space:normal/);
 assert.match(css, /\.lb-bean-actions\{display:grid/);
 
+// Group interaction is now source-driven: one shared group key, native dismiss surface,
+// bottom Beans fallback, and Back all delegate to the canonical state API.
+assert.match(beanGroupState, /export const beanGroupState/);
+assert.match(beanGroupState, /closeBeanGroupState/);
+assert.match(app, /function openBeanGroup/);
+assert.match(app, /function closeBeanGroup/);
+assert.match(app, /\['process', '按处理法'\]/);
+assert.match(app, /data-close-bean-group/);
 assert.match(beanGroups, /async function closeActiveGroup/);
-assert.match(beanGroups, /hasActiveGroup: \(\) => Boolean\(activeGroup\)/);
-assert.doesNotMatch(beanGroups, /data-v099t-group-back|>收</);
-assert.match(groupNavigation, /LuckyBeanV099tBeanGroups/);
-assert.match(groupNavigation, /api\.closeActiveGroup/);
-assert.match(groupNavigation, /canonical folder-state navigation active/);
-assert.match(groupNavigation, /capture:true/);
-assert.match(groupNavigation, /dx<=-72/);
+assert.match(beanGroups, /beanGroupState\.groupKey/);
+assert.match(beanGroups, /activeGroup: \(\) => beanGroupState\.groupKey/);
+assert.doesNotMatch(beanGroups, /let activeGroup|data-v099t-group-back|>收</);
+assert.match(groupNavigation, /LuckyBeanBeanGroupState/);
 assert.match(groupNavigation, /luckybean:navigation-back/);
-assert.doesNotMatch(groupNavigation, /back\.click|data-v099t-group-back|\.bean-grid/);
+assert.doesNotMatch(groupNavigation, /LuckyBeanV099tBeanGroups|api\.closeActiveGroup|dispatchEvent\(new MouseEvent|nativePanel|capture:true|dx<=-72/);
+
 assert.match(uiPolicy, /lb-stock-total/);
 assert.match(uiPolicy, /lb-today-consumption/);
 assert.match(uiPolicy, /非罗布斯塔/);
@@ -136,19 +144,26 @@ assert.match(finalize, /请查收邮件并点击链接激活账户/);
 assert.match(onboarding, /account-pending-verification/);
 assert.doesNotMatch(onboarding, /location\.reload\(|history\.go\(0\)/);
 
-assert.match(deploy, /on:\n\s+push:\n\s+branches: \[main\]/);
-assert.doesNotMatch(deploy, /workflow_run:/);
-assert.match(deploy, /npm run test:static/);
+// Pages publication is downstream of the successful immutable main-test SHA and adds
+// a real live browser startup gate before its receipt is considered verified.
+assert.match(deploy, /workflow_run:/);
+assert.match(deploy, /workflows: \["LuckyBean main tests"\]/);
+assert.match(deploy, /github\.event\.workflow_run\.conclusion == 'success'/);
+assert.match(deploy, /head_sha=\$SOURCE_SHA/);
+assert.match(deploy, /test_conclusion/);
+assert.match(deploy, /current_main/);
+assert.match(deploy, /Live Pages browser smoke/);
+assert.match(deploy, /browser_smoke/);
 assert.match(deploy, /deploy-pages@v5\.0\.0/);
 assert.match(deploy, /version\.json/);
 assert.match(deploy, /pages-status/);
 assert.match(deploy, /1\.24B-main\.4/);
 assert.match(deploy, /shared-live-preview-ghost-placeholder/);
 assert.match(deploy, /text-interactions/);
+assert.doesNotMatch(deploy, /on:\n\s+push:\n\s+branches: \[main\]/);
 
-// Formal Android publication is deliberately downstream of a successful Pages run.
-// The release workflow must prove that the live Pages receipt and the full main test
-// workflow both belong to the same immutable main SHA before the keystore is restored.
+// Formal Android publication remains downstream of a successful Pages run and proves
+// Pages receipt + main test + source + certificate before publication.
 assert.match(build, /workflow_run:/);
 assert.match(build, /workflows: \["LuckyBean main web deploy"\]/);
 assert.match(build, /github\.event\.workflow_run\.conclusion == 'success'/);
@@ -178,4 +193,4 @@ assert.match(build, /brew_ui=text-interactions/);
 assert.match(gradle, /versionCode 102402/);
 assert.match(gradle, /versionName '1\.24B'/);
 
-console.log('LuckyBean 1.24B main.4 final release contract with web-first gating, canonical group state, shared sorting and text brew UI passed');
+console.log('LuckyBean 1.24B main.4 final release contract with gated web-first deployment, canonical bean group state, shared sorting and text brew UI passed');
