@@ -98,8 +98,7 @@ test('dark professional radar labels use visible theme text fill and actions tou
   await expect(label).toBeVisible();
   const result = await label.evaluate(node => {
     const css = getComputedStyle(node);
-    const root = getComputedStyle(document.documentElement);
-    return { fill: css.fill, themeText: root.getPropertyValue('--text').trim(), theme: document.documentElement.dataset.theme };
+    return { fill: css.fill, theme: document.documentElement.dataset.theme };
   });
   expect(result.theme).toBe('dark');
   expect(result.fill).not.toBe('rgb(0, 0, 0)');
@@ -119,26 +118,30 @@ test('note mode removes voice note and obsolete explanatory copy', async ({ page
   await expect(page.locator('body')).not.toContainText('专业标签、雷达图和评分会另行结构化保存');
 });
 
-test('pending recognized field opens its actual editor and requires explicit confirmation', async ({ page }) => {
-  await page.evaluate(async () => {
-    const { recognitionDocumentFromText } = await import('/src/domain/recognition/recognition-document.js');
-    const document = recognitionDocumentFromText('COUNTRY ATLANTIS');
-    await globalThis.LuckyBeanRecognitionFlow.acceptDocument(document, { overwrite: true });
-  });
+test('package pending field click enters its actual bean editor and requires explicit confirmation', async ({ page }) => {
+  await page.evaluate(() => globalThis.LuckyBeanPackageCapture.open());
+  await expect(page.locator('[data-overlay="bag-capture"]')).toBeVisible();
+  await page.locator('#bagManualBtn').click();
+  const text = page.locator('#bagOcrText');
+  await expect(text).toBeVisible();
+  await text.fill('COUNTRY ATLANTIS');
+  await page.locator('#bagReanalyzeBtn').click();
+
+  const packageRow = page.locator('.bag-semantic-row.review[data-recognition-field="countryCode"]');
+  await expect(packageRow).toBeVisible({ timeout: 10000 });
+  await expect(packageRow).toContainText('待确认');
+  await expect(packageRow).toHaveAttribute('role', 'button');
+  await packageRow.click();
 
   const form = page.locator('#beanForm');
   await expect(form).toBeVisible({ timeout: 10000 });
-  const row = form.locator('[data-recognition-review="pending"] .evidence-row[data-evidence-field="countryCode"]');
-  await expect(row).toBeVisible();
-  await expect(row).toHaveAttribute('role', 'button');
-  await row.click();
-
-  const field = form.locator('#beanCountry').locator('..');
+  const pending = form.locator('[data-recognition-review="pending"] .evidence-row[data-evidence-field="countryCode"]');
+  await expect(pending).toBeVisible();
   await expect(form.locator('[data-confirm-recognition-field="countryCode"]')).toBeVisible();
-  await expect(field).toHaveClass(/recognition-review-active/);
+  await expect(form.locator('#beanCountry').locator('..')).toHaveClass(/recognition-review-active/);
   await form.locator('#beanCountry').selectOption('CO-EA');
   await form.locator('[data-confirm-recognition-field="countryCode"]').click();
-  await expect(row).toHaveCount(0);
+  await expect(pending).toHaveCount(0);
   await expect(form.locator('#beanCountry')).toHaveValue('CO-EA');
 });
 
