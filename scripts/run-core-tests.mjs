@@ -13,7 +13,8 @@ const specs = [
   'tests/v123e-sensory-actions-ui.spec.mjs',
   'tests/v123e-recognition-pipeline-ui.spec.mjs',
   'tests/v123e-cold-brew-ui.spec.mjs',
-  'tests/v124b-brew-mode-freshness-ui.spec.mjs'
+  'tests/v124b-brew-mode-freshness-ui.spec.mjs',
+  'tests/v124b-group-brew-regression.spec.mjs'
 ];
 
 function annotation(text) {
@@ -30,7 +31,7 @@ const args = [
   '--grep-invert', obsoleteGearEditorTitle,
   '--browser=chromium', '--reporter=line', '--workers=1'
 ];
-const result = spawnSync('npx', args, { encoding: 'utf8', env: process.env, maxBuffer: 16 * 1024 * 1024, shell: process.platform === 'win32' });
+const result = spawnSync('npx', args, { encoding:'utf8', env:process.env, maxBuffer:16*1024*1024, shell:process.platform === 'win32' });
 if (result.stdout) process.stdout.write(result.stdout);
 if (result.stderr) process.stderr.write(result.stderr);
 if (result.status !== 0) {
