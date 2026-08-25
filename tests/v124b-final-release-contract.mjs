@@ -145,7 +145,26 @@ assert.match(deploy, /pages-status/);
 assert.match(deploy, /1\.24B-main\.4/);
 assert.match(deploy, /shared-live-preview-ghost-placeholder/);
 assert.match(deploy, /text-interactions/);
-assert.match(build, /on:\n\s+push:\n\s+branches: \[main\]/);
+
+// Formal Android publication is deliberately downstream of a successful Pages run.
+// The release workflow must prove that the live Pages receipt and the full main test
+// workflow both belong to the same immutable main SHA before the keystore is restored.
+assert.match(build, /workflow_run:/);
+assert.match(build, /workflows: \["LuckyBean main web deploy"\]/);
+assert.match(build, /github\.event\.workflow_run\.conclusion == 'success'/);
+assert.match(build, /github\.event\.workflow_run\.head_branch == 'main'/);
+assert.match(build, /SOURCE_SHA: \$\{\{ github\.event_name == 'workflow_run' && github\.event\.workflow_run\.head_sha \|\| github\.sha \}\}/);
+assert.match(build, /contents\/status\/1\.24B\.json\?ref=pages-status/);
+assert.match(build, /\.source_sha/);
+assert.match(build, /\.verified/);
+assert.match(build, /actions\/workflows\/test-main\.yml\/runs\?branch=main&head_sha=\$SOURCE_SHA/);
+assert.match(build, /test_conclusion/);
+assert.match(build, /current_main/);
+assert.match(build, /release_target_verified/);
+assert.match(build, /web_gate_verified/);
+assert.match(build, /main_test_verified/);
+assert.match(build, /git tag -f "\$RELEASE_TAG" "\$SOURCE_SHA"/);
+assert.match(build, /test "\$tag_sha" = "\$SOURCE_SHA"/);
 assert.match(build, /Restore official release keystore/);
 assert.match(build, /assembleRelease/);
 assert.match(build, /apksigner/);
@@ -159,4 +178,4 @@ assert.match(build, /brew_ui=text-interactions/);
 assert.match(gradle, /versionCode 102402/);
 assert.match(gradle, /versionName '1\.24B'/);
 
-console.log('LuckyBean 1.24B main.4 final release contract with canonical group state, shared sorting and text brew UI passed');
+console.log('LuckyBean 1.24B main.4 final release contract with web-first gating, canonical group state, shared sorting and text brew UI passed');
