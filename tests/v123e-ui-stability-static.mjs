@@ -54,7 +54,7 @@ assert.match(sensory,/DRAG_CANCEL_DISTANCE = 8/);
 assert.match(sensorySort,/LONG_PRESS_MS = 320/);
 assert.match(sensorySort,/MOVE_CANCEL_DISTANCE = 14/);
 assert.match(sensorySort,/setPointerCapture/);
-assert.match(sensorySort,/event\.stopPropagation\(\)/);
+assert.match(sensorySort,/event\.stopImmediatePropagation\(\)/);
 assert.match(sensorySort,/professional-sensory-complete/);
 assert.match(sensoryCss,/--cup-tag-selected-bg:\s*#050505/);
 assert.match(sensoryCss,/--cup-defect-selected-bg/);
