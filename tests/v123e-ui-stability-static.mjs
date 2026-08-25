@@ -11,6 +11,7 @@ const layout=read('src/ui/app-layout.css');
 const components=read('src/ui/app-components.css');
 const sensoryCss=read('src/ui/professional-sensory.css');
 const sensory=read('src/sensory-professional-controller.js');
+const sharedSort=read('src/ui/sortable-controller.js');
 const sensorySort=read('src/features/sensory-tag-sort-controller.js');
 const beanGroups=read('src/bean-groups-controller.js');
 const integration=read('src/features/full-integration-controller-v3.js');
@@ -39,25 +40,33 @@ const releaseRevision=revisionMatch[1];
 assert.equal(releaseRevision,'1.24B-main.4');
 assert.ok(sw.includes(`REVISION = '${releaseRevision}'`));
 assert.match(sw,/CACHE_PREFIX = 'luckybean-main-v124b-'/);
-assert.match(sw,/CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-folder2`/);
+assert.match(sw,/CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-interaction3`/);
 
 for(const active of ['app-layout.css','app-components.css','bean-card.css','professional-sensory.css','viewport-controller.js','gear-controller.js','brew-cooling-controller.js','flavor-guide-controller.js','onboarding-controller.js','bean-card-controller.js','bean-enrichment-service.js','release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-polish.js','release-1.24b-group-navigation.js'])assert.ok(index.includes(active),`index missing ${active}`);
-for(const runtimeActive of ['release-1.24b-ui-policy.js','release-1.24b-brew-mode-controller.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','sensory-tag-sort-controller.js'])assert.ok(runtimeFeatures.includes(runtimeActive),`runtime graph missing ${runtimeActive}`);
-for(const cached of ['release-1.24b-finalize.js','release-1.24b-polish.js','release-1.24b-group-navigation.js','release-1.24b-ui-policy.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','sensory-tag-sort-controller.js','recognition-field-resolver-1.24b.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js'])assert.ok(sw.includes(cached),`service worker missing ${cached}`);
+for(const runtimeActive of ['release-1.24b-ui-policy.js','release-1.24b-brew-mode-controller.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','sortable-controller.js','sensory-tag-sort-controller.js'])assert.ok(runtimeFeatures.includes(runtimeActive),`runtime graph missing ${runtimeActive}`);
+for(const cached of ['release-1.24b-finalize.js','release-1.24b-polish.js','release-1.24b-group-navigation.js','release-1.24b-ui-policy.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','sortable-controller.js','sensory-tag-sort-controller.js','recognition-field-resolver-1.24b.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js'])assert.ok(sw.includes(cached),`service worker missing ${cached}`);
 for(const obsolete of ['layout-guard.css','full-integration.css','interaction-repair.css','gear-regression-fix-controller.js','legacy-timer-guard.js','gear-matching-controller.js','experience-fixes-controller.js','interaction-repair-controller.js'])assert.ok(!index.includes(obsolete),`obsolete index reference ${obsolete}`);
 
 assert.match(layout,/--viewport-height:\s*100dvh/);
 assert.match(layout,/\.overlay\s*\{[\s\S]*overflow:\s*hidden/);
 assert.match(layout,/prefers-reduced-motion/);
-assert.match(sensory,/LONG_PRESS_MS = 480/);
-assert.match(sensory,/DRAG_CANCEL_DISTANCE = 8/);
-assert.match(sensorySort,/LONG_PRESS_MS = 320/);
-assert.match(sensorySort,/MOVE_CANCEL_DISTANCE = 14/);
-assert.match(sensorySort,/setPointerCapture/);
-assert.match(sensorySort,/event\.stopImmediatePropagation\(\)/);
+assert.match(sensory,/data-v120-selected-tag/);
+assert.match(sensory,/luckybean:professional-sensory-complete/);
+assert.match(sharedSort,/DOUBLE_CLICK_MS = 250/);
+assert.match(sharedSort,/MOVE_CANCEL_DISTANCE = 14/);
+assert.match(sharedSort,/setPointerCapture/);
+assert.match(sharedSort,/event\.stopImmediatePropagation\(\)/);
+assert.match(sharedSort,/lb-sort-ghost/);
+assert.match(sharedSort,/lb-sort-placeholder/);
+assert.match(sharedSort,/onPreview/);
+assert.match(sharedSort,/onCommit/);
+assert.match(sensorySort,/LuckyBeanSortable/);
 assert.match(sensorySort,/professional-sensory-complete/);
+assert.doesNotMatch(sensorySort,/elementFromPoint|setPointerCapture|LONG_PRESS_MS\s*=/);
 assert.match(sensoryCss,/--cup-tag-selected-bg:\s*#050505/);
 assert.match(sensoryCss,/--cup-defect-selected-bg/);
+assert.match(sensoryCss,/\.lb-sort-placeholder/);
+assert.match(sensoryCss,/\.lb-sort-ghost/);
 
 assert.doesNotMatch(integration,/injectGear|matchingSettings|data-lb-batch-open|remove\('beans'|luckybean\.onboarding\.v1/);
 assert.match(integration,/beanObserver\.observe\(root/);
@@ -68,6 +77,7 @@ assert.doesNotMatch(account,/MutationObserver|setInterval/);
 assert.doesNotMatch(voice,/MutationObserver/);
 assert.match(runtimeFeatures,/RELEASE_REVISION/);
 assert.match(runtimeFeatures,/1\.24B-main\.4/);
+assert.match(runtimeFeatures,/shared-sortable/);
 assert.match(qrUi,/overlayObserver\.observe\(root/);
 assert.doesNotMatch(qrUi,/observe\(document\.body/);
 
@@ -78,7 +88,6 @@ assert.match(beanCards,/CANCEL_DISTANCE = 8/);
 assert.match(beanCards,/moveBeansToRecycle/);
 assert.match(lifecycle,/RECYCLE_RETENTION_MS = 7 \* 24 \* 60 \* 60 \* 1000/);
 
-// Expanded bean groups are page-like folders. The state owner closes them directly; no hidden “收” button remains.
 assert.match(beanGroups,/async function closeActiveGroup/);
 assert.match(beanGroups,/hasActiveGroup: \(\) => Boolean\(activeGroup\)/);
 assert.doesNotMatch(beanGroups,/data-v099t-group-back|>收</);
@@ -89,10 +98,9 @@ assert.match(groupNavigation,/\[data-page-target\]/);
 assert.match(groupNavigation,/page\?\.contains\(event\.target\)/);
 assert.match(groupNavigation,/capture:true/);
 assert.match(groupNavigation,/luckybean:navigation-back/);
-assert.doesNotMatch(groupNavigation,/back\.click|data-v099t-group-back/);
-assert.doesNotMatch(uiPolicy,/\[data-active-group-panel\]/);
+assert.doesNotMatch(groupNavigation,/back\.click|data-v099t-group-back|\.bean-grid/);
+assert.doesNotMatch(uiPolicy,/\[data-active-group-panel\]|group-collapse-zone/);
 
-// Mobile bean inventory summary has two semantic lines and preserves exceeded-limit behavior.
 assert.match(uiPolicy,/lb-stock-total/);
 assert.match(uiPolicy,/lb-today-consumption/);
 assert.match(uiPolicy,/现有咖啡豆共计/);
@@ -100,6 +108,8 @@ assert.match(uiPolicy,/还可饮用/);
 assert.match(uiPolicy,/非罗布斯塔/);
 assert.match(uiPolicy,/参考上限已超过约/);
 assert.match(uiPolicy,/@media \(max-width: 720px\)/);
+assert.match(uiPolicy,/#brewContent button:not\(\.lb-brew-switch\)/);
+assert.match(uiPolicy,/observe\('brewContent'\)/);
 
 for(const stage of ['new','account-pending','account-pending-verification','account-completed','guide-completed'])assert.ok(onboarding.includes(stage));
 assert.match(auth,/luckybean:cloud-register-success/);
@@ -126,4 +136,4 @@ const sourceFiles=walk('src').filter(file=>/\.(?:js|mjs|css)$/.test(file));
 const bodyObserverFiles=sourceFiles.filter(file=>{const source=read(file);return /MutationObserver/.test(source)&&/\.observe\(document\.body\s*,/.test(source);});
 assert.deepEqual(bodyObserverFiles,[],`global body MutationObservers remain: ${bodyObserverFiles.join(', ')}`);
 
-console.log(`LuckyBean 1.24B ${releaseRevision} canonical UI stability regression checks passed`);
+console.log(`LuckyBean 1.24B ${releaseRevision} canonical UI stability, shared sorting and text brew UI regression checks passed`);
