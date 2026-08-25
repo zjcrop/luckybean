@@ -110,4 +110,5 @@ new_apk_gate = """          unzip -p \"$apk\" assets/web-cache/src/bean-groups-c
 workflow = replace_once(workflow, old_apk_gate, new_apk_gate, 'release APK canonical group gate')
 workflow_path.write_text(workflow, encoding='utf-8')
 
+# Revision 2: source-only commit; workflow contract is committed separately by the authorized connector.
 print('native recommendation grouping unified; dot colors and signed-release canonical gates updated')
