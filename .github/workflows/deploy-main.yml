@@ -40,18 +40,29 @@ jobs:
           grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.4' index.html
           grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.4' index.html
           grep -Fq "REVISION = '1.24B-main.4'" sw.js
+          grep -Fq 'main-4-interaction3' sw.js
           grep -Fq 'release-1.24b-ui-policy.js' sw.js
+          grep -Fq 'src/ui/sortable-controller.js' sw.js
           grep -Fq 'sensory-tag-sort-controller.js' sw.js
+          grep -Fq "feature('shared-sortable'" src/features/runtime-features.js
           grep -Fq 'sensory-tag-sort-controller.js' src/features/runtime-features.js
           grep -Fq 'async function closeActiveGroup' src/bean-groups-controller.js
           ! grep -Fq 'data-v099t-group-back' src/bean-groups-controller.js
           grep -Fq 'api.closeActiveGroup' src/features/release-1.24b-group-navigation.js
           ! grep -Fq 'data-v099t-group-back' src/features/release-1.24b-group-navigation.js
-          grep -Fq 'LONG_PRESS_MS = 320' src/features/sensory-tag-sort-controller.js
+          grep -Fq 'lb-sort-ghost' src/ui/sortable-controller.js
+          grep -Fq 'lb-sort-placeholder' src/ui/sortable-controller.js
+          grep -Fq 'onPreview' src/ui/sortable-controller.js
+          grep -Fq 'onCommit' src/ui/sortable-controller.js
+          grep -Fq 'LuckyBeanSortable' src/features/sensory-tag-sort-controller.js
+          grep -Fq '双击移除' src/features/sensory-tag-sort-controller.js
+          grep -Fq '实时预览松手后的顺序' src/features/sensory-tag-sort-controller.js
           grep -Fq 'professional-sensory-complete' src/features/sensory-tag-sort-controller.js
           grep -Fq "UI_POLICY_REVISION = '1.24B-main.4'" src/features/release-1.24b-ui-policy.js
           grep -Fq "button.textContent = '合并云端'" src/features/release-1.24b-ui-policy.js
           grep -Fq 'aspect-ratio: 2 / 1' src/features/release-1.24b-ui-policy.js
+          grep -Fq '#brewContent button:not(.lb-brew-switch)' src/features/release-1.24b-ui-policy.js
+          grep -Fq "observe('brewContent')" src/features/release-1.24b-ui-policy.js
           grep -Fq 'release-1.24b-freshness-detail.js' sw.js
           grep -Fq 'recognition-batch-progress-controller.js' sw.js
           grep -Fq 'recognition-field-resolver-1.24b.js' sw.js
@@ -66,7 +77,7 @@ jobs:
           cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
           cp -R src public contracts schemas _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.4","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","sensorySort":"longpress-pointer-capture","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.4"}\n' "$SOURCE_SHA" > _site/version.json
+          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.4","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.4"}\n' "$SOURCE_SHA" > _site/version.json
       - uses: actions/configure-pages@v6.0.0
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
@@ -101,6 +112,7 @@ jobs:
             curl -L -fsS "$base/src/features/release-1.24b-finalize.js?check=$SOURCE_SHA" -o /tmp/finalize.js || true
             curl -L -fsS "$base/src/features/release-1.24b-transit-controller.js?check=$SOURCE_SHA" -o /tmp/transit.js || true
             curl -L -fsS "$base/src/features/release-1.24b-group-navigation.js?check=$SOURCE_SHA" -o /tmp/group.js || true
+            curl -L -fsS "$base/src/ui/sortable-controller.js?check=$SOURCE_SHA" -o /tmp/sortable.js || true
             curl -L -fsS "$base/src/features/sensory-tag-sort-controller.js?check=$SOURCE_SHA" -o /tmp/sensory-sort.js || true
             curl -L -fsS "$base/src/features/runtime-features.js?check=$SOURCE_SHA" -o /tmp/runtime.js || true
             curl -L -fsS "$base/src/features/release-1.24b-about-controller.js?check=$SOURCE_SHA" -o /tmp/about.js || true
@@ -113,10 +125,14 @@ jobs:
               && grep -Fq '"version":"1.24B"' /tmp/version.json \
               && grep -Fq '"revision":"1.24B-main.4"' /tmp/version.json \
               && grep -Fq '"groupNavigation":"canonical-state-api"' /tmp/version.json \
-              && grep -Fq '"sensorySort":"longpress-pointer-capture"' /tmp/version.json \
+              && grep -Fq '"sortable":"shared-live-preview-ghost-placeholder"' /tmp/version.json \
+              && grep -Fq '"sensorySort":"single-activate-double-remove-longpress-preview"' /tmp/version.json \
+              && grep -Fq '"brewUi":"text-interactions"' /tmp/version.json \
               && grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.4' /tmp/index.html \
               && grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.4' /tmp/index.html \
               && grep -Fq "REVISION = '1.24B-main.4'" /tmp/sw.js \
+              && grep -Fq 'main-4-interaction3' /tmp/sw.js \
+              && grep -Fq 'src/ui/sortable-controller.js' /tmp/sw.js \
               && grep -Fq 'sensory-tag-sort-controller.js' /tmp/sw.js \
               && grep -Fq 'async function closeActiveGroup' /tmp/bean-groups.js \
               && ! grep -Fq 'data-v099t-group-back' /tmp/bean-groups.js \
@@ -124,14 +140,19 @@ jobs:
               && grep -Fq '已购' /tmp/transit.js \
               && grep -Fq 'api.closeActiveGroup' /tmp/group.js \
               && ! grep -Fq 'data-v099t-group-back' /tmp/group.js \
-              && grep -Fq 'LONG_PRESS_MS = 320' /tmp/sensory-sort.js \
-              && grep -Fq 'professional-sensory-complete' /tmp/sensory-sort.js \
+              && grep -Fq 'lb-sort-ghost' /tmp/sortable.js \
+              && grep -Fq 'lb-sort-placeholder' /tmp/sortable.js \
+              && grep -Fq 'onPreview' /tmp/sortable.js \
+              && grep -Fq 'onCommit' /tmp/sortable.js \
+              && grep -Fq 'LuckyBeanSortable' /tmp/sensory-sort.js \
+              && grep -Fq '实时预览松手后的顺序' /tmp/sensory-sort.js \
+              && grep -Fq "feature('shared-sortable'" /tmp/runtime.js \
               && grep -Fq 'sensory-tag-sort-controller.js' /tmp/runtime.js \
               && grep -Fq '端茶倒水的秦始皇🐻' /tmp/about.js \
               && grep -Fq 'openCenteredHelp' /tmp/polish.js \
               && grep -Fq "UI_POLICY_REVISION = '1.24B-main.4'" /tmp/ui-policy.js \
               && grep -Fq "button.textContent = '合并云端'" /tmp/ui-policy.js \
-              && grep -Fq 'aspect-ratio: 2 / 1' /tmp/ui-policy.js \
+              && grep -Fq '#brewContent button:not(.lb-brew-switch)' /tmp/ui-policy.js \
               && grep -Fq '完整赏味期曲线' /tmp/freshness.js \
               && grep -Fq '正在识别' /tmp/progress.js \
               && grep -Fq 'explicit-label > confidence > multi-image-consensus > weak-inference' /tmp/resolver.js; then
@@ -148,7 +169,7 @@ jobs:
         run: |
           set -euo pipefail
           receipt=$(mktemp)
-          printf '{"version":"1.24B","revision":"1.24B-main.4","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
+          printf '{"version":"1.24B","revision":"1.24B-main.4","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           if git ls-remote --exit-code --heads origin pages-status >/dev/null 2>&1; then
