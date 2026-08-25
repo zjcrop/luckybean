@@ -1,1 +1,1 @@
-{"source_sha":"a491d36803190a594eb7bc8d1b376a110f10bc50","version":"1.24B","install_status":0,"js_status":0,"static_status":0,"passed":true,"first_error":"","generated_at":"2026-08-25T03:52:17Z"}
+{"source_sha":"a03529192b2638ff742f6cb1c9abaa1e5b592e41","version":"1.24B","install_status":0,"js_status":0,"static_status":1,"passed":false,"first_error":"AssertionError [ERR_ASSERTION]: The input did not match the regular expression /\\.preference-board-strip/. Input:","generated_at":"2026-08-25T03:54:13Z"}
