@@ -1,11 +1,13 @@
 name: LuckyBean main signed release
 
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows: ["LuckyBean main web deploy"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: write
 
 concurrency:
@@ -14,15 +16,50 @@ concurrency:
 
 jobs:
   build:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      SOURCE_SHA: ${{ github.sha }}
+      SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       RELEASE_TAG: v1.24B-main.4
     steps:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+      - name: Verify final release gates
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
+          test "$current_main" = "$SOURCE_SHA"
+
+          pages_json=$(gh api "repos/$GITHUB_REPOSITORY/contents/status/1.24B.json?ref=pages-status" --jq '.content' | base64 --decode)
+          test "$(printf '%s' "$pages_json" | jq -r '.source_sha')" = "$SOURCE_SHA"
+          test "$(printf '%s' "$pages_json" | jq -r '.verified')" = "true"
+
+          test_status=missing
+          test_conclusion=missing
+          for attempt in {1..90}; do
+            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/test-main.yml/runs?branch=main&head_sha=$SOURCE_SHA&per_page=1")
+            test_status=$(printf '%s' "$runs" | jq -r '.workflow_runs[0].status // "missing"')
+            test_conclusion=$(printf '%s' "$runs" | jq -r '.workflow_runs[0].conclusion // ""')
+            if [ "$test_status" = "completed" ]; then
+              test "$test_conclusion" = "success"
+              break
+            fi
+            sleep 5
+          done
+          test "$test_status" = "completed"
+          test "$test_conclusion" = "success"
+
+          current_main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
+          test "$current_main" = "$SOURCE_SHA"
+          printf 'Pages verified and main tests passed for %s\n' "$SOURCE_SHA"
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
@@ -186,19 +223,28 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            git tag -f "$RELEASE_TAG" "$SOURCE_SHA"
+            git push --force origin "refs/tags/$RELEASE_TAG"
+            gh release edit "$RELEASE_TAG" --target "$SOURCE_SHA" --title "LuckyBean 1.24B" --notes "1.24B main.4 signed release. APK certificate is verified against android/signing/CERT_SHA256.txt before publication."
             gh release upload "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --clobber
           else
             gh release create "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --target "$SOURCE_SHA" --title "LuckyBean 1.24B" --notes "1.24B main.4 signed release. APK certificate is verified against android/signing/CERT_SHA256.txt before publication."
           fi
+          tag_sha=$(git ls-remote origin "refs/tags/$RELEASE_TAG" | awk '{print $1}')
+          test "$tag_sha" = "$SOURCE_SHA"
+          release_target=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" --jq '.target_commitish')
+          test "$release_target" = "$SOURCE_SHA"
+          printf '%s' "$tag_sha" > /tmp/luckybean-release-target-sha.txt
       - name: Write verifiable release receipt
         shell: bash
         run: |
           set -euo pipefail
           cert=$(cat /tmp/luckybean-cert-sha256.txt)
+          release_target_sha=$(cat /tmp/luckybean-release-target-sha.txt)
           apk_sha=$(sha256sum dist/LuckyBean-1.24B-release.apk | awk '{print $1}')
           web_sha=$(sha256sum dist/LuckyBean-1.24B-web.zip | awk '{print $1}')
           receipt=$(mktemp)
-          printf '{"version":"1.24B","revision":"1.24B-main.4","source_sha":"%s","release_tag":"%s","apk":"LuckyBean-1.24B-release.apk","apk_sha256":"%s","web_sha256":"%s","certificate_sha256":"%s","certificate_verified":true,"published":true,"sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","generated_at":"%s"}\n' "$SOURCE_SHA" "$RELEASE_TAG" "$apk_sha" "$web_sha" "$cert" "$(date -u +%FT%TZ)" > "$receipt"
+          printf '{"version":"1.24B","revision":"1.24B-main.4","source_sha":"%s","release_tag":"%s","release_target_sha":"%s","release_target_verified":true,"apk":"LuckyBean-1.24B-release.apk","apk_sha256":"%s","web_sha256":"%s","certificate_sha256":"%s","certificate_verified":true,"published":true,"web_gate_verified":true,"main_test_verified":true,"sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","generated_at":"%s"}\n' "$SOURCE_SHA" "$RELEASE_TAG" "$release_target_sha" "$apk_sha" "$web_sha" "$cert" "$(date -u +%FT%TZ)" > "$receipt"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           if git ls-remote --exit-code --heads origin release-status >/dev/null 2>&1; then
