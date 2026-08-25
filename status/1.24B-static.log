@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 5.428835
+  duration_ms: 5.598404
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 2.276707
+  duration_ms: 2.718033
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 2.49737
+  duration_ms: 2.53985
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 1.959998
+  duration_ms: 1.9629
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.859778
+  duration_ms: 0.847237
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.813167
+  duration_ms: 2.831058
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.904295
+  duration_ms: 0.911492
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 22.542068
+# duration_ms 23.272479
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 5.762158
+  duration_ms: 5.926036
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 3.827128
+  duration_ms: 3.863268
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 3.777352
+  duration_ms: 3.983195
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 2.940218
+  duration_ms: 2.899049
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 2.475587
+  duration_ms: 2.303873
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 1.056104
+  duration_ms: 1.021494
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 25.606483
+# duration_ms 26.09183
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -160,159 +160,415 @@ LuckyBean Android gallery URI routing regression checks passed
 LuckyBean 1.24B compact small-brew, automatic-field and Android upgrade contract passed
 
 [static] tests/v123e-ui-stability-static.mjs
-LuckyBean 1.24B 1.24B-main.4 canonical UI stability regression checks passed
-
-[static] tests/v123e-navigation-back-static.mjs
-LuckyBean canonical page stack, overlay back, Android gesture back and compact bean metadata contracts passed
-
-[static] tests/v123e-brew-optimization-regression.mjs
-post-tasting optimization, deterministic spatial trend and release-signature guards passed
-
-[static] tests/v123e-recognition-pipeline-static.mjs
-Recognition document is the single translated and structured bean-entry source
-
-[static] tests/v124b-lifecycle-ocr-storage-regression.mjs
-LuckyBean 1.24B lifecycle, serial OCR, transit/frozen storage, order parsing and local brew regression checks passed
-
-[static] tests/v124b-final-release-contract.mjs
-LuckyBean 1.24B main.4 final release contract passed
-
-[static] tests/v124b-complete-plan-contract.mjs
-LuckyBean 1.24B main.4 complete modification-plan contract passed
-
-[static] tests/v124b-ui-policy-regression.mjs
 node:internal/modules/run_main:123
     triggerUncaughtException(
     ^
 
-AssertionError [ERR_ASSERTION]: The input did not match the regular expression /button\[data-v099t-group-back\]/. Input:
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /MOVE_CANCEL_DISTANCE = 12/. Input:
 
-'const $=(s,r=document)=>r?.querySelector?.(s)||null;\n' +
-  'let gesture=null;\n' +
-  '\n' +
-  'function groupApi(){return globalThis.LuckyBeanV099tBeanGroups||null;}\n' +
-  'function hasActiveGroup(){return Boolean(groupApi()?.hasActiveGroup?.());}\n' +
-  `function isInteractive(target){return Boolean(target?.closest?.('button,a,input,select,textarea,.bean-card,[role="button"]'));}\n` +
-  "function isBeanPageVisible(){return $('#pageBeans')?.classList?.contains('active');}\n" +
-  '\n' +
-  'function closeActiveGroup(){\n' +
-  '  const api=groupApi();\n' +
-  '  if(!api?.hasActiveGroup?.())return false;\n' +
-  "  api.closeActiveGroup?.().catch?.(error=>console.warn('豆藏分组关闭失败',error));\n" +
-  '  return true;\n' +
-  '}\n' +
-  '\n' +
-  'function bindPageLevelDismiss(){\n' +
-  "  if(document.documentElement.dataset.lb124bPageGroupDismiss==='2')return;\n" +
-  "  document.documentElement.dataset.lb124bPageGroupDismiss='2';\n" +
-  '\n' +
-  '  // Capture phase is deliberate: clear the folder state before page navigation refreshes the Beans view.\n' +
-  "  document.addEventListener('click',event=>{\n" +
-  '    if(!hasActiveGroup())return;\n' +
-  '\n' +
-  "    const pageTarget=event.target.closest?.('[data-page-target]');\n" +
-  '    if(pageTarget){\n' +
-  '      closeActiveGroup();\n' +
-  '      return;\n' +
-  '    }\n' +
-  '\n' +
-  '    if(!isBeanPageVisible())return;\n' +
-  "    const page=$('#pageBeans');\n" +
-  '    if(!page?.contains(event.target))return;\n' +
-  '\n' +
-  '    // An opened group behaves like a folder page. Only real controls and bean cards keep it open.\n' +
-  '    if(isInteractive(event.target))return;\n' +
-  '    closeActiveGroup();\n' +
-  '  },{capture:true});\n' +
-  '\n' +
-  "  document.addEventListener('pointerdown',event=>{\n" +
-  '    if(!hasActiveGroup()||!isBeanPageVisible()||isInteractive(event.target))return;\n' +
-  '    gesture={id:event.pointerId,x:event.clientX,y:event.clientY};\n' +
-  '  },{capture:true,passive:true});\n' +
-  '\n' +
-  "  document.addEventListener('pointerup',event=>{\n" +
-  '    if(!gesture||gesture.id!==event.pointerId)return;\n' +
-  '    const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;\n' +
-  '    gesture=null;\n' +
-  '    if(dx<=-72&&Math.abs(dx)>Math.abs(dy)*1.35)closeActiveGroup();\n' +
-  '  },{capture:true,passive:true});\n' +
-  '}\n' +
-  '\n' +
-  "document.addEventListener('luckybean:navigation-back',event=>{\n" +
-  '  if(closeActiveGroup())event.preventDefault?.();\n' +
+'const LONG_PRESS_MS = 320;\n' +
+  'const MOVE_CANCEL_DISTANCE = 14;\n' +
+  'const STEP_TITLES = Object.freeze({\n' +
+  "  dry:'干香 / 湿香', high:'高温', mid:'中温', low:'低温', aftertaste:'余韵', acidity:'酸质', sweetness:'甜感', mouthfeel:'口感'\n" +
   '});\n' +
   '\n' +
-  'bindPageLevelDismiss();\n' +
+  'if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {\n' +
+  '  globalThis.__LuckyBeanSensoryTagSortLoaded = true;\n' +
   '\n' +
-  'globalThis.LuckyBean124BGroupNavigation={close:closeActiveGroup,hasActiveGroup};\n' +
-  "console.info('[LuckyBean] 1.24B canonical folder-state navigation active');\n"
+  '  const orders = new Map();\n' +
+  '  let drag = null;\n' +
+  '\n' +
+  '  function ensureStyle() {\n' +
+  "    if (document.getElementById('luckybean-sensory-sort-style')) return;\n" +
+  "    const style = document.createElement('style');\n" +
+  "    style.id = 'luckybean-sensory-sort-style';\n" +
+  '    style.textContent = `\n' +
+  '      .v120-selected-tag { touch-action:pan-y; }\n' +
+  '      .v120-selected-tag-list.lb-sort-mode { touch-action:none; user-select:none; -webkit-user-select:none; }\n' +
+  '      .v120-selected-tag-list.lb-sort-mode .v120-selected-tag { transition:transform .12s ease, opacity .12s ease, box-shadow .12s ease; }\n' +
+  '      .v120-selected-tag.lb-sort-dragging { position:relative; z-index:3; transform:scale(1.06); opacity:.92; box-shadow:0 8px 22px rgba(0,0,0,.26); }\n' +
+  '      .v120-selected-tag.lb-sort-target { outline:1px dashed var(--cup-tag-selected-border); outline-offset:3px; }\n' +
+  '      .cupping-drag-handle { pointer-events:none; }\n' +
+  "      .v095-sort-hint::after { content:' 长按任一已选标签即可进入排序。'; }\n" +
+  '      body.lb-sensory-sorting { overscroll-behavior:contain; }\n' +
+  '    `;\n' +
+  '    document.head.append(style);\n' +
+  '  }\n' +
+  '\n' +
+  "  function stepIdFor(list) { return String(list?.dataset?.v120SelectedList || ''); }\n" +
+  "  function chips(list) { return [...list.querySelectorAll('[data-v120-selected-tag]')]; }\n" +
+  "  function tagsFrom(list) { return chips(list).map(node => String(node.dataset.v120SelectedTag || '')).filter(Boolean); }\n" +
+  '\n' +
+  '  function normalizedOrder(stepId, current) {\n' +
+  '    const saved = orders.get(stepId) || [];\n' +
+  '    const currentSet = new Set(current);\n' +
+  '    return [...saved.filter(tag => currentSet.has(tag)), ...current.filter(tag => !saved.includes(tag))];\n' +
+  '  }\n' +
+  '\n' +
+  '  function applyOrder(list) {\n' +
+  '    const stepId = stepIdFor(list);\n' +
+  '    if (!stepId) return;\n' +
+  '    const current = tagsFrom(list);\n' +
+  '    if (!current.length) return;\n' +
+  '    const order = normalizedOrder(stepId, current);\n' +
+  '    orders.set(stepId, order);\n' +
+  '    const byTag = new Map(chips(list).map(node => [node.dataset.v120SelectedTag, node]));\n' +
+  '    for (const tag of order) if (byTag.get(tag)) list.append(byTag.get(tag));\n' +
+  '  }\n' +
+  '\n' +
+  '  function syncLists() {\n' +
+  "    document.querySelectorAll('.v120-selected-tag-list[data-v120-selected-list]').forEach(applyOrder);\n" +
+  '  }\n' +
+  '\n' +
+  '  function clearVisualState(state = drag) {\n' +
+  '    if (!state) return;\n' +
+  "    state.list.classList.remove('lb-sort-mode');\n" +
+  "    state.chip.classList.remove('lb-sort-dragging');\n" +
+  "    state.list.querySelectorAll('.lb-sort-target').forEach(node => node.classList.remove('lb-sort-target'));\n" +
+  "    document.body.classList.remove('lb-sensory-sorting');\n" +
+  '  }\n' +
+  '\n' +
+  '  function releaseCapture(state) {\n' +
+  '    if (!state) return;\n' +
+  '    try {\n' +
+  '      if (state.chip.hasPointerCapture?.(state.id)) state.chip.releasePointerCapture?.(state.id);\n' +
+  '    } catch {}\n' +
+  '  }\n' +
+  '\n' +
+  '  function cancelPending() {\n' +
+  '    if (!drag) return;\n' +
+  '    const state = drag;\n' +
+  '    clearTimeout(state.timer);\n' +
+  '    clearVisualState(state);\n' +
+  '    releaseCapture(state);\n' +
+  '    drag = null;\n' +
+  '  }\n' +
+  '\n' +
+  '  function activateDrag(id) {\n' +
+  '    if (!drag || drag.id !== id || drag.active) return;\n' +
+  '    drag.active = true;\n' +
+  "    drag.list.classList.add('lb-sort-mode');\n" +
+  "    drag.chip.classList.add('lb-sort-dragging');\n" +
+  "    document.body.classList.add('lb-sensory-sorting');\n" +
+  '    navigator.vibrate?.(10);\n' +
+  '  }\n' +
+  '\n' +
+  '  function nearestTarget(list, chip, x, y) {\n' +
+  '    const candidates = chips(list).filter(node => node !== chip);\n' +
+  '    let best = null;\n' +
+  '    let bestDistance = Infinity;\n' +
+  '    for (const node of candidates) {\n' +
+  '      const rect = node.getBoundingClientRect();\n' +
+  '      const cx = rect.left + rect.width / 2;\n' +
+  '      const cy = rect.top + rect.height / 2;\n' +
+  '      const distance = (x - cx) ** 2 + (y - cy) ** 2;\n' +
+  '      if (distance < bestDistance) { bestDistance = distance; best = { node, rect, cx, cy }; }\n' +
+  '    }\n' +
+  '    return best;\n' +
+  '  }\n' +
+  '\n' +
+  '  function moveDrag(event) {\n' +
+  '    if (!drag || drag.id !== event.pointerId) return;\n' +
+  '    if (!drag.active) {\n' +
+  '      if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > MOVE_CANCEL_DISTANCE) cancelPending();\n' +
+  '      return;\n' +
+  '    }\n' +
+  '    event.preventDefault();\n' +
+  '    event.stopImmediatePropagation();\n' +
+  '    const target = nearestTarget(drag.list, drag.chip, event.clientX, event.clientY);\n' +
+  '    if (!target) return;\n' +
+  "    drag.list.querySelectorAll('.lb-sort-target').forEach(node => node.classList.remove('lb-sort-target'));\n" +
+  "    target.node.classList.add('lb-sort-target');\n" +
+  '    const sameRow = Math.abs(event.clientY - target.cy) < target.rect.height * .65;\n' +
+  '    const before = sameRow ? event.clientX < target.cx : event.clientY < target.cy;\n' +
+  '    const anchor = before ? target.node : target.node.nextSibling;\n' +
+  '    if (anchor !== drag.chip && anchor !== drag.chip.nextSibling) drag.list.insertBefore(drag.chip, anchor);\n' +
+  '  }\n' +
+  '\n' +
+  '  function finishDrag(event) {\n' +
+  '    if (!drag || drag.id !== event.pointerId) return;\n' +
+  '    const finished = drag;\n' +
+  '    clearTimeout(finished.timer);\n' +
+  '    if (finished.active) {\n' +
+  '      event.preventDefault();\n' +
+  '      event.stopImmediatePropagation();\n' +
+  '      const stepId = stepIdFor(finished.list);\n' +
+  '      orders.set(stepId, tagsFrom(finished.list));\n' +
+  "      finished.chip.dataset.lbSortSuppressClick = '1';\n" +
+  '      setTimeout(() => { delete finished.chip.dataset.lbSortSuppressClick; }, 360);\n' +
+  '    }\n' +
+  '    clearVisualState(finished);\n' +
+  '    releaseCapture(finished);\n' +
+  '    drag = null;\n' +
+  '  }\n' +
+  '\n' +
+  '  function beginDrag(event) {\n' +
+  '    if (event.button != null && event.button !== 0) return;\n' +
+  "    const chip = event.target.closest?.('[data-v120-selected-tag]');\n" +
+  "    const list = chip?.closest?.('[data-v120-selected-list]');\n" +
+  '    if (!chip || !list) return;\n' +
+  '    cancelPending();\n' +
+  '    applyOrder(list);\n' +
+  '    drag = {\n' +
+  '      id:event.pointerId, chip, list,\n' +
+  '      startX:event.clientX, startY:event.clientY,\n' +
+  '      active:false, timer:null\n' +
+  '    };\n' +
+  '    // Window capture owns this gesture before legacy document/element listeners can claim the handle.\n' +
+  '    event.stopImmediatePropagation();\n' +
+  '    try { chip.setPointerCapture?.(event.pointerId); } catch {}\n' +
+  '    const id = event.pointerId;\n' +
+  '    drag.timer = setTimeout(() => activateDrag(id), LONG_PRESS_MS);\n' +
+  '  }\n' +
+  '\n' +
+  '  function reorderCompletion(detail) {\n' +
+  '    const selections = detail?.professionalData?.selections;\n' +
+  '    if (!selections) return;\n' +
+  '    for (const [stepId, current] of Object.entries(selections)) {\n' +
+  '      if (!Array.isArray(current)) continue;\n' +
+  '      const order = normalizedOrder(stepId, current.map(String));\n' +
+  '      selections[stepId] = order;\n' +
+  '      const title = STEP_TITLES[stepId];\n' +
+  '      if (!title || !Array.isArray(detail.summary)) continue;\n' +
+  '      const prefix = `${title}：`;\n' +
+  '      const index = detail.summary.findIndex(line => String(line).startsWith(prefix));\n' +
+  '      if (index < 0) continue;\n' +
+  '      const intensity = detail.professionalData?.intensities?.[stepId];\n' +
+  "      detail.summary[index] = `${title}：${order.join('、')}；强度 ${Number(intensity ?? 0).toFixed(1)}`;\n" +
+  '    }\n' +
+  '  }\n' +
+  '\n' +
+  "  window.addEventListener('pointerdown', beginDrag, true);\n" +
+  "  window.addEventListener('pointermove', moveDrag, { capture:true, passive:false });\n" +
+  "  window.addEventListener('pointerup', finishDrag, true);\n" +
+  "  window.addEventListener('pointercancel', finishDrag, true);\n" +
+  "  document.addEventListener('click', event => {\n" +
+  "    const chip = event.target.closest?.('[data-v120-selected-tag]');\n" +
+  "    if (chip?.dataset.lbSortSuppressClick === '1') {\n" +
+  '      event.preventDefault();\n' +
+  '      event.stopImmediatePropagation();\n' +
+  '      return;\n' +
+  '    }\n' +
+  `    if (event.target.closest?.('[data-v095-mode="professional"]')) orders.clear();\n` +
+  "    if (event.target.closest?.('[data-v095-tag],[data-v095-next],[data-v095-prev]')) queueMicrotask(syncLists);\n" +
+  "    if (event.target.closest?.('[data-v095-close],[data-v095-cancel]')) orders.clear();\n" +
+  '  }, true);\n' +
+  "  document.addEventListener('luckybean:edit-professional-sensory', () => orders.clear(), true);\n" +
+  "  document.addEventListener('luckybean:professional-sensory-complete', event => {\n" +
+  '    reorderCompletion(event.detail);\n' +
+  '    orders.clear();\n' +
+  '  }, true);\n' +
+  '\n' +
+  '  ensureStyle();\n' +
+  '  globalThis.LuckyBeanSensoryTagSort = { sync:syncLists, orders };\n' +
+  '}\n'
 
-    at file:///home/runner/work/luckybean/luckybean/tests/v124b-ui-policy-regression.mjs:32:8 {
+    at file:///home/runner/work/luckybean/luckybean/tests/v123e-ui-stability-static.mjs:55:8
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
   generatedMessage: true,
   code: 'ERR_ASSERTION',
-  actual: 'const $=(s,r=document)=>r?.querySelector?.(s)||null;\n' +
-    'let gesture=null;\n' +
-    '\n' +
-    'function groupApi(){return globalThis.LuckyBeanV099tBeanGroups||null;}\n' +
-    'function hasActiveGroup(){return Boolean(groupApi()?.hasActiveGroup?.());}\n' +
-    `function isInteractive(target){return Boolean(target?.closest?.('button,a,input,select,textarea,.bean-card,[role="button"]'));}\n` +
-    "function isBeanPageVisible(){return $('#pageBeans')?.classList?.contains('active');}\n" +
-    '\n' +
-    'function closeActiveGroup(){\n' +
-    '  const api=groupApi();\n' +
-    '  if(!api?.hasActiveGroup?.())return false;\n' +
-    "  api.closeActiveGroup?.().catch?.(error=>console.warn('豆藏分组关闭失败',error));\n" +
-    '  return true;\n' +
-    '}\n' +
-    '\n' +
-    'function bindPageLevelDismiss(){\n' +
-    "  if(document.documentElement.dataset.lb124bPageGroupDismiss==='2')return;\n" +
-    "  document.documentElement.dataset.lb124bPageGroupDismiss='2';\n" +
-    '\n' +
-    '  // Capture phase is deliberate: clear the folder state before page navigation refreshes the Beans view.\n' +
-    "  document.addEventListener('click',event=>{\n" +
-    '    if(!hasActiveGroup())return;\n' +
-    '\n' +
-    "    const pageTarget=event.target.closest?.('[data-page-target]');\n" +
-    '    if(pageTarget){\n' +
-    '      closeActiveGroup();\n' +
-    '      return;\n' +
-    '    }\n' +
-    '\n' +
-    '    if(!isBeanPageVisible())return;\n' +
-    "    const page=$('#pageBeans');\n" +
-    '    if(!page?.contains(event.target))return;\n' +
-    '\n' +
-    '    // An opened group behaves like a folder page. Only real controls and bean cards keep it open.\n' +
-    '    if(isInteractive(event.target))return;\n' +
-    '    closeActiveGroup();\n' +
-    '  },{capture:true});\n' +
-    '\n' +
-    "  document.addEventListener('pointerdown',event=>{\n" +
-    '    if(!hasActiveGroup()||!isBeanPageVisible()||isInteractive(event.target))return;\n' +
-    '    gesture={id:event.pointerId,x:event.clientX,y:event.clientY};\n' +
-    '  },{capture:true,passive:true});\n' +
-    '\n' +
-    "  document.addEventListener('pointerup',event=>{\n" +
-    '    if(!gesture||gesture.id!==event.pointerId)return;\n' +
-    '    const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;\n' +
-    '    gesture=null;\n' +
-    '    if(dx<=-72&&Math.abs(dx)>Math.abs(dy)*1.35)closeActiveGroup();\n' +
-    '  },{capture:true,passive:true});\n' +
-    '}\n' +
-    '\n' +
-    "document.addEventListener('luckybean:navigation-back',event=>{\n" +
-    '  if(closeActiveGroup())event.preventDefault?.();\n' +
+  actual: 'const LONG_PRESS_MS = 320;\n' +
+    'const MOVE_CANCEL_DISTANCE = 14;\n' +
+    'const STEP_TITLES = Object.freeze({\n' +
+    "  dry:'干香 / 湿香', high:'高温', mid:'中温', low:'低温', aftertaste:'余韵', acidity:'酸质', sweetness:'甜感', mouthfeel:'口感'\n" +
     '});\n' +
     '\n' +
-    'bindPageLevelDismiss();\n' +
+    'if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {\n' +
+    '  globalThis.__LuckyBeanSensoryTagSortLoaded = true;\n' +
     '\n' +
-    'globalThis.LuckyBean124BGroupNavigation={close:closeActiveGroup,hasActiveGroup};\n' +
-    "console.info('[LuckyBean] 1.24B canonical folder-state navigation active');\n",
-  expected: /button\[data-v099t-group-back\]/,
+    '  const orders = new Map();\n' +
+    '  let drag = null;\n' +
+    '\n' +
+    '  function ensureStyle() {\n' +
+    "    if (document.getElementById('luckybean-sensory-sort-style')) return;\n" +
+    "    const style = document.createElement('style');\n" +
+    "    style.id = 'luckybean-sensory-sort-style';\n" +
+    '    style.textContent = `\n' +
+    '      .v120-selected-tag { touch-action:pan-y; }\n' +
+    '      .v120-selected-tag-list.lb-sort-mode { touch-action:none; user-select:none; -webkit-user-select:none; }\n' +
+    '      .v120-selected-tag-list.lb-sort-mode .v120-selected-tag { transition:transform .12s ease, opacity .12s ease, box-shadow .12s ease; }\n' +
+    '      .v120-selected-tag.lb-sort-dragging { position:relative; z-index:3; transform:scale(1.06); opacity:.92; box-shadow:0 8px 22px rgba(0,0,0,.26); }\n' +
+    '      .v120-selected-tag.lb-sort-target { outline:1px dashed var(--cup-tag-selected-border); outline-offset:3px; }\n' +
+    '      .cupping-drag-handle { pointer-events:none; }\n' +
+    "      .v095-sort-hint::after { content:' 长按任一已选标签即可进入排序。'; }\n" +
+    '      body.lb-sensory-sorting { overscroll-behavior:contain; }\n' +
+    '    `;\n' +
+    '    document.head.append(style);\n' +
+    '  }\n' +
+    '\n' +
+    "  function stepIdFor(list) { return String(list?.dataset?.v120SelectedList || ''); }\n" +
+    "  function chips(list) { return [...list.querySelectorAll('[data-v120-selected-tag]')]; }\n" +
+    "  function tagsFrom(list) { return chips(list).map(node => String(node.dataset.v120SelectedTag || '')).filter(Boolean); }\n" +
+    '\n' +
+    '  function normalizedOrder(stepId, current) {\n' +
+    '    const saved = orders.get(stepId) || [];\n' +
+    '    const currentSet = new Set(current);\n' +
+    '    return [...saved.filter(tag => currentSet.has(tag)), ...current.filter(tag => !saved.includes(tag))];\n' +
+    '  }\n' +
+    '\n' +
+    '  function applyOrder(list) {\n' +
+    '    const stepId = stepIdFor(list);\n' +
+    '    if (!stepId) return;\n' +
+    '    const current = tagsFrom(list);\n' +
+    '    if (!current.length) return;\n' +
+    '    const order = normalizedOrder(stepId, current);\n' +
+    '    orders.set(stepId, order);\n' +
+    '    const byTag = new Map(chips(list).map(node => [node.dataset.v120SelectedTag, node]));\n' +
+    '    for (const tag of order) if (byTag.get(tag)) list.append(byTag.get(tag));\n' +
+    '  }\n' +
+    '\n' +
+    '  function syncLists() {\n' +
+    "    document.querySelectorAll('.v120-selected-tag-list[data-v120-selected-list]').forEach(applyOrder);\n" +
+    '  }\n' +
+    '\n' +
+    '  function clearVisualState(state = drag) {\n' +
+    '    if (!state) return;\n' +
+    "    state.list.classList.remove('lb-sort-mode');\n" +
+    "    state.chip.classList.remove('lb-sort-dragging');\n" +
+    "    state.list.querySelectorAll('.lb-sort-target').forEach(node => node.classList.remove('lb-sort-target'));\n" +
+    "    document.body.classList.remove('lb-sensory-sorting');\n" +
+    '  }\n' +
+    '\n' +
+    '  function releaseCapture(state) {\n' +
+    '    if (!state) return;\n' +
+    '    try {\n' +
+    '      if (state.chip.hasPointerCapture?.(state.id)) state.chip.releasePointerCapture?.(state.id);\n' +
+    '    } catch {}\n' +
+    '  }\n' +
+    '\n' +
+    '  function cancelPending() {\n' +
+    '    if (!drag) return;\n' +
+    '    const state = drag;\n' +
+    '    clearTimeout(state.timer);\n' +
+    '    clearVisualState(state);\n' +
+    '    releaseCapture(state);\n' +
+    '    drag = null;\n' +
+    '  }\n' +
+    '\n' +
+    '  function activateDrag(id) {\n' +
+    '    if (!drag || drag.id !== id || drag.active) return;\n' +
+    '    drag.active = true;\n' +
+    "    drag.list.classList.add('lb-sort-mode');\n" +
+    "    drag.chip.classList.add('lb-sort-dragging');\n" +
+    "    document.body.classList.add('lb-sensory-sorting');\n" +
+    '    navigator.vibrate?.(10);\n' +
+    '  }\n' +
+    '\n' +
+    '  function nearestTarget(list, chip, x, y) {\n' +
+    '    const candidates = chips(list).filter(node => node !== chip);\n' +
+    '    let best = null;\n' +
+    '    let bestDistance = Infinity;\n' +
+    '    for (const node of candidates) {\n' +
+    '      const rect = node.getBoundingClientRect();\n' +
+    '      const cx = rect.left + rect.width / 2;\n' +
+    '      const cy = rect.top + rect.height / 2;\n' +
+    '      const distance = (x - cx) ** 2 + (y - cy) ** 2;\n' +
+    '      if (distance < bestDistance) { bestDistance = distance; best = { node, rect, cx, cy }; }\n' +
+    '    }\n' +
+    '    return best;\n' +
+    '  }\n' +
+    '\n' +
+    '  function moveDrag(event) {\n' +
+    '    if (!drag || drag.id !== event.pointerId) return;\n' +
+    '    if (!drag.active) {\n' +
+    '      if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > MOVE_CANCEL_DISTANCE) cancelPending();\n' +
+    '      return;\n' +
+    '    }\n' +
+    '    event.preventDefault();\n' +
+    '    event.stopImmediatePropagation();\n' +
+    '    const target = nearestTarget(drag.list, drag.chip, event.clientX, event.clientY);\n' +
+    '    if (!target) return;\n' +
+    "    drag.list.querySelectorAll('.lb-sort-target').forEach(node => node.classList.remove('lb-sort-target'));\n" +
+    "    target.node.classList.add('lb-sort-target');\n" +
+    '    const sameRow = Math.abs(event.clientY - target.cy) < target.rect.height * .65;\n' +
+    '    const before = sameRow ? event.clientX < target.cx : event.clientY < target.cy;\n' +
+    '    const anchor = before ? target.node : target.node.nextSibling;\n' +
+    '    if (anchor !== drag.chip && anchor !== drag.chip.nextSibling) drag.list.insertBefore(drag.chip, anchor);\n' +
+    '  }\n' +
+    '\n' +
+    '  function finishDrag(event) {\n' +
+    '    if (!drag || drag.id !== event.pointerId) return;\n' +
+    '    const finished = drag;\n' +
+    '    clearTimeout(finished.timer);\n' +
+    '    if (finished.active) {\n' +
+    '      event.preventDefault();\n' +
+    '      event.stopImmediatePropagation();\n' +
+    '      const stepId = stepIdFor(finished.list);\n' +
+    '      orders.set(stepId, tagsFrom(finished.list));\n' +
+    "      finished.chip.dataset.lbSortSuppressClick = '1';\n" +
+    '      setTimeout(() => { delete finished.chip.dataset.lbSortSuppressClick; }, 360);\n' +
+    '    }\n' +
+    '    clearVisualState(finished);\n' +
+    '    releaseCapture(finished);\n' +
+    '    drag = null;\n' +
+    '  }\n' +
+    '\n' +
+    '  function beginDrag(event) {\n' +
+    '    if (event.button != null && event.button !== 0) return;\n' +
+    "    const chip = event.target.closest?.('[data-v120-selected-tag]');\n" +
+    "    const list = chip?.closest?.('[data-v120-selected-list]');\n" +
+    '    if (!chip || !list) return;\n' +
+    '    cancelPending();\n' +
+    '    applyOrder(list);\n' +
+    '    drag = {\n' +
+    '      id:event.pointerId, chip, list,\n' +
+    '      startX:event.clientX, startY:event.clientY,\n' +
+    '      active:false, timer:null\n' +
+    '    };\n' +
+    '    // Window capture owns this gesture before legacy document/element listeners can claim the handle.\n' +
+    '    event.stopImmediatePropagation();\n' +
+    '    try { chip.setPointerCapture?.(event.pointerId); } catch {}\n' +
+    '    const id = event.pointerId;\n' +
+    '    drag.timer = setTimeout(() => activateDrag(id), LONG_PRESS_MS);\n' +
+    '  }\n' +
+    '\n' +
+    '  function reorderCompletion(detail) {\n' +
+    '    const selections = detail?.professionalData?.selections;\n' +
+    '    if (!selections) return;\n' +
+    '    for (const [stepId, current] of Object.entries(selections)) {\n' +
+    '      if (!Array.isArray(current)) continue;\n' +
+    '      const order = normalizedOrder(stepId, current.map(String));\n' +
+    '      selections[stepId] = order;\n' +
+    '      const title = STEP_TITLES[stepId];\n' +
+    '      if (!title || !Array.isArray(detail.summary)) continue;\n' +
+    '      const prefix = `${title}：`;\n' +
+    '      const index = detail.summary.findIndex(line => String(line).startsWith(prefix));\n' +
+    '      if (index < 0) continue;\n' +
+    '      const intensity = detail.professionalData?.intensities?.[stepId];\n' +
+    "      detail.summary[index] = `${title}：${order.join('、')}；强度 ${Number(intensity ?? 0).toFixed(1)}`;\n" +
+    '    }\n' +
+    '  }\n' +
+    '\n' +
+    "  window.addEventListener('pointerdown', beginDrag, true);\n" +
+    "  window.addEventListener('pointermove', moveDrag, { capture:true, passive:false });\n" +
+    "  window.addEventListener('pointerup', finishDrag, true);\n" +
+    "  window.addEventListener('pointercancel', finishDrag, true);\n" +
+    "  document.addEventListener('click', event => {\n" +
+    "    const chip = event.target.closest?.('[data-v120-selected-tag]');\n" +
+    "    if (chip?.dataset.lbSortSuppressClick === '1') {\n" +
+    '      event.preventDefault();\n' +
+    '      event.stopImmediatePropagation();\n' +
+    '      return;\n' +
+    '    }\n' +
+    `    if (event.target.closest?.('[data-v095-mode="professional"]')) orders.clear();\n` +
+    "    if (event.target.closest?.('[data-v095-tag],[data-v095-next],[data-v095-prev]')) queueMicrotask(syncLists);\n" +
+    "    if (event.target.closest?.('[data-v095-close],[data-v095-cancel]')) orders.clear();\n" +
+    '  }, true);\n' +
+    "  document.addEventListener('luckybean:edit-professional-sensory', () => orders.clear(), true);\n" +
+    "  document.addEventListener('luckybean:professional-sensory-complete', event => {\n" +
+    '    reorderCompletion(event.detail);\n' +
+    '    orders.clear();\n' +
+    '  }, true);\n' +
+    '\n' +
+    '  ensureStyle();\n' +
+    '  globalThis.LuckyBeanSensoryTagSort = { sync:syncLists, orders };\n' +
+    '}\n',
+  expected: /MOVE_CANCEL_DISTANCE = 12/,
   operator: 'match',
   diff: 'simple'
 }
 
 Node.js v22.23.2
-::error file=tests/v124b-ui-policy-regression.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /button\[data-v099t-group-back\]/. Input:%0A%0A'const $=(s,r=document)=>r?.querySelector?.(s)||null;\n' +%0A  'let gesture=null;\n' +%0A  '\n' +%0A  'function groupApi(){return globalThis.LuckyBeanV099tBeanGroups||null;}\n' +%0A  'function hasActiveGroup(){return Boolean(groupApi()?.hasActiveGroup?.());}\n' +%0A  `function isInteractive(target){return Boolean(target?.closest?.('button,a,input,select,textarea,.bean-card,[role="button"]'));}\n` +%0A  "function isBeanPageVisible(){return $('#pageBeans')?.classList?.contains('active');}\n" +%0A  '\n' +%0A  'function closeActiveGroup(){\n' +%0A  '  const api=groupApi();\n' +%0A  '  if(!api?.hasActiveGroup?.())return false;\n' +%0A  "  api.closeActiveGroup?.().catch?.(error=>console.warn('豆藏分组关闭失败',error));\n" +%0A  '  return true;\n' +%0A  '}\n' +%0A  '\n' +%0A  'function bindPageLevelDismiss(){\n' +%0A  "  if(document.documentElement.dataset.lb124bPageGroupDismiss==='2')return;\n" +%0A  "  document.documentElement.dataset.lb124bPageGroupDismiss='2';\n" +%0A  '\n' +%0A  '  // Capture phase is deliberate: clear the folder state before page navigation refreshes the Beans view.\n' +%0A  "  document.addEventListener('click',event=>{\n" +%0A  '    if(!hasActiveGroup())return;\n' +%0A  '\n' +%0A  "    const pageTarget=event.target.closest?.('[data-page-target]');\n" +%0A  '    if(pageTarget){\n' +%0A  '      closeActiveGroup();\n' +%0A  '      return;\n' +%0A  '    }\n' +%0A  '\n' +%0A  '    if(!isBeanPageVisible())return;\n' +%0A  "    const page=$('#pageBeans');\n" +%0A  '    if(!page?.contains(event.target))return;\n' +%0A  '\n' +%0A  '    // An opened group behaves like a folder page. Only real controls and bean cards keep it open.\n' +%0A  '    if(isInteractive(event.target))return;\n' +%0A  '    closeActiveGroup();\n' +%0A  '  },{capture:true});\n' +%0A  '\n' +%0A  "  document.addEventListener('pointerdown',event=>{\n" +%0A  '    if(!hasActiveGroup()||!isBeanPageVisible()||isInteractive(event.target))return;\n' +%0A  '    gesture={id:event.pointerId,x:event.clientX,y:event.clientY};\n' +%0A  '  },{capture:true,passive:true});\n' +%0A  '\n' +%0A  "  document.addEventListener('pointerup',event=>{\n" +%0A  '    if(!gesture||gesture.id!==event.pointerId)return;\n' +%0A  '    const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;\n' +%0A  '    gesture=null;\n' +%0A  '    if(dx<=-72&&Math.abs(dx)>Math.abs(dy)*1.35)closeActiveGroup();\n' +%0A  '  },{capture:true,passive:true});\n' +%0A  '}\n' +%0A  '\n' +%0A  "document.addEventListener('luckybean:navigation-back',event=>{\n" +%0A  '  if(closeActiveGroup())event.preventDefault?.();\n' +%0A  '});\n' +%0A  '\n' +%0A  'bindPageLevelDismiss();\n' +%0A  '\n' +%0A  'globalThis.LuckyBean124BGroupNavigation={close:closeActiveGroup,hasActiveGroup};\n' +%0A  "console.info('[LuckyBean] 1.24B canonical folder-state navigation active');\n"%0A%0A    at file:///home/runner/work/luckybean/luckybean/tests/v124b-ui-policy-regression.mjs:32:8 {%0A  generatedMessage: true,%0A  code: 'ERR_ASSERTION',%0A  actual: 'const $=(s,r=document)=>r?.querySelector?.(s)||null;\n' +%0A    'let gesture=null;\n' +%0A    '\n' +%0A    'function groupApi(){return globalThis.LuckyBeanV099tBeanGroups||null;}\n' +%0A    'function hasActiveGroup(){return Boolean(groupApi()?.hasActiveGroup?.());}\n' +%0A    `function isInteractive(target){return Boolean(target?.closest?.('button,a,input,select,textarea,.bean-card,[role="button"]'));}\n` +%0A    "function isBeanPageVisible(){return $('#pageBeans')?.classList?.contains('active');}\n" +%0A    '\n' +%0A    'function closeActiveGroup(){\n' +%0A    '  const api=groupApi();\n' +%0A    '  if(!api?.hasActiveGroup?.())return false;\n' +%0A    "  api.closeActiveGroup?.().catch?.(error=>console.warn('豆藏分组关闭失败',error));\n" +%0A    '  return true;\n' +%0A    '}\n' +%0A    '\n' +%0A    'function bindPageLevelDismiss(){\n' +%0A    "  if(document.documentElement.dataset.lb124bPageGroupDismiss==='2')return;\n" +%0A    "  document.documentElement.dataset.lb124bPageGroupDismiss='2';\n" +%0A    '\n' +%0A    '  // Capture phase is deliberate: clear the folder state before page navigation refreshes the Beans view.\n' +%0A    "  document.addEventListener('click',event=>{\n" +%0A    '    if(!hasActiveGroup())return;\n' +%0A    '\n' +%0A    "    const pageTarget=event.target.closest?.('[data-page-target]');\n" +%0A    '    if(pageTarget){\n' +%0A    '      closeActiveGroup();\n' +%0A    '      return;\n' +%0A    '    }\n' +%0A    '\n' +%0A    '    if(!isBeanPageVisible())return;\n' +%0A    "    const page=$('#pageBeans');\n" +%0A    '    if(!page?.contains(event.target))return;\n' +%0A    '\n' +%0A    '    // An opened group behaves like a folder page. Only real controls and bean cards keep it open.\n' +%0A    '    if(isInteractive(event.target))return;\n' +%0A    '    closeActiveGroup();\n' +%0A    '  },{capture:true});\n' +%0A    '\n' +%0A    "  document.addEventListener('pointerdown',event=>{\n" +%0A    '    if(!hasActiveGroup()||!isBeanPageVisible()||isInteractive(event.target))return;\n' +%0A    '    gesture={id:event.pointerId,x:event.clientX,y:event.clientY};\n' +%0A    '  },{capture:true,passive:true});\n' +%0A    '\n' +%0A    "  document.addEventListener('pointerup',event=>{\n" +%0A    '    if(!gesture||gesture.id!==event.pointerId)return;\n' +%0A    '    const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;\n' +%0A    '    gesture=null;\n' +%0A    '    if(dx<=-72&&Math.abs(dx)>Math.abs(dy)*1.35)closeActiveGroup();\n' +%0A    '  },{capture:true,passive:true});\n' +%0A    '}\n' +%0A    '\n' +%0A    "document.addEventListener('luckybean:navigation-back',event=>{\n" +%0A    '  if(closeActiveGroup())event.preventDefault?.();\n' +%0A    '});\n' +%0A    '\n' +%0A    'bindPageLevelDismiss();\n' +%0A    '\n' +%0A    'globalThis.LuckyBean124BGroupNavigation={close:closeActiveGroup,hasActiveGroup};\n' +%0A    "console.info('[LuckyBean] 1.24B canonical folder-state navigation active');\n",%0A  expected: /button\[data-v099t-group-back\]/,%0A  operator: 'match',%0A  diff: 'simple'%0A}%0A%0ANode.js v22.23.2
+::error file=tests/v123e-ui-stability-static.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /MOVE_CANCEL_DISTANCE = 12/. Input:%0A%0A'const LONG_PRESS_MS = 320;\n' +%0A  'const MOVE_CANCEL_DISTANCE = 14;\n' +%0A  'const STEP_TITLES = Object.freeze({\n' +%0A  "  dry:'干香 / 湿香', high:'高温', mid:'中温', low:'低温', aftertaste:'余韵', acidity:'酸质', sweetness:'甜感', mouthfeel:'口感'\n" +%0A  '});\n' +%0A  '\n' +%0A  'if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {\n' +%0A  '  globalThis.__LuckyBeanSensoryTagSortLoaded = true;\n' +%0A  '\n' +%0A  '  const orders = new Map();\n' +%0A  '  let drag = null;\n' +%0A  '\n' +%0A  '  function ensureStyle() {\n' +%0A  "    if (document.getElementById('luckybean-sensory-sort-style')) return;\n" +%0A  "    const style = document.createElement('style');\n" +%0A  "    style.id = 'luckybean-sensory-sort-style';\n" +%0A  '    style.textContent = `\n' +%0A  '      .v120-selected-tag { touch-action:pan-y; }\n' +%0A  '      .v120-selected-tag-list.lb-sort-mode { touch-action:none; user-select:none; -webkit-user-select:none; }\n' +%0A  '      .v120-selected-tag-list.lb-sort-mode .v120-selected-tag { transition:transform .12s ease, opacity .12s ease, box-shadow .12s ease; }\n' +%0A  '      .v120-selected-tag.lb-sort-dragging { position:relative; z-index:3; transform:scale(1.06); opacity:.92; box-shadow:0 8px 22px rgba(0,0,0,.26); }\n' +%0A  '      .v120-selected-tag.lb-sort-target { outline:1px dashed var(--cup-tag-selected-border); outline-offset:3px; }\n' +%0A  '      .cupping-drag-handle { pointer-events:none; }\n' +%0A  "      .v095-sort-hint::after { content:' 长按任一已选标签即可进入排序。'; }\n" +%0A  '      body.lb-sensory-sorting { overscroll-behavior:contain; }\n' +%0A  '    `;\n' +%0A  '    document.head.append(style);\n' +%0A  '  }\n' +%0A  '\n' +%0A  "  function stepIdFor(list) { return String(list?.dataset?.v120SelectedList || ''); }\n" +%0A  "  function chips(list) { return [...list.querySelectorAll('[data-v120-selected-tag]')]; }\n" +%0A  "  function tagsFrom(list) { return chips(list).map(node => String(node.dataset.v120SelectedTag || '')).filter(Boolean); }\n" +%0A  '\n' +%0A  '  function normalizedOrder(stepId, current) {\n' +%0A  '    const saved = orders.get(stepId) || [];\n' +%0A  '    const currentSet = new Set(current);\n' +%0A  '    return [...saved.filter(tag => currentSet.has(tag)), ...current.filter(tag => !saved.includes(tag))];\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function applyOrder(list) {\n' +%0A  '    const stepId = stepIdFor(list);\n' +%0A  '    if (!stepId) return;\n' +%0A  '    const current = tagsFrom(list);\n' +%0A  '    if (!current.length) return;\n' +%0A  '    const order = normalizedOrder(stepId, current);\n' +%0A  '    orders.set(stepId, order);\n' +%0A  '    const byTag = new Map(chips(list).map(node => [node.dataset.v120SelectedTag, node]));\n' +%0A  '    for (const tag of order) if (byTag.get(tag)) list.append(byTag.get(tag));\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function syncLists() {\n' +%0A  "    document.querySelectorAll('.v120-selected-tag-list[data-v120-selected-list]').forEach(applyOrder);\n" +%0A  '  }\n' +%0A  '\n' +%0A  '  function clearVisualState(state = drag) {\n' +%0A  '    if (!state) return;\n' +%0A  "    state.list.classList.remove('lb-sort-mode');\n" +%0A  "    state.chip.classList.remove('lb-sort-dragging');\n" +%0A  "    state.list.querySelectorAll('.lb-sort-target').forEach(node => node.classList.remove('lb-sort-target'));\n" +%0A  "    document.body.classList.remove('lb-sensory-sorting');\n" +%0A  '  }\n' +%0A  '\n' +%0A  '  function releaseCapture(state) {\n' +%0A  '    if (!state) return;\n' +%0A  '    try {\n' +%0A  '      if (state.chip.hasPointerCapture?.(state.id)) state.chip.releasePointerCapture?.(state.id);\n' +%0A  '    } catch {}\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function cancelPending() {\n' +%0A  '    if (!drag) return;\n' +%0A  '    const state = drag;\n' +%0A  '    clearTimeout(state.timer);\n' +%0A  '    clearVisualState(state);\n' +%0A  '    releaseCapture(state);\n' +%0A  '    drag = null;\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function activateDrag(id) {\n' +%0A  '    if (!drag || drag.id !== id || drag.active) return;\n' +%0A  '    drag.active = true;\n' +%0A  "    drag.list.classList.add('lb-sort-mode');\n" +%0A  "    drag.chip.classList.add('lb-sort-dragging');\n" +%0A  "    document.body.classList.add('lb-sensory-sorting');\n" +%0A  '    navigator.vibrate?.(10);\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function nearestTarget(list, chip, x, y) {\n' +%0A  '    const candidates = chips(list).filter(node => node !== chip);\n' +%0A  '    let best = null;\n' +%0A  '    let bestDistance = Infinity;\n' +%0A  '    for (const node of candidates) {\n' +%0A  '      const rect = node.getBoundingClientRect();\n' +%0A  '      const cx = rect.left + rect.width / 2;\n' +%0A  '      const cy = rect.top + rect.height / 2;\n' +%0A  '      const distance = (x - cx) ** 2 + (y - cy) ** 2;\n' +%0A  '      if (distance < bestDistance) { bestDistance = distance; best = { node, rect, cx, cy }; }\n' +%0A  '    }\n' +%0A  '    return best;\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function moveDrag(event) {\n' +%0A  '    if (!drag || drag.id !== event.pointerId) return;\n' +%0A  '    if (!drag.active) {\n' +%0A  '      if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > MOVE_CANCEL_DISTANCE) cancelPending();\n' +%0A  '      return;\n' +%0A  '    }\n' +%0A  '    event.preventDefault();\n' +%0A  '    event.stopImmediatePropagation();\n' +%0A  '    const target = nearestTarget(drag.list, drag.chip, event.clientX, event.clientY);\n' +%0A  '    if (!target) return;\n' +%0A  "    drag.list.querySelectorAll('.lb-sort-target').forEach(node => node.classList.remove('lb-sort-target'));\n" +%0A  "    target.node.classList.add('lb-sort-target');\n" +%0A  '    const sameRow = Math.abs(event.clientY - target.cy) < target.rect.height * .65;\n' +%0A  '    const before = sameRow ? event.clientX < target.cx : event.clientY < target.cy;\n' +%0A  '    const anchor = before ? target.node : target.node.nextSibling;\n' +%0A  '    if (anchor !== drag.chip && anchor !== drag.chip.nextSibling) drag.list.insertBefore(drag.chip, anchor);\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function finishDrag(event) {\n' +%0A  '    if (!drag || drag.id !== event.pointerId) return;\n' +%0A  '    const finished = drag;\n' +%0A  '    clearTimeout(finished.timer);\n' +%0A  '    if (finished.active) {\n' +%0A  '      event.preventDefault();\n' +%0A  '      event.stopImmediatePropagation();\n' +%0A  '      const stepId = stepIdFor(finished.list);\n' +%0A  '      orders.set(stepId, tagsFrom(finished.list));\n' +%0A  "      finished.chip.dataset.lbSortSuppressClick = '1';\n" +%0A  '      setTimeout(() => { delete finished.chip.dataset.lbSortSuppressClick; }, 360);\n' +%0A  '    }\n' +%0A  '    clearVisualState(finished);\n' +%0A  '    releaseCapture(finished);\n' +%0A  '    
