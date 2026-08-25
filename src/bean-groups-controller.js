@@ -195,12 +195,22 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
       }
       const group = groups.find(item => item.key === activeGroup);
       const items = group ? sortedItems(group.items, mode) : [];
-      container.innerHTML = `${board}<section data-v099t-group-root class="active-group-panel auto-motion"><div class="active-group-title"><span>${esc(group?.label || activeGroup)}</span><small>${items.length}只 · ${mode === MODE_FRESHNESS ? '烘焙日期由新到旧' : '余量由少到多'}</small></div><div class="bean-grid compact-grid bean-grid-animated auto-motion">${items.map(bean => beanCardHtml(bean, index, scoreMap)).join('') || '<p class="muted">该分组没有豆卡</p>'}</div><div class="group-collapse-zone" data-v099t-group-back><button class="group-collapse" type="button" data-v099t-group-back>收</button></div></section>`;
+      container.innerHTML = `${board}<section data-v099t-group-root class="active-group-panel auto-motion"><div class="active-group-title"><span>${esc(group?.label || activeGroup)}</span><small>${items.length}只 · ${mode === MODE_FRESHNESS ? '烘焙日期由新到旧' : '余量由少到多'}</small></div><div class="bean-grid compact-grid bean-grid-animated auto-motion">${items.map(bean => beanCardHtml(bean, index, scoreMap)).join('') || '<p class="muted">该分组没有豆卡</p>'}</div></section>`;
     } finally {
       rendering = false;
       container.classList.remove('v099t-group-busy');
       globalThis.LuckyBeanFreshnessTimeline?.refresh?.();
     }
+  }
+
+  async function closeActiveGroup({ refreshData = false } = {}) {
+    if (!activeGroup) return false;
+    activeGroup = '';
+    const container = $('#beanGroups');
+    if (container) delete container.dataset.v099tGroupKey;
+    await render({ force: true, refreshData });
+    document.dispatchEvent(new CustomEvent('luckybean:bean-group-closed'));
+    return true;
   }
 
   function pickBean(mode, beans, scoreMap) {
@@ -284,14 +294,10 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
       const container = $('#beanGroups'); if (container) delete container.dataset.v099tGroupKey;
       await render({ force: true }); return;
     }
-    if (event.target.closest?.('[data-v099t-group-back]')) {
-      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation(); activeGroup = '';
-      const container = $('#beanGroups'); if (container) delete container.dataset.v099tGroupKey;
-      await render({ force: true }); return;
-    }
     if (event.target.closest?.('[data-group-method]')) { await saveMode(MODE_NATIVE); invalidateData(); return; }
     if (event.target.closest?.('[data-page-target="beans"]') && [MODE_FRESHNESS, MODE_REMAINING].includes(mode)) {
-      setTimeout(() => { captureBoard(); const container = $('#beanGroups'); if (container) delete container.dataset.v099tGroupKey; render({ force: true, refreshData: true }).catch(() => {}); }, 60);
+      if (activeGroup) closeActiveGroup({ refreshData: true }).catch(() => {});
+      else setTimeout(() => { captureBoard(); const container = $('#beanGroups'); if (container) delete container.dataset.v099tGroupKey; render({ force: true, refreshData: true }).catch(() => {}); }, 60);
     }
   }
 
@@ -309,10 +315,24 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
     }).catch(() => {});
   });
   document.addEventListener('luckybean:data-changed', () => { invalidateData(); });
+  document.addEventListener('luckybean:close-bean-group', event => {
+    if (!activeGroup) return;
+    event.preventDefault?.();
+    closeActiveGroup().catch(error => console.warn('豆藏分组关闭失败', error));
+  });
 
   const prewarm = () => loadData().catch(() => {});
   if ('requestIdleCallback' in globalThis) requestIdleCallback(prewarm, { timeout: 1600 }); else setTimeout(prewarm, 600);
   getMode().then(mode => { if ([MODE_FRESHNESS, MODE_REMAINING].includes(mode) && $('#pageBeans.active')) setTimeout(() => { captureBoard(); render({ force: true }).catch(() => {}); }, 80); }).catch(() => {});
 
-  globalThis.LuckyBeanV099tBeanGroups = { render, captureRenderedRatios, ratioFor, runRecommendation, invalidateData };
+  globalThis.LuckyBeanV099tBeanGroups = {
+    render,
+    captureRenderedRatios,
+    ratioFor,
+    runRecommendation,
+    invalidateData,
+    closeActiveGroup,
+    hasActiveGroup: () => Boolean(activeGroup),
+    activeGroup: () => activeGroup
+  };
 }
