@@ -25,10 +25,11 @@ jobs:
         run: |
           node --check src/app.js
           node --check src/features/release-1.24b-ui-policy.js
-          grep -Fq "state.activeGroupKey = groupKey(bean, state.settings.groupMethod || 'country')" src/app.js
+          grep -Fq "openBeanGroup(groupKey(bean, state.settings.groupMethod || 'country'), { animation: state.groupAnimationMode });" src/app.js
           ! grep -Fq 'recommendationExpandedAll' src/app.js
+          ! grep -Fq 'recommendation-all-groups' src/app.js
           grep -Fq "['price', '价冠', '#000000'" src/app.js
-          grep -Fq "['remaining', '拾余', '#77736c'" src/app.js
+          grep -Fq "['remaining', '拾余', '#808080'" src/app.js
           grep -Fq 'LuckyBeanBeanGroupState' .github/workflows/build-main.yml
       - name: Commit migration
         run: |
