@@ -14,6 +14,8 @@ const auth = read('src/services/cloud-auth-service.js');
 const sync = read('src/services/cloud-sync-service.js');
 const startup = read('src/core/startup-controller.js');
 const sensory = read('src/sensory-professional-controller.js');
+const sensorySort = read('src/features/sensory-tag-sort-controller.js');
+const sharedSort = read('src/ui/sortable-controller.js');
 const spatial = read('src/renderers/brew-spatial-controller.js');
 const analysis = read('src/services/brew-analysis-service.js');
 const layoutController = read('src/ui-layout-controller.js');
@@ -40,7 +42,7 @@ assert.match(sync, /function ensureAutomatic/);
 assert.doesNotMatch(sync, /ENABLE_KEY|setEnabled|reason: 'disabled'|emit\('disabled'/);
 assert.doesNotMatch(startup, /ensureLocalIdentity|LB-LOCAL-|getSetting|setSetting/);
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124b-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-folder2`/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-interaction3`/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES = \[/);
 for (const prefix of [
   'luckybean-main-v123e-',
@@ -51,6 +53,17 @@ for (const prefix of [
   'luckybean-v122-cloud-safety-test-'
 ]) assert.ok(sw.includes(`'${prefix}'`), `missing legacy cache prefix ${prefix}`);
 assert.match(sw, /1\.24B-main\.4/);
+assert.match(sw, /src\/ui\/sortable-controller\.js/);
+assert.match(sw, /src\/features\/sensory-tag-sort-controller\.js/);
+assert.match(runtime, /shared-sortable/);
+assert.match(runtime, /sensory-tag-sort/);
+assert.match(sharedSort, /lb-sort-ghost/);
+assert.match(sharedSort, /lb-sort-placeholder/);
+assert.match(sharedSort, /onPreview/);
+assert.match(sharedSort, /onCommit/);
+assert.match(sensorySort, /LuckyBeanSortable/);
+assert.match(sensorySort, /双击移除/);
+assert.match(sensorySort, /实时预览松手后的顺序/);
 assert.match(startup, /RELEASE_REVISION/);
 assert.match(startup, /serviceWorker\.register\(`\.\/sw\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`/);
 assert.match(startup, /await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`\)/);
@@ -86,4 +99,4 @@ for (const profile of listBrewProfiles()) {
   assert.ok(Array.isArray(plan.stages) && plan.stages.length > 0, `profile generated no stages: ${profile.id}`);
 }
 
-console.log('LuckyBean 1.24B single server account, mandatory automatic sync and all-profile checks passed');
+console.log('LuckyBean 1.24B single server account, mandatory sync, interaction3 cache, shared sorting and all-profile checks passed');
