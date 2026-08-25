@@ -4,443 +4,373 @@
 
 
 [static] tests/v110-local-first-sync-static.mjs
-LuckyBean 1.24B main.4 local-first cache isolation and current BrewProfiles contract checks passed
-
-[static] tests/v120-core-contracts-static.mjs
-v1.2 core analysis, completed history, provider, spatial and environment-dialog contracts passed
-
-[static] tests/v120-requirements-static.mjs
-LuckyBean 1.24B single server account, mandatory automatic sync and all-profile checks passed
-
-[static] tests/v122-cloud-sync-safety.mjs
-v1.23D cloud union baseline and deletion propagation checks passed
-
-[static] tests/v123-brewprofiles-integration.mjs
-TAP version 13
-# Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
-ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
-  ---
-  duration_ms: 5.126671
-  type: 'test'
-  ...
-# Subtest: catalog is authoritative, cached, and includes all six competition profiles
-ok 2 - catalog is authoritative, cached, and includes all six competition profiles
-  ---
-  duration_ms: 2.134689
-  type: 'test'
-  ...
-# Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
-ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
-  ---
-  duration_ms: 2.584517
-  type: 'test'
-  ...
-# Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
-ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
-  ---
-  duration_ms: 1.957306
-  type: 'test'
-  ...
-# Subtest: client rejects empty or incomplete target geometry
-ok 5 - client rejects empty or incomplete target geometry
-  ---
-  duration_ms: 0.822241
-  type: 'test'
-  ...
-# Subtest: new plan generation never converts an API failure into a fake successful 3D scene
-ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
-  ---
-  duration_ms: 2.800397
-  type: 'test'
-  ...
-# Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
-ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
-  ---
-  duration_ms: 0.856822
-  type: 'test'
-  ...
-1..7
-# tests 7
-# suites 0
-# pass 7
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 21.919271
-
-[static] tests/v123d-main-parity.mjs
-TAP version 13
-# Subtest: all pages use the same red seal slot geometry
-ok 1 - all pages use the same red seal slot geometry
-  ---
-  duration_ms: 5.915286
-  type: 'test'
-  ...
-# Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
-ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
-  ---
-  duration_ms: 3.876716
-  type: 'test'
-  ...
-# Subtest: about section contains the shipped illustration
-ok 3 - about section contains the shipped illustration
-  ---
-  duration_ms: 4.016803
-  type: 'test'
-  ...
-# Subtest: settings data collection owns coffee world and preference profile
-ok 4 - settings data collection owns coffee world and preference profile
-  ---
-  duration_ms: 3.43592
-  type: 'test'
-  ...
-# Subtest: bean page shows inventory and health digest above its leaderboard
-ok 5 - bean page shows inventory and health digest above its leaderboard
-  ---
-  duration_ms: 2.475866
-  type: 'test'
-  ...
-# Subtest: cloud panel exposes status and both recovery actions
-ok 6 - cloud panel exposes status and both recovery actions
-  ---
-  duration_ms: 1.163968
-  type: 'test'
-  ...
-1..6
-# tests 6
-# suites 0
-# pass 6
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 26.706633
-
-[static] tests/v124-stable-data-format.mjs
-Stable cross-project brew data is version-independent and uses the fixed six-target contract.
-
-[static] tests/v125-root-state-models.mjs
-v1.2.5 independent sensory state machines and LuckyBean 1.24B Android package contracts passed
-
-[static] tests/v123d-deployment-contracts.mjs
 node:internal/modules/run_main:123
     triggerUncaughtException(
     ^
 
-AssertionError [ERR_ASSERTION]: The input did not match the regular expression /LONG_PRESS_MS = 320/. Input:
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-folder2`/. Input:
 
-'// Sensory adapter for the shared LuckyBean sortable interaction engine.\n' +
-  '// The shared controller owns pointer/click gestures; this adapter only maps sensory state to it.\n' +
-  'const STEP_TITLES = Object.freeze({\n' +
-  "  dry:'干香 / 湿香', high:'高温', mid:'中温', low:'低温', aftertaste:'余韵', acidity:'酸质', sweetness:'甜感', mouthfeel:'口感'\n" +
+'// LuckyBean 1.24B: lifecycle, transit/frozen beans, serial OCR and compact UI.\n' +
+  "const REVISION = '1.24B-main.4';\n" +
+  "const CACHE_PREFIX = 'luckybean-main-v124b-';\n" +
+  'const CACHE_NAME = `${CACHE_PREFIX}main-4-interaction3`;\n' +
+  'const LEGACY_CACHE_PREFIXES = [\n' +
+  "  'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',\n" +
+  "  'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',\n" +
+  "  'luckybean-v123-brewprofiles-integration-test-', 'luckybean-v200-foundation-'\n" +
+  '];\n' +
+  'const versioned = path => `${path}?v=${REVISION}`;\n' +
+  'const CORE = [\n' +
+  "  './',\n" +
+  "  './index.html',\n" +
+  "  './recognition-test.html',\n" +
+  "  versioned('./manifest.webmanifest'),\n" +
+  "  versioned('./styles.css'),\n" +
+  "  versioned('./src/release-1.24b.css'),\n" +
+  "  versioned('./src/release-1.24b.js'),\n" +
+  "  versioned('./src/features/release-1.24b-integration.js'),\n" +
+  "  versioned('./src/features/release-1.24b-finalize.js'),\n" +
+  "  versioned('./src/features/release-1.24b-transit-controller.js'),\n" +
+  "  versioned('./src/features/release-1.24b-group-navigation.js'),\n" +
+  "  versioned('./src/features/release-1.24b-about-controller.js'),\n" +
+  "  versioned('./src/features/release-1.24b-polish.js'),\n" +
+  "  versioned('./src/features/release-1.24b-ui-policy.js'),\n" +
+  "  versioned('./src/features/release-1.24b-brew-mode-controller.js'),\n" +
+  "  versioned('./src/features/release-1.24b-freshness-detail.js'),\n" +
+  "  versioned('./src/features/recognition-batch-progress-controller.js'),\n" +
+  "  versioned('./src/ui/sortable-controller.js'),\n" +
+  "  versioned('./src/features/sensory-tag-sort-controller.js'),\n" +
+  "  versioned('./src/data/local-brew-recipes-1.24b.js'),\n" +
+  "  versioned('./src/services/grind-psd-reference-service.js'),\n" +
+  "  versioned('./src/domain/recognition/order-recognition-1.24b.js'),\n" +
+  "  versioned('./src/domain/recognition/recognition-field-resolver-1.24b.js'),\n" +
+  "  versioned('./src/ui/app-layout.css'),\n" +
+  "  versioned('./src/ui/app-components.css'),\n" +
+  "  versioned('./src/ui/bean-card.css'),\n" +
+  "  versioned('./src/ui/professional-sensory.css'),\n" +
+  "  versioned('./src/ui/sensory-wizard-actions.css'),\n" +
+  "  versioned('./src/ui/brew-optimization.css'),\n" +
+  "  versioned('./src/app.js'),\n" +
+  "  versioned('./src/domain/archive/luckybean-archive-codec.js'),\n" +
+  "  versioned('./src/domain/archive/luckybean-archive-service.js'),\n" +
+  "  versioned('./src/domain/beans/bean-consumption-summary.js'),\n" +
+  "  versioned('./src/domain/beans/bean-lifecycle-service.js'),\n" +
+  "  versioned('./src/domain/recognition/recognition-document.js'),\n" +
+  "  versioned('./src/domain/recognition/recognition-pipeline.js'),\n" +
+  "  versioned('./src/domain/recognition/recognition-date-classifier.js'),\n" +
+  "  versioned('./src/domain/recognition/recognition-date-review.js'),\n" +
+  "  versioned('./src/recognition-test-page.js'),\n" +
+  "  './contracts/luckybean-archive-v1.schema.json',\n" +
+  "  './contracts/recognition-document-v1.schema.json',\n" +
+  "  './contracts/recognition-date-decision-v1.schema.json',\n" +
+  "  './contracts/brew-optimization-v1.schema.json',\n" +
+  "  './contracts/brew-optimization-validation-v1.schema.json',\n" +
+  "  versioned('./src/core/startup-controller.js'),\n" +
+  "  versioned('./src/core/bootstrap.js'),\n" +
+  "  versioned('./src/services/cloud-auth-service.js'),\n" +
+  "  versioned('./src/services/cloud-sync-service.js'),\n" +
+  "  versioned('./src/services/cloud-sync-safety.js'),\n" +
+  "  versioned('./src/services/bean-enrichment-service.js'),\n" +
+  "  versioned('./src/cloud-codec.js'),\n" +
+  "  versioned('./src/services/brew-analysis-service.js'),\n" +
+  "  versioned('./src/services/brew-calculation-coordinator.js'),\n" +
+  "  versioned('./src/services/brew-api-client.js'),\n" +
+  "  versioned('./src/services/brew-profile-catalog-service.js'),\n" +
+  "  versioned('./src/services/local-reference-analysis.js'),\n" +
+  "  versioned('./src/services/provider-package-service.js'),\n" +
+  "  versioned('./src/services/codebook-reconciliation-service.js'),\n" +
+  "  versioned('./src/services/provider-bootstrap-controller.js'),\n" +
+  "  versioned('./src/ui/provider-status-panel.js'),\n" +
+  "  versioned('./src/ui/codebook-reconciliation-screen.js'),\n" +
+  "  versioned('./src/ui/codebook-reconciliation-screen.css'),\n" +
+  "  versioned('./src/domain/history/history-service.js'),\n" +
+  "  versioned('./src/domain/history/history-sensory-service.js'),\n" +
+  "  versioned('./src/domain/sensory/brew-optimization-assessment.js'),\n" +
+  "  versioned('./src/domain/history/history-comparison.js'),\n" +
+  "  versioned('./src/ui/brew-trend-panel.js'),\n" +
+  "  versioned('./src/ui/brew-trend-panel.css'),\n" +
+  "  versioned('./src/domain/history/history-migration.js'),\n" +
+  "  versioned('./src/ui/history/history-screen.js'),\n" +
+  "  versioned('./src/ui/history/history-screen.css'),\n" +
+  "  versioned('./src/renderers/brew-spatial-view.js'),\n" +
+  "  versioned('./src/renderers/brew-spatial-controller.js'),\n" +
+  "  versioned('./src/renderers/brew-spatial-view.css'),\n" +
+  "  versioned('./src/ui/viewport-controller.js'),\n" +
+  "  versioned('./src/ui/navigation-controller.js'),\n" +
+  "  versioned('./src/ui/account-sync-panel.js'),\n" +
+  "  versioned('./src/ui/appearance-controller.js'),\n" +
+  "  versioned('./src/ui/voice-settings-controller.js'),\n" +
+  "  versioned('./src/ui/gear-controller.js'),\n" +
+  "  versioned('./src/ui/grinder-controller.js'),\n" +
+  "  versioned('./src/ui/recognition-interaction-controller.js'),\n" +
+  "  versioned('./src/ui/brew-cooling-controller.js'),\n" +
+  "  versioned('./src/ui/flavor-guide-controller.js'),\n" +
+  "  versioned('./src/ui/onboarding-controller.js'),\n" +
+  "  versioned('./src/ui/bean-card-controller.js'),\n" +
+  "  versioned('./src/ui/fab-controller.js'),\n" +
+  "  versioned('./src/features/runtime-features.js'),\n" +
+  "  versioned('./src/features/full-integration-controller-v3.js'),\n" +
+  "  versioned('./src/features/freshness-timeline-controller.js'),\n" +
+  "  versioned('./src/data-migrations.js'),\n" +
+  "  versioned('./src/recognition-bridge.js'),\n" +
+  "  versioned('./src/image-quality.js'),\n" +
+  "  versioned('./src/recognition-web-ocr.js'),\n" +
+  "  versioned('./src/recognition-paddle-ocr.js'),\n" +
+  "  versioned('./src/recognition-quality-controller.js'),\n" +
+  "  versioned('./src/package-capture-controller.js'),\n" +
+  "  versioned('./src/direct-camera-controller.js'),\n" +
+  "  versioned('./src/qr-ui-controller.js'),\n" +
+  "  versioned('./src/integrity-ui-controller.js'),\n" +
+  "  versioned('./src/ui-layout-controller.js'),\n" +
+  "  versioned('./src/selection-controller.js'),\n" +
+  "  versioned('./src/feature-controller.js'),\n" +
+  "  versioned('./src/runtime-controller.js'),\n" +
+  "  versioned('./src/bean-groups-controller.js'),\n" +
+  "  versioned('./src/group-interaction-controller.js'),\n" +
+  "  versioned('./src/ui-upgrade-controller.js'),\n" +
+  "  versioned('./src/origin-map-controller.js'),\n" +
+  "  versioned('./public/app-logo.webp'),\n" +
+  "  versioned('./public/splash-art-red.webp'),\n" +
+  "  versioned('./public/splash-art-light.webp'),\n" +
+  "  versioned('./public/Luckybean-END.webp'),\n" +
+  "  './public/vendor/jsqr/jsQR.js',\n" +
+  "  './public/vendor/jsvectormap/jsvectormap.min.css',\n" +
+  "  './public/vendor/jsvectormap/jsvectormap.min.js',\n" +
+  "  './public/vendor/jsvectormap/world.js',\n" +
+  "  './public/fallback-codebook.json',\n" +
+  "  './public/legacy-flavor-map.json'\n" +
+  '];\n' +
+  '\n' +
+  "self.addEventListener('install', event => {\n" +
+  '  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));\n' +
   '});\n' +
   '\n' +
-  'if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {\n' +
-  '  globalThis.__LuckyBeanSensoryTagSortLoaded = true;\n' +
+  "self.addEventListener('activate', event => {\n" +
+  '  event.waitUntil((async () => {\n' +
+  '    const keys = await caches.keys();\n' +
+  '    await Promise.all(keys\n' +
+  '      .filter(key => (key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)\n' +
+  '        || LEGACY_CACHE_PREFIXES.some(prefix => key.startsWith(prefix)))\n' +
+  '      .map(key => caches.delete(key)));\n' +
+  '    await self.clients.claim();\n' +
+  '  })());\n' +
+  '});\n' +
   '\n' +
-  '  const orders = new Map();\n' +
-  '  const bound = new WeakSet();\n' +
-  '  let syncQueued = false;\n' +
+  "self.addEventListener('message', event => {\n" +
+  "  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();\n" +
+  '});\n' +
   '\n' +
-  `  const escSelector = value => globalThis.CSS?.escape ? CSS.escape(String(value)) : String(value).replace(/["\\\\]/g, '\\\\$&');\n` +
-  "  const stepIdFor = list => String(list?.dataset?.v120SelectedList || '');\n" +
-  "  const chips = list => [...list.querySelectorAll('[data-v120-selected-tag]')];\n" +
-  "  const tagsFrom = list => chips(list).map(node => String(node.dataset.v120SelectedTag || '')).filter(Boolean);\n" +
-  '\n' +
-  '  function normalizedOrder(stepId, current) {\n' +
-  '    const saved = orders.get(stepId) || [];\n' +
-  '    const currentSet = new Set(current);\n' +
-  '    return [...saved.filter(tag => currentSet.has(tag)), ...current.filter(tag => !saved.includes(tag))];\n' +
+  "self.addEventListener('fetch', event => {\n" +
+  '  const request = event.request;\n' +
+  "  if (request.method !== 'GET') return;\n" +
+  '  const url = new URL(request.url);\n' +
+  "  if (request.mode === 'navigate') {\n" +
+  "    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {\n" +
+  '      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+  '      return response;\n' +
+  "    }).catch(() => caches.match(request).then(cached => cached || caches.match('./index.html'))));\n" +
+  '    return;\n' +
   '  }\n' +
-  '\n' +
-  '  function applyOrder(list) {\n' +
-  '    const stepId = stepIdFor(list);\n' +
-  '    if (!stepId) return;\n' +
-  '    const current = tagsFrom(list);\n' +
-  '    if (!current.length) return;\n' +
-  '    const order = normalizedOrder(stepId, current);\n' +
-  '    orders.set(stepId, order);\n' +
-  '    const byTag = new Map(chips(list).map(node => [node.dataset.v120SelectedTag, node]));\n' +
-  '    for (const tag of order) if (byTag.get(tag)) list.append(byTag.get(tag));\n' +
+  '  if (url.origin === self.location.origin) {\n' +
+  "    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {\n" +
+  '      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+  '      return response;\n' +
+  '    }).catch(() => caches.match(request)));\n' +
+  '    return;\n' +
   '  }\n' +
-  '\n' +
-  '  function updateHint(list) {\n' +
-  "    const hint = list.previousElementSibling?.matches?.('.v095-sort-hint') ? list.previousElementSibling : list.parentElement?.querySelector?.('.v095-sort-hint');\n" +
-  "    if (hint) hint.textContent = '单击激活标签；双击移除；长按任一已选标签进入排序。拖动时会实时预览松手后的顺序。';\n" +
+  "  if (url.hostname === 'cdn.jsdelivr.net') {\n" +
+  '    event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {\n' +
+  '      caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+  '      return response;\n' +
+  '    })));\n' +
   '  }\n' +
-  '\n' +
-  '  function activateTag(list, id, item) {\n' +
-  "    chips(list).forEach(chip => chip.classList.toggle('lb-sort-active', chip === item));\n" +
-  "    item.setAttribute('aria-current', 'true');\n" +
-  "    for (const chip of chips(list)) if (chip !== item) chip.removeAttribute('aria-current');\n" +
-  '  }\n' +
-  '\n' +
-  '  function removeTag(list, id, item) {\n' +
-  "    const overlay = list.closest('#v095ProfessionalOverlay') || document;\n" +
-  '    const pool = overlay.querySelector(`[data-v095-tag="${escSelector(id)}"]`);\n' +
-  '    if (pool) {\n' +
-  '      // Let the canonical sensory controller mutate wizard.selections and rerender.\n' +
-  '      pool.click();\n' +
-  '      return;\n' +
-  '    }\n' +
-  '    item.remove();\n' +
-  '    const stepId = stepIdFor(list);\n' +
-  '    orders.set(stepId, tagsFrom(list));\n' +
-  '  }\n' +
-  '\n' +
-  '  function bindList(list) {\n' +
-  '    if (!list || bound.has(list)) return;\n' +
-  '    const sorter = globalThis.LuckyBeanSortable;\n' +
-  '    if (!sorter?.register) return;\n' +
-  '    updateHint(list);\n' +
-  '    applyOrder(list);\n' +
-  '    sorter.register(list, {\n' +
-  "      itemSelector:'[data-v120-selected-tag]',\n" +
-  '      getId:item => item.dataset.v120SelectedTag,\n' +
-  '      longPressMs:360,\n' +
-  '      doubleClickMs:250,\n' +
-  '      onActivate:(id, item) => activateTag(list, id, item),\n' +
-  '      onRemove:(id, item) => removeTag(list, id, item),\n' +
-  '      onPreview:order => {\n' +
-  "        list.dataset.lbSortPreview = order.join('|');\n" +
-  '      },\n' +
-  '      onSortStart:() => {\n' +
-  "        list.dataset.lbSortState = 'sorting';\n" +
-  '      },\n' +
-  '      onCommit:order => {\n' +
-  '        orders.set(stepIdFor(list), [...order]);\n' +
-  "        list.dataset.lbSortCommitted = order.join('|');\n" +
-  '      },\n' +
-  '      onSortEnd:() => {\n' +
-  '        delete list.dataset.lbSortState;\n' +
-  '        delete list.dataset.lbSortPreview;\n' +
-  '      }\n' +
-  '    });\n' +
-  '    bound.add(list);\n' +
-  '  }\n' +
-  '\n' +
-  '  function syncLists() {\n' +
-  '    syncQueued = false;\n' +
-  "    document.querySelectorAll('.v120-selected-tag-list[data-v120-selected-list]').forEach(list => {\n" +
-  '      updateHint(list);\n' +
-  '      applyOrder(list);\n' +
-  '      bindList(list);\n' +
-  '    });\n' +
-  '  }\n' +
-  '\n' +
-  '  function queueSync() {\n' +
-  '    if (syncQueued) return;\n' +
-  '    syncQueued = true;\n' +
-  '    queueMicrotask(syncLists);\n' +
-  '  }\n' +
-  '\n' +
-  '  function reorderCompletion(detail) {\n' +
-  '    const selections = detail?.professionalData?.selections;\n' +
-  '    if (!selections) return;\n' +
-  '    for (const [stepId, current] of Object.entries(selections)) {\n' +
-  '      if (!Array.isArray(current)) continue;\n' +
-  '      const order = normalizedOrder(stepId, current.map(String));\n' +
-  '      selections[stepId] = order;\n' +
-  '      const title = STEP_TITLES[stepId];\n' +
-  '      if (!title || !Array.isArray(detail.summary)) continue;\n' +
-  '      const prefix = `${title}：`;\n' +
-  '      const index = detail.summary.findIndex(line => String(line).startsWith(prefix));\n' +
-  '      if (index < 0) continue;\n' +
-  '      const intensity = detail.professionalData?.intensities?.[stepId];\n' +
-  "      detail.summary[index] = `${title}：${order.join('、')}；强度 ${Number(intensity ?? 0).toFixed(1)}`;\n" +
-  '    }\n' +
-  '  }\n' +
-  '\n' +
-  '  const observer = new MutationObserver(records => {\n' +
-  '    for (const record of records) {\n' +
-  '      for (const node of record.addedNodes) {\n' +
-  '        if (node.nodeType !== 1) continue;\n' +
-  "        if (node.matches?.('.v120-selected-tag-list[data-v120-selected-list]') || node.querySelector?.('.v120-selected-tag-list[data-v120-selected-list]')) {\n" +
-  '          queueSync();\n' +
-  '          return;\n' +
-  '        }\n' +
-  '      }\n' +
-  '    }\n' +
-  '  });\n' +
-  '  observer.observe(document.documentElement, { childList:true, subtree:true });\n' +
-  '\n' +
-  "  document.addEventListener('luckybean:sensory-rendered', queueSync);\n" +
-  "  document.addEventListener('luckybean:edit-professional-sensory', () => { orders.clear(); queueSync(); }, true);\n" +
-  "  document.addEventListener('click', event => {\n" +
-  `    if (event.target.closest?.('[data-v095-mode="professional"]')) { orders.clear(); queueSync(); }\n` +
-  "    if (event.target.closest?.('[data-v095-tag],[data-v095-next],[data-v095-prev]')) queueSync();\n" +
-  "    if (event.target.closest?.('[data-v095-close],[data-v095-cancel]')) orders.clear();\n" +
-  '  }, true);\n' +
-  "  document.addEventListener('luckybean:professional-sensory-complete', event => {\n" +
-  '    reorderCompletion(event.detail);\n' +
-  '    orders.clear();\n' +
-  '  }, true);\n' +
-  '\n' +
-  '  queueSync();\n' +
-  '  globalThis.LuckyBeanSensoryTagSort = { sync:queueSync, orders };\n' +
-  '}\n'
+  '});'
 
-    at file:///home/runner/work/luckybean/luckybean/tests/v123d-deployment-contracts.mjs:110:8
+    at file:///home/runner/work/luckybean/luckybean/tests/v110-local-first-sync-static.mjs:115:8
     at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
   generatedMessage: true,
   code: 'ERR_ASSERTION',
-  actual: '// Sensory adapter for the shared LuckyBean sortable interaction engine.\n' +
-    '// The shared controller owns pointer/click gestures; this adapter only maps sensory state to it.\n' +
-    'const STEP_TITLES = Object.freeze({\n' +
-    "  dry:'干香 / 湿香', high:'高温', mid:'中温', low:'低温', aftertaste:'余韵', acidity:'酸质', sweetness:'甜感', mouthfeel:'口感'\n" +
+  actual: '// LuckyBean 1.24B: lifecycle, transit/frozen beans, serial OCR and compact UI.\n' +
+    "const REVISION = '1.24B-main.4';\n" +
+    "const CACHE_PREFIX = 'luckybean-main-v124b-';\n" +
+    'const CACHE_NAME = `${CACHE_PREFIX}main-4-interaction3`;\n' +
+    'const LEGACY_CACHE_PREFIXES = [\n' +
+    "  'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',\n" +
+    "  'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',\n" +
+    "  'luckybean-v123-brewprofiles-integration-test-', 'luckybean-v200-foundation-'\n" +
+    '];\n' +
+    'const versioned = path => `${path}?v=${REVISION}`;\n' +
+    'const CORE = [\n' +
+    "  './',\n" +
+    "  './index.html',\n" +
+    "  './recognition-test.html',\n" +
+    "  versioned('./manifest.webmanifest'),\n" +
+    "  versioned('./styles.css'),\n" +
+    "  versioned('./src/release-1.24b.css'),\n" +
+    "  versioned('./src/release-1.24b.js'),\n" +
+    "  versioned('./src/features/release-1.24b-integration.js'),\n" +
+    "  versioned('./src/features/release-1.24b-finalize.js'),\n" +
+    "  versioned('./src/features/release-1.24b-transit-controller.js'),\n" +
+    "  versioned('./src/features/release-1.24b-group-navigation.js'),\n" +
+    "  versioned('./src/features/release-1.24b-about-controller.js'),\n" +
+    "  versioned('./src/features/release-1.24b-polish.js'),\n" +
+    "  versioned('./src/features/release-1.24b-ui-policy.js'),\n" +
+    "  versioned('./src/features/release-1.24b-brew-mode-controller.js'),\n" +
+    "  versioned('./src/features/release-1.24b-freshness-detail.js'),\n" +
+    "  versioned('./src/features/recognition-batch-progress-controller.js'),\n" +
+    "  versioned('./src/ui/sortable-controller.js'),\n" +
+    "  versioned('./src/features/sensory-tag-sort-controller.js'),\n" +
+    "  versioned('./src/data/local-brew-recipes-1.24b.js'),\n" +
+    "  versioned('./src/services/grind-psd-reference-service.js'),\n" +
+    "  versioned('./src/domain/recognition/order-recognition-1.24b.js'),\n" +
+    "  versioned('./src/domain/recognition/recognition-field-resolver-1.24b.js'),\n" +
+    "  versioned('./src/ui/app-layout.css'),\n" +
+    "  versioned('./src/ui/app-components.css'),\n" +
+    "  versioned('./src/ui/bean-card.css'),\n" +
+    "  versioned('./src/ui/professional-sensory.css'),\n" +
+    "  versioned('./src/ui/sensory-wizard-actions.css'),\n" +
+    "  versioned('./src/ui/brew-optimization.css'),\n" +
+    "  versioned('./src/app.js'),\n" +
+    "  versioned('./src/domain/archive/luckybean-archive-codec.js'),\n" +
+    "  versioned('./src/domain/archive/luckybean-archive-service.js'),\n" +
+    "  versioned('./src/domain/beans/bean-consumption-summary.js'),\n" +
+    "  versioned('./src/domain/beans/bean-lifecycle-service.js'),\n" +
+    "  versioned('./src/domain/recognition/recognition-document.js'),\n" +
+    "  versioned('./src/domain/recognition/recognition-pipeline.js'),\n" +
+    "  versioned('./src/domain/recognition/recognition-date-classifier.js'),\n" +
+    "  versioned('./src/domain/recognition/recognition-date-review.js'),\n" +
+    "  versioned('./src/recognition-test-page.js'),\n" +
+    "  './contracts/luckybean-archive-v1.schema.json',\n" +
+    "  './contracts/recognition-document-v1.schema.json',\n" +
+    "  './contracts/recognition-date-decision-v1.schema.json',\n" +
+    "  './contracts/brew-optimization-v1.schema.json',\n" +
+    "  './contracts/brew-optimization-validation-v1.schema.json',\n" +
+    "  versioned('./src/core/startup-controller.js'),\n" +
+    "  versioned('./src/core/bootstrap.js'),\n" +
+    "  versioned('./src/services/cloud-auth-service.js'),\n" +
+    "  versioned('./src/services/cloud-sync-service.js'),\n" +
+    "  versioned('./src/services/cloud-sync-safety.js'),\n" +
+    "  versioned('./src/services/bean-enrichment-service.js'),\n" +
+    "  versioned('./src/cloud-codec.js'),\n" +
+    "  versioned('./src/services/brew-analysis-service.js'),\n" +
+    "  versioned('./src/services/brew-calculation-coordinator.js'),\n" +
+    "  versioned('./src/services/brew-api-client.js'),\n" +
+    "  versioned('./src/services/brew-profile-catalog-service.js'),\n" +
+    "  versioned('./src/services/local-reference-analysis.js'),\n" +
+    "  versioned('./src/services/provider-package-service.js'),\n" +
+    "  versioned('./src/services/codebook-reconciliation-service.js'),\n" +
+    "  versioned('./src/services/provider-bootstrap-controller.js'),\n" +
+    "  versioned('./src/ui/provider-status-panel.js'),\n" +
+    "  versioned('./src/ui/codebook-reconciliation-screen.js'),\n" +
+    "  versioned('./src/ui/codebook-reconciliation-screen.css'),\n" +
+    "  versioned('./src/domain/history/history-service.js'),\n" +
+    "  versioned('./src/domain/history/history-sensory-service.js'),\n" +
+    "  versioned('./src/domain/sensory/brew-optimization-assessment.js'),\n" +
+    "  versioned('./src/domain/history/history-comparison.js'),\n" +
+    "  versioned('./src/ui/brew-trend-panel.js'),\n" +
+    "  versioned('./src/ui/brew-trend-panel.css'),\n" +
+    "  versioned('./src/domain/history/history-migration.js'),\n" +
+    "  versioned('./src/ui/history/history-screen.js'),\n" +
+    "  versioned('./src/ui/history/history-screen.css'),\n" +
+    "  versioned('./src/renderers/brew-spatial-view.js'),\n" +
+    "  versioned('./src/renderers/brew-spatial-controller.js'),\n" +
+    "  versioned('./src/renderers/brew-spatial-view.css'),\n" +
+    "  versioned('./src/ui/viewport-controller.js'),\n" +
+    "  versioned('./src/ui/navigation-controller.js'),\n" +
+    "  versioned('./src/ui/account-sync-panel.js'),\n" +
+    "  versioned('./src/ui/appearance-controller.js'),\n" +
+    "  versioned('./src/ui/voice-settings-controller.js'),\n" +
+    "  versioned('./src/ui/gear-controller.js'),\n" +
+    "  versioned('./src/ui/grinder-controller.js'),\n" +
+    "  versioned('./src/ui/recognition-interaction-controller.js'),\n" +
+    "  versioned('./src/ui/brew-cooling-controller.js'),\n" +
+    "  versioned('./src/ui/flavor-guide-controller.js'),\n" +
+    "  versioned('./src/ui/onboarding-controller.js'),\n" +
+    "  versioned('./src/ui/bean-card-controller.js'),\n" +
+    "  versioned('./src/ui/fab-controller.js'),\n" +
+    "  versioned('./src/features/runtime-features.js'),\n" +
+    "  versioned('./src/features/full-integration-controller-v3.js'),\n" +
+    "  versioned('./src/features/freshness-timeline-controller.js'),\n" +
+    "  versioned('./src/data-migrations.js'),\n" +
+    "  versioned('./src/recognition-bridge.js'),\n" +
+    "  versioned('./src/image-quality.js'),\n" +
+    "  versioned('./src/recognition-web-ocr.js'),\n" +
+    "  versioned('./src/recognition-paddle-ocr.js'),\n" +
+    "  versioned('./src/recognition-quality-controller.js'),\n" +
+    "  versioned('./src/package-capture-controller.js'),\n" +
+    "  versioned('./src/direct-camera-controller.js'),\n" +
+    "  versioned('./src/qr-ui-controller.js'),\n" +
+    "  versioned('./src/integrity-ui-controller.js'),\n" +
+    "  versioned('./src/ui-layout-controller.js'),\n" +
+    "  versioned('./src/selection-controller.js'),\n" +
+    "  versioned('./src/feature-controller.js'),\n" +
+    "  versioned('./src/runtime-controller.js'),\n" +
+    "  versioned('./src/bean-groups-controller.js'),\n" +
+    "  versioned('./src/group-interaction-controller.js'),\n" +
+    "  versioned('./src/ui-upgrade-controller.js'),\n" +
+    "  versioned('./src/origin-map-controller.js'),\n" +
+    "  versioned('./public/app-logo.webp'),\n" +
+    "  versioned('./public/splash-art-red.webp'),\n" +
+    "  versioned('./public/splash-art-light.webp'),\n" +
+    "  versioned('./public/Luckybean-END.webp'),\n" +
+    "  './public/vendor/jsqr/jsQR.js',\n" +
+    "  './public/vendor/jsvectormap/jsvectormap.min.css',\n" +
+    "  './public/vendor/jsvectormap/jsvectormap.min.js',\n" +
+    "  './public/vendor/jsvectormap/world.js',\n" +
+    "  './public/fallback-codebook.json',\n" +
+    "  './public/legacy-flavor-map.json'\n" +
+    '];\n' +
+    '\n' +
+    "self.addEventListener('install', event => {\n" +
+    '  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));\n' +
     '});\n' +
     '\n' +
-    'if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {\n' +
-    '  globalThis.__LuckyBeanSensoryTagSortLoaded = true;\n' +
+    "self.addEventListener('activate', event => {\n" +
+    '  event.waitUntil((async () => {\n' +
+    '    const keys = await caches.keys();\n' +
+    '    await Promise.all(keys\n' +
+    '      .filter(key => (key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)\n' +
+    '        || LEGACY_CACHE_PREFIXES.some(prefix => key.startsWith(prefix)))\n' +
+    '      .map(key => caches.delete(key)));\n' +
+    '    await self.clients.claim();\n' +
+    '  })());\n' +
+    '});\n' +
     '\n' +
-    '  const orders = new Map();\n' +
-    '  const bound = new WeakSet();\n' +
-    '  let syncQueued = false;\n' +
+    "self.addEventListener('message', event => {\n" +
+    "  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();\n" +
+    '});\n' +
     '\n' +
-    `  const escSelector = value => globalThis.CSS?.escape ? CSS.escape(String(value)) : String(value).replace(/["\\\\]/g, '\\\\$&');\n` +
-    "  const stepIdFor = list => String(list?.dataset?.v120SelectedList || '');\n" +
-    "  const chips = list => [...list.querySelectorAll('[data-v120-selected-tag]')];\n" +
-    "  const tagsFrom = list => chips(list).map(node => String(node.dataset.v120SelectedTag || '')).filter(Boolean);\n" +
-    '\n' +
-    '  function normalizedOrder(stepId, current) {\n' +
-    '    const saved = orders.get(stepId) || [];\n' +
-    '    const currentSet = new Set(current);\n' +
-    '    return [...saved.filter(tag => currentSet.has(tag)), ...current.filter(tag => !saved.includes(tag))];\n' +
+    "self.addEventListener('fetch', event => {\n" +
+    '  const request = event.request;\n' +
+    "  if (request.method !== 'GET') return;\n" +
+    '  const url = new URL(request.url);\n' +
+    "  if (request.mode === 'navigate') {\n" +
+    "    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {\n" +
+    '      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+    '      return response;\n' +
+    "    }).catch(() => caches.match(request).then(cached => cached || caches.match('./index.html'))));\n" +
+    '    return;\n' +
     '  }\n' +
-    '\n' +
-    '  function applyOrder(list) {\n' +
-    '    const stepId = stepIdFor(list);\n' +
-    '    if (!stepId) return;\n' +
-    '    const current = tagsFrom(list);\n' +
-    '    if (!current.length) return;\n' +
-    '    const order = normalizedOrder(stepId, current);\n' +
-    '    orders.set(stepId, order);\n' +
-    '    const byTag = new Map(chips(list).map(node => [node.dataset.v120SelectedTag, node]));\n' +
-    '    for (const tag of order) if (byTag.get(tag)) list.append(byTag.get(tag));\n' +
+    '  if (url.origin === self.location.origin) {\n' +
+    "    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {\n" +
+    '      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+    '      return response;\n' +
+    '    }).catch(() => caches.match(request)));\n' +
+    '    return;\n' +
     '  }\n' +
-    '\n' +
-    '  function updateHint(list) {\n' +
-    "    const hint = list.previousElementSibling?.matches?.('.v095-sort-hint') ? list.previousElementSibling : list.parentElement?.querySelector?.('.v095-sort-hint');\n" +
-    "    if (hint) hint.textContent = '单击激活标签；双击移除；长按任一已选标签进入排序。拖动时会实时预览松手后的顺序。';\n" +
+    "  if (url.hostname === 'cdn.jsdelivr.net') {\n" +
+    '    event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {\n' +
+    '      caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));\n' +
+    '      return response;\n' +
+    '    })));\n' +
     '  }\n' +
-    '\n' +
-    '  function activateTag(list, id, item) {\n' +
-    "    chips(list).forEach(chip => chip.classList.toggle('lb-sort-active', chip === item));\n" +
-    "    item.setAttribute('aria-current', 'true');\n" +
-    "    for (const chip of chips(list)) if (chip !== item) chip.removeAttribute('aria-current');\n" +
-    '  }\n' +
-    '\n' +
-    '  function removeTag(list, id, item) {\n' +
-    "    const overlay = list.closest('#v095ProfessionalOverlay') || document;\n" +
-    '    const pool = overlay.querySelector(`[data-v095-tag="${escSelector(id)}"]`);\n' +
-    '    if (pool) {\n' +
-    '      // Let the canonical sensory controller mutate wizard.selections and rerender.\n' +
-    '      pool.click();\n' +
-    '      return;\n' +
-    '    }\n' +
-    '    item.remove();\n' +
-    '    const stepId = stepIdFor(list);\n' +
-    '    orders.set(stepId, tagsFrom(list));\n' +
-    '  }\n' +
-    '\n' +
-    '  function bindList(list) {\n' +
-    '    if (!list || bound.has(list)) return;\n' +
-    '    const sorter = globalThis.LuckyBeanSortable;\n' +
-    '    if (!sorter?.register) return;\n' +
-    '    updateHint(list);\n' +
-    '    applyOrder(list);\n' +
-    '    sorter.register(list, {\n' +
-    "      itemSelector:'[data-v120-selected-tag]',\n" +
-    '      getId:item => item.dataset.v120SelectedTag,\n' +
-    '      longPressMs:360,\n' +
-    '      doubleClickMs:250,\n' +
-    '      onActivate:(id, item) => activateTag(list, id, item),\n' +
-    '      onRemove:(id, item) => removeTag(list, id, item),\n' +
-    '      onPreview:order => {\n' +
-    "        list.dataset.lbSortPreview = order.join('|');\n" +
-    '      },\n' +
-    '      onSortStart:() => {\n' +
-    "        list.dataset.lbSortState = 'sorting';\n" +
-    '      },\n' +
-    '      onCommit:order => {\n' +
-    '        orders.set(stepIdFor(list), [...order]);\n' +
-    "        list.dataset.lbSortCommitted = order.join('|');\n" +
-    '      },\n' +
-    '      onSortEnd:() => {\n' +
-    '        delete list.dataset.lbSortState;\n' +
-    '        delete list.dataset.lbSortPreview;\n' +
-    '      }\n' +
-    '    });\n' +
-    '    bound.add(list);\n' +
-    '  }\n' +
-    '\n' +
-    '  function syncLists() {\n' +
-    '    syncQueued = false;\n' +
-    "    document.querySelectorAll('.v120-selected-tag-list[data-v120-selected-list]').forEach(list => {\n" +
-    '      updateHint(list);\n' +
-    '      applyOrder(list);\n' +
-    '      bindList(list);\n' +
-    '    });\n' +
-    '  }\n' +
-    '\n' +
-    '  function queueSync() {\n' +
-    '    if (syncQueued) return;\n' +
-    '    syncQueued = true;\n' +
-    '    queueMicrotask(syncLists);\n' +
-    '  }\n' +
-    '\n' +
-    '  function reorderCompletion(detail) {\n' +
-    '    const selections = detail?.professionalData?.selections;\n' +
-    '    if (!selections) return;\n' +
-    '    for (const [stepId, current] of Object.entries(selections)) {\n' +
-    '      if (!Array.isArray(current)) continue;\n' +
-    '      const order = normalizedOrder(stepId, current.map(String));\n' +
-    '      selections[stepId] = order;\n' +
-    '      const title = STEP_TITLES[stepId];\n' +
-    '      if (!title || !Array.isArray(detail.summary)) continue;\n' +
-    '      const prefix = `${title}：`;\n' +
-    '      const index = detail.summary.findIndex(line => String(line).startsWith(prefix));\n' +
-    '      if (index < 0) continue;\n' +
-    '      const intensity = detail.professionalData?.intensities?.[stepId];\n' +
-    "      detail.summary[index] = `${title}：${order.join('、')}；强度 ${Number(intensity ?? 0).toFixed(1)}`;\n" +
-    '    }\n' +
-    '  }\n' +
-    '\n' +
-    '  const observer = new MutationObserver(records => {\n' +
-    '    for (const record of records) {\n' +
-    '      for (const node of record.addedNodes) {\n' +
-    '        if (node.nodeType !== 1) continue;\n' +
-    "        if (node.matches?.('.v120-selected-tag-list[data-v120-selected-list]') || node.querySelector?.('.v120-selected-tag-list[data-v120-selected-list]')) {\n" +
-    '          queueSync();\n' +
-    '          return;\n' +
-    '        }\n' +
-    '      }\n' +
-    '    }\n' +
-    '  });\n' +
-    '  observer.observe(document.documentElement, { childList:true, subtree:true });\n' +
-    '\n' +
-    "  document.addEventListener('luckybean:sensory-rendered', queueSync);\n" +
-    "  document.addEventListener('luckybean:edit-professional-sensory', () => { orders.clear(); queueSync(); }, true);\n" +
-    "  document.addEventListener('click', event => {\n" +
-    `    if (event.target.closest?.('[data-v095-mode="professional"]')) { orders.clear(); queueSync(); }\n` +
-    "    if (event.target.closest?.('[data-v095-tag],[data-v095-next],[data-v095-prev]')) queueSync();\n" +
-    "    if (event.target.closest?.('[data-v095-close],[data-v095-cancel]')) orders.clear();\n" +
-    '  }, true);\n' +
-    "  document.addEventListener('luckybean:professional-sensory-complete', event => {\n" +
-    '    reorderCompletion(event.detail);\n' +
-    '    orders.clear();\n' +
-    '  }, true);\n' +
-    '\n' +
-    '  queueSync();\n' +
-    '  globalThis.LuckyBeanSensoryTagSort = { sync:queueSync, orders };\n' +
-    '}\n',
-  expected: /LONG_PRESS_MS = 320/,
+    '});',
+  expected: /CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-folder2`/,
   operator: 'match',
   diff: 'simple'
 }
 
 Node.js v22.23.2
-::error file=tests/v123d-deployment-contracts.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /LONG_PRESS_MS = 320/. Input:%0A%0A'// Sensory adapter for the shared LuckyBean sortable interaction engine.\n' +%0A  '// The shared controller owns pointer/click gestures; this adapter only maps sensory state to it.\n' +%0A  'const STEP_TITLES = Object.freeze({\n' +%0A  "  dry:'干香 / 湿香', high:'高温', mid:'中温', low:'低温', aftertaste:'余韵', acidity:'酸质', sweetness:'甜感', mouthfeel:'口感'\n" +%0A  '});\n' +%0A  '\n' +%0A  'if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {\n' +%0A  '  globalThis.__LuckyBeanSensoryTagSortLoaded = true;\n' +%0A  '\n' +%0A  '  const orders = new Map();\n' +%0A  '  const bound = new WeakSet();\n' +%0A  '  let syncQueued = false;\n' +%0A  '\n' +%0A  `  const escSelector = value => globalThis.CSS?.escape ? CSS.escape(String(value)) : String(value).replace(/["\\\\]/g, '\\\\$&');\n` +%0A  "  const stepIdFor = list => String(list?.dataset?.v120SelectedList || '');\n" +%0A  "  const chips = list => [...list.querySelectorAll('[data-v120-selected-tag]')];\n" +%0A  "  const tagsFrom = list => chips(list).map(node => String(node.dataset.v120SelectedTag || '')).filter(Boolean);\n" +%0A  '\n' +%0A  '  function normalizedOrder(stepId, current) {\n' +%0A  '    const saved = orders.get(stepId) || [];\n' +%0A  '    const currentSet = new Set(current);\n' +%0A  '    return [...saved.filter(tag => currentSet.has(tag)), ...current.filter(tag => !saved.includes(tag))];\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function applyOrder(list) {\n' +%0A  '    const stepId = stepIdFor(list);\n' +%0A  '    if (!stepId) return;\n' +%0A  '    const current = tagsFrom(list);\n' +%0A  '    if (!current.length) return;\n' +%0A  '    const order = normalizedOrder(stepId, current);\n' +%0A  '    orders.set(stepId, order);\n' +%0A  '    const byTag = new Map(chips(list).map(node => [node.dataset.v120SelectedTag, node]));\n' +%0A  '    for (const tag of order) if (byTag.get(tag)) list.append(byTag.get(tag));\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function updateHint(list) {\n' +%0A  "    const hint = list.previousElementSibling?.matches?.('.v095-sort-hint') ? list.previousElementSibling : list.parentElement?.querySelector?.('.v095-sort-hint');\n" +%0A  "    if (hint) hint.textContent = '单击激活标签；双击移除；长按任一已选标签进入排序。拖动时会实时预览松手后的顺序。';\n" +%0A  '  }\n' +%0A  '\n' +%0A  '  function activateTag(list, id, item) {\n' +%0A  "    chips(list).forEach(chip => chip.classList.toggle('lb-sort-active', chip === item));\n" +%0A  "    item.setAttribute('aria-current', 'true');\n" +%0A  "    for (const chip of chips(list)) if (chip !== item) chip.removeAttribute('aria-current');\n" +%0A  '  }\n' +%0A  '\n' +%0A  '  function removeTag(list, id, item) {\n' +%0A  "    const overlay = list.closest('#v095ProfessionalOverlay') || document;\n" +%0A  '    const pool = overlay.querySelector(`[data-v095-tag="${escSelector(id)}"]`);\n' +%0A  '    if (pool) {\n' +%0A  '      // Let the canonical sensory controller mutate wizard.selections and rerender.\n' +%0A  '      pool.click();\n' +%0A  '      return;\n' +%0A  '    }\n' +%0A  '    item.remove();\n' +%0A  '    const stepId = stepIdFor(list);\n' +%0A  '    orders.set(stepId, tagsFrom(list));\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function bindList(list) {\n' +%0A  '    if (!list || bound.has(list)) return;\n' +%0A  '    const sorter = globalThis.LuckyBeanSortable;\n' +%0A  '    if (!sorter?.register) return;\n' +%0A  '    updateHint(list);\n' +%0A  '    applyOrder(list);\n' +%0A  '    sorter.register(list, {\n' +%0A  "      itemSelector:'[data-v120-selected-tag]',\n" +%0A  '      getId:item => item.dataset.v120SelectedTag,\n' +%0A  '      longPressMs:360,\n' +%0A  '      doubleClickMs:250,\n' +%0A  '      onActivate:(id, item) => activateTag(list, id, item),\n' +%0A  '      onRemove:(id, item) => removeTag(list, id, item),\n' +%0A  '      onPreview:order => {\n' +%0A  "        list.dataset.lbSortPreview = order.join('|');\n" +%0A  '      },\n' +%0A  '      onSortStart:() => {\n' +%0A  "        list.dataset.lbSortState = 'sorting';\n" +%0A  '      },\n' +%0A  '      onCommit:order => {\n' +%0A  '        orders.set(stepIdFor(list), [...order]);\n' +%0A  "        list.dataset.lbSortCommitted = order.join('|');\n" +%0A  '      },\n' +%0A  '      onSortEnd:() => {\n' +%0A  '        delete list.dataset.lbSortState;\n' +%0A  '        delete list.dataset.lbSortPreview;\n' +%0A  '      }\n' +%0A  '    });\n' +%0A  '    bound.add(list);\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function syncLists() {\n' +%0A  '    syncQueued = false;\n' +%0A  "    document.querySelectorAll('.v120-selected-tag-list[data-v120-selected-list]').forEach(list => {\n" +%0A  '      updateHint(list);\n' +%0A  '      applyOrder(list);\n' +%0A  '      bindList(list);\n' +%0A  '    });\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function queueSync() {\n' +%0A  '    if (syncQueued) return;\n' +%0A  '    syncQueued = true;\n' +%0A  '    queueMicrotask(syncLists);\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function reorderCompletion(detail) {\n' +%0A  '    const selections = detail?.professionalData?.selections;\n' +%0A  '    if (!selections) return;\n' +%0A  '    for (const [stepId, current] of Object.entries(selections)) {\n' +%0A  '      if (!Array.isArray(current)) continue;\n' +%0A  '      const order = normalizedOrder(stepId, current.map(String));\n' +%0A  '      selections[stepId] = order;\n' +%0A  '      const title = STEP_TITLES[stepId];\n' +%0A  '      if (!title || !Array.isArray(detail.summary)) continue;\n' +%0A  '      const prefix = `${title}：`;\n' +%0A  '      const index = detail.summary.findIndex(line => String(line).startsWith(prefix));\n' +%0A  '      if (index < 0) continue;\n' +%0A  '      const intensity = detail.professionalData?.intensities?.[stepId];\n' +%0A  "      detail.summary[index] = `${title}：${order.join('、')}；强度 ${Number(intensity ?? 0).toFixed(1)}`;\n" +%0A  '    }\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  const observer = new MutationObserver(records => {\n' +%0A  '    for (const record of records) {\n' +%0A  '      for (const node of record.addedNodes) {\n' +%0A  '        if (node.nodeType !== 1) continue;\n' +%0A  "        if (node.matches?.('.v120-selected-tag-list[data-v120-selected-list]') || node.querySelector?.('.v120-selected-tag-list[data-v120-selected-list]')) {\n" +%0A  '          queueSync();\n' +%0A  '          return;\n' +%0A  '        }\n' +%0A  '      }\n' +%0A  '    }\n' +%0A  '  });\n' +%0A  '  observer.observe(document.documentElement, { childList:true, subtree:true });\n' +%0A  '\n' +%0A  "  document.addEventListener('luckybean:sensory-rendered', queueSync);\n" +%0A  "  document.addEventListener('luckybean:edit-professional-sensory', () => { orders.clear(); queueSync(); }, true);\n" +%0A  "  document.addEventListener('click', event => {\n" +%0A  `    if (event.target.closest?.('[data-v095-mode="professional"]')) { orders.clear(
+::error file=tests/v110-local-first-sync-static.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-folder2`/. Input:%0A%0A'// LuckyBean 1.24B: lifecycle, transit/frozen beans, serial OCR and compact UI.\n' +%0A  "const REVISION = '1.24B-main.4';\n" +%0A  "const CACHE_PREFIX = 'luckybean-main-v124b-';\n" +%0A  'const CACHE_NAME = `${CACHE_PREFIX}main-4-interaction3`;\n' +%0A  'const LEGACY_CACHE_PREFIXES = [\n' +%0A  "  'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',\n" +%0A  "  'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',\n" +%0A  "  'luckybean-v123-brewprofiles-integration-test-', 'luckybean-v200-foundation-'\n" +%0A  '];\n' +%0A  'const versioned = path => `${path}?v=${REVISION}`;\n' +%0A  'const CORE = [\n' +%0A  "  './',\n" +%0A  "  './index.html',\n" +%0A  "  './recognition-test.html',\n" +%0A  "  versioned('./manifest.webmanifest'),\n" +%0A  "  versioned('./styles.css'),\n" +%0A  "  versioned('./src/release-1.24b.css'),\n" +%0A  "  versioned('./src/release-1.24b.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-integration.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-finalize.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-transit-controller.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-group-navigation.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-about-controller.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-polish.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-ui-policy.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-brew-mode-controller.js'),\n" +%0A  "  versioned('./src/features/release-1.24b-freshness-detail.js'),\n" +%0A  "  versioned('./src/features/recognition-batch-progress-controller.js'),\n" +%0A  "  versioned('./src/ui/sortable-controller.js'),\n" +%0A  "  versioned('./src/features/sensory-tag-sort-controller.js'),\n" +%0A  "  versioned('./src/data/local-brew-recipes-1.24b.js'),\n" +%0A  "  versioned('./src/services/grind-psd-reference-service.js'),\n" +%0A  "  versioned('./src/domain/recognition/order-recognition-1.24b.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-field-resolver-1.24b.js'),\n" +%0A  "  versioned('./src/ui/app-layout.css'),\n" +%0A  "  versioned('./src/ui/app-components.css'),\n" +%0A  "  versioned('./src/ui/bean-card.css'),\n" +%0A  "  versioned('./src/ui/professional-sensory.css'),\n" +%0A  "  versioned('./src/ui/sensory-wizard-actions.css'),\n" +%0A  "  versioned('./src/ui/brew-optimization.css'),\n" +%0A  "  versioned('./src/app.js'),\n" +%0A  "  versioned('./src/domain/archive/luckybean-archive-codec.js'),\n" +%0A  "  versioned('./src/domain/archive/luckybean-archive-service.js'),\n" +%0A  "  versioned('./src/domain/beans/bean-consumption-summary.js'),\n" +%0A  "  versioned('./src/domain/beans/bean-lifecycle-service.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-document.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-pipeline.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-date-classifier.js'),\n" +%0A  "  versioned('./src/domain/recognition/recognition-date-review.js'),\n" +%0A  "  versioned('./src/recognition-test-page.js'),\n" +%0A  "  './contracts/luckybean-archive-v1.schema.json',\n" +%0A  "  './contracts/recognition-document-v1.schema.json',\n" +%0A  "  './contracts/recognition-date-decision-v1.schema.json',\n" +%0A  "  './contracts/brew-optimization-v1.schema.json',\n" +%0A  "  './contracts/brew-optimization-validation-v1.schema.json',\n" +%0A  "  versioned('./src/core/startup-controller.js'),\n" +%0A  "  versioned('./src/core/bootstrap.js'),\n" +%0A  "  versioned('./src/services/cloud-auth-service.js'),\n" +%0A  "  versioned('./src/services/cloud-sync-service.js'),\n" +%0A  "  versioned('./src/services/cloud-sync-safety.js'),\n" +%0A  "  versioned('./src/services/bean-enrichment-service.js'),\n" +%0A  "  versioned('./src/cloud-codec.js'),\n" +%0A  "  versioned('./src/services/brew-analysis-service.js'),\n" +%0A  "  versioned('./src/services/brew-calculation-coordinator.js'),\n" +%0A  "  versioned('./src/services/brew-api-client.js'),\n" +%0A  "  versioned('./src/services/brew-profile-catalog-service.js'),\n" +%0A  "  versioned('./src/services/local-reference-analysis.js'),\n" +%0A  "  versioned('./src/services/provider-package-service.js'),\n" +%0A  "  versioned('./src/services/codebook-reconciliation-service.js'),\n" +%0A  "  versioned('./src/services/provider-bootstrap-controller.js'),\n" +%0A  "  versioned('./src/ui/provider-status-panel.js'),\n" +%0A  "  versioned('./src/ui/codebook-reconciliation-screen.js'),\n" +%0A  "  versioned('./src/ui/codebook-reconciliation-screen.css'),\n" +%0A  "  versioned('./src/domain/history/history-service.js'),\n" +%0A  "  versioned('./src/domain/history/history-sensory-service.js'),\n" +%0A  "  versioned('./src/domain/sensory/brew-optimization-assessment.js'),\n" +%0A  "  versioned('./src/domain/history/history-comparison.js'),\n" +%0A  "  versioned('./src/ui/brew-trend-panel.js'),\n" +%0A  "  versioned('./src/ui/brew-trend-panel.css'),\n" +%0A  "  versioned('./src/domain/history/history-migration.js'),\n" +%0A  "  versioned('./src/ui/history/history-screen.js'),\n" +%0A  "  versioned('./src/ui/history/history-screen.css'),\n" +%0A  "  versioned('./src/renderers/brew-spatial-view.js'),\n" +%0A  "  versioned('./src/renderers/brew-spatial-controller.js'),\n" +%0A  "  versioned('./src/renderers/brew-spatial-view.css'),\n" +%0A  "  versioned('./src/ui/viewport-controller.js'),\n" +%0A  "  versioned('./src/ui/navigation-controller.js'),\n" +%0A  "  versioned('./src/ui/account-sync-panel.js'),\n" +%0A  "  versioned('./src/ui/appearance-controller.js'),\n" +%0A  "  versioned('./src/ui/voice-settings-controller.js'),\n" +%0A  "  versioned('./src/ui/gear-controller.js'),\n" +%0A  "  versioned('./src/ui/grinder-controller.js'),\n" +%0A  "  versioned('./src/ui/recognition-interaction-controller.js'),\n" +%0A  "  versioned('./src/ui/brew-cooling-controller.js'),\n" +%0A  "  versioned('./src/ui/flavor-guide-controller.js'),\n" +%0A  "  versioned('./src/ui/onboarding-controller.js'),\n" +%0A  "  versioned('./src/ui/bean-card-controller.js'),\n" +%0A  "  versioned('./src/ui/fab-controller.js'),\n" +%0A  "  versioned('./src/features/runtime-features.js'),\n" +%0A  "  versioned('./src/features/full-integration-controller-v3.js'),\n" +%0A  "  versioned('./src/features/freshness-timeline-controller.js'),\n" +%0A  "  versioned('./src/data-migrations.js'),\n" +%0A  "  versioned('./src/recognition-bridge.js'),\n" +%0A  "  versioned('./src/image-quality.js'),\n" +%0A  "  versioned('./src/recognition-web-ocr.js'),\n" +%0A  "  versioned('./src/recognition-paddle-ocr.js'),\n" +%0A  "  versioned('./src/recognition-quality-controller.js'),\n" +%0A  "  versioned('./src/package-ca
