@@ -15,6 +15,7 @@ const specs = [
   'tests/v123e-cold-brew-ui.spec.mjs',
   'tests/v124b-brew-mode-freshness-ui.spec.mjs',
   'tests/v124b-group-brew-regression.spec.mjs',
+  'tests/v124b-selection-mode-single-group.spec.mjs',
   'tests/v124b-fab-regression.spec.mjs'
 ];
 
