@@ -18,55 +18,39 @@ def regex_once(text, pattern, repl, label, flags=0):
 app_path = Path('src/app.js')
 app = app_path.read_text(encoding='utf-8')
 
-# Remove the obsolete all-groups recommendation state completely.
-app = replace_once(
-    app,
-    "groupAnimationMode: 'manual', recommendationTimer: null, recommendationRun: false, recommendationExpandedAll: false, recommendationPromptMemory:",
-    "groupAnimationMode: 'manual', recommendationTimer: null, recommendationRun: false, recommendationPromptMemory:",
-    'remove recommendationExpandedAll state'
-)
-app = app.replace("  state.recommendationExpandedAll = false;\n", '')
-app = replace_once(
-    app,
-    "  const changed = hasActiveBeanGroup() || state.recommendationExpandedAll;",
-    "  const changed = hasActiveBeanGroup();",
-    'canonical close changed predicate'
-)
+if 'recommendationExpandedAll' in app or 'recommendation-all-groups' in app:
+    raise SystemExit('obsolete all-groups recommendation path still present')
 
-app = regex_once(
-    app,
-    r"\n  if \(state\.recommendationExpandedAll\) \{.*?\n    return;\n  \}\n  if \(!state\.activeGroupKey\)",
-    "\n  if (!state.activeGroupKey)",
-    'remove all-groups renderer',
-    flags=re.S
+pattern = (
+    r"(async function focusRecommendedBean\(bean, \{ automatic = true, settle = true, openDetail = false, duration = 800 \} = \{\}\) \{\n"
+    r"  if \(!bean\) return;\n)"
+    r".*?"
+    r"(  await new Promise\(resolve => requestAnimationFrame\(\(\) => requestAnimationFrame\(resolve\)\)\);)"
 )
+replacement = (
+    r"\1"
+    "  state.groupAnimationMode = automatic ? 'auto' : 'manual';\n"
+    "  state.recommendedBeanId = bean.id;\n"
+    "  openBeanGroup(groupKey(bean, state.settings.groupMethod || 'country'), { animation: state.groupAnimationMode });\n"
+    r"\2"
+)
+app = regex_once(app, pattern, replacement, 'canonical single-group recommendation focus', flags=re.S)
 
-app = replace_once(
-    app,
-    "  state.recommendationRun = true;\n  state.recommendationExpandedAll = beans.length > 6;\n  state.activeGroupKey = null;\n  state.groupAnimationMode = 'auto';\n  renderBeans();\n  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));",
-    "  state.recommendationRun = true;\n  state.groupAnimationMode = 'auto';",
-    'remove recommendation all-group pre-render'
-)
-
-app = replace_once(
-    app,
-    "  state.groupAnimationMode = automatic ? 'auto' : 'manual';\n  const visible = filteredBeans();\n  state.recommendationExpandedAll = visible.length > 6;\n  state.activeGroupKey = null;\n  state.recommendedBeanId = bean.id;\n  renderBeans();",
-    "  state.groupAnimationMode = automatic ? 'auto' : 'manual';\n  state.recommendedBeanId = bean.id;\n  openBeanGroup(groupKey(bean, state.settings.groupMethod || 'country'), { animation: state.groupAnimationMode });",
-    'focus recommendation into one native group'
-)
-
-app = replace_once(
-    app,
-    "['price', '价冠', '#c9a45f', false], ['remaining', '拾余', '#f1f1ed', false]",
-    "['price', '价冠', '#000000', false], ['remaining', '拾余', '#77736c', false]",
-    'recommendation dot colors'
-)
+app = re.sub(r"\['price', '价冠', '#[0-9A-Fa-f]{6}', false\]", "['price', '价冠', '#000000', false]", app, count=1)
+app = re.sub(r"\['remaining', '拾余', '#[0-9A-Fa-f]{6}', false\]", "['remaining', '拾余', '#808080', false]", app, count=1)
 app = app.replace("codeName('processes', bean.processCode, '未记录工法')", "codeName('processes', bean.processCode, '未记录处理法')")
 
-if 'recommendationExpandedAll' in app:
-    raise SystemExit('obsolete recommendationExpandedAll still present in app.js')
-if "openBeanGroup(groupKey(bean, state.settings.groupMethod || 'country')" not in app:
-    raise SystemExit('canonical single-group recommendation target missing')
+required = [
+    "openBeanGroup(groupKey(bean, state.settings.groupMethod || 'country'), { animation: state.groupAnimationMode });",
+    "['price', '价冠', '#000000', false]",
+    "['remaining', '拾余', '#808080', false]"
+]
+for marker in required:
+    if marker not in app:
+        raise SystemExit(f'missing canonical marker: {marker}')
+focus = app[app.index('async function focusRecommendedBean'):app.index('async function focusRecommendedBean') + 1400]
+if 'const visible = filteredBeans();' in focus or 'visible.length' in focus:
+    raise SystemExit('bean-count recommendation branch still present')
 app_path.write_text(app, encoding='utf-8')
 
 policy_path = Path('src/features/release-1.24b-ui-policy.js')
@@ -74,7 +58,7 @@ policy = policy_path.read_text(encoding='utf-8')
 policy = replace_once(
     policy,
     "      /* 豆藏 keeps the compact personal leaderboard immediately after the digest. */\n      .preference-board-strip {\n        display: flex;\n      }",
-    "      /* The retired personal leaderboard must not re-enter the bean page. */\n      .preference-board-strip {\n        display: none !important;\n      }",
+    "      /* Retired preference leaderboard must never re-enter the bean page. */\n      .preference-board-strip {\n        display: none !important;\n      }",
     'retire stale leaderboard policy'
 )
 policy = replace_once(
@@ -105,4 +89,4 @@ if 'api.closeActiveGroup' in release:
     raise SystemExit('stale release group-navigation contract still present')
 release_path.write_text(release, encoding='utf-8')
 
-print('Canonical bean selection grouping, UI colors/policy, and signed-release contract updated.')
+print('Single-group recommendation behavior, selection colors, UI policy and signed-release contract are canonical.')
