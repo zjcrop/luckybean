@@ -23,6 +23,14 @@ async function refreshFrom(page,source){
   },source);
 }
 
+async function chooseGroupMethod(page,method){
+  await page.locator('#groupBtn').click();
+  const option=page.locator(`[data-group-method="${method}"]`);
+  await expect(option).toBeVisible();
+  await option.click();
+  await expect(page.locator('#beanGroups [data-open-group]').first()).toBeVisible({timeout:10000});
+}
+
 async function chooseRecommendation(page,mode){
   await page.locator('#fabRecommendBtn').click();
   const option=page.locator(`[data-recommend-mode="${mode}"]`);
@@ -38,7 +46,7 @@ async function chooseRecommendation(page,mode){
 }
 
 test.beforeEach(async({page})=>{
-  test.setTimeout(60000);
+  test.setTimeout(180000);
   await page.addInitScript(()=>{
     localStorage.setItem('luckybean.onboarding.v2',JSON.stringify({stage:'existing-user',updatedAt:new Date().toISOString(),reason:'selection-group-unification'}));
   });
@@ -74,13 +82,17 @@ test.beforeEach(async({page})=>{
   await refreshFrom(page,'selection-group-unification-seed');
 });
 
-test('all five selection modes keep exactly one native target group open and closable',async({page})=>{
+test('selection colors are semantic and theme independent',async({page})=>{
   await page.locator('#fabRecommendBtn').click();
   await expect(page.locator('[data-recommend-mode="price"] .recommend-dot')).toHaveCSS('background-color','rgb(0, 0, 0)');
   await expect(page.locator('[data-recommend-mode="remaining"] .recommend-dot')).toHaveCSS('background-color','rgb(128, 128, 128)');
-  await page.keyboard.press('Escape');
+});
 
-  for(const mode of ['leaderboard','freshness','price','remaining','random']){
-    await chooseRecommendation(page,mode);
+test('all five selection modes keep exactly one target group open across every native grouping method',async({page})=>{
+  for(const method of ['country','variety','roast','process']){
+    await chooseGroupMethod(page,method);
+    for(const mode of ['leaderboard','freshness','price','remaining','random']){
+      await chooseRecommendation(page,mode);
+    }
   }
 });
