@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   patch-and-verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,20 +30,26 @@ jobs:
       - name: Run recognition regression suite
         run: npm run test:recognition
       - name: Run static suite
-        id: static
-        continue-on-error: true
+        run: npm run test:static
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start local web server
+        shell: bash
         run: |
-          set -o pipefail
-          npm run test:static 2>&1 | tee static-main5.log
-      - name: Upload static diagnostics
-        if: steps.static.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: main5-static-diagnostics
-          path: static-main5.log
-      - name: Stop on static failure
-        if: steps.static.outcome == 'failure'
-        run: exit 1
+          python -m http.server 4173 > /tmp/luckybean-main5-http.log 2>&1 &
+          server_pid=$!
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:4173/ > /dev/null; then
+              exit 0
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat /tmp/luckybean-main5-http.log
+              exit 1
+            fi
+            sleep 1
+          done
+          cat /tmp/luckybean-main5-http.log
+          exit 1
       - name: Run core suite
         run: npm run test:core
       - name: Verify diff
@@ -58,4 +64,4 @@ jobs:
           git commit -m 'fix: complete sensory OCR and roast display corrections'
           git push origin HEAD:main
 
-# verification-attempt: 7
+# verification-attempt: 8
