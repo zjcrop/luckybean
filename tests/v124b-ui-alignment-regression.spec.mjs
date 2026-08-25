@@ -99,16 +99,21 @@ test('professional cupping score slider sits below scores and spans the full row
   }
 
   const stage = page.locator('.v095-score-stage');
-  const valueRow = stage.locator('.score-value-row');
+  const autoScore = stage.locator('[data-v095-auto-score]');
+  const deltaScore = stage.locator('[data-v095-score-delta]');
   const slider = stage.locator('[data-v095-score-delta-input]');
   await expect(stage).toBeVisible();
   await expect(slider).toBeVisible();
 
-  const [stageBox, valuesBox, sliderBox] = await Promise.all([stage.boundingBox(), valueRow.boundingBox(), slider.boundingBox()]);
+  const [stageBox, autoBox, deltaBox, sliderBox] = await Promise.all([
+    stage.boundingBox(), autoScore.boundingBox(), deltaScore.boundingBox(), slider.boundingBox()
+  ]);
   expect(stageBox).not.toBeNull();
-  expect(valuesBox).not.toBeNull();
+  expect(autoBox).not.toBeNull();
+  expect(deltaBox).not.toBeNull();
   expect(sliderBox).not.toBeNull();
-  expect(sliderBox.y).toBeGreaterThanOrEqual(valuesBox.y + valuesBox.height - 2);
+  const scoreBottom = Math.max(autoBox.y + autoBox.height, deltaBox.y + deltaBox.height);
+  expect(sliderBox.y).toBeGreaterThanOrEqual(scoreBottom + 4);
   expect(sliderBox.width).toBeGreaterThan(stageBox.width * 0.85);
   expect(sliderBox.width).toBeGreaterThan(sliderBox.height * 5);
   await expect(slider).toHaveCSS('direction', 'ltr');
@@ -128,7 +133,7 @@ test('interface and data archive settings begin directly below their headings', 
   await expect(page.locator('#appearanceSettings')).toBeAttached({ timeout: 10000 });
 
   const appearance = page.locator('#appearanceSettings');
-  await appearance.locator('summary').click();
+  await appearance.locator(':scope > summary').click();
   const appearanceGap = await appearance.evaluate(node => {
     const body = node.querySelector(':scope > .settings-category-body');
     const first = body?.firstElementChild;
@@ -138,7 +143,7 @@ test('interface and data archive settings begin directly below their headings', 
   expect(appearanceGap).toBeLessThanOrEqual(2);
 
   const data = page.locator('#settingsContent .settings-category.data-category');
-  await data.locator('summary').click();
+  await data.locator(':scope > summary').click();
   const dataGap = await data.evaluate(node => {
     const body = node.querySelector(':scope > .settings-category-body');
     const first = body?.firstElementChild;
