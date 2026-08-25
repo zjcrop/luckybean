@@ -129,7 +129,7 @@ test('500ms bean long press opens quick actions and delete uses seven-day recycl
   expect(state.retentionMs).toBe(7 * 24 * 60 * 60 * 1000);
 });
 
-test('professional cupping keeps page scrolling separate from tag and radar drag handles', async ({ page }) => {
+test('professional cupping keeps page scrolling separate from shared tag sorting and radar gestures', async ({ page }) => {
   await page.setViewportSize({ width:360, height:740 });
   await openApp(page, 'professional-touch');
   await seedBean(page, 'ui-cupping-bean');
@@ -144,22 +144,27 @@ test('professional cupping keeps page scrolling separate from tag and radar drag
   await page.locator('[data-v095-tag="茉莉"]').click();
   const selected = page.locator('[data-v120-selected-tag]');
   await expect(selected).toHaveCount(2);
+  await expect(page.locator('.v095-sort-hint')).toContainText('长按任一已选标签');
   const touch = await page.evaluate(() => ({
     chip:getComputedStyle(document.querySelector('[data-v120-selected-tag]')).touchAction,
-    handle:getComputedStyle(document.querySelector('[data-v120-drag-handle]')).touchAction
+    handlePointer:getComputedStyle(document.querySelector('[data-v120-drag-handle]')).pointerEvents
   }));
   expect(touch.chip).toBe('pan-y');
-  expect(touch.handle).toBe('none');
+  expect(touch.handlePointer).toBe('none');
 
-  const handle = page.locator('[data-v120-drag-handle]').first();
-  const box = await handle.boundingBox();
+  const chip = selected.first();
+  const box = await chip.boundingBox();
   expect(box).toBeTruthy();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.move(box.x + box.width * .35, box.y + box.height / 2);
   await page.mouse.down();
-  await page.waitForTimeout(520);
-  await expect(selected.first()).toHaveClass(/dragging/);
+  await page.waitForTimeout(410);
+  await expect(page.locator('.lb-sort-ghost')).toHaveCount(1);
+  await expect(page.locator('.lb-sort-placeholder')).toHaveCount(1);
+  await expect(chip).toHaveCSS('visibility', 'hidden');
   await page.mouse.up();
-  await expect(selected.first()).not.toHaveClass(/dragging/);
+  await expect(page.locator('.lb-sort-ghost')).toHaveCount(0);
+  await expect(page.locator('.lb-sort-placeholder')).toHaveCount(0);
+  await expect(chip).toHaveCSS('visibility', 'visible');
 
   for (let i = 0; i < 8; i += 1) await page.locator('[data-v095-next]').click();
   await expect(page.locator('.v095-radar-stage')).toBeVisible();
