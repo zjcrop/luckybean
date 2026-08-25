@@ -108,11 +108,12 @@ assert.match(runtimeFeatures, /for \(const \w+ of RUNTIME_FEATURES\)/);
 assert.match(runtimeFeatures, /try\s*\{[\s\S]*await import\(\w+\.path\)/);
 assert.match(runtimeFeatures, /LuckyBeanRuntimeFeatures/);
 assert.match(runtimeFeatures, /runtime-feature-error/);
+assert.match(runtimeFeatures, /shared-sortable/);
 assert.doesNotMatch(runtimeFeatures, /v109-history-management\.js|v099-trajectory-signal-bridge\.js|v099i-trajectory-space\.js/);
 assert.doesNotMatch(runtimeFeatures, /v095-ui\.js|theme-bridge\.js/);
 
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124b-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-folder2`/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-interaction3`/);
 assert.match(sw, /REVISION = '1\.24B-main\.4'/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES = \[/);
 assert.match(sw, /'luckybean-main-v123e-'/);
@@ -130,6 +131,8 @@ assert.match(sw, /src\/features\/release-1\.24b-group-navigation\.js/);
 assert.match(sw, /src\/features\/release-1\.24b-about-controller\.js/);
 assert.match(sw, /src\/features\/release-1\.24b-freshness-detail\.js/);
 assert.match(sw, /src\/features\/recognition-batch-progress-controller\.js/);
+assert.match(sw, /src\/ui\/sortable-controller\.js/);
+assert.match(sw, /src\/features\/sensory-tag-sort-controller\.js/);
 assert.match(sw, /src\/domain\/recognition\/recognition-field-resolver-1\.24b\.js/);
 assert.match(sw, /src\/ui\/gear-controller\.js/);
 assert.doesNotMatch(sw, /gear-regression-fix-controller/);
@@ -149,4 +152,4 @@ for (const path of [
   'src/features/gear-regression-fix-controller.js','src/features/legacy-timer-guard.js','src/features/experience-fixes-controller.js','src/features/interaction-repair-controller.js'
 ]) assert.equal(exists(path), false, `${path} should have been removed`);
 
-console.log('LuckyBean 1.24B main.4 local-first cache isolation and current BrewProfiles contract checks passed');
+console.log('LuckyBean 1.24B main.4 local-first, interaction3 cache isolation and current BrewProfiles contract checks passed');
