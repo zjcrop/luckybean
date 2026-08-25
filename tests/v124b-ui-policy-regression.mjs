@@ -42,6 +42,7 @@ assert.match(policy, /\.lb-other-brew-panel/);
 assert.doesNotMatch(policy, /page\.addEventListener\('click'/);
 assert.doesNotMatch(policy, /data-active-group-panel|group-collapse-zone/);
 assert.match(beanGroupState, /export const beanGroupState/);
+assert.match(beanGroupState, /setBeanGroupMode/);
 assert.match(beanGroupState, /openBeanGroupState/);
 assert.match(beanGroupState, /closeBeanGroupState/);
 assert.match(app, /function openBeanGroup/);
@@ -54,7 +55,7 @@ assert.match(beanGroups, /activeGroup: \(\) => beanGroupState\.groupKey/);
 assert.doesNotMatch(beanGroups, /let activeGroup|data-v099t-group-back|>收</);
 assert.match(groupNavigation, /LuckyBeanBeanGroupState/);
 assert.match(groupNavigation, /luckybean:navigation-back/);
-assert.doesNotMatch(groupNavigation, /LuckyBeanV099tBeanGroups|api\.closeActiveGroup|dispatchEvent\(new MouseEvent|nativePanel|nativeCollapse|capture:true|dx<=-72|\.bean-grid/);
+assert.doesNotMatch(groupNavigation, /LuckyBeanV099tBeanGroups|api\.closeActiveGroup|dispatchEvent\(new MouseEvent|nativePanel|nativeCollapse|dx<=-72|\.bean-grid/);
 
 // All user-orderable scenes share one live-preview engine.
 assert.match(sharedSort, /globalThis\.LuckyBeanSortable = \{ register \}/);

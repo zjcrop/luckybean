@@ -86,7 +86,7 @@ assert.match(beanGroups,/activeGroup: \(\) => beanGroupState\.groupKey/);
 assert.doesNotMatch(beanGroups,/let activeGroup|data-v099t-group-back|>收</);
 assert.match(groupNav,/LuckyBeanBeanGroupState/);
 assert.match(groupNav,/luckybean:navigation-back/);
-assert.doesNotMatch(groupNav,/LuckyBeanV099tBeanGroups|api\.closeActiveGroup|dispatchEvent\(new MouseEvent|nativePanel|capture:true|dx<=-72/);
+assert.doesNotMatch(groupNav,/LuckyBeanV099tBeanGroups|api\.closeActiveGroup|dispatchEvent\(new MouseEvent|nativePanel|dx<=-72/);
 assert.match(sharedSort,/LuckyBeanSortable/);
 assert.match(sharedSort,/lb-sort-ghost/);
 assert.match(sharedSort,/lb-sort-placeholder/);

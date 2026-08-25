@@ -11,7 +11,7 @@ import { commitCompletedBrew, permanentlyDeleteBrewRecords } from './domain/hist
 import { attachSensoryToCompletedBrew, attachOptimizationDraft, completeOptimizationValidation } from './domain/history/history-sensory-service.js';
 import { assessTastingForOptimization } from './domain/sensory/brew-optimization-assessment.js';
 import { buildBeanConsumptionSummary, DEFAULT_CAFFEINE_HEALTH_SETTINGS } from './domain/beans/bean-consumption-summary.js';
-import { beanGroupState, openBeanGroupState, closeBeanGroupState, hasActiveBeanGroup } from './domain/beans/bean-group-state.js';
+import { beanGroupState, setBeanGroupMode, openBeanGroupState, closeBeanGroupState, hasActiveBeanGroup } from './domain/beans/bean-group-state.js';
 import { createLocalReferenceAnalysis } from './services/local-reference-analysis.js';
 import { adaptAuthoritativePlan } from './services/brew-analysis-service.js';
 import { BrewCalculationCoordinator } from './services/brew-calculation-coordinator.js';
@@ -108,6 +108,7 @@ function openBeanGroup(groupKey, { animation = 'manual' } = {}) {
   if (!key) return false;
   state.groupAnimationMode = animation;
   state.recommendationExpandedAll = false;
+  setBeanGroupMode('native');
   openBeanGroupState(key);
   renderBeans();
   document.dispatchEvent(new CustomEvent('luckybean:bean-group-opened', { detail: { groupKey: key, groupMethod: state.settings.groupMethod || 'country' } }));
@@ -119,9 +120,10 @@ function closeBeanGroup({ render = true } = {}) {
   if (!changed) return false;
   state.groupAnimationMode = 'manual';
   state.recommendationExpandedAll = false;
+  const mode = beanGroupState.mode;
   closeBeanGroupState();
-  if (render) renderBeans();
-  document.dispatchEvent(new CustomEvent('luckybean:bean-group-closed'));
+  if (render && mode === 'native') renderBeans();
+  document.dispatchEvent(new CustomEvent('luckybean:bean-group-closed', { detail: { mode, source: 'canonical' } }));
   return true;
 }
 

@@ -1,4 +1,11 @@
-export const beanGroupState = { groupKey: '' };
+export const beanGroupState = { mode: 'native', groupKey: '' };
+
+export function setBeanGroupMode(mode) {
+  const next = String(mode || 'native');
+  if (beanGroupState.mode !== next) beanGroupState.groupKey = '';
+  beanGroupState.mode = next;
+  return beanGroupState.mode;
+}
 
 export function hasActiveBeanGroup() {
   return Boolean(beanGroupState.groupKey);

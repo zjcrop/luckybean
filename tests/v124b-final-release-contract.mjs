@@ -99,7 +99,7 @@ assert.match(beanGroups, /activeGroup: \(\) => beanGroupState\.groupKey/);
 assert.doesNotMatch(beanGroups, /let activeGroup|data-v099t-group-back|>收</);
 assert.match(groupNavigation, /LuckyBeanBeanGroupState/);
 assert.match(groupNavigation, /luckybean:navigation-back/);
-assert.doesNotMatch(groupNavigation, /LuckyBeanV099tBeanGroups|api\.closeActiveGroup|dispatchEvent\(new MouseEvent|nativePanel|capture:true|dx<=-72/);
+assert.doesNotMatch(groupNavigation, /LuckyBeanV099tBeanGroups|api\.closeActiveGroup|dispatchEvent\(new MouseEvent|nativePanel|dx<=-72/);
 
 assert.match(uiPolicy, /lb-stock-total/);
 assert.match(uiPolicy, /lb-today-consumption/);

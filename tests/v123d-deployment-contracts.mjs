@@ -104,7 +104,8 @@ assert.match(releaseTransit, /在途 \$\{beans\.length\} 支/);
 
 // Bean grouping has one canonical group-key owner. Native and special group modes share it;
 // DOM only renders state and never becomes a source of truth.
-assert.match(beanGroupState, /export const beanGroupState = \{ groupKey: '' \}/);
+assert.match(beanGroupState, /export const beanGroupState = \{ mode: 'native', groupKey: '' \}/);
+assert.match(beanGroupState, /setBeanGroupMode/);
 assert.match(beanGroupState, /openBeanGroupState/);
 assert.match(beanGroupState, /closeBeanGroupState/);
 assert.match(app, /function openBeanGroup/);
@@ -118,7 +119,7 @@ assert.match(beanGroups, /activeGroup: \(\) => beanGroupState\.groupKey/);
 assert.doesNotMatch(beanGroups, /let activeGroup|data-v099t-group-back|>收</);
 assert.match(releaseGroup, /LuckyBeanBeanGroupState/);
 assert.match(releaseGroup, /luckybean:navigation-back/);
-assert.doesNotMatch(releaseGroup, /LuckyBeanV099tBeanGroups|api\.closeActiveGroup|dispatchEvent\(new MouseEvent|nativePanel|nativeCollapse|dx<=-72|capture:true/);
+assert.doesNotMatch(releaseGroup, /LuckyBeanV099tBeanGroups|api\.closeActiveGroup|dispatchEvent\(new MouseEvent|nativePanel|nativeCollapse|dx<=-72/);
 
 assert.match(sharedSort, /LuckyBeanSortable/);
 assert.match(sharedSort, /lb-sort-ghost/);

@@ -2,7 +2,7 @@ import { all, getSetting, setSetting } from './db.js';
 import { loadCodebook, makeIndex, displayName } from './codebook.js';
 import { freshnessProfile, clamp } from './utils.js';
 import { normalizeRecommendationScore } from './preference-model.js';
-import { beanGroupState } from './domain/beans/bean-group-state.js';
+import { beanGroupState, setBeanGroupMode, openBeanGroupState, closeBeanGroupState } from './domain/beans/bean-group-state.js';
 
 if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
   globalThis.__LuckyBeanV099tBeanGroupsLoaded = true;
@@ -118,12 +118,13 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
       localStorage.setItem(LEGACY_GROUP_KEY, 'roast');
       await Promise.all([setSetting(MODE_KEY, currentMode), setSetting(LEGACY_MODE_KEY, MODE_NATIVE)]);
     }
+    setBeanGroupMode(currentMode);
     return currentMode;
   }
 
   async function saveMode(mode) {
     currentMode = mode;
-    beanGroupState.groupKey = '';
+    setBeanGroupMode(mode);
     localStorage.setItem(LEGACY_GROUP_KEY, 'roast');
     await Promise.all([setSetting(MODE_KEY, mode), setSetting(LEGACY_MODE_KEY, MODE_NATIVE)]);
   }
@@ -183,7 +184,7 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
     try {
       const { index, active, scoreMap } = await loadData({ force: refreshData });
       const groups = groupData(active, mode);
-      if (beanGroupState.groupKey && !groups.some(group => group.key === beanGroupState.groupKey)) beanGroupState.groupKey = '';
+      if (beanGroupState.groupKey && !groups.some(group => group.key === beanGroupState.groupKey)) closeBeanGroupState();
       container.dataset.v099tGroupKey = `${mode}|${beanGroupState.groupKey}`;
       if (!active.length) {
         container.innerHTML = `${board}<div data-v099t-group-root class="empty-state"><strong>没有可分组的豆卡</strong></div>`;
@@ -205,11 +206,11 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
 
   async function closeActiveGroup({ refreshData = false } = {}) {
     if (!beanGroupState.groupKey) return false;
-    beanGroupState.groupKey = '';
+    closeBeanGroupState();
     const container = $('#beanGroups');
     if (container) delete container.dataset.v099tGroupKey;
     await render({ force: true, refreshData });
-    document.dispatchEvent(new CustomEvent('luckybean:bean-group-closed'));
+    document.dispatchEvent(new CustomEvent('luckybean:bean-group-closed', { detail: { mode: currentMode || MODE_NATIVE, source: 'special' } }));
     return true;
   }
 
@@ -223,7 +224,7 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
 
   async function animateBean(bean, { persist = false, duration = 720 } = {}) {
     const mode = await getMode();
-    beanGroupState.groupKey = mode === MODE_FRESHNESS ? freshnessStage(bean) : String(Math.floor(Math.max(0, Number(bean.remainingWeight || 0)) / 50) * 50);
+    openBeanGroupState(mode === MODE_FRESHNESS ? freshnessStage(bean) : String(Math.floor(Math.max(0, Number(bean.remainingWeight || 0)) / 50) * 50));
     if (persist) { selectedId = bean.id; localStorage.setItem(SELECTED_KEY, selectedId); }
     const container = $('#beanGroups');
     if (container) delete container.dataset.v099tGroupKey;
@@ -296,7 +297,7 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
     }
     const group = event.target.closest?.('[data-v099t-open-group]');
     if (group) {
-      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation(); beanGroupState.groupKey = group.dataset.v099tOpenGroup;
+      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation(); openBeanGroupState(group.dataset.v099tOpenGroup);
       const container = $('#beanGroups'); if (container) delete container.dataset.v099tGroupKey;
       await render({ force: true }); return;
     }
@@ -325,6 +326,15 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
     if (!beanGroupState.groupKey) return;
     event.preventDefault?.();
     closeActiveGroup().catch(error => console.warn('豆藏分组关闭失败', error));
+  });
+
+  document.addEventListener('luckybean:bean-group-closed', event => {
+    if (event.detail?.source === 'special') return;
+    const mode = currentMode || MODE_NATIVE;
+    if (![MODE_FRESHNESS, MODE_REMAINING].includes(mode)) return;
+    const container = $('#beanGroups');
+    if (container) delete container.dataset.v099tGroupKey;
+    render({ force: true, refreshData: true }).catch(error => console.warn('特殊分组关闭后重绘失败', error));
   });
 
   const prewarm = () => loadData().catch(() => {});
