@@ -88,22 +88,47 @@ function updateGhost(state, x, y) {
 }
 
 function insertionTarget(container, options, source, x, y) {
-  const candidates = items(container, options).filter(item => item !== source && !item.classList.contains('lb-sort-source'));
-  if (!candidates.length) return { node:null, before:false };
-  let best = null;
-  let bestDistance = Infinity;
-  for (const node of candidates) {
-    const rect = node.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const distance = (x - cx) ** 2 + (y - cy) ** 2;
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      const sameRow = Math.abs(y - cy) < rect.height * .68;
-      best = { node, before:sameRow ? x < cx : y < cy };
+  const entries = items(container, options)
+    .filter(item => item !== source && !item.classList.contains('lb-sort-source'))
+    .map(node => ({ node, rect:node.getBoundingClientRect() }))
+    .filter(entry => entry.rect.width > 0 && entry.rect.height > 0);
+  if (!entries.length) return { node:null, before:false };
+
+  // Resolve the nearest visual row first. This prevents placeholder reflow from
+  // making a neighbouring chip's centre win purely by Euclidean distance.
+  const rowDistance = entry => {
+    const { rect } = entry;
+    if (y >= rect.top && y <= rect.bottom) return 0;
+    return y < rect.top ? rect.top - y : y - rect.bottom;
+  };
+  const nearestRowDistance = Math.min(...entries.map(rowDistance));
+  const rowTolerance = Math.max(8, Math.min(...entries.map(entry => entry.rect.height)) * .45);
+  const row = entries
+    .filter(entry => rowDistance(entry) <= nearestRowDistance + rowTolerance)
+    .sort((left, right) => left.rect.left - right.rect.left || left.rect.top - right.rect.top);
+
+  if (row.length) {
+    const first = row[0];
+    const last = row[row.length - 1];
+    if (x <= first.rect.left) return { node:first.node, before:true };
+    if (x >= last.rect.right) return { node:last.node, before:false };
+
+    // Treat chip centres as insertion boundaries. Once the pointer passes the
+    // final centre, the source belongs after the final chip, even if reflow has
+    // moved that chip closer to the pointer than its predecessor.
+    for (const entry of row) {
+      const centerX = entry.rect.left + entry.rect.width / 2;
+      if (x < centerX) return { node:entry.node, before:true };
     }
+    return { node:last.node, before:false };
   }
-  return best || { node:null, before:false };
+
+  const ordered = [...entries].sort((left, right) => left.rect.top - right.rect.top || left.rect.left - right.rect.left);
+  for (const entry of ordered) {
+    const centerY = entry.rect.top + entry.rect.height / 2;
+    if (y < centerY) return { node:entry.node, before:true };
+  }
+  return { node:ordered[ordered.length - 1].node, before:false };
 }
 
 function movePlaceholder(state, x, y) {
