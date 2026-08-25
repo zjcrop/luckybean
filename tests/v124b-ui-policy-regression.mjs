@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [policy, beanGroups, groupNavigation, sharedSort, sensorySort, runtime, polish, index, serviceWorker, androidGradle] = await Promise.all([
+const [policy, app, beanGroups, groupNavigation, sharedSort, sensorySort, runtime, polish, index, serviceWorker, androidGradle] = await Promise.all([
   readFile('src/features/release-1.24b-ui-policy.js', 'utf8'),
+  readFile('src/app.js', 'utf8'),
   readFile('src/bean-groups-controller.js', 'utf8'),
   readFile('src/features/release-1.24b-group-navigation.js', 'utf8'),
   readFile('src/ui/sortable-controller.js', 'utf8'),
@@ -17,7 +18,9 @@ const [policy, beanGroups, groupNavigation, sharedSort, sensorySort, runtime, po
 assert.match(policy, /UI_POLICY_REVISION = '1\.24B-main\.4'/);
 assert.match(policy, /button\.textContent = '合并云端'/);
 assert.match(policy, /aspect-ratio:\s*2\s*\/\s*1/);
-assert.match(policy, /\.preference-board-strip/);
+// The compact preference leaderboard is owned by the bean renderer; UI policy must not hide or remove it.
+assert.match(app, /preference-board-strip/);
+assert.doesNotMatch(policy, /\.preference-board-strip/);
 assert.match(policy, /\.bean-consumption-summary > small/);
 assert.match(policy, /数藏分析/);
 assert.match(policy, /从豆卡、冲煮与品鉴记录生成个人咖啡图谱/);
