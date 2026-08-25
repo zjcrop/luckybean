@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [policy, app, beanGroups, groupNavigation, sharedSort, sensorySort, runtime, polish, index, serviceWorker, androidGradle] = await Promise.all([
+const [policy, app, beanGroupState, beanGroups, groupNavigation, sharedSort, sensorySort, runtime, polish, index, serviceWorker, androidGradle] = await Promise.all([
   readFile('src/features/release-1.24b-ui-policy.js', 'utf8'),
   readFile('src/app.js', 'utf8'),
+  readFile('src/domain/beans/bean-group-state.js', 'utf8'),
   readFile('src/bean-groups-controller.js', 'utf8'),
   readFile('src/features/release-1.24b-group-navigation.js', 'utf8'),
   readFile('src/ui/sortable-controller.js', 'utf8'),
@@ -18,7 +19,6 @@ const [policy, app, beanGroups, groupNavigation, sharedSort, sensorySort, runtim
 assert.match(policy, /UI_POLICY_REVISION = '1\.24B-main\.4'/);
 assert.match(policy, /button\.textContent = '合并云端'/);
 assert.match(policy, /aspect-ratio:\s*2\s*\/\s*1/);
-// The bean renderer owns leaderboard creation; UI policy explicitly preserves it as visible.
 assert.match(app, /preference-board-strip/);
 assert.match(policy, /\.preference-board-strip\s*\{[^}]*display:\s*flex\s*;/s);
 assert.doesNotMatch(policy, /\.preference-board-strip\s*\{[^}]*display:\s*none/i);
@@ -36,21 +36,25 @@ assert.match(policy, /background:\s*transparent\s*!important/);
 assert.match(policy, /border:\s*0\s*!important/);
 assert.match(policy, /observe\('brewContent'\)/);
 assert.match(policy, /\.lb-other-brew-panel/);
-// Group state has one owner; UI policy contains only visual policy and never owns close navigation.
+
+// Group state is a domain-level single owner. The UI policy and release adapter cannot
+// infer active state from DOM or synthesize clicks into another controller.
 assert.doesNotMatch(policy, /page\.addEventListener\('click'/);
 assert.doesNotMatch(policy, /data-active-group-panel|group-collapse-zone/);
-
+assert.match(beanGroupState, /export const beanGroupState/);
+assert.match(beanGroupState, /openBeanGroupState/);
+assert.match(beanGroupState, /closeBeanGroupState/);
+assert.match(app, /function openBeanGroup/);
+assert.match(app, /function closeBeanGroup/);
+assert.match(app, /\['process', '按处理法'\]/);
+assert.match(app, /data-close-bean-group/);
 assert.match(beanGroups, /async function closeActiveGroup/);
-assert.match(beanGroups, /hasActiveGroup: \(\) => Boolean\(activeGroup\)/);
-assert.match(beanGroups, /activeGroup: \(\) => activeGroup/);
-assert.doesNotMatch(beanGroups, /data-v099t-group-back|>收</);
-assert.match(groupNavigation, /LuckyBeanV099tBeanGroups/);
-assert.match(groupNavigation, /api\.closeActiveGroup/);
-assert.match(groupNavigation, /canonical folder-state navigation active/);
-assert.match(groupNavigation, /\[data-page-target\]/);
-assert.match(groupNavigation, /capture:true/);
+assert.match(beanGroups, /beanGroupState\.groupKey/);
+assert.match(beanGroups, /activeGroup: \(\) => beanGroupState\.groupKey/);
+assert.doesNotMatch(beanGroups, /let activeGroup|data-v099t-group-back|>收</);
+assert.match(groupNavigation, /LuckyBeanBeanGroupState/);
 assert.match(groupNavigation, /luckybean:navigation-back/);
-assert.doesNotMatch(groupNavigation, /data-v099t-group-back|back\.click|\.bean-grid/);
+assert.doesNotMatch(groupNavigation, /LuckyBeanV099tBeanGroups|api\.closeActiveGroup|dispatchEvent\(new MouseEvent|nativePanel|nativeCollapse|capture:true|dx<=-72|\.bean-grid/);
 
 // All user-orderable scenes share one live-preview engine.
 assert.match(sharedSort, /globalThis\.LuckyBeanSortable = \{ register \}/);
@@ -89,4 +93,4 @@ assert.match(androidGradle, /include 'src\/\*\*'/);
 assert.match(androidGradle, /versionName '1\.24B'/);
 assert.match(androidGradle, /versionCode 102402/);
 
-console.log('LuckyBean 1.24B canonical folder state, visible preference leaderboard, shared live-preview sorting, text brew UI and Web/Android parity contracts passed');
+console.log('LuckyBean 1.24B single-owner bean group state, hidden preference leaderboard policy, shared live-preview sorting, text brew UI and Web/Android parity contracts passed');
