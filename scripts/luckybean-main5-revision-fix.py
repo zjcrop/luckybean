@@ -1,7 +1,7 @@
 from pathlib import Path
 
-TEXT_SUFFIXES = {'.js', '.mjs', '.css', '.html', '.json', '.webmanifest', '.md'}
-roots = [Path('src'), Path('tests'), Path('test')]
+TEXT_SUFFIXES = {'.js', '.mjs', '.css', '.html', '.json', '.webmanifest', '.md', '.yml', '.yaml'}
+roots = [Path('src'), Path('tests'), Path('test'), Path('.github/workflows')]
 files = [Path('index.html'), Path('sw.js')]
 for root in roots:
     if root.exists():
@@ -26,6 +26,10 @@ if 'main-5-sensory1' not in sw:
     raise SystemExit('service worker cache key was not advanced to main.5')
 if '1.24B-main.4' in Path('index.html').read_text(encoding='utf-8'):
     raise SystemExit('stale main.4 asset revision remains in index.html')
+
+for workflow in Path('.github/workflows').glob('*.yml'):
+    if '1.24B-main.4' in workflow.read_text(encoding='utf-8'):
+        raise SystemExit(f'stale main.4 workflow contract remains in {workflow}')
 
 print(f'updated revision contract in {changed} files')
 Path('scripts/luckybean-main5-revision-fix.py').unlink(missing_ok=True)
