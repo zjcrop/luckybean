@@ -44,7 +44,7 @@ if (!globalThis.__LuckyBeanV099mGroupControllerLoaded) {
         ['country', '按国家'],
         ['variety', '按豆种'],
         ['roast', '按烘焙度'],
-        ['process', '按处理工法']
+        ['process', '按处理法']
       ];
       popup.innerHTML = `${nativeOptions.map(([value, label]) =>
         `<button type="button" data-group-method="${value}">${label}${!state.freshness && !state.remaining && state.native === value ? ' ✓' : ''}</button>`
