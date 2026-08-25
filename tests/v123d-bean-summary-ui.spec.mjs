@@ -7,29 +7,29 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('bean digest precedes leaderboard and analytics live only in settings data collection', async ({ page }) => {
-  await page.goto(`${BASE_URL}/?bean-summary=1`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${BASE_URL}/?bean-summary=1`, { waitUntil:'domcontentloaded' });
   await page.locator('#splashScreen').click();
-  await expect(page.locator('#appShell')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('#appShell')).toBeVisible({ timeout:15000 });
   await page.evaluate(async () => {
     const db = await import('/src/db.js');
     const now = new Date();
     const late = new Date(now);
     late.setHours(18, 0, 0, 0);
     await db.bulkPut('beans', [
-      { id: 'summary-a', name: '测试豆A', remainingWeight: 1000, initialWeight: 1000, archived: false, updatedAt: now.toISOString() },
-      { id: 'summary-b', name: '测试豆B', remainingWeight: 250, initialWeight: 250, archived: false, updatedAt: now.toISOString() }
+      { id:'summary-a', name:'测试豆A', remainingWeight:1000, initialWeight:1000, archived:false, updatedAt:now.toISOString() },
+      { id:'summary-b', name:'测试豆B', remainingWeight:250, initialWeight:250, archived:false, updatedAt:now.toISOString() }
     ]);
     await db.bulkPut('inventoryEvents', [
-      { id: 'summary-use-a', beanId: 'summary-a', type: 'brew-consume', amountG: -15, createdAt: late.toISOString() },
-      { id: 'summary-use-b', beanId: 'summary-b', type: 'brew-consume', amountG: -30, createdAt: late.toISOString() }
+      { id:'summary-use-a', beanId:'summary-a', type:'brew-consume', amountG:-15, createdAt:late.toISOString() },
+      { id:'summary-use-b', beanId:'summary-b', type:'brew-consume', amountG:-30, createdAt:late.toISOString() }
     ]);
-    await db.put('sensoryRecords', { id: 'summary-score', beanId: 'summary-a', subjectiveScore: 88, createdAt: now.toISOString() });
-    document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail: { source: 'bean-summary-test' } }));
+    await db.put('sensoryRecords', { id:'summary-score', beanId:'summary-a', subjectiveScore:88, createdAt:now.toISOString() });
+    document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail:{ source:'bean-summary-test' } }));
   });
 
   const summary = page.locator('.bean-consumption-summary');
   const leaderboard = page.locator('.preference-board-strip');
-  await expect(summary).toContainText('现有咖啡豆 1.25kg');
+  await expect(summary).toContainText('现有咖啡豆共计 1.25kg');
   await expect(summary).toContainText('今日已饮用 45.0g豆');
   await expect(summary).toContainText('已经超量喽，可能影响身体健康');
   await expect(summary).toContainText('可能妨碍入睡，要不明天再喝？');
