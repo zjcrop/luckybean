@@ -33,6 +33,11 @@ if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {
     for (const tag of order) if (byTag.get(tag)) list.append(byTag.get(tag));
   }
 
+  function updateHint(list) {
+    const hint = list.previousElementSibling?.matches?.('.v095-sort-hint') ? list.previousElementSibling : list.parentElement?.querySelector?.('.v095-sort-hint');
+    if (hint) hint.textContent = '单击激活标签；双击移除；长按任一已选标签进入排序。拖动时会实时预览松手后的顺序。';
+  }
+
   function activateTag(list, id, item) {
     chips(list).forEach(chip => chip.classList.toggle('lb-sort-active', chip === item));
     item.setAttribute('aria-current', 'true');
@@ -56,6 +61,7 @@ if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {
     if (!list || bound.has(list)) return;
     const sorter = globalThis.LuckyBeanSortable;
     if (!sorter?.register) return;
+    updateHint(list);
     applyOrder(list);
     sorter.register(list, {
       itemSelector:'[data-v120-selected-tag]',
@@ -85,6 +91,7 @@ if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {
   function syncLists() {
     syncQueued = false;
     document.querySelectorAll('.v120-selected-tag-list[data-v120-selected-list]').forEach(list => {
+      updateHint(list);
       applyOrder(list);
       bindList(list);
     });
