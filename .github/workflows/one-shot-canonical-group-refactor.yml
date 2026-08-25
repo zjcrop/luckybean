@@ -17,115 +17,8 @@ jobs:
         with:
           ref: main
           fetch-depth: 1
-      - name: Make canonical group state mode-aware
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-
-          def replace_once(text, old, new, label):
-              n = text.count(old)
-              if n != 1:
-                  raise SystemExit(f'{label}: expected 1 occurrence, found {n}')
-              return text.replace(old, new, 1)
-
-          state = Path('src/domain/beans/bean-group-state.js')
-          state.write_text("""export const beanGroupState = { mode: 'native', groupKey: '' };
-
-export function setBeanGroupMode(mode) {
-  const next = String(mode || 'native');
-  if (beanGroupState.mode !== next) beanGroupState.groupKey = '';
-  beanGroupState.mode = next;
-  return beanGroupState.mode;
-}
-
-export function hasActiveBeanGroup() {
-  return Boolean(beanGroupState.groupKey);
-}
-
-export function openBeanGroupState(groupKey) {
-  beanGroupState.groupKey = String(groupKey || '');
-  return beanGroupState.groupKey;
-}
-
-export function closeBeanGroupState() {
-  const changed = Boolean(beanGroupState.groupKey);
-  beanGroupState.groupKey = '';
-  return changed;
-}
-""", encoding='utf-8')
-
-          app_path = Path('src/app.js')
-          app = app_path.read_text(encoding='utf-8')
-          app = replace_once(app,
-            "import { beanGroupState, openBeanGroupState, closeBeanGroupState, hasActiveBeanGroup } from './domain/beans/bean-group-state.js';",
-            "import { beanGroupState, setBeanGroupMode, openBeanGroupState, closeBeanGroupState, hasActiveBeanGroup } from './domain/beans/bean-group-state.js';",
-            'app group mode import')
-          app = replace_once(app,
-            "  state.groupAnimationMode = animation;\n  state.recommendationExpandedAll = false;\n  openBeanGroupState(key);",
-            "  state.groupAnimationMode = animation;\n  state.recommendationExpandedAll = false;\n  setBeanGroupMode('native');\n  openBeanGroupState(key);",
-            'native mode open')
-          app = replace_once(app,
-            "  closeBeanGroupState();\n  if (render) renderBeans();\n  document.dispatchEvent(new CustomEvent('luckybean:bean-group-closed'));",
-            "  const mode = beanGroupState.mode;\n  closeBeanGroupState();\n  if (render && mode === 'native') renderBeans();\n  document.dispatchEvent(new CustomEvent('luckybean:bean-group-closed', { detail: { mode, source: 'canonical' } }));",
-            'mode-aware canonical close')
-          app_path.write_text(app, encoding='utf-8')
-
-          controller_path = Path('src/bean-groups-controller.js')
-          controller = controller_path.read_text(encoding='utf-8')
-          controller = replace_once(controller,
-            "import { beanGroupState } from './domain/beans/bean-group-state.js';",
-            "import { beanGroupState, setBeanGroupMode, openBeanGroupState, closeBeanGroupState } from './domain/beans/bean-group-state.js';",
-            'controller mode helpers import')
-          controller = replace_once(controller,
-            "    return currentMode;\n  }\n\n  async function saveMode(mode) {",
-            "    setBeanGroupMode(currentMode);\n    return currentMode;\n  }\n\n  async function saveMode(mode) {",
-            'sync initial special mode')
-          controller = replace_once(controller,
-            "  async function saveMode(mode) {\n    currentMode = mode;\n    beanGroupState.groupKey = '';",
-            "  async function saveMode(mode) {\n    currentMode = mode;\n    setBeanGroupMode(mode);",
-            'save mode canonical')
-          controller = controller.replace("beanGroupState.groupKey = '';", "closeBeanGroupState();")
-          controller = replace_once(controller,
-            "    beanGroupState.groupKey = mode === MODE_FRESHNESS ? freshnessStage(bean) : String(Math.floor(Math.max(0, Number(bean.remainingWeight || 0)) / 50) * 50);",
-            "    openBeanGroupState(mode === MODE_FRESHNESS ? freshnessStage(bean) : String(Math.floor(Math.max(0, Number(bean.remainingWeight || 0)) / 50) * 50));",
-            'recommendation group open')
-          controller = replace_once(controller,
-            "      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation(); beanGroupState.groupKey = group.dataset.v099tOpenGroup;",
-            "      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation(); openBeanGroupState(group.dataset.v099tOpenGroup);",
-            'special card group open')
-          controller = replace_once(controller,
-            "    document.dispatchEvent(new CustomEvent('luckybean:bean-group-closed'));\n    return true;",
-            "    document.dispatchEvent(new CustomEvent('luckybean:bean-group-closed', { detail: { mode: currentMode || MODE_NATIVE, source: 'special' } }));\n    return true;",
-            'special close event detail')
-          anchor = "  const prewarm = () => loadData().catch(() => {});"
-          listener = """  document.addEventListener('luckybean:bean-group-closed', event => {
-    if (event.detail?.source === 'special') return;
-    const mode = currentMode || MODE_NATIVE;
-    if (![MODE_FRESHNESS, MODE_REMAINING].includes(mode)) return;
-    const container = $('#beanGroups');
-    if (container) delete container.dataset.v099tGroupKey;
-    render({ force: true, refreshData: true }).catch(error => console.warn('特殊分组关闭后重绘失败', error));
-  });
-
-  const prewarm = () => loadData().catch(() => {});"""
-          controller = replace_once(controller, anchor, listener, 'special close rerender listener')
-          controller_path.write_text(controller, encoding='utf-8')
-
-          for filename in [
-              'tests/v123d-deployment-contracts.mjs',
-              'tests/v124b-final-release-contract.mjs',
-              'tests/v124b-complete-plan-contract.mjs',
-              'tests/v124b-ui-policy-regression.mjs'
-          ]:
-              path = Path(filename)
-              text = path.read_text(encoding='utf-8').replace('|capture:true', '')
-              text = text.replace("export const beanGroupState = \\{ groupKey: '' \\}", "export const beanGroupState = \\{ mode: 'native', groupKey: '' \\}")
-              if 'setBeanGroupMode' not in text:
-                  text = text.replace("assert.match(beanGroupState, /openBeanGroupState/);", "assert.match(beanGroupState, /setBeanGroupMode/);\nassert.match(beanGroupState, /openBeanGroupState/);")
-              path.write_text(text, encoding='utf-8')
-          PY
+      - name: Apply mode-aware canonical group finalizer
+        run: python scripts/one-shot-canonical-group-refactor.py
       - name: Validate finalized source
         shell: bash
         run: |
@@ -138,13 +31,12 @@ export function closeBeanGroupState() {
           node tests/v124b-final-release-contract.mjs
           node tests/v124b-complete-plan-contract.mjs
           node tests/v124b-ui-policy-regression.mjs
-      - name: Commit and remove one-shot migration machinery
+      - name: Commit finalized group source
         shell: bash
         run: |
           set -euo pipefail
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git rm .github/workflows/one-shot-canonical-group-refactor.yml scripts/one-shot-canonical-group-refactor.py
           git add src/app.js src/bean-groups-controller.js src/domain/beans/bean-group-state.js tests/v123d-deployment-contracts.mjs tests/v124b-final-release-contract.mjs tests/v124b-complete-plan-contract.mjs tests/v124b-ui-policy-regression.mjs
           git commit -m 'refactor: finalize mode-aware bean groups'
           git push origin HEAD:main
