@@ -218,9 +218,14 @@ function queueSync(){
 }
 
 function closeNativeGroup(){
-  const collapse=nativeCollapse();
-  if(!collapse)return false;
-  collapse.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));
+  const panel=nativePanel();
+  if(!panel)return false;
+  const collapse=panel.querySelector('[data-collapse-group]');
+  const target=collapse||panel;
+  target.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));
+  if(nativePanel()===panel&&target!==panel){
+    panel.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));
+  }
   return true;
 }
 
