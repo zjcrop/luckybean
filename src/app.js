@@ -11,6 +11,7 @@ import { commitCompletedBrew, permanentlyDeleteBrewRecords } from './domain/hist
 import { attachSensoryToCompletedBrew, attachOptimizationDraft, completeOptimizationValidation } from './domain/history/history-sensory-service.js';
 import { assessTastingForOptimization } from './domain/sensory/brew-optimization-assessment.js';
 import { buildBeanConsumptionSummary, DEFAULT_CAFFEINE_HEALTH_SETTINGS } from './domain/beans/bean-consumption-summary.js';
+import { beanGroupState, openBeanGroupState, closeBeanGroupState, hasActiveBeanGroup } from './domain/beans/bean-group-state.js';
 import { createLocalReferenceAnalysis } from './services/local-reference-analysis.js';
 import { adaptAuthoritativePlan } from './services/brew-analysis-service.js';
 import { BrewCalculationCoordinator } from './services/brew-calculation-coordinator.js';
@@ -98,9 +99,37 @@ const state = {
   brewProfileOverride: null, brewDripperOverride: null, brewEntryMode: 'normal',
   beanFormSource: null, beanFormDraft: null, cameraScanner: null,
   timer: { interval: null, paused: false, stageIndex: 0, remaining: 0, actionCues:new Set() }, currentExecution: null,
-  activeGroupKey: null, groupAnimationMode: 'manual', recommendationTimer: null, recommendationRun: false, recommendationExpandedAll: false, recommendationPromptMemory: {}, preferenceBoardOpen: false, settingsFocusFilterId: '',
+  get activeGroupKey(){ return beanGroupState.groupKey; }, set activeGroupKey(value){ value ? openBeanGroupState(value) : closeBeanGroupState(); }, groupAnimationMode: 'manual', recommendationTimer: null, recommendationRun: false, recommendationExpandedAll: false, recommendationPromptMemory: {}, preferenceBoardOpen: false, settingsFocusFilterId: '',
   evaluation: null, pendingSensoryContext: null, sensoryHistoryOpen: false, sensoryFilter: { beanId: '', minScore: '', maxScore: '', start: '', end: '', expanded: false }
 };
+
+function openBeanGroup(groupKey, { animation = 'manual' } = {}) {
+  const key = String(groupKey || '').trim();
+  if (!key) return false;
+  state.groupAnimationMode = animation;
+  state.recommendationExpandedAll = false;
+  openBeanGroupState(key);
+  renderBeans();
+  document.dispatchEvent(new CustomEvent('luckybean:bean-group-opened', { detail: { groupKey: key, groupMethod: state.settings.groupMethod || 'country' } }));
+  return true;
+}
+
+function closeBeanGroup({ render = true } = {}) {
+  const changed = hasActiveBeanGroup() || state.recommendationExpandedAll;
+  if (!changed) return false;
+  state.groupAnimationMode = 'manual';
+  state.recommendationExpandedAll = false;
+  closeBeanGroupState();
+  if (render) renderBeans();
+  document.dispatchEvent(new CustomEvent('luckybean:bean-group-closed'));
+  return true;
+}
+
+globalThis.LuckyBeanBeanGroupState = Object.freeze({
+  hasActiveGroup: hasActiveBeanGroup,
+  open: groupKey => openBeanGroup(groupKey),
+  close: () => closeBeanGroup()
+});
 
 let toastTimer;
 let toastCleanupTimer;
@@ -687,7 +716,7 @@ function renderBeans() {
     return;
   }
   const items = groups.get(state.activeGroupKey) || [];
-  container.innerHTML = `${board}<section class="active-group-panel ${state.groupAnimationMode === 'auto' ? 'auto-motion' : 'manual-motion'}" data-active-group-panel><div class="active-group-title"><span>${esc(state.activeGroupKey)}</span><small>${items.length}只</small></div><div class="bean-grid compact-grid">${items.map(beanCardHtml).join('')}</div><div class="group-collapse-zone" data-collapse-group><button class="group-collapse" type="button">收</button></div></section>`;
+  container.innerHTML = `${board}<section class="active-group-panel ${state.groupAnimationMode === 'auto' ? 'auto-motion' : 'manual-motion'}" data-active-group-panel><div class="active-group-title"><span>${esc(state.activeGroupKey)}</span><small>${items.length}只</small></div><div class="bean-grid compact-grid">${items.map(beanCardHtml).join('')}</div><button class="bean-group-dismiss-surface" type="button" data-close-bean-group aria-label="返回分组列表"></button></section>`;
 }
 
 function positionPopup(anchor, popup, { above = false } = {}) {
@@ -705,7 +734,7 @@ function openGroupMenu() {
   closePopups();
   const popup = document.createElement('div');
   popup.className = 'popup-menu';
-  popup.innerHTML = [['country', '按国家'], ['variety', '按豆种'], ['roast', '按烘焙度'], ['process', '按处理工法']].map(([value, label]) => `<button type="button" data-group-method="${value}">${label}${state.settings.groupMethod === value ? ' ✓' : ''}</button>`).join('');
+  popup.innerHTML = [['country', '按国家'], ['variety', '按豆种'], ['roast', '按烘焙度'], ['process', '按处理法']].map(([value, label]) => `<button type="button" data-group-method="${value}">${label}${state.settings.groupMethod === value ? ' ✓' : ''}</button>`).join('');
   document.body.append(popup); positionPopup($('#groupBtn'), popup);
   popup.addEventListener('click', async event => {
     const button = event.target.closest('[data-group-method]'); if (!button) return;
@@ -2664,17 +2693,15 @@ function dismissSplash() {
 function bindGlobalEvents() {
   $('#splashScreen')?.addEventListener('click', dismissSplash);
   $('#splashScreen')?.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') dismissSplash(); });
-  $('#bottomNav').addEventListener('click',event=>{const button=event.target.closest('[data-page-target]');if(button)switchPage(button.dataset.pageTarget);});
+  $('#bottomNav').addEventListener('click',event=>{const button=event.target.closest('[data-page-target]');if(!button)return;const page=button.dataset.pageTarget;if(page==='beans'&&state.page==='beans'&&hasActiveBeanGroup()){closeBeanGroup();return;}switchPage(page);});
   $('#beanGroups').addEventListener('click',event=>{
     const boardBean = event.target.closest('[data-board-bean]'); if (boardBean) { const bean = state.beans.find(item => item.id === boardBean.dataset.boardBean); if (bean) focusRecommendedBean(bean, { openDetail: true, duration: 800 }); return; }
     const board = event.target.closest('[data-open-recommend-board]'); if (board) return openRecommendationLeaderboard();
     const group = event.target.closest('[data-open-group]');
-    if (group) { state.groupAnimationMode='manual'; state.recommendationExpandedAll=false; state.activeGroupKey = group.dataset.openGroup; renderBeans(); return; }
-    if (event.target.closest('[data-collapse-group]')) { state.groupAnimationMode='manual'; state.recommendationExpandedAll=false; state.activeGroupKey = null; renderBeans(); return; }
+    if (group) { openBeanGroup(group.dataset.openGroup); return; }
+    if (event.target.closest('[data-collapse-group],[data-close-bean-group]')) { closeBeanGroup(); return; }
     const brew=event.target.closest('[data-brew-bean]');if(brew){event.stopPropagation();state.selectedBeanId=brew.dataset.brewBean;state.currentPlan=null;switchPage('brew');return;}
     const card=event.target.closest('[data-bean-id]');if(card){detailBean(card.dataset.beanId);return;}
-    const panel=event.target.closest('[data-active-group-panel]');
-    if(panel && !event.target.closest('[data-bean-id],[data-brew-bean],.active-group-title')){state.groupAnimationMode='manual';state.recommendationExpandedAll=false;state.activeGroupKey=null;renderBeans();}
   });
   $('#beanGroups').addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-bean-id]'))detailBean(event.target.dataset.beanId);});
   $('#activeFilterBar').addEventListener('click',event=>{if(event.target.id==='clearActiveFilters'){state.filter={search:'',country:'',variety:'',process:'',flavors:[],sort:'freshness',dir:'asc'};state.activeGroupKey=null;renderBeans();}});

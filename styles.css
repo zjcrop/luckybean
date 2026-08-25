@@ -4039,3 +4039,21 @@ html.v099p-settings-active #settingsContent .settings-category-body {
 .cloud-sync-indicator[data-state="conflict"],
 .cloud-sync-indicator[data-state="deletion-confirmation-required"] { background: #a94c43; box-shadow: 0 0 0 4px color-mix(in srgb, #a94c43 18%, transparent); }
 @keyframes cloud-sync-pulse { to { opacity: .45; transform: scale(.82); } }
+
+
+/* 1.24B canonical bean-group dismiss surface */
+#beanGroups .bean-group-dismiss-surface {
+  display: block;
+  width: 100%;
+  min-height: clamp(100px, 16vh, 160px);
+  margin: 8px 0 0;
+  padding: 0;
+  border: 0;
+  appearance: none;
+  background: transparent;
+  box-shadow: none;
+  color: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}

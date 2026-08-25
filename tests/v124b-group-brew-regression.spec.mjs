@@ -64,7 +64,7 @@ async function chooseGroupMethod(page,method){
 async function openFirstGroup(page){
   await page.locator('#beanGroups [data-open-group]').first().click();
   await expect(page.locator('#beanGroups [data-active-group-panel]')).toBeVisible();
-  await expect(page.locator('#beanGroups [data-lb-group-dismiss-zone]')).toHaveCount(1);
+  await expect(page.locator('#beanGroups [data-close-bean-group]')).toHaveCount(1);
 }
 
 test('country variety roast and process folders share the same close behavior',async({page})=>{
@@ -82,7 +82,7 @@ test('country variety roast and process folders share the same close behavior',a
 
     // The large transparent space below the opened folder is also a real close target.
     await openFirstGroup(page);
-    await page.locator('#beanGroups [data-lb-group-dismiss-zone]').click({position:{x:10,y:10}});
+    await page.locator('#beanGroups [data-close-bean-group]').click({position:{x:10,y:10}});
     await expect(page.locator('#beanGroups [data-active-group-panel]')).toHaveCount(0);
   }
 });
