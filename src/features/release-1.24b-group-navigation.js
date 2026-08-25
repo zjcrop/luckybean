@@ -310,4 +310,4 @@ bindPageLevelDismiss();
 queueSync();
 
 globalThis.LuckyBean124BGroupNavigation={close:closeActiveGroup,hasActiveGroup,sync:queueSync};
-console.info('[LuckyBean] 1.24B bean groups and brew UI interaction fix active');
+console.info('[LuckyBean] 1.24B canonical folder-state navigation active; bean groups and brew UI interaction fix active');
