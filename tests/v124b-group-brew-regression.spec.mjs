@@ -99,6 +99,13 @@ async function openFirstSpecialGroup(page){
   await expect(page.locator('#beanGroups [data-close-bean-group]')).toHaveCount(1);
 }
 
+async function chooseRecommendation(page,mode){
+  await page.locator('#fabRecommendBtn').click();
+  const option=page.locator(`[data-recommend-mode="${mode}"]`);
+  await expect(option).toBeVisible();
+  await option.click();
+}
+
 test('country variety roast and process folders use one canonical close action',async({page})=>{
   await expect(page.locator('#beanGroups .preference-board-strip')).toHaveCount(0);
   await expect(page.locator('#beanGroups [data-open-recommend-board]')).toHaveCount(0);
@@ -126,6 +133,33 @@ test('country variety roast and process folders use one canonical close action',
   }
 });
 
+test('native recommendation opens only the target group and never expands all groups',async({page})=>{
+  // 选择菜单颜色属于功能语义，不再依赖旧主题色。
+  await page.locator('#fabRecommendBtn').click();
+  await expect(page.locator('[data-recommend-mode="price"] .recommend-dot')).toHaveCSS('background-color','rgb(0, 0, 0)');
+  await expect(page.locator('[data-recommend-mode="remaining"] .recommend-dot')).toHaveCSS('background-color','rgb(128, 128, 128)');
+  await page.keyboard.press('Escape');
+
+  for(const method of ['country','variety','roast','process']){
+    await chooseGroupMethod(page,method);
+    await chooseRecommendation(page,'remaining');
+
+    // 旧功能遗留的“全组同时展开”必须彻底不存在。
+    await expect(page.locator('#beanGroups [data-all-groups]')).toHaveCount(0);
+    await expect(page.locator('#beanGroups .recommendation-all-groups')).toHaveCount(0);
+
+    // 与赏味期/余量一致：选择结果只打开目标豆所在的一个分组。
+    await expect(page.locator('#beanGroups [data-active-group-panel]')).toHaveCount(1,{timeout:10000});
+    await expect(page.locator('#beanGroups [data-close-bean-group]')).toHaveCount(1);
+    await expect(page.locator('#beanGroups [data-bean-id="group-regression-7"]')).toBeVisible();
+
+    // 推荐后的分组仍然使用同一个正式关闭动作。
+    await page.locator('#beanGroups [data-close-bean-group]').click({position:{x:10,y:10}});
+    await expect(page.locator('#beanGroups [data-active-group-panel]')).toHaveCount(0);
+    await expect(page.locator('#beanGroups [data-open-group]').first()).toBeVisible();
+  }
+});
+
 test('freshness and remaining groups keep their renderer while sharing canonical state',async({page})=>{
   for(const mode of ['freshness-ratio','remaining-50']){
     await setSpecialMode(page,mode);
@@ -145,6 +179,22 @@ test('freshness and remaining groups keep their renderer while sharing canonical
     await expect(page.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible();
     await expect(page.locator('#beanGroups [data-open-group]')).toHaveCount(0);
     await expect(page.locator('#pageBeans')).toHaveClass(/active/);
+  }
+});
+
+test('special group recommendations also keep exactly one target group open',async({page})=>{
+  for(const mode of ['freshness-ratio','remaining-50']){
+    await setSpecialMode(page,mode);
+    await chooseRecommendation(page,'remaining');
+
+    await expect(page.locator('#beanGroups [data-all-groups]')).toHaveCount(0);
+    await expect(page.locator('#beanGroups .recommendation-all-groups')).toHaveCount(0);
+    await expect(page.locator('#beanGroups [data-v099t-group-root].active-group-panel')).toHaveCount(1,{timeout:10000});
+    await expect(page.locator('#beanGroups [data-close-bean-group]')).toHaveCount(1);
+    await expect(page.locator('#beanGroups [data-bean-id="group-regression-7"]')).toBeVisible();
+
+    await page.locator('#beanGroups [data-close-bean-group]').click({position:{x:10,y:10}});
+    await expect(page.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible();
   }
 });
 
