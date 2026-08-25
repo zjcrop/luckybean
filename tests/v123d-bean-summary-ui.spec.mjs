@@ -45,7 +45,12 @@ test('bean digest precedes leaderboard and analytics live only in settings data 
       createdAt:now.toISOString()
     });
     await new Promise(resolve => {
-      document.addEventListener('luckybean:app-refreshed', resolve, { once:true });
+      const onRefreshed = event => {
+        if (event.detail?.source !== 'bean-summary-test') return;
+        document.removeEventListener('luckybean:app-refreshed', onRefreshed);
+        resolve();
+      };
+      document.addEventListener('luckybean:app-refreshed', onRefreshed);
       document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail:{ source:'bean-summary-test' } }));
     });
   });

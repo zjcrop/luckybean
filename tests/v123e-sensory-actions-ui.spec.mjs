@@ -68,11 +68,9 @@ test('selected sensory tags use single activate, double remove and live-preview 
   const first = list.locator('[data-v120-selected-tag="花香"]:not(.lb-sort-ghost)');
   const third = list.locator('[data-v120-selected-tag="茶感"]:not(.lb-sort-ghost)');
   const firstBox = await first.boundingBox();
-  const thirdBox = await third.boundingBox();
   expect(firstBox).toBeTruthy();
-  expect(thirdBox).toBeTruthy();
 
-  // Long press the source tag itself; the generated ghost clone must not replace the source locator.
+  // Long press the source tag itself; sorting must create ghost + placeholder without confusing the source locator.
   await page.mouse.move(firstBox.x + firstBox.width * 0.35, firstBox.y + firstBox.height / 2);
   await page.mouse.down();
   await page.waitForTimeout(410);
@@ -81,7 +79,11 @@ test('selected sensory tags use single activate, double remove and live-preview 
   await expect(first).toHaveCSS('visibility', 'hidden');
   const initialPreview = await list.getAttribute('data-lb-sort-preview');
 
-  await page.mouse.move(thirdBox.x + thirdBox.width * 0.9, thirdBox.y + thirdBox.height / 2, { steps:10 });
+  // Placeholder activation changes flex geometry. Re-read the last tag's live box and move beyond its centre/right edge.
+  // sortable-controller then deterministically selects that tag with before=false, i.e. appends the source after it.
+  const liveThirdBox = await third.boundingBox();
+  expect(liveThirdBox).toBeTruthy();
+  await page.mouse.move(liveThirdBox.x + liveThirdBox.width + 10, liveThirdBox.y + liveThirdBox.height / 2, { steps:10 });
   await page.waitForTimeout(50);
   const movedPreview = await list.getAttribute('data-lb-sort-preview');
   expect(movedPreview).not.toBe(initialPreview);
