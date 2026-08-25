@@ -49,18 +49,29 @@ jobs:
           grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.4' index.html
           grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.4' index.html
           grep -Fq "REVISION = '1.24B-main.4'" sw.js
+          grep -Fq 'main-4-interaction3' sw.js
           grep -Fq 'release-1.24b-ui-policy.js' sw.js
+          grep -Fq 'src/ui/sortable-controller.js' sw.js
           grep -Fq 'sensory-tag-sort-controller.js' sw.js
+          grep -Fq "feature('shared-sortable'" src/features/runtime-features.js
           grep -Fq 'sensory-tag-sort-controller.js' src/features/runtime-features.js
           grep -Fq 'async function closeActiveGroup' src/bean-groups-controller.js
           ! grep -Fq 'data-v099t-group-back' src/bean-groups-controller.js
           grep -Fq 'api.closeActiveGroup' src/features/release-1.24b-group-navigation.js
           ! grep -Fq 'data-v099t-group-back' src/features/release-1.24b-group-navigation.js
-          grep -Fq 'LONG_PRESS_MS = 320' src/features/sensory-tag-sort-controller.js
+          grep -Fq 'lb-sort-ghost' src/ui/sortable-controller.js
+          grep -Fq 'lb-sort-placeholder' src/ui/sortable-controller.js
+          grep -Fq 'onPreview' src/ui/sortable-controller.js
+          grep -Fq 'onCommit' src/ui/sortable-controller.js
+          grep -Fq 'LuckyBeanSortable' src/features/sensory-tag-sort-controller.js
+          grep -Fq '双击移除' src/features/sensory-tag-sort-controller.js
+          grep -Fq '实时预览松手后的顺序' src/features/sensory-tag-sort-controller.js
           grep -Fq 'professional-sensory-complete' src/features/sensory-tag-sort-controller.js
           grep -Fq "UI_POLICY_REVISION = '1.24B-main.4'" src/features/release-1.24b-ui-policy.js
           grep -Fq "button.textContent = '合并云端'" src/features/release-1.24b-ui-policy.js
           grep -Fq 'aspect-ratio: 2 / 1' src/features/release-1.24b-ui-policy.js
+          grep -Fq '#brewContent button:not(.lb-brew-switch)' src/features/release-1.24b-ui-policy.js
+          grep -Fq "observe('brewContent')" src/features/release-1.24b-ui-policy.js
           grep -Fq 'release-1.24b-freshness-detail.js' sw.js
           grep -Fq 'recognition-batch-progress-controller.js' sw.js
           grep -Fq 'recognition-field-resolver-1.24b.js' sw.js
@@ -106,6 +117,7 @@ jobs:
             assets/web-cache/src/features/release-1.24b-ui-policy.js \
             assets/web-cache/src/features/release-1.24b-freshness-detail.js \
             assets/web-cache/src/features/recognition-batch-progress-controller.js \
+            assets/web-cache/src/ui/sortable-controller.js \
             assets/web-cache/src/features/sensory-tag-sort-controller.js \
             assets/web-cache/src/features/runtime-features.js \
             assets/web-cache/src/bean-groups-controller.js \
@@ -122,16 +134,24 @@ jobs:
           unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.4'
           unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.4'
           unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '1.24B-main.4'"
+          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'main-4-interaction3'
+          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'src/ui/sortable-controller.js'
           unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'sensory-tag-sort-controller.js'
+          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq "feature('shared-sortable'"
           unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq 'sensory-tag-sort-controller.js'
+          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'lb-sort-ghost'
+          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'lb-sort-placeholder'
+          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'onPreview'
+          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'onCommit'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq "UI_POLICY_REVISION = '1.24B-main.4'"
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq "button.textContent = '合并云端'"
-          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq 'aspect-ratio: 2 / 1'
+          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq '#brewContent button:not(.lb-brew-switch)'
           unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'async function closeActiveGroup'
           ! unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'data-v099t-group-back'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'api.closeActiveGroup'
           ! unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'data-v099t-group-back'
-          unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq 'LONG_PRESS_MS = 320'
+          unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq 'LuckyBeanSortable'
+          unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq '实时预览松手后的顺序'
           unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq 'professional-sensory-complete'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-about-controller.js | grep -Fq '端茶倒水的秦始皇🐻'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-freshness-detail.js | grep -Fq '完整赏味期曲线'
@@ -152,7 +172,7 @@ jobs:
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.24B-release.apk
           zip -qr dist/LuckyBean-1.24B-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts schemas docs DEVELOPMENT_STATUS.md
-          printf 'source_sha=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.4\nsigning=official-release-keystore\nandroid_runtime_marker=LuckyBeanAndroid/1.24B\nrecognition_queue=serial-one-image-persistent\nrecognition_arbitration=explicit-confidence-consensus-inference\nbean_lifecycle=ordered-delivered-storage-history\nstorage_modes=room-refrigerated-frozen\nfreshness_detail=full-expandable\norder_ocr=privacy-minimized\ngrind_psd=measured-reference-plus-custom-anchors\ngroup_navigation=canonical-state-api\nsensory_sort=longpress-pointer-capture\nabout_contacts=inside-about-section\nui_architecture=canonical-1.24b-main.4\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
+          printf 'source_sha=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.4\nsigning=official-release-keystore\nandroid_runtime_marker=LuckyBeanAndroid/1.24B\nrecognition_queue=serial-one-image-persistent\nrecognition_arbitration=explicit-confidence-consensus-inference\nbean_lifecycle=ordered-delivered-storage-history\nstorage_modes=room-refrigerated-frozen\nfreshness_detail=full-expandable\norder_ocr=privacy-minimized\ngrind_psd=measured-reference-plus-custom-anchors\ngroup_navigation=canonical-state-api\ncache=main-4-interaction3\nsortable=shared-live-preview-ghost-placeholder\nsensory_sort=single-activate-double-remove-longpress-preview\nbrew_ui=text-interactions\nabout_contacts=inside-about-section\nui_architecture=canonical-1.24b-main.4\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
           sha256sum dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip > dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v7.0.1
         with:
@@ -178,7 +198,7 @@ jobs:
           apk_sha=$(sha256sum dist/LuckyBean-1.24B-release.apk | awk '{print $1}')
           web_sha=$(sha256sum dist/LuckyBean-1.24B-web.zip | awk '{print $1}')
           receipt=$(mktemp)
-          printf '{"version":"1.24B","revision":"1.24B-main.4","source_sha":"%s","release_tag":"%s","apk":"LuckyBean-1.24B-release.apk","apk_sha256":"%s","web_sha256":"%s","certificate_sha256":"%s","certificate_verified":true,"published":true,"generated_at":"%s"}\n' "$SOURCE_SHA" "$RELEASE_TAG" "$apk_sha" "$web_sha" "$cert" "$(date -u +%FT%TZ)" > "$receipt"
+          printf '{"version":"1.24B","revision":"1.24B-main.4","source_sha":"%s","release_tag":"%s","apk":"LuckyBean-1.24B-release.apk","apk_sha256":"%s","web_sha256":"%s","certificate_sha256":"%s","certificate_verified":true,"published":true,"sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","generated_at":"%s"}\n' "$SOURCE_SHA" "$RELEASE_TAG" "$apk_sha" "$web_sha" "$cert" "$(date -u +%FT%TZ)" > "$receipt"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           if git ls-remote --exit-code --heads origin release-status >/dev/null 2>&1; then
