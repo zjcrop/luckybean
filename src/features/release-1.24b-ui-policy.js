@@ -77,6 +77,32 @@ if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
         text-decoration-thickness: 1px;
         text-underline-offset: .24em;
       }
+
+      /* Small Brew row values are one visual level: centered like the dripper/filter/water values. */
+      #brewContent [data-brew-row="actions"] > .brew-menu-button,
+      #brewContent [data-brew-row="cooling"] > .brew-menu-button,
+      #brewContent .brew-generate-row > .button {
+        min-width: 0 !important;
+        min-height: 34px !important;
+        padding: 5px 0 !important;
+        font-size: 13px !important;
+        font-weight: 450 !important;
+        line-height: 1.45 !important;
+        text-align: center !important;
+        text-align-last: center !important;
+        text-decoration: none !important;
+      }
+      #brewContent .brew-generate-row > .button {
+        flex: 1 1 0 !important;
+        width: auto !important;
+        color: var(--clickable, var(--text)) !important;
+      }
+      #brewContent .brew-generate-row > .button.primary {
+        color: var(--clickable, var(--text)) !important;
+        font-weight: 450 !important;
+        text-decoration: none !important;
+      }
+
       #brewContent .lb-other-brew-panel {
         border: 0 !important;
         border-radius: 0 !important;
@@ -89,6 +115,49 @@ if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
       }
       #brewContent .lb-other-actions [data-lb-other-back] { text-align: left !important; }
       #brewContent .lb-other-actions [data-lb-other-complete] { text-align: right !important; }
+
+      /* Professional cupping score: the adjustment axis is a full-row horizontal control below the score values. */
+      .v095-score-stage .score-value-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        align-items: start !important;
+      }
+      .v095-score-stage .subjective-delta-control {
+        display: contents !important;
+        width: auto !important;
+        max-width: none !important;
+      }
+      .v095-score-stage .subjective-delta-control > strong {
+        grid-column: 2 !important;
+        grid-row: 1 !important;
+        align-self: start !important;
+        justify-self: stretch !important;
+        text-align: center !important;
+      }
+      .v095-score-stage [data-v095-score-delta-input] {
+        grid-column: 1 / -1 !important;
+        grid-row: 2 !important;
+        width: 100% !important;
+        max-width: none !important;
+        height: 32px !important;
+        margin: 8px 0 0 !important;
+        writing-mode: horizontal-tb !important;
+        direction: ltr !important;
+        cursor: ew-resize !important;
+      }
+
+      /* Settings: remove obsolete top spacer under Interface and Data Archive headings. */
+      #settingsContent .settings-category[data-settings-key="appearance"] > .settings-category-body,
+      #settingsContent .settings-category.data-category > .settings-category-body {
+        padding-top: 0 !important;
+      }
+      #settingsContent .settings-category[data-settings-key="appearance"] .v095-setting-line {
+        margin-top: 0 !important;
+      }
+      #settingsContent .settings-category.data-category [data-v099p-data-analysis] {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+        border-top: 0 !important;
+      }
 
       @media (max-width: 720px) {
         .bean-consumption-summary > p {
