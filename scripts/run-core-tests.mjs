@@ -17,7 +17,8 @@ const specs = [
   'tests/v124b-group-brew-regression.spec.mjs',
   'tests/v124b-selection-mode-single-group.spec.mjs',
   'tests/v124b-fab-regression.spec.mjs',
-  'tests/v124b-ui-alignment-regression.spec.mjs'
+  'tests/v124b-ui-alignment-regression.spec.mjs',
+  'tests/v124b-followup-regression.spec.mjs'
 ];
 
 function annotation(text) {
