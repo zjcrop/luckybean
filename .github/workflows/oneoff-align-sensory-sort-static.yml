@@ -1,0 +1,37 @@
+name: One-off align sensory sort static contract
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/oneoff-align-sensory-sort-static.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  align:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+      - shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('tests/v123e-ui-stability-static.mjs')
+          text=p.read_text()
+          old=r"assert.match(sensorySort,/event\.stopPropagation\(\)/);"
+          new=r"assert.match(sensorySort,/event\.stopImmediatePropagation\(\)/);"
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one old assertion, got {text.count(old)}')
+          p.write_text(text.replace(old,new))
+          PY
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add tests/v123e-ui-stability-static.mjs
+          git commit -m 'test: align sensory gesture ownership assertion'
+          git push origin HEAD:main
