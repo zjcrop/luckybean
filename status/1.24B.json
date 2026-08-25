@@ -1,1 +1,1 @@
-{"source_sha":"04e933b90ce80ad36e3e2471cb3e90895ec9c106","version":"1.24B","install_status":0,"js_status":0,"static_status":0,"passed":true,"first_error":"","generated_at":"2026-08-25T10:07:47Z"}
+{"source_sha":"fa68e51eccf126ccecf223cbc1e00f9879f325d6","version":"1.24B","install_status":0,"js_status":0,"static_status":1,"passed":false,"first_error":"AssertionError [ERR_ASSERTION]: The input did not match the regular expression /hasActiveGroup: \\(\\) => Boolean\\(activeGroup\\)/. Input:","generated_at":"2026-08-25T10:11:02Z"}
