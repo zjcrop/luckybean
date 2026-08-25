@@ -45,7 +45,7 @@ jobs:
           set -euo pipefail
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add src/app.js .github/workflows/build-main.yml
+          git add src/app.js
           git diff --cached --quiet && { echo 'No migration changes'; exit 1; }
-          git commit -m 'fix: unify recommendation grouping and release gates'
+          git commit -m 'fix: unify recommendation grouping behavior'
           git push origin HEAD:main
