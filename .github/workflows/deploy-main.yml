@@ -37,8 +37,8 @@ jobs:
           current_main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
           test "$current_main" = "$SOURCE_SHA"
           runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/test-main.yml/runs?branch=main&head_sha=$SOURCE_SHA&per_page=10")
-          test_status=$(printf '%s' "$runs" | jq -r '[.workflow_runs[] | select(.head_sha == env.SOURCE_SHA)][0].status // "missing"')
-          test_conclusion=$(printf '%s' "$runs" | jq -r '[.workflow_runs[] | select(.head_sha == env.SOURCE_SHA)][0].conclusion // "missing"')
+          test_status=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].status // "missing"')
+          test_conclusion=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].conclusion // "missing"')
           test "$test_status" = "completed"
           test "$test_conclusion" = "success"
           echo "Same-SHA main tests verified for $SOURCE_SHA"
