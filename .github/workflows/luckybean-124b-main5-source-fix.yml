@@ -30,7 +30,20 @@ jobs:
       - name: Run recognition regression suite
         run: npm run test:recognition
       - name: Run static suite
-        run: npm run test:static
+        id: static
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run test:static 2>&1 | tee static-main5.log
+      - name: Upload static diagnostics
+        if: steps.static.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: main5-static-diagnostics
+          path: static-main5.log
+      - name: Stop on static failure
+        if: steps.static.outcome == 'failure'
+        run: exit 1
       - name: Run core suite
         run: npm run test:core
       - name: Verify diff
