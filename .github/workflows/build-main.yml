@@ -92,10 +92,13 @@ jobs:
           grep -Fq 'sensory-tag-sort-controller.js' sw.js
           grep -Fq "feature('shared-sortable'" src/features/runtime-features.js
           grep -Fq 'sensory-tag-sort-controller.js' src/features/runtime-features.js
-          grep -Fq 'async function closeActiveGroup' src/bean-groups-controller.js
-          ! grep -Fq 'data-v099t-group-back' src/bean-groups-controller.js
-          grep -Fq 'api.closeActiveGroup' src/features/release-1.24b-group-navigation.js
-          ! grep -Fq 'data-v099t-group-back' src/features/release-1.24b-group-navigation.js
+          grep -Fq "beanGroupState, setBeanGroupMode, openBeanGroupState, closeBeanGroupState" src/bean-groups-controller.js
+          ! grep -Fq 'let activeGroup' src/bean-groups-controller.js
+          grep -Fq 'LuckyBeanBeanGroupState' src/features/release-1.24b-group-navigation.js
+          ! grep -Fq 'dispatchEvent(new MouseEvent' src/features/release-1.24b-group-navigation.js
+          grep -Fq 'data-close-bean-group' src/app.js
+          ! grep -Fq 'recommendationExpandedAll' src/app.js
+          ! grep -Fq 'recommendation-all-groups' src/app.js
           grep -Fq 'lb-sort-ghost' src/ui/sortable-controller.js
           grep -Fq 'lb-sort-placeholder' src/ui/sortable-controller.js
           grep -Fq 'onPreview' src/ui/sortable-controller.js
@@ -183,10 +186,13 @@ jobs:
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq "UI_POLICY_REVISION = '1.24B-main.4'"
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq "button.textContent = '合并云端'"
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq '#brewContent button:not(.lb-brew-switch)'
-          unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'async function closeActiveGroup'
-          ! unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'data-v099t-group-back'
-          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'api.closeActiveGroup'
-          ! unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'data-v099t-group-back'
+          unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq "beanGroupState, setBeanGroupMode, openBeanGroupState, closeBeanGroupState"
+          ! unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'let activeGroup'
+          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'LuckyBeanBeanGroupState'
+          ! unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'dispatchEvent(new MouseEvent'
+          unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'data-close-bean-group'
+          ! unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'recommendationExpandedAll'
+          ! unzip -p "$apk" assets/web-cache/src/app.js | grep -Fq 'recommendation-all-groups'
           unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq 'LuckyBeanSortable'
           unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq '实时预览松手后的顺序'
           unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq 'professional-sensory-complete'
