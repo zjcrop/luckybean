@@ -22,6 +22,7 @@ const freshnessTimeline = read('src/features/freshness-timeline-controller.js');
 const releaseCore = read('src/release-1.24b.js');
 const releaseIntegration = read('src/features/release-1.24b-finalize.js');
 const releaseTransit = read('src/features/release-1.24b-transit-controller.js');
+const beanGroupState = read('src/domain/beans/bean-group-state.js');
 const beanGroups = read('src/bean-groups-controller.js');
 const releaseGroup = read('src/features/release-1.24b-group-navigation.js');
 const sharedSort = read('src/ui/sortable-controller.js');
@@ -101,14 +102,24 @@ assert.match(releaseIntegration, /fineAnchor/);
 assert.match(releaseTransit, /markBeanDelivered/);
 assert.match(releaseTransit, /在途 \$\{beans\.length\} 支/);
 
+// Bean grouping has one canonical group-key owner. Native and special group modes share it;
+// DOM only renders state and never becomes a source of truth.
+assert.match(beanGroupState, /export const beanGroupState = \{ groupKey: '' \}/);
+assert.match(beanGroupState, /openBeanGroupState/);
+assert.match(beanGroupState, /closeBeanGroupState/);
+assert.match(app, /function openBeanGroup/);
+assert.match(app, /function closeBeanGroup/);
+assert.match(app, /\['process', '按处理法'\]/);
+assert.match(app, /data-close-bean-group/);
+assert.match(app, /page==='beans'&&state\.page==='beans'&&hasActiveBeanGroup\(\)/);
 assert.match(beanGroups, /async function closeActiveGroup/);
-assert.match(beanGroups, /hasActiveGroup: \(\) => Boolean\(activeGroup\)/);
-assert.doesNotMatch(beanGroups, /data-v099t-group-back|>收</);
-assert.match(releaseGroup, /LuckyBeanV099tBeanGroups/);
-assert.match(releaseGroup, /api\.closeActiveGroup/);
-assert.match(releaseGroup, /canonical folder-state navigation active/);
-assert.match(releaseGroup, /capture:true/);
-assert.doesNotMatch(releaseGroup, /data-v099t-group-back|back\.click|\.bean-grid/);
+assert.match(beanGroups, /beanGroupState\.groupKey/);
+assert.match(beanGroups, /activeGroup: \(\) => beanGroupState\.groupKey/);
+assert.doesNotMatch(beanGroups, /let activeGroup|data-v099t-group-back|>收</);
+assert.match(releaseGroup, /LuckyBeanBeanGroupState/);
+assert.match(releaseGroup, /luckybean:navigation-back/);
+assert.doesNotMatch(releaseGroup, /LuckyBeanV099tBeanGroups|api\.closeActiveGroup|dispatchEvent\(new MouseEvent|nativePanel|nativeCollapse|dx<=-72|capture:true/);
+
 assert.match(sharedSort, /LuckyBeanSortable/);
 assert.match(sharedSort, /lb-sort-ghost/);
 assert.match(sharedSort, /lb-sort-placeholder/);
@@ -140,17 +151,24 @@ assert.match(brewCore, /'brew-analysis\/2\.0', 'brew-analysis\/2\.1'/);
 assert.match(matchVector, /MATCH_CONTRACT = 'luckybean-match\/1\.1'/);
 assert.match(freshnessTimeline, /freshnessProfile\(bean\)\.progress/);
 
-assert.match(deployWorkflow, /push:[\s\S]*branches: \[main\]/);
+// Pages is downstream of the immutable same-SHA full main-test result.
+assert.match(deployWorkflow, /workflow_run:/);
+assert.match(deployWorkflow, /workflows: \["LuckyBean main tests"\]/);
+assert.match(deployWorkflow, /github\.event\.workflow_run\.conclusion == 'success'/);
+assert.match(deployWorkflow, /head_sha=\$SOURCE_SHA/);
+assert.match(deployWorkflow, /test_conclusion/);
+assert.match(deployWorkflow, /current_main/);
 assert.match(deployWorkflow, /actions\/deploy-pages@v5\.0\.0/);
-assert.match(deployWorkflow, /"version":"1\.24B"/);
-assert.match(deployWorkflow, /1\.24B-main\.4/);
+assert.match(deployWorkflow, /Live Pages browser smoke/);
+assert.match(deployWorkflow, /browser_smoke/);
 assert.match(deployWorkflow, /canonical-state-api/);
 assert.match(deployWorkflow, /shared-live-preview-ghost-placeholder/);
 assert.match(deployWorkflow, /single-activate-double-remove-longpress-preview/);
 assert.match(deployWorkflow, /text-interactions/);
 assert.match(deployWorkflow, /SOURCE_SHA/);
 assert.match(deployWorkflow, /pages-status/);
-assert.doesNotMatch(deployWorkflow, /workflow_run:/);
+assert.doesNotMatch(deployWorkflow, /on:\n\s+push:\n\s+branches: \[main\]/);
+
 assert.match(buildWorkflow, /LuckyBean-1\.24B-release\.apk/);
 assert.match(buildWorkflow, /LuckyBean-1\.24B-web\.zip/);
 assert.match(buildWorkflow, /version_code=102402/);
@@ -168,4 +186,4 @@ assert.match(androidWorkflow, /single-activate-double-remove-longpress-preview/)
 assert.match(androidWorkflow, /sensory-tag-sort-controller\.js/);
 assert.match(androidBuild, /LUCKYBEAN_KEYSTORE_FILE/);
 
-console.log(`LuckyBean 1.24B ${releaseRevision} direct Pages, signed Android, canonical group state, shared live-preview sorting, text brew UI, serial OCR, lifecycle, frozen freshness and BrewProfiles contracts passed`);
+console.log(`LuckyBean 1.24B ${releaseRevision} gated Pages, signed Android, canonical bean group state, shared sorting, text brew UI, serial OCR, lifecycle, frozen freshness and BrewProfiles contracts passed`);
