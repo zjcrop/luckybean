@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 3.945606
+  duration_ms: 5.427933
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 1.661198
+  duration_ms: 1.945824
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 1.97072
+  duration_ms: 2.677813
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 1.497284
+  duration_ms: 2.007986
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.567616
+  duration_ms: 0.860159
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.121595
+  duration_ms: 2.846894
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.637011
+  duration_ms: 0.910695
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 16.786793
+# duration_ms 22.51204
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 4.252744
+  duration_ms: 5.8697
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 2.943501
+  duration_ms: 3.924607
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 2.981628
+  duration_ms: 3.993288
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 2.207202
+  duration_ms: 3.014062
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 1.838703
+  duration_ms: 2.540668
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 0.77117
+  duration_ms: 1.174928
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 19.455966
+# duration_ms 26.50619
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -160,411 +160,584 @@ LuckyBean Android gallery URI routing regression checks passed
 LuckyBean 1.24B compact small-brew, automatic-field and Android upgrade contract passed
 
 [static] tests/v123e-ui-stability-static.mjs
-node:internal/modules/run_main:123
-    triggerUncaughtException(
-    ^
+LuckyBean 1.24B 1.24B-main.4 canonical UI stability, shared bean-group state, shared sorting and text brew UI regression checks passed
 
-AssertionError [ERR_ASSERTION]: The input did not match the regular expression /hasActiveGroup: \(\) => Boolean\(activeGroup\)/. Input:
+[static] tests/v123e-navigation-back-static.mjs
+LuckyBean canonical page stack, overlay back, Android gesture back and compact bean metadata contracts passed
 
-"import { all, getSetting, setSetting } from './db.js';\n" +
-  "import { loadCodebook, makeIndex, displayName } from './codebook.js';\n" +
-  "import { freshnessProfile, clamp } from './utils.js';\n" +
-  "import { normalizeRecommendationScore } from './preference-model.js';\n" +
-  "import { beanGroupState, setBeanGroupMode, openBeanGroupState, closeBeanGroupState } from './domain/beans/bean-group-state.js';\n" +
-  '\n' +
-  'if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {\n' +
-  '  globalThis.__LuckyBeanV099tBeanGroupsLoaded = true;\n' +
-  '\n' +
-  "  const MODE_KEY = 'v099i.group.mode';\n" +
-  "  const LEGACY_MODE_KEY = 'v099f.group.mode';\n" +
-  "  const LEGACY_GROUP_KEY = 'luckybean.group.method.v098';\n" +
-  "  const MODE_NATIVE = 'native';\n" +
-  "  const MODE_FRESHNESS = 'freshness-ratio';\n" +
-  "  const MODE_REMAINING = 'remaining-50';\n" +
-  "  const SELECTED_KEY = 'luckybean.selected.bean.v098';\n" +
-  '  const CACHE_TTL = 30000;\n' +
-  '  const $ = (selector, root = document) => root.querySelector(selector);\n' +
-  '  const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];\n' +
-  `  const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));\n` +
-  '\n' +
-  '  const measuredRatios = new Map();\n' +
-  '  let codebookPromise = null;\n' +
-  '  let dataCache = null;\n' +
-  '  let dataPromise = null;\n' +
-  "  let currentMode = '';\n" +
-  '  let rendering = false;\n' +
-  '  let recommendationBusy = false;\n' +
-  "  let selectedId = localStorage.getItem(SELECTED_KEY) || '';\n" +
-  "  let boardHtmlCache = '';\n" +
-  '\n' +
-  '  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));\n' +
-  '  const nextFrames = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));\n' +
-  '\n' +
-  "  function toast(message, kind = '') {\n" +
-  "    const node = $('#toast');\n" +
-  '    if (!node) return;\n' +
-  '    node.textContent = message;\n' +
-  '    node.className = `toast show ${kind}`;\n' +
-  "    setTimeout(() => { node.className = 'toast'; }, 2800);\n" +
-  '  }\n' +
-  '\n' +
-  '  async function codebookContext() {\n' +
-  '    if (!codebookPromise) codebookPromise = loadCodebook().then(result => ({ index: makeIndex(result.data) }));\n' +
-  '    return codebookPromise;\n' +
-  '  }\n' +
-  '\n' +
-  '  function labelFor(index, table, code, fallback) {\n' +
-  '    return code ? displayName(index, table, code, fallback) : fallback;\n' +
-  '  }\n' +
-  '\n' +
-  "  function captureBoard(container = $('#beanGroups')) {\n" +
-  "    const board = container?.querySelector('.bean-summary-block');\n" +
-  '    if (board) boardHtmlCache = board.outerHTML;\n' +
-  '    return boardHtmlCache;\n' +
-  '  }\n' +
-  '\n' +
-  '  function captureRenderedRatios() {\n' +
-  "    $$('#beanGroups .bean-card[data-bean-id]').forEach(card => {\n" +
-  "      const track = $('.bean-freshness-progress', card);\n" +
-  "      const solid = $('.bean-freshness-solid', card);\n" +
-  '      if (!track || !solid) return;\n' +
-  '      const trackWidth = track.getBoundingClientRect().width;\n' +
-  '      const solidWidth = solid.getBoundingClientRect().width;\n' +
-  '      if (trackWidth > 2 && Number.isFinite(solidWidth)) measuredRatios.set(card.dataset.beanId, clamp(solidWidth / trackWidth, 0, 1));\n' +
-  '    });\n' +
-  '  }\n' +
-  '\n' +
-  '  function ratioFor(bean) {\n' +
-  '    if (measuredRatios.has(bean.id)) return measuredRatios.get(bean.id);\n' +
-  '    return clamp(Number(freshnessProfile(bean).progress || 0), 0, 1);\n' +
-  '  }\n' +
-  '\n' +
-  '  function freshnessStage(bean) {\n' +
-  '    const ratio = ratioFor(bean);\n' +
-  "    if (ratio < 1 / 3) return '养豆中';\n" +
-  "    if (ratio < 2 / 3) return '味正盛';\n" +
-  "    return '味将尽';\n" +
-  '  }\n' +
-  '\n' +
-  '  function buildScoreMap(records) {\n' +
-  '    const aggregate = new Map();\n' +
-  '    for (const record of records) {\n' +
-  '      if (!record?.beanId) continue;\n' +
-  '      const score = normalizeRecommendationScore(record);\n' +
-  '      if (!Number.isFinite(score)) continue;\n' +
-  '      const row = aggregate.get(record.beanId) || { total: 0, count: 0 };\n' +
-  '      row.total += score;\n' +
-  '      row.count += 1;\n' +
-  '      aggregate.set(record.beanId, row);\n' +
-  '    }\n' +
-  '    return new Map([...aggregate].map(([beanId, row]) => [beanId, row.count ? row.total / row.count : 0]));\n' +
-  '  }\n' +
-  '\n' +
-  '  async function loadData({ force = false } = {}) {\n' +
-  '    const now = Date.now();\n' +
-  '    if (!force && dataCache && now - dataCache.at < CACHE_TTL) return dataCache;\n' +
-  '    if (dataPromise) return dataPromise;\n' +
-  "    dataPromise = Promise.all([codebookContext(), all('beans'), all('sensoryRecords')]).then(([{ index }, beans, records]) => {\n" +
-  "      const active = beans.filter(bean => !bean.archived && Number(bean.remainingWeight) > 0).sort((a, b) => String(b.roastDate || '').localeCompare(String(a.roastDate || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));\n" +
-  '      dataCache = { at: Date.now(), index, active, scoreMap: buildScoreMap(records) };\n' +
-  '      return dataCache;\n' +
-  '    }).finally(() => { dataPromise = null; });\n' +
-  '    return dataPromise;\n' +
-  '  }\n' +
-  '\n' +
-  '  function invalidateData() { dataCache = null; }\n' +
-  '\n' +
-  '  async function getMode() {\n' +
-  '    if (currentMode) return currentMode;\n' +
-  '    const [saved, legacy] = await Promise.all([getSetting(MODE_KEY, MODE_NATIVE), getSetting(LEGACY_MODE_KEY, MODE_NATIVE)]);\n' +
-  "    const oldGroup = localStorage.getItem(LEGACY_GROUP_KEY) || '';\n" +
-  '    if (saved === MODE_FRESHNESS || saved === MODE_REMAINING) currentMode = saved;\n' +
-  "    else if (legacy === 'freshness') currentMode = MODE_FRESHNESS;\n" +
-  '    else if (oldGroup === MODE_REMAINING) currentMode = MODE_REMAINING;\n' +
-  '    else currentMode = MODE_NATIVE;\n' +
-  "    if (currentMode !== MODE_NATIVE || legacy === 'freshness' || oldGroup === MODE_REMAINING) {\n" +
-  "      localStorage.setItem(LEGACY_GROUP_KEY, 'roast');\n" +
-  '      await Promise.all([setSetting(MODE_KEY, currentMode), setSetting(LEGACY_MODE_KEY, MODE_NATIVE)]);\n' +
-  '    }\n' +
-  '    setBeanGroupMode(currentMode);\n' +
-  '    return currentMode;\n' +
-  '  }\n' +
-  '\n' +
-  '  async function saveMode(mode) {\n' +
-  '    currentMode = mode;\n' +
-  '    setBeanGroupMode(mode);\n' +
-  "    localStorage.setItem(LEGACY_GROUP_KEY, 'roast');\n" +
-  '    await Promise.all([setSetting(MODE_KEY, mode), setSetting(LEGACY_MODE_KEY, MODE_NATIVE)]);\n' +
-  '  }\n' +
-  '\n' +
-  '  function groupData(active, mode) {\n' +
-  '    if (mode === MODE_FRESHNESS) {\n' +
-  "      const order = ['养豆中', '味正盛', '味将尽'];\n" +
-  '      const groups = new Map(order.map((label, index) => [label, { key: label, label, order: index, items: [] }]));\n' +
-  '      for (const bean of active) groups.get(freshnessStage(bean)).items.push(bean);\n' +
-  '      return [...groups.values()];\n' +
-  '    }\n' +
-  '    const groups = new Map();\n' +
-  '    for (const bean of active) {\n' +
-  '      const weight = Math.max(0, Number(bean.remainingWeight || 0));\n' +
-  '      const start = Math.floor(weight / 50) * 50;\n' +
-  '      const key = String(start);\n' +
-  '      if (!groups.has(key)) groups.set(key, { key, label: `${start}–${start + 49}g`, order: start, items: [] });\n' +
-  '      groups.get(key).items.push(bean);\n' +
-  '    }\n' +
-  '    return [...groups.values()].sort((a, b) => a.order - b.order);\n' +
-  '  }\n' +
-  '\n' +
-  '  function sortedItems(items, mode) {\n' +
-  '    const copy = [...items];\n' +
-  "    if (mode === MODE_FRESHNESS) return copy.sort((a, b) => String(b.roastDate || '').localeCompare(String(a.roastDate || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));\n" +
-  "    return copy.sort((a, b) => Number(a.remainingWeight || 0) - Number(b.remainingWeight || 0) || String(b.roastDate || '').localeCompare(String(a.roastDate || '')));\n" +
-  '  }\n' +
-  '\n' +
-  '  function beanCardHtml(bean, index, scoreMap) {\n' +
-  "    const process = labelFor(index, 'processes', bean.processCode, '处理法未记');\n" +
-  "    const country = labelFor(index, 'countries', bean.countryCode, '未定国家');\n" +
-  "    const variety = labelFor(index, 'varieties', bean.varietyCode, '未定豆种');\n" +
-  '    const fresh = freshnessProfile(bean);\n' +
-  '    const score = scoreMap.get(bean.id) || 0;\n' +
-  '    const progress = Math.round(ratioFor(bean) * 1000) / 10;\n' +
-  '    const selected = bean.id === selectedId;\n' +
-  '    return `<article class="bean-card compact lb-one-line-bean${selected ? \' recommended v099l-selected\' : \'\'}" data-bean-id="${esc(bean.id)}" tabindex="0"><div class="compact-bean-copy"><h3>${esc(country)} · ${esc(variety)}</h3><small>${esc(process)}</small><div class="compact-bean-row"><strong>${Number(bean.remainingWeight || 0).toFixed(1)}g${bean.refrigerated ? \'<small class="frozen-mark">❄️</small>\' : \'\'}</strong><span class="compact-score">${score ? `${score.toFixed(1)}分` : \'未评分\'}${selected ? \'<em>选</em>\' : \'\'}</span></div></div><button class="cup-action compact-pick" type="button" data-brew-bean="${esc(bean.id)}">酌</button><div class="bean-freshness-progress" data-lb-freshness-timeline aria-label="时间轴已填充${progress}%"><span class="bean-freshness-solid" style="width:${progress}%;background:${fresh.color}"></span><span class="bean-freshness-dashed" style="left:${progress}%"></span></div></article>`;\n' +
-  '  }\n' +
-  '\n' +
-  '  function modeNote(mode) {\n' +
-  "    return mode === MODE_FRESHNESS ? '按时间轴有色长度÷整行宽度分为三组：不足1/3为“养豆中”，达到1/3且不足2/3为“味正盛”，达到2/3为“味将尽”。组内按烘焙日期由新到旧。' : '按当前余量每50g划分一组；组内按剩余克重由少到多排列。';\n" +
-  '  }\n' +
-  '\n' +
-  '  async function render({ force = false, refreshData = false } = {}) {\n' +
-  '    if (rendering) return;\n' +
-  '    const mode = await getMode();\n' +
-  '    if (![MODE_FRESHNESS, MODE_REMAINING].includes(mode)) return;\n' +
-  "    const page = $('#pageBeans.active');\n" +
-  "    const container = $('#beanGroups');\n" +
-  "    if (!page || !container || !$('#activeFilterBar')?.classList.contains('hidden')) return;\n" +
-  '    const board = captureBoard(container);\n' +
-  '    const renderKey = `${mode}|${beanGroupState.groupKey}`;\n' +
-  "    if (!force && container.dataset.v099tGroupKey === renderKey && container.querySelector('[data-v099t-group-root]')) return;\n" +
-  '\n' +
-  '    rendering = true;\n' +
-  "    container.classList.add('v099t-group-busy');\n" +
-  '    try {\n' +
-  '      const { index, active, scoreMap } = await loadData({ force: refreshData });\n' +
-  '      const groups = groupData(active, mode);\n' +
-  '      if (beanGroupState.groupKey && !groups.some(group => group.key === beanGroupState.groupKey)) closeBeanGroupState();\n' +
-  '      container.dataset.v099tGroupKey = `${mode}|${beanGroupState.groupKey}`;\n' +
-  '      if (!active.length) {\n' +
-  '        container.innerHTML = `${board}<div data-v099t-group-root class="empty-state"><strong>没有可分组的豆卡</strong></div>`;\n' +
-  '        return;\n' +
-  '      }\n' +
-  '      if (!beanGroupState.groupKey) {\n' +
-  '        container.innerHTML = `${board}<section data-v099t-group-root><div class="v099f-freshness-note v099i-freshness-note">${modeNote(mode)}</div><div class="bean-grid compact-grid group-grid bean-grid-animated manual-motion">${groups.map(group => { const weight = group.items.reduce((sum, bean) => sum + Number(bean.rem'... 9399 more characters
+[static] tests/v123e-brew-optimization-regression.mjs
+post-tasting optimization, deterministic spatial trend and release-signature guards passed
 
-    at file:///home/runner/work/luckybean/luckybean/tests/v123e-ui-stability-static.mjs:92:8
-    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
-  generatedMessage: true,
-  code: 'ERR_ASSERTION',
-  actual: "import { all, getSetting, setSetting } from './db.js';\n" +
-    "import { loadCodebook, makeIndex, displayName } from './codebook.js';\n" +
-    "import { freshnessProfile, clamp } from './utils.js';\n" +
-    "import { normalizeRecommendationScore } from './preference-model.js';\n" +
-    "import { beanGroupState, setBeanGroupMode, openBeanGroupState, closeBeanGroupState } from './domain/beans/bean-group-state.js';\n" +
-    '\n' +
-    'if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {\n' +
-    '  globalThis.__LuckyBeanV099tBeanGroupsLoaded = true;\n' +
-    '\n' +
-    "  const MODE_KEY = 'v099i.group.mode';\n" +
-    "  const LEGACY_MODE_KEY = 'v099f.group.mode';\n" +
-    "  const LEGACY_GROUP_KEY = 'luckybean.group.method.v098';\n" +
-    "  const MODE_NATIVE = 'native';\n" +
-    "  const MODE_FRESHNESS = 'freshness-ratio';\n" +
-    "  const MODE_REMAINING = 'remaining-50';\n" +
-    "  const SELECTED_KEY = 'luckybean.selected.bean.v098';\n" +
-    '  const CACHE_TTL = 30000;\n' +
-    '  const $ = (selector, root = document) => root.querySelector(selector);\n' +
-    '  const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];\n' +
-    `  const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));\n` +
-    '\n' +
-    '  const measuredRatios = new Map();\n' +
-    '  let codebookPromise = null;\n' +
-    '  let dataCache = null;\n' +
-    '  let dataPromise = null;\n' +
-    "  let currentMode = '';\n" +
-    '  let rendering = false;\n' +
-    '  let recommendationBusy = false;\n' +
-    "  let selectedId = localStorage.getItem(SELECTED_KEY) || '';\n" +
-    "  let boardHtmlCache = '';\n" +
-    '\n' +
-    '  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));\n' +
-    '  const nextFrames = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));\n' +
-    '\n' +
-    "  function toast(message, kind = '') {\n" +
-    "    const node = $('#toast');\n" +
-    '    if (!node) return;\n' +
-    '    node.textContent = message;\n' +
-    '    node.className = `toast show ${kind}`;\n' +
-    "    setTimeout(() => { node.className = 'toast'; }, 2800);\n" +
-    '  }\n' +
-    '\n' +
-    '  async function codebookContext() {\n' +
-    '    if (!codebookPromise) codebookPromise = loadCodebook().then(result => ({ index: makeIndex(result.data) }));\n' +
-    '    return codebookPromise;\n' +
-    '  }\n' +
-    '\n' +
-    '  function labelFor(index, table, code, fallback) {\n' +
-    '    return code ? displayName(index, table, code, fallback) : fallback;\n' +
-    '  }\n' +
-    '\n' +
-    "  function captureBoard(container = $('#beanGroups')) {\n" +
-    "    const board = container?.querySelector('.bean-summary-block');\n" +
-    '    if (board) boardHtmlCache = board.outerHTML;\n' +
-    '    return boardHtmlCache;\n' +
-    '  }\n' +
-    '\n' +
-    '  function captureRenderedRatios() {\n' +
-    "    $$('#beanGroups .bean-card[data-bean-id]').forEach(card => {\n" +
-    "      const track = $('.bean-freshness-progress', card);\n" +
-    "      const solid = $('.bean-freshness-solid', card);\n" +
-    '      if (!track || !solid) return;\n' +
-    '      const trackWidth = track.getBoundingClientRect().width;\n' +
-    '      const solidWidth = solid.getBoundingClientRect().width;\n' +
-    '      if (trackWidth > 2 && Number.isFinite(solidWidth)) measuredRatios.set(card.dataset.beanId, clamp(solidWidth / trackWidth, 0, 1));\n' +
-    '    });\n' +
-    '  }\n' +
-    '\n' +
-    '  function ratioFor(bean) {\n' +
-    '    if (measuredRatios.has(bean.id)) return measuredRatios.get(bean.id);\n' +
-    '    return clamp(Number(freshnessProfile(bean).progress || 0), 0, 1);\n' +
-    '  }\n' +
-    '\n' +
-    '  function freshnessStage(bean) {\n' +
-    '    const ratio = ratioFor(bean);\n' +
-    "    if (ratio < 1 / 3) return '养豆中';\n" +
-    "    if (ratio < 2 / 3) return '味正盛';\n" +
-    "    return '味将尽';\n" +
-    '  }\n' +
-    '\n' +
-    '  function buildScoreMap(records) {\n' +
-    '    const aggregate = new Map();\n' +
-    '    for (const record of records) {\n' +
-    '      if (!record?.beanId) continue;\n' +
-    '      const score = normalizeRecommendationScore(record);\n' +
-    '      if (!Number.isFinite(score)) continue;\n' +
-    '      const row = aggregate.get(record.beanId) || { total: 0, count: 0 };\n' +
-    '      row.total += score;\n' +
-    '      row.count += 1;\n' +
-    '      aggregate.set(record.beanId, row);\n' +
-    '    }\n' +
-    '    return new Map([...aggregate].map(([beanId, row]) => [beanId, row.count ? row.total / row.count : 0]));\n' +
-    '  }\n' +
-    '\n' +
-    '  async function loadData({ force = false } = {}) {\n' +
-    '    const now = Date.now();\n' +
-    '    if (!force && dataCache && now - dataCache.at < CACHE_TTL) return dataCache;\n' +
-    '    if (dataPromise) return dataPromise;\n' +
-    "    dataPromise = Promise.all([codebookContext(), all('beans'), all('sensoryRecords')]).then(([{ index }, beans, records]) => {\n" +
-    "      const active = beans.filter(bean => !bean.archived && Number(bean.remainingWeight) > 0).sort((a, b) => String(b.roastDate || '').localeCompare(String(a.roastDate || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));\n" +
-    '      dataCache = { at: Date.now(), index, active, scoreMap: buildScoreMap(records) };\n' +
-    '      return dataCache;\n' +
-    '    }).finally(() => { dataPromise = null; });\n' +
-    '    return dataPromise;\n' +
-    '  }\n' +
-    '\n' +
-    '  function invalidateData() { dataCache = null; }\n' +
-    '\n' +
-    '  async function getMode() {\n' +
-    '    if (currentMode) return currentMode;\n' +
-    '    const [saved, legacy] = await Promise.all([getSetting(MODE_KEY, MODE_NATIVE), getSetting(LEGACY_MODE_KEY, MODE_NATIVE)]);\n' +
-    "    const oldGroup = localStorage.getItem(LEGACY_GROUP_KEY) || '';\n" +
-    '    if (saved === MODE_FRESHNESS || saved === MODE_REMAINING) currentMode = saved;\n' +
-    "    else if (legacy === 'freshness') currentMode = MODE_FRESHNESS;\n" +
-    '    else if (oldGroup === MODE_REMAINING) currentMode = MODE_REMAINING;\n' +
-    '    else currentMode = MODE_NATIVE;\n' +
-    "    if (currentMode !== MODE_NATIVE || legacy === 'freshness' || oldGroup === MODE_REMAINING) {\n" +
-    "      localStorage.setItem(LEGACY_GROUP_KEY, 'roast');\n" +
-    '      await Promise.all([setSetting(MODE_KEY, currentMode), setSetting(LEGACY_MODE_KEY, MODE_NATIVE)]);\n' +
-    '    }\n' +
-    '    setBeanGroupMode(currentMode);\n' +
-    '    return currentMode;\n' +
-    '  }\n' +
-    '\n' +
-    '  async function saveMode(mode) {\n' +
-    '    currentMode = mode;\n' +
-    '    setBeanGroupMode(mode);\n' +
-    "    localStorage.setItem(LEGACY_GROUP_KEY, 'roast');\n" +
-    '    await Promise.all([setSetting(MODE_KEY, mode), setSetting(LEGACY_MODE_KEY, MODE_NATIVE)]);\n' +
-    '  }\n' +
-    '\n' +
-    '  function groupData(active, mode) {\n' +
-    '    if (mode === MODE_FRESHNESS) {\n' +
-    "      const order = ['养豆中', '味正盛', '味将尽'];\n" +
-    '      const groups = new Map(order.map((label, index) => [label, { key: label, label, order: index, items: [] }]));\n' +
-    '      for (const bean of active) groups.get(freshnessStage(bean)).items.push(bean);\n' +
-    '      return [...groups.values()];\n' +
-    '    }\n' +
-    '    const groups = new Map();\n' +
-    '    for (const bean of active) {\n' +
-    '      const weight = Math.max(0, Number(bean.remainingWeight || 0));\n' +
-    '      const start = Math.floor(weight / 50) * 50;\n' +
-    '      const key = String(start);\n' +
-    '      if (!groups.has(key)) groups.set(key, { key, label: `${start}–${start + 49}g`, order: start, items: [] });\n' +
-    '      groups.get(key).items.push(bean);\n' +
-    '    }\n' +
-    '    return [...groups.values()].sort((a, b) => a.order - b.order);\n' +
-    '  }\n' +
-    '\n' +
-    '  function sortedItems(items, mode) {\n' +
-    '    const copy = [...items];\n' +
-    "    if (mode === MODE_FRESHNESS) return copy.sort((a, b) => String(b.roastDate || '').localeCompare(String(a.roastDate || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));\n" +
-    "    return copy.sort((a, b) => Number(a.remainingWeight || 0) - Number(b.remainingWeight || 0) || String(b.roastDate || '').localeCompare(String(a.roastDate || '')));\n" +
-    '  }\n' +
-    '\n' +
-    '  function beanCardHtml(bean, index, scoreMap) {\n' +
-    "    const process = labelFor(index, 'processes', bean.processCode, '处理法未记');\n" +
-    "    const country = labelFor(index, 'countries', bean.countryCode, '未定国家');\n" +
-    "    const variety = labelFor(index, 'varieties', bean.varietyCode, '未定豆种');\n" +
-    '    const fresh = freshnessProfile(bean);\n' +
-    '    const score = scoreMap.get(bean.id) || 0;\n' +
-    '    const progress = Math.round(ratioFor(bean) * 1000) / 10;\n' +
-    '    const selected = bean.id === selectedId;\n' +
-    '    return `<article class="bean-card compact lb-one-line-bean${selected ? \' recommended v099l-selected\' : \'\'}" data-bean-id="${esc(bean.id)}" tabindex="0"><div class="compact-bean-copy"><h3>${esc(country)} · ${esc(variety)}</h3><small>${esc(process)}</small><div class="compact-bean-row"><strong>${Number(bean.remainingWeight || 0).toFixed(1)}g${bean.refrigerated ? \'<small class="frozen-mark">❄️</small>\' : \'\'}</strong><span class="compact-score">${score ? `${score.toFixed(1)}分` : \'未评分\'}${selected ? \'<em>选</em>\' : \'\'}</span></div></div><button class="cup-action compact-pick" type="button" data-brew-bean="${esc(bean.id)}">酌</button><div class="bean-freshness-progress" data-lb-freshness-timeline aria-label="时间轴已填充${progress}%"><span class="bean-freshness-solid" style="width:${progress}%;background:${fresh.color}"></span><span class="bean-freshness-dashed" style="left:${progress}%"></span></div></article>`;\n' +
-    '  }\n' +
-    '\n' +
-    '  function modeNote(mode) {\n' +
-    "    return mode === MODE_FRESHNESS ? '按时间轴有色长度÷整行宽度分为三组：不足1/3为“养豆中”，达到1/3且不足2/3为“味正盛”，达到2/3为“味将尽”。组内按烘焙日期由新到旧。' : '按当前余量每50g划分一组；组内按剩余克重由少到多排列。';\n" +
-    '  }\n' +
-    '\n' +
-    '  async function render({ force = false, refreshData = false } = {}) {\n' +
-    '    if (rendering) return;\n' +
-    '    const mode = await getMode();\n' +
-    '    if (![MODE_FRESHNESS, MODE_REMAINING].includes(mode)) return;\n' +
-    "    const page = $('#pageBeans.active');\n" +
-    "    const container = $('#beanGroups');\n" +
-    "    if (!page || !container || !$('#activeFilterBar')?.classList.contains('hidden')) return;\n" +
-    '    const board = captureBoard(container);\n' +
-    '    const renderKey = `${mode}|${beanGroupState.groupKey}`;\n' +
-    "    if (!force && container.dataset.v099tGroupKey === renderKey && container.querySelector('[data-v099t-group-root]')) return;\n" +
-    '\n' +
-    '    rendering = true;\n' +
-    "    container.classList.add('v099t-group-busy');\n" +
-    '    try {\n' +
-    '      const { index, active, scoreMap } = await loadData({ force: refreshData });\n' +
-    '      const groups = groupData(active, mode);\n' +
-    '      if (beanGroupState.groupKey && !groups.some(group => group.key === beanGroupState.groupKey)) closeBeanGroupState();\n' +
-    '      container.dataset.v099tGroupKey = `${mode}|${beanGroupState.groupKey}`;\n' +
-    '      if (!active.length) {\n' +
-    '        container.innerHTML = `${board}<div data-v099t-group-root class="empty-state"><strong>没有可分组的豆卡</strong></div>`;\n' +
-    '        return;\n' +
-    '      }\n' +
-    '      if (!beanGroupState.groupKey) {\n' +
-    '        container.innerHTML = `${board}<section data-v099t-group-root><div class="v099f-freshness-note v099i-freshness-note">${modeNote(mode)}</div><div class="bean-grid compact-grid group-grid bean-grid-animated manual-motion">${groups.map(group => { const weight = group.items.reduce((sum, bean) => sum + Number(bean.rem'... 9399 more characters,
-  expected: /hasActiveGroup: \(\) => Boolean\(activeGroup\)/,
-  operator: 'match',
-  diff: 'simple'
-}
+[static] tests/v123e-recognition-pipeline-static.mjs
+Recognition document is the single translated and structured bean-entry source
 
-Node.js v22.23.2
-::error file=tests/v123e-ui-stability-static.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /hasActiveGroup: \(\) => Boolean\(activeGroup\)/. Input:%0A%0A"import { all, getSetting, setSetting } from './db.js';\n" +%0A  "import { loadCodebook, makeIndex, displayName } from './codebook.js';\n" +%0A  "import { freshnessProfile, clamp } from './utils.js';\n" +%0A  "import { normalizeRecommendationScore } from './preference-model.js';\n" +%0A  "import { beanGroupState, setBeanGroupMode, openBeanGroupState, closeBeanGroupState } from './domain/beans/bean-group-state.js';\n" +%0A  '\n' +%0A  'if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {\n' +%0A  '  globalThis.__LuckyBeanV099tBeanGroupsLoaded = true;\n' +%0A  '\n' +%0A  "  const MODE_KEY = 'v099i.group.mode';\n" +%0A  "  const LEGACY_MODE_KEY = 'v099f.group.mode';\n" +%0A  "  const LEGACY_GROUP_KEY = 'luckybean.group.method.v098';\n" +%0A  "  const MODE_NATIVE = 'native';\n" +%0A  "  const MODE_FRESHNESS = 'freshness-ratio';\n" +%0A  "  const MODE_REMAINING = 'remaining-50';\n" +%0A  "  const SELECTED_KEY = 'luckybean.selected.bean.v098';\n" +%0A  '  const CACHE_TTL = 30000;\n' +%0A  '  const $ = (selector, root = document) => root.querySelector(selector);\n' +%0A  '  const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];\n' +%0A  `  const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));\n` +%0A  '\n' +%0A  '  const measuredRatios = new Map();\n' +%0A  '  let codebookPromise = null;\n' +%0A  '  let dataCache = null;\n' +%0A  '  let dataPromise = null;\n' +%0A  "  let currentMode = '';\n" +%0A  '  let rendering = false;\n' +%0A  '  let recommendationBusy = false;\n' +%0A  "  let selectedId = localStorage.getItem(SELECTED_KEY) || '';\n" +%0A  "  let boardHtmlCache = '';\n" +%0A  '\n' +%0A  '  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));\n' +%0A  '  const nextFrames = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));\n' +%0A  '\n' +%0A  "  function toast(message, kind = '') {\n" +%0A  "    const node = $('#toast');\n" +%0A  '    if (!node) return;\n' +%0A  '    node.textContent = message;\n' +%0A  '    node.className = `toast show ${kind}`;\n' +%0A  "    setTimeout(() => { node.className = 'toast'; }, 2800);\n" +%0A  '  }\n' +%0A  '\n' +%0A  '  async function codebookContext() {\n' +%0A  '    if (!codebookPromise) codebookPromise = loadCodebook().then(result => ({ index: makeIndex(result.data) }));\n' +%0A  '    return codebookPromise;\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function labelFor(index, table, code, fallback) {\n' +%0A  '    return code ? displayName(index, table, code, fallback) : fallback;\n' +%0A  '  }\n' +%0A  '\n' +%0A  "  function captureBoard(container = $('#beanGroups')) {\n" +%0A  "    const board = container?.querySelector('.bean-summary-block');\n" +%0A  '    if (board) boardHtmlCache = board.outerHTML;\n' +%0A  '    return boardHtmlCache;\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function captureRenderedRatios() {\n' +%0A  "    $$('#beanGroups .bean-card[data-bean-id]').forEach(card => {\n" +%0A  "      const track = $('.bean-freshness-progress', card);\n" +%0A  "      const solid = $('.bean-freshness-solid', card);\n" +%0A  '      if (!track || !solid) return;\n' +%0A  '      const trackWidth = track.getBoundingClientRect().width;\n' +%0A  '      const solidWidth = solid.getBoundingClientRect().width;\n' +%0A  '      if (trackWidth > 2 && Number.isFinite(solidWidth)) measuredRatios.set(card.dataset.beanId, clamp(solidWidth / trackWidth, 0, 1));\n' +%0A  '    });\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function ratioFor(bean) {\n' +%0A  '    if (measuredRatios.has(bean.id)) return measuredRatios.get(bean.id);\n' +%0A  '    return clamp(Number(freshnessProfile(bean).progress || 0), 0, 1);\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function freshnessStage(bean) {\n' +%0A  '    const ratio = ratioFor(bean);\n' +%0A  "    if (ratio < 1 / 3) return '养豆中';\n" +%0A  "    if (ratio < 2 / 3) return '味正盛';\n" +%0A  "    return '味将尽';\n" +%0A  '  }\n' +%0A  '\n' +%0A  '  function buildScoreMap(records) {\n' +%0A  '    const aggregate = new Map();\n' +%0A  '    for (const record of records) {\n' +%0A  '      if (!record?.beanId) continue;\n' +%0A  '      const score = normalizeRecommendationScore(record);\n' +%0A  '      if (!Number.isFinite(score)) continue;\n' +%0A  '      const row = aggregate.get(record.beanId) || { total: 0, count: 0 };\n' +%0A  '      row.total += score;\n' +%0A  '      row.count += 1;\n' +%0A  '      aggregate.set(record.beanId, row);\n' +%0A  '    }\n' +%0A  '    return new Map([...aggregate].map(([beanId, row]) => [beanId, row.count ? row.total / row.count : 0]));\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  async function loadData({ force = false } = {}) {\n' +%0A  '    const now = Date.now();\n' +%0A  '    if (!force && dataCache && now - dataCache.at < CACHE_TTL) return dataCache;\n' +%0A  '    if (dataPromise) return dataPromise;\n' +%0A  "    dataPromise = Promise.all([codebookContext(), all('beans'), all('sensoryRecords')]).then(([{ index }, beans, records]) => {\n" +%0A  "      const active = beans.filter(bean => !bean.archived && Number(bean.remainingWeight) > 0).sort((a, b) => String(b.roastDate || '').localeCompare(String(a.roastDate || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));\n" +%0A  '      dataCache = { at: Date.now(), index, active, scoreMap: buildScoreMap(records) };\n' +%0A  '      return dataCache;\n' +%0A  '    }).finally(() => { dataPromise = null; });\n' +%0A  '    return dataPromise;\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  function invalidateData() { dataCache = null; }\n' +%0A  '\n' +%0A  '  async function getMode() {\n' +%0A  '    if (currentMode) return currentMode;\n' +%0A  '    const [saved, legacy] = await Promise.all([getSetting(MODE_KEY, MODE_NATIVE), getSetting(LEGACY_MODE_KEY, MODE_NATIVE)]);\n' +%0A  "    const oldGroup = localStorage.getItem(LEGACY_GROUP_KEY) || '';\n" +%0A  '    if (saved === MODE_FRESHNESS || saved === MODE_REMAINING) currentMode = saved;\n' +%0A  "    else if (legacy === 'freshness') currentMode = MODE_FRESHNESS;\n" +%0A  '    else if (oldGroup === MODE_REMAINING) currentMode = MODE_REMAINING;\n' +%0A  '    else currentMode = MODE_NATIVE;\n' +%0A  "    if (currentMode !== MODE_NATIVE || legacy === 'freshness' || oldGroup === MODE_REMAINING) {\n" +%0A  "      localStorage.setItem(LEGACY_GROUP_KEY, 'roast');\n" +%0A  '      await Promise.all([setSetting(MODE_KEY, currentMode), setSetting(LEGACY_MODE_KEY, MODE_NATIVE)]);\n' +%0A  '    }\n' +%0A  '    setBeanGroupMode(currentMode);\n' +%0A  '    return currentMode;\n' +%0A  '  }\n' +%0A  '\n' +%0A  '  async function saveMode(mode) {\n' +%0A  '    currentMode = mode;\n' +%0A  '    setBeanGroupMode(mode);\n' +%0A  "    localStorage.
+[static] tests/v124b-lifecycle-ocr-storage-regression.mjs
+LuckyBean 1.24B lifecycle, serial OCR, transit/frozen storage, order parsing and local brew regression checks passed
+
+[static] tests/v124b-final-release-contract.mjs
+LuckyBean 1.24B main.4 final release contract with gated web-first deployment, canonical bean group state, shared sorting and text brew UI passed
+
+[static] tests/v124b-complete-plan-contract.mjs
+LuckyBean 1.24B main.4 complete modification-plan contract with canonical bean groups, gated Pages, shared sorting and text brew UI passed
+
+[static] tests/v124b-ui-policy-regression.mjs
+LuckyBean 1.24B single-owner bean group state, hidden preference leaderboard policy, shared live-preview sorting, text brew UI and Web/Android parity contracts passed
+
+[static] npm run test:recognition
+
+> luckybean-static-app@1.24.2 test:recognition
+> node --test test/*.test.js
+
+TAP version 13
+# Subtest: sums every bean remaining weight and counts authoritative consumption events once
+ok 1 - sums every bean remaining weight and counts authoritative consumption events once
+  ---
+  duration_ms: 2.268825
+  type: 'test'
+  ...
+# Subtest: restored mistaken brew is removed from today total
+ok 2 - restored mistaken brew is removed from today total
+  ---
+  duration_ms: 0.375738
+  type: 'test'
+  ...
+# Subtest: warns when latest completed consumption is within the configured sleep buffer
+ok 3 - warns when latest completed consumption is within the configured sleep buffer
+  ---
+  duration_ms: 0.471201
+  type: 'test'
+  ...
+# Subtest: uses a higher caffeine estimate for robusta beans
+ok 4 - uses a higher caffeine estimate for robusta beans
+  ---
+  duration_ms: 1.630925
+  type: 'test'
+  ...
+# Subtest: brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
+ok 5 - brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
+  ---
+  duration_ms: 1.328486
+  type: 'test'
+  ...
+# Subtest: production analysis envelope adapts into a plan accepted by the page validator
+ok 6 - production analysis envelope adapts into a plan accepted by the page validator
+  ---
+  duration_ms: 1.355946
+  type: 'test'
+  ...
+# Subtest: unknown analysis contracts and unversioned legacy plans remain rejected
+ok 7 - unknown analysis contracts and unversioned legacy plans remain rejected
+  ---
+  duration_ms: 0.673672
+  type: 'test'
+  ...
+# Subtest: cold brew validates stage water against brew water and recipe total independently
+ok 8 - cold brew validates stage water against brew water and recipe total independently
+  ---
+  duration_ms: 0.342439
+  type: 'test'
+  ...
+# Subtest: 参数重算保留同一豆卡已经实际采用的方案
+ok 9 - 参数重算保留同一豆卡已经实际采用的方案
+  ---
+  duration_ms: 1.754019
+  type: 'test'
+  ...
+# Subtest: 不同豆卡或手动选择方案时不会沿用旧方案
+ok 10 - 不同豆卡或手动选择方案时不会沿用旧方案
+  ---
+  duration_ms: 0.817346
+  type: 'test'
+  ...
+# Subtest: 并发计算采用 latest-wins，旧结果不能覆盖新结果
+ok 11 - 并发计算采用 latest-wins，旧结果不能覆盖新结果
+  ---
+  duration_ms: 0.386214
+  type: 'test'
+  ...
+# Subtest: 总分低于预测分不会单独触发冲煮优化
+ok 12 - 总分低于预测分不会单独触发冲煮优化
+  ---
+  duration_ms: 1.950992
+  type: 'test'
+  ...
+# Subtest: 品鉴后的具体负面维度触发可解释优化
+ok 13 - 品鉴后的具体负面维度触发可解释优化
+  ---
+  duration_ms: 0.659821
+  type: 'test'
+  ...
+# Subtest: 雷达轴只比较同组平均且无完成冲煮时不提示优化
+ok 14 - 雷达轴只比较同组平均且无完成冲煮时不提示优化
+  ---
+  duration_ms: 1.005906
+  type: 'test'
+  ...
+# Subtest: 实际执行明显偏离方案时不把负面结果归因于方案
+ok 15 - 实际执行明显偏离方案时不把负面结果归因于方案
+  ---
+  duration_ms: 0.308979
+  type: 'test'
+  ...
+# Subtest: 个人靶区至少三次证据后才改变，标准靶区保持不变
+ok 16 - 个人靶区至少三次证据后才改变，标准靶区保持不变
+  ---
+  duration_ms: 0.872598
+  type: 'test'
+  ...
+# Subtest: accepts a catalog with balanced hot and cold auto-recommend profiles
+ok 17 - accepts a catalog with balanced hot and cold auto-recommend profiles
+  ---
+  duration_ms: 1.341846
+  type: 'test'
+  ...
+# Subtest: rejects a catalog whose declared profile count differs from the payload
+ok 18 - rejects a catalog whose declared profile count differs from the payload
+  ---
+  duration_ms: 0.224785
+  type: 'test'
+  ...
+# Subtest: rejects a cold profile whose recipe water does not equal brew water + ice + bypass
+ok 19 - rejects a cold profile whose recipe water does not equal brew water + ice + bypass
+  ---
+  duration_ms: 1.640359
+  type: 'test'
+  ...
+# Subtest: rejects catalogs that cannot auto-recommend in both hot and cold modes
+ok 20 - rejects catalogs that cannot auto-recommend in both hot and cold modes
+  ---
+  duration_ms: 0.276071
+  type: 'test'
+  ...
+# Subtest: archive round-trip preserves every portable store
+ok 21 - archive round-trip preserves every portable store
+  ---
+  duration_ms: 13.530673
+  type: 'test'
+  ...
+# Subtest: archive rejects tampered store data
+ok 22 - archive rejects tampered store data
+  ---
+  duration_ms: 2.816508
+  type: 'test'
+  ...
+# Subtest: legacy 1.2.x JSON backup migrates without inventing records
+ok 23 - legacy 1.2.x JSON backup migrates without inventing records
+  ---
+  duration_ms: 0.541506
+  type: 'test'
+  ...
+# Subtest: future schema cannot be imported
+ok 24 - future schema cannot be imported
+  ---
+  duration_ms: 3.166309
+  type: 'test'
+  ...
+# Subtest: production date never falls back to roast date
+ok 25 - production date never falls back to roast date
+  ---
+  duration_ms: 5.985191
+  type: 'test'
+  ...
+# Subtest: best before and expiry dates are excluded from roast date
+ok 26 - best before and expiry dates are excluded from roast date
+  ---
+  duration_ms: 6.394831
+  type: 'test'
+  ...
+# Subtest: explicit roast date is auto-filled while other dates remain excluded
+ok 27 - explicit roast date is auto-filled while other dates remain excluded
+  ---
+  duration_ms: 2.187724
+  type: 'test'
+  ...
+# Subtest: unlabelled date requires confirmation and is never silently filled
+ok 28 - unlabelled date requires confirmation and is never silently filled
+  ---
+  duration_ms: 0.640723
+  type: 'test'
+  ...
+# Subtest: date photo role increases provenance but does not bypass confirmation
+ok 29 - date photo role increases provenance but does not bypass confirmation
+  ---
+  duration_ms: 0.909382
+  type: 'test'
+  ...
+# Subtest: invalid calendar dates are rejected
+ok 30 - invalid calendar dates are rejected
+  ---
+  duration_ms: 1.454113
+  type: 'test'
+  ...
+# Subtest: 30-case date ownership golden set has zero silent non-roast assignments
+    # Subtest: 烘焙日期：2026-07-28
+    ok 1 - 烘焙日期：2026-07-28
+      ---
+      duration_ms: 4.958454
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE 2026/07/28
+    ok 2 - ROAST DATE 2026/07/28
+      ---
+      duration_ms: 1.101438
+      type: 'test'
+      ...
+    # Subtest: ROASTED ON 2026.7.8
+    ok 3 - ROASTED ON 2026.7.8
+      ---
+      duration_ms: 0.308589
+      type: 'test'
+      ...
+    # Subtest: 焙炒日期 2026年7月28日
+    ok 4 - 焙炒日期 2026年7月28日
+      ---
+      duration_ms: 0.669936
+      type: 'test'
+      ...
+    # Subtest: RST DATE 20260728
+    ok 5 - RST DATE 20260728
+      ---
+      duration_ms: 0.424552
+      type: 'test'
+      ...
+    # Subtest: ROAST ON 28 JUL 2026
+    ok 6 - ROAST ON 28 JUL 2026
+      ---
+      duration_ms: 1.153024
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE JUL 28 2026
+    ok 7 - ROAST DATE JUL 28 2026
+      ---
+      duration_ms: 0.77275
+      type: 'test'
+      ...
+    # Subtest: 出炉日期 26年7月28日
+    ok 8 - 出炉日期 26年7月28日
+      ---
+      duration_ms: 0.982221
+      type: 'test'
+      ...
+    # Subtest: 烘焙日 26-07-28
+    ok 9 - 烘焙日 26-07-28
+      ---
+      duration_ms: 0.935381
+      type: 'test'
+      ...
+    # Subtest: 烘烤日期 26.0728
+    ok 10 - 烘烤日期 26.0728
+      ---
+      duration_ms: 0.487956
+      type: 'test'
+      ...
+    # Subtest: 生产日期：2026-07-21
+    ok 11 - 生产日期：2026-07-21
+      ---
+      duration_ms: 0.387596
+      type: 'test'
+      ...
+    # Subtest: MFG DATE 2026/07/21
+    ok 12 - MFG DATE 2026/07/21
+      ---
+      duration_ms: 0.220848
+      type: 'test'
+      ...
+    # Subtest: MFD 20260721
+    ok 13 - MFD 20260721
+      ---
+      duration_ms: 0.287117
+      type: 'test'
+      ...
+    # Subtest: 包装日期 2026.07.22
+    ok 14 - 包装日期 2026.07.22
+      ---
+      duration_ms: 0.404251
+      type: 'test'
+      ...
+    # Subtest: PACKED ON 2026-07-22
+    ok 15 - PACKED ON 2026-07-22
+      ---
+      duration_ms: 0.668014
+      type: 'test'
+      ...
+    # Subtest: PKD 20260722
+    ok 16 - PKD 20260722
+      ---
+      duration_ms: 2.422482
+      type: 'test'
+      ...
+    # Subtest: 最佳赏味期 2026-10-28
+    ok 17 - 最佳赏味期 2026-10-28
+      ---
+      duration_ms: 0.398143
+      type: 'test'
+      ...
+    # Subtest: BEST BEFORE 2026/10/28
+    ok 18 - BEST BEFORE 2026/10/28
+      ---
+      duration_ms: 0.361979
+      type: 'test'
+      ...
+    # Subtest: BBE 28 OCT 2026
+    ok 19 - BBE 28 OCT 2026
+      ---
+      duration_ms: 0.340086
+      type: 'test'
+      ...
+    # Subtest: 有效期至 2027年1月5日
+    ok 20 - 有效期至 2027年1月5日
+      ---
+      duration_ms: 0.401246
+      type: 'test'
+      ...
+    # Subtest: EXP 2027-01-05
+    ok 21 - EXP 2027-01-05
+      ---
+      duration_ms: 0.38333
+      type: 'test'
+      ...
+    # Subtest: USE BY JAN 5 2027
+    ok 22 - USE BY JAN 5 2027
+      ---
+      duration_ms: 0.381247
+      type: 'test'
+      ...
+    # Subtest: 埃塞俄比亚 / 2026-07-28
+    ok 23 - 埃塞俄比亚 / 2026-07-28
+      ---
+      duration_ms: 2.849729
+      type: 'test'
+      ...
+    # Subtest: DATE 2026/07/28
+    ok 24 - DATE 2026/07/28
+      ---
+      duration_ms: 0.290942
+      type: 'test'
+      ...
+    # Subtest: LOT 20260728
+    ok 25 - LOT 20260728
+      ---
+      duration_ms: 0.271304
+      type: 'test'
+      ...
+    # Subtest: 2026年7月28日
+    ok 26 - 2026年7月28日
+      ---
+      duration_ms: 0.313856
+      type: 'test'
+      ...
+    # Subtest: 28/07/2026
+    ok 27 - 28/07/2026
+      ---
+      duration_ms: 0.647262
+      type: 'test'
+      ...
+    # Subtest: 07/08/2026
+    ok 28 - 07/08/2026
+      ---
+      duration_ms: 0.537159
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE 07/08/2026
+    ok 29 - ROAST DATE 07/08/2026
+      ---
+      duration_ms: 0.440095
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
+    ok 30 - ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
+      ---
+      duration_ms: 0.596027
+      type: 'test'
+      ...
+    1..30
+ok 31 - 30-case date ownership golden set has zero silent non-roast assignments
+  ---
+  duration_ms: 28.471383
+  type: 'test'
+  ...
+# Subtest: review model exposes automatic, excluded and unresolved candidates together
+ok 32 - review model exposes automatic, excluded and unresolved candidates together
+  ---
+  duration_ms: 8.911043
+  type: 'test'
+  ...
+# Subtest: unresolved candidate requires an explicit date assignment before confirmation
+ok 33 - unresolved candidate requires an explicit date assignment before confirmation
+  ---
+  duration_ms: 0.955321
+  type: 'test'
+  ...
+# Subtest: user confirmation retains source provenance instead of inventing confidence 1
+ok 34 - user confirmation retains source provenance instead of inventing confidence 1
+  ---
+  duration_ms: 0.855993
+  type: 'test'
+  ...
+# Subtest: two roast date selections are rejected
+ok 35 - two roast date selections are rejected
+  ---
+  duration_ms: 1.766968
+  type: 'test'
+  ...
+# Subtest: candidate value cannot be replaced with an unrecognized date
+ok 36 - candidate value cannot be replaced with an unrecognized date
+  ---
+  duration_ms: 0.547564
+  type: 'test'
+  ...
+# Subtest: stale or fabricated candidate id is rejected
+ok 37 - stale or fabricated candidate id is rejected
+  ---
+  duration_ms: 0.662776
+  type: 'test'
+  ...
+# Subtest: all candidates may be ignored without silently restoring automatic roast date
+ok 38 - all candidates may be ignored without silently restoring automatic roast date
+  ---
+  duration_ms: 1.044584
+  type: 'test'
+  ...
+# Subtest: ambiguous day-month candidate can only resolve to one offered value
+ok 39 - ambiguous day-month candidate can only resolve to one offered value
+  ---
+  duration_ms: 1.547641
+  type: 'test'
+  ...
+# Subtest: duplicate submission of the same candidate is rejected
+ok 40 - duplicate submission of the same candidate is rejected
+  ---
+  duration_ms: 0.844606
+  type: 'test'
+  ...
+# Subtest: numeric Ethiopian variety codes are split into independent exact candidates
+ok 41 - numeric Ethiopian variety codes are split into independent exact candidates
+  ---
+  duration_ms: 27.94516
+  type: 'test'
+  ...
+# Subtest: multiple labeled varieties stay unresolved instead of silently choosing the first code
+ok 42 - multiple labeled varieties stay unresolved instead of silently choosing the first code
+  ---
+  duration_ms: 19.036842
+  type: 'test'
+  ...
+# Subtest: spaced alphanumeric variety codes survive OCR tokenization
+ok 43 - spaced alphanumeric variety codes survive OCR tokenization
+  ---
+  duration_ms: 7.704208
+  type: 'test'
+  ...
+# Subtest: explicit numeric roast levels map only within the labeled 0-6 scale
+ok 44 - explicit numeric roast levels map only within the labeled 0-6 scale
+  ---
+  duration_ms: 1.541683
+  type: 'test'
+  ...
+# Subtest: mixed label layouts preserve separate variety and roast evidence
+ok 45 - mixed label layouts preserve separate variety and roast evidence
+  ---
+  duration_ms: 3.268541
+  type: 'test'
+  ...
+# Subtest: equally exact codebook candidates remain a manual choice
+ok 46 - equally exact codebook candidates remain a manual choice
+  ---
+  duration_ms: 5.827626
+  type: 'test'
+  ...
+# Subtest: unsupported region evidence has no reliable candidates
+ok 47 - unsupported region evidence has no reliable candidates
+  ---
+  duration_ms: 5.208617
+  type: 'test'
+  ...
+# Subtest: recognition review UI contains only unresolved fields and disappears when none remain
+ok 48 - recognition review UI contains only unresolved fields and disappears when none remain
+  ---
+  duration_ms: 1.045625
+  type: 'test'
+  ...
+# Subtest: recognition provenance remains persisted for audit without becoming confirmed-field UI
+ok 49 - recognition provenance remains persisted for audit without becoming confirmed-field UI
+  ---
+  duration_ms: 0.205355
+  type: 'test'
+  ...
+# Subtest: confirmed roast date is still saved from the final form value
+ok 50 - confirmed roast date is still saved from the final form value
+  ---
+  duration_ms: 0.190974
+  type: 'test'
+  ...
+# Subtest: custom dropdown opens its editor after select change dispatch completes
+ok 51 - custom dropdown opens its editor after select change dispatch completes
+  ---
+  duration_ms: 0.123885
+  type: 'test'
+  ...
+# Subtest: reversed inline key-value keeps the semantic field association
+ok 52 - reversed inline key-value keeps the semantic field association
+  ---
+  duration_ms: 3.365836
+  type: 'test'
+  ...
+# Subtest: same-row value before label is paired by geometry and field semantics
+ok 53 - same-row value before label is paired by geometry and field semantics
+  ---
+  duration_ms: 1.13657
+  type: 'test'
+  ...
+# Subtest: vertical title and value are paired in either reading direction
+ok 54 - vertical title and value are paired in either reading direction
+  ---
+  duration_ms: 0.752118
+  type: 'test'
+  ...
+# Subtest: standalone unordered coffee entities remain available instead of being forced into unrelated fields
+ok 55 - standalone unordered coffee entities remain available instead of being forced into unrelated fields
+  ---
+  duration_ms: 2.371247
+  type: 'test'
+  ...
+# Subtest: range hyphen is preserved as value content rather than treated as a field separator
+ok 56 - range hyphen is preserved as value content rather than treated as a field separator
+  ---
+  duration_ms: 0.827491
+  type: 'test'
+  ...
+# Subtest: English labels and coffee values become Chinese canonical bean fields
+ok 57 - English labels and coffee values become Chinese canonical bean fields
+  ---
+  duration_ms: 19.153104
+  type: 'test'
+  ...
+# Subtest: unknown proper names are preserved and explicitly marked for review
+ok 58 - unknown proper names are preserved and explicitly marked for review
+  ---
+  duration_ms: 10.869666
+  type: 'test'
+  ...
+# Subtest: explicit numeric fields are parsed while unrelated numbers stay isolated
+ok 59 - explicit numeric fields are parsed while unrelated numbers stay isolated
+  ---
+  duration_ms: 8.655032
+  type: 'test'
+  ...
+# Subtest: Chinese, reverse-labelled and vertical fields share one canonical pipeline
+ok 60 - Chinese, reverse-labelled and vertical fields share one canonical pipeline
+  ---
+  duration_ms: 6.867303
+  type: 'test'
+  ...
+1..60
+# tests 90
+# suites 0
+# pass 90
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 462.147811
+
+All LuckyBean static and recognition regression checks passed
