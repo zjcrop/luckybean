@@ -56,22 +56,33 @@ jobs:
           unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_FLAVOR_STATE_CONTRACT = 'brew-flavor-state/1.0'"
           unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq 'release-1.24b-ui-policy.js'
           unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq 'release-1.24b-brew-mode-controller.js'
+          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq "feature('shared-sortable'"
           unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq 'sensory-tag-sort-controller.js'
           unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq '1.24B-main.4'
+          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'lb-sort-ghost'
+          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'lb-sort-placeholder'
+          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'onPreview'
+          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'onCommit'
+          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'setPointerCapture'
+          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'DOUBLE_CLICK_MS'
           unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'async function closeActiveGroup'
           unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'hasActiveGroup: () => Boolean(activeGroup)'
           ! unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'data-v099t-group-back'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'api.closeActiveGroup'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'canonical folder-state navigation active'
           ! unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'data-v099t-group-back'
-          unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq 'LONG_PRESS_MS = 320'
-          unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq 'setPointerCapture'
+          unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq 'LuckyBeanSortable'
+          unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq '双击移除'
+          unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq '实时预览松手后的顺序'
           unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq 'professional-sensory-complete'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq 'lb-stock-total'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq 'lb-today-consumption'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq '非罗布斯塔'
+          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq '#brewContent button:not(.lb-brew-switch)'
+          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq "observe('brewContent')"
           unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '1.24B-main.4'"
-          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'main-4-folder2'
+          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'main-4-interaction3'
+          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'src/ui/sortable-controller.js'
           unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'sensory-tag-sort-controller.js'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-brew-mode-controller.js | grep -Fq 'data-lb-other-complete'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-brew-mode-controller.js | grep -Fq "type:'brew-consume'"
@@ -129,7 +140,7 @@ jobs:
           mkdir -p dist
           cp android/app/build/outputs/apk/debug/app-debug.apk dist/LuckyBean-1.24B-full-integration-debug.apk
           sha256sum dist/LuckyBean-1.24B-full-integration-debug.apk > dist/SHA256SUMS.txt
-          printf 'source_sha=%s\nbranch=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.4\ncache=main-4-folder2\ngroup_navigation=canonical-state-api\nsensory_sort=longpress-pointer-capture\nmobile_stock_summary=two-line\nother_brew_completion=inventory-event-sensory-handoff\nother_brew_tutorials=detailed\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist/BUILD_PROVENANCE.txt
+          printf 'source_sha=%s\nbranch=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.4\ncache=main-4-interaction3\ngroup_navigation=canonical-state-api\nsortable=shared-live-preview-ghost-placeholder\nsensory_sort=single-activate-double-remove-longpress-preview\nbrew_ui=text-interactions\nmobile_stock_summary=two-line\nother_brew_completion=inventory-event-sensory-handoff\nother_brew_tutorials=detailed\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist/BUILD_PROVENANCE.txt
       - name: Upload Android build diagnostics
         if: always()
         uses: actions/upload-artifact@v7.0.1
