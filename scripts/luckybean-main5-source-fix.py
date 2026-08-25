@@ -110,6 +110,48 @@ elif semantic_roast not in text:
     raise SystemExit("bean detail roast renderer changed unexpectedly")
 integration.write_text(text, encoding="utf-8")
 
+package_capture = Path("src/package-capture-controller.js")
+text = package_capture.read_text(encoding="utf-8")
+old_manual = """function openManualEntry(message = '可粘贴包装上的文字，后续仍由同一套编码表解析。') {
+  const existing = document.querySelector('#bagOcrText')?.value || captureState.ocrText;
+  captureState.ocrText = existing || ' ';
+  render();
+  const target = document.querySelector('#bagOcrText');
+  if (target) {
+    target.value = existing.trim();
+    target.placeholder = message;
+    target.focus();
+    const button = document.querySelector('#bagHandoffBtn');
+    if (button) button.disabled = !target.value.trim();
+  }
+}"""
+new_manual = """function openManualEntry(message = '可粘贴包装上的文字，后续仍由同一套编码表解析。') {
+  const existing = document.querySelector('#bagOcrText')?.value || captureState.ocrText;
+  captureState.ocrText = existing || ' ';
+  render();
+  const target = document.querySelector('#bagOcrText');
+  if (target) {
+    const details = target.closest('details');
+    if (details) details.open = true;
+    target.value = existing.trim();
+    target.placeholder = message;
+    target.focus();
+    const button = document.querySelector('#bagHandoffBtn');
+    if (button) button.disabled = !target.value.trim();
+  }
+}"""
+if old_manual not in text:
+    raise SystemExit("package manual-entry source changed unexpectedly")
+package_capture.write_text(text.replace(old_manual, new_manual, 1), encoding="utf-8")
+
+legacy_ui_test = Path("tests/v127-user-regressions-ui.spec.mjs")
+text = legacy_ui_test.read_text(encoding="utf-8")
+old_roast_expect = "  await expect(card.locator('.lb-bean-secondary')).toContainText('/浅/水洗/85g');"
+new_roast_expect = "  await expect(card.locator('.lb-bean-secondary')).toContainText('/浅烘/水洗/85g');"
+if old_roast_expect not in text:
+    raise SystemExit("legacy compact roast expectation changed unexpectedly")
+legacy_ui_test.write_text(text.replace(old_roast_expect, new_roast_expect, 1), encoding="utf-8")
+
 obsolete = "专业标签、雷达图和评分会另行结构化保存"
 for p in [*Path("src").rglob("*.js"), *Path("src").rglob("*.html")]:
     t = p.read_text(encoding="utf-8")
@@ -138,6 +180,8 @@ test('1.24B main.5 sensory and recognition source regressions stay fixed', () =>
   const app = read('src/app.js');
   const css = read('src/ui/professional-sensory.css');
   const integration = read('src/features/release-1.24b-integration.js');
+  const packageCapture = read('src/package-capture-controller.js');
+  const legacyUiTest = read('tests/v127-user-regressions-ui.spec.mjs');
   const index = read('index.html');
   assert.equal(app.includes('id=\"sensoryVoiceNoteBtn\"'), false);
   assert.equal(app.includes('文字将写入品鉴记录和对应冲煮记录'), false);
@@ -149,6 +193,8 @@ test('1.24B main.5 sensory and recognition source regressions stay fixed', () =>
   assert.match(css, /\\.v095-wizard-actions \\{[\\s\\S]*position: fixed;[\\s\\S]*bottom: 0;/);
   assert.match(integration, /valueLine\\('烘焙度', roastDisplayName\\(bean\\)\\)/);
   assert.equal(integration.includes(\"valueLine('烘焙度', bean.roastName || bean.roastCode)\"), false);
+  assert.match(packageCapture, /const details = target\\.closest\\('details'\\);[\\s\\S]*details\\.open = true/);
+  assert.match(legacyUiTest, /toContainText\\('\/浅烘\/水洗\/85g'\\)/);
   assert.match(index, /1\\.24B-main\\.5/);
 });
 """, encoding="utf-8")
