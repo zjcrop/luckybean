@@ -9,6 +9,16 @@ const ROAST_LABELS = Object.freeze({
   'RL-L5': '深烘',
   'RL-L6': '极深烘'
 });
+const COMPACT_ROAST_LABELS = Object.freeze({
+  '极浅': '极浅烘',
+  '浅': '浅烘',
+  '中浅': '浅中烘',
+  '浅中': '浅中烘',
+  '中': '中烘',
+  '中深': '中深烘',
+  '深': '深烘',
+  '极深': '极深烘'
+});
 const FIELD_CONTROLS = Object.freeze({
   countryCode: 'beanCountry',
   regionCode: 'beanRegion',
@@ -111,6 +121,20 @@ function stripObsoleteSensoryCopy(root = document) {
   });
 }
 
+function normalizeCompactBeanRoast(scope) {
+  scope?.querySelectorAll?.('.bean-card .lb-bean-secondary').forEach(node => {
+    const parts = node.textContent.split('/');
+    if (parts.length < 4) return;
+    const current = String(parts[1] || '').trim();
+    const canonical = roastLabel(current) || COMPACT_ROAST_LABELS[current] || '';
+    if (!canonical || canonical === current) return;
+    parts[1] = canonical;
+    node.textContent = parts.join('/');
+    const line = node.closest('.lb-bean-line');
+    if (line?.hasAttribute('aria-label')) line.setAttribute('aria-label', replaceRoastCodes(line.getAttribute('aria-label')).replace(`/${current}/`, `/${canonical}/`));
+  });
+}
+
 function semanticizeVisibleRoastCodes(root = document) {
   const scopes = [
     root.querySelector?.('#beanGroups'),
@@ -130,6 +154,7 @@ function semanticizeVisibleRoastCodes(root = document) {
       const next = replaceRoastCodes(label);
       if (next !== label) node.setAttribute('aria-label', next);
     });
+    normalizeCompactBeanRoast(scope);
   }
 }
 
@@ -271,4 +296,4 @@ observer.observe(document.documentElement, { childList: true, subtree: true });
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => apply(document), { once: true });
 else apply(document);
 
-export const followupUiRevision = '1.24B-followup.1';
+export const followupUiRevision = '1.24B-followup.2';
