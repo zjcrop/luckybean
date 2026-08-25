@@ -1,5 +1,5 @@
-const LONG_PRESS_MS = 320;
-const MOVE_CANCEL_DISTANCE = 14;
+// Sensory adapter for the shared LuckyBean sortable interaction engine.
+// The shared controller owns pointer/click gestures; this adapter only maps sensory state to it.
 const STEP_TITLES = Object.freeze({
   dry:'干香 / 湿香', high:'高温', mid:'中温', low:'低温', aftertaste:'余韵', acidity:'酸质', sweetness:'甜感', mouthfeel:'口感'
 });
@@ -8,28 +8,13 @@ if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {
   globalThis.__LuckyBeanSensoryTagSortLoaded = true;
 
   const orders = new Map();
-  let drag = null;
+  const bound = new WeakSet();
+  let syncQueued = false;
 
-  function ensureStyle() {
-    if (document.getElementById('luckybean-sensory-sort-style')) return;
-    const style = document.createElement('style');
-    style.id = 'luckybean-sensory-sort-style';
-    style.textContent = `
-      .v120-selected-tag { touch-action:pan-y; }
-      .v120-selected-tag-list.lb-sort-mode { touch-action:none; user-select:none; -webkit-user-select:none; }
-      .v120-selected-tag-list.lb-sort-mode .v120-selected-tag { transition:transform .12s ease, opacity .12s ease, box-shadow .12s ease; }
-      .v120-selected-tag.lb-sort-dragging { position:relative; z-index:3; transform:scale(1.06); opacity:.92; box-shadow:0 8px 22px rgba(0,0,0,.26); }
-      .v120-selected-tag.lb-sort-target { outline:1px dashed var(--cup-tag-selected-border); outline-offset:3px; }
-      .cupping-drag-handle { pointer-events:none; }
-      .v095-sort-hint::after { content:' 长按任一已选标签即可进入排序。'; }
-      body.lb-sensory-sorting { overscroll-behavior:contain; }
-    `;
-    document.head.append(style);
-  }
-
-  function stepIdFor(list) { return String(list?.dataset?.v120SelectedList || ''); }
-  function chips(list) { return [...list.querySelectorAll('[data-v120-selected-tag]')]; }
-  function tagsFrom(list) { return chips(list).map(node => String(node.dataset.v120SelectedTag || '')).filter(Boolean); }
+  const escSelector = value => globalThis.CSS?.escape ? CSS.escape(String(value)) : String(value).replace(/["\\]/g, '\\$&');
+  const stepIdFor = list => String(list?.dataset?.v120SelectedList || '');
+  const chips = list => [...list.querySelectorAll('[data-v120-selected-tag]')];
+  const tagsFrom = list => chips(list).map(node => String(node.dataset.v120SelectedTag || '')).filter(Boolean);
 
   function normalizedOrder(stepId, current) {
     const saved = orders.get(stepId) || [];
@@ -48,109 +33,67 @@ if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {
     for (const tag of order) if (byTag.get(tag)) list.append(byTag.get(tag));
   }
 
-  function syncLists() {
-    document.querySelectorAll('.v120-selected-tag-list[data-v120-selected-list]').forEach(applyOrder);
+  function activateTag(list, id, item) {
+    chips(list).forEach(chip => chip.classList.toggle('lb-sort-active', chip === item));
+    item.setAttribute('aria-current', 'true');
+    for (const chip of chips(list)) if (chip !== item) chip.removeAttribute('aria-current');
   }
 
-  function clearVisualState(state = drag) {
-    if (!state) return;
-    state.list.classList.remove('lb-sort-mode');
-    state.chip.classList.remove('lb-sort-dragging');
-    state.list.querySelectorAll('.lb-sort-target').forEach(node => node.classList.remove('lb-sort-target'));
-    document.body.classList.remove('lb-sensory-sorting');
-  }
-
-  function releaseCapture(state) {
-    if (!state) return;
-    try {
-      if (state.chip.hasPointerCapture?.(state.id)) state.chip.releasePointerCapture?.(state.id);
-    } catch {}
-  }
-
-  function cancelPending() {
-    if (!drag) return;
-    const state = drag;
-    clearTimeout(state.timer);
-    clearVisualState(state);
-    releaseCapture(state);
-    drag = null;
-  }
-
-  function activateDrag(id) {
-    if (!drag || drag.id !== id || drag.active) return;
-    drag.active = true;
-    drag.list.classList.add('lb-sort-mode');
-    drag.chip.classList.add('lb-sort-dragging');
-    document.body.classList.add('lb-sensory-sorting');
-    navigator.vibrate?.(10);
-  }
-
-  function nearestTarget(list, chip, x, y) {
-    const candidates = chips(list).filter(node => node !== chip);
-    let best = null;
-    let bestDistance = Infinity;
-    for (const node of candidates) {
-      const rect = node.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      const distance = (x - cx) ** 2 + (y - cy) ** 2;
-      if (distance < bestDistance) { bestDistance = distance; best = { node, rect, cx, cy }; }
-    }
-    return best;
-  }
-
-  function moveDrag(event) {
-    if (!drag || drag.id !== event.pointerId) return;
-    if (!drag.active) {
-      if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > MOVE_CANCEL_DISTANCE) cancelPending();
+  function removeTag(list, id, item) {
+    const overlay = list.closest('#v095ProfessionalOverlay') || document;
+    const pool = overlay.querySelector(`[data-v095-tag="${escSelector(id)}"]`);
+    if (pool) {
+      // Let the canonical sensory controller mutate wizard.selections and rerender.
+      pool.click();
       return;
     }
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    const target = nearestTarget(drag.list, drag.chip, event.clientX, event.clientY);
-    if (!target) return;
-    drag.list.querySelectorAll('.lb-sort-target').forEach(node => node.classList.remove('lb-sort-target'));
-    target.node.classList.add('lb-sort-target');
-    const sameRow = Math.abs(event.clientY - target.cy) < target.rect.height * .65;
-    const before = sameRow ? event.clientX < target.cx : event.clientY < target.cy;
-    const anchor = before ? target.node : target.node.nextSibling;
-    if (anchor !== drag.chip && anchor !== drag.chip.nextSibling) drag.list.insertBefore(drag.chip, anchor);
+    item.remove();
+    const stepId = stepIdFor(list);
+    orders.set(stepId, tagsFrom(list));
   }
 
-  function finishDrag(event) {
-    if (!drag || drag.id !== event.pointerId) return;
-    const finished = drag;
-    clearTimeout(finished.timer);
-    if (finished.active) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      const stepId = stepIdFor(finished.list);
-      orders.set(stepId, tagsFrom(finished.list));
-      finished.chip.dataset.lbSortSuppressClick = '1';
-      setTimeout(() => { delete finished.chip.dataset.lbSortSuppressClick; }, 360);
-    }
-    clearVisualState(finished);
-    releaseCapture(finished);
-    drag = null;
-  }
-
-  function beginDrag(event) {
-    if (event.button != null && event.button !== 0) return;
-    const chip = event.target.closest?.('[data-v120-selected-tag]');
-    const list = chip?.closest?.('[data-v120-selected-list]');
-    if (!chip || !list) return;
-    cancelPending();
+  function bindList(list) {
+    if (!list || bound.has(list)) return;
+    const sorter = globalThis.LuckyBeanSortable;
+    if (!sorter?.register) return;
     applyOrder(list);
-    drag = {
-      id:event.pointerId, chip, list,
-      startX:event.clientX, startY:event.clientY,
-      active:false, timer:null
-    };
-    // Window capture owns this gesture before legacy document/element listeners can claim the handle.
-    event.stopImmediatePropagation();
-    try { chip.setPointerCapture?.(event.pointerId); } catch {}
-    const id = event.pointerId;
-    drag.timer = setTimeout(() => activateDrag(id), LONG_PRESS_MS);
+    sorter.register(list, {
+      itemSelector:'[data-v120-selected-tag]',
+      getId:item => item.dataset.v120SelectedTag,
+      longPressMs:360,
+      doubleClickMs:250,
+      onActivate:(id, item) => activateTag(list, id, item),
+      onRemove:(id, item) => removeTag(list, id, item),
+      onPreview:order => {
+        list.dataset.lbSortPreview = order.join('|');
+      },
+      onSortStart:() => {
+        list.dataset.lbSortState = 'sorting';
+      },
+      onCommit:order => {
+        orders.set(stepIdFor(list), [...order]);
+        list.dataset.lbSortCommitted = order.join('|');
+      },
+      onSortEnd:() => {
+        delete list.dataset.lbSortState;
+        delete list.dataset.lbSortPreview;
+      }
+    });
+    bound.add(list);
+  }
+
+  function syncLists() {
+    syncQueued = false;
+    document.querySelectorAll('.v120-selected-tag-list[data-v120-selected-list]').forEach(list => {
+      applyOrder(list);
+      bindList(list);
+    });
+  }
+
+  function queueSync() {
+    if (syncQueued) return;
+    syncQueued = true;
+    queueMicrotask(syncLists);
   }
 
   function reorderCompletion(detail) {
@@ -170,27 +113,31 @@ if (!globalThis.__LuckyBeanSensoryTagSortLoaded) {
     }
   }
 
-  window.addEventListener('pointerdown', beginDrag, true);
-  window.addEventListener('pointermove', moveDrag, { capture:true, passive:false });
-  window.addEventListener('pointerup', finishDrag, true);
-  window.addEventListener('pointercancel', finishDrag, true);
-  document.addEventListener('click', event => {
-    const chip = event.target.closest?.('[data-v120-selected-tag]');
-    if (chip?.dataset.lbSortSuppressClick === '1') {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      return;
+  const observer = new MutationObserver(records => {
+    for (const record of records) {
+      for (const node of record.addedNodes) {
+        if (node.nodeType !== 1) continue;
+        if (node.matches?.('.v120-selected-tag-list[data-v120-selected-list]') || node.querySelector?.('.v120-selected-tag-list[data-v120-selected-list]')) {
+          queueSync();
+          return;
+        }
+      }
     }
-    if (event.target.closest?.('[data-v095-mode="professional"]')) orders.clear();
-    if (event.target.closest?.('[data-v095-tag],[data-v095-next],[data-v095-prev]')) queueMicrotask(syncLists);
+  });
+  observer.observe(document.documentElement, { childList:true, subtree:true });
+
+  document.addEventListener('luckybean:sensory-rendered', queueSync);
+  document.addEventListener('luckybean:edit-professional-sensory', () => { orders.clear(); queueSync(); }, true);
+  document.addEventListener('click', event => {
+    if (event.target.closest?.('[data-v095-mode="professional"]')) { orders.clear(); queueSync(); }
+    if (event.target.closest?.('[data-v095-tag],[data-v095-next],[data-v095-prev]')) queueSync();
     if (event.target.closest?.('[data-v095-close],[data-v095-cancel]')) orders.clear();
   }, true);
-  document.addEventListener('luckybean:edit-professional-sensory', () => orders.clear(), true);
   document.addEventListener('luckybean:professional-sensory-complete', event => {
     reorderCompletion(event.detail);
     orders.clear();
   }, true);
 
-  ensureStyle();
-  globalThis.LuckyBeanSensoryTagSort = { sync:syncLists, orders };
+  queueSync();
+  globalThis.LuckyBeanSensoryTagSort = { sync:queueSync, orders };
 }
