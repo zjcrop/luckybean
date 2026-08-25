@@ -13,6 +13,7 @@ const sensoryCss=read('src/ui/professional-sensory.css');
 const sensory=read('src/sensory-professional-controller.js');
 const sharedSort=read('src/ui/sortable-controller.js');
 const sensorySort=read('src/features/sensory-tag-sort-controller.js');
+const beanGroupState=read('src/domain/beans/bean-group-state.js');
 const beanGroups=read('src/bean-groups-controller.js');
 const integration=read('src/features/full-integration-controller-v3.js');
 const releaseIntegration=read('src/features/release-1.24b-finalize.js');
@@ -88,17 +89,19 @@ assert.match(beanCards,/CANCEL_DISTANCE = 8/);
 assert.match(beanCards,/moveBeansToRecycle/);
 assert.match(lifecycle,/RECYCLE_RETENTION_MS = 7 \* 24 \* 60 \* 60 \* 1000/);
 
+// One canonical group state owns native + freshness + remaining grouping.
+assert.match(beanGroupState,/export const beanGroupState = \{ mode: 'native', groupKey: '' \}/);
+assert.match(beanGroupState,/setBeanGroupMode/);
+assert.match(beanGroupState,/openBeanGroupState/);
+assert.match(beanGroupState,/closeBeanGroupState/);
 assert.match(beanGroups,/async function closeActiveGroup/);
-assert.match(beanGroups,/hasActiveGroup: \(\) => Boolean\(activeGroup\)/);
-assert.doesNotMatch(beanGroups,/data-v099t-group-back|>收</);
-assert.match(groupNavigation,/canonical folder-state navigation active/);
-assert.match(groupNavigation,/LuckyBeanV099tBeanGroups/);
-assert.match(groupNavigation,/api\.closeActiveGroup/);
-assert.match(groupNavigation,/\[data-page-target\]/);
-assert.match(groupNavigation,/page\?\.contains\(event\.target\)/);
-assert.match(groupNavigation,/capture:true/);
+assert.match(beanGroups,/hasActiveGroup: \(\) => Boolean\(beanGroupState\.groupKey\)/);
+assert.match(beanGroups,/activeGroup: \(\) => beanGroupState\.groupKey/);
+assert.doesNotMatch(beanGroups,/let activeGroup|data-v099t-group-back|>收</);
+assert.match(groupNavigation,/canonical bean-group state active/);
+assert.match(groupNavigation,/LuckyBeanBeanGroupState/);
 assert.match(groupNavigation,/luckybean:navigation-back/);
-assert.doesNotMatch(groupNavigation,/back\.click|data-v099t-group-back|\.bean-grid/);
+assert.doesNotMatch(groupNavigation,/LuckyBeanV099tBeanGroups|api\.closeActiveGroup|dispatchEvent\(new MouseEvent|nativePanel|nativeCollapse|dx<=-72|page\?\.contains\(event\.target\)/);
 assert.doesNotMatch(uiPolicy,/\[data-active-group-panel\]|group-collapse-zone/);
 
 assert.match(uiPolicy,/lb-stock-total/);
@@ -136,4 +139,4 @@ const sourceFiles=walk('src').filter(file=>/\.(?:js|mjs|css)$/.test(file));
 const bodyObserverFiles=sourceFiles.filter(file=>{const source=read(file);return /MutationObserver/.test(source)&&/\.observe\(document\.body\s*,/.test(source);});
 assert.deepEqual(bodyObserverFiles,[],`global body MutationObservers remain: ${bodyObserverFiles.join(', ')}`);
 
-console.log(`LuckyBean 1.24B ${releaseRevision} canonical UI stability, shared sorting and text brew UI regression checks passed`);
+console.log(`LuckyBean 1.24B ${releaseRevision} canonical UI stability, shared bean-group state, shared sorting and text brew UI regression checks passed`);
