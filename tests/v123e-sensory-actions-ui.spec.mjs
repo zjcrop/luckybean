@@ -3,8 +3,10 @@ import { test, expect } from '@playwright/test';
 const BASE_URL = 'http://127.0.0.1:4173';
 
 async function enterApp(page) {
-  await page.locator('#splashScreen').click();
+  const splash = page.locator('#splashScreen');
+  if (await splash.isVisible()) await splash.click();
   await expect(page.locator('#appShell')).toBeVisible({ timeout:15000 });
+  await expect(splash).toBeHidden({ timeout:5000 });
 }
 
 test('cupping actions stay one row in cancel-previous-next order with equal sizing', async ({ page }) => {
@@ -70,7 +72,6 @@ test('selected sensory tags use single activate, double remove and live-preview 
   const firstBox = await first.boundingBox();
   expect(firstBox).toBeTruthy();
 
-  // Long press the source tag itself; sorting must create ghost + placeholder without confusing the source locator.
   await page.mouse.move(firstBox.x + firstBox.width * 0.35, firstBox.y + firstBox.height / 2);
   await page.mouse.down();
   await page.waitForTimeout(410);
@@ -79,11 +80,12 @@ test('selected sensory tags use single activate, double remove and live-preview 
   await expect(first).toHaveCSS('visibility', 'hidden');
   const initialPreview = await list.getAttribute('data-lb-sort-preview');
 
-  // Placeholder activation changes flex geometry. Re-read the last tag's live box and move beyond its centre/right edge.
-  // sortable-controller then deterministically selects that tag with before=false, i.e. appends the source after it.
   const liveThirdBox = await third.boundingBox();
   expect(liveThirdBox).toBeTruthy();
-  await page.mouse.move(liveThirdBox.x + liveThirdBox.width + 10, liveThirdBox.y + liveThirdBox.height / 2, { steps:10 });
+  await page.mouse.move(
+    liveThirdBox.x + liveThirdBox.width / 2 + Math.min(4, liveThirdBox.width * 0.1),
+    liveThirdBox.y + liveThirdBox.height / 2
+  );
   await page.waitForTimeout(50);
   const movedPreview = await list.getAttribute('data-lb-sort-preview');
   expect(movedPreview).not.toBe(initialPreview);
