@@ -18,7 +18,11 @@ jobs:
           ref: main
           fetch-depth: 1
       - name: Apply canonical bean group migration
-        run: python scripts/one-shot-canonical-group-refactor.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/one-shot-canonical-group-refactor.py
+          sed -i 's/beanGroupState\.groupKey: () => beanGroupState\.groupKey/activeGroup: () => beanGroupState.groupKey/' src/bean-groups-controller.js
       - name: Validate migrated JavaScript
         shell: bash
         run: |
