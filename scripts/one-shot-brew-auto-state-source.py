@@ -11,12 +11,12 @@ def replace_once(source: str, old: str, new: str, label: str) -> str:
     return source.replace(old, new, 1)
 
 
-dose_old = '''brew-dose-button${settings.doseMode!=='manual'?' model-recommended':' custom-selected'}" type="button"'''
-dose_new = '''brew-dose-button${settings.doseMode!=='manual'?' model-recommended lb-auto-field':' custom-selected'}"${settings.doseMode!=='manual'?' data-source="auto"':''} type="button"'''
+dose_old = "brew-dose-button${settings.doseMode!=='manual'?' model-recommended':' custom-selected'}"
+dose_new = "brew-dose-button${settings.doseMode!=='manual'?' model-recommended lb-auto-field':' custom-selected'}${settings.doseMode!=='manual'?'\" data-source=\"auto':''}"
 text = replace_once(text, dose_old, dose_new, 'dose automatic state')
 
-ratio_old = '''brew-large-control${settings.ratioMode!=='manual'?' model-recommended':' custom-selected'}">'''
-ratio_new = '''brew-large-control${settings.ratioMode!=='manual'?' model-recommended lb-auto-field':' custom-selected'}"${settings.ratioMode!=='manual'?' data-source="auto"':''}>'''
+ratio_old = "brew-large-control${settings.ratioMode!=='manual'?' model-recommended':' custom-selected'}"
+ratio_new = "brew-large-control${settings.ratioMode!=='manual'?' model-recommended lb-auto-field':' custom-selected'}${settings.ratioMode!=='manual'?'\" data-source=\"auto':''}"
 text = replace_once(text, ratio_old, ratio_new, 'ratio automatic state')
 
 path.write_text(text, encoding='utf-8')
