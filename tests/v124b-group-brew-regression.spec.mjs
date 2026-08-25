@@ -2,6 +2,13 @@ import { test, expect } from '@playwright/test';
 
 const BASE_URL='http://127.0.0.1:4173';
 
+async function waitForStartup(page){
+  const splash=page.locator('#splashScreen');
+  if(await splash.isVisible().catch(()=>false))await splash.click();
+  await expect(page.locator('#appShell')).toBeVisible({timeout:15000});
+  await page.waitForFunction(()=>document.documentElement.dataset.startup==='ready');
+}
+
 async function refreshFrom(page,source){
   await page.evaluate(async source=>{
     await new Promise(resolve=>{
@@ -16,15 +23,21 @@ async function refreshFrom(page,source){
   },source);
 }
 
+async function dispatchBack(page){
+  return page.evaluate(()=>{
+    const event=new CustomEvent('luckybean:navigation-back',{cancelable:true});
+    document.dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+}
+
 test.beforeEach(async({page})=>{
   await page.addInitScript(()=>{
     localStorage.setItem('luckybean.onboarding.v2',JSON.stringify({stage:'existing-user',updatedAt:new Date().toISOString(),reason:'group-brew-regression'}));
   });
   await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/,route=>route.abort('failed'));
   await page.goto(`${BASE_URL}/?v124b-group-brew-regression=1`,{waitUntil:'domcontentloaded'});
-  await page.locator('#splashScreen').click();
-  await expect(page.locator('#appShell')).toBeVisible({timeout:15000});
-  await page.waitForFunction(()=>document.documentElement.dataset.startup==='ready');
+  await waitForStartup(page);
 
   await page.evaluate(async()=>{
     const db=await import('/src/db.js');
@@ -36,15 +49,17 @@ test.beforeEach(async({page})=>{
       varietyCode:index%2?'BOURBON':'GESHA',
       processCode:index%2?'NA':'WA',
       roastCode:index%2?'RL-L2':'RL-L1',
-      roastDate:'2026-08-10',
+      roastDate:index<3?'2026-08-23':index<6?'2026-08-10':'2026-07-20',
       initialWeight:100,
-      remainingWeight:90,
+      remainingWeight:20+index*32,
       archived:false,
       source:'manual',
       createdAt:now,
       updatedAt:now
     }));
     await db.bulkPut('beans',beans);
+    await db.setSetting('v099i.group.mode','native');
+    await db.setSetting('v099f.group.mode','native');
   });
   await refreshFrom(page,'v124b-group-brew-regression-seed');
 });
@@ -61,29 +76,75 @@ async function chooseGroupMethod(page,method){
   await expect(page.locator('#beanGroups [data-open-group]').first()).toBeVisible();
 }
 
-async function openFirstGroup(page){
+async function openFirstNativeGroup(page){
   await page.locator('#beanGroups [data-open-group]').first().click();
   await expect(page.locator('#beanGroups [data-active-group-panel]')).toBeVisible();
   await expect(page.locator('#beanGroups [data-close-bean-group]')).toHaveCount(1);
 }
 
-test('country variety roast and process folders share the same close behavior',async({page})=>{
+async function setSpecialMode(page,mode){
+  await page.evaluate(async mode=>{
+    const db=await import('/src/db.js');
+    await db.setSetting('v099i.group.mode',mode);
+    await db.setSetting('v099f.group.mode','native');
+  },mode);
+  await page.reload({waitUntil:'domcontentloaded'});
+  await waitForStartup(page);
+  await expect(page.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible({timeout:15000});
+}
+
+async function openFirstSpecialGroup(page){
+  await page.locator('#beanGroups [data-v099t-open-group]').first().click();
+  await expect(page.locator('#beanGroups [data-v099t-group-root].active-group-panel')).toBeVisible();
+  await expect(page.locator('#beanGroups [data-close-bean-group]')).toHaveCount(1);
+}
+
+test('country variety roast and process folders use one canonical close action',async({page})=>{
   await expect(page.locator('#beanGroups .preference-board-strip')).toHaveCount(0);
   await expect(page.locator('#beanGroups [data-open-recommend-board]')).toHaveCount(0);
 
   for(const method of ['country','variety','roast','process']){
     await chooseGroupMethod(page,method);
-    await openFirstGroup(page);
+    await openFirstNativeGroup(page);
 
-    // Re-tapping bottom 藏 closes the folder before ordinary page navigation continues.
+    // 底部“藏”仅是长列表的备用关闭入口。
     await page.locator('[data-page-target="beans"]').last().click();
     await expect(page.locator('#beanGroups [data-active-group-panel]')).toHaveCount(0);
     await expect(page.locator('#beanGroups [data-open-group]').first()).toBeVisible();
 
-    // The large transparent space below the opened folder is also a real close target.
-    await openFirstGroup(page);
+    // 分组内容末尾的专用自然留白是主关闭入口。
+    await openFirstNativeGroup(page);
     await page.locator('#beanGroups [data-close-bean-group]').click({position:{x:10,y:10}});
     await expect(page.locator('#beanGroups [data-active-group-panel]')).toHaveCount(0);
+
+    // 系统 Back 同样只关闭当前分组，页面仍停留在豆藏。
+    await openFirstNativeGroup(page);
+    expect(await dispatchBack(page)).toBe(true);
+    await expect(page.locator('#beanGroups [data-active-group-panel]')).toHaveCount(0);
+    await expect(page.locator('#pageBeans')).toHaveClass(/active/);
+    await expect(page.locator('#beanGroups [data-open-group]').first()).toBeVisible();
+  }
+});
+
+test('freshness and remaining groups keep their renderer while sharing canonical state',async({page})=>{
+  for(const mode of ['freshness-ratio','remaining-50']){
+    await setSpecialMode(page,mode);
+
+    await openFirstSpecialGroup(page);
+    await page.locator('#beanGroups [data-close-bean-group]').click({position:{x:10,y:10}});
+    await expect(page.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible();
+    await expect(page.locator('#beanGroups [data-open-group]')).toHaveCount(0);
+
+    await openFirstSpecialGroup(page);
+    await page.locator('[data-page-target="beans"]').last().click();
+    await expect(page.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible();
+    await expect(page.locator('#beanGroups [data-open-group]')).toHaveCount(0);
+
+    await openFirstSpecialGroup(page);
+    expect(await dispatchBack(page)).toBe(true);
+    await expect(page.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible();
+    await expect(page.locator('#beanGroups [data-open-group]')).toHaveCount(0);
+    await expect(page.locator('#pageBeans')).toHaveClass(/active/);
   }
 });
 
