@@ -26,8 +26,7 @@ if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
         min-height: 0 !important;
       }
 
-      /* Removed summary modules must never flash before mutation cleanup. */
-      .preference-board-strip,
+      /* The compact leaderboard remains part of 豆藏; only obsolete helper copy is hidden. */
       .bean-consumption-summary > small {
         display: none !important;
       }
@@ -152,7 +151,6 @@ if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
   }
 
   function simplifyBeanSummary(root = document) {
-    root.querySelectorAll('.preference-board-strip').forEach(node => node.remove());
     root.querySelectorAll('.bean-consumption-summary > small').forEach(node => {
       if (node.textContent.includes('咖啡因按阿拉比卡约12mg/g豆保守估算')) node.remove();
     });
