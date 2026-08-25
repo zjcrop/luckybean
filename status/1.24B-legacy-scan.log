@@ -2,8 +2,8 @@
 # Matches are evidence only; legacy compatibility references may be intentional.
 tests/v123e-cloud-gear-sync.mjs:15:assert.deepEqual(normalizeGearRows('[object Object],[object Object]', 'grinder'), [], 'corrupted 1.23D/early-1.23E grinder placeholders must be ignored safely');
 tests/v123e-cloud-gear-sync.mjs:25:console.log('LuckyBean 1.23E gear cloud-sync compatibility checks passed');
-tests/v120-requirements-static.mjs:46:  'luckybean-main-v123e-',
-tests/v120-requirements-static.mjs:47:  'luckybean-main-v123d-',
+tests/v120-requirements-static.mjs:48:  'luckybean-main-v123e-',
+tests/v120-requirements-static.mjs:49:  'luckybean-main-v123d-',
 tests/v123e-gear-matching-regression.mjs:24:assert.ok(Number(versionCodeMatch[1]) > 102314, `upgrade versionCode must exceed prior release 102314, got ${versionCodeMatch[1]}`);
 tests/v123e-interaction-repair-static.mjs:22:assert.ok(Number(versionCodeMatch[1]) > 102314, `upgrade versionCode must exceed 102314, got ${versionCodeMatch[1]}`);
 tests/v127-user-regressions-ui.spec.mjs:7:  await page.goto(`${BASE_URL}/?v123e-regressions=1`, { waitUntil: 'domcontentloaded' });
