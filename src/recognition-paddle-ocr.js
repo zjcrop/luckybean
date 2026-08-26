@@ -1,6 +1,7 @@
 const VERSION = '0.4.2';
 const SDK_URL = `https://cdn.jsdelivr.net/npm/@paddleocr/paddleocr-js@${VERSION}/+esm`;
-const ORT_WASM = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/';
+const SDK_DIST_URL = `https://cdn.jsdelivr.net/npm/@paddleocr/paddleocr-js@${VERSION}/dist/index.mjs`;
+const ORT_WASM = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/';
 const ENGINE = `PP-OCRv5-browser-${VERSION}`;
 const LOW_MEMORY = Number(navigator.deviceMemory || 4) <= 4 || /iPhone|iPad|iPod/i.test(navigator.userAgent);
 const LIMIT_SIDE = LOW_MEMORY ? 736 : 960;
@@ -8,6 +9,7 @@ const ENGINE_INIT_TIMEOUT_MS = 75000;
 const PREDICT_TIMEOUT_MS = 45000;
 
 let modulePromise = null;
+let workerAssetPromise = null;
 let enginePromise = null;
 let engineGeneration = 0;
 let busy = false;
@@ -50,13 +52,46 @@ async function loadModule() {
   return modulePromise;
 }
 
+async function resolveWorkerAssetUrl() {
+  if (!workerAssetPromise) {
+    workerAssetPromise = fetch(SDK_DIST_URL, { cache: 'force-cache', mode: 'cors' })
+      .then(async response => {
+        if (!response.ok) throw new Error(`Worker 清单 HTTP ${response.status}`);
+        const source = await response.text();
+        const match = source.match(/["'](\.\/assets\/worker-entry-[^"']+\.js)["']/);
+        if (!match?.[1]) throw new Error('未找到 PP-OCRv5 Worker bundle 路径');
+        return new URL(match[1], SDK_DIST_URL).href;
+      })
+      .catch(error => {
+        workerAssetPromise = null;
+        throw new Error(`PP-OCRv5 Worker 资源解析失败：${error.message}`);
+      });
+  }
+  return workerAssetPromise;
+}
+
+function createModuleWorker(workerAssetUrl) {
+  const bootstrap = `import ${JSON.stringify(workerAssetUrl)};`;
+  const bootstrapUrl = URL.createObjectURL(new Blob([bootstrap], { type: 'text/javascript' }));
+  let worker;
+  try {
+    worker = new Worker(bootstrapUrl, { type: 'module', name: 'luckybean-ppocr-v5' });
+  } catch (error) {
+    URL.revokeObjectURL(bootstrapUrl);
+    throw error;
+  }
+  // The worker owns its imported module after startup; keep the blob URL only long enough to bootstrap.
+  globalThis.setTimeout(() => URL.revokeObjectURL(bootstrapUrl), 10000);
+  return worker;
+}
+
 async function createWorkerEngine() {
-  const module = await loadModule();
+  const [module, workerAssetUrl] = await Promise.all([loadModule(), resolveWorkerAssetUrl()]);
   if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');
   return module.PaddleOCR.create({
     lang: 'ch',
     ocrVersion: 'PP-OCRv5',
-    worker: true,
+    worker: { createWorker: () => createModuleWorker(workerAssetUrl) },
     textDetectionBatchSize: 1,
     textRecognitionBatchSize: 1,
     ortOptions: {
@@ -242,6 +277,7 @@ globalThis.LuckyBeanPaddleOCR = {
   engine: ENGINE,
   lowMemory: LOW_MEMORY,
   workerOnly: true,
+  workerBootstrap: 'blob-module-from-pinned-dist',
   recognizeCoffeeBag(images) {
     return run(() => predict(images));
   },
