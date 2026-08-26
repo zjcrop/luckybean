@@ -8,7 +8,9 @@ const [paddle, bridge, runtime, capture] = await Promise.all([
   readFile(new URL('../src/package-capture-controller.js', import.meta.url), 'utf8')
 ]);
 
-assert.match(paddle, /worker:\s*true/, 'PP-OCR must run in a dedicated Worker');
+assert.match(paddle, /worker:\s*\{\s*createWorker:/, 'PP-OCR must use an explicit dedicated Worker factory');
+assert.match(paddle, /new Worker\(bootstrapUrl,\s*\{\s*type:\s*'module'/, 'cross-origin Paddle worker bundle must be bootstrapped through a module Blob worker');
+assert.match(paddle, /worker-entry-/, 'worker bundle path must come from the pinned official distribution');
 assert.doesNotMatch(paddle, /worker:\s*false/, 'PP-OCR must never fall back to direct main-thread mode');
 assert.doesNotMatch(paddle, /createEngine\(false\)/, 'legacy main-thread Paddle fallback must stay removed');
 assert.match(paddle, /workerOnly:\s*true/, 'provider must advertise the Worker-only safety contract');
