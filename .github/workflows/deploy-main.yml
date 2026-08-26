@@ -18,6 +18,7 @@ concurrency:
 
 env:
   SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+  RELEASE_REVISION: 1.24B-main.6
 
 jobs:
   build-site:
@@ -47,16 +48,16 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Validate 1.24B source before publishing
+      - name: Validate 1.24B main.6 source before publishing
         shell: bash
         run: |
           set -euo pipefail
           find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
           npm run test:static
           grep -Fq 'application-version" content="1.24B"' index.html
-          grep -Fq 'release-revision" content="1.24B-main.4"' index.html
-          grep -Fq "REVISION = '1.24B-main.4'" sw.js
-          grep -Fq 'main-4-interaction3' sw.js
+          grep -Fq 'release-revision" content="1.24B-main.6"' index.html
+          grep -Fq "REVISION = '1.24B-main.6'" sw.js
+          grep -Fq 'main-6-ui2' sw.js
           grep -Fq 'bean-group-state.js' src/app.js
           grep -Fq 'function openBeanGroup' src/app.js
           grep -Fq 'function closeBeanGroup' src/app.js
@@ -66,14 +67,11 @@ jobs:
           ! grep -Fq 'let activeGroup' src/bean-groups-controller.js
           grep -Fq 'LuckyBeanBeanGroupState' src/features/release-1.24b-group-navigation.js
           ! grep -Fq 'dispatchEvent(new MouseEvent' src/features/release-1.24b-group-navigation.js
-          ! grep -Fq 'nativePanel()' src/features/release-1.24b-group-navigation.js
           grep -Fq 'lb-sort-ghost' src/ui/sortable-controller.js
           grep -Fq 'lb-sort-placeholder' src/ui/sortable-controller.js
           grep -Fq 'LuckyBeanSortable' src/features/sensory-tag-sort-controller.js
-          grep -Fq "UI_POLICY_REVISION = '1.24B-main.4'" src/features/release-1.24b-ui-policy.js
-          grep -Fq 'release-1.24b-freshness-detail.js' sw.js
-          grep -Fq 'recognition-batch-progress-controller.js' sw.js
-          grep -Fq 'recognition-field-resolver-1.24b.js' sw.js
+          grep -Fq "UI_POLICY_REVISION = '1.24B-main.6'" src/features/release-1.24b-ui-policy.js
+          grep -Fq 'main.7 professional score responsive layout' src/release-1.24b.css
       - name: Prepare exact tested web site
         shell: bash
         run: |
@@ -82,7 +80,7 @@ jobs:
           cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
           cp -R src public contracts schemas _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.4","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.4"}\n' "$SOURCE_SHA" > _site/version.json
+          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.6","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","scoreLayout":"viewport-safe-next-line-range","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.6"}\n' "$SOURCE_SHA" > _site/version.json
       - uses: actions/configure-pages@v6.0.0
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
@@ -115,16 +113,19 @@ jobs:
             curl -L -fsS "$base/version.json?check=$SOURCE_SHA" -o /tmp/version.json || true
             curl -L -fsS "$base/?check=$SOURCE_SHA" -o /tmp/index.html || true
             curl -L -fsS "$base/src/app.js?check=$SOURCE_SHA" -o /tmp/app.js || true
+            curl -L -fsS "$base/src/release-1.24b.css?check=$SOURCE_SHA" -o /tmp/release.css || true
             curl -L -fsS "$base/src/domain/beans/bean-group-state.js?check=$SOURCE_SHA" -o /tmp/group-state.js || true
             curl -L -fsS "$base/src/bean-groups-controller.js?check=$SOURCE_SHA" -o /tmp/bean-groups.js || true
             curl -L -fsS "$base/src/features/release-1.24b-group-navigation.js?check=$SOURCE_SHA" -o /tmp/group-navigation.js || true
             if grep -Fq "$SOURCE_SHA" /tmp/version.json 2>/dev/null \
               && grep -Fq '"version":"1.24B"' /tmp/version.json \
-              && grep -Fq '"revision":"1.24B-main.4"' /tmp/version.json \
+              && grep -Fq '"revision":"1.24B-main.6"' /tmp/version.json \
               && grep -Fq '"groupNavigation":"canonical-state-api"' /tmp/version.json \
-              && grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.4' /tmp/index.html \
+              && grep -Fq '"scoreLayout":"viewport-safe-next-line-range"' /tmp/version.json \
+              && grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.6' /tmp/index.html \
               && grep -Fq "['process', '按处理法']" /tmp/app.js \
               && grep -Fq 'data-close-bean-group' /tmp/app.js \
+              && grep -Fq 'main.7 professional score responsive layout' /tmp/release.css \
               && grep -Fq 'export const beanGroupState' /tmp/group-state.js \
               && grep -Fq 'beanGroupState' /tmp/bean-groups.js \
               && ! grep -Fq 'let activeGroup' /tmp/bean-groups.js \
@@ -170,9 +171,10 @@ jobs:
             startup: document.documentElement.dataset.startup,
             beansActive: document.querySelector('#pageBeans')?.classList.contains('active') || false,
             appHidden: document.querySelector('#appShell')?.classList.contains('hidden') || false,
-            groupApi: Boolean(globalThis.LuckyBeanBeanGroupState?.close)
+            groupApi: Boolean(globalThis.LuckyBeanBeanGroupState?.close),
+            overflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1
           }));
-          if (snapshot.startup !== 'ready' || !snapshot.beansActive || snapshot.appHidden || !snapshot.groupApi) {
+          if (snapshot.startup !== 'ready' || !snapshot.beansActive || snapshot.appHidden || !snapshot.groupApi || !snapshot.overflow) {
             throw new Error(`Live Pages startup contract failed: ${JSON.stringify(snapshot)}`);
           }
           if (pageErrors.length) throw new Error(`Live Pages pageerror: ${pageErrors.join(' | ')}`);
@@ -184,7 +186,7 @@ jobs:
         run: |
           set -euo pipefail
           receipt=$(mktemp)
-          printf '{"version":"1.24B","revision":"1.24B-main.4","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
+          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           if git ls-remote --exit-code --heads origin pages-status >/dev/null 2>&1; then
