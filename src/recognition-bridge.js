@@ -171,7 +171,7 @@ function newBatch(images) {
     status: 'processing',
     currentTask: 0,
     totalTasks: images.length,
-    queueConcurrency: 1,
+    queueConcurrency:1,
     tasks: images.map((image, index) => ({
       taskId: `IMG-${String(index + 1).padStart(3, '0')}`,
       order: index + 1,
@@ -193,7 +193,7 @@ export async function recognizeCoffeeBag(images, options = {}) {
   let engine = '';
   const batch = newBatch(images);
   safeStoreBatch(batch);
-  for (let index = 0; index < images.length; index += 1) {
+  for (let index=0; index<images.length; index+=1) {
     const image = images[index];
     const task = batch.tasks[index];
     batch.currentTask = index + 1;
@@ -206,14 +206,14 @@ export async function recognizeCoffeeBag(images, options = {}) {
       task.engine = engine;
       task.blocks = blocks;
       task.text = blocks.map(block => block.text).join('\n') || cleanText(result?.fullText);
-      task.status = 'completed';
+      task.status='completed';
       allBlocks.push(...blocks);
       perImage.push({ imageId: image.id, engine, blocks, fullText: task.text });
       safeStoreBatch(batch);
     } catch (error) {
       task.status = 'failed';
       task.error = String(error?.message || error);
-      batch.status = 'paused';
+      batch.status='paused';
       safeStoreBatch(batch);
       throw error;
     }
@@ -227,7 +227,7 @@ export async function recognizeCoffeeBag(images, options = {}) {
     fullText: perImage.map(item => item.fullText).filter(Boolean).join('\n\n'),
     results: perImage,
     serial: true,
-    queueConcurrency: 1,
+    queueConcurrency:1,
     batch
   };
 }
