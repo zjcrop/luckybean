@@ -1,15 +1,17 @@
 const VERSION = '0.4.2';
-const SDK_URL = `https://cdn.jsdelivr.net/npm/@paddleocr/paddleocr-js@${VERSION}/+esm`;
-const SDK_DIST_URL = `https://cdn.jsdelivr.net/npm/@paddleocr/paddleocr-js@${VERSION}/dist/index.mjs`;
-const ORT_WASM = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/';
-const ENGINE = `PP-OCRv5-browser-${VERSION}`;
+const RUNTIME_BASE = new URL('../public/vendor/paddleocr/', import.meta.url);
+const SDK_URL = new URL('sdk.mjs', RUNTIME_BASE).href;
+const WORKER_URL = new URL('worker.js', RUNTIME_BASE).href;
+const ORT_WASM = new URL('ort/', RUNTIME_BASE).href;
+const DET_MODEL = new URL('models/PP-OCRv5_mobile_det_onnx_infer.tar', RUNTIME_BASE).href;
+const REC_MODEL = new URL('models/PP-OCRv5_mobile_rec_onnx_infer.tar', RUNTIME_BASE).href;
+const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;
 const LOW_MEMORY = Number(navigator.deviceMemory || 4) <= 4 || /iPhone|iPad|iPod/i.test(navigator.userAgent);
 const LIMIT_SIDE = LOW_MEMORY ? 736 : 960;
 const ENGINE_INIT_TIMEOUT_MS = 75000;
 const PREDICT_TIMEOUT_MS = 45000;
 
 let modulePromise = null;
-let workerAssetPromise = null;
 let enginePromise = null;
 let engineGeneration = 0;
 let busy = false;
@@ -43,55 +45,34 @@ function withTimeout(promise, timeoutMs, message, onTimeout) {
 
 async function loadModule() {
   if (!modulePromise) {
-    emit('正在加载 PP-OCRv5 官方网页 SDK', 2);
+    emit('正在加载本地 PP-OCRv5 网页运行时', 2);
     modulePromise = import(SDK_URL).catch(error => {
       modulePromise = null;
-      throw new Error(`PP-OCRv5 SDK 加载失败：${error.message}`);
+      throw new Error(`本地 PP-OCRv5 SDK 加载失败：${error.message}`);
     });
   }
   return modulePromise;
 }
 
-async function resolveWorkerAssetUrl() {
-  if (!workerAssetPromise) {
-    workerAssetPromise = fetch(SDK_DIST_URL, { cache: 'force-cache', mode: 'cors' })
-      .then(async response => {
-        if (!response.ok) throw new Error(`Worker 清单 HTTP ${response.status}`);
-        const source = await response.text();
-        const match = source.match(/["'](\.\/assets\/worker-entry-[^"']+\.js)["']/);
-        if (!match?.[1]) throw new Error('未找到 PP-OCRv5 Worker bundle 路径');
-        return new URL(match[1], SDK_DIST_URL).href;
-      })
-      .catch(error => {
-        workerAssetPromise = null;
-        throw new Error(`PP-OCRv5 Worker 资源解析失败：${error.message}`);
-      });
-  }
-  return workerAssetPromise;
-}
-
-function createModuleWorker(workerAssetUrl) {
-  const bootstrap = `import ${JSON.stringify(workerAssetUrl)};`;
-  const bootstrapUrl = URL.createObjectURL(new Blob([bootstrap], { type: 'text/javascript' }));
-  let worker;
+function createModuleWorker() {
   try {
-    worker = new Worker(bootstrapUrl, { type: 'module', name: 'luckybean-ppocr-v5' });
+    return new Worker(WORKER_URL, { type: 'module', name: 'luckybean-ppocr-v5' });
   } catch (error) {
-    URL.revokeObjectURL(bootstrapUrl);
-    throw error;
+    throw new Error(`本地 PP-OCRv5 Worker 创建失败：${error.message}`);
   }
-  // The worker owns its imported module after startup; keep the blob URL only long enough to bootstrap.
-  globalThis.setTimeout(() => URL.revokeObjectURL(bootstrapUrl), 10000);
-  return worker;
 }
 
 async function createWorkerEngine() {
-  const [module, workerAssetUrl] = await Promise.all([loadModule(), resolveWorkerAssetUrl()]);
+  const module = await loadModule();
   if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');
   return module.PaddleOCR.create({
     lang: 'ch',
     ocrVersion: 'PP-OCRv5',
-    worker: { createWorker: () => createModuleWorker(workerAssetUrl) },
+    textDetectionModelName: 'PP-OCRv5_mobile_det',
+    textDetectionModelAsset: { url: DET_MODEL },
+    textRecognitionModelName: 'PP-OCRv5_mobile_rec',
+    textRecognitionModelAsset: { url: REC_MODEL },
+    worker: { createWorker: () => createModuleWorker() },
     textDetectionBatchSize: 1,
     textRecognitionBatchSize: 1,
     ortOptions: {
@@ -143,7 +124,7 @@ async function startWorkerEngine() {
 async function ensureEngine() {
   globalThis.clearTimeout(disposeTimer);
   if (enginePromise) return enginePromise;
-  emit('正在后台准备 PP-OCRv5 中文检测与识别模型', 7);
+  emit('正在后台准备本地 PP-OCRv5 中文检测与识别模型', 7);
   const pending = startWorkerEngine();
   const tracked = pending.then(ocr => {
     emit('PP-OCRv5 Worker 中文模型已就绪', 18);
@@ -277,7 +258,8 @@ globalThis.LuckyBeanPaddleOCR = {
   engine: ENGINE,
   lowMemory: LOW_MEMORY,
   workerOnly: true,
-  workerBootstrap: 'blob-module-from-pinned-dist',
+  runtimeOrigin: 'same-origin-vendored',
+  workerBootstrap: 'same-origin-vendored-module',
   recognizeCoffeeBag(images) {
     return run(() => predict(images));
   },
@@ -295,5 +277,5 @@ document.addEventListener('visibilitychange', () => {
 globalThis.addEventListener('pagehide', () => {
   if (!busy) void dispose();
 });
-document.documentElement.dataset.webOcr = `ppocr-v5-${VERSION}-worker-only`;
+document.documentElement.dataset.webOcr = `ppocr-v5-${VERSION}-self-hosted-worker-only`;
 schedulePreload();
