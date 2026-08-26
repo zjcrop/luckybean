@@ -25,6 +25,9 @@ assert.match(app,/toast\(prompt \|\| `已选：\$\{beanDisplayName\(selected\)\}
 
 assert.match(index,/release-1\.24b-group-navigation\.js\?v=1\.24B-main\.9-immediate/);
 assert.doesNotMatch(index,/release-1\.24b-group-navigation\.js\?v=1\.24B-main\.7-prompt/);
+assert.match(index,/data-recommendation-prompt-revision="1\.24B-main\.9-immediate"/);
+assert.match(index,/body\[data-recommendation-prompt-revision\] #toast\.toast\.recommendation\{display:none!important\}/);
+assert.doesNotMatch(index,/#toast\.toast\.status-(?:good|warn|bad)[^{]*\{[^}]*display:none/);
 assert.match(guard,/RECOMMENDATION_PROMPT_REVISION='1\.24B-main\.9-immediate'/);
 assert.match(guard,/lbRecommendationToast/);
 assert.match(guard,/function showRecommendationPromptForMode\(mode\)/);
@@ -41,4 +44,4 @@ assert.match(deploy,/recommendationPrompt\":\"main\.9-immediate/);
 assert.match(deploy,/Live recommendation prompt visibility failed/);
 assert.match(deploy,/promptRevision !== '1\.24B-main\.9-immediate'/);
 
-console.log('LuckyBean recommendation prompt contract passed: original five prompt libraries are immediate, visible, cache-busted, live-gated, isolated, and selection algorithms remain untouched');
+console.log('LuckyBean recommendation prompt contract passed: original five prompt libraries are immediate and visible, duplicate legacy recommendation toast is suppressed, ordinary status toasts remain available, and selection algorithms remain untouched');
