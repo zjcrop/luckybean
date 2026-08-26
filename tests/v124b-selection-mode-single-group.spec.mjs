@@ -82,10 +82,12 @@ test.beforeEach(async({page})=>{
   await refreshFrom(page,'selection-group-unification-seed');
 });
 
-test('selection colors are semantic and theme independent',async({page})=>{
+test('selection colors are semantic and theme dependent only where contrast requires it',async({page})=>{
   await page.locator('#fabRecommendBtn').click();
-  await expect(page.locator('[data-recommend-mode="price"] .recommend-dot')).toHaveCSS('background-color','rgb(0, 0, 0)');
+  await expect(page.locator('[data-recommend-mode="price"] .recommend-dot')).toHaveCSS('background-color','rgb(255, 255, 255)');
   await expect(page.locator('[data-recommend-mode="remaining"] .recommend-dot')).toHaveCSS('background-color','rgb(128, 128, 128)');
+  await page.evaluate(()=>document.documentElement.dataset.theme='light');
+  await expect(page.locator('[data-recommend-mode="price"] .recommend-dot')).toHaveCSS('background-color','rgb(0, 0, 0)');
 });
 
 test('selection fun prompt stays visible when an ordinary status notice arrives',async({page})=>{

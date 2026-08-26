@@ -3,6 +3,7 @@ let syncQueued=false;
 let recommendationPromptObserver=null;
 let recommendationHideTimer=null;
 let recommendationCleanupTimer=null;
+let recommendationCaptureTimer=null;
 
 function injectStyle(){
   if($('#lb124bInteractionFixStyle'))return;
@@ -14,7 +15,8 @@ function injectStyle(){
     :where(.popup-menu,.recommend-menu,.popup-menu button,.recommend-menu button,#brewContent button,#brewContent select,#brewContent option,#brewContent input,.dialog select,.dialog option){font-family:DengXian,"Microsoft YaHei UI","Noto Sans CJK SC","Noto Sans SC","PingFang SC",system-ui,sans-serif!important;font-synthesis:none;}
     .popup-menu,.recommend-menu{transform-origin:top center;animation:lbMenuEnter 145ms cubic-bezier(.2,.8,.2,1) both;}
     .recommend-menu [data-recommend-mode="remaining"] .recommend-dot{background:#808080!important;}
-    .recommend-menu [data-recommend-mode="price"] .recommend-dot{background:#000!important;}
+    .recommend-menu [data-recommend-mode="price"] .recommend-dot{background:#fff!important;}
+    html[data-theme="light"] .recommend-menu [data-recommend-mode="price"] .recommend-dot{background:#000!important;}
     @keyframes lbMenuEnter{from{opacity:0;transform:translateY(-4px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
     #lbRecommendationToast{z-index:121;}
     html[data-theme="light"] #lbRecommendationToast.toast.recommendation{background:#e8d7ad!important;color:#111!important;}
@@ -54,9 +56,9 @@ function ensureRecommendationToast(){
   return node;
 }
 function showRecommendationPrompt(message){
-  const text=String(message||'').trim();if(!text)return;
+  const text=String(message||'').trim();if(!text)return false;
   const node=ensureRecommendationToast();
-  if(node.dataset.lbPrompt===text&&node.classList.contains('show'))return;
+  if(node.dataset.lbPrompt===text&&node.classList.contains('show'))return true;
   clearTimeout(recommendationHideTimer);clearTimeout(recommendationCleanupTimer);
   node.dataset.lbPrompt=text;
   node.textContent=text;
@@ -71,11 +73,22 @@ function showRecommendationPrompt(message){
     node.textContent='';
     delete node.dataset.lbPrompt;
   },7000);
+  return true;
 }
 function mirrorRecommendationPrompt(){
   const source=$('#toast');
-  if(!source?.classList.contains('recommendation'))return;
-  showRecommendationPrompt(source.textContent||'');
+  if(!source?.classList.contains('recommendation'))return false;
+  return showRecommendationPrompt(source.textContent||'');
+}
+function captureRecommendationPromptWindow(){
+  clearInterval(recommendationCaptureTimer);
+  const started=performance.now();
+  const tick=()=>{
+    mirrorRecommendationPrompt();
+    if(performance.now()-started>=9000){clearInterval(recommendationCaptureTimer);recommendationCaptureTimer=null;}
+  };
+  tick();
+  recommendationCaptureTimer=setInterval(tick,40);
 }
 function installRecommendationPromptGuard(){
   const source=$('#toast');
@@ -87,6 +100,7 @@ function installRecommendationPromptGuard(){
 function syncUi(){syncQueued=false;injectStyle();installRecommendationPromptGuard();removeLeaderboard();normalizeBrewUi();}
 function queueSync(){if(syncQueued)return;syncQueued=true;requestAnimationFrame(syncUi);}
 document.addEventListener('luckybean:navigation-back',event=>{const api=globalThis.LuckyBeanBeanGroupState;if(api?.hasActiveGroup?.()&&api.close?.())event.preventDefault?.();});
+document.addEventListener('click',event=>{if(event.target?.closest?.('[data-recommend-mode]'))captureRecommendationPromptWindow();},true);
 ['luckybean:data-changed','luckybean:app-refreshed','luckybean:local-app-ready','luckybean:brew-profile-catalog-updated','luckybean:bean-group-opened','luckybean:bean-group-closed'].forEach(type=>document.addEventListener(type,queueSync));
 document.addEventListener('change',event=>{if(event.target?.closest?.('#brewContent'))queueSync();},{capture:true});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',queueSync,{once:true});else queueSync();
