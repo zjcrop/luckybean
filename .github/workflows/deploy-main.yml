@@ -81,7 +81,10 @@ jobs:
           grep -Fq 'startup-controller.js?v=1.24B-main.8-prompt' index.html
           grep -Fq "APP_MODULE_REVISION = '1.24B-main.8-prompt'" src/core/startup-controller.js
           grep -Fq 'app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}' src/core/startup-controller.js
-          grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.7-prompt' index.html
+          grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.9-immediate' index.html
+          grep -Fq "RECOMMENDATION_PROMPT_REVISION='1.24B-main.9-immediate'" src/features/release-1.24b-group-navigation.js
+          grep -Fq 'showRecommendationPromptForMode(trigger.dataset.recommendMode)' src/features/release-1.24b-group-navigation.js
+          grep -Fq 'z-index:10060!important' src/features/release-1.24b-group-navigation.js
           grep -Fq 'beanGroupState' src/bean-groups-controller.js
           ! grep -Fq 'let activeGroup' src/bean-groups-controller.js
           grep -Fq 'LuckyBeanBeanGroupState' src/features/release-1.24b-group-navigation.js
@@ -99,7 +102,7 @@ jobs:
           cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
           cp -R src public contracts schemas _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.6","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","recommendationPrompt":"main.7-prompt","appModuleRevision":"1.24B-main.8-prompt","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","scoreLayout":"viewport-safe-next-line-range","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.6"}\n' "$SOURCE_SHA" > _site/version.json
+          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.6","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","recommendationPrompt":"main.9-immediate","appModuleRevision":"1.24B-main.8-prompt","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","scoreLayout":"viewport-safe-next-line-range","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.6"}\n' "$SOURCE_SHA" > _site/version.json
       - uses: actions/configure-pages@v6.0.0
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
@@ -141,11 +144,11 @@ jobs:
               && grep -Fq '"version":"1.24B"' /tmp/version.json \
               && grep -Fq '"revision":"1.24B-main.6"' /tmp/version.json \
               && grep -Fq '"groupNavigation":"canonical-state-api"' /tmp/version.json \
-              && grep -Fq '"recommendationPrompt":"main.7-prompt"' /tmp/version.json \
+              && grep -Fq '"recommendationPrompt":"main.9-immediate"' /tmp/version.json \
               && grep -Fq '"appModuleRevision":"1.24B-main.8-prompt"' /tmp/version.json \
               && grep -Fq '"scoreLayout":"viewport-safe-next-line-range"' /tmp/version.json \
               && grep -Fq 'startup-controller.js?v=1.24B-main.8-prompt' /tmp/index.html \
-              && grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.7-prompt' /tmp/index.html \
+              && grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.9-immediate' /tmp/index.html \
               && grep -Fq "APP_MODULE_REVISION = '1.24B-main.8-prompt'" /tmp/startup.js \
               && grep -Fq 'app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}' /tmp/startup.js \
               && grep -Fq 'const RECOMMENDATION_PROMPTS' /tmp/app.js \
@@ -156,9 +159,12 @@ jobs:
               && grep -Fq 'export const beanGroupState' /tmp/group-state.js \
               && grep -Fq 'beanGroupState' /tmp/bean-groups.js \
               && ! grep -Fq 'let activeGroup' /tmp/bean-groups.js \
+              && grep -Fq "RECOMMENDATION_PROMPT_REVISION='1.24B-main.9-immediate'" /tmp/group-navigation.js \
+              && grep -Fq 'showRecommendationPromptForMode(trigger.dataset.recommendMode)' /tmp/group-navigation.js \
+              && grep -Fq 'z-index:10060!important' /tmp/group-navigation.js \
               && grep -Fq 'LuckyBeanBeanGroupState' /tmp/group-navigation.js \
               && ! grep -Fq 'dispatchEvent(new MouseEvent' /tmp/group-navigation.js; then
-              echo "LuckyBean Pages serves fresh app module $SOURCE_SHA with recommendation prompt library"
+              echo "LuckyBean Pages serves immediate recommendation prompt runtime $SOURCE_SHA"
               break
             fi
             if [ "$attempt" = 30 ]; then
@@ -181,6 +187,12 @@ jobs:
           node --input-type=module <<'NODE'
           import { chromium } from '@playwright/test';
           const sha = process.env.SOURCE_SHA;
+          const expectedFreshnessPrompts = [
+            '此只风味精绝，君既选中，甚是妥当。',
+            '正逢此只风味最盛，您这一选，再好不过。',
+            '此只正值风味精妙处，既已选定，便是良配。',
+            '此只正得意时，恰被君眼相中，眼光不差。'
+          ];
           const browser = await chromium.launch({ headless: true });
           const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
           await context.addInitScript(() => {
@@ -199,14 +211,76 @@ jobs:
             beansActive: document.querySelector('#pageBeans')?.classList.contains('active') || false,
             appHidden: document.querySelector('#appShell')?.classList.contains('hidden') || false,
             groupApi: Boolean(globalThis.LuckyBeanBeanGroupState?.close),
+            promptRevision: globalThis.LuckyBean124BGroupNavigation?.revision || '',
             overflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1
           }));
-          if (snapshot.startup !== 'ready' || !snapshot.beansActive || snapshot.appHidden || !snapshot.groupApi || !snapshot.overflow) {
+          if (snapshot.startup !== 'ready' || !snapshot.beansActive || snapshot.appHidden || !snapshot.groupApi || snapshot.promptRevision !== '1.24B-main.9-immediate' || !snapshot.overflow) {
             throw new Error(`Live Pages startup contract failed: ${JSON.stringify(snapshot)}`);
+          }
+
+          await page.evaluate(async () => {
+            const db = await import('./src/db.js');
+            const now = new Date().toISOString();
+            const beans = [0,1,2].map(index => ({
+              id:`pages-prompt-${index}`,
+              name:`线上提示验收豆${index+1}`,
+              countryCode:index ? 'CO' : 'ET',
+              varietyCode:index ? 'BOURBON' : 'GESHA',
+              processCode:index ? 'NA' : 'WA',
+              roastCode:index ? 'RL-L2' : 'RL-L1',
+              roastDate:'2026-08-23',
+              price:80+index*30,
+              initialWeight:100,
+              remainingWeight:30+index*20,
+              archived:false,
+              source:'manual',
+              createdAt:now,
+              updatedAt:now
+            }));
+            await db.bulkPut('beans', beans);
+            await new Promise(resolve => {
+              const source='pages-live-prompt-seed';
+              const done=event=>{
+                if(event.detail?.source!==source)return;
+                document.removeEventListener('luckybean:app-refreshed',done);
+                resolve();
+              };
+              document.addEventListener('luckybean:app-refreshed',done);
+              document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh',{detail:{source}}));
+              setTimeout(resolve,3000);
+            });
+          });
+
+          await page.locator('#fabRecommendBtn').click();
+          const freshness = page.locator('[data-recommend-mode="freshness"]');
+          await freshness.waitFor({ state:'visible', timeout:3000 });
+          await freshness.click();
+          const prompt = page.locator('#lbRecommendationToast');
+          await prompt.waitFor({ state:'visible', timeout:1000 });
+          const promptResult = await prompt.evaluate(node => {
+            const rect=node.getBoundingClientRect();
+            const style=getComputedStyle(node);
+            return {
+              text:(node.textContent||'').trim(),
+              revision:node.dataset.lbPromptRevision||'',
+              show:node.classList.contains('show'),
+              opacity:Number(style.opacity),
+              width:rect.width,
+              height:rect.height,
+              left:rect.left,
+              right:rect.right,
+              top:rect.top,
+              bottom:rect.bottom,
+              viewportWidth:innerWidth,
+              viewportHeight:innerHeight
+            };
+          });
+          if (!expectedFreshnessPrompts.includes(promptResult.text) || promptResult.revision !== '1.24B-main.9-immediate' || !promptResult.show || promptResult.opacity < 0.9 || promptResult.width < 80 || promptResult.height < 20 || promptResult.left < 0 || promptResult.right > promptResult.viewportWidth + 1 || promptResult.top < 0 || promptResult.bottom > promptResult.viewportHeight + 1) {
+            throw new Error(`Live recommendation prompt visibility failed: ${JSON.stringify(promptResult)}`);
           }
           if (pageErrors.length) throw new Error(`Live Pages pageerror: ${pageErrors.join(' | ')}`);
           await browser.close();
-          console.log(`Live Pages browser smoke passed for ${sha}`);
+          console.log(`Live Pages prompt click smoke passed for ${sha}: ${promptResult.text}`);
           NODE
       - name: Write verifiable Pages receipt
         if: ${{ github.event_name != 'push' }}
@@ -214,7 +288,7 @@ jobs:
         run: |
           set -euo pipefail
           receipt=$(mktemp)
-          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","recommendation_prompt":"main.7-prompt","app_module_revision":"1.24B-main.8-prompt","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
+          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","recommendation_prompt":"main.9-immediate","app_module_revision":"1.24B-main.8-prompt","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
           git config user.name github-actions[bot]
           git config user.email 41898282+zjcrop@users.noreply.github.com
           if git ls-remote --exit-code --heads origin pages-status >/dev/null 2>&1; then
