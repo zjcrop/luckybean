@@ -4,776 +4,295 @@
 
 
 [static] tests/v110-local-first-sync-static.mjs
-LuckyBean 1.24B main.4 local-first, interaction3 cache isolation and current BrewProfiles contract checks passed
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
 
-[static] tests/v120-core-contracts-static.mjs
-v1.2 core analysis, completed history, provider, spatial and environment-dialog contracts passed
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /await ensureLocalDevice\(\)[\s\S]*await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`\)/. Input:
 
-[static] tests/v120-requirements-static.mjs
-LuckyBean 1.24B single server account, mandatory sync, interaction3 cache, shared sorting and all-profile checks passed
+"import { get, put } from '../db.js';\n" +
+  '\n' +
+  "const DEVICE_RECORD_ID = 'cloud.device.id.v3';\n" +
+  'const SPLASH_READY_TIMEOUT_MS = 12000;\n' +
+  `const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.3';\n` +
+  "const APP_MODULE_REVISION = '1.24B-main.8-prompt';\n" +
+  'let enterRequested = false;\n' +
+  'let shellReady = false;\n' +
+  '\n' +
+  "const splash = () => document.querySelector('#splashScreen');\n" +
+  "const statusNode = () => document.querySelector('#splashStatus');\n" +
+  '\n' +
+  'function setStatus(message) {\n' +
+  '  const node = statusNode();\n' +
+  '  if (node) node.textContent = message;\n' +
+  '}\n' +
+  '\n' +
+  'function isMobileBrowser() {\n' +
+  '  if (globalThis.__LUCKYBEAN_ANDROID__) return false;\n' +
+  "  const ua = navigator.userAgent || '';\n" +
+  '  const touch = Number(navigator.maxTouchPoints || 0) > 0;\n' +
+  "  const coarse = globalThis.matchMedia?.('(pointer: coarse)')?.matches === true;\n" +
+  '  const mobileUa = /Android|iPhone|iPad|iPod|Mobile|HarmonyOS/i.test(ua);\n' +
+  '  const compactViewport = Math.min(globalThis.innerWidth || 9999, globalThis.screen?.width || 9999) <= 1024;\n' +
+  '  return touch && coarse && (mobileUa || compactViewport);\n' +
+  '}\n' +
+  '\n' +
+  'function requestMobileFullscreenFromGesture() {\n' +
+  '  if (!isMobileBrowser() || document.fullscreenElement) return;\n' +
+  '  const target = document.documentElement;\n' +
+  '  const request = target.requestFullscreen || target.webkitRequestFullscreen;\n' +
+  '  try {\n' +
+  "    const result = request?.call(target, { navigationUI: 'hide' });\n" +
+  '    result?.catch?.(() => {});\n' +
+  '  } catch { /* 浏览器不支持时正常降级 */ }\n' +
+  '}\n' +
+  '\n' +
+  'async function deviceId() {\n' +
+  "  const existing = await get('syncMetadata', DEVICE_RECORD_ID).catch(() => null);\n" +
+  '  if (existing?.value) return existing.value;\n' +
+  '  const value = crypto.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;\n' +
+  "  await put('syncMetadata', { id: DEVICE_RECORD_ID, value, createdAt: new Date().toISOString() });\n" +
+  '  return value;\n' +
+  '}\n' +
+  '\n' +
+  'async function ensureLocalDevice() { return deviceId(); }\n' +
+  '\n' +
+  'function dismissSplash() {\n' +
+  '  const node = splash();\n' +
+  "  if (!node || node.classList.contains('hidden')) return;\n" +
+  '  if (!shellReady) {\n' +
+  '    enterRequested = true;\n' +
+  "    setStatus('正在准备本地数据…');\n" +
+  '    return;\n' +
+  '  }\n' +
+  "  node.classList.add('splash-leave');\n" +
+  "  setTimeout(() => node.classList.add('hidden'), 520);\n" +
+  '}\n' +
+  '\n' +
+  'function enterFromUserGesture() {\n' +
+  '  requestMobileFullscreenFromGesture();\n' +
+  '  dismissSplash();\n' +
+  '}\n' +
+  '\n' +
+  'function bindEarlyEntry() {\n' +
+  '  const node = splash();\n' +
+  "  if (!node || node.dataset.startupBound === '1') return;\n" +
+  "  node.dataset.startupBound = '1';\n" +
+  '  node.tabIndex = 0;\n' +
+  "  node.setAttribute('role', 'button');\n" +
+  "  node.setAttribute('aria-label', '点击进入富贵盒子');\n" +
+  "  node.addEventListener('click', enterFromUserGesture);\n" +
+  "  node.addEventListener('keydown', event => {\n" +
+  "    if (event.key === 'Enter' || event.key === ' ') {\n" +
+  '      event.preventDefault();\n' +
+  '      enterFromUserGesture();\n' +
+  '    }\n' +
+  '  });\n' +
+  '}\n' +
+  '\n' +
+  'function watchForShell() {\n' +
+  '  const startedAt = performance.now();\n' +
+  '  const check = () => {\n' +
+  "    const shell = document.querySelector('#appShell');\n" +
+  "    shellReady = Boolean(shell && !shell.classList.contains('hidden'));\n" +
+  '    if (shellReady) {\n' +
+  "      document.documentElement.dataset.startup = 'ready';\n" +
+  "      setStatus('点击进入');\n" +
+  "      document.dispatchEvent(new CustomEvent('luckybean:local-app-ready'));\n" +
+  '      if (enterRequested) dismissSplash();\n' +
+  '      return;\n' +
+  '    }\n' +
+  '    if (performance.now() - startedAt < SPLASH_READY_TIMEOUT_MS) requestAnimationFrame(check);\n' +
+  "    else setStatus('本地初始化未完成，请重新打开应用');\n" +
+  '  };\n' +
+  '  requestAnimationFrame(check);\n' +
+  '}\n' +
+  '\n' +
+  'function bindStatusEvents() {\n' +
+  "  document.addEventListener('luckybean:cloud-auth-state', event => {\n" +
+  '    if (shellReady) return;\n' +
+  '    const state = event.detail?.state;\n' +
+  "    if (state === 'connecting') setStatus('正在连接云端…');\n" +
+  "    if (state === 'authenticated') setStatus('云端已连接，正在准备本地数据…');\n" +
+  "    if (['offline', 'signed-out', 'expired', 'reauth-required'].includes(state)) setStatus('正在准备本地数据…');\n" +
+  '  });\n' +
+  "  document.addEventListener('luckybean:cloud-data-restored', () => {\n" +
+  '    const node = splash();\n' +
+  "    document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail: { source: 'cloud-data-restored' } }));\n" +
+  "    if (node && !node.classList.contains('hidden')) {\n" +
+  "      setStatus('云端数据已更新，正在刷新本地视图…');\n" +
+  "      document.addEventListener('luckybean:app-refreshed', () => { setStatus('点击进入'); if (enterRequested) dismissSplash(); }, { once: true });\n" +
+  '    }\n' +
+  '  });\n' +
+  '}\n' +
+  '\n' +
+  "if ('serviceWorker' in navigator) {\n" +
+  "  navigator.serviceWorker.register(`./sw.js?v=${encodeURIComponent(RELEASE_REVISION)}`, { updateViaCache: 'none' }).catch(() => {});\n" +
+  '}\n' +
+  '\n' +
+  "document.documentElement.dataset.startup = 'booting';\n" +
+  'bindEarlyEntry();\n' +
+  'bindStatusEvents();\n' +
+  "setStatus('正在准备本地数据…');\n" +
+  '\n' +
+  'try {\n' +
+  '  await ensureLocalDevice();\n' +
+  "  document.dispatchEvent(new CustomEvent('luckybean:local-bootstrap-ready'));\n" +
+  '  await import(`../app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}`);\n' +
+  "  document.dispatchEvent(new CustomEvent('luckybean:app-module-loaded', { detail: { appModuleRevision: APP_MODULE_REVISION } }));\n" +
+  '  watchForShell();\n' +
+  '} catch (error) {\n' +
+  "  console.error('本地应用启动失败', error);\n" +
+  "  document.documentElement.dataset.startup = 'failed';\n" +
+  "  setStatus(`本地程序加载失败：${error?.message || '未知错误'}`);\n" +
+  '}\n'
 
-[static] tests/v122-cloud-sync-safety.mjs
-v1.23D cloud union baseline and deletion propagation checks passed
+    at file:///home/runner/work/luckybean/luckybean/tests/v110-local-first-sync-static.mjs:44:8
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: "import { get, put } from '../db.js';\n" +
+    '\n' +
+    "const DEVICE_RECORD_ID = 'cloud.device.id.v3';\n" +
+    'const SPLASH_READY_TIMEOUT_MS = 12000;\n' +
+    `const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.3';\n` +
+    "const APP_MODULE_REVISION = '1.24B-main.8-prompt';\n" +
+    'let enterRequested = false;\n' +
+    'let shellReady = false;\n' +
+    '\n' +
+    "const splash = () => document.querySelector('#splashScreen');\n" +
+    "const statusNode = () => document.querySelector('#splashStatus');\n" +
+    '\n' +
+    'function setStatus(message) {\n' +
+    '  const node = statusNode();\n' +
+    '  if (node) node.textContent = message;\n' +
+    '}\n' +
+    '\n' +
+    'function isMobileBrowser() {\n' +
+    '  if (globalThis.__LUCKYBEAN_ANDROID__) return false;\n' +
+    "  const ua = navigator.userAgent || '';\n" +
+    '  const touch = Number(navigator.maxTouchPoints || 0) > 0;\n' +
+    "  const coarse = globalThis.matchMedia?.('(pointer: coarse)')?.matches === true;\n" +
+    '  const mobileUa = /Android|iPhone|iPad|iPod|Mobile|HarmonyOS/i.test(ua);\n' +
+    '  const compactViewport = Math.min(globalThis.innerWidth || 9999, globalThis.screen?.width || 9999) <= 1024;\n' +
+    '  return touch && coarse && (mobileUa || compactViewport);\n' +
+    '}\n' +
+    '\n' +
+    'function requestMobileFullscreenFromGesture() {\n' +
+    '  if (!isMobileBrowser() || document.fullscreenElement) return;\n' +
+    '  const target = document.documentElement;\n' +
+    '  const request = target.requestFullscreen || target.webkitRequestFullscreen;\n' +
+    '  try {\n' +
+    "    const result = request?.call(target, { navigationUI: 'hide' });\n" +
+    '    result?.catch?.(() => {});\n' +
+    '  } catch { /* 浏览器不支持时正常降级 */ }\n' +
+    '}\n' +
+    '\n' +
+    'async function deviceId() {\n' +
+    "  const existing = await get('syncMetadata', DEVICE_RECORD_ID).catch(() => null);\n" +
+    '  if (existing?.value) return existing.value;\n' +
+    '  const value = crypto.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;\n' +
+    "  await put('syncMetadata', { id: DEVICE_RECORD_ID, value, createdAt: new Date().toISOString() });\n" +
+    '  return value;\n' +
+    '}\n' +
+    '\n' +
+    'async function ensureLocalDevice() { return deviceId(); }\n' +
+    '\n' +
+    'function dismissSplash() {\n' +
+    '  const node = splash();\n' +
+    "  if (!node || node.classList.contains('hidden')) return;\n" +
+    '  if (!shellReady) {\n' +
+    '    enterRequested = true;\n' +
+    "    setStatus('正在准备本地数据…');\n" +
+    '    return;\n' +
+    '  }\n' +
+    "  node.classList.add('splash-leave');\n" +
+    "  setTimeout(() => node.classList.add('hidden'), 520);\n" +
+    '}\n' +
+    '\n' +
+    'function enterFromUserGesture() {\n' +
+    '  requestMobileFullscreenFromGesture();\n' +
+    '  dismissSplash();\n' +
+    '}\n' +
+    '\n' +
+    'function bindEarlyEntry() {\n' +
+    '  const node = splash();\n' +
+    "  if (!node || node.dataset.startupBound === '1') return;\n" +
+    "  node.dataset.startupBound = '1';\n" +
+    '  node.tabIndex = 0;\n' +
+    "  node.setAttribute('role', 'button');\n" +
+    "  node.setAttribute('aria-label', '点击进入富贵盒子');\n" +
+    "  node.addEventListener('click', enterFromUserGesture);\n" +
+    "  node.addEventListener('keydown', event => {\n" +
+    "    if (event.key === 'Enter' || event.key === ' ') {\n" +
+    '      event.preventDefault();\n' +
+    '      enterFromUserGesture();\n' +
+    '    }\n' +
+    '  });\n' +
+    '}\n' +
+    '\n' +
+    'function watchForShell() {\n' +
+    '  const startedAt = performance.now();\n' +
+    '  const check = () => {\n' +
+    "    const shell = document.querySelector('#appShell');\n" +
+    "    shellReady = Boolean(shell && !shell.classList.contains('hidden'));\n" +
+    '    if (shellReady) {\n' +
+    "      document.documentElement.dataset.startup = 'ready';\n" +
+    "      setStatus('点击进入');\n" +
+    "      document.dispatchEvent(new CustomEvent('luckybean:local-app-ready'));\n" +
+    '      if (enterRequested) dismissSplash();\n' +
+    '      return;\n' +
+    '    }\n' +
+    '    if (performance.now() - startedAt < SPLASH_READY_TIMEOUT_MS) requestAnimationFrame(check);\n' +
+    "    else setStatus('本地初始化未完成，请重新打开应用');\n" +
+    '  };\n' +
+    '  requestAnimationFrame(check);\n' +
+    '}\n' +
+    '\n' +
+    'function bindStatusEvents() {\n' +
+    "  document.addEventListener('luckybean:cloud-auth-state', event => {\n" +
+    '    if (shellReady) return;\n' +
+    '    const state = event.detail?.state;\n' +
+    "    if (state === 'connecting') setStatus('正在连接云端…');\n" +
+    "    if (state === 'authenticated') setStatus('云端已连接，正在准备本地数据…');\n" +
+    "    if (['offline', 'signed-out', 'expired', 'reauth-required'].includes(state)) setStatus('正在准备本地数据…');\n" +
+    '  });\n' +
+    "  document.addEventListener('luckybean:cloud-data-restored', () => {\n" +
+    '    const node = splash();\n' +
+    "    document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail: { source: 'cloud-data-restored' } }));\n" +
+    "    if (node && !node.classList.contains('hidden')) {\n" +
+    "      setStatus('云端数据已更新，正在刷新本地视图…');\n" +
+    "      document.addEventListener('luckybean:app-refreshed', () => { setStatus('点击进入'); if (enterRequested) dismissSplash(); }, { once: true });\n" +
+    '    }\n' +
+    '  });\n' +
+    '}\n' +
+    '\n' +
+    "if ('serviceWorker' in navigator) {\n" +
+    "  navigator.serviceWorker.register(`./sw.js?v=${encodeURIComponent(RELEASE_REVISION)}`, { updateViaCache: 'none' }).catch(() => {});\n" +
+    '}\n' +
+    '\n' +
+    "document.documentElement.dataset.startup = 'booting';\n" +
+    'bindEarlyEntry();\n' +
+    'bindStatusEvents();\n' +
+    "setStatus('正在准备本地数据…');\n" +
+    '\n' +
+    'try {\n' +
+    '  await ensureLocalDevice();\n' +
+    "  document.dispatchEvent(new CustomEvent('luckybean:local-bootstrap-ready'));\n" +
+    '  await import(`../app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}`);\n' +
+    "  document.dispatchEvent(new CustomEvent('luckybean:app-module-loaded', { detail: { appModuleRevision: APP_MODULE_REVISION } }));\n" +
+    '  watchForShell();\n' +
+    '} catch (error) {\n' +
+    "  console.error('本地应用启动失败', error);\n" +
+    "  document.documentElement.dataset.startup = 'failed';\n" +
+    "  setStatus(`本地程序加载失败：${error?.message || '未知错误'}`);\n" +
+    '}\n',
+  expected: /await ensureLocalDevice\(\)[\s\S]*await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`\)/,
+  operator: 'match',
+  diff: 'simple'
+}
 
-[static] tests/v123-brewprofiles-integration.mjs
-TAP version 13
-# Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
-ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
-  ---
-  duration_ms: 5.465335
-  type: 'test'
-  ...
-# Subtest: catalog is authoritative, cached, and includes all six competition profiles
-ok 2 - catalog is authoritative, cached, and includes all six competition profiles
-  ---
-  duration_ms: 2.220204
-  type: 'test'
-  ...
-# Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
-ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
-  ---
-  duration_ms: 2.469376
-  type: 'test'
-  ...
-# Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
-ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
-  ---
-  duration_ms: 1.877332
-  type: 'test'
-  ...
-# Subtest: client rejects empty or incomplete target geometry
-ok 5 - client rejects empty or incomplete target geometry
-  ---
-  duration_ms: 0.794602
-  type: 'test'
-  ...
-# Subtest: new plan generation never converts an API failure into a fake successful 3D scene
-ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
-  ---
-  duration_ms: 2.677575
-  type: 'test'
-  ...
-# Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
-ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
-  ---
-  duration_ms: 0.840157
-  type: 'test'
-  ...
-1..7
-# tests 7
-# suites 0
-# pass 7
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 22.166803
-
-[static] tests/v123d-main-parity.mjs
-TAP version 13
-# Subtest: all pages use the same red seal slot geometry
-ok 1 - all pages use the same red seal slot geometry
-  ---
-  duration_ms: 5.920745
-  type: 'test'
-  ...
-# Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
-ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
-  ---
-  duration_ms: 3.66715
-  type: 'test'
-  ...
-# Subtest: about section contains the shipped illustration
-ok 3 - about section contains the shipped illustration
-  ---
-  duration_ms: 3.576863
-  type: 'test'
-  ...
-# Subtest: settings data collection owns coffee world and preference profile
-ok 4 - settings data collection owns coffee world and preference profile
-  ---
-  duration_ms: 2.819459
-  type: 'test'
-  ...
-# Subtest: bean page shows inventory and health digest above its leaderboard
-ok 5 - bean page shows inventory and health digest above its leaderboard
-  ---
-  duration_ms: 2.271628
-  type: 'test'
-  ...
-# Subtest: cloud panel exposes status and both recovery actions
-ok 6 - cloud panel exposes status and both recovery actions
-  ---
-  duration_ms: 1.074604
-  type: 'test'
-  ...
-1..6
-# tests 6
-# suites 0
-# pass 6
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 25.464233
-
-[static] tests/v124-stable-data-format.mjs
-Stable cross-project brew data is version-independent and uses the fixed six-target contract.
-
-[static] tests/v125-root-state-models.mjs
-v1.2.5 independent sensory state machines and LuckyBean 1.24B Android package contracts passed
-
-[static] tests/v123d-deployment-contracts.mjs
-LuckyBean 1.24B 1.24B-main.6 gated Pages, signed Android, canonical bean group state, shared sorting, text brew UI, serial OCR, lifecycle, frozen freshness and BrewProfiles contracts passed
-
-[static] tests/v123d-ui-sensory-regressions.mjs
-LuckyBean 1.24B canonical settings and sensory regression contracts passed
-
-[static] tests/v123e-batch-onboarding-static.mjs
-LuckyBean canonical bean lifecycle, long-press onboarding, matching and spatial-preservation checks passed
-
-[static] tests/v126-full-integration-static.mjs
-v126 canonical full integration static checks passed
-
-[static] tests/v127-user-regressions-static.mjs
-v127 canonical cooling/gear ownership and 1.24B Android image pipeline static checks passed
-
-[static] tests/v123e-cloud-gear-sync.mjs
-LuckyBean 1.23E gear cloud-sync compatibility checks passed
-
-[static] tests/v123e-plan-contract-regression.mjs
-Verified LuckyBean plan and brew-history validators accept BrewProfiles 2.0/2.1 and spatial 1.1/1.2/1.3 while rejecting unknown plan contracts.
-
-[static] tests/v123e-freshness-timeline-regression.mjs
-LuckyBean 1.24B immediate one-line freshness timeline and stage grouping checks passed
-
-[static] tests/v123e-interaction-repair-static.mjs
-LuckyBean 1.24B canonical QR, bean matching, gear, flavor taxonomy, user-guide and interaction3 release checks passed
-
-[static] tests/v123e-gear-matching-regression.mjs
-LuckyBean 1.24B canonical gear binding, direct bean matching, QR runtime and upgrade release checks passed
-
-[static] tests/v123e-android-gallery-uri-regression.mjs
-LuckyBean Android gallery URI routing regression checks passed
-
-[static] tests/v123e-small-brew-five-row-regression.mjs
-LuckyBean 1.24B compact small-brew, automatic-field and Android upgrade contract passed
-
-[static] tests/v123e-ui-stability-static.mjs
-LuckyBean 1.24B 1.24B-main.6 canonical UI stability, shared bean-group state, shared sorting and text brew UI regression checks passed
-
-[static] tests/v123e-navigation-back-static.mjs
-LuckyBean canonical page stack, overlay back, Android gesture back and compact bean metadata contracts passed
-
-[static] tests/v123e-brew-optimization-regression.mjs
-post-tasting optimization, deterministic spatial trend and release-signature guards passed
-
-[static] tests/v123e-recognition-pipeline-static.mjs
-Recognition document is the single translated and structured bean-entry source
-
-[static] tests/v124b-lifecycle-ocr-storage-regression.mjs
-LuckyBean 1.24B lifecycle, serial OCR, transit/frozen storage, order parsing and local brew regression checks passed
-
-[static] tests/v124b-ocr-worker-freeze-regression.mjs
-LuckyBean 1.24B browser OCR is Worker-only, prewarmed, timeout-bounded, and has no automatic Tesseract/main-thread fallback
-
-[static] tests/v124b-final-release-contract.mjs
-LuckyBean 1.24B main.4 final release contract with gated web-first deployment, canonical bean group state, shared sorting and text brew UI passed
-
-[static] tests/v124b-complete-plan-contract.mjs
-LuckyBean 1.24B main.4 complete modification-plan contract with canonical bean groups, gated Pages, shared sorting and text brew UI passed
-
-[static] tests/v124b-ui-policy-regression.mjs
-LuckyBean 1.24B single-owner bean group state, hidden preference leaderboard policy, shared live-preview sorting, text brew UI and Web/Android parity contracts passed
-
-[static] tests/v124b-recommendation-prompt-regression.mjs
-LuckyBean recommendation prompt guard passed: five prompt libraries preserved and UI isolation does not alter selection logic
-
-[static] npm run test:recognition
-
-> luckybean-static-app@1.24.2 test:recognition
-> node --test test/*.test.js
-
-TAP version 13
-# Subtest: sums every bean remaining weight and counts authoritative consumption events once
-ok 1 - sums every bean remaining weight and counts authoritative consumption events once
-  ---
-  duration_ms: 3.07914
-  type: 'test'
-  ...
-# Subtest: restored mistaken brew is removed from today total
-ok 2 - restored mistaken brew is removed from today total
-  ---
-  duration_ms: 0.382604
-  type: 'test'
-  ...
-# Subtest: warns when latest completed consumption is within the configured sleep buffer
-ok 3 - warns when latest completed consumption is within the configured sleep buffer
-  ---
-  duration_ms: 0.4661
-  type: 'test'
-  ...
-# Subtest: uses a higher caffeine estimate for robusta beans
-ok 4 - uses a higher caffeine estimate for robusta beans
-  ---
-  duration_ms: 1.495302
-  type: 'test'
-  ...
-# Subtest: brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
-ok 5 - brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
-  ---
-  duration_ms: 1.051935
-  type: 'test'
-  ...
-# Subtest: production analysis envelope adapts into a plan accepted by the page validator
-ok 6 - production analysis envelope adapts into a plan accepted by the page validator
-  ---
-  duration_ms: 0.998825
-  type: 'test'
-  ...
-# Subtest: unknown analysis contracts and unversioned legacy plans remain rejected
-ok 7 - unknown analysis contracts and unversioned legacy plans remain rejected
-  ---
-  duration_ms: 0.54036
-  type: 'test'
-  ...
-# Subtest: cold brew validates stage water against brew water and recipe total independently
-ok 8 - cold brew validates stage water against brew water and recipe total independently
-  ---
-  duration_ms: 0.340025
-  type: 'test'
-  ...
-# Subtest: 参数重算保留同一豆卡已经实际采用的方案
-ok 9 - 参数重算保留同一豆卡已经实际采用的方案
-  ---
-  duration_ms: 2.703258
-  type: 'test'
-  ...
-# Subtest: 不同豆卡或手动选择方案时不会沿用旧方案
-ok 10 - 不同豆卡或手动选择方案时不会沿用旧方案
-  ---
-  duration_ms: 1.339552
-  type: 'test'
-  ...
-# Subtest: 并发计算采用 latest-wins，旧结果不能覆盖新结果
-ok 11 - 并发计算采用 latest-wins，旧结果不能覆盖新结果
-  ---
-  duration_ms: 0.575845
-  type: 'test'
-  ...
-# Subtest: 总分低于预测分不会单独触发冲煮优化
-ok 12 - 总分低于预测分不会单独触发冲煮优化
-  ---
-  duration_ms: 2.797846
-  type: 'test'
-  ...
-# Subtest: 品鉴后的具体负面维度触发可解释优化
-ok 13 - 品鉴后的具体负面维度触发可解释优化
-  ---
-  duration_ms: 0.929365
-  type: 'test'
-  ...
-# Subtest: 雷达轴只比较同组平均且无完成冲煮时不提示优化
-ok 14 - 雷达轴只比较同组平均且无完成冲煮时不提示优化
-  ---
-  duration_ms: 1.396999
-  type: 'test'
-  ...
-# Subtest: 实际执行明显偏离方案时不把负面结果归因于方案
-ok 15 - 实际执行明显偏离方案时不把负面结果归因于方案
-  ---
-  duration_ms: 0.454098
-  type: 'test'
-  ...
-# Subtest: 个人靶区至少三次证据后才改变，标准靶区保持不变
-ok 16 - 个人靶区至少三次证据后才改变，标准靶区保持不变
-  ---
-  duration_ms: 1.262909
-  type: 'test'
-  ...
-# Subtest: accepts a catalog with balanced hot and cold auto-recommend profiles
-ok 17 - accepts a catalog with balanced hot and cold auto-recommend profiles
-  ---
-  duration_ms: 1.107428
-  type: 'test'
-  ...
-# Subtest: rejects a catalog whose declared profile count differs from the payload
-ok 18 - rejects a catalog whose declared profile count differs from the payload
-  ---
-  duration_ms: 0.178633
-  type: 'test'
-  ...
-# Subtest: rejects a cold profile whose recipe water does not equal brew water + ice + bypass
-ok 19 - rejects a cold profile whose recipe water does not equal brew water + ice + bypass
-  ---
-  duration_ms: 0.975682
-  type: 'test'
-  ...
-# Subtest: rejects catalogs that cannot auto-recommend in both hot and cold modes
-ok 20 - rejects catalogs that cannot auto-recommend in both hot and cold modes
-  ---
-  duration_ms: 0.202448
-  type: 'test'
-  ...
-# Subtest: archive round-trip preserves every portable store
-ok 21 - archive round-trip preserves every portable store
-  ---
-  duration_ms: 17.363277
-  type: 'test'
-  ...
-# Subtest: archive rejects tampered store data
-ok 22 - archive rejects tampered store data
-  ---
-  duration_ms: 3.285706
-  type: 'test'
-  ...
-# Subtest: legacy 1.2.x JSON backup migrates without inventing records
-ok 23 - legacy 1.2.x JSON backup migrates without inventing records
-  ---
-  duration_ms: 0.648891
-  type: 'test'
-  ...
-# Subtest: future schema cannot be imported
-ok 24 - future schema cannot be imported
-  ---
-  duration_ms: 6.922598
-  type: 'test'
-  ...
-# Subtest: production date never falls back to roast date
-ok 25 - production date never falls back to roast date
-  ---
-  duration_ms: 6.88041
-  type: 'test'
-  ...
-# Subtest: best before and expiry dates are excluded from roast date
-ok 26 - best before and expiry dates are excluded from roast date
-  ---
-  duration_ms: 7.538789
-  type: 'test'
-  ...
-# Subtest: explicit roast date is auto-filled while other dates remain excluded
-ok 27 - explicit roast date is auto-filled while other dates remain excluded
-  ---
-  duration_ms: 1.54201
-  type: 'test'
-  ...
-# Subtest: unlabelled date requires confirmation and is never silently filled
-ok 28 - unlabelled date requires confirmation and is never silently filled
-  ---
-  duration_ms: 0.737698
-  type: 'test'
-  ...
-# Subtest: date photo role increases provenance but does not bypass confirmation
-ok 29 - date photo role increases provenance but does not bypass confirmation
-  ---
-  duration_ms: 0.967256
-  type: 'test'
-  ...
-# Subtest: invalid calendar dates are rejected
-ok 30 - invalid calendar dates are rejected
-  ---
-  duration_ms: 1.602603
-  type: 'test'
-  ...
-# Subtest: 30-case date ownership golden set has zero silent non-roast assignments
-    # Subtest: 烘焙日期：2026-07-28
-    ok 1 - 烘焙日期：2026-07-28
-      ---
-      duration_ms: 7.845361
-      type: 'test'
-      ...
-    # Subtest: ROAST DATE 2026/07/28
-    ok 2 - ROAST DATE 2026/07/28
-      ---
-      duration_ms: 1.700045
-      type: 'test'
-      ...
-    # Subtest: ROASTED ON 2026.7.8
-    ok 3 - ROASTED ON 2026.7.8
-      ---
-      duration_ms: 0.330587
-      type: 'test'
-      ...
-    # Subtest: 焙炒日期 2026年7月28日
-    ok 4 - 焙炒日期 2026年7月28日
-      ---
-      duration_ms: 0.701703
-      type: 'test'
-      ...
-    # Subtest: RST DATE 20260728
-    ok 5 - RST DATE 20260728
-      ---
-      duration_ms: 0.553053
-      type: 'test'
-      ...
-    # Subtest: ROAST ON 28 JUL 2026
-    ok 6 - ROAST ON 28 JUL 2026
-      ---
-      duration_ms: 0.809873
-      type: 'test'
-      ...
-    # Subtest: ROAST DATE JUL 28 2026
-    ok 7 - ROAST DATE JUL 28 2026
-      ---
-      duration_ms: 1.337508
-      type: 'test'
-      ...
-    # Subtest: 出炉日期 26年7月28日
-    ok 8 - 出炉日期 26年7月28日
-      ---
-      duration_ms: 1.315226
-      type: 'test'
-      ...
-    # Subtest: 烘焙日 26-07-28
-    ok 9 - 烘焙日 26-07-28
-      ---
-      duration_ms: 1.291102
-      type: 'test'
-      ...
-    # Subtest: 烘烤日期 26.0728
-    ok 10 - 烘烤日期 26.0728
-      ---
-      duration_ms: 0.741826
-      type: 'test'
-      ...
-    # Subtest: 生产日期：2026-07-21
-    ok 11 - 生产日期：2026-07-21
-      ---
-      duration_ms: 0.57805
-      type: 'test'
-      ...
-    # Subtest: MFG DATE 2026/07/21
-    ok 12 - MFG DATE 2026/07/21
-      ---
-      duration_ms: 0.323354
-      type: 'test'
-      ...
-    # Subtest: MFD 20260721
-    ok 13 - MFD 20260721
-      ---
-      duration_ms: 0.314838
-      type: 'test'
-      ...
-    # Subtest: 包装日期 2026.07.22
-    ok 14 - 包装日期 2026.07.22
-      ---
-      duration_ms: 0.335236
-      type: 'test'
-      ...
-    # Subtest: PACKED ON 2026-07-22
-    ok 15 - PACKED ON 2026-07-22
-      ---
-      duration_ms: 3.619449
-      type: 'test'
-      ...
-    # Subtest: PKD 20260722
-    ok 16 - PKD 20260722
-      ---
-      duration_ms: 0.311171
-      type: 'test'
-      ...
-    # Subtest: 最佳赏味期 2026-10-28
-    ok 17 - 最佳赏味期 2026-10-28
-      ---
-      duration_ms: 0.381503
-      type: 'test'
-      ...
-    # Subtest: BEST BEFORE 2026/10/28
-    ok 18 - BEST BEFORE 2026/10/28
-      ---
-      duration_ms: 0.367106
-      type: 'test'
-      ...
-    # Subtest: BBE 28 OCT 2026
-    ok 19 - BBE 28 OCT 2026
-      ---
-      duration_ms: 0.406779
-      type: 'test'
-      ...
-    # Subtest: 有效期至 2027年1月5日
-    ok 20 - 有效期至 2027年1月5日
-      ---
-      duration_ms: 0.355724
-      type: 'test'
-      ...
-    # Subtest: EXP 2027-01-05
-    ok 21 - EXP 2027-01-05
-      ---
-      duration_ms: 0.318515
-      type: 'test'
-      ...
-    # Subtest: USE BY JAN 5 2027
-    ok 22 - USE BY JAN 5 2027
-      ---
-      duration_ms: 3.392014
-      type: 'test'
-      ...
-    # Subtest: 埃塞俄比亚 / 2026-07-28
-    ok 23 - 埃塞俄比亚 / 2026-07-28
-      ---
-      duration_ms: 1.209158
-      type: 'test'
-      ...
-    # Subtest: DATE 2026/07/28
-    ok 24 - DATE 2026/07/28
-      ---
-      duration_ms: 0.31587
-      type: 'test'
-      ...
-    # Subtest: LOT 20260728
-    ok 25 - LOT 20260728
-      ---
-      duration_ms: 0.310019
-      type: 'test'
-      ...
-    # Subtest: 2026年7月28日
-    ok 26 - 2026年7月28日
-      ---
-      duration_ms: 0.295712
-      type: 'test'
-      ...
-    # Subtest: 28/07/2026
-    ok 27 - 28/07/2026
-      ---
-      duration_ms: 0.641659
-      type: 'test'
-      ...
-    # Subtest: 07/08/2026
-    ok 28 - 07/08/2026
-      ---
-      duration_ms: 0.472362
-      type: 'test'
-      ...
-    # Subtest: ROAST DATE 07/08/2026
-    ok 29 - ROAST DATE 07/08/2026
-      ---
-      duration_ms: 0.435323
-      type: 'test'
-      ...
-    # Subtest: ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
-    ok 30 - ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
-      ---
-      duration_ms: 0.582958
-      type: 'test'
-      ...
-    1..30
-ok 31 - 30-case date ownership golden set has zero silent non-roast assignments
-  ---
-  duration_ms: 36.512552
-  type: 'test'
-  ...
-# Subtest: review model exposes automatic, excluded and unresolved candidates together
-ok 32 - review model exposes automatic, excluded and unresolved candidates together
-  ---
-  duration_ms: 7.384922
-  type: 'test'
-  ...
-# Subtest: unresolved candidate requires an explicit date assignment before confirmation
-ok 33 - unresolved candidate requires an explicit date assignment before confirmation
-  ---
-  duration_ms: 1.035604
-  type: 'test'
-  ...
-# Subtest: user confirmation retains source provenance instead of inventing confidence 1
-ok 34 - user confirmation retains source provenance instead of inventing confidence 1
-  ---
-  duration_ms: 0.966445
-  type: 'test'
-  ...
-# Subtest: two roast date selections are rejected
-ok 35 - two roast date selections are rejected
-  ---
-  duration_ms: 1.642508
-  type: 'test'
-  ...
-# Subtest: candidate value cannot be replaced with an unrecognized date
-ok 36 - candidate value cannot be replaced with an unrecognized date
-  ---
-  duration_ms: 0.407731
-  type: 'test'
-  ...
-# Subtest: stale or fabricated candidate id is rejected
-ok 37 - stale or fabricated candidate id is rejected
-  ---
-  duration_ms: 0.576506
-  type: 'test'
-  ...
-# Subtest: all candidates may be ignored without silently restoring automatic roast date
-ok 38 - all candidates may be ignored without silently restoring automatic roast date
-  ---
-  duration_ms: 0.698354
-  type: 'test'
-  ...
-# Subtest: ambiguous day-month candidate can only resolve to one offered value
-ok 39 - ambiguous day-month candidate can only resolve to one offered value
-  ---
-  duration_ms: 1.016768
-  type: 'test'
-  ...
-# Subtest: duplicate submission of the same candidate is rejected
-ok 40 - duplicate submission of the same candidate is rejected
-  ---
-  duration_ms: 0.570094
-  type: 'test'
-  ...
-# Subtest: numeric Ethiopian variety codes are split into independent exact candidates
-ok 41 - numeric Ethiopian variety codes are split into independent exact candidates
-  ---
-  duration_ms: 27.371132
-  type: 'test'
-  ...
-# Subtest: multiple labeled varieties stay unresolved instead of silently choosing the first code
-ok 42 - multiple labeled varieties stay unresolved instead of silently choosing the first code
-  ---
-  duration_ms: 15.402024
-  type: 'test'
-  ...
-# Subtest: spaced alphanumeric variety codes survive OCR tokenization
-ok 43 - spaced alphanumeric variety codes survive OCR tokenization
-  ---
-  duration_ms: 4.543105
-  type: 'test'
-  ...
-# Subtest: explicit numeric roast levels map only within the labeled 0-6 scale
-ok 44 - explicit numeric roast levels map only within the labeled 0-6 scale
-  ---
-  duration_ms: 0.969
-  type: 'test'
-  ...
-# Subtest: mixed label layouts preserve separate variety and roast evidence
-ok 45 - mixed label layouts preserve separate variety and roast evidence
-  ---
-  duration_ms: 2.092839
-  type: 'test'
-  ...
-# Subtest: equally exact codebook candidates remain a manual choice
-ok 46 - equally exact codebook candidates remain a manual choice
-  ---
-  duration_ms: 3.811278
-  type: 'test'
-  ...
-# Subtest: unsupported region evidence has no reliable candidates
-ok 47 - unsupported region evidence has no reliable candidates
-  ---
-  duration_ms: 2.785713
-  type: 'test'
-  ...
-# Subtest: recognition review UI contains only unresolved fields and disappears when none remain
-ok 48 - recognition review UI contains only unresolved fields and disappears when none remain
-  ---
-  duration_ms: 1.865554
-  type: 'test'
-  ...
-# Subtest: recognition provenance remains persisted for audit without becoming confirmed-field UI
-ok 49 - recognition provenance remains persisted for audit without becoming confirmed-field UI
-  ---
-  duration_ms: 0.317504
-  type: 'test'
-  ...
-# Subtest: confirmed roast date is still saved from the final form value
-ok 50 - confirmed roast date is still saved from the final form value
-  ---
-  duration_ms: 0.303096
-  type: 'test'
-  ...
-# Subtest: custom dropdown opens its editor after select change dispatch completes
-ok 51 - custom dropdown opens its editor after select change dispatch completes
-  ---
-  duration_ms: 0.206996
-  type: 'test'
-  ...
-# Subtest: reversed inline key-value keeps the semantic field association
-ok 52 - reversed inline key-value keeps the semantic field association
-  ---
-  duration_ms: 3.520465
-  type: 'test'
-  ...
-# Subtest: same-row value before label is paired by geometry and field semantics
-ok 53 - same-row value before label is paired by geometry and field semantics
-  ---
-  duration_ms: 1.245356
-  type: 'test'
-  ...
-# Subtest: vertical title and value are paired in either reading direction
-ok 54 - vertical title and value are paired in either reading direction
-  ---
-  duration_ms: 1.616819
-  type: 'test'
-  ...
-# Subtest: standalone unordered coffee entities remain available instead of being forced into unrelated fields
-ok 55 - standalone unordered coffee entities remain available instead of being forced into unrelated fields
-  ---
-  duration_ms: 1.093603
-  type: 'test'
-  ...
-# Subtest: range hyphen is preserved as value content rather than treated as a field separator
-ok 56 - range hyphen is preserved as value content rather than treated as a field separator
-  ---
-  duration_ms: 0.883109
-  type: 'test'
-  ...
-# Subtest: English labels and coffee values become Chinese canonical bean fields
-ok 57 - English labels and coffee values become Chinese canonical bean fields
-  ---
-  duration_ms: 22.11996
-  type: 'test'
-  ...
-# Subtest: unknown proper names are preserved and explicitly marked for review
-ok 58 - unknown proper names are preserved and explicitly marked for review
-  ---
-  duration_ms: 11.784679
-  type: 'test'
-  ...
-# Subtest: explicit numeric fields are parsed while unrelated numbers stay isolated
-ok 59 - explicit numeric fields are parsed while unrelated numbers stay isolated
-  ---
-  duration_ms: 10.340071
-  type: 'test'
-  ...
-# Subtest: Chinese, reverse-labelled and vertical fields share one canonical pipeline
-ok 60 - Chinese, reverse-labelled and vertical fields share one canonical pipeline
-  ---
-  duration_ms: 7.612016
-  type: 'test'
-  ...
-# Subtest: main.6 bean detail does not expose roast code and pairs process with roast date
-ok 61 - main.6 bean detail does not expose roast code and pairs process with roast date
-  ---
-  duration_ms: 1.074817
-  type: 'test'
-  ...
-# Subtest: main.6 floating quadrant, radar labels and sensory footer obey theme/layout contract
-ok 62 - main.6 floating quadrant, radar labels and sensory footer obey theme/layout contract
-  ---
-  duration_ms: 0.451594
-  type: 'test'
-  ...
-# Subtest: main.6 preserves FAB visibility ownership and opens manual OCR editor explicitly
-ok 63 - main.6 preserves FAB visibility ownership and opens manual OCR editor explicitly
-  ---
-  duration_ms: 0.367276
-  type: 'test'
-  ...
-# Subtest: main.6 package review waits for recognition handoff completion instead of racing the form renderer
-ok 64 - main.6 package review waits for recognition handoff completion instead of racing the form renderer
-  ---
-  duration_ms: 0.46069
-  type: 'test'
-  ...
-# Subtest: main.6 unresolved semantic fields preserve raw evidence for explicit bean-form confirmation
-ok 65 - main.6 unresolved semantic fields preserve raw evidence for explicit bean-form confirmation
-  ---
-  duration_ms: 0.221705
-  type: 'test'
-  ...
-1..65
-# tests 95
-# suites 0
-# pass 95
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 464.426241
-
-All LuckyBean static and recognition regression checks passed
+Node.js v22.23.2
+::error file=tests/v110-local-first-sync-static.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /await ensureLocalDevice\(\)[\s\S]*await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`\)/. Input:%0A%0A"import { get, put } from '../db.js';\n" +%0A  '\n' +%0A  "const DEVICE_RECORD_ID = 'cloud.device.id.v3';\n" +%0A  'const SPLASH_READY_TIMEOUT_MS = 12000;\n' +%0A  `const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.3';\n` +%0A  "const APP_MODULE_REVISION = '1.24B-main.8-prompt';\n" +%0A  'let enterRequested = false;\n' +%0A  'let shellReady = false;\n' +%0A  '\n' +%0A  "const splash = () => document.querySelector('#splashScreen');\n" +%0A  "const statusNode = () => document.querySelector('#splashStatus');\n" +%0A  '\n' +%0A  'function setStatus(message) {\n' +%0A  '  const node = statusNode();\n' +%0A  '  if (node) node.textContent = message;\n' +%0A  '}\n' +%0A  '\n' +%0A  'function isMobileBrowser() {\n' +%0A  '  if (globalThis.__LUCKYBEAN_ANDROID__) return false;\n' +%0A  "  const ua = navigator.userAgent || '';\n" +%0A  '  const touch = Number(navigator.maxTouchPoints || 0) > 0;\n' +%0A  "  const coarse = globalThis.matchMedia?.('(pointer: coarse)')?.matches === true;\n" +%0A  '  const mobileUa = /Android|iPhone|iPad|iPod|Mobile|HarmonyOS/i.test(ua);\n' +%0A  '  const compactViewport = Math.min(globalThis.innerWidth || 9999, globalThis.screen?.width || 9999) <= 1024;\n' +%0A  '  return touch && coarse && (mobileUa || compactViewport);\n' +%0A  '}\n' +%0A  '\n' +%0A  'function requestMobileFullscreenFromGesture() {\n' +%0A  '  if (!isMobileBrowser() || document.fullscreenElement) return;\n' +%0A  '  const target = document.documentElement;\n' +%0A  '  const request = target.requestFullscreen || target.webkitRequestFullscreen;\n' +%0A  '  try {\n' +%0A  "    const result = request?.call(target, { navigationUI: 'hide' });\n" +%0A  '    result?.catch?.(() => {});\n' +%0A  '  } catch { /* 浏览器不支持时正常降级 */ }\n' +%0A  '}\n' +%0A  '\n' +%0A  'async function deviceId() {\n' +%0A  "  const existing = await get('syncMetadata', DEVICE_RECORD_ID).catch(() => null);\n" +%0A  '  if (existing?.value) return existing.value;\n' +%0A  '  const value = crypto.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;\n' +%0A  "  await put('syncMetadata', { id: DEVICE_RECORD_ID, value, createdAt: new Date().toISOString() });\n" +%0A  '  return value;\n' +%0A  '}\n' +%0A  '\n' +%0A  'async function ensureLocalDevice() { return deviceId(); }\n' +%0A  '\n' +%0A  'function dismissSplash() {\n' +%0A  '  const node = splash();\n' +%0A  "  if (!node || node.classList.contains('hidden')) return;\n" +%0A  '  if (!shellReady) {\n' +%0A  '    enterRequested = true;\n' +%0A  "    setStatus('正在准备本地数据…');\n" +%0A  '    return;\n' +%0A  '  }\n' +%0A  "  node.classList.add('splash-leave');\n" +%0A  "  setTimeout(() => node.classList.add('hidden'), 520);\n" +%0A  '}\n' +%0A  '\n' +%0A  'function enterFromUserGesture() {\n' +%0A  '  requestMobileFullscreenFromGesture();\n' +%0A  '  dismissSplash();\n' +%0A  '}\n' +%0A  '\n' +%0A  'function bindEarlyEntry() {\n' +%0A  '  const node = splash();\n' +%0A  "  if (!node || node.dataset.startupBound === '1') return;\n" +%0A  "  node.dataset.startupBound = '1';\n" +%0A  '  node.tabIndex = 0;\n' +%0A  "  node.setAttribute('role', 'button');\n" +%0A  "  node.setAttribute('aria-label', '点击进入富贵盒子');\n" +%0A  "  node.addEventListener('click', enterFromUserGesture);\n" +%0A  "  node.addEventListener('keydown', event => {\n" +%0A  "    if (event.key === 'Enter' || event.key === ' ') {\n" +%0A  '      event.preventDefault();\n' +%0A  '      enterFromUserGesture();\n' +%0A  '    }\n' +%0A  '  });\n' +%0A  '}\n' +%0A  '\n' +%0A  'function watchForShell() {\n' +%0A  '  const startedAt = performance.now();\n' +%0A  '  const check = () => {\n' +%0A  "    const shell = document.querySelector('#appShell');\n" +%0A  "    shellReady = Boolean(shell && !shell.classList.contains('hidden'));\n" +%0A  '    if (shellReady) {\n' +%0A  "      document.documentElement.dataset.startup = 'ready';\n" +%0A  "      setStatus('点击进入');\n" +%0A  "      document.dispatchEvent(new CustomEvent('luckybean:local-app-ready'));\n" +%0A  '      if (enterRequested) dismissSplash();\n' +%0A  '      return;\n' +%0A  '    }\n' +%0A  '    if (performance.now() - startedAt < SPLASH_READY_TIMEOUT_MS) requestAnimationFrame(check);\n' +%0A  "    else setStatus('本地初始化未完成，请重新打开应用');\n" +%0A  '  };\n' +%0A  '  requestAnimationFrame(check);\n' +%0A  '}\n' +%0A  '\n' +%0A  'function bindStatusEvents() {\n' +%0A  "  document.addEventListener('luckybean:cloud-auth-state', event => {\n" +%0A  '    if (shellReady) return;\n' +%0A  '    const state = event.detail?.state;\n' +%0A  "    if (state === 'connecting') setStatus('正在连接云端…');\n" +%0A  "    if (state === 'authenticated') setStatus('云端已连接，正在准备本地数据…');\n" +%0A  "    if (['offline', 'signed-out', 'expired', 'reauth-required'].includes(state)) setStatus('正在准备本地数据…');\n" +%0A  '  });\n' +%0A  "  document.addEventListener('luckybean:cloud-data-restored', () => {\n" +%0A  '    const node = splash();\n' +%0A  "    document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh', { detail: { source: 'cloud-data-restored' } }));\n" +%0A  "    if (node && !node.classList.contains('hidden')) {\n" +%0A  "      setStatus('云端数据已更新，正在刷新本地视图…');\n" +%0A  "      document.addEventListener('luckybean:app-refreshed', () => { setStatus('点击进入'); if (enterRequested) dismissSplash(); }, { once: true });\n" +%0A  '    }\n' +%0A  '  });\n' +%0A  '}\n' +%0A  '\n' +%0A  "if ('serviceWorker' in navigator) {\n" +%0A  "  navigator.serviceWorker.register(`./sw.js?v=${encodeURIComponent(RELEASE_REVISION)}`, { updateViaCache: 'none' }).catch(() => {});\n" +%0A  '}\n' +%0A  '\n' +%0A  "document.documentElement.dataset.startup = 'booting';\n" +%0A  'bindEarlyEntry();\n' +%0A  'bindStatusEvents();\n' +%0A  "setStatus('正在准备本地数据…');\n" +%0A  '\n' +%0A  'try {\n' +%0A  '  await ensureLocalDevice();\n' +%0A  "  document.dispatchEvent(new CustomEvent('luckybean:local-bootstrap-ready'));\n" +%0A  '  await import(`../app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}`);\n' +%0A  "  document.dispatchEvent(new CustomEvent('luckybean:app-module-loaded', { detail: { appModuleRevision: APP_MODULE_REVISION } }));\n" +%0A  '  watchForShell();\n' +%0A  '} catch (error) {\n' +%0A  "  console.error('本地应用启动失败', error);\n" +%0A  "  document.documentElement.dataset.startup = 'failed';\n" +%0A  "  setStatus(`本地程序加载失败：${error?.message || '未知错误'}`);\n" +%0A  '}\n'%0A%0A    at file:///home/runner/work/luckybean/luckybean/tests/v110-local-first-sync-static.mjs:44:8%0A    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)%0A    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:6
