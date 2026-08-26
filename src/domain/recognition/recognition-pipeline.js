@@ -183,6 +183,29 @@ export function analyzeRecognitionDocument(document, book) {
   const parsed = parseNaturalLanguage(semanticText, book);
   const fields = buildFieldRows(document, parsed, book);
   const reviewFields = fields.filter(item => item.status === 'review');
+
+  // A field can be semantically identified by the relation resolver while remaining
+  // unresolved by the codebook (for example: COUNTRY ATLANTIS). Preserve that raw
+  // relation evidence for the bean-form confirmation UI instead of losing the field
+  // between package analysis and form handoff. Confidence remains the measured
+  // parser/relation confidence; manual confirmation must never fabricate confidence=1.
+  parsed.evidence ||= {};
+  parsed.confidence ||= {};
+  for (const item of reviewFields) {
+    const rawValue = clean(item.rawValue);
+    if (!rawValue) continue;
+    const currentEvidence = parsed.evidence[item.field];
+    const missingEvidence = currentEvidence === undefined
+      || currentEvidence === null
+      || currentEvidence === ''
+      || (Array.isArray(currentEvidence) && currentEvidence.length === 0);
+    if (missingEvidence) parsed.evidence[item.field] = rawValue;
+    const currentConfidence = Number(parsed.confidence[item.field]);
+    if (!Number.isFinite(currentConfidence) || currentConfidence <= 0) {
+      parsed.confidence[item.field] = Number(item.confidence || 0);
+    }
+  }
+
   parsed.parseMetadata ||= {};
   parsed.parseMetadata.recognition = {
     pipelineVersion: RECOGNITION_PIPELINE_VERSION,

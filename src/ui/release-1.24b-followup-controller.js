@@ -263,27 +263,55 @@ function openPackageReviewEditor(row) {
     notice('请先完成识别文字整理，再编辑待确认项', 'status-warn');
     return;
   }
-  handoff.click();
+
   let attempts = 0;
+  let settled = false;
+  let retryTimer = 0;
+
+  const cleanup = () => {
+    document.removeEventListener('luckybean:recognition-handoff-complete', onHandoffComplete);
+    if (retryTimer) clearTimeout(retryTimer);
+  };
+  const fallbackToControl = form => {
+    const controlId = FIELD_CONTROLS[field];
+    const control = controlId ? form?.querySelector(`#${CSS.escape(controlId)}`) : null;
+    if (!control) return false;
+    const fieldRoot = control.closest('.form-field');
+    fieldRoot?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    control.focus({ preventScroll: true });
+    notice('已进入对应字段，请编辑后保存豆卡', 'status-warn');
+    return true;
+  };
   const locate = () => {
+    if (settled) return true;
     attempts += 1;
     const form = document.querySelector('form#beanForm');
     const pending = form?.querySelector(`[data-recognition-review="pending"] .evidence-row[data-evidence-field="${CSS.escape(field)}"]`);
-    if (pending && activateRecognitionEditor(pending)) return;
-    if (form && attempts >= 10) {
-      const controlId = FIELD_CONTROLS[field];
-      const control = controlId ? form.querySelector(`#${CSS.escape(controlId)}`) : null;
-      if (control) {
-        const fieldRoot = control.closest('.form-field');
-        fieldRoot?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        control.focus({ preventScroll: true });
-        notice('已进入对应字段，请编辑后保存豆卡', 'status-warn');
-      }
-      return;
+    if (pending && activateRecognitionEditor(pending)) {
+      settled = true;
+      cleanup();
+      return true;
     }
-    if (attempts < 40) setTimeout(locate, 50);
+    if (attempts >= 100) {
+      settled = true;
+      fallbackToControl(form);
+      cleanup();
+      return true;
+    }
+    return false;
   };
-  setTimeout(locate, 0);
+  const retry = () => {
+    if (locate()) return;
+    retryTimer = setTimeout(retry, 50);
+  };
+  function onHandoffComplete(event) {
+    if (event.detail?.source !== 'package-capture' || settled) return;
+    if (!locate()) retry();
+  }
+
+  document.addEventListener('luckybean:recognition-handoff-complete', onHandoffComplete);
+  handoff.click();
+  retryTimer = setTimeout(retry, 50);
 }
 
 async function normalizeStoredRoastCodes() {

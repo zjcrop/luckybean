@@ -46,7 +46,7 @@ test('bean digest stays concise while preference analytics live only in settings
   await expect(page.locator('.preference-board-strip')).toHaveCount(0);
   await expect(page.locator('.bean-consumption-summary > small')).toHaveCount(0);
   await expect(page.locator('#v099fBeanModules')).toHaveCount(0);
-  await expect(page.locator('html')).toHaveAttribute('data-ui-policy-revision', '1.24B-main.4');
+  await expect(page.locator('html')).toHaveAttribute('data-ui-policy-revision', '1.24B-main.6');
 
   await page.locator('[data-page-target="settings"]').click();
   const dataCollection = page.locator('#settingsContent .data-category');

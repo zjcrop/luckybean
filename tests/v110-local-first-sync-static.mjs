@@ -21,7 +21,7 @@ const sw = read('sw.js');
 const manifest = JSON.parse(read('manifest.webmanifest'));
 
 assert.match(index, /1\.24B/);
-assert.match(index, /1\.24B-main\.4/);
+assert.match(index, /1\.24B-main\.6/);
 assert.match(index, /src\/core\/startup-controller\.js/);
 assert.match(index, /src\/core\/bootstrap\.js/);
 assert.match(index, /src\/services\/cloud-auth-service\.js/);
@@ -113,8 +113,8 @@ assert.doesNotMatch(runtimeFeatures, /v109-history-management\.js|v099-trajector
 assert.doesNotMatch(runtimeFeatures, /v095-ui\.js|theme-bridge\.js/);
 
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124b-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-interaction3`/);
-assert.match(sw, /REVISION = '1\.24B-main\.4'/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-6-ui2`/);
+assert.match(sw, /REVISION = '1\.24B-main\.6'/);
 assert.match(sw, /LEGACY_CACHE_PREFIXES = \[/);
 assert.match(sw, /'luckybean-main-v123e-'/);
 assert.match(sw, /'luckybean-main-v123d-'/);

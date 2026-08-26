@@ -40,7 +40,7 @@ test('edited legacy bean keeps readable country and variety in compact card', as
   expect(storedName).toBe('埃塞俄比亚 · Geisha');
   await page.evaluate(() => document.dispatchEvent(new CustomEvent('luckybean:app-refreshed', { detail: { source: 'v123e-force-display-repair' } })));
   await expect(card.locator('.lb-bean-primary')).toHaveText('埃塞/瑰夏');
-  await expect(card.locator('.lb-bean-secondary')).toContainText('/浅/水洗/85g');
+  await expect(card.locator('.lb-bean-secondary')).toContainText('/浅烘/水洗/85g');
   await expect(card).not.toContainText('未定');
 });
 

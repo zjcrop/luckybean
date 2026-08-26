@@ -11,7 +11,7 @@ const build = read('android/app/build.gradle');
 const sw = read('sw.js');
 
 const revision = index.match(/release-revision" content="([^"]+)"/)?.[1];
-assert.equal(revision, '1.24B-main.4');
+assert.equal(revision, '1.24B-main.6');
 assert.ok(index.includes(`src/ui/navigation-controller.js?v=${revision}`));
 assert.ok(sw.includes('ui/navigation-controller.js'));
 assert.match(navigation, /globalThis\.LuckyBeanNavigation/);

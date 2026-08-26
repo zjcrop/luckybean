@@ -18,7 +18,7 @@ const build = read('android/app/build.gradle');
 const revisionMatch = index.match(/release-revision" content="([^"]+)"/);
 assert.ok(revisionMatch, 'release revision missing');
 const releaseRevision = revisionMatch[1];
-assert.equal(releaseRevision, '1.24B-main.4');
+assert.equal(releaseRevision, '1.24B-main.6');
 const versionCodeMatch = build.match(/versionCode\s+(\d+)/);
 assert.ok(versionCodeMatch, 'Android versionCode missing');
 assert.ok(Number(versionCodeMatch[1]) > 102314, `upgrade versionCode must exceed prior release 102314, got ${versionCodeMatch[1]}`);

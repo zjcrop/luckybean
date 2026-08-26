@@ -38,6 +38,8 @@ function beanVarieties(bean) {
 function fullBeanInfo(bean) {
   const n = normalizeBeanRecord(bean);
   const purchase = n.purchase || {};
+  const processName = n.processing.process || bean.processName || '';
+  const processAndRoastDate = [processName, bean.roastDate ? `烘焙日期${bean.roastDate}` : ''].filter(Boolean).join('，');
   return [
     valueLine('国家', n.origin.country || bean.countryName),
     valueLine('产区', n.origin.region || bean.regionName),
@@ -47,12 +49,10 @@ function fullBeanInfo(bean) {
     valueLine('处理站', n.origin.washingStation),
     valueLine('批次', n.origin.lot),
     valueLine('豆种', beanVarieties(bean)),
-    valueLine('处理法', n.processing.process || bean.processName),
+    valueLine('处理法', processAndRoastDate),
     valueLine('处理细节', n.processing.detail),
     valueLine('海拔', bean.altitude ? `${bean.altitude} m` : ''),
     valueLine('产季', bean.harvestYear || bean.cropYear),
-    valueLine('烘焙度', bean.roastName || bean.roastCode),
-    valueLine('烘焙日期', bean.roastDate),
     valueLine('烘焙商', bean.roasterName),
     valueLine('购买日期', purchase.orderDate),
     valueLine('购买价格', purchase.paidPrice != null ? `${purchase.currency || 'CNY'} ${purchase.paidPrice}` : (bean.price ? `CNY ${bean.price}` : '')),

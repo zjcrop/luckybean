@@ -30,12 +30,12 @@ const deploy = read('.github/workflows/deploy-main.yml');
 const gradle = read('android/app/build.gradle');
 
 assert.match(index, /application-version" content="1\.24B"/);
-assert.match(index, /release-revision" content="1\.24B-main\.4"/);
+assert.match(index, /release-revision" content="1\.24B-main\.6"/);
 for (const file of ['release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-transit-controller.js','release-1.24b-group-navigation.js','release-1.24b-about-controller.js','release-1.24b-polish.js']) assert.ok(index.includes(file), `index must load ${file}`);
 for (const file of ['release-1.24b-ui-policy.js','release-1.24b-brew-mode-controller.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','sortable-controller.js','sensory-tag-sort-controller.js']) assert.ok(runtime.includes(file), `runtime graph must load ${file}`);
 assert.match(runtime, /shared-sortable/);
-assert.match(sw, /REVISION = '1\.24B-main\.4'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-interaction3`/);
+assert.match(sw, /REVISION = '1\.24B-main\.6'/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-6-ui2`/);
 for (const file of ['release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-transit-controller.js','release-1.24b-group-navigation.js','release-1.24b-about-controller.js','release-1.24b-polish.js','release-1.24b-ui-policy.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','sortable-controller.js','sensory-tag-sort-controller.js','recognition-field-resolver-1.24b.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js']) assert.ok(sw.includes(file), `service worker must cache ${file}`);
 
 assert.match(release, /BeanOwnershipStatus/);
@@ -157,7 +157,7 @@ assert.match(deploy, /browser_smoke/);
 assert.match(deploy, /deploy-pages@v5\.0\.0/);
 assert.match(deploy, /version\.json/);
 assert.match(deploy, /pages-status/);
-assert.match(deploy, /1\.24B-main\.4/);
+assert.match(deploy, /1\.24B-main\.6/);
 assert.match(deploy, /shared-live-preview-ghost-placeholder/);
 assert.match(deploy, /text-interactions/);
 assert.doesNotMatch(deploy, /on:\n\s+push:\n\s+branches: \[main\]/);

@@ -280,6 +280,8 @@ function openManualEntry(message = '可粘贴包装上的文字，后续仍由�
   render();
   const target = document.querySelector('#bagOcrText');
   if (target) {
+    const details = target.closest('details');
+    if (details) details.open = true;
     target.value = existing.trim();
     target.placeholder = message;
     target.focus();
@@ -302,6 +304,9 @@ async function handoffToExistingParser() {
   }
   clearCapture();
   await flow.acceptDocument(recognitionDocument, { overwrite: true });
+  document.dispatchEvent(new CustomEvent('luckybean:recognition-handoff-complete', {
+    detail: { source: 'package-capture' }
+  }));
 }
 
 function bindOverlay() {

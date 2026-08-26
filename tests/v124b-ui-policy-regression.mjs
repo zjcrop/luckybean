@@ -16,7 +16,7 @@ const [policy, app, beanGroupState, beanGroups, groupNavigation, sharedSort, sen
   readFile('android/app/build.gradle', 'utf8')
 ]);
 
-assert.match(policy, /UI_POLICY_REVISION = '1\.24B-main\.4'/);
+assert.match(policy, /UI_POLICY_REVISION = '1\.24B-main\.6'/);
 assert.match(policy, /button\.textContent = '合并云端'/);
 assert.match(policy, /aspect-ratio:\s*2\s*\/\s*1/);
 assert.match(app, /preference-board-strip/);
@@ -85,12 +85,12 @@ assert.match(runtime, /shared-sortable/);
 assert.ok(runtime.indexOf("feature('shared-sortable'") < runtime.indexOf("feature('sensory-tag-sort'"), 'shared sorter must load before sensory adapter');
 assert.match(runtime, /release-1\.24b-ui-policy\.js/);
 assert.match(runtime, /sensory-tag-sort-controller\.js/);
-assert.match(runtime, /1\.24B-main\.4/);
+assert.match(runtime, /1\.24B-main\.6/);
 assert.match(polish, /import '\.\/release-1\.24b-ui-policy\.js';/);
-assert.match(index, /release-revision" content="1\.24B-main\.4"/);
-assert.match(index, /release-1\.24b-polish\.js\?v=1\.24B-main\.4/);
-assert.match(serviceWorker, /REVISION = '1\.24B-main\.4'/);
-assert.match(serviceWorker, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-interaction3`/);
+assert.match(index, /release-revision" content="1\.24B-main\.6"/);
+assert.match(index, /release-1\.24b-polish\.js\?v=1\.24B-main\.6/);
+assert.match(serviceWorker, /REVISION = '1\.24B-main\.6'/);
+assert.match(serviceWorker, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-6-ui2`/);
 assert.match(serviceWorker, /release-1\.24b-ui-policy\.js/);
 assert.match(serviceWorker, /release-1\.24b-group-navigation\.js/);
 assert.match(serviceWorker, /src\/ui\/sortable-controller\.js/);

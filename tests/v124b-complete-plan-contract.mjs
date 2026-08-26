@@ -36,10 +36,10 @@ const deploy=read('.github/workflows/deploy-main.yml');
 const build=read('.github/workflows/build-main.yml');
 
 assert.match(index,/application-version" content="1\.24B"/);
-assert.match(index,/release-revision" content="1\.24B-main\.4"/);
-assert.match(sw,/REVISION = '1\.24B-main\.4'/);
-assert.match(sw,/CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-interaction3`/);
-assert.match(runtime,/1\.24B-main\.4/);
+assert.match(index,/release-revision" content="1\.24B-main\.6"/);
+assert.match(sw,/REVISION = '1\.24B-main\.6'/);
+assert.match(sw,/CACHE_NAME = `\$\{CACHE_PREFIX\}main-6-ui2`/);
+assert.match(runtime,/1\.24B-main\.6/);
 assert.match(runtime,/release-1\.24b-ui-policy\.js/);
 assert.match(runtime,/release-1\.24b-brew-mode-controller\.js/);
 assert.match(runtime,/shared-sortable/);

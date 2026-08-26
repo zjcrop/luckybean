@@ -40,7 +40,7 @@ const androidWorkflow = read('.github/workflows/full-integration-pr.yml');
 const revisionMatch = index.match(/release-revision" content="([^"]+)"/);
 assert.ok(revisionMatch, 'release revision missing from index');
 const releaseRevision = revisionMatch[1];
-assert.equal(releaseRevision, '1.24B-main.4');
+assert.equal(releaseRevision, '1.24B-main.6');
 assert.ok(index.includes(`data-release-revision="${releaseRevision}"`));
 
 const versionCodeMatch = androidBuild.match(/versionCode\s+(\d+)/);
@@ -55,7 +55,7 @@ assert.match(index, /release-1\.24b\.css/);
 for (const module of ['release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-transit-controller.js','release-1.24b-group-navigation.js','release-1.24b-about-controller.js','release-1.24b-polish.js']) assert.ok(index.includes(module), `missing direct 1.24B module ${module}`);
 for (const runtimeModule of ['release-1.24b-ui-policy.js','release-1.24b-brew-mode-controller.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','sortable-controller.js','sensory-tag-sort-controller.js']) assert.ok(runtimeFeatures.includes(runtimeModule), `missing runtime 1.24B module ${runtimeModule}`);
 assert.match(runtimeFeatures, /shared-sortable/);
-assert.match(runtimeFeatures, /1\.24B-main\.4/);
+assert.match(runtimeFeatures, /1\.24B-main\.6/);
 
 for (const canonical of ['app-layout.css','app-components.css','professional-sensory.css','flavor-guide-controller.js','gear-controller.js','bean-card-controller.js','onboarding-controller.js']) assert.ok(index.includes(canonical), `missing canonical entry ${canonical}`);
 for (const obsolete of ['interaction-repair-controller.js','experience-fixes-controller.js','gear-matching-controller.js','gear-regression-fix-controller.js','legacy-timer-guard.js']) {
@@ -68,9 +68,9 @@ assert.match(app, /processRecognitionDocument/);
 assert.match(codebook, /const roastDateInput = labeled\.roastDate \|\| ''/);
 assert.doesNotMatch(codebook, /labeled\.roastDate \|\| labeled\.productionDate/);
 
-assert.match(sw, /REVISION = '1\.24B-main\.4'/);
+assert.match(sw, /REVISION = '1\.24B-main\.6'/);
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124b-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-4-interaction3`/);
+assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-6-ui2`/);
 assert.match(sw, /luckybean-main-v123e-/);
 for (const cached of ['release-1.24b.js','release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-transit-controller.js','release-1.24b-group-navigation.js','release-1.24b-about-controller.js','release-1.24b-polish.js','release-1.24b-ui-policy.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','sortable-controller.js','sensory-tag-sort-controller.js','recognition-field-resolver-1.24b.js','local-brew-recipes-1.24b.js','grind-psd-reference-service.js','order-recognition-1.24b.js']) assert.ok(sw.includes(cached), `service worker missing ${cached}`);
 assert.match(sw, /cache\.put\(request, response\.clone\(\)\)/);
@@ -173,7 +173,7 @@ assert.doesNotMatch(deployWorkflow, /on:\n\s+push:\n\s+branches: \[main\]/);
 assert.match(buildWorkflow, /LuckyBean-1\.24B-release\.apk/);
 assert.match(buildWorkflow, /LuckyBean-1\.24B-web\.zip/);
 assert.match(buildWorkflow, /version_code=102402/);
-assert.match(buildWorkflow, /revision=1\.24B-main\.4/);
+assert.match(buildWorkflow, /revision=1\.24B-main\.6/);
 assert.match(buildWorkflow, /canonical-state-api/);
 assert.match(buildWorkflow, /shared-live-preview-ghost-placeholder/);
 assert.match(buildWorkflow, /single-activate-double-remove-longpress-preview/);

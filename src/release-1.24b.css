@@ -59,3 +59,113 @@ html[data-theme="light"] .lb-centered-help-card,html[data-theme="light"] .lb-fre
 html[data-theme="light"] .lb-centered-help-card p,html[data-theme="light"] .lb-freshness-detail-card p{color:#4c4740}
 html[data-theme="light"] .lb-transit-summary{color:rgba(55,55,55,.72)}
 @media(max-width:420px){.lb-bean-detail .field-value{font-size:.86rem}.lb-freshness-mini{height:56px}.lb-bean-actions button{font-size:.78rem}.lb-centered-help-layer,.lb-freshness-detail-layer{padding:18px}.lb-centered-help-card,.lb-freshness-detail-card{width:min(92vw,520px);padding:22px 18px 19px}.lb-transit-summary{align-items:flex-start;flex-direction:column;gap:.08rem}.lb-transit-summary span{text-align:left}.lb-freshness-metrics{grid-template-columns:1fr 1fr}.lb-storage-history>div{grid-template-columns:.65fr 1fr}.lb-storage-history>div strong{grid-column:1/-1;text-align:left}}
+
+/* LuckyBean 1.24B main.6 detail/fab/sensory corrections */
+/* Bean detail flavor line: keep location, increase readability, one-character spacing. */
+[data-overlay="bean-detail"] .detail-tags {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: baseline !important;
+  column-gap: 1em !important;
+  row-gap: .45rem !important;
+}
+[data-overlay="bean-detail"] .detail-tags > * {
+  font-size: 1rem !important;
+  line-height: 1.45 !important;
+}
+
+/* Four-quadrant floating menu: four independent rounded rectangles + a small central drag dot. */
+#fabWrap.action-grid,
+#fabWrap.action-grid[style],
+#fabWrap.action-grid:active,
+#fabWrap.action-grid:focus {
+  width: 118px !important;
+  height: 118px !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  padding: 0 !important;
+  background: none !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+#fabWrap.action-grid .fab,
+#fabWrap.action-grid .fab:focus,
+#fabWrap.action-grid .fab:active {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 3px !important;
+  border: 1px solid rgba(214,173,99,.82) !important;
+  border-radius: 14px !important;
+  background: rgba(214,173,99,.075) !important;
+  box-shadow: none !important;
+  font-family: FangSong, STFangsong, serif !important;
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  letter-spacing: .06em !important;
+  text-shadow: none !important;
+}
+#fabWrap.action-grid.hidden { display: none !important; }
+html[data-theme="dark"] #fabWrap.action-grid .fab { color: #fff !important; }
+html[data-theme="light"] #fabWrap.action-grid .fab { color: #111 !important; }
+#fabWrap.action-grid .fab:active { background: rgba(214,173,99,.15) !important; }
+
+/* Keep a large invisible drag target but render only a slightly enlarged center point. */
+#fabWrap .v097-fab-drag-handle {
+  width: 42px !important;
+  height: 42px !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 50% !important;
+}
+#fabWrap .v097-fab-drag-handle::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(214,173,99,.9);
+  border-radius: 50%;
+  background: rgba(214,173,99,.22);
+  pointer-events: none;
+}
+
+/* Radar labels are explicit SVG fill colors; normal text color does not reliably cascade into SVG. */
+html[data-theme="dark"] .v095-radar-stage svg text { fill: #c9c7c2 !important; }
+html[data-theme="light"] .v095-radar-stage svg text { fill: #111 !important; }
+
+/* Professional sensory navigation is viewport-fixed, never content/sticky-positioned. */
+.v095-professional-dialog {
+  padding-bottom: calc(88px + var(--safe-bottom, 0px)) !important;
+}
+.v095-wizard-actions {
+  position: fixed !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: 0 !important;
+  top: auto !important;
+  transform: translateX(-50%) !important;
+  width: min(880px, 100%) !important;
+  z-index: 120 !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 8px 18px calc(8px + var(--safe-bottom, 0px)) !important;
+  background: var(--bg) !important;
+  border-top: 1px solid color-mix(in srgb, var(--active) 24%, transparent) !important;
+  backdrop-filter: blur(8px);
+}
+.v095-wizard-actions [data-v095-cancel] {
+  grid-column: auto !important;
+  order: initial !important;
+}
