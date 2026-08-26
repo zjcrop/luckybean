@@ -3,6 +3,7 @@ import { get, put } from '../db.js';
 const DEVICE_RECORD_ID = 'cloud.device.id.v3';
 const SPLASH_READY_TIMEOUT_MS = 12000;
 const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.3';
+// Keep the app module cache key independent until the recommendation prompt recovery is verified on persistent clients.
 const APP_MODULE_REVISION = '1.24B-main.8-prompt';
 let enterRequested = false;
 let shellReady = false;
