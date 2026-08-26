@@ -7,11 +7,20 @@ on:
       - '.github/workflows/luckybean-124b-main6-ui-fix.yml'
 
 permissions:
+  actions: read
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: luckybean-main6-direct-pages
+  cancel-in-progress: true
 
 jobs:
   patch-test-commit:
     runs-on: ubuntu-24.04
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -54,16 +63,77 @@ jobs:
           exit 1
       - name: Run browser core regressions
         run: npm run test:core
-      - name: Verify patch cleanliness
+      - name: Separate product code from workflow-only revision edits
+        shell: bash
         run: |
+          set -euo pipefail
+          git restore --source=HEAD -- .github/workflows
+          rm -rf public/vendor/jsqr
           git diff --check
           git status --short
       - name: Commit verified main.6 product changes
+        id: source
+        shell: bash
         run: |
+          set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'fix: refine bean detail floating controls and sensory footer'
+          git commit -m 'fix: publish verified LuckyBean 1.24B main.6 UI corrections'
           git push origin HEAD:main
+          sha=$(git rev-parse HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "SOURCE_SHA=$sha" >> "$GITHUB_ENV"
+      - name: Rebuild generated web vendor asset
+        run: node scripts/prepare-vendor.mjs
+      - name: Prepare verified Pages site
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
+          cp -R src public contracts schemas _site/
+          touch _site/.nojekyll
+          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.6","verification":"51-core-playwright-plus-static-recognition"}\n' "$SOURCE_SHA" > _site/version.json
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
 
-# verification-attempt: 5
+  deploy-pages:
+    needs: patch-test-commit
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-24.04
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
+
+  verify-pages:
+    needs: [patch-test-commit, deploy-pages]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Verify live main.6 source fingerprint
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ needs.patch-test-commit.outputs.source_sha }}
+        run: |
+          set -euo pipefail
+          base='https://zjcrop.github.io/luckybean'
+          for attempt in {1..30}; do
+            curl -L -fsS "$base/version.json?check=$SOURCE_SHA" -o /tmp/version.json || true
+            curl -L -fsS "$base/?check=$SOURCE_SHA" -o /tmp/index.html || true
+            if grep -Fq "$SOURCE_SHA" /tmp/version.json 2>/dev/null \
+              && grep -Fq '"revision":"1.24B-main.6"' /tmp/version.json \
+              && grep -Fq 'release-revision" content="1.24B-main.6"' /tmp/index.html; then
+              echo "LuckyBean Pages serves verified main.6 source $SOURCE_SHA"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'Pages did not expose the verified main.6 source in time'
+          cat /tmp/version.json || true
+          exit 1
+
+# verification-attempt: 6
