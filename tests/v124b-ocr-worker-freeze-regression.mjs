@@ -29,7 +29,9 @@ assert.match(paddle, /不会切换到主线程 OCR 或 Tesseract/, 'interactive 
 assert.match(vendor, /SDK_ESM_URL/, 'build step must vendor the pinned PaddleOCR ESM runtime');
 assert.match(vendor, /PP-OCRv5_mobile_det_onnx_infer\.tar/, 'build step must vendor the PP-OCRv5 detection model');
 assert.match(vendor, /PP-OCRv5_mobile_rec_onnx_infer\.tar/, 'build step must vendor the PP-OCRv5 recognition model');
-assert.match(vendor, /ort-wasm-simd-threaded\.wasm/, 'build step must vendor the ONNX Runtime WASM binary');
+assert.match(vendor, /ort-wasm-simd-threaded\.wasm/, 'build step must vendor the baseline ONNX Runtime WASM binary');
+assert.match(vendor, /ort-wasm-simd-threaded\.jsep\.mjs/, 'build step must vendor the ONNX Runtime JSEP module selected by the browser build');
+assert.match(vendor, /ort-wasm-simd-threaded\.jsep\.wasm/, 'build step must vendor the matching ONNX Runtime JSEP WASM binary');
 assert.match(vendor, /remainingImports/, 'vendored browser ESM must reject unresolved CDN import dependencies');
 
 assert.doesNotMatch(runtime, /feature\(['"]recognition-web-ocr['"]/, 'legacy Tesseract runtime must not be loaded by the formal app');
