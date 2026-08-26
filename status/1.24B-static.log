@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 4.178474
+  duration_ms: 5.843683
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 1.949029
+  duration_ms: 2.158805
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 2.322028
+  duration_ms: 2.748673
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 1.70336
+  duration_ms: 2.032728
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.802082
+  duration_ms: 0.850587
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.716704
+  duration_ms: 2.935612
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.805943
+  duration_ms: 0.890706
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 19.068427
+# duration_ms 23.545867
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 4.652993
+  duration_ms: 6.250549
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 3.257058
+  duration_ms: 3.9817
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 3.420009
+  duration_ms: 4.02194
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 2.673342
+  duration_ms: 3.02178
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 2.196245
+  duration_ms: 2.453914
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 0.920524
+  duration_ms: 1.050654
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 21.731915
+# duration_ms 26.911749
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -160,347 +160,620 @@ LuckyBean Android gallery URI routing regression checks passed
 LuckyBean 1.24B compact small-brew, automatic-field and Android upgrade contract passed
 
 [static] tests/v123e-ui-stability-static.mjs
-node:internal/modules/run_main:123
-    triggerUncaughtException(
-    ^
+LuckyBean 1.24B 1.24B-main.6 canonical UI stability, shared bean-group state, shared sorting and text brew UI regression checks passed
 
-AssertionError [ERR_ASSERTION]: The input did not match the regular expression /canonical bean-group state active/. Input:
+[static] tests/v123e-navigation-back-static.mjs
+LuckyBean canonical page stack, overlay back, Android gesture back and compact bean metadata contracts passed
 
-'const $=(selector,root=document)=>root?.querySelector?.(selector)||null;\n' +
-  "const RECOMMENDATION_PROMPT_REVISION='1.24B-main.9-immediate';\n" +
-  'let syncQueued=false;\n' +
-  'let recommendationPromptObserver=null;\n' +
-  'let recommendationHideTimer=null;\n' +
-  'let recommendationCleanupTimer=null;\n' +
-  'let directPromptLockUntil=0;\n' +
-  'const recommendationPromptMemory=Object.create(null);\n' +
-  '\n' +
-  'const RECOMMENDATION_PROMPTS=Object.freeze({\n' +
-  '  leaderboard:[\n' +
-  "    '直取榜首，不问其余。','依榜索魁，必得佳味。','榜单在前，今朝且试头筹。',\n" +
-  "    '榜魁已定，此只风味精绝，不负众望。','一举摘魁，恰逢此豆风味正酣。',\n" +
-  "    '众里寻它，终得榜首，宜细细品之。','照榜点将，专挑那个第一名！'\n" +
-  '  ],\n' +
-  '  freshness:[\n' +
-  "    '此只风味精绝，君既选中，甚是妥当。','正逢此只风味最盛，您这一选，再好不过。',\n" +
-  "    '此只正值风味精妙处，既已选定，便是良配。','此只正得意时，恰被君眼相中，眼光不差。'\n" +
-  '  ],\n' +
-  '  price:[\n' +
-  "    '此只价冠诸豆，足见君之慧眼独钟。','此只乃众豆之魁，承君青睐，身价自高。',\n" +
-  "    '此只位列首席，价亦昂，唯君堪配此味。','既择此只风骨，当知众豆之中，以此最为矜贵。'\n" +
-  '  ],\n' +
-  '  remaining:[\n' +
-  "    '余粒无多，宜趁兴饮尽，为此豆作结。','所剩几何，当及时啜饮，不负此豆风华。',\n" +
-  "    '残豆将尽，速饮之，好与此只从容作别。','此豆见底啦，趁风味未散，快快饮尽收场！'\n" +
-  '  ],\n' +
-  '  random:[\n' +
-  "    '闭目拈签，任其自然。','信手拈签，以定今日之选。','且凭一签，决此豆归谁。',\n" +
-  "    '一签落地，此只当归于君。','签指此只，风味正酣，君可安心享之。',\n" +
-  "    '得此签，恰逢余粒无几，缘分也。','伸手拈一签，看天意选哪只！'\n" +
-  '  ]\n' +
-  '});\n' +
-  '\n' +
-  'function injectStyle(){\n' +
-  "  if($('#lb124bInteractionFixStyle'))return;\n" +
-  "  const style=document.createElement('style');\n" +
-  "  style.id='lb124bInteractionFixStyle';\n" +
-  '  style.textContent=`\n' +
-  '    #beanGroups .preference-board-strip,#beanGroups [data-open-recommend-board]{display:none!important;}\n' +
-  '    .bean-consumption-summary .lb-stock-total{font-size:.98rem!important;line-height:1.38!important;font-weight:600!important;letter-spacing:0!important;}\n' +
-  '    :where(.popup-menu,.recommend-menu,.popup-menu button,.recommend-menu button,#brewContent button,#brewContent select,#brewContent option,#brewContent input,.dialog select,.dialog option){font-family:DengXian,"Microsoft YaHei UI","Noto Sans CJK SC","Noto Sans SC","PingFang SC",system-ui,sans-serif!important;font-synthesis:none;}\n' +
-  '    .popup-menu,.recommend-menu{transform-origin:top center;animation:lbMenuEnter 145ms cubic-bezier(.2,.8,.2,1) both;}\n' +
-  '    .recommend-menu [data-recommend-mode="remaining"] .recommend-dot{background:#808080!important;}\n' +
-  '    .recommend-menu [data-recommend-mode="price"] .recommend-dot{background:#fff!important;}\n' +
-  '    html[data-theme="light"] .recommend-menu [data-recommend-mode="price"] .recommend-dot{background:#000!important;}\n' +
-  '    @keyframes lbMenuEnter{from{opacity:0;transform:translateY(-4px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}\n' +
-  '    #lbRecommendationToast.toast.recommendation{\n' +
-  '      position:fixed!important;\n' +
-  '      z-index:10060!important;\n' +
-  '      left:50%!important;\n' +
-  '      right:auto!important;\n' +
-  '      bottom:calc(92px + var(--safe-bottom,0px))!important;\n' +
-  '      width:max-content!important;\n' +
-  '      max-width:min(90vw,520px)!important;\n' +
-  '      min-width:0!important;\n' +
-  '      padding:11px 17px!important;\n' +
-  '      border:1px solid rgba(168,128,62,.55)!important;\n' +
-  '      border-radius:12px!important;\n' +
-  '      background:#e8d7ad!important;\n' +
-  '      color:#17130d!important;\n' +
-  '      font-family:FangSong,STFangsong,"FangSong_GB2312",serif!important;\n' +
-  '      font-size:15px!important;\n' +
-  '      font-weight:600!important;\n' +
-  '      line-height:1.55!important;\n' +
-  '      letter-spacing:.02em!important;\n' +
-  '      text-align:center!important;\n' +
-  '      white-space:normal!important;\n' +
-  '      opacity:0!important;\n' +
-  '      pointer-events:none!important;\n' +
-  '      transform:translate(-50%,18px)!important;\n' +
-  '      transition:opacity .18s ease,transform .18s ease!important;\n' +
-  '      box-shadow:0 12px 36px rgba(0,0,0,.28)!important;\n' +
-  '    }\n' +
-  '    #lbRecommendationToast.toast.recommendation.show{opacity:1!important;transform:translate(-50%,0)!important;}\n' +
-  '    html[data-theme="light"] #lbRecommendationToast.toast.recommendation{background:#e8d7ad!important;color:#17130d!important;}\n' +
-  '    #brewContent .lb-auto-note{display:none!important;}\n' +
-  '    #brewContent :is(.lb-auto-field,.model-recommended){background:transparent!important;border:0!important;border-bottom:1px solid color-mix(in srgb,var(--active,currentColor) 58%,transparent)!important;border-radius:0!important;box-shadow:none!important;font-weight:inherit!important;text-decoration:none!important;}\n' +
-  '    #brewContent .brew-row-primary :is(#brewDose,#brewRatio){width:100%!important;min-height:36px!important;padding:6px 0 5px!important;font-size:14px!important;font-weight:500!important;line-height:1.45!important;text-align:center!important;text-align-last:center!important;font-variant-numeric:tabular-nums;}\n' +
-  '    #brewContent [data-brew-row="filter-gear-water"]{align-items:end!important;}\n' +
-  '    #brewContent [data-brew-row="filter-gear-water"]>.field{min-width:0!important;text-align:center!important;}\n' +
-  '    #brewContent [data-brew-row="filter-gear-water"]>.field>span,#brewContent [data-brew-row="filter-gear-water"] .custom-summary{width:100%!important;text-align:center!important;}\n' +
-  '    #brewContent [data-brew-row="filter-gear-water"] :is(select,button,.control){width:100%!important;min-height:34px!important;padding:5px 0!important;font-size:13px!important;font-weight:450!important;line-height:1.45!important;text-align:center!important;text-align-last:center!important;}\n' +
-  '    #brewContent :is(#brewProfile,.brew-profile-row .control,.brew-generate-row .button){font-size:13px!important;line-height:1.45!important;font-weight:450!important;}\n' +
-  '    #brewContent #brewProfile{text-align:center!important;text-align-last:center!important;}\n' +
-  '    #brewContent :is(#brewProfile,#brewDripper,#brewFilterPaper,#brewWaterProfile,#brewRatio) option{font-size:13px!important;font-weight:400!important;}\n' +
-  '    @media (max-width:720px){.bean-consumption-summary .lb-stock-total{font-size:.94rem!important;}#lbRecommendationToast.toast.recommendation{max-width:calc(100vw - 28px)!important;font-size:14px!important;}}\n' +
-  '    @media (prefers-reduced-motion:reduce){.popup-menu,.recommend-menu{animation:none!important;}#lbRecommendationToast.toast.recommendation{transition:none!important;}}\n' +
-  '  `;\n' +
-  '  document.head.append(style);\n' +
-  '}\n' +
-  "function removeLeaderboard(){document.querySelectorAll('#beanGroups .preference-board-strip,#beanGroups [data-open-recommend-board]').forEach(node=>node.remove());}\n" +
-  'function normalizeBrewUi(){\n' +
-  "  const root=$('#brewContent');if(!root)return;\n" +
-  `  const ratioAuto=$('#brewRatio option[value="auto"]',root);if(ratioAuto){const text=(ratioAuto.textContent||'').replace(/^自动\\s*[·・]?\\s*/,'').trim()||'自动';if(ratioAuto.textContent!==text)ratioAuto.textContent=text;}\n` +
-  `  const dripper=$('#brewDripper',root);const recommended=dripper?.querySelector('option[value="recommended"]');if(recommended){const text=(recommended.textContent||'').replace(/^方案推荐\\s*[·・]?\\s*/,'').trim()||'自动';if(recommended.textContent!==text)recommended.textContent=text;}\n` +
-  "  const dose=$('#brewDose',root);if(dose&&/^自动\\s*[·・]/.test(dose.textContent||''))dose.textContent=(dose.textContent||'').replace(/^自动\\s*[·・]\\s*/,'');\n" +
-  "  [[dose,c=>c?.classList.contains('model-recommended')||c?.dataset.source==='auto'],[$('#brewRatio',root),c=>c?.value==='auto'],[dripper,c=>c?.value==='recommended'],[$('#brewProfile',root),c=>c?.value==='recommended'],[$('#brewWaterProfile',root),c=>c?.classList.contains('model-recommended')||c?.dataset.source==='auto']].forEach(([control,isAuto])=>{if(control)control.classList.toggle('lb-auto-field',Boolean(isAuto(control)));});\n" +
-  '}\n' +
-  'function ensureRecommendationToast(){\n' +
-  "  let node=$('#lbRecommendationToast');\n" +
-  '  if(node)return node;\n' +
-  "  node=document.createElement('div');\n" +
-  "  node.id='lbRecommendationToast';\n" +
-  "  node.className='toast recommendation';\n" +
-  "  node.dataset.lbRecommendationMirror='1';\n" +
-  '  node.dataset.lbPromptRevision=RECOMMENDATION_PROMPT_REVISION;\n' +
-  "  node.setAttribute('role','status');\n" +
-  "  node.setAttribute('aria-live','polite');\n" +
-  '  document.body.append(node);\n' +
-  '  return node;\n' +
-  '}\n' +
-  'function showRecommendationPrompt(message){\n' +
-  "  const text=String(message||'').trim();if(!text)return false;\n" +
-  '  injectStyle();\n' +
-  '  const node=ensureRecommendationToast();\n' +
-  '  clearTimeout(recommendationHideTimer);clearTimeout(recommendationCleanupTimer);\n' +
-  '  node.dataset.lbPrompt=text;\n' +
-  '  node.dataset.lbPromptRevision=RECOMMENDATION_PROMPT_REVISION;\n' +
-  '  node.textContent=text;\n' +
-  "  node.className='toast recommendation';\n" +
-  '  void node.offsetWidth;\n' +
-  "  node.classList.add('show');\n" +
-  "  recommendationHideTimer=setTimeout(()=>node.classList.remove('show'),6000);\n" +
-  '  recommendationCleanupTimer=setTimeout(()=>{\n' +
-  '    if(node.dataset.lbPrompt!==text)return;\n' +
-  "    node.className='toast recommendation';\n" +
-  "    node.textContent='';\n" +
-  '    delete node.dataset.lbPrompt;\n' +
-  '  },7000);\n' +
-  '  return true;\n' +
-  '}\n' +
-  'function pickRecommendationPrompt(mode){\n' +
-  "  const pool=RECOMMENDATION_PROMPTS[mode]||[];if(!pool.length)return '';\n" +
-  "  const previous=recommendationPromptMemory[mode]||'';\n" +
-  '  const choices=pool.filter(value=>value!==previous);\n' +
-  '  const selected=choices[Math.floor(Math.random()*choices.length)]||pool[0];\n' +
-  '  recommendationPromptMemory[mode]=selected;\n' +
-  '  return selected;\n' +
-  '}\n' +
-  'function showRecommendationPromptForMode(mode){\n' +
-  "  const text=pickRecommendationPrompt(String(mode||''));if(!text)return false;\n" +
-  '  directPromptLockUntil=performance.now()+6500;\n' +
-  '  return showRecommendationPrompt(text);\n' +
-  '}\n' +
-  'function mirrorRecommendationPrompt(){\n' +
-  '  if(performance.now()<directPromptLockUntil)return false;\n' +
-  "  const source=$('#toast');\n" +
-  "  if(!source?.classList.contains('recommendation'))return false;\n" +
-  "  return showRecommendationPrompt(source.textContent||'');\n" +
-  '}\n' +
-  'function installRecommendationPromptGuard(){\n' +
-  "  const source=$('#toast');\n" +
-  '  if(!source||recommendationPromptObserver)return;\n' +
-  '  recommendationPromptObserver=new MutationObserver(mirrorRecommendationPrompt);\n' +
-  "  recommendationPromptObserver.observe(source,{attributes:true,attributeFilter:['class'],childList:true,subtree:true,characterData:true});\n" +
-  '  mirrorRecommendationPrompt();\n' +
-  '}\n' +
-  'function syncUi(){syncQueued=false;injectStyle();installRecommendationPromptGuard();removeLeaderboard();normalizeBrewUi();}\n' +
-  'function queueSync(){if(syncQueued)return;syncQueued=true;requestAnimationFrame(syncUi);}\n' +
-  "document.addEventListener('luckybean:navigation-back',event=>{const api=globalThis.LuckyBeanBeanGroupState;if(api?.hasActiveGroup?.()&&api.close?.())event.preventDefault?.();});\n" +
-  "document.addEventListener('c"... 1171 more characters
+[static] tests/v123e-brew-optimization-regression.mjs
+post-tasting optimization, deterministic spatial trend and release-signature guards passed
 
-    at file:///home/runner/work/luckybean/luckybean/tests/v123e-ui-stability-static.mjs:101:8
-    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
-  generatedMessage: true,
-  code: 'ERR_ASSERTION',
-  actual: 'const $=(selector,root=document)=>root?.querySelector?.(selector)||null;\n' +
-    "const RECOMMENDATION_PROMPT_REVISION='1.24B-main.9-immediate';\n" +
-    'let syncQueued=false;\n' +
-    'let recommendationPromptObserver=null;\n' +
-    'let recommendationHideTimer=null;\n' +
-    'let recommendationCleanupTimer=null;\n' +
-    'let directPromptLockUntil=0;\n' +
-    'const recommendationPromptMemory=Object.create(null);\n' +
-    '\n' +
-    'const RECOMMENDATION_PROMPTS=Object.freeze({\n' +
-    '  leaderboard:[\n' +
-    "    '直取榜首，不问其余。','依榜索魁，必得佳味。','榜单在前，今朝且试头筹。',\n" +
-    "    '榜魁已定，此只风味精绝，不负众望。','一举摘魁，恰逢此豆风味正酣。',\n" +
-    "    '众里寻它，终得榜首，宜细细品之。','照榜点将，专挑那个第一名！'\n" +
-    '  ],\n' +
-    '  freshness:[\n' +
-    "    '此只风味精绝，君既选中，甚是妥当。','正逢此只风味最盛，您这一选，再好不过。',\n" +
-    "    '此只正值风味精妙处，既已选定，便是良配。','此只正得意时，恰被君眼相中，眼光不差。'\n" +
-    '  ],\n' +
-    '  price:[\n' +
-    "    '此只价冠诸豆，足见君之慧眼独钟。','此只乃众豆之魁，承君青睐，身价自高。',\n" +
-    "    '此只位列首席，价亦昂，唯君堪配此味。','既择此只风骨，当知众豆之中，以此最为矜贵。'\n" +
-    '  ],\n' +
-    '  remaining:[\n' +
-    "    '余粒无多，宜趁兴饮尽，为此豆作结。','所剩几何，当及时啜饮，不负此豆风华。',\n" +
-    "    '残豆将尽，速饮之，好与此只从容作别。','此豆见底啦，趁风味未散，快快饮尽收场！'\n" +
-    '  ],\n' +
-    '  random:[\n' +
-    "    '闭目拈签，任其自然。','信手拈签，以定今日之选。','且凭一签，决此豆归谁。',\n" +
-    "    '一签落地，此只当归于君。','签指此只，风味正酣，君可安心享之。',\n" +
-    "    '得此签，恰逢余粒无几，缘分也。','伸手拈一签，看天意选哪只！'\n" +
-    '  ]\n' +
-    '});\n' +
-    '\n' +
-    'function injectStyle(){\n' +
-    "  if($('#lb124bInteractionFixStyle'))return;\n" +
-    "  const style=document.createElement('style');\n" +
-    "  style.id='lb124bInteractionFixStyle';\n" +
-    '  style.textContent=`\n' +
-    '    #beanGroups .preference-board-strip,#beanGroups [data-open-recommend-board]{display:none!important;}\n' +
-    '    .bean-consumption-summary .lb-stock-total{font-size:.98rem!important;line-height:1.38!important;font-weight:600!important;letter-spacing:0!important;}\n' +
-    '    :where(.popup-menu,.recommend-menu,.popup-menu button,.recommend-menu button,#brewContent button,#brewContent select,#brewContent option,#brewContent input,.dialog select,.dialog option){font-family:DengXian,"Microsoft YaHei UI","Noto Sans CJK SC","Noto Sans SC","PingFang SC",system-ui,sans-serif!important;font-synthesis:none;}\n' +
-    '    .popup-menu,.recommend-menu{transform-origin:top center;animation:lbMenuEnter 145ms cubic-bezier(.2,.8,.2,1) both;}\n' +
-    '    .recommend-menu [data-recommend-mode="remaining"] .recommend-dot{background:#808080!important;}\n' +
-    '    .recommend-menu [data-recommend-mode="price"] .recommend-dot{background:#fff!important;}\n' +
-    '    html[data-theme="light"] .recommend-menu [data-recommend-mode="price"] .recommend-dot{background:#000!important;}\n' +
-    '    @keyframes lbMenuEnter{from{opacity:0;transform:translateY(-4px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}\n' +
-    '    #lbRecommendationToast.toast.recommendation{\n' +
-    '      position:fixed!important;\n' +
-    '      z-index:10060!important;\n' +
-    '      left:50%!important;\n' +
-    '      right:auto!important;\n' +
-    '      bottom:calc(92px + var(--safe-bottom,0px))!important;\n' +
-    '      width:max-content!important;\n' +
-    '      max-width:min(90vw,520px)!important;\n' +
-    '      min-width:0!important;\n' +
-    '      padding:11px 17px!important;\n' +
-    '      border:1px solid rgba(168,128,62,.55)!important;\n' +
-    '      border-radius:12px!important;\n' +
-    '      background:#e8d7ad!important;\n' +
-    '      color:#17130d!important;\n' +
-    '      font-family:FangSong,STFangsong,"FangSong_GB2312",serif!important;\n' +
-    '      font-size:15px!important;\n' +
-    '      font-weight:600!important;\n' +
-    '      line-height:1.55!important;\n' +
-    '      letter-spacing:.02em!important;\n' +
-    '      text-align:center!important;\n' +
-    '      white-space:normal!important;\n' +
-    '      opacity:0!important;\n' +
-    '      pointer-events:none!important;\n' +
-    '      transform:translate(-50%,18px)!important;\n' +
-    '      transition:opacity .18s ease,transform .18s ease!important;\n' +
-    '      box-shadow:0 12px 36px rgba(0,0,0,.28)!important;\n' +
-    '    }\n' +
-    '    #lbRecommendationToast.toast.recommendation.show{opacity:1!important;transform:translate(-50%,0)!important;}\n' +
-    '    html[data-theme="light"] #lbRecommendationToast.toast.recommendation{background:#e8d7ad!important;color:#17130d!important;}\n' +
-    '    #brewContent .lb-auto-note{display:none!important;}\n' +
-    '    #brewContent :is(.lb-auto-field,.model-recommended){background:transparent!important;border:0!important;border-bottom:1px solid color-mix(in srgb,var(--active,currentColor) 58%,transparent)!important;border-radius:0!important;box-shadow:none!important;font-weight:inherit!important;text-decoration:none!important;}\n' +
-    '    #brewContent .brew-row-primary :is(#brewDose,#brewRatio){width:100%!important;min-height:36px!important;padding:6px 0 5px!important;font-size:14px!important;font-weight:500!important;line-height:1.45!important;text-align:center!important;text-align-last:center!important;font-variant-numeric:tabular-nums;}\n' +
-    '    #brewContent [data-brew-row="filter-gear-water"]{align-items:end!important;}\n' +
-    '    #brewContent [data-brew-row="filter-gear-water"]>.field{min-width:0!important;text-align:center!important;}\n' +
-    '    #brewContent [data-brew-row="filter-gear-water"]>.field>span,#brewContent [data-brew-row="filter-gear-water"] .custom-summary{width:100%!important;text-align:center!important;}\n' +
-    '    #brewContent [data-brew-row="filter-gear-water"] :is(select,button,.control){width:100%!important;min-height:34px!important;padding:5px 0!important;font-size:13px!important;font-weight:450!important;line-height:1.45!important;text-align:center!important;text-align-last:center!important;}\n' +
-    '    #brewContent :is(#brewProfile,.brew-profile-row .control,.brew-generate-row .button){font-size:13px!important;line-height:1.45!important;font-weight:450!important;}\n' +
-    '    #brewContent #brewProfile{text-align:center!important;text-align-last:center!important;}\n' +
-    '    #brewContent :is(#brewProfile,#brewDripper,#brewFilterPaper,#brewWaterProfile,#brewRatio) option{font-size:13px!important;font-weight:400!important;}\n' +
-    '    @media (max-width:720px){.bean-consumption-summary .lb-stock-total{font-size:.94rem!important;}#lbRecommendationToast.toast.recommendation{max-width:calc(100vw - 28px)!important;font-size:14px!important;}}\n' +
-    '    @media (prefers-reduced-motion:reduce){.popup-menu,.recommend-menu{animation:none!important;}#lbRecommendationToast.toast.recommendation{transition:none!important;}}\n' +
-    '  `;\n' +
-    '  document.head.append(style);\n' +
-    '}\n' +
-    "function removeLeaderboard(){document.querySelectorAll('#beanGroups .preference-board-strip,#beanGroups [data-open-recommend-board]').forEach(node=>node.remove());}\n" +
-    'function normalizeBrewUi(){\n' +
-    "  const root=$('#brewContent');if(!root)return;\n" +
-    `  const ratioAuto=$('#brewRatio option[value="auto"]',root);if(ratioAuto){const text=(ratioAuto.textContent||'').replace(/^自动\\s*[·・]?\\s*/,'').trim()||'自动';if(ratioAuto.textContent!==text)ratioAuto.textContent=text;}\n` +
-    `  const dripper=$('#brewDripper',root);const recommended=dripper?.querySelector('option[value="recommended"]');if(recommended){const text=(recommended.textContent||'').replace(/^方案推荐\\s*[·・]?\\s*/,'').trim()||'自动';if(recommended.textContent!==text)recommended.textContent=text;}\n` +
-    "  const dose=$('#brewDose',root);if(dose&&/^自动\\s*[·・]/.test(dose.textContent||''))dose.textContent=(dose.textContent||'').replace(/^自动\\s*[·・]\\s*/,'');\n" +
-    "  [[dose,c=>c?.classList.contains('model-recommended')||c?.dataset.source==='auto'],[$('#brewRatio',root),c=>c?.value==='auto'],[dripper,c=>c?.value==='recommended'],[$('#brewProfile',root),c=>c?.value==='recommended'],[$('#brewWaterProfile',root),c=>c?.classList.contains('model-recommended')||c?.dataset.source==='auto']].forEach(([control,isAuto])=>{if(control)control.classList.toggle('lb-auto-field',Boolean(isAuto(control)));});\n" +
-    '}\n' +
-    'function ensureRecommendationToast(){\n' +
-    "  let node=$('#lbRecommendationToast');\n" +
-    '  if(node)return node;\n' +
-    "  node=document.createElement('div');\n" +
-    "  node.id='lbRecommendationToast';\n" +
-    "  node.className='toast recommendation';\n" +
-    "  node.dataset.lbRecommendationMirror='1';\n" +
-    '  node.dataset.lbPromptRevision=RECOMMENDATION_PROMPT_REVISION;\n' +
-    "  node.setAttribute('role','status');\n" +
-    "  node.setAttribute('aria-live','polite');\n" +
-    '  document.body.append(node);\n' +
-    '  return node;\n' +
-    '}\n' +
-    'function showRecommendationPrompt(message){\n' +
-    "  const text=String(message||'').trim();if(!text)return false;\n" +
-    '  injectStyle();\n' +
-    '  const node=ensureRecommendationToast();\n' +
-    '  clearTimeout(recommendationHideTimer);clearTimeout(recommendationCleanupTimer);\n' +
-    '  node.dataset.lbPrompt=text;\n' +
-    '  node.dataset.lbPromptRevision=RECOMMENDATION_PROMPT_REVISION;\n' +
-    '  node.textContent=text;\n' +
-    "  node.className='toast recommendation';\n" +
-    '  void node.offsetWidth;\n' +
-    "  node.classList.add('show');\n" +
-    "  recommendationHideTimer=setTimeout(()=>node.classList.remove('show'),6000);\n" +
-    '  recommendationCleanupTimer=setTimeout(()=>{\n' +
-    '    if(node.dataset.lbPrompt!==text)return;\n' +
-    "    node.className='toast recommendation';\n" +
-    "    node.textContent='';\n" +
-    '    delete node.dataset.lbPrompt;\n' +
-    '  },7000);\n' +
-    '  return true;\n' +
-    '}\n' +
-    'function pickRecommendationPrompt(mode){\n' +
-    "  const pool=RECOMMENDATION_PROMPTS[mode]||[];if(!pool.length)return '';\n" +
-    "  const previous=recommendationPromptMemory[mode]||'';\n" +
-    '  const choices=pool.filter(value=>value!==previous);\n' +
-    '  const selected=choices[Math.floor(Math.random()*choices.length)]||pool[0];\n' +
-    '  recommendationPromptMemory[mode]=selected;\n' +
-    '  return selected;\n' +
-    '}\n' +
-    'function showRecommendationPromptForMode(mode){\n' +
-    "  const text=pickRecommendationPrompt(String(mode||''));if(!text)return false;\n" +
-    '  directPromptLockUntil=performance.now()+6500;\n' +
-    '  return showRecommendationPrompt(text);\n' +
-    '}\n' +
-    'function mirrorRecommendationPrompt(){\n' +
-    '  if(performance.now()<directPromptLockUntil)return false;\n' +
-    "  const source=$('#toast');\n" +
-    "  if(!source?.classList.contains('recommendation'))return false;\n" +
-    "  return showRecommendationPrompt(source.textContent||'');\n" +
-    '}\n' +
-    'function installRecommendationPromptGuard(){\n' +
-    "  const source=$('#toast');\n" +
-    '  if(!source||recommendationPromptObserver)return;\n' +
-    '  recommendationPromptObserver=new MutationObserver(mirrorRecommendationPrompt);\n' +
-    "  recommendationPromptObserver.observe(source,{attributes:true,attributeFilter:['class'],childList:true,subtree:true,characterData:true});\n" +
-    '  mirrorRecommendationPrompt();\n' +
-    '}\n' +
-    'function syncUi(){syncQueued=false;injectStyle();installRecommendationPromptGuard();removeLeaderboard();normalizeBrewUi();}\n' +
-    'function queueSync(){if(syncQueued)return;syncQueued=true;requestAnimationFrame(syncUi);}\n' +
-    "document.addEventListener('luckybean:navigation-back',event=>{const api=globalThis.LuckyBeanBeanGroupState;if(api?.hasActiveGroup?.()&&api.close?.())event.preventDefault?.();});\n" +
-    "document.addEventListener('c"... 1171 more characters,
-  expected: /canonical bean-group state active/,
-  operator: 'match',
-  diff: 'simple'
-}
+[static] tests/v123e-recognition-pipeline-static.mjs
+Recognition document is the single translated and structured bean-entry source
 
-Node.js v22.23.2
-::error file=tests/v123e-ui-stability-static.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /canonical bean-group state active/. Input:%0A%0A'const $=(selector,root=document)=>root?.querySelector?.(selector)||null;\n' +%0A  "const RECOMMENDATION_PROMPT_REVISION='1.24B-main.9-immediate';\n" +%0A  'let syncQueued=false;\n' +%0A  'let recommendationPromptObserver=null;\n' +%0A  'let recommendationHideTimer=null;\n' +%0A  'let recommendationCleanupTimer=null;\n' +%0A  'let directPromptLockUntil=0;\n' +%0A  'const recommendationPromptMemory=Object.create(null);\n' +%0A  '\n' +%0A  'const RECOMMENDATION_PROMPTS=Object.freeze({\n' +%0A  '  leaderboard:[\n' +%0A  "    '直取榜首，不问其余。','依榜索魁，必得佳味。','榜单在前，今朝且试头筹。',\n" +%0A  "    '榜魁已定，此只风味精绝，不负众望。','一举摘魁，恰逢此豆风味正酣。',\n" +%0A  "    '众里寻它，终得榜首，宜细细品之。','照榜点将，专挑那个第一名！'\n" +%0A  '  ],\n' +%0A  '  freshness:[\n' +%0A  "    '此只风味精绝，君既选中，甚是妥当。','正逢此只风味最盛，您这一选，再好不过。',\n" +%0A  "    '此只正值风味精妙处，既已选定，便是良配。','此只正得意时，恰被君眼相中，眼光不差。'\n" +%0A  '  ],\n' +%0A  '  price:[\n' +%0A  "    '此只价冠诸豆，足见君之慧眼独钟。','此只乃众豆之魁，承君青睐，身价自高。',\n" +%0A  "    '此只位列首席，价亦昂，唯君堪配此味。','既择此只风骨，当知众豆之中，以此最为矜贵。'\n" +%0A  '  ],\n' +%0A  '  remaining:[\n' +%0A  "    '余粒无多，宜趁兴饮尽，为此豆作结。','所剩几何，当及时啜饮，不负此豆风华。',\n" +%0A  "    '残豆将尽，速饮之，好与此只从容作别。','此豆见底啦，趁风味未散，快快饮尽收场！'\n" +%0A  '  ],\n' +%0A  '  random:[\n' +%0A  "    '闭目拈签，任其自然。','信手拈签，以定今日之选。','且凭一签，决此豆归谁。',\n" +%0A  "    '一签落地，此只当归于君。','签指此只，风味正酣，君可安心享之。',\n" +%0A  "    '得此签，恰逢余粒无几，缘分也。','伸手拈一签，看天意选哪只！'\n" +%0A  '  ]\n' +%0A  '});\n' +%0A  '\n' +%0A  'function injectStyle(){\n' +%0A  "  if($('#lb124bInteractionFixStyle'))return;\n" +%0A  "  const style=document.createElement('style');\n" +%0A  "  style.id='lb124bInteractionFixStyle';\n" +%0A  '  style.textContent=`\n' +%0A  '    #beanGroups .preference-board-strip,#beanGroups [data-open-recommend-board]{display:none!important;}\n' +%0A  '    .bean-consumption-summary .lb-stock-total{font-size:.98rem!important;line-height:1.38!important;font-weight:600!important;letter-spacing:0!important;}\n' +%0A  '    :where(.popup-menu,.recommend-menu,.popup-menu button,.recommend-menu button,#brewContent button,#brewContent select,#brewContent option,#brewContent input,.dialog select,.dialog option){font-family:DengXian,"Microsoft YaHei UI","Noto Sans CJK SC","Noto Sans SC","PingFang SC",system-ui,sans-serif!important;font-synthesis:none;}\n' +%0A  '    .popup-menu,.recommend-menu{transform-origin:top center;animation:lbMenuEnter 145ms cubic-bezier(.2,.8,.2,1) both;}\n' +%0A  '    .recommend-menu [data-recommend-mode="remaining"] .recommend-dot{background:#808080!important;}\n' +%0A  '    .recommend-menu [data-recommend-mode="price"] .recommend-dot{background:#fff!important;}\n' +%0A  '    html[data-theme="light"] .recommend-menu [data-recommend-mode="price"] .recommend-dot{background:#000!important;}\n' +%0A  '    @keyframes lbMenuEnter{from{opacity:0;transform:translateY(-4px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}\n' +%0A  '    #lbRecommendationToast.toast.recommendation{\n' +%0A  '      position:fixed!important;\n' +%0A  '      z-index:10060!important;\n' +%0A  '      left:50%25!important;\n' +%0A  '      right:auto!important;\n' +%0A  '      bottom:calc(92px + var(--safe-bottom,0px))!important;\n' +%0A  '      width:max-content!important;\n' +%0A  '      max-width:min(90vw,520px)!important;\n' +%0A  '      min-width:0!important;\n' +%0A  '      padding:11px 17px!important;\n' +%0A  '      border:1px solid rgba(168,128,62,.55)!important;\n' +%0A  '      border-radius:12px!important;\n' +%0A  '      background:#e8d7ad!important;\n' +%0A  '      color:#17130d!important;\n' +%0A  '      font-family:FangSong,STFangsong,"FangSong_GB2312",serif!important;\n' +%0A  '      font-size:15px!important;\n' +%0A  '      font-weight:600!important;\n' +%0A  '      line-height:1.55!important;\n' +%0A  '      letter-spacing:.02em!important;\n' +%0A  '      text-align:center!important;\n' +%0A  '      white-space:normal!important;\n' +%0A  '      opacity:0!important;\n' +%0A  '      pointer-events:none!important;\n' +%0A  '      transform:translate(-50%25,18px)!important;\n' +%0A  '      transition:opacity .18s ease,transform .18s ease!important;\n' +%0A  '      box-shadow:0 12px 36px rgba(0,0,0,.28)!important;\n' +%0A  '    }\n' +%0A  '    #lbRecommendationToast.toast.recommendation.show{opacity:1!important;transform:translate(-50%25,0)!important;}\n' +%0A  '    html[data-theme="light"] #lbRecommendationToast.toast.recommendation{background:#e8d7ad!important;color:#17130d!important;}\n' +%0A  '    #brewContent .lb-auto-note{display:none!important;}\n' +%0A  '    #brewContent :is(.lb-auto-field,.model-recommended){background:transparent!important;border:0!important;border-bottom:1px solid color-mix(in srgb,var(--active,currentColor) 58%25,transparent)!important;border-radius:0!important;box-shadow:none!important;font-weight:inherit!important;text-decoration:none!important;}\n' +%0A  '    #brewContent .brew-row-primary :is(#brewDose,#brewRatio){width:100%25!important;min-height:36px!important;padding:6px 0 5px!important;font-size:14px!important;font-weight:500!important;line-height:1.45!important;text-align:center!important;text-align-last:center!important;font-variant-numeric:tabular-nums;}\n' +%0A  '    #brewContent [data-brew-row="filter-gear-water"]{align-items:end!important;}\n' +%0A  '    #brewContent [data-brew-row="filter-gear-water"]>.field{min-width:0!important;text-align:center!important;}\n' +%0A  '    #brewContent [data-brew-row="filter-gear-water"]>.field>span,#brewContent [data-brew-row="filter-gear-water"] .custom-summary{width:100%25!important;text-align:center!important;}\n' +%0A  '    #brewContent [data-brew-row="filter-gear-water"] :is(select,button,.control){width:100%25!important;min-height:34px!important;padding:5px 0!important;font-size:13px!important;font-weight:450!important;line-height:1.45!important;text-align:center!important;text-align-last:center!important;}\n' +%0A  '    #brewContent :is(#brewProfile,.brew-profile-row .control,.brew-generate-row .button){font-size:13px!important;line-height:1.45!important;font-weight:450!important;}\n' +%0A  '    #brewContent #brewProfile{text-align:center!important;text-align-last:center!important;}\n' +%0A  '    #brewContent :is(#brewProfile,#brewDripper,#brewFilterPaper,#brewWaterProfile,#brewRatio) option{font-size:13px!important;font-weight:400!important;}\n' +%0A  '    @media (max-width:720px){.bean-consumption-summary .lb-stock-total{font-size:.94rem!important;}#lbRecommendationToast.toast.recommendation{max-width:calc(100vw - 28px)!important;font-size:14px!important;}}\n' +%0A  '    @media (prefers-reduced-motion:reduce){.popup-menu,.recommend-menu{animation:none!important;}#lbRecommendationToast.toast.recommendation{transition:none!important;}}\n' +%0A  '  `;\n' +%0A  '  document.head.append(style);\n' +%0A  '}\n' +%0A  "function removeLeaderboard(){docum
+[static] tests/v124b-lifecycle-ocr-storage-regression.mjs
+LuckyBean 1.24B lifecycle, serial OCR, transit/frozen storage, order parsing and local brew regression checks passed
+
+[static] tests/v124b-ocr-worker-freeze-regression.mjs
+LuckyBean 1.24B browser OCR is Worker-only, prewarmed, timeout-bounded, and has no automatic Tesseract/main-thread fallback
+
+[static] tests/v124b-final-release-contract.mjs
+LuckyBean 1.24B main.4 final release contract with gated web-first deployment, canonical bean group state, shared sorting and text brew UI passed
+
+[static] tests/v124b-complete-plan-contract.mjs
+LuckyBean 1.24B main.4 complete modification-plan contract with canonical bean groups, gated Pages, shared sorting and text brew UI passed
+
+[static] tests/v124b-ui-policy-regression.mjs
+LuckyBean 1.24B single-owner bean group state, hidden preference leaderboard policy, shared live-preview sorting, text brew UI and Web/Android parity contracts passed
+
+[static] tests/v124b-recommendation-prompt-regression.mjs
+LuckyBean recommendation prompt contract passed: original five prompt libraries are immediate, visible, cache-busted, live-gated, isolated, and selection algorithms remain untouched
+
+[static] npm run test:recognition
+
+> luckybean-static-app@1.24.2 test:recognition
+> node --test test/*.test.js
+
+TAP version 13
+# Subtest: sums every bean remaining weight and counts authoritative consumption events once
+ok 1 - sums every bean remaining weight and counts authoritative consumption events once
+  ---
+  duration_ms: 2.338522
+  type: 'test'
+  ...
+# Subtest: restored mistaken brew is removed from today total
+ok 2 - restored mistaken brew is removed from today total
+  ---
+  duration_ms: 0.372014
+  type: 'test'
+  ...
+# Subtest: warns when latest completed consumption is within the configured sleep buffer
+ok 3 - warns when latest completed consumption is within the configured sleep buffer
+  ---
+  duration_ms: 0.426425
+  type: 'test'
+  ...
+# Subtest: uses a higher caffeine estimate for robusta beans
+ok 4 - uses a higher caffeine estimate for robusta beans
+  ---
+  duration_ms: 1.594915
+  type: 'test'
+  ...
+# Subtest: brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
+ok 5 - brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
+  ---
+  duration_ms: 1.010265
+  type: 'test'
+  ...
+# Subtest: production analysis envelope adapts into a plan accepted by the page validator
+ok 6 - production analysis envelope adapts into a plan accepted by the page validator
+  ---
+  duration_ms: 0.943565
+  type: 'test'
+  ...
+# Subtest: unknown analysis contracts and unversioned legacy plans remain rejected
+ok 7 - unknown analysis contracts and unversioned legacy plans remain rejected
+  ---
+  duration_ms: 0.494807
+  type: 'test'
+  ...
+# Subtest: cold brew validates stage water against brew water and recipe total independently
+ok 8 - cold brew validates stage water against brew water and recipe total independently
+  ---
+  duration_ms: 0.428899
+  type: 'test'
+  ...
+# Subtest: 参数重算保留同一豆卡已经实际采用的方案
+ok 9 - 参数重算保留同一豆卡已经实际采用的方案
+  ---
+  duration_ms: 2.558501
+  type: 'test'
+  ...
+# Subtest: 不同豆卡或手动选择方案时不会沿用旧方案
+ok 10 - 不同豆卡或手动选择方案时不会沿用旧方案
+  ---
+  duration_ms: 1.247197
+  type: 'test'
+  ...
+# Subtest: 并发计算采用 latest-wins，旧结果不能覆盖新结果
+ok 11 - 并发计算采用 latest-wins，旧结果不能覆盖新结果
+  ---
+  duration_ms: 0.549558
+  type: 'test'
+  ...
+# Subtest: 总分低于预测分不会单独触发冲煮优化
+ok 12 - 总分低于预测分不会单独触发冲煮优化
+  ---
+  duration_ms: 2.790376
+  type: 'test'
+  ...
+# Subtest: 品鉴后的具体负面维度触发可解释优化
+ok 13 - 品鉴后的具体负面维度触发可解释优化
+  ---
+  duration_ms: 0.920811
+  type: 'test'
+  ...
+# Subtest: 雷达轴只比较同组平均且无完成冲煮时不提示优化
+ok 14 - 雷达轴只比较同组平均且无完成冲煮时不提示优化
+  ---
+  duration_ms: 1.352454
+  type: 'test'
+  ...
+# Subtest: 实际执行明显偏离方案时不把负面结果归因于方案
+ok 15 - 实际执行明显偏离方案时不把负面结果归因于方案
+  ---
+  duration_ms: 0.42278
+  type: 'test'
+  ...
+# Subtest: 个人靶区至少三次证据后才改变，标准靶区保持不变
+ok 16 - 个人靶区至少三次证据后才改变，标准靶区保持不变
+  ---
+  duration_ms: 1.195811
+  type: 'test'
+  ...
+# Subtest: accepts a catalog with balanced hot and cold auto-recommend profiles
+ok 17 - accepts a catalog with balanced hot and cold auto-recommend profiles
+  ---
+  duration_ms: 1.048361
+  type: 'test'
+  ...
+# Subtest: rejects a catalog whose declared profile count differs from the payload
+ok 18 - rejects a catalog whose declared profile count differs from the payload
+  ---
+  duration_ms: 0.179848
+  type: 'test'
+  ...
+# Subtest: rejects a cold profile whose recipe water does not equal brew water + ice + bypass
+ok 19 - rejects a cold profile whose recipe water does not equal brew water + ice + bypass
+  ---
+  duration_ms: 1.124014
+  type: 'test'
+  ...
+# Subtest: rejects catalogs that cannot auto-recommend in both hot and cold modes
+ok 20 - rejects catalogs that cannot auto-recommend in both hot and cold modes
+  ---
+  duration_ms: 0.216562
+  type: 'test'
+  ...
+# Subtest: archive round-trip preserves every portable store
+ok 21 - archive round-trip preserves every portable store
+  ---
+  duration_ms: 18.921275
+  type: 'test'
+  ...
+# Subtest: archive rejects tampered store data
+ok 22 - archive rejects tampered store data
+  ---
+  duration_ms: 2.957315
+  type: 'test'
+  ...
+# Subtest: legacy 1.2.x JSON backup migrates without inventing records
+ok 23 - legacy 1.2.x JSON backup migrates without inventing records
+  ---
+  duration_ms: 0.451443
+  type: 'test'
+  ...
+# Subtest: future schema cannot be imported
+ok 24 - future schema cannot be imported
+  ---
+  duration_ms: 3.490207
+  type: 'test'
+  ...
+# Subtest: production date never falls back to roast date
+ok 25 - production date never falls back to roast date
+  ---
+  duration_ms: 6.545638
+  type: 'test'
+  ...
+# Subtest: best before and expiry dates are excluded from roast date
+ok 26 - best before and expiry dates are excluded from roast date
+  ---
+  duration_ms: 7.100665
+  type: 'test'
+  ...
+# Subtest: explicit roast date is auto-filled while other dates remain excluded
+ok 27 - explicit roast date is auto-filled while other dates remain excluded
+  ---
+  duration_ms: 2.220787
+  type: 'test'
+  ...
+# Subtest: unlabelled date requires confirmation and is never silently filled
+ok 28 - unlabelled date requires confirmation and is never silently filled
+  ---
+  duration_ms: 0.73873
+  type: 'test'
+  ...
+# Subtest: date photo role increases provenance but does not bypass confirmation
+ok 29 - date photo role increases provenance but does not bypass confirmation
+  ---
+  duration_ms: 0.905418
+  type: 'test'
+  ...
+# Subtest: invalid calendar dates are rejected
+ok 30 - invalid calendar dates are rejected
+  ---
+  duration_ms: 1.456189
+  type: 'test'
+  ...
+# Subtest: 30-case date ownership golden set has zero silent non-roast assignments
+    # Subtest: 烘焙日期：2026-07-28
+    ok 1 - 烘焙日期：2026-07-28
+      ---
+      duration_ms: 5.203169
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE 2026/07/28
+    ok 2 - ROAST DATE 2026/07/28
+      ---
+      duration_ms: 1.140038
+      type: 'test'
+      ...
+    # Subtest: ROASTED ON 2026.7.8
+    ok 3 - ROASTED ON 2026.7.8
+      ---
+      duration_ms: 0.318364
+      type: 'test'
+      ...
+    # Subtest: 焙炒日期 2026年7月28日
+    ok 4 - 焙炒日期 2026年7月28日
+      ---
+      duration_ms: 0.669838
+      type: 'test'
+      ...
+    # Subtest: RST DATE 20260728
+    ok 5 - RST DATE 20260728
+      ---
+      duration_ms: 0.413326
+      type: 'test'
+      ...
+    # Subtest: ROAST ON 28 JUL 2026
+    ok 6 - ROAST ON 28 JUL 2026
+      ---
+      duration_ms: 0.582127
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE JUL 28 2026
+    ok 7 - ROAST DATE JUL 28 2026
+      ---
+      duration_ms: 1.429519
+      type: 'test'
+      ...
+    # Subtest: 出炉日期 26年7月28日
+    ok 8 - 出炉日期 26年7月28日
+      ---
+      duration_ms: 1.009964
+      type: 'test'
+      ...
+    # Subtest: 烘焙日 26-07-28
+    ok 9 - 烘焙日 26-07-28
+      ---
+      duration_ms: 0.97996
+      type: 'test'
+      ...
+    # Subtest: 烘烤日期 26.0728
+    ok 10 - 烘烤日期 26.0728
+      ---
+      duration_ms: 0.481227
+      type: 'test'
+      ...
+    # Subtest: 生产日期：2026-07-21
+    ok 11 - 生产日期：2026-07-21
+      ---
+      duration_ms: 0.374688
+      type: 'test'
+      ...
+    # Subtest: MFG DATE 2026/07/21
+    ok 12 - MFG DATE 2026/07/21
+      ---
+      duration_ms: 0.214429
+      type: 'test'
+      ...
+    # Subtest: MFD 20260721
+    ok 13 - MFD 20260721
+      ---
+      duration_ms: 0.229723
+      type: 'test'
+      ...
+    # Subtest: 包装日期 2026.07.22
+    ok 14 - 包装日期 2026.07.22
+      ---
+      duration_ms: 0.245445
+      type: 'test'
+      ...
+    # Subtest: PACKED ON 2026-07-22
+    ok 15 - PACKED ON 2026-07-22
+      ---
+      duration_ms: 0.634786
+      type: 'test'
+      ...
+    # Subtest: PKD 20260722
+    ok 16 - PKD 20260722
+      ---
+      duration_ms: 0.341078
+      type: 'test'
+      ...
+    # Subtest: 最佳赏味期 2026-10-28
+    ok 17 - 最佳赏味期 2026-10-28
+      ---
+      duration_ms: 0.428177
+      type: 'test'
+      ...
+    # Subtest: BEST BEFORE 2026/10/28
+    ok 18 - BEST BEFORE 2026/10/28
+      ---
+      duration_ms: 0.351283
+      type: 'test'
+      ...
+    # Subtest: BBE 28 OCT 2026
+    ok 19 - BBE 28 OCT 2026
+      ---
+      duration_ms: 0.338655
+      type: 'test'
+      ...
+    # Subtest: 有效期至 2027年1月5日
+    ok 20 - 有效期至 2027年1月5日
+      ---
+      duration_ms: 0.365575
+      type: 'test'
+      ...
+    # Subtest: EXP 2027-01-05
+    ok 21 - EXP 2027-01-05
+      ---
+      duration_ms: 0.350422
+      type: 'test'
+      ...
+    # Subtest: USE BY JAN 5 2027
+    ok 22 - USE BY JAN 5 2027
+      ---
+      duration_ms: 0.412814
+      type: 'test'
+      ...
+    # Subtest: 埃塞俄比亚 / 2026-07-28
+    ok 23 - 埃塞俄比亚 / 2026-07-28
+      ---
+      duration_ms: 1.353967
+      type: 'test'
+      ...
+    # Subtest: DATE 2026/07/28
+    ok 24 - DATE 2026/07/28
+      ---
+      duration_ms: 0.33582
+      type: 'test'
+      ...
+    # Subtest: LOT 20260728
+    ok 25 - LOT 20260728
+      ---
+      duration_ms: 0.317673
+      type: 'test'
+      ...
+    # Subtest: 2026年7月28日
+    ok 26 - 2026年7月28日
+      ---
+      duration_ms: 0.367317
+      type: 'test'
+      ...
+    # Subtest: 28/07/2026
+    ok 27 - 28/07/2026
+      ---
+      duration_ms: 0.672141
+      type: 'test'
+      ...
+    # Subtest: 07/08/2026
+    ok 28 - 07/08/2026
+      ---
+      duration_ms: 0.649618
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE 07/08/2026
+    ok 29 - ROAST DATE 07/08/2026
+      ---
+      duration_ms: 0.498582
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
+    ok 30 - ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
+      ---
+      duration_ms: 0.574946
+      type: 'test'
+      ...
+    1..30
+ok 31 - 30-case date ownership golden set has zero silent non-roast assignments
+  ---
+  duration_ms: 25.154512
+  type: 'test'
+  ...
+# Subtest: review model exposes automatic, excluded and unresolved candidates together
+ok 32 - review model exposes automatic, excluded and unresolved candidates together
+  ---
+  duration_ms: 7.605967
+  type: 'test'
+  ...
+# Subtest: unresolved candidate requires an explicit date assignment before confirmation
+ok 33 - unresolved candidate requires an explicit date assignment before confirmation
+  ---
+  duration_ms: 0.994552
+  type: 'test'
+  ...
+# Subtest: user confirmation retains source provenance instead of inventing confidence 1
+ok 34 - user confirmation retains source provenance instead of inventing confidence 1
+  ---
+  duration_ms: 0.955022
+  type: 'test'
+  ...
+# Subtest: two roast date selections are rejected
+ok 35 - two roast date selections are rejected
+  ---
+  duration_ms: 1.928031
+  type: 'test'
+  ...
+# Subtest: candidate value cannot be replaced with an unrecognized date
+ok 36 - candidate value cannot be replaced with an unrecognized date
+  ---
+  duration_ms: 0.524401
+  type: 'test'
+  ...
+# Subtest: stale or fabricated candidate id is rejected
+ok 37 - stale or fabricated candidate id is rejected
+  ---
+  duration_ms: 0.69837
+  type: 'test'
+  ...
+# Subtest: all candidates may be ignored without silently restoring automatic roast date
+ok 38 - all candidates may be ignored without silently restoring automatic roast date
+  ---
+  duration_ms: 1.060049
+  type: 'test'
+  ...
+# Subtest: ambiguous day-month candidate can only resolve to one offered value
+ok 39 - ambiguous day-month candidate can only resolve to one offered value
+  ---
+  duration_ms: 1.611319
+  type: 'test'
+  ...
+# Subtest: duplicate submission of the same candidate is rejected
+ok 40 - duplicate submission of the same candidate is rejected
+  ---
+  duration_ms: 1.31623
+  type: 'test'
+  ...
+# Subtest: numeric Ethiopian variety codes are split into independent exact candidates
+ok 41 - numeric Ethiopian variety codes are split into independent exact candidates
+  ---
+  duration_ms: 31.270169
+  type: 'test'
+  ...
+# Subtest: multiple labeled varieties stay unresolved instead of silently choosing the first code
+ok 42 - multiple labeled varieties stay unresolved instead of silently choosing the first code
+  ---
+  duration_ms: 21.56511
+  type: 'test'
+  ...
+# Subtest: spaced alphanumeric variety codes survive OCR tokenization
+ok 43 - spaced alphanumeric variety codes survive OCR tokenization
+  ---
+  duration_ms: 7.229665
+  type: 'test'
+  ...
+# Subtest: explicit numeric roast levels map only within the labeled 0-6 scale
+ok 44 - explicit numeric roast levels map only within the labeled 0-6 scale
+  ---
+  duration_ms: 1.441571
+  type: 'test'
+  ...
+# Subtest: mixed label layouts preserve separate variety and roast evidence
+ok 45 - mixed label layouts preserve separate variety and roast evidence
+  ---
+  duration_ms: 3.00136
+  type: 'test'
+  ...
+# Subtest: equally exact codebook candidates remain a manual choice
+ok 46 - equally exact codebook candidates remain a manual choice
+  ---
+  duration_ms: 5.386553
+  type: 'test'
+  ...
+# Subtest: unsupported region evidence has no reliable candidates
+ok 47 - unsupported region evidence has no reliable candidates
+  ---
+  duration_ms: 5.08948
+  type: 'test'
+  ...
+# Subtest: recognition review UI contains only unresolved fields and disappears when none remain
+ok 48 - recognition review UI contains only unresolved fields and disappears when none remain
+  ---
+  duration_ms: 1.284246
+  type: 'test'
+  ...
+# Subtest: recognition provenance remains persisted for audit without becoming confirmed-field UI
+ok 49 - recognition provenance remains persisted for audit without becoming confirmed-field UI
+  ---
+  duration_ms: 0.25314
+  type: 'test'
+  ...
+# Subtest: confirmed roast date is still saved from the final form value
+ok 50 - confirmed roast date is still saved from the final form value
+  ---
+  duration_ms: 0.242414
+  type: 'test'
+  ...
+# Subtest: custom dropdown opens its editor after select change dispatch completes
+ok 51 - custom dropdown opens its editor after select change dispatch completes
+  ---
+  duration_ms: 0.178083
+  type: 'test'
+  ...
+# Subtest: reversed inline key-value keeps the semantic field association
+ok 52 - reversed inline key-value keeps the semantic field association
+  ---
+  duration_ms: 2.717406
+  type: 'test'
+  ...
+# Subtest: same-row value before label is paired by geometry and field semantics
+ok 53 - same-row value before label is paired by geometry and field semantics
+  ---
+  duration_ms: 0.848997
+  type: 'test'
+  ...
+# Subtest: vertical title and value are paired in either reading direction
+ok 54 - vertical title and value are paired in either reading direction
+  ---
+  duration_ms: 0.541109
+  type: 'test'
+  ...
+# Subtest: standalone unordered coffee entities remain available instead of being forced into unrelated fields
+ok 55 - standalone unordered coffee entities remain available instead of being forced into unrelated fields
+  ---
+  duration_ms: 1.642211
+  type: 'test'
+  ...
+# Subtest: range hyphen is preserved as value content rather than treated as a field separator
+ok 56 - range hyphen is preserved as value content rather than treated as a field separator
+  ---
+  duration_ms: 0.549371
+  type: 'test'
+  ...
+# Subtest: English labels and coffee values become Chinese canonical bean fields
+ok 57 - English labels and coffee values become Chinese canonical bean fields
+  ---
+  duration_ms: 20.020642
+  type: 'test'
+  ...
+# Subtest: unknown proper names are preserved and explicitly marked for review
+ok 58 - unknown proper names are preserved and explicitly marked for review
+  ---
+  duration_ms: 11.276722
+  type: 'test'
+  ...
+# Subtest: explicit numeric fields are parsed while unrelated numbers stay isolated
+ok 59 - explicit numeric fields are parsed while unrelated numbers stay isolated
+  ---
+  duration_ms: 8.564624
+  type: 'test'
+  ...
+# Subtest: Chinese, reverse-labelled and vertical fields share one canonical pipeline
+ok 60 - Chinese, reverse-labelled and vertical fields share one canonical pipeline
+  ---
+  duration_ms: 7.2612
+  type: 'test'
+  ...
+# Subtest: main.6 bean detail does not expose roast code and pairs process with roast date
+ok 61 - main.6 bean detail does not expose roast code and pairs process with roast date
+  ---
+  duration_ms: 1.242587
+  type: 'test'
+  ...
+# Subtest: main.6 floating quadrant, radar labels and sensory footer obey theme/layout contract
+ok 62 - main.6 floating quadrant, radar labels and sensory footer obey theme/layout contract
+  ---
+  duration_ms: 0.539057
+  type: 'test'
+  ...
+# Subtest: main.6 preserves FAB visibility ownership and opens manual OCR editor explicitly
+ok 63 - main.6 preserves FAB visibility ownership and opens manual OCR editor explicitly
+  ---
+  duration_ms: 0.417854
+  type: 'test'
+  ...
+# Subtest: main.6 package review waits for recognition handoff completion instead of racing the form renderer
+ok 64 - main.6 package review waits for recognition handoff completion instead of racing the form renderer
+  ---
+  duration_ms: 0.460335
+  type: 'test'
+  ...
+# Subtest: main.6 unresolved semantic fields preserve raw evidence for explicit bean-form confirmation
+ok 65 - main.6 unresolved semantic fields preserve raw evidence for explicit bean-form confirmation
+  ---
+  duration_ms: 0.216928
+  type: 'test'
+  ...
+1..65
+# tests 95
+# suites 0
+# pass 95
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 500.286638
+
+All LuckyBean static and recognition regression checks passed
