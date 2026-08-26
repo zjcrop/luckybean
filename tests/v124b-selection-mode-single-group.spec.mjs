@@ -1,6 +1,12 @@
 import { test, expect } from '@playwright/test';
 
 const BASE_URL='http://127.0.0.1:4173';
+const FRESHNESS_PROMPTS=[
+  '此只风味精绝，君既选中，甚是妥当。',
+  '正逢此只风味最盛，您这一选，再好不过。',
+  '此只正值风味精妙处，既已选定，便是良配。',
+  '此只正得意时，恰被君眼相中，眼光不差。'
+];
 
 async function waitForStartup(page){
   const splash=page.locator('#splashScreen');
@@ -90,18 +96,46 @@ test('selection colors are semantic and theme dependent only where contrast requ
   await expect(page.locator('[data-recommend-mode="price"] .recommend-dot')).toHaveCSS('background-color','rgb(0, 0, 0)');
 });
 
-test('selection fun prompt stays visible when an ordinary status notice arrives',async({page})=>{
+test('selection fun prompt is an original library sentence, visible immediately, and survives ordinary status notices',async({page})=>{
   await page.locator('#fabRecommendBtn').click();
   const option=page.locator('[data-recommend-mode="freshness"]');
   await expect(option).toBeVisible();
   await option.click();
+
   const prompt=page.locator('#lbRecommendationToast');
-  await expect(prompt).toHaveClass(/show/,{timeout:5000});
+  await expect(prompt).toBeVisible({timeout:1000});
+  await expect(prompt).toHaveClass(/show/,{timeout:1000});
   const promptText=(await prompt.textContent())?.trim()||'';
-  expect(promptText.length).toBeGreaterThan(3);
+  expect(FRESHNESS_PROMPTS).toContain(promptText);
+
+  const geometry=await prompt.evaluate(node=>{
+    const rect=node.getBoundingClientRect();
+    const style=getComputedStyle(node);
+    return {
+      top:rect.top,bottom:rect.bottom,left:rect.left,right:rect.right,
+      width:rect.width,height:rect.height,
+      opacity:Number(style.opacity),
+      display:style.display,
+      visibility:style.visibility,
+      background:style.backgroundColor,
+      color:style.color,
+      viewportWidth:innerWidth,viewportHeight:innerHeight
+    };
+  });
+  expect(geometry.width).toBeGreaterThan(80);
+  expect(geometry.height).toBeGreaterThan(20);
+  expect(geometry.opacity).toBeGreaterThan(0.9);
+  expect(geometry.display).not.toBe('none');
+  expect(geometry.visibility).not.toBe('hidden');
+  expect(geometry.left).toBeGreaterThanOrEqual(0);
+  expect(geometry.right).toBeLessThanOrEqual(geometry.viewportWidth+1);
+  expect(geometry.top).toBeGreaterThanOrEqual(0);
+  expect(geometry.bottom).toBeLessThanOrEqual(geometry.viewportHeight+1);
+
   await page.evaluate(()=>document.dispatchEvent(new CustomEvent('luckybean:user-notice',{detail:{message:'普通状态提示',kind:'status-good'}})));
   await expect(page.locator('#toast')).toHaveText('普通状态提示');
   await expect(prompt).toHaveText(promptText);
+  await expect(prompt).toBeVisible();
   await expect(prompt).toHaveClass(/show/);
 });
 
