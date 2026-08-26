@@ -83,8 +83,8 @@ assert.match(androidApplication, /ChineseTextRecognizerOptions/);
 assert.match(androidActivity, /InputImage\.fromFilePath\(MainActivity\.this, sourceUri\)/);
 assert.match(androidBridge, /LuckyBeanRecognitionBridge/);
 assert.match(androidBridge, /for \(const image of images\)/);
-assert.match(recognitionBridge, /queueConcurrency:1/);
-assert.match(recognitionBridge, /taskId:`IMG-\$\{String\(index\+1\)\.padStart\(3,'0'\)\}`/);
+assert.match(recognitionBridge, /queueConcurrency\s*:\s*1/);
+assert.match(recognitionBridge, /taskId\s*:\s*`IMG-\$\{String\(index\s*\+\s*1\)\.padStart\(3,\s*'0'\)\}`/);
 assert.match(packageCapture, /bindAndroidImageSource\(id, nativeSource\)/);
 
 assert.match(releaseCore, /BeanOwnershipStatus/);
