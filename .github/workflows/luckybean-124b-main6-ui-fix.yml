@@ -26,6 +26,7 @@ jobs:
           python scripts/luckybean-main6-ui-fix.py
           python scripts/luckybean-main6-regression-fix.py
           python scripts/luckybean-main6-handoff-race-fix.py
+          python scripts/luckybean-main6-review-evidence-fix.py
       - name: Install dependencies
         run: npm ci
       - name: Run source and recognition regressions
@@ -65,4 +66,4 @@ jobs:
           git commit -m 'fix: refine bean detail floating controls and sensory footer'
           git push origin HEAD:main
 
-# verification-attempt: 4
+# verification-attempt: 5
