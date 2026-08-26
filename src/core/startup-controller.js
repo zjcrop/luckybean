@@ -3,6 +3,7 @@ import { get, put } from '../db.js';
 const DEVICE_RECORD_ID = 'cloud.device.id.v3';
 const SPLASH_READY_TIMEOUT_MS = 12000;
 const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.3';
+const APP_MODULE_REVISION = '1.24B-main.8-prompt';
 let enterRequested = false;
 let shellReady = false;
 
@@ -125,8 +126,8 @@ setStatus('正在准备本地数据…');
 try {
   await ensureLocalDevice();
   document.dispatchEvent(new CustomEvent('luckybean:local-bootstrap-ready'));
-  await import(`../app.js?v=${encodeURIComponent(RELEASE_REVISION)}`);
-  document.dispatchEvent(new CustomEvent('luckybean:app-module-loaded'));
+  await import(`../app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}`);
+  document.dispatchEvent(new CustomEvent('luckybean:app-module-loaded', { detail: { appModuleRevision: APP_MODULE_REVISION } }));
   watchForShell();
 } catch (error) {
   console.error('本地应用启动失败', error);
