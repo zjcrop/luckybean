@@ -11,8 +11,8 @@ tests/v127-user-regressions-ui.spec.mjs:31:    document.dispatchEvent(new Custom
 tests/v127-user-regressions-ui.spec.mjs:41:  await page.evaluate(() => document.dispatchEvent(new CustomEvent('luckybean:app-refreshed', { detail: { source: 'v123e-force-display-repair' } })));
 tests/v127-user-regressions-ui.spec.mjs:104:    const { preparePackageImage } = await import('/src/image-quality.js?v123e-native-fallback');
 tests/v127-user-regressions-ui.spec.mjs:136:    const { recognizeCoffeeBag } = await import('/src/recognition-bridge.js?v123e-uri-ocr');
-tests/v110-local-first-sync-static.mjs:119:assert.match(sw, /'luckybean-main-v123e-'/);
-tests/v110-local-first-sync-static.mjs:120:assert.match(sw, /'luckybean-main-v123d-'/);
+tests/v110-local-first-sync-static.mjs:121:assert.match(sw, /'luckybean-main-v123e-'/);
+tests/v110-local-first-sync-static.mjs:122:assert.match(sw, /'luckybean-main-v123d-'/);
 tests/v123e-interaction-repair-ui.spec.mjs:7:  await page.goto(`${BASE_URL}/?v123e-canonical-interaction=1`, { waitUntil:'domcontentloaded' });
 tests/v122-cloud-sync-safety.mjs:61:console.log('v1.23D cloud union baseline and deletion propagation checks passed');
 tests/v123e-navigation-back-static.mjs:39:assert.ok(versionCode > 102315, `upgrade versionCode must exceed previous signed build: ${versionCode}`);
