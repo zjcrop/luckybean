@@ -78,6 +78,9 @@ jobs:
           grep -Fq 'data-close-bean-group' src/app.js
           grep -Fq 'const RECOMMENDATION_PROMPTS' src/app.js
           grep -Fq '直取榜首，不问其余。' src/app.js
+          grep -Fq 'startup-controller.js?v=1.24B-main.8-prompt' index.html
+          grep -Fq "APP_MODULE_REVISION = '1.24B-main.8-prompt'" src/core/startup-controller.js
+          grep -Fq 'app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}' src/core/startup-controller.js
           grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.7-prompt' index.html
           grep -Fq 'beanGroupState' src/bean-groups-controller.js
           ! grep -Fq 'let activeGroup' src/bean-groups-controller.js
@@ -96,7 +99,7 @@ jobs:
           cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
           cp -R src public contracts schemas _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.6","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","recommendationPrompt":"main.7-prompt","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","scoreLayout":"viewport-safe-next-line-range","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.6"}\n' "$SOURCE_SHA" > _site/version.json
+          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.6","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","recommendationPrompt":"main.7-prompt","appModuleRevision":"1.24B-main.8-prompt","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","scoreLayout":"viewport-safe-next-line-range","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.6"}\n' "$SOURCE_SHA" > _site/version.json
       - uses: actions/configure-pages@v6.0.0
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
@@ -129,6 +132,7 @@ jobs:
             curl -L -fsS "$base/version.json?check=$SOURCE_SHA" -o /tmp/version.json || true
             curl -L -fsS "$base/?check=$SOURCE_SHA" -o /tmp/index.html || true
             curl -L -fsS "$base/src/app.js?check=$SOURCE_SHA" -o /tmp/app.js || true
+            curl -L -fsS "$base/src/core/startup-controller.js?check=$SOURCE_SHA" -o /tmp/startup.js || true
             curl -L -fsS "$base/src/release-1.24b.css?check=$SOURCE_SHA" -o /tmp/release.css || true
             curl -L -fsS "$base/src/domain/beans/bean-group-state.js?check=$SOURCE_SHA" -o /tmp/group-state.js || true
             curl -L -fsS "$base/src/bean-groups-controller.js?check=$SOURCE_SHA" -o /tmp/bean-groups.js || true
@@ -138,8 +142,12 @@ jobs:
               && grep -Fq '"revision":"1.24B-main.6"' /tmp/version.json \
               && grep -Fq '"groupNavigation":"canonical-state-api"' /tmp/version.json \
               && grep -Fq '"recommendationPrompt":"main.7-prompt"' /tmp/version.json \
+              && grep -Fq '"appModuleRevision":"1.24B-main.8-prompt"' /tmp/version.json \
               && grep -Fq '"scoreLayout":"viewport-safe-next-line-range"' /tmp/version.json \
+              && grep -Fq 'startup-controller.js?v=1.24B-main.8-prompt' /tmp/index.html \
               && grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.7-prompt' /tmp/index.html \
+              && grep -Fq "APP_MODULE_REVISION = '1.24B-main.8-prompt'" /tmp/startup.js \
+              && grep -Fq 'app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}' /tmp/startup.js \
               && grep -Fq 'const RECOMMENDATION_PROMPTS' /tmp/app.js \
               && grep -Fq '直取榜首，不问其余。' /tmp/app.js \
               && grep -Fq "['process', '按处理法']" /tmp/app.js \
@@ -150,7 +158,7 @@ jobs:
               && ! grep -Fq 'let activeGroup' /tmp/bean-groups.js \
               && grep -Fq 'LuckyBeanBeanGroupState' /tmp/group-navigation.js \
               && ! grep -Fq 'dispatchEvent(new MouseEvent' /tmp/group-navigation.js; then
-              echo "LuckyBean Pages serves main source $SOURCE_SHA with recommendation prompt library"
+              echo "LuckyBean Pages serves fresh app module $SOURCE_SHA with recommendation prompt library"
               break
             fi
             if [ "$attempt" = 30 ]; then
@@ -206,9 +214,9 @@ jobs:
         run: |
           set -euo pipefail
           receipt=$(mktemp)
-          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","recommendation_prompt":"main.7-prompt","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
+          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","recommendation_prompt":"main.7-prompt","app_module_revision":"1.24B-main.8-prompt","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
           git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git config user.email 41898282+zjcrop@users.noreply.github.com
           if git ls-remote --exit-code --heads origin pages-status >/dev/null 2>&1; then
             git fetch origin pages-status:pages-status
             git switch pages-status
