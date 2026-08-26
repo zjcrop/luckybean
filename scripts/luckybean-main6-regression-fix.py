@@ -58,5 +58,9 @@ test('main.6 preserves FAB visibility ownership and opens manual OCR editor expl
 if "main.6 preserves FAB visibility ownership" not in text:
     regression.write_text(text.rstrip() + extra + '\n', encoding='utf-8')
 
+# D) Keep the generated release stylesheet diff-clean: one final newline, no blank line at EOF.
+css_text = css.read_text(encoding='utf-8')
+css.write_text(css_text.rstrip() + '\n', encoding='utf-8')
+
 # This script is one-shot staging machinery and must not enter the product commit.
 Path('scripts/luckybean-main6-regression-fix.py').unlink(missing_ok=True)
