@@ -18,9 +18,15 @@ const MODEL_FILES = [
   'PP-OCRv5_mobile_det_onnx_infer.tar',
   'PP-OCRv5_mobile_rec_onnx_infer.tar'
 ];
+// onnxruntime-web 1.22's browser ESM may choose the JSEP build even when
+// inference is requested through the WASM backend. Keep both the baseline and
+// JSEP module/binary pairs same-origin so browser capability differences never
+// reintroduce an external runtime fetch or a 404.
 const ORT_FILES = [
   'ort-wasm-simd-threaded.mjs',
-  'ort-wasm-simd-threaded.wasm'
+  'ort-wasm-simd-threaded.wasm',
+  'ort-wasm-simd-threaded.jsep.mjs',
+  'ort-wasm-simd-threaded.jsep.wasm'
 ];
 
 const moduleMap = new Map();
