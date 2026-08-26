@@ -1,0 +1,63 @@
+name: LuckyBean 1.24B main.6 UI corrections
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/luckybean-124b-main6-ui-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-commit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply main.6 UI corrections
+        run: python scripts/luckybean-main6-ui-fix.py
+      - name: Install dependencies
+        run: npm ci
+      - name: Run source and recognition regressions
+        run: npm run test:recognition
+      - name: Run static regressions
+        run: npm run test:static
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start local web server
+        shell: bash
+        run: |
+          python -m http.server 4173 > /tmp/luckybean-main6-http.log 2>&1 &
+          server_pid=$!
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:4173/ > /dev/null; then
+              exit 0
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat /tmp/luckybean-main6-http.log
+              exit 1
+            fi
+            sleep 1
+          done
+          cat /tmp/luckybean-main6-http.log
+          exit 1
+      - name: Run browser core regressions
+        run: npm run test:core
+      - name: Verify patch cleanliness
+        run: |
+          git diff --check
+          git status --short
+      - name: Commit verified main.6 product changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix: refine bean detail floating controls and sensory footer'
+          git push origin HEAD:main
