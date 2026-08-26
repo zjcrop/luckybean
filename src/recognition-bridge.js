@@ -5,7 +5,7 @@ export class RecognitionUnavailableError extends Error {
   }
 }
 
-const BATCH_STATE_KEY='luckybean.recognition.batch.1.24b';
+const BATCH_STATE_KEY = 'luckybean.recognition.batch.1.24b';
 
 function cleanText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -13,11 +13,15 @@ function cleanText(value) {
 
 function safeStoreBatch(batch) {
   try { localStorage.setItem(BATCH_STATE_KEY, JSON.stringify(batch)); } catch {}
-  try { document.dispatchEvent(new CustomEvent('luckybean:recognition-batch-progress',{detail:{batch}})); } catch {}
+  try {
+    document.dispatchEvent(new CustomEvent('luckybean:recognition-batch-progress', { detail: { batch } }));
+  } catch {}
 }
+
 export function getRecognitionBatchSnapshot() {
   try { return JSON.parse(localStorage.getItem(BATCH_STATE_KEY) || 'null'); } catch { return null; }
 }
+
 export function clearRecognitionBatchSnapshot() {
   try { localStorage.removeItem(BATCH_STATE_KEY); } catch {}
 }
@@ -74,42 +78,33 @@ async function nativeRecognize(images, options) {
   if (typeof bridge?.recognizeCoffeeBag !== 'function') return null;
   const payloadImages = [];
   for (const image of images) payloadImages.push(await imagePayloadForNative(image));
-  const result = await bridge.recognizeCoffeeBag({ images:payloadImages, locale:options.locale || 'zh-CN' });
-  return { ...result, engine:result?.engine || 'native-ppocr' };
+  const result = await bridge.recognizeCoffeeBag({ images: payloadImages, locale: options.locale || 'zh-CN' });
+  return { ...result, engine: result?.engine || 'native-ppocr' };
 }
 
 async function invokeWebProvider(provider, images, options, fallbackEngine) {
   if (typeof provider?.recognizeCoffeeBag === 'function') {
     const result = await provider.recognizeCoffeeBag(images, options);
-    return { ...result, engine:result?.engine || fallbackEngine };
+    return { ...result, engine: result?.engine || fallbackEngine };
   }
   if (typeof provider?.recognize === 'function') {
     const results = [];
     for (const image of images) {
       const value = await provider.recognize(image.blob, options);
-      results.push({ imageId:image.id, value });
+      results.push({ imageId: image.id, value });
     }
-    return { engine:fallbackEngine, results };
+    return { engine: fallbackEngine, results };
   }
   return null;
 }
 
-async function webProviderRecognize(images, options) {
-  const providers = [
-    ['paddle', globalThis.LuckyBeanPaddleOCR, 'web-ppocr'],
-    ['web', globalThis.LuckyBeanWebOCR, 'web-tesseract']
-  ].filter(([, provider]) => provider);
-  if (!providers.length) return null;
-  const failures = [];
-  for (const [name, provider, fallbackEngine] of providers) {
-    try {
-      const result = await invokeWebProvider(provider, images, options, fallbackEngine);
-      if (result) return result;
-    } catch (error) {
-      failures.push(`${name}:${error?.message || error}`);
-    }
+async function paddleWorkerRecognize(images, options) {
+  const provider = globalThis.LuckyBeanPaddleOCR;
+  if (!provider) return null;
+  if (provider.workerOnly !== true) {
+    throw new Error('网页 PP-OCR 未处于 Worker-only 安全模式，已拒绝在主线程启动识别');
   }
-  throw new Error(`网页 OCR provider 均失败：${failures.join(' | ')}`);
+  return invokeWebProvider(provider, images, options, 'web-ppocr-worker');
 }
 
 async function textDetectorRecognize(images) {
@@ -118,10 +113,10 @@ async function textDetectorRecognize(images) {
   const results = [];
   for (const image of images) {
     const bitmap = await createImageBitmap(image.blob);
-    try { results.push({ imageId:image.id, value:await detector.detect(bitmap) }); }
+    try { results.push({ imageId: image.id, value: await detector.detect(bitmap) }); }
     finally { bitmap.close?.(); }
   }
-  return { engine:'browser-text-detector', results };
+  return { engine: 'browser-text-detector', results };
 }
 
 function collectBlocks(result, images) {
@@ -144,7 +139,7 @@ function collectBlocks(result, images) {
   }
   if (!blocks.length && result?.fullText) {
     const imageId = images[0]?.id || '';
-    const normalized = normalizeBlock({ text:result.fullText, confidence:result.confidence }, imageId, engine, roleByImage.get(imageId) || 'side');
+    const normalized = normalizeBlock({ text: result.fullText, confidence: result.confidence }, imageId, engine, roleByImage.get(imageId) || 'side');
     if (normalized) blocks.push(normalized);
   }
   return deduplicateBlocks(blocks);
@@ -153,39 +148,40 @@ function collectBlocks(result, images) {
 export function getRecognitionCapabilities() {
   const nativeBridge = globalThis.LuckyBeanRecognitionBridge || globalThis.LuckyBeanNative;
   return {
-    native:typeof nativeBridge?.recognizeCoffeeBag === 'function',
-    webPaddle:Boolean(globalThis.LuckyBeanPaddleOCR || globalThis.LuckyBeanWebOCR),
-    textDetector:typeof globalThis.TextDetector === 'function'
+    native: typeof nativeBridge?.recognizeCoffeeBag === 'function',
+    webPaddle: Boolean(globalThis.LuckyBeanPaddleOCR?.workerOnly === true),
+    legacyWeb: Boolean(globalThis.LuckyBeanWebOCR),
+    textDetector: typeof globalThis.TextDetector === 'function'
   };
 }
 
 async function recognizeSingleImage(image, options) {
   let result = await nativeRecognize([image], options);
-  if (!result) result = await webProviderRecognize([image], options);
+  if (!result) result = await paddleWorkerRecognize([image], options);
   if (!result) result = await textDetectorRecognize([image]);
-  if (!result) throw new RecognitionUnavailableError();
+  if (!result) throw new RecognitionUnavailableError('当前设备没有可安全运行的 Worker OCR；不会自动切换主线程识别');
   return result;
 }
 
 function newBatch(images) {
-  const createdAt=new Date().toISOString();
+  const createdAt = new Date().toISOString();
   return {
-    batchId:`BATCH-${createdAt.replace(/[-:.TZ]/g,'').slice(0,14)}`,
+    batchId: `BATCH-${createdAt.replace(/[-:.TZ]/g, '').slice(0, 14)}`,
     createdAt,
-    status:'processing',
-    currentTask:0,
-    totalTasks:images.length,
+    status: 'processing',
+    currentTask: 0,
+    totalTasks: images.length,
     queueConcurrency:1,
-    tasks:images.map((image,index)=>({
-      taskId:`IMG-${String(index+1).padStart(3,'0')}`,
-      order:index+1,
-      imageId:image.id,
-      role:image.role||'side',
-      status:'pending',
-      engine:'',
-      text:'',
-      blocks:[],
-      error:null
+    tasks: images.map((image, index) => ({
+      taskId: `IMG-${String(index + 1).padStart(3, '0')}`,
+      order: index + 1,
+      imageId: image.id,
+      role: image.role || 'side',
+      status: 'pending',
+      engine: '',
+      text: '',
+      blocks: [],
+      error: null
     }))
   };
 }
@@ -195,42 +191,42 @@ export async function recognizeCoffeeBag(images, options = {}) {
   const allBlocks = [];
   const perImage = [];
   let engine = '';
-  const batch=newBatch(images);
+  const batch = newBatch(images);
   safeStoreBatch(batch);
   for (let index=0; index<images.length; index+=1) {
-    const image=images[index];
-    const task=batch.tasks[index];
-    batch.currentTask=index+1;
-    task.status='processing';
+    const image = images[index];
+    const task = batch.tasks[index];
+    batch.currentTask = index + 1;
+    task.status = 'processing';
     safeStoreBatch(batch);
     try {
-      const result=await recognizeSingleImage(image,options);
-      const blocks=collectBlocks(result,[image]);
-      engine=result?.engine||engine||'unknown';
-      task.engine=engine;
-      task.blocks=blocks;
-      task.text=blocks.map(block=>block.text).join('\n') || cleanText(result?.fullText);
+      const result = await recognizeSingleImage(image, options);
+      const blocks = collectBlocks(result, [image]);
+      engine = result?.engine || engine || 'unknown';
+      task.engine = engine;
+      task.blocks = blocks;
+      task.text = blocks.map(block => block.text).join('\n') || cleanText(result?.fullText);
       task.status='completed';
       allBlocks.push(...blocks);
-      perImage.push({ imageId:image.id, engine, blocks, fullText:task.text });
+      perImage.push({ imageId: image.id, engine, blocks, fullText: task.text });
       safeStoreBatch(batch);
-    } catch(error) {
-      task.status='failed';
-      task.error=String(error?.message||error);
+    } catch (error) {
+      task.status = 'failed';
+      task.error = String(error?.message || error);
       batch.status='paused';
       safeStoreBatch(batch);
       throw error;
     }
   }
-  batch.status='completed';
+  batch.status = 'completed';
   safeStoreBatch(batch);
-  const blocks=deduplicateBlocks(allBlocks);
+  const blocks = deduplicateBlocks(allBlocks);
   return {
-    engine:engine||'unknown',
+    engine: engine || 'unknown',
     blocks,
-    fullText:perImage.map(item=>item.fullText).filter(Boolean).join('\n\n'),
-    results:perImage,
-    serial:true,
+    fullText: perImage.map(item => item.fullText).filter(Boolean).join('\n\n'),
+    results: perImage,
+    serial: true,
     queueConcurrency:1,
     batch
   };

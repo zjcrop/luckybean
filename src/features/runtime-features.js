@@ -3,7 +3,6 @@ const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEA
 
 const RUNTIME_FEATURES = Object.freeze([
   feature('data-migrations', '../data-migrations.js'),
-  feature('recognition-web-ocr', '../recognition-web-ocr.js'),
   feature('recognition-paddle-ocr', '../recognition-paddle-ocr.js'),
   feature('recognition-quality', '../recognition-quality-controller.js'),
   feature('package-capture', '../package-capture-controller.js'),
@@ -33,20 +32,20 @@ for (const runtimeFeature of RUNTIME_FEATURES) {
     await import(runtimeFeature.path);
     loaded.push(runtimeFeature.id);
   } catch (error) {
-    const failure = { id:runtimeFeature.id, path:runtimeFeature.path, message:error?.message || String(error) };
+    const failure = { id: runtimeFeature.id, path: runtimeFeature.path, message: error?.message || String(error) };
     failures.push(failure);
     console.error('正式运行功能加载失败', failure, error);
-    document.dispatchEvent(new CustomEvent('luckybean:runtime-feature-error', { detail:failure }));
+    document.dispatchEvent(new CustomEvent('luckybean:runtime-feature-error', { detail: failure }));
   }
 }
 
 globalThis.LuckyBeanRuntimeFeatures = {
   revision: RELEASE_REVISION,
-  declared:RUNTIME_FEATURES.map(runtimeFeature => runtimeFeature.id),
+  declared: RUNTIME_FEATURES.map(runtimeFeature => runtimeFeature.id),
   loaded,
   failures
 };
 
 document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', {
-  detail:{ revision:RELEASE_REVISION, declared:RUNTIME_FEATURES.length, loaded:loaded.length, failures }
+  detail: { revision: RELEASE_REVISION, declared: RUNTIME_FEATURES.length, loaded: loaded.length, failures }
 }));
