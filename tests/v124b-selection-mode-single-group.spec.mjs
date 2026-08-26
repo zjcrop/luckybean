@@ -88,6 +88,21 @@ test('selection colors are semantic and theme independent',async({page})=>{
   await expect(page.locator('[data-recommend-mode="remaining"] .recommend-dot')).toHaveCSS('background-color','rgb(128, 128, 128)');
 });
 
+test('selection fun prompt stays visible when an ordinary status notice arrives',async({page})=>{
+  await page.locator('#fabRecommendBtn').click();
+  const option=page.locator('[data-recommend-mode="freshness"]');
+  await expect(option).toBeVisible();
+  await option.click();
+  const prompt=page.locator('#lbRecommendationToast');
+  await expect(prompt).toHaveClass(/show/,{timeout:5000});
+  const promptText=(await prompt.textContent())?.trim()||'';
+  expect(promptText.length).toBeGreaterThan(3);
+  await page.evaluate(()=>document.dispatchEvent(new CustomEvent('luckybean:user-notice',{detail:{message:'普通状态提示',kind:'status-good'}})));
+  await expect(page.locator('#toast')).toHaveText('普通状态提示');
+  await expect(prompt).toHaveText(promptText);
+  await expect(prompt).toHaveClass(/show/);
+});
+
 test('all five selection modes keep exactly one target group open across every native grouping method',async({page})=>{
   for(const method of ['country','variety','roast','process']){
     await chooseGroupMethod(page,method);

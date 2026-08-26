@@ -29,7 +29,8 @@ const tests = [
   'tests/v124b-ocr-worker-freeze-regression.mjs',
   'tests/v124b-final-release-contract.mjs',
   'tests/v124b-complete-plan-contract.mjs',
-  'tests/v124b-ui-policy-regression.mjs'
+  'tests/v124b-ui-policy-regression.mjs',
+  'tests/v124b-recommendation-prompt-regression.mjs'
 ];
 
 function annotation(text) {
