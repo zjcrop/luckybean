@@ -1,4 +1,5 @@
 const $=(selector,root=document)=>root?.querySelector?.(selector)||null;
+const RECOMMENDATION_PROMPT_REVISION='1.24B-main.9-immediate';
 let syncQueued=false;
 let recommendationPromptObserver=null;
 let recommendationHideTimer=null;
@@ -103,6 +104,7 @@ function ensureRecommendationToast(){
   node.id='lbRecommendationToast';
   node.className='toast recommendation';
   node.dataset.lbRecommendationMirror='1';
+  node.dataset.lbPromptRevision=RECOMMENDATION_PROMPT_REVISION;
   node.setAttribute('role','status');
   node.setAttribute('aria-live','polite');
   document.body.append(node);
@@ -114,6 +116,7 @@ function showRecommendationPrompt(message){
   const node=ensureRecommendationToast();
   clearTimeout(recommendationHideTimer);clearTimeout(recommendationCleanupTimer);
   node.dataset.lbPrompt=text;
+  node.dataset.lbPromptRevision=RECOMMENDATION_PROMPT_REVISION;
   node.textContent=text;
   node.className='toast recommendation';
   void node.offsetWidth;
@@ -166,5 +169,5 @@ document.addEventListener('click',event=>{
 document.addEventListener('change',event=>{if(event.target?.closest?.('#brewContent'))queueSync();},{capture:true});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',queueSync,{once:true});else queueSync();
 injectStyle();installRecommendationPromptGuard();queueSync();
-globalThis.LuckyBean124BGroupNavigation={close:()=>globalThis.LuckyBeanBeanGroupState?.close?.()||false,hasActiveGroup:()=>Boolean(globalThis.LuckyBeanBeanGroupState?.hasActiveGroup?.()),sync:queueSync,showRecommendationPromptForMode};
-console.info('[LuckyBean] 1.24B canonical bean-group state active; immediate fun recommendation prompt active');
+globalThis.LuckyBean124BGroupNavigation={revision:RECOMMENDATION_PROMPT_REVISION,close:()=>globalThis.LuckyBeanBeanGroupState?.close?.()||false,hasActiveGroup:()=>Boolean(globalThis.LuckyBeanBeanGroupState?.hasActiveGroup?.()),sync:queueSync,showRecommendationPromptForMode};
+console.info(`[LuckyBean] ${RECOMMENDATION_PROMPT_REVISION} canonical bean-group state; immediate fun recommendation prompt active`);
