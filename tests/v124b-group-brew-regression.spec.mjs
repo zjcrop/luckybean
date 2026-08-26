@@ -147,10 +147,13 @@ test('country variety roast and process folders use one canonical close action',
 });
 
 test('native recommendation opens only the target group and never expands all groups',async({page})=>{
-  // 选择菜单颜色属于功能语义，不再依赖旧主题色。
+  // 价冠需要随主题保持对比度：黑色模式白点，白色模式黑点；拾余固定灰点。
   await page.locator('#fabRecommendBtn').click();
-  await expect(page.locator('[data-recommend-mode="price"] .recommend-dot')).toHaveCSS('background-color','rgb(0, 0, 0)');
+  await expect(page.locator('[data-recommend-mode="price"] .recommend-dot')).toHaveCSS('background-color','rgb(255, 255, 255)');
   await expect(page.locator('[data-recommend-mode="remaining"] .recommend-dot')).toHaveCSS('background-color','rgb(128, 128, 128)');
+  await page.evaluate(()=>document.documentElement.dataset.theme='light');
+  await expect(page.locator('[data-recommend-mode="price"] .recommend-dot')).toHaveCSS('background-color','rgb(0, 0, 0)');
+  await page.evaluate(()=>document.documentElement.dataset.theme='dark');
   await page.keyboard.press('Escape');
 
   for(const method of ['country','variety','roast','process']){
