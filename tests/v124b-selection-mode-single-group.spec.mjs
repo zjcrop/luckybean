@@ -96,7 +96,7 @@ test('selection colors are semantic and theme dependent only where contrast requ
   await expect(page.locator('[data-recommend-mode="price"] .recommend-dot')).toHaveCSS('background-color','rgb(0, 0, 0)');
 });
 
-test('selection fun prompt is an original library sentence, visible immediately, and survives ordinary status notices',async({page})=>{
+test('selection fun prompt remains the only visible recommendation prompt while ordinary status notices still work',async({page})=>{
   await page.locator('#fabRecommendBtn').click();
   const option=page.locator('[data-recommend-mode="freshness"]');
   await expect(option).toBeVisible();
@@ -132,8 +132,17 @@ test('selection fun prompt is an original library sentence, visible immediately,
   expect(geometry.top).toBeGreaterThanOrEqual(0);
   expect(geometry.bottom).toBeLessThanOrEqual(geometry.viewportHeight+1);
 
+  // The legacy app recommendation toast fires after the selection animation. It must stay hidden
+  // so it cannot cover the dedicated fun prompt.
+  await page.waitForTimeout(1200);
+  await expect(page.locator('#toast.toast.recommendation')).toBeHidden();
+  await expect(prompt).toHaveText(promptText);
+  await expect(prompt).toBeVisible();
+
+  // Non-recommendation status notices still use the shared toast and must remain visible.
   await page.evaluate(()=>document.dispatchEvent(new CustomEvent('luckybean:user-notice',{detail:{message:'普通状态提示',kind:'status-good'}})));
   await expect(page.locator('#toast')).toHaveText('普通状态提示');
+  await expect(page.locator('#toast')).toBeVisible();
   await expect(prompt).toHaveText(promptText);
   await expect(prompt).toBeVisible();
   await expect(prompt).toHaveClass(/show/);
