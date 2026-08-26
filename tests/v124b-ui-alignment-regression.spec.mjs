@@ -86,7 +86,7 @@ test('small brew peer controls share the centered dripper value typography', asy
   await expect(page.locator('#generatePlanBtn')).toHaveCSS('text-align', 'center');
 });
 
-test('professional cupping score slider sits below scores and spans the full row', async ({ page }) => {
+test('professional cupping score slider starts below the subjective number and never exceeds the content width', async ({ page }) => {
   await page.locator('[data-page-target="sensory"]').click();
   await expect(page.locator('#sensoryBeanSelect')).toBeVisible();
   await page.locator('#sensoryBeanSelect').selectOption('ui-alignment-bean');
@@ -99,25 +99,43 @@ test('professional cupping score slider sits below scores and spans the full row
   }
 
   const stage = page.locator('.v095-score-stage');
-  const autoScore = stage.locator('[data-v095-auto-score]');
   const deltaScore = stage.locator('[data-v095-score-delta]');
   const slider = stage.locator('[data-v095-score-delta-input]');
+  const summary = stage.locator('pre');
   await expect(stage).toBeVisible();
   await expect(slider).toBeVisible();
 
-  const [stageBox, autoBox, deltaBox, sliderBox] = await Promise.all([
-    stage.boundingBox(), autoScore.boundingBox(), deltaScore.boundingBox(), slider.boundingBox()
-  ]);
-  expect(stageBox).not.toBeNull();
-  expect(autoBox).not.toBeNull();
-  expect(deltaBox).not.toBeNull();
-  expect(sliderBox).not.toBeNull();
-  const scoreBottom = Math.max(autoBox.y + autoBox.height, deltaBox.y + deltaBox.height);
-  expect(sliderBox.y).toBeGreaterThanOrEqual(scoreBottom + 4);
-  expect(sliderBox.width).toBeGreaterThan(stageBox.width * 0.85);
-  expect(sliderBox.width).toBeGreaterThan(sliderBox.height * 5);
-  await expect(slider).toHaveCSS('direction', 'ltr');
+  for (const width of [360, 375, 390, 412, 430]) {
+    await page.setViewportSize({ width, height: 780 });
+    await page.waitForTimeout(30);
+    const [stageBox, deltaBox, sliderBox, summaryBox] = await Promise.all([
+      stage.boundingBox(), deltaScore.boundingBox(), slider.boundingBox(), summary.boundingBox()
+    ]);
+    expect(stageBox).not.toBeNull();
+    expect(deltaBox).not.toBeNull();
+    expect(sliderBox).not.toBeNull();
+    expect(summaryBox).not.toBeNull();
 
+    expect(sliderBox.y).toBeGreaterThanOrEqual(deltaBox.y + deltaBox.height + 4);
+    expect(Math.abs(sliderBox.x - deltaBox.x)).toBeLessThanOrEqual(1.5);
+    expect(sliderBox.x + sliderBox.width).toBeLessThanOrEqual(stageBox.x + stageBox.width + 1.5);
+    expect(sliderBox.width).toBeGreaterThan(stageBox.width * 0.38);
+    expect(summaryBox.x + summaryBox.width).toBeLessThanOrEqual(stageBox.x + stageBox.width + 1.5);
+
+    const overflow = await stage.evaluate(node => ({
+      stageScroll: node.scrollWidth,
+      stageClient: node.clientWidth,
+      pageScroll: document.documentElement.scrollWidth,
+      viewport: document.documentElement.clientWidth,
+      summaryScroll: node.querySelector('pre')?.scrollWidth || 0,
+      summaryClient: node.querySelector('pre')?.clientWidth || 0
+    }));
+    expect(overflow.stageScroll).toBeLessThanOrEqual(overflow.stageClient + 1);
+    expect(overflow.pageScroll).toBeLessThanOrEqual(overflow.viewport + 1);
+    expect(overflow.summaryScroll).toBeLessThanOrEqual(overflow.summaryClient + 1);
+  }
+
+  await expect(slider).toHaveCSS('direction', 'ltr');
   const before = Number(await stage.locator('[data-v095-subjective-score]').textContent());
   await slider.evaluate(node => {
     node.value = '4';

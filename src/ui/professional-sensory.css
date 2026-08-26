@@ -170,3 +170,50 @@ body.lb-sort-body-active { overscroll-behavior:contain; }
   .cupping-flavor-tag, .cupping-defect-tag { font-size: 13px; padding-inline: 10px; }
   .v095-radar-buttons { grid-template-columns: repeat(2, minmax(0,1fr)); }
 }
+
+/* Professional score layout is owned here by the component, not by viewport-sized legacy rules.
+   Higher specificity intentionally defeats older !important grid declarations in styles.css/release CSS. */
+html body .v095-score-stage .subjective-delta-control {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  align-content: normal !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  gap: 8px !important;
+  overflow: visible !important;
+}
+html body .v095-score-stage .subjective-delta-control > strong {
+  display: block !important;
+  position: static !important;
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  align-self: stretch !important;
+  text-align: left !important;
+  transform: none !important;
+}
+html body .v095-score-stage .subjective-delta-control [data-v095-score-delta-input] {
+  display: block !important;
+  position: static !important;
+  flex: 0 0 auto !important;
+  align-self: stretch !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: 32px !important;
+  margin: 0 !important;
+  padding-inline: 0 !important;
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+  transform: none !important;
+  cursor: ew-resize !important;
+}

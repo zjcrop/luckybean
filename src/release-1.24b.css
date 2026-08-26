@@ -169,3 +169,82 @@ html[data-theme="light"] .v095-radar-stage svg text { fill: #111 !important; }
   grid-column: auto !important;
   order: initial !important;
 }
+
+/* LuckyBean 1.24B main.7 professional score responsive layout.
+   The legacy 50vw score-delta width is intentionally neutralized here: width belongs to the parent content column. */
+.v095-score-stage,
+.v095-score-stage .question-group,
+.v095-score-stage .score-comparison.delta-only,
+.v095-score-stage .score-head-row,
+.v095-score-stage .score-value-row,
+.v095-score-stage .score-derived-row,
+.v095-score-stage .subjective-delta-control {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+.v095-score-stage .score-comparison.delta-only {
+  width: 100% !important;
+  overflow: visible !important;
+}
+.v095-score-stage .score-head-row,
+.v095-score-stage .score-value-row,
+.v095-score-stage .score-derived-row {
+  width: 100% !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: clamp(10px, 4vw, 16px) !important;
+}
+.v095-score-stage .subjective-delta-control {
+  width: 100% !important;
+  min-height: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: auto auto !important;
+  align-items: stretch !important;
+  justify-self: stretch !important;
+  gap: 8px !important;
+  overflow: visible !important;
+}
+.v095-score-stage .subjective-delta-control > strong {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  text-align: left !important;
+  justify-self: stretch !important;
+}
+.v095-score-stage [data-v095-score-delta-input] {
+  grid-column: 1 !important;
+  grid-row: 2 !important;
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  margin: 0 !important;
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+  cursor: ew-resize !important;
+}
+/* The score summary previously used a non-wrapping pre line; wrap every item inside the actual content width. */
+.v095-score-stage pre {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-inline: 0 !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  overflow-x: visible !important;
+}
+@media (max-width: 430px) {
+  .v095-score-stage .score-head-row,
+  .v095-score-stage .score-value-row,
+  .v095-score-stage .score-derived-row {
+    gap: 10px !important;
+  }
+  .v095-score-stage .score-value-row > strong,
+  .v095-score-stage .subjective-delta-control > strong {
+    font-size: clamp(28px, 9vw, 34px) !important;
+  }
+}
