@@ -42,11 +42,11 @@ test('main.6 package review waits for recognition handoff completion instead of 
   assert.equal(followup.includes('form && attempts >= 10'), false);
 });
 
-test('main.6 unresolved semantic fields preserve raw evidence for explicit bean-form confirmation', () => {
+test('main.6 unresolved semantic fields preserve review evidence for explicit bean-form confirmation', () => {
   const pipeline = read('src/domain/recognition/recognition-pipeline.js');
   assert.match(pipeline, /for \(const item of reviewFields\)/);
-  assert.match(pipeline, /if \(missingEvidence\) parsed\.evidence\[item\.field\] = rawValue/);
+  assert.match(pipeline, /const reviewValue = clean\(item\.rawValue \|\| item\.standardValue\)/);
+  assert.match(pipeline, /if \(missingEvidence\) parsed\.evidence\[item\.field\] = reviewValue/);
   assert.match(pipeline, /parsed\.confidence\[item\.field\] = Number\(item\.confidence \|\| 0\)/);
   assert.equal(pipeline.includes('parsed.confidence[item.field] = 1'), false);
 });
-
