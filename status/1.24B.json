@@ -1,1 +1,1 @@
-{"source_sha":"392213aabdc90a37d71015919a18b0a85929043b","version":"1.24B","install_status":0,"js_status":0,"static_status":1,"passed":false,"first_error":"AssertionError [ERR_ASSERTION]: The input did not match the regular expression /RECOMMENDATION_PROMPT_REVISION='1\\.24B-main\\.9-immediate'/. Input:","generated_at":"2026-08-27T00:41:51Z"}
+{"source_sha":"8a18972c5f317dc1ce860b322ca056fe3d63bafc","version":"1.24B","install_status":0,"js_status":0,"static_status":0,"passed":true,"first_error":"","generated_at":"2026-08-27T00:44:16Z"}
