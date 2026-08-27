@@ -1,12 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 const BASE_URL='http://127.0.0.1:4173';
-const FRESHNESS_PROMPTS=[
-  '此只风味精绝，君既选中，甚是妥当。',
-  '正逢此只风味最盛，您这一选，再好不过。',
-  '此只正值风味精妙处，既已选定，便是良配。',
-  '此只正得意时，恰被君眼相中，眼光不差。'
-];
+const FRESHNESS_PROMPT='赏味期（剩余越少越靠前）';
 
 async function waitForStartup(page){
   const splash=page.locator('#splashScreen');
@@ -106,7 +101,7 @@ test('selection uses only the original app fun prompt and does not create a seco
   await expect(prompt).toHaveClass(/recommendation/,{timeout:5000});
   await expect(prompt).toHaveClass(/show/,{timeout:5000});
   const promptText=(await prompt.textContent())?.trim()||'';
-  expect(FRESHNESS_PROMPTS).toContain(promptText);
+  expect(promptText).toBe(FRESHNESS_PROMPT);
   await expect(page.locator('#lbRecommendationToast')).toHaveCount(0);
 
   await page.evaluate(()=>document.dispatchEvent(new CustomEvent('luckybean:user-notice',{detail:{message:'普通状态提示',kind:'status-good'}})));

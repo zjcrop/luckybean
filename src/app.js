@@ -857,44 +857,35 @@ function openSearchDialog() {
   });
 }
 
-const RECOMMENDATION_PROMPTS = Object.freeze({
-  leaderboard: [
-    '直取榜首，不问其余。', '依榜索魁，必得佳味。', '榜单在前，今朝且试头筹。',
-    '榜魁已定，此只风味精绝，不负众望。', '一举摘魁，恰逢此豆风味正酣。',
-    '众里寻它，终得榜首，宜细细品之。', '照榜点将，专挑那个第一名！'
-  ],
-  freshness: [
-    '此只风味精绝，君既选中，甚是妥当。', '正逢此只风味最盛，您这一选，再好不过。',
-    '此只正值风味精妙处，既已选定，便是良配。', '此只正得意时，恰被君眼相中，眼光不差。'
-  ],
-  price: [
-    '此只价冠诸豆，足见君之慧眼独钟。', '此只乃众豆之魁，承君青睐，身价自高。',
-    '此只位列首席，价亦昂，唯君堪配此味。', '既择此只风骨，当知众豆之中，以此最为矜贵。'
-  ],
-  remaining: [
-    '余粒无多，宜趁兴饮尽，为此豆作结。', '所剩几何，当及时啜饮，不负此豆风华。',
-    '残豆将尽，速饮之，好与此只从容作别。', '此豆见底啦，趁风味未散，快快饮尽收场！'
-  ],
-  random: [
-    '闭目拈签，任其自然。', '信手拈签，以定今日之选。', '且凭一签，决此豆归谁。',
-    '一签落地，此只当归于君。', '签指此只，风味正酣，君可安心享之。',
-    '得此签，恰逢余粒无几，缘分也。', '伸手拈一签，看天意选哪只！'
-  ]
+const LEGACY_RECOMMENDATION_REMINDERS = Object.freeze({
+  favorite: '喜好（咖啡得分）',
+  stale: '赏味期（剩余越少越靠前）',
+  price: '价格（越高越推荐）',
+  lowWeight: '余粮（剩余越少越推荐）',
+  randomDate: '点兵点将'
+});
+
+const CURRENT_TO_LEGACY_RECOMMENDATION_MODE = Object.freeze({
+  leaderboard: 'favorite',
+  freshness: 'stale',
+  price: 'price',
+  remaining: 'lowWeight',
+  random: 'randomDate'
 });
 
 function normalizeRecommendationMode(mode) {
   const value = String(mode || '').trim();
-  return Object.prototype.hasOwnProperty.call(RECOMMENDATION_PROMPTS, value) ? value : 'random';
+  return Object.prototype.hasOwnProperty.call(CURRENT_TO_LEGACY_RECOMMENDATION_MODE, value) ? value : 'random';
 }
 
-function recommendationPrompt(mode) {
-  const key = normalizeRecommendationMode(mode);
-  const pool = RECOMMENDATION_PROMPTS[key];
-  const previous = state.recommendationPromptMemory[key] || '';
-  const choices = pool.filter(value => value !== previous);
-  const selected = choices[Math.floor(Math.random() * choices.length)] || pool[0];
-  state.recommendationPromptMemory[key] = selected;
-  return selected;
+function recommendationPrompt(mode, bean) {
+  const currentMode = normalizeRecommendationMode(mode);
+  const legacyMode = CURRENT_TO_LEGACY_RECOMMENDATION_MODE[currentMode];
+  if (legacyMode === 'randomDate') {
+    const variety = codeName('varieties', bean?.varietyCode, bean ? beanDisplayName(bean) : '');
+    return `${LEGACY_RECOMMENDATION_REMINDERS.randomDate}→${variety}`;
+  }
+  return LEGACY_RECOMMENDATION_REMINDERS[legacyMode];
 }
 
 function openRecommendMenu() {
@@ -941,7 +932,7 @@ async function recommendBean(mode) {
       }
     }
     if (mode !== 'random') await focusRecommendedBean(selected, { automatic: true, settle: true, duration: 800 });
-    const prompt = recommendationPrompt(mode);
+    const prompt = recommendationPrompt(mode, selected);
     document.dispatchEvent(new CustomEvent('luckybean:recommendation-prompt', { detail: { mode, prompt, beanId: selected?.id || '' } }));
     toast(prompt, 'recommendation');
   } finally {

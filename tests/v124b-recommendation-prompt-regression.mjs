@@ -5,19 +5,27 @@ const index=fs.readFileSync('index.html','utf8');
 const app=fs.readFileSync('src/app.js','utf8');
 const guard=fs.readFileSync('src/features/release-1.24b-group-navigation.js','utf8');
 
-for(const mode of ['leaderboard','freshness','price','remaining','random']){
-  assert.match(app,new RegExp(`${mode}: \\[`),`missing application recommendation prompt pool for ${mode}`);
-}
-for(const sentence of [
-  '直取榜首，不问其余。',
-  '此只风味精绝，君既选中，甚是妥当。',
-  '此只价冠诸豆，足见君之慧眼独钟。',
-  '余粒无多，宜趁兴饮尽，为此豆作结。',
-  '闭目拈签，任其自然。'
-]) assert.ok(app.includes(sentence),`application prompt library lost sentence: ${sentence}`);
+const legacyCatalog=[
+  "favorite: '喜好（咖啡得分）'",
+  "stale: '赏味期（剩余越少越靠前）'",
+  "price: '价格（越高越推荐）'",
+  "lowWeight: '余粮（剩余越少越推荐）'",
+  "randomDate: '点兵点将'"
+];
+for(const source of legacyCatalog) assert.ok(app.includes(source),`legacy reminder lost: ${source}`);
+const triggerAdapter=[
+  "leaderboard: 'favorite'",
+  "freshness: 'stale'",
+  "price: 'price'",
+  "remaining: 'lowWeight'",
+  "random: 'randomDate'"
+];
+for(const source of triggerAdapter) assert.ok(app.includes(source),`current-to-legacy trigger lost: ${source}`);
+for(const forbidden of ['直取榜首，不问其余。','此只风味精绝，君既选中，甚是妥当。','此只价冠诸豆，足见君之慧眼独钟。','余粒无多，宜趁兴饮尽，为此豆作结。','闭目拈签，任其自然。']) assert.ok(!app.includes(forbidden),`incorrect long prompt remains: ${forbidden}`);
 
 assert.match(app,/function normalizeRecommendationMode\(mode\)/);
-assert.match(app,/function recommendationPrompt\(mode\)/);
+assert.match(app,/function recommendationPrompt\(mode, bean\)/);
+assert.match(app,/const prompt = recommendationPrompt\(mode, selected\)/);
 assert.match(app,/mode = normalizeRecommendationMode\(mode\)/);
 assert.match(app,/toast\(prompt, 'recommendation'\)/);
 assert.match(app,/luckybean:recommendation-prompt/);
@@ -38,4 +46,4 @@ assert.match(guard,/html\[data-theme="light"\] \.recommend-menu \[data-recommend
 assert.match(guard,/LuckyBeanBeanGroupState/);
 assert.doesNotMatch(guard,/function recommendBean|filteredBeans\(|recommendationScore\(/,'group-navigation adapter must not alter selection algorithms');
 
-console.log('LuckyBean recommendation prompt contract passed: app.js exclusively owns the original fun prompt library; duplicate prompt layer removed; grouping and theme adapters remain isolated');
+console.log('LuckyBean legacy reminder contract passed: current modes map to the recovered short reminder semantics; grouping and selection algorithms remain isolated');
