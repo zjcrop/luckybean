@@ -1,16 +1,21 @@
 const REVIEW_OWNER_REVISION = '1.24B-review-owner.1';
 const REVIEW_CONTAINER_SELECTOR = '[data-recognition-review="pending"] .text-evidence';
 const REVIEW_ROW_SELECTOR = '.evidence-row[data-evidence-field]';
+const DIRECT_MANUAL_REVIEW_FIELDS = new Set(['countryCode']);
 
 function claimReviewContainer(container) {
   if (!(container instanceof Element)) return false;
   if (!container.closest('[data-recognition-review="pending"]')) return false;
-  if (!container.querySelector(REVIEW_ROW_SELECTOR)) return false;
+  const rows = [...container.querySelectorAll(REVIEW_ROW_SELECTOR)];
+  if (!rows.length) return false;
 
-  // The canonical recognition pipeline already filtered this panel to unresolved
-  // reviewFields. Legacy integrity enhancement must not discard a row merely
-  // because the current form value is empty and the codebook has no reliable
-  // standard candidate: that is exactly the case that requires manual review.
+  // Scope this compatibility guard narrowly. A lone unresolved country value such
+  // as "ATLANTIS" must survive until explicit confirmation, but mixed review
+  // panels still belong to the integrity enhancer so multi-candidate fields such
+  // as 74110 / 74112 keep their normal candidate buttons and legacy empty-field
+  // filtering remains unchanged.
+  if (!rows.every(row => DIRECT_MANUAL_REVIEW_FIELDS.has(row.dataset.evidenceField || ''))) return false;
+
   container.dataset.integrityEvidence = '1';
   container.dataset.recognitionReviewOwner = REVIEW_OWNER_REVISION;
   return true;
