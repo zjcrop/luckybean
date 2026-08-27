@@ -21,6 +21,9 @@ assert.match(groups,/const previous = recommendationPromptMemory\[mode\]/);
 assert.match(groups,/const prompt = recommendationPrompt\(mode\)/);
 assert.match(groups,/luckybean:recommendation-prompt/);
 assert.match(groups,/toast\(prompt, 'recommendation'\)/);
+assert.match(groups,/luckybean:user-notice/);
+assert.ok(groups.includes("detail: { message: text, kind: kind || 'status-neutral' }"),'group controller must delegate toast rendering to the canonical app notice channel');
+assert.ok(!groups.includes("setTimeout(() => { node.className = 'toast'; }, 2800)"),'group controller must not own a competing toast timer');
 assert.doesNotMatch(groups,/toast\(`已选：/,'grouped selection owner must never overwrite the fun prompt with a bean-result toast');
 
 for(const source of [
@@ -34,10 +37,13 @@ for(const source of [
   "runRecommendation(recommendation.dataset.recommendMode).catch(error => toast(error.message, 'status-bad'));"
 ]) assert.ok(groups.includes(source),`selection/group behavior changed unexpectedly: ${source}`);
 
-assert.match(runtime,/BEAN_GROUP_RUNTIME_REVISION = '1\.24B-main\.16-fun-prompt-owner'/);
+assert.match(runtime,/BEAN_GROUP_RUNTIME_REVISION = '1\.24B-main\.17-single-toast-owner'/);
 assert.match(runtime,/pinnedFeature\('bean-groups', '\.\.\/bean-groups-controller\.js', BEAN_GROUP_RUNTIME_REVISION\)/);
-assert.match(index,/runtime-features\.js\?v=1\.24B-main\.16-fun-prompt-owner/);
+assert.match(index,/runtime-features\.js\?v=1\.24B-main\.17-single-toast-owner/);
 assert.doesNotMatch(guard,/RECOMMENDATION_PROMPTS|lbRecommendationToast|showRecommendationPromptForMode|directPromptLockUntil/);
 assert.doesNotMatch(app,/toast\(prompt \|\| `已选：\$\{beanDisplayName\(selected\)\}`/);
+assert.match(app,/clearTimeout\(toastTimer\)/);
+assert.match(app,/clearTimeout\(toastCleanupTimer\)/);
+assert.match(app,/toastTimer = setTimeout\(\(\) => node\.classList\.remove\('show'\), 6000\)/);
 
-console.log('LuckyBean fun recommendation prompt contract passed: original fun library restored in the real grouped-selection owner; five-mode selection/grouping mechanics unchanged; duplicate 已选 result toast removed; corrected owner cache is pinned');
+console.log('LuckyBean fun recommendation prompt contract passed: original fun library restored in the real grouped-selection owner; five-mode selection/grouping mechanics unchanged; duplicate 已选 result toast removed; one canonical app toast owner controls all timers; corrected owner cache is pinned');
