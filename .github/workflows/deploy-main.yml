@@ -21,7 +21,7 @@ concurrency:
 env:
   SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
   RELEASE_REVISION: 1.24B-main.6
-  PROMPT_RUNTIME_REVISION: 1.24B-main.14-legacy-reminders
+  PROMPT_RUNTIME_REVISION: 1.24B-main.15-reminder-trigger
   STYLES_RUNTIME_REVISION: 1.24B-main.13-local-menu-prompt
 
 jobs:
@@ -101,9 +101,9 @@ jobs:
           ! grep -Fq '此只价冠诸豆，足见君之慧眼独钟。' src/app.js
           ! grep -Fq '余粒无多，宜趁兴饮尽，为此豆作结。' src/app.js
           ! grep -Fq '闭目拈签，任其自然。' src/app.js
-          grep -Fq 'startup-controller.js?v=1.24B-main.14-legacy-reminders' index.html
+          grep -Fq 'startup-controller.js?v=1.24B-main.15-reminder-trigger' index.html
           grep -Fq 'styles.css?v=1.24B-main.13-local-menu-prompt' index.html
-          grep -Fq "APP_MODULE_REVISION = '1.24B-main.14-legacy-reminders'" src/core/startup-controller.js
+          grep -Fq "APP_MODULE_REVISION = '1.24B-main.15-reminder-trigger'" src/core/startup-controller.js
           grep -Fq 'app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}' src/core/startup-controller.js
           grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' index.html
           grep -Fq '.toast.show { opacity: 1; transform: translate(-50%, 0); }' styles.css
@@ -123,6 +123,14 @@ jobs:
           grep -Fq 'LuckyBeanSortable' src/features/sensory-tag-sort-controller.js
           grep -Fq "UI_POLICY_REVISION = '1.24B-main.6'" src/features/release-1.24b-ui-policy.js
           grep -Fq 'main.7 professional score responsive layout' src/release-1.24b.css
+          python - <<'PY'
+          from pathlib import Path
+          app=Path('src/app.js').read_text()
+          prompt=app.index('const prompt = recommendationPrompt(mode, selected);')
+          focus=app.index("if (mode !== 'random') await focusRecommendedBean(selected")
+          if prompt >= focus:
+              raise SystemExit('recommendation reminder is still delayed behind focus animation')
+          PY
       - name: Prepare exact tested web site
         shell: bash
         run: |
@@ -131,7 +139,7 @@ jobs:
           cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
           cp -R src public contracts schemas _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.6","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","recommendationPrompt":"legacy-short-reminder-current-mode-adapter","recommendationClickOwner":"local-menu","groupAdapterRevision":"1.24B-main.10-native-prompt","appModuleRevision":"1.24B-main.14-legacy-reminders","stylesRevision":"1.24B-main.13-local-menu-prompt","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","scoreLayout":"viewport-safe-next-line-range","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.6"}\n' "$SOURCE_SHA" > _site/version.json
+          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.6","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","recommendationPrompt":"legacy-short-reminder-current-mode-adapter","recommendationClickOwner":"local-menu","groupAdapterRevision":"1.24B-main.10-native-prompt","appModuleRevision":"1.24B-main.15-reminder-trigger","stylesRevision":"1.24B-main.13-local-menu-prompt","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","scoreLayout":"viewport-safe-next-line-range","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.6"}\n' "$SOURCE_SHA" > _site/version.json
       - uses: actions/configure-pages@v6.0.0
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
@@ -175,12 +183,12 @@ jobs:
               && grep -Fq '"recommendationPrompt":"legacy-short-reminder-current-mode-adapter"' /tmp/version.json \
               && grep -Fq '"recommendationClickOwner":"local-menu"' /tmp/version.json \
               && grep -Fq '"groupAdapterRevision":"1.24B-main.10-native-prompt"' /tmp/version.json \
-              && grep -Fq '"appModuleRevision":"1.24B-main.14-legacy-reminders"' /tmp/version.json \
+              && grep -Fq '"appModuleRevision":"1.24B-main.15-reminder-trigger"' /tmp/version.json \
               && grep -Fq '"stylesRevision":"1.24B-main.13-local-menu-prompt"' /tmp/version.json \
-              && grep -Fq 'startup-controller.js?v=1.24B-main.14-legacy-reminders' /tmp/index.html \
+              && grep -Fq 'startup-controller.js?v=1.24B-main.15-reminder-trigger' /tmp/index.html \
               && grep -Fq 'styles.css?v=1.24B-main.13-local-menu-prompt' /tmp/index.html \
               && grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' /tmp/index.html \
-              && grep -Fq "APP_MODULE_REVISION = '1.24B-main.14-legacy-reminders'" /tmp/startup-runtime.js \
+              && grep -Fq "APP_MODULE_REVISION = '1.24B-main.15-reminder-trigger'" /tmp/startup-runtime.js \
               && grep -Fq 'app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}' /tmp/startup-runtime.js \
               && grep -Fq 'const LEGACY_RECOMMENDATION_REMINDERS' /tmp/app-runtime.js \
               && grep -Fq 'const CURRENT_TO_LEGACY_RECOMMENDATION_MODE' /tmp/app-runtime.js \
@@ -377,7 +385,7 @@ jobs:
         run: |
           set -euo pipefail
           receipt=$(mktemp)
-          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","recommendation_prompt":"legacy-short-reminder-current-mode-adapter","recommendation_click_owner":"local-menu","group_adapter_revision":"1.24B-main.10-native-prompt","app_module_revision":"1.24B-main.14-legacy-reminders","styles_revision":"1.24B-main.13-local-menu-prompt","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
+          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","recommendation_prompt":"legacy-short-reminder-current-mode-adapter","recommendation_click_owner":"local-menu","group_adapter_revision":"1.24B-main.10-native-prompt","app_module_revision":"1.24B-main.15-reminder-trigger","styles_revision":"1.24B-main.13-local-menu-prompt","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
           git config user.name github-actions[bot]
           git config user.email 41898282+zjcrop@users.noreply.github.com
           if git ls-remote --exit-code --heads origin pages-status >/dev/null 2>&1; then
