@@ -24,17 +24,20 @@ jobs:
       - name: Validate prompt-only repair
         run: |
           node --check src/bean-groups-controller.js
+          node --check src/features/runtime-features.js
           node tests/v124b-recommendation-prompt-regression.mjs
           grep -Fq "const rounds = Math.floor(Math.random() * 5) + 4;" src/bean-groups-controller.js
           grep -Fq "runRecommendation(recommendation.dataset.recommendMode)" src/bean-groups-controller.js
           grep -Fq "toast(prompt, 'recommendation')" src/bean-groups-controller.js
           ! grep -Fq 'toast(`已选：' src/bean-groups-controller.js
+          grep -Fq "BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.16-fun-prompt-owner'" src/features/runtime-features.js
+          grep -Fq 'runtime-features.js?v=1.24B-main.16-fun-prompt-owner' index.html
           git diff --check
       - name: Commit prompt-owner repair only
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/bean-groups-controller.js tests/v124b-recommendation-prompt-regression.mjs tests/v124b-selection-mode-single-group.spec.mjs
+          git add src/bean-groups-controller.js src/features/runtime-features.js index.html tests/v124b-recommendation-prompt-regression.mjs tests/v124b-selection-mode-single-group.spec.mjs
           git diff --cached --quiet && exit 0
           git commit -m 'Restore fun prompts in grouped selection owner'
           git push origin HEAD:main
