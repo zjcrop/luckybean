@@ -177,7 +177,7 @@ jobs:
           grep -Fq "leaderboard: 'favorite'" src/app.js
           grep -Fq "freshness: 'stale'" src/app.js
           grep -Fq "random: 'randomDate'" src/app.js
-          grep -Fq '点兵点将→${variety}' src/app.js
+          grep -Fq '${LEGACY_RECOMMENDATION_REMINDERS.randomDate}→${variety}' src/app.js
           ! grep -Fq 'const RECOMMENDATION_PROMPTS' src/app.js
           ! grep -Fq '直取榜首，不问其余。' src/app.js
           ! grep -Fq '此只风味精绝，君既选中，甚是妥当。' src/app.js
