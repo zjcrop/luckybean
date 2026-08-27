@@ -72,11 +72,11 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
   const nextFrames = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   function toast(message, kind = '') {
-    const node = $('#toast');
-    if (!node) return;
-    node.textContent = message;
-    node.className = `toast show ${kind}`;
-    setTimeout(() => { node.className = 'toast'; }, 2800);
+    const text = String(message || '').trim();
+    if (!text) return;
+    document.dispatchEvent(new CustomEvent('luckybean:user-notice', {
+      detail: { message: text, kind: kind || 'status-neutral' }
+    }));
   }
 
   async function codebookContext() {
