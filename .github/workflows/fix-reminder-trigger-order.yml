@@ -25,10 +25,11 @@ jobs:
         run: |
           node --check src/app.js
           node --check src/core/startup-controller.js
-          npm ci
-          npm run test:static
+          node tests/v124b-recommendation-prompt-regression.mjs
           grep -Fq "APP_MODULE_REVISION = '1.24B-main.15-reminder-trigger'" src/core/startup-controller.js
           grep -Fq 'startup-controller.js?v=1.24B-main.15-reminder-trigger' index.html
+          ! grep -Fq 'const RECOMMENDATION_PROMPTS' src/app.js
+          ! grep -Fq '直取榜首，不问其余。' src/app.js
           git diff --check
       - name: Commit repaired runtime
         run: |
