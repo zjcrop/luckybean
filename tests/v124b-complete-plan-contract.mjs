@@ -177,7 +177,7 @@ assert.match(deploy,/push:\n\s+branches: \[main\]/);
 assert.match(deploy,/luckybean-pages-main-\$\{\{ github\.event_name == 'push' && 'test' \|\| 'gated' \}\}/);
 assert.match(deploy,/head_sha=\$SOURCE_SHA/);
 assert.match(deploy,/Live Pages native prompt browser smoke/);
-assert.match(deploy,/PROMPT_RUNTIME_REVISION: 1\.24B-main\.11-native-prompt/);
+assert.match(deploy,/PROMPT_RUNTIME_REVISION: 1\.24B-main\.12-fun-prompt/);
 assert.match(deploy,/appModuleRevision/);
 assert.match(deploy,/stylesRevision/);
 assert.match(deploy,/browser_smoke/);
