@@ -1,1 +1,1 @@
-{"source_sha":"57c13f2b991c0ad1e02ca194135772ee19e002b7","version":"1.24B","install_status":0,"js_status":0,"static_status":1,"passed":false,"first_error":"AssertionError [ERR_ASSERTION]: The input did not match the regular expression /src\\/core\\/startup-controller\\.js\\?v=1\\.24B-main\\.13-local-menu-prompt/. Input:","generated_at":"2026-08-27T03:58:14Z"}
+{"source_sha":"deb6b8c1ee9b4bf995631ac936f85aeacc95146a","version":"1.24B","install_status":0,"js_status":0,"static_status":0,"passed":true,"first_error":"","generated_at":"2026-08-27T03:59:27Z"}
