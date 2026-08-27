@@ -152,15 +152,20 @@ assert.match(brewCore, /'brew-analysis\/2\.0', 'brew-analysis\/2\.1'/);
 assert.match(matchVector, /MATCH_CONTRACT = 'luckybean-match\/1\.1'/);
 assert.match(freshnessTimeline, /freshnessProfile\(bean\)\.progress/);
 
-// Pages is downstream of the immutable same-SHA full main-test result.
+// Pages has a fast main push deploy for user testing plus the immutable same-SHA gated deploy after full main tests.
 assert.match(deployWorkflow, /workflow_run:/);
 assert.match(deployWorkflow, /workflows: \["LuckyBean main tests"\]/);
 assert.match(deployWorkflow, /github\.event\.workflow_run\.conclusion == 'success'/);
+assert.match(deployWorkflow, /push:\n\s+branches: \[main\]/);
+assert.match(deployWorkflow, /luckybean-pages-main-\$\{\{ github\.event_name == 'push' && 'test' \|\| 'gated' \}\}/);
 assert.match(deployWorkflow, /head_sha=\$SOURCE_SHA/);
 assert.match(deployWorkflow, /test_conclusion/);
 assert.match(deployWorkflow, /current_main/);
 assert.match(deployWorkflow, /actions\/deploy-pages@v5\.0\.0/);
-assert.match(deployWorkflow, /Live Pages browser smoke/);
+assert.match(deployWorkflow, /Live Pages native prompt browser smoke/);
+assert.match(deployWorkflow, /PROMPT_RUNTIME_REVISION: 1\.24B-main\.11-native-prompt/);
+assert.match(deployWorkflow, /appModuleRevision/);
+assert.match(deployWorkflow, /stylesRevision/);
 assert.match(deployWorkflow, /browser_smoke/);
 assert.match(deployWorkflow, /canonical-state-api/);
 assert.match(deployWorkflow, /shared-live-preview-ghost-placeholder/);
@@ -168,7 +173,6 @@ assert.match(deployWorkflow, /single-activate-double-remove-longpress-preview/);
 assert.match(deployWorkflow, /text-interactions/);
 assert.match(deployWorkflow, /SOURCE_SHA/);
 assert.match(deployWorkflow, /pages-status/);
-assert.doesNotMatch(deployWorkflow, /on:\n\s+push:\n\s+branches: \[main\]/);
 
 assert.match(buildWorkflow, /LuckyBean-1\.24B-release\.apk/);
 assert.match(buildWorkflow, /LuckyBean-1\.24B-web\.zip/);
@@ -187,4 +191,4 @@ assert.match(androidWorkflow, /single-activate-double-remove-longpress-preview/)
 assert.match(androidWorkflow, /sensory-tag-sort-controller\.js/);
 assert.match(androidBuild, /LUCKYBEAN_KEYSTORE_FILE/);
 
-console.log(`LuckyBean 1.24B ${releaseRevision} gated Pages, signed Android, canonical bean group state, shared sorting, text brew UI, serial OCR, lifecycle, frozen freshness and BrewProfiles contracts passed`);
+console.log(`LuckyBean 1.24B ${releaseRevision} test+gated Pages, signed Android, canonical bean group state, native prompt runtime, shared sorting, text brew UI, serial OCR, lifecycle, frozen freshness and BrewProfiles contracts passed`);
