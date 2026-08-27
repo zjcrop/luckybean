@@ -21,6 +21,7 @@ concurrency:
 env:
   SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
   RELEASE_REVISION: 1.24B-main.6
+  PROMPT_RUNTIME_REVISION: 1.24B-main.11-native-prompt
 
 jobs:
   build-site:
@@ -61,7 +62,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Validate 1.24B main.6 source before publishing
+      - name: Validate native recommendation prompt source before publishing
         shell: bash
         run: |
           set -euo pipefail
@@ -80,10 +81,12 @@ jobs:
           grep -Fq 'function recommendationPrompt(mode)' src/app.js
           grep -Fq "toast(prompt || \`已选：\${beanDisplayName(selected)}\`, 'recommendation')" src/app.js
           grep -Fq '直取榜首，不问其余。' src/app.js
-          grep -Fq 'startup-controller.js?v=1.24B-main.8-prompt' index.html
-          grep -Fq "APP_MODULE_REVISION = '1.24B-main.8-prompt'" src/core/startup-controller.js
+          grep -Fq 'startup-controller.js?v=1.24B-main.11-native-prompt' index.html
+          grep -Fq 'styles.css?v=1.24B-main.11-native-prompt' index.html
+          grep -Fq "APP_MODULE_REVISION = '1.24B-main.11-native-prompt'" src/core/startup-controller.js
           grep -Fq 'app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}' src/core/startup-controller.js
           grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' index.html
+          grep -Fq '.toast.show { opacity: 1; transform: translate(-50%, 0); }' styles.css
           ! grep -Fq 'data-recommendation-prompt-revision=' index.html
           ! grep -Fq 'lbRecommendationToast' src/features/release-1.24b-group-navigation.js
           ! grep -Fq 'RECOMMENDATION_PROMPTS' src/features/release-1.24b-group-navigation.js
@@ -107,7 +110,7 @@ jobs:
           cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
           cp -R src public contracts schemas _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.6","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","recommendationPrompt":"native-app-toast","groupAdapterRevision":"1.24B-main.10-native-prompt","appModuleRevision":"1.24B-main.8-prompt","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","scoreLayout":"viewport-safe-next-line-range","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.6"}\n' "$SOURCE_SHA" > _site/version.json
+          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.6","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","recommendationPrompt":"native-app-toast","groupAdapterRevision":"1.24B-main.10-native-prompt","appModuleRevision":"1.24B-main.11-native-prompt","stylesRevision":"1.24B-main.11-native-prompt","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","scoreLayout":"viewport-safe-next-line-range","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.6"}\n' "$SOURCE_SHA" > _site/version.json
       - uses: actions/configure-pages@v6.0.0
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
@@ -131,7 +134,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ env.SOURCE_SHA }}
-      - name: Verify published source fingerprint
+      - name: Verify published runtime URLs exactly
         shell: bash
         run: |
           set -euo pipefail
@@ -139,43 +142,36 @@ jobs:
           for attempt in {1..30}; do
             curl -L -fsS "$base/version.json?check=$SOURCE_SHA" -o /tmp/version.json || true
             curl -L -fsS "$base/?check=$SOURCE_SHA" -o /tmp/index.html || true
-            curl -L -fsS "$base/src/app.js?check=$SOURCE_SHA" -o /tmp/app.js || true
-            curl -L -fsS "$base/src/core/startup-controller.js?check=$SOURCE_SHA" -o /tmp/startup.js || true
-            curl -L -fsS "$base/src/release-1.24b.css?check=$SOURCE_SHA" -o /tmp/release.css || true
-            curl -L -fsS "$base/src/domain/beans/bean-group-state.js?check=$SOURCE_SHA" -o /tmp/group-state.js || true
-            curl -L -fsS "$base/src/bean-groups-controller.js?check=$SOURCE_SHA" -o /tmp/bean-groups.js || true
-            curl -L -fsS "$base/src/features/release-1.24b-group-navigation.js?check=$SOURCE_SHA" -o /tmp/group-navigation.js || true
+            curl -L -fsS "$base/src/core/startup-controller.js?v=$PROMPT_RUNTIME_REVISION" -o /tmp/startup-runtime.js || true
+            curl -L -fsS "$base/src/app.js?v=$PROMPT_RUNTIME_REVISION" -o /tmp/app-runtime.js || true
+            curl -L -fsS "$base/styles.css?v=$PROMPT_RUNTIME_REVISION" -o /tmp/styles-runtime.css || true
+            curl -L -fsS "$base/src/release-1.24b.css?v=1.24B-main.6" -o /tmp/release.css || true
+            curl -L -fsS "$base/src/domain/beans/bean-group-state.js?v=1.24B-main.6" -o /tmp/group-state.js || true
+            curl -L -fsS "$base/src/bean-groups-controller.js?v=1.24B-main.6" -o /tmp/bean-groups.js || true
+            curl -L -fsS "$base/src/features/release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt" -o /tmp/group-navigation-runtime.js || true
             if grep -Fq "$SOURCE_SHA" /tmp/version.json 2>/dev/null \
               && grep -Fq '"version":"1.24B"' /tmp/version.json \
-              && grep -Fq '"revision":"1.24B-main.6"' /tmp/version.json \
-              && grep -Fq '"groupNavigation":"canonical-state-api"' /tmp/version.json \
               && grep -Fq '"recommendationPrompt":"native-app-toast"' /tmp/version.json \
               && grep -Fq '"groupAdapterRevision":"1.24B-main.10-native-prompt"' /tmp/version.json \
-              && grep -Fq '"appModuleRevision":"1.24B-main.8-prompt"' /tmp/version.json \
-              && grep -Fq '"scoreLayout":"viewport-safe-next-line-range"' /tmp/version.json \
-              && grep -Fq 'startup-controller.js?v=1.24B-main.8-prompt' /tmp/index.html \
+              && grep -Fq '"appModuleRevision":"1.24B-main.11-native-prompt"' /tmp/version.json \
+              && grep -Fq '"stylesRevision":"1.24B-main.11-native-prompt"' /tmp/version.json \
+              && grep -Fq 'startup-controller.js?v=1.24B-main.11-native-prompt' /tmp/index.html \
+              && grep -Fq 'styles.css?v=1.24B-main.11-native-prompt' /tmp/index.html \
               && grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' /tmp/index.html \
-              && ! grep -Fq 'data-recommendation-prompt-revision=' /tmp/index.html \
-              && grep -Fq "APP_MODULE_REVISION = '1.24B-main.8-prompt'" /tmp/startup.js \
-              && grep -Fq 'app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}' /tmp/startup.js \
-              && grep -Fq 'const RECOMMENDATION_PROMPTS' /tmp/app.js \
-              && grep -Fq '直取榜首，不问其余。' /tmp/app.js \
-              && grep -Fq "['process', '按处理法']" /tmp/app.js \
-              && grep -Fq 'data-close-bean-group' /tmp/app.js \
-              && grep -Fq 'main.7 professional score responsive layout' /tmp/release.css \
-              && grep -Fq 'export const beanGroupState' /tmp/group-state.js \
-              && grep -Fq 'beanGroupState' /tmp/bean-groups.js \
-              && ! grep -Fq 'let activeGroup' /tmp/bean-groups.js \
-              && ! grep -Fq 'lbRecommendationToast' /tmp/group-navigation.js \
-              && ! grep -Fq 'RECOMMENDATION_PROMPTS' /tmp/group-navigation.js \
-              && ! grep -Fq 'showRecommendationPromptForMode' /tmp/group-navigation.js \
-              && grep -Fq 'LuckyBeanBeanGroupState' /tmp/group-navigation.js \
-              && ! grep -Fq 'dispatchEvent(new MouseEvent' /tmp/group-navigation.js; then
-              echo "LuckyBean Pages serves native app recommendation prompt runtime $SOURCE_SHA"
+              && grep -Fq "APP_MODULE_REVISION = '1.24B-main.11-native-prompt'" /tmp/startup-runtime.js \
+              && grep -Fq 'app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}' /tmp/startup-runtime.js \
+              && grep -Fq 'const RECOMMENDATION_PROMPTS' /tmp/app-runtime.js \
+              && grep -Fq 'function recommendationPrompt(mode)' /tmp/app-runtime.js \
+              && grep -Fq '直取榜首，不问其余。' /tmp/app-runtime.js \
+              && grep -Fq '.toast.show { opacity: 1; transform: translate(-50%, 0); }' /tmp/styles-runtime.css \
+              && ! grep -Fq 'lbRecommendationToast' /tmp/group-navigation-runtime.js \
+              && ! grep -Fq 'RECOMMENDATION_PROMPTS' /tmp/group-navigation-runtime.js \
+              && grep -Fq 'LuckyBeanBeanGroupState' /tmp/group-navigation-runtime.js; then
+              echo "LuckyBean Pages serves exact native prompt runtime assets for $SOURCE_SHA"
               break
             fi
             if [ "$attempt" = 30 ]; then
-              echo 'Pages still does not serve the requested main source'
+              echo 'Pages still does not serve the exact native prompt runtime assets'
               cat /tmp/version.json || true
               exit 1
             fi
@@ -187,13 +183,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: Live Pages browser smoke
+      - name: Live Pages native prompt browser smoke
         shell: bash
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
           import { chromium } from '@playwright/test';
           const sha = process.env.SOURCE_SHA;
+          const revision = process.env.PROMPT_RUNTIME_REVISION;
           const expectedFreshnessPrompts = [
             '此只风味精绝，君既选中，甚是妥当。',
             '正逢此只风味最盛，您这一选，再好不过。',
@@ -213,16 +210,23 @@ jobs:
           if (await splash.isVisible().catch(() => false)) await splash.click();
           await page.locator('#appShell').waitFor({ state:'visible', timeout:20000 });
           await page.waitForFunction(() => document.documentElement.dataset.startup === 'ready', null, { timeout:20000 });
-          const snapshot = await page.evaluate(() => ({
-            startup: document.documentElement.dataset.startup,
-            beansActive: document.querySelector('#pageBeans')?.classList.contains('active') || false,
-            appHidden: document.querySelector('#appShell')?.classList.contains('hidden') || false,
-            groupApi: Boolean(globalThis.LuckyBeanBeanGroupState?.close),
-            duplicatePromptLayer: Boolean(document.querySelector('#lbRecommendationToast')),
-            overflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1
-          }));
-          if (snapshot.startup !== 'ready' || !snapshot.beansActive || snapshot.appHidden || !snapshot.groupApi || snapshot.duplicatePromptLayer || !snapshot.overflow) {
-            throw new Error(`Live Pages startup contract failed: ${JSON.stringify(snapshot)}`);
+          const runtime = await page.evaluate(expectedRevision => {
+            const resources = performance.getEntriesByType('resource').map(entry => entry.name);
+            return {
+              startup: document.documentElement.dataset.startup,
+              beansActive: document.querySelector('#pageBeans')?.classList.contains('active') || false,
+              appHidden: document.querySelector('#appShell')?.classList.contains('hidden') || false,
+              groupApi: Boolean(globalThis.LuckyBeanBeanGroupState?.close),
+              duplicatePromptLayer: Boolean(document.querySelector('#lbRecommendationToast')),
+              overflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+              startupUrl: resources.find(url => url.includes('/src/core/startup-controller.js')) || '',
+              appUrl: resources.find(url => url.includes('/src/app.js')) || '',
+              stylesUrl: document.querySelector('link[href*="styles.css"]')?.href || '',
+              expectedRevision
+            };
+          }, revision);
+          if (runtime.startup !== 'ready' || !runtime.beansActive || runtime.appHidden || !runtime.groupApi || runtime.duplicatePromptLayer || !runtime.overflow || !runtime.startupUrl.includes(`v=${revision}`) || !runtime.appUrl.includes(`v=${revision}`) || !runtime.stylesUrl.includes(`v=${revision}`)) {
+            throw new Error(`Live Pages runtime asset contract failed: ${JSON.stringify(runtime)}`);
           }
 
           await page.evaluate(async () => {
@@ -296,7 +300,7 @@ jobs:
         run: |
           set -euo pipefail
           receipt=$(mktemp)
-          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","recommendation_prompt":"native-app-toast","group_adapter_revision":"1.24B-main.10-native-prompt","app_module_revision":"1.24B-main.8-prompt","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
+          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","recommendation_prompt":"native-app-toast","group_adapter_revision":"1.24B-main.10-native-prompt","app_module_revision":"1.24B-main.11-native-prompt","styles_revision":"1.24B-main.11-native-prompt","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
           git config user.name github-actions[bot]
           git config user.email 41898282+zjcrop@users.noreply.github.com
           if git ls-remote --exit-code --heads origin pages-status >/dev/null 2>&1; then
