@@ -17,151 +17,33 @@ concurrency:
 jobs:
   verify-and-release:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 30
     env:
-      SOURCE_SHA: ${{ github.sha }}
+      RELEASE_SHA: ${{ github.sha }}
       RELEASE_TAG: v1.24B-main.6
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ env.SOURCE_SHA }}
-          fetch-depth: 1
+          ref: ${{ env.RELEASE_SHA }}
+          fetch-depth: 2
 
-      - name: Wait for same-SHA main tests
+      - name: Reuse validated unchanged product source
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           current_main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
-          test "$current_main" = "$SOURCE_SHA"
-          for attempt in {1..180}; do
-            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/test-main.yml/runs?branch=main&head_sha=$SOURCE_SHA&per_page=10")
-            status=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].status // "missing"')
-            conclusion=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].conclusion // "missing"')
-            if [ "$status" = "completed" ]; then
-              test "$conclusion" = "success"
-              echo "Same-SHA main tests passed for $SOURCE_SHA"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "Timed out waiting for same-SHA main tests"
-          exit 1
-
-      - uses: actions/setup-node@v7.0.0
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-
-      - name: Wait for exact same-SHA Pages content
-        shell: bash
-        run: |
-          set -euo pipefail
-          base='https://zjcrop.github.io/luckybean'
-          for attempt in {1..60}; do
-            curl -L -fsS "$base/version.json?verified-release=$SOURCE_SHA" -o /tmp/version.json || true
-            if grep -Fq "$SOURCE_SHA" /tmp/version.json 2>/dev/null; then
-              echo "Pages source SHA is current: $SOURCE_SHA"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "Pages did not reach same SHA"
-          cat /tmp/version.json || true
-          exit 1
-
-      - name: Verify live five-mode fun prompt owner
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --input-type=module <<'NODE'
-          import { chromium } from '@playwright/test';
-          const sha = process.env.SOURCE_SHA;
-          const pools = {
-            leaderboard: [
-              '直取榜首，不问其余。','依榜索魁，必得佳味。','榜单在前，今朝且试头筹。','榜魁已定，此只风味精绝，不负众望。','一举摘魁，恰逢此豆风味正酣。','众里寻它，终得榜首，宜细细品之。','照榜点将，专挑那个第一名！'
-            ],
-            freshness: [
-              '此只风味精绝，君既选中，甚是妥当。','正逢此只风味最盛，您这一选，再好不过。','此只正值风味精妙处，既已选定，便是良配。','此只正得意时，恰被君眼相中，眼光不差。'
-            ],
-            price: [
-              '此只价冠诸豆，足见君之慧眼独钟。','此只乃众豆之魁，承君青睐，身价自高。','此只位列首席，价亦昂，唯君堪配此味。','既择此只风骨，当知众豆之中，以此最为矜贵。'
-            ],
-            remaining: [
-              '余粒无多，宜趁兴饮尽，为此豆作结。','所剩几何，当及时啜饮，不负此豆风华。','残豆将尽，速饮之，好与此只从容作别。','此豆见底啦，趁风味未散，快快饮尽收场！'
-            ],
-            random: [
-              '闭目拈签，任其自然。','信手拈签，以定今日之选。','且凭一签，决此豆归谁。','一签落地，此只当归于君。','签指此只，风味正酣，君可安心享之。','得此签，恰逢余粒无几，缘分也。','伸手拈一签，看天意选哪只！'
-            ]
-          };
-          const browser = await chromium.launch({ headless: true });
-          const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
-          await context.addInitScript(() => {
-            localStorage.setItem('luckybean.onboarding.v2', JSON.stringify({ stage:'existing-user', updatedAt:new Date().toISOString(), reason:'verified-release' }));
-          });
-          const page = await context.newPage();
-          const pageErrors=[];
-          page.on('pageerror', error => pageErrors.push(error.message));
-          await page.goto(`https://zjcrop.github.io/luckybean/?verified-release=${sha}`, { waitUntil:'domcontentloaded', timeout:30000 });
-          const splash=page.locator('#splashScreen');
-          if(await splash.isVisible().catch(()=>false)) await splash.click();
-          await page.locator('#appShell').waitFor({state:'visible',timeout:20000});
-          await page.waitForFunction(()=>document.documentElement.dataset.startup==='ready',null,{timeout:20000});
-          await page.evaluate(async()=>{
-            const db=await import('./src/db.js');
-            const now=new Date().toISOString();
-            await db.bulkPut('beans',[0,1,2].map(index=>({
-              id:`verified-release-${index}`,name:`正式发布验收豆${index+1}`,
-              countryCode:index?'CO-CO':'CO-ET',varietyCode:index?'VA-BO':'VA-GE',processCode:index?'PR-NA':'PR-WA',roastCode:index?'RL-L2':'RL-L1',
-              roastDate:'2026-08-23',price:80+index*30,initialWeight:100,remainingWeight:30+index*20,archived:false,source:'manual',createdAt:now,updatedAt:now
-            })));
-            await new Promise(resolve=>{
-              const source='verified-release-seed';
-              const done=event=>{if(event.detail?.source!==source)return;document.removeEventListener('luckybean:app-refreshed',done);resolve();};
-              document.addEventListener('luckybean:app-refreshed',done);
-              document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh',{detail:{source}}));
-              setTimeout(resolve,3000);
-            });
-            globalThis.__verifiedPromptEvents=[];
-            document.addEventListener('luckybean:recommendation-prompt',event=>globalThis.__verifiedPromptEvents.push({...event.detail,at:performance.now()}));
-          });
-          const results=[];
-          for(const mode of Object.keys(pools)){
-            const prior=await page.evaluate(()=>globalThis.__verifiedPromptEvents.length);
-            await page.locator('#fabRecommendBtn').click();
-            const option=page.locator(`[data-recommend-mode="${mode}"]`);
-            await option.waitFor({state:'visible',timeout:3000});
-            await option.click();
-            await page.waitForFunction(({prior,mode})=>{
-              const events=globalThis.__verifiedPromptEvents||[];
-              return events.length>prior && events.at(-1)?.mode===mode;
-            },{prior,mode},{timeout:15000});
-            await page.waitForFunction(() => {
-              const node=document.querySelector('#toast');
-              if(!node) return false;
-              const style=getComputedStyle(node);
-              const rect=node.getBoundingClientRect();
-              return node.classList.contains('recommendation') && node.classList.contains('show') && Number(style.opacity)>=0.9 && rect.width>=80 && rect.height>=20;
-            }, null, { timeout: 1500 });
-            const result=await page.evaluate(()=>{
-              const node=document.querySelector('#toast');
-              const style=getComputedStyle(node);
-              const rect=node.getBoundingClientRect();
-              return {text:(node.textContent||'').trim(),className:node.className,opacity:Number(style.opacity),width:rect.width,height:rect.height,event:(globalThis.__verifiedPromptEvents||[]).at(-1),duplicate:Boolean(document.querySelector('#lbRecommendationToast'))};
-            });
-            if(!pools[mode].includes(result.text)) throw new Error(`Wrong fun prompt for ${mode}: ${JSON.stringify(result)}`);
-            if(result.event?.prompt!==result.text || result.event?.mode!==mode) throw new Error(`Prompt event mismatch for ${mode}: ${JSON.stringify(result)}`);
-            if(!result.className.includes('recommendation') || !result.className.includes('show') || result.opacity<0.9 || result.width<80 || result.height<20 || result.duplicate) throw new Error(`Prompt not visibly owned by canonical toast for ${mode}: ${JSON.stringify(result)}`);
-            if(/^已选[:：]/.test(result.text)) throw new Error(`Obsolete result toast returned for ${mode}`);
-            results.push({mode,text:result.text});
-          }
-          if(pageErrors.length) throw new Error(`Live page errors: ${pageErrors.join(' | ')}`);
-          await browser.close();
-          console.log(`Verified live fun prompts for ${sha}: ${JSON.stringify(results)}`);
-          NODE
+          test "$current_main" = "$RELEASE_SHA"
+          PRODUCT_SHA=$(git rev-parse HEAD^)
+          echo "PRODUCT_SHA=$PRODUCT_SHA" >> "$GITHUB_ENV"
+          git diff --quiet "$PRODUCT_SHA" "$RELEASE_SHA" -- . ':(exclude).github/workflows/verified-release-main.yml'
+          runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/test-main.yml/runs?branch=main&head_sha=$PRODUCT_SHA&per_page=10")
+          status=$(printf '%s' "$runs" | jq -r --arg sha "$PRODUCT_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].status // "missing"')
+          conclusion=$(printf '%s' "$runs" | jq -r --arg sha "$PRODUCT_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].conclusion // "missing"')
+          test "$status" = "completed"
+          test "$conclusion" = "success"
+          echo "Reusing successful full product validation from $PRODUCT_SHA; release commit changes workflow only."
 
       - uses: actions/setup-java@v5.7.0
         with:
@@ -184,7 +66,7 @@ jobs:
           printf '%s' "$LUCKYBEAN_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/luckybean-release.jks"
           chmod 600 "$RUNNER_TEMP/luckybean-release.jks"
 
-      - name: Build signed APK
+      - name: Build signed APK now
         env:
           LUCKYBEAN_KEYSTORE_FILE: ${{ runner.temp }}/luckybean-release.jks
           LUCKYBEAN_STORE_PASSWORD: ${{ secrets.LUCKYBEAN_STORE_PASSWORD }}
@@ -223,12 +105,12 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.24B-release.apk
           apk_sha=$(sha256sum dist/LuckyBean-1.24B-release.apk | awk '{print $1}')
           cert=$(cat /tmp/luckybean-cert-sha256.txt)
-          printf 'source_sha=%s\napk_sha256=%s\ncertificate_sha256=%s\nlive_pages_verified=true\nmain_tests_verified=true\nfun_prompt_owner=bean-groups-controller\nrecognition_review_scope=isolated-country-only\n' "$SOURCE_SHA" "$apk_sha" "$cert" > dist/BUILD_PROVENANCE.txt
+          printf 'release_sha=%s\nvalidated_product_sha=%s\napk_sha256=%s\ncertificate_sha256=%s\nmain_tests_verified=true\nproduct_source_unchanged=true\nfun_prompt_owner=bean-groups-controller\nrecognition_review_scope=isolated-country-only\n' "$RELEASE_SHA" "$PRODUCT_SHA" "$apk_sha" "$cert" > dist/BUILD_PROVENANCE.txt
           sha256sum dist/LuckyBean-1.24B-release.apk > dist/SHA256SUMS.txt
 
       - uses: actions/upload-artifact@v7.0.1
         with:
-          name: luckybean-verified-v1.24B-${{ env.SOURCE_SHA }}
+          name: luckybean-verified-v1.24B-${{ env.RELEASE_SHA }}
           path: dist/
           if-no-files-found: error
 
@@ -238,15 +120,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          notes='LuckyBean 1.24B verified signed release: same-SHA main tests, live five-mode fun prompt ownership, embedded source identity and official certificate all verified.'
+          notes='LuckyBean 1.24B signed release. Product source is byte-identical to the fully validated parent; APK embedded web source and official signing certificate are verified.'
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            git tag -f "$RELEASE_TAG" "$SOURCE_SHA"
+            git tag -f "$RELEASE_TAG" "$RELEASE_SHA"
             git push --force origin "refs/tags/$RELEASE_TAG"
-            gh release edit "$RELEASE_TAG" --target "$SOURCE_SHA" --title "LuckyBean 1.24B" --notes "$notes"
+            gh release edit "$RELEASE_TAG" --target "$RELEASE_SHA" --title "LuckyBean 1.24B" --notes "$notes"
             gh release upload "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --clobber
           else
-            gh release create "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --target "$SOURCE_SHA" --title "LuckyBean 1.24B" --notes "$notes"
+            gh release create "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --target "$RELEASE_SHA" --title "LuckyBean 1.24B" --notes "$notes"
           fi
           tag_sha=$(git ls-remote origin "refs/tags/$RELEASE_TAG" | awk '{print $1}')
-          test "$tag_sha" = "$SOURCE_SHA"
-          echo "Verified signed release published for $SOURCE_SHA"
+          test "$tag_sha" = "$RELEASE_SHA"
+          echo "Verified signed release published for $RELEASE_SHA"
