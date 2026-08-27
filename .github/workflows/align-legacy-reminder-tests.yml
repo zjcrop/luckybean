@@ -49,6 +49,18 @@ jobs:
                   line=line.replace('fun-only-native-app-toast','legacy-short-reminder-current-mode-adapter')
                   line=line.replace('Live Pages native prompt browser smoke','Live Pages five-mode legacy reminder browser smoke')
                   line=line.replace('Verify published fun-prompt runtime URLs exactly','Verify published legacy-reminder runtime URLs exactly')
+                  line=line.replace(
+                      "assert.match(app,/const RECOMMENDATION_PROMPTS = Object\\.freeze/);",
+                      "assert.match(app,/const LEGACY_RECOMMENDATION_REMINDERS = Object\\.freeze/);\nassert.match(app,/const CURRENT_TO_LEGACY_RECOMMENDATION_MODE = Object\\.freeze/);\nassert.doesNotMatch(app,/const RECOMMENDATION_PROMPTS = Object\\.freeze/);"
+                  )
+                  line=line.replace(
+                      "assert.match(app,/function recommendationPrompt\\(mode\\)/);",
+                      "assert.match(app,/function recommendationPrompt\\(mode, bean\\)/);"
+                  )
+                  line=line.replace(
+                      "assert.doesNotMatch(groupNavigation,/RECOMMENDATION_PROMPT_REVISION|RECOMMENDATION_PROMPTS|lbRecommendationToast|showRecommendationPromptForMode|MutationObserver/);",
+                      "assert.doesNotMatch(groupNavigation,/RECOMMENDATION_PROMPT_REVISION|RECOMMENDATION_PROMPTS|LEGACY_RECOMMENDATION_REMINDERS|lbRecommendationToast|showRecommendationPromptForMode|MutationObserver/);"
+                  )
                   if line!=original:touched=True
                   lines.append(line)
               if touched:
@@ -58,6 +70,7 @@ jobs:
           print('\n'.join(changed) if changed else '(none)')
           PY
           grep -R -n 'startup-controller.*main\\.13-local-menu-prompt\|APP_MODULE_REVISION.*main\\.13-local-menu-prompt\|appModuleRevision.*main\\.13-local-menu-prompt' tests || true
+          grep -R -n 'const RECOMMENDATION_PROMPTS = Object\\.freeze' tests || true
       - name: Validate static suite
         shell: bash
         run: |
