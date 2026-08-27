@@ -91,11 +91,15 @@ jobs:
           grep -Fq 'release-revision" content="1.24B-main.6"' index.html
           grep -Fq 'release-1.24b-polish.js?v=1.24B-main.6' index.html
           grep -Fq 'release-1.24b-transit-controller.js?v=1.24B-main.6' index.html
-          grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.6' index.html
+          grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' index.html
+          grep -Fq 'runtime-features.js?v=1.24B-main.18-review-owner' index.html
           grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.6' index.html
           grep -Fq "REVISION = '1.24B-main.6'" sw.js
           grep -Fq 'main-6-ui2' sw.js
           grep -Fq "UI_POLICY_REVISION = '1.24B-main.6'" src/features/release-1.24b-ui-policy.js
+          grep -Fq "feature('recognition-review-owner', '../ui/recognition-review-owner-controller.js')" src/features/runtime-features.js
+          grep -Fq "REVIEW_OWNER_REVISION = '1.24B-review-owner.1'" src/ui/recognition-review-owner-controller.js
+          grep -Fq "container.dataset.integrityEvidence = '1'" src/ui/recognition-review-owner-controller.js
           grep -Fq 'beanGroupState' src/bean-groups-controller.js
           ! grep -Fq 'let activeGroup' src/bean-groups-controller.js
           grep -Fq 'LuckyBeanBeanGroupState' src/features/release-1.24b-group-navigation.js
@@ -142,9 +146,14 @@ jobs:
           test -f "$apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"
           unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-revision" content="1.24B-main.6"'
+          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt'
+          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'runtime-features.js?v=1.24B-main.18-review-owner'
           unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '1.24B-main.6'"
           unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'main-6-ui2'
           unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq "UI_POLICY_REVISION = '1.24B-main.6'"
+          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq "feature('recognition-review-owner', '../ui/recognition-review-owner-controller.js')"
+          unzip -p "$apk" assets/web-cache/src/ui/recognition-review-owner-controller.js | grep -Fq "REVIEW_OWNER_REVISION = '1.24B-review-owner.1'"
+          unzip -p "$apk" assets/web-cache/src/ui/recognition-review-owner-controller.js | grep -Fq "container.dataset.integrityEvidence = '1'"
           unzip -p "$apk" assets/web-cache/src/domain/beans/bean-group-state.js | grep -Fq 'export const beanGroupState'
           unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'beanGroupState'
           ! unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'let activeGroup'
@@ -171,7 +180,7 @@ jobs:
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.24B-release.apk
           zip -qr dist/LuckyBean-1.24B-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts schemas docs DEVELOPMENT_STATUS.md
-          printf 'source_sha=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.6\nsigning=official-release-keystore\nandroid_runtime_marker=LuckyBeanAndroid/1.24B\nrecognition_queue=serial-one-image-persistent\nrecognition_arbitration=explicit-confidence-consensus-inference\nbean_lifecycle=ordered-delivered-storage-history\nstorage_modes=room-refrigerated-frozen\nfreshness_detail=full-expandable\norder_ocr=privacy-minimized\ngrind_psd=measured-reference-plus-custom-anchors\ngroup_navigation=canonical-state-api\ncache=main-6-ui2\nsortable=shared-live-preview-ghost-placeholder\nsensory_sort=single-activate-double-remove-longpress-preview\nbrew_ui=text-interactions\nabout_contacts=inside-about-section\nui_architecture=canonical-1.24b-main.6\nscore_layout=viewport-safe-next-line-range\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
+          printf 'source_sha=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.6\nsigning=official-release-keystore\nandroid_runtime_marker=LuckyBeanAndroid/1.24B\nrecognition_queue=serial-one-image-persistent\nrecognition_arbitration=explicit-confidence-consensus-inference\nrecognition_review_owner=1.24B-review-owner.1\nbean_lifecycle=ordered-delivered-storage-history\nstorage_modes=room-refrigerated-frozen\nfreshness_detail=full-expandable\norder_ocr=privacy-minimized\ngrind_psd=measured-reference-plus-custom-anchors\ngroup_navigation=canonical-state-api\ncache=main-6-ui2\nsortable=shared-live-preview-ghost-placeholder\nsensory_sort=single-activate-double-remove-longpress-preview\nbrew_ui=text-interactions\nabout_contacts=inside-about-section\nui_architecture=canonical-1.24b-main.6\nscore_layout=viewport-safe-next-line-range\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
           sha256sum dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip > dist/SHA256SUMS.txt
 
       - uses: actions/upload-artifact@v7.0.1
@@ -210,7 +219,7 @@ jobs:
           apk_sha=$(sha256sum dist/LuckyBean-1.24B-release.apk | awk '{print $1}')
           web_sha=$(sha256sum dist/LuckyBean-1.24B-web.zip | awk '{print $1}')
           receipt=$(mktemp)
-          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","release_tag":"%s","release_target_sha":"%s","release_target_verified":true,"apk":"LuckyBean-1.24B-release.apk","apk_sha256":"%s","web_sha256":"%s","certificate_sha256":"%s","certificate_verified":true,"published":true,"web_gate_verified":true,"main_test_verified":true,"group_navigation":"canonical-state-api","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$RELEASE_TAG" "$release_target_sha" "$apk_sha" "$web_sha" "$cert" "$(date -u +%FT%TZ)" > "$receipt"
+          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","release_tag":"%s","release_target_sha":"%s","release_target_verified":true,"apk":"LuckyBean-1.24B-release.apk","apk_sha256":"%s","web_sha256":"%s","certificate_sha256":"%s","certificate_verified":true,"published":true,"web_gate_verified":true,"main_test_verified":true,"recognition_review_owner":"1.24B-review-owner.1","group_navigation":"canonical-state-api","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$RELEASE_TAG" "$release_target_sha" "$apk_sha" "$web_sha" "$cert" "$(date -u +%FT%TZ)" > "$receipt"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           if git ls-remote --exit-code --heads origin release-status >/dev/null 2>&1; then
