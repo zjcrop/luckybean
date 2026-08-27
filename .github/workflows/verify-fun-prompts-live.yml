@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
     paths:
+      - 'src/bean-groups-controller.js'
+      - 'src/features/runtime-features.js'
+      - 'index.html'
+      - 'tests/v124b-recommendation-prompt-regression.mjs'
+      - 'tests/v124b-selection-mode-single-group.spec.mjs'
       - '.github/workflows/verify-fun-prompts-live.yml'
   workflow_dispatch:
 
@@ -26,7 +31,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: Verify actual grouped selection owner and five fun prompt pools
+      - name: Verify single toast owner and original fun prompt pools on live Pages
         shell: bash
         run: |
           set -euo pipefail
@@ -40,7 +45,7 @@ jobs:
             remaining: ['余粒无多，宜趁兴饮尽，为此豆作结。','所剩几何，当及时啜饮，不负此豆风华。','残豆将尽，速饮之，好与此只从容作别。','此豆见底啦，趁风味未散，快快饮尽收场！'],
             random: ['闭目拈签，任其自然。','信手拈签，以定今日之选。','且凭一签，决此豆归谁。','一签落地，此只当归于君。','签指此只，风味正酣，君可安心享之。','得此签，恰逢余粒无几，缘分也。','伸手拈一签，看天意选哪只！']
           };
-
+          const revision='1.24B-main.17-single-toast-owner';
           const browser = await chromium.launch({ headless: true });
           const context = await browser.newContext({ viewport:{ width:390, height:844 } });
           await context.addInitScript(() => {
@@ -63,7 +68,7 @@ jobs:
               duplicateLayer:Boolean(document.querySelector('#lbRecommendationToast'))
             };
           });
-          if(!runtime.loader.includes('1.24B-main.16-fun-prompt-owner') || !runtime.groupedOwner.includes('1.24B-main.16-fun-prompt-owner') || runtime.duplicateLayer){
+          if(!runtime.loader.includes(revision) || !runtime.groupedOwner.includes(revision) || runtime.duplicateLayer){
             throw new Error('Wrong live recommendation runtime: '+JSON.stringify(runtime));
           }
 
@@ -91,8 +96,7 @@ jobs:
             new MutationObserver(capture).observe(toast,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class']});
           });
 
-          const results=[];
-          for(const mode of Object.keys(pools)){
+          const clickMode=async mode=>{
             const before=await page.evaluate(()=>globalThis.__funPromptEvents.length);
             await page.locator('#fabRecommendBtn').click();
             const option=page.locator(`[data-recommend-mode="${mode}"]`);
@@ -108,6 +112,12 @@ jobs:
               const toast=document.querySelector('#toast');
               return (toast?.textContent||'').trim()===prompt && toast?.classList.contains('recommendation') && toast?.classList.contains('show');
             },event.prompt,{timeout:5000});
+            return event;
+          };
+
+          const results=[];
+          for(const mode of Object.keys(pools)){
+            const event=await clickMode(mode);
             await page.waitForTimeout(900);
             const state=await page.evaluate(eventAt=>{
               const toast=document.querySelector('#toast');
@@ -119,7 +129,29 @@ jobs:
             if(state.timeline.some(item=>/^已选[:：]/.test(item.text))) throw new Error(`Duplicate 已选 result toast still appeared for ${mode}: ${JSON.stringify(state.timeline)}`);
             results.push({mode,prompt:event.prompt});
           }
+
+          // Reproduce the historical stale-timer race: the second freshness prompt is shown
+          // before the first prompt's former 2.8s grouped-controller timer would expire.
+          const first=await clickMode('freshness');
+          await page.waitForTimeout(1500);
+          const second=await clickMode('freshness');
+          if(first.prompt===second.prompt) throw new Error('Freshness anti-repeat contract failed');
+          await page.waitForTimeout(1200);
+          const race=await page.evaluate(second=>{
+            const toast=document.querySelector('#toast');
+            const style=getComputedStyle(toast);
+            return {
+              text:(toast?.textContent||'').trim(),
+              show:toast?.classList.contains('show')||false,
+              opacity:Number(style.opacity),
+              timeline:(globalThis.__funToastTimeline||[]).filter(item=>item.at>=second.at-80)
+            };
+          },second);
+          if(race.text!==second.prompt || !race.show || race.opacity<0.9) throw new Error(`Stale timer still hides second fun prompt: ${JSON.stringify(race)}`);
+          if(race.timeline.some(item=>/^已选[:：]/.test(item.text))) throw new Error(`Duplicate 已选 result toast appeared during stale-timer regression: ${JSON.stringify(race.timeline)}`);
+          if(race.timeline.some(item=>item.text===second.prompt && !item.className.includes('show'))) throw new Error(`Second prompt was prematurely hidden: ${JSON.stringify(race.timeline)}`);
+
           if(errors.length) throw new Error('Live page errors: '+errors.join(' | '));
-          console.log('LIVE_FUN_PROMPTS_OK '+JSON.stringify(results));
+          console.log('LIVE_FUN_PROMPTS_SINGLE_OWNER_OK '+JSON.stringify({results,race:{first:first.prompt,second:second.prompt}}));
           await browser.close();
           NODE
