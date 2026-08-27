@@ -905,6 +905,13 @@ function openRecommendMenu() {
     ['price', '价冠', '#000000', false], ['remaining', '拾余', '#808080', false], ['random', '拈签', '#e88b3d', true]
   ];
   popup.innerHTML = items.map(([mode, label, color, large]) => `<button type="button" class="recommend-option" data-recommend-mode="${mode}" aria-label="${label}"><span class="recommend-label">${label}</span><span class="recommend-dot${large?' random':''}" style="background:${color}"></span></button>`).join('');
+  popup.addEventListener('click', event => {
+    const button = event.target.closest('[data-recommend-mode]');
+    if (!button || !popup.contains(button)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    void recommendBean(button.dataset.recommendMode);
+  });
   document.body.append(popup); positionPopup($('#fabRecommendBtn'), popup, { above: true });
 }
 
@@ -2711,7 +2718,7 @@ document.addEventListener('click',event=>{
     const sensoryRecord=event.target.closest('[data-sensory-record]');if(sensoryRecord){event.preventDefault();openSensoryRecord(sensoryRecord.dataset.sensoryRecord);return;}
     const manage=event.target.closest('[data-manage-action]');if(manage){const action=manage.dataset.manageAction;closePopups();if(action==='batch')openBatchBeanManager();if(action==='export')exportData();if(action==='import')$('#importInput').click();return;}
     const add=event.target.closest('[data-add-mode]');if(add){const mode=add.dataset.addMode;closePopups();if(mode==='photo')$('#qrImageInput').click();if(mode==='qr')openCameraDialog();if(mode==='text')openTextRecognition();return;}
-    const recommend=event.target.closest('[data-recommend-mode]');if(recommend){recommendBean(recommend.dataset.recommendMode);return;}
+
     if(!event.target.closest('.popup-menu,.recommend-menu,#groupBtn,#manageBtn,#fabRecommendBtn,#fabAddBtn'))closePopups();
   });
   $('#qrImageInput').addEventListener('change',event=>handleQrFile(event.target.files[0])); $('#importInput').addEventListener('change',event=>importData(event.target.files[0]));

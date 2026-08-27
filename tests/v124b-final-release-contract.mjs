@@ -155,7 +155,7 @@ assert.match(deploy, /head_sha=\$SOURCE_SHA/);
 assert.match(deploy, /test_conclusion/);
 assert.match(deploy, /current_main/);
 assert.match(deploy, /Live Pages native prompt browser smoke/);
-assert.match(deploy, /PROMPT_RUNTIME_REVISION: 1\.24B-main\.12-fun-prompt/);
+assert.match(deploy, /PROMPT_RUNTIME_REVISION: 1\.24B-main\.13-local-menu-prompt/);
 assert.match(deploy, /appModuleRevision/);
 assert.match(deploy, /stylesRevision/);
 assert.match(deploy, /browser_smoke/);

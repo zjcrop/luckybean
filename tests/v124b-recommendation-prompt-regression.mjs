@@ -21,6 +21,9 @@ assert.match(app,/function recommendationPrompt\(mode\)/);
 assert.match(app,/mode = normalizeRecommendationMode\(mode\)/);
 assert.match(app,/toast\(prompt, 'recommendation'\)/);
 assert.match(app,/luckybean:recommendation-prompt/);
+assert.match(app,/popup\.addEventListener\('click', event => \{/);
+assert.match(app,/void recommendBean\(button\.dataset\.recommendMode\)/);
+assert.doesNotMatch(app,/const recommend=event\.target\.closest\('\[data-recommend-mode\]'\)/);
 assert.doesNotMatch(app,/toast\(prompt \|\| `已选：\$\{beanDisplayName\(selected\)\}`/);
 assert.match(app,/if \(kind === 'recommendation'\)/);
 
