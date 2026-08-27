@@ -119,6 +119,7 @@ test('consecutive fun prompts are controlled by one toast timer and stale timers
   await page.locator('[data-recommend-mode="freshness"]').click();
   await expect(prompt).toHaveClass(/recommendation/,{timeout:5000});
   await expect(prompt).toHaveClass(/show/,{timeout:5000});
+  await expect(prompt).not.toHaveText(first,{timeout:5000});
   const second=(await prompt.textContent())?.trim()||'';
   expect(FRESHNESS_PROMPTS).toContain(second);
   expect(second).not.toBe(first);
