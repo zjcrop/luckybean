@@ -184,22 +184,23 @@ export function analyzeRecognitionDocument(document, book) {
   const fields = buildFieldRows(document, parsed, book);
   const reviewFields = fields.filter(item => item.status === 'review');
 
-  // A field can be semantically identified by the relation resolver while remaining
-  // unresolved by the codebook (for example: COUNTRY ATLANTIS). Preserve that raw
-  // relation evidence for the bean-form confirmation UI instead of losing the field
-  // between package analysis and form handoff. Confidence remains the measured
-  // parser/relation confidence; manual confirmation must never fabricate confidence=1.
+  // A field can be semantically identified while remaining unresolved by the
+  // codebook (for example: COUNTRY ATLANTIS). Preserve the value that the review
+  // UI actually shows. Prefer raw evidence, but if the parser only retained a
+  // custom/unmapped display value, keep that value so the bean-form confirmation
+  // step cannot lose the field at the package-to-form boundary. Confidence remains
+  // measured parser/relation confidence; manual confirmation never fabricates 1.0.
   parsed.evidence ||= {};
   parsed.confidence ||= {};
   for (const item of reviewFields) {
-    const rawValue = clean(item.rawValue);
-    if (!rawValue) continue;
+    const reviewValue = clean(item.rawValue || item.standardValue);
+    if (!reviewValue) continue;
     const currentEvidence = parsed.evidence[item.field];
     const missingEvidence = currentEvidence === undefined
       || currentEvidence === null
       || currentEvidence === ''
       || (Array.isArray(currentEvidence) && currentEvidence.length === 0);
-    if (missingEvidence) parsed.evidence[item.field] = rawValue;
+    if (missingEvidence) parsed.evidence[item.field] = reviewValue;
     const currentConfidence = Number(parsed.confidence[item.field]);
     if (!Number.isFinite(currentConfidence) || currentConfidence <= 0) {
       parsed.confidence[item.field] = Number(item.confidence || 0);
