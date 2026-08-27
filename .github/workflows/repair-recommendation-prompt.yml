@@ -1,0 +1,52 @@
+name: Repair recommendation prompt core
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-recommendation-prompt.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-repair-recommendation-prompt
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Apply deterministic core repair
+        run: python scripts/repair-recommendation-prompt.py
+      - name: Verify repaired source before commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check src/app.js
+          grep -Fq 'function normalizeRecommendationMode(mode)' src/app.js
+          grep -Fq "mode = normalizeRecommendationMode(mode)" src/app.js
+          grep -Fq "toast(prompt, 'recommendation')" src/app.js
+          grep -Fq 'luckybean:recommendation-prompt' src/app.js
+          ! grep -Fq 'toast(prompt || `已选：${beanDisplayName(selected)}`' src/app.js
+          grep -Fq '1.24B-main.12-fun-prompt' index.html
+          grep -Fq "APP_MODULE_REVISION = '1.24B-main.12-fun-prompt'" src/core/startup-controller.js
+          test ! -e .github/workflows/repair-recommendation-prompt.yml
+      - name: Commit core repair to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'zjcrop'
+          git config user.email '127176814+zjcrop@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m 'Restore fun-only recommendation prompt runtime'
+          git push origin HEAD:main
