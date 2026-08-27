@@ -3,8 +3,8 @@ import { get, put } from '../db.js';
 const DEVICE_RECORD_ID = 'cloud.device.id.v3';
 const SPLASH_READY_TIMEOUT_MS = 12000;
 const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.3';
-// Keep the app module cache key independent until recommendation prompts are verified on persistent web/PWA clients.
-const APP_MODULE_REVISION = '1.24B-main.8-prompt';
+// Dedicated cache key for the restored native recommendation prompt runtime.
+const APP_MODULE_REVISION = '1.24B-main.11-native-prompt';
 let enterRequested = false;
 let shellReady = false;
 
