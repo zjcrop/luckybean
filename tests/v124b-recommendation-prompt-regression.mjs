@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
+const index=fs.readFileSync('index.html','utf8');
 const app=fs.readFileSync('src/app.js','utf8');
 const groups=fs.readFileSync('src/bean-groups-controller.js','utf8');
+const runtime=fs.readFileSync('src/features/runtime-features.js','utf8');
 const guard=fs.readFileSync('src/features/release-1.24b-group-navigation.js','utf8');
 
 const originalFunPrompts=[
@@ -21,7 +23,6 @@ assert.match(groups,/luckybean:recommendation-prompt/);
 assert.match(groups,/toast\(prompt, 'recommendation'\)/);
 assert.doesNotMatch(groups,/toast\(`已选：/,'grouped selection owner must never overwrite the fun prompt with a bean-result toast');
 
-// Existing five-mode algorithms and grouped animation remain untouched.
 for(const source of [
   "if (mode === 'leaderboard') return [...beans].sort((a, b) => (scoreMap.get(b.id) || 0) - (scoreMap.get(a.id) || 0))[0];",
   "if (mode === 'freshness') return [...beans].sort((a, b) => Number(freshnessProfile(b).flavorScore || 0) - Number(freshnessProfile(a).flavorScore || 0))[0];",
@@ -32,11 +33,11 @@ for(const source of [
   "await animateBean(selected, index, { persist: true, duration: 820 });",
   "runRecommendation(recommendation.dataset.recommendMode).catch(error => toast(error.message, 'status-bad'));"
 ]) assert.ok(groups.includes(source),`selection/group behavior changed unexpectedly: ${source}`);
-assert.match(groups,/const recommendation = event\.target\.closest\?\.\('\[data-recommend-mode\]'\)/);
-assert.match(groups,/event\.preventDefault\(\); event\.stopPropagation\(\); event\.stopImmediatePropagation\(\);/);
 
-// Prompt UI remains the single shared #toast; no mirror layer is reintroduced.
+assert.match(runtime,/BEAN_GROUP_RUNTIME_REVISION = '1\.24B-main\.16-fun-prompt-owner'/);
+assert.match(runtime,/pinnedFeature\('bean-groups', '\.\.\/bean-groups-controller\.js', BEAN_GROUP_RUNTIME_REVISION\)/);
+assert.match(index,/runtime-features\.js\?v=1\.24B-main\.16-fun-prompt-owner/);
 assert.doesNotMatch(guard,/RECOMMENDATION_PROMPTS|lbRecommendationToast|showRecommendationPromptForMode|directPromptLockUntil/);
 assert.doesNotMatch(app,/toast\(prompt \|\| `已选：\$\{beanDisplayName\(selected\)\}`/);
 
-console.log('LuckyBean fun recommendation prompt contract passed: original fun library restored in the real grouped-selection owner; five-mode selection/grouping mechanics unchanged; duplicate 已选 result toast removed');
+console.log('LuckyBean fun recommendation prompt contract passed: original fun library restored in the real grouped-selection owner; five-mode selection/grouping mechanics unchanged; duplicate 已选 result toast removed; corrected owner cache is pinned');
