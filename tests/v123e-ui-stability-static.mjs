@@ -7,6 +7,7 @@ function walk(dir){return fs.readdirSync(dir,{withFileTypes:true}).flatMap(entry
 
 const index=read('index.html');
 const sw=read('sw.js');
+const app=read('src/app.js');
 const layout=read('src/ui/app-layout.css');
 const components=read('src/ui/app-components.css');
 const sensoryCss=read('src/ui/professional-sensory.css');
@@ -98,8 +99,10 @@ assert.match(beanGroups,/async function closeActiveGroup/);
 assert.match(beanGroups,/hasActiveGroup: \(\) => Boolean\(beanGroupState\.groupKey\)/);
 assert.match(beanGroups,/activeGroup: \(\) => beanGroupState\.groupKey/);
 assert.doesNotMatch(beanGroups,/let activeGroup|data-v099t-group-back|>收</);
-assert.match(groupNavigation,/RECOMMENDATION_PROMPT_REVISION='1\.24B-main\.9-immediate'/);
-assert.match(groupNavigation,/immediate fun recommendation prompt active/);
+assert.match(app,/const RECOMMENDATION_PROMPTS = Object\.freeze/);
+assert.match(app,/function recommendationPrompt\(mode\)/);
+assert.match(app,/toast\(prompt \|\| `已选：\$\{beanDisplayName\(selected\)\}`, 'recommendation'\)/);
+assert.doesNotMatch(groupNavigation,/RECOMMENDATION_PROMPT_REVISION|RECOMMENDATION_PROMPTS|lbRecommendationToast|showRecommendationPromptForMode|MutationObserver/);
 assert.match(groupNavigation,/LuckyBeanBeanGroupState/);
 assert.match(groupNavigation,/luckybean:navigation-back/);
 assert.doesNotMatch(groupNavigation,/LuckyBeanV099tBeanGroups|api\.closeActiveGroup|dispatchEvent\(new MouseEvent|nativePanel|nativeCollapse|dx<=-72|page\?\.contains\(event\.target\)/);
@@ -140,4 +143,4 @@ const sourceFiles=walk('src').filter(file=>/\.(?:js|mjs|css)$/.test(file));
 const bodyObserverFiles=sourceFiles.filter(file=>{const source=read(file);return /MutationObserver/.test(source)&&/\.observe\(document\.body\s*,/.test(source);});
 assert.deepEqual(bodyObserverFiles,[],`global body MutationObservers remain: ${bodyObserverFiles.join(', ')}`);
 
-console.log(`LuckyBean 1.24B ${releaseRevision} canonical UI stability, shared bean-group state, shared sorting and text brew UI regression checks passed`);
+console.log(`LuckyBean 1.24B ${releaseRevision} canonical UI stability, native recommendation prompt ownership, shared bean-group state, shared sorting and text brew UI regression checks passed`);
