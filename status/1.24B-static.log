@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 5.372518
+  duration_ms: 5.274481
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 2.261025
+  duration_ms: 2.123314
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 2.419741
+  duration_ms: 2.638598
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 1.880883
+  duration_ms: 1.874047
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.816215
+  duration_ms: 0.837968
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.64947
+  duration_ms: 2.639028
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.86165
+  duration_ms: 0.854399
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 22.133624
+# duration_ms 22.157227
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 5.82906
+  duration_ms: 5.667647
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 3.776816
+  duration_ms: 3.567437
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 3.619142
+  duration_ms: 3.63852
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 2.850637
+  duration_ms: 2.799429
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 2.377453
+  duration_ms: 2.275258
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 1.163494
+  duration_ms: 1.115127
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 25.554636
+# duration_ms 25.024673
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -187,125 +187,593 @@ LuckyBean 1.24B main.4 complete modification-plan contract with canonical bean g
 LuckyBean 1.24B single-owner bean group state, hidden preference leaderboard policy, shared live-preview sorting, text brew UI and Web/Android parity contracts passed
 
 [static] tests/v124b-recommendation-prompt-regression.mjs
-node:internal/modules/run_main:123
-    triggerUncaughtException(
-    ^
+LuckyBean fun recommendation prompt contract passed: original fun library restored in the real grouped-selection owner; five-mode selection/grouping mechanics unchanged; duplicate 已选 result toast removed; corrected owner cache is pinned
 
-AssertionError [ERR_ASSERTION]: The input did not match the regular expression /BEAN_GROUP_RUNTIME_REVISION = '1\.24B-main\.16-fun-prompt-owner'/. Input:
+[static] npm run test:recognition
 
-`const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.6';\n` +
-  'const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEASE_REVISION)}` });\n' +
-  '\n' +
-  'const RUNTIME_FEATURES = Object.freeze([\n' +
-  "  feature('data-migrations', '../data-migrations.js'),\n" +
-  "  feature('recognition-paddle-ocr', '../recognition-paddle-ocr.js'),\n" +
-  "  feature('recognition-quality', '../recognition-quality-controller.js'),\n" +
-  "  feature('package-capture', '../package-capture-controller.js'),\n" +
-  "  feature('direct-camera', '../direct-camera-controller.js'),\n" +
-  "  feature('qr-ui', '../qr-ui-controller.js'),\n" +
-  "  feature('integrity-ui', '../integrity-ui-controller.js'),\n" +
-  "  feature('ui-layout', '../ui-layout-controller.js'),\n" +
-  "  feature('selection', '../selection-controller.js'),\n" +
-  "  feature('feature-controller', '../feature-controller.js'),\n" +
-  "  feature('runtime-controller', '../runtime-controller.js'),\n" +
-  "  feature('bean-groups', '../bean-groups-controller.js'),\n" +
-  "  feature('group-interaction', '../group-interaction-controller.js'),\n" +
-  "  feature('ui-upgrade', '../ui-upgrade-controller.js'),\n" +
-  "  feature('origin-map', '../origin-map-controller.js'),\n" +
-  "  feature('recognition-batch-progress', './recognition-batch-progress-controller.js'),\n" +
-  "  feature('release-1.24b-freshness-detail', './release-1.24b-freshness-detail.js'),\n" +
-  "  feature('release-1.24b-brew-mode', './release-1.24b-brew-mode-controller.js'),\n" +
-  "  feature('release-1.24b-ui-policy', './release-1.24b-ui-policy.js'),\n" +
-  "  feature('shared-sortable', '../ui/sortable-controller.js'),\n" +
-  "  feature('sensory-tag-sort', './sensory-tag-sort-controller.js')\n" +
-  ']);\n' +
-  '\n' +
-  'const failures = [];\n' +
-  'const loaded = [];\n' +
-  'for (const runtimeFeature of RUNTIME_FEATURES) {\n' +
-  '  try {\n' +
-  '    await import(runtimeFeature.path);\n' +
-  '    loaded.push(runtimeFeature.id);\n' +
-  '  } catch (error) {\n' +
-  '    const failure = { id: runtimeFeature.id, path: runtimeFeature.path, message: error?.message || String(error) };\n' +
-  '    failures.push(failure);\n' +
-  "    console.error('正式运行功能加载失败', failure, error);\n" +
-  "    document.dispatchEvent(new CustomEvent('luckybean:runtime-feature-error', { detail: failure }));\n" +
-  '  }\n' +
-  '}\n' +
-  '\n' +
-  'globalThis.LuckyBeanRuntimeFeatures = {\n' +
-  '  revision: RELEASE_REVISION,\n' +
-  '  declared: RUNTIME_FEATURES.map(runtimeFeature => runtimeFeature.id),\n' +
-  '  loaded,\n' +
-  '  failures\n' +
-  '};\n' +
-  '\n' +
-  "document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', {\n" +
-  '  detail: { revision: RELEASE_REVISION, declared: RUNTIME_FEATURES.length, loaded: loaded.length, failures }\n' +
-  '}));\n'
+> luckybean-static-app@1.24.2 test:recognition
+> node --test test/*.test.js
 
-    at file:///home/runner/work/luckybean/luckybean/tests/v124b-recommendation-prompt-regression.mjs:37:8
-    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
-  generatedMessage: true,
-  code: 'ERR_ASSERTION',
-  actual: `const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.6';\n` +
-    'const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEASE_REVISION)}` });\n' +
-    '\n' +
-    'const RUNTIME_FEATURES = Object.freeze([\n' +
-    "  feature('data-migrations', '../data-migrations.js'),\n" +
-    "  feature('recognition-paddle-ocr', '../recognition-paddle-ocr.js'),\n" +
-    "  feature('recognition-quality', '../recognition-quality-controller.js'),\n" +
-    "  feature('package-capture', '../package-capture-controller.js'),\n" +
-    "  feature('direct-camera', '../direct-camera-controller.js'),\n" +
-    "  feature('qr-ui', '../qr-ui-controller.js'),\n" +
-    "  feature('integrity-ui', '../integrity-ui-controller.js'),\n" +
-    "  feature('ui-layout', '../ui-layout-controller.js'),\n" +
-    "  feature('selection', '../selection-controller.js'),\n" +
-    "  feature('feature-controller', '../feature-controller.js'),\n" +
-    "  feature('runtime-controller', '../runtime-controller.js'),\n" +
-    "  feature('bean-groups', '../bean-groups-controller.js'),\n" +
-    "  feature('group-interaction', '../group-interaction-controller.js'),\n" +
-    "  feature('ui-upgrade', '../ui-upgrade-controller.js'),\n" +
-    "  feature('origin-map', '../origin-map-controller.js'),\n" +
-    "  feature('recognition-batch-progress', './recognition-batch-progress-controller.js'),\n" +
-    "  feature('release-1.24b-freshness-detail', './release-1.24b-freshness-detail.js'),\n" +
-    "  feature('release-1.24b-brew-mode', './release-1.24b-brew-mode-controller.js'),\n" +
-    "  feature('release-1.24b-ui-policy', './release-1.24b-ui-policy.js'),\n" +
-    "  feature('shared-sortable', '../ui/sortable-controller.js'),\n" +
-    "  feature('sensory-tag-sort', './sensory-tag-sort-controller.js')\n" +
-    ']);\n' +
-    '\n' +
-    'const failures = [];\n' +
-    'const loaded = [];\n' +
-    'for (const runtimeFeature of RUNTIME_FEATURES) {\n' +
-    '  try {\n' +
-    '    await import(runtimeFeature.path);\n' +
-    '    loaded.push(runtimeFeature.id);\n' +
-    '  } catch (error) {\n' +
-    '    const failure = { id: runtimeFeature.id, path: runtimeFeature.path, message: error?.message || String(error) };\n' +
-    '    failures.push(failure);\n' +
-    "    console.error('正式运行功能加载失败', failure, error);\n" +
-    "    document.dispatchEvent(new CustomEvent('luckybean:runtime-feature-error', { detail: failure }));\n" +
-    '  }\n' +
-    '}\n' +
-    '\n' +
-    'globalThis.LuckyBeanRuntimeFeatures = {\n' +
-    '  revision: RELEASE_REVISION,\n' +
-    '  declared: RUNTIME_FEATURES.map(runtimeFeature => runtimeFeature.id),\n' +
-    '  loaded,\n' +
-    '  failures\n' +
-    '};\n' +
-    '\n' +
-    "document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', {\n" +
-    '  detail: { revision: RELEASE_REVISION, declared: RUNTIME_FEATURES.length, loaded: loaded.length, failures }\n' +
-    '}));\n',
-  expected: /BEAN_GROUP_RUNTIME_REVISION = '1\.24B-main\.16-fun-prompt-owner'/,
-  operator: 'match',
-  diff: 'simple'
-}
+TAP version 13
+# Subtest: sums every bean remaining weight and counts authoritative consumption events once
+ok 1 - sums every bean remaining weight and counts authoritative consumption events once
+  ---
+  duration_ms: 2.416953
+  type: 'test'
+  ...
+# Subtest: restored mistaken brew is removed from today total
+ok 2 - restored mistaken brew is removed from today total
+  ---
+  duration_ms: 0.401742
+  type: 'test'
+  ...
+# Subtest: warns when latest completed consumption is within the configured sleep buffer
+ok 3 - warns when latest completed consumption is within the configured sleep buffer
+  ---
+  duration_ms: 0.469679
+  type: 'test'
+  ...
+# Subtest: uses a higher caffeine estimate for robusta beans
+ok 4 - uses a higher caffeine estimate for robusta beans
+  ---
+  duration_ms: 1.75257
+  type: 'test'
+  ...
+# Subtest: brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
+ok 5 - brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
+  ---
+  duration_ms: 1.001103
+  type: 'test'
+  ...
+# Subtest: production analysis envelope adapts into a plan accepted by the page validator
+ok 6 - production analysis envelope adapts into a plan accepted by the page validator
+  ---
+  duration_ms: 0.984352
+  type: 'test'
+  ...
+# Subtest: unknown analysis contracts and unversioned legacy plans remain rejected
+ok 7 - unknown analysis contracts and unversioned legacy plans remain rejected
+  ---
+  duration_ms: 0.489256
+  type: 'test'
+  ...
+# Subtest: cold brew validates stage water against brew water and recipe total independently
+ok 8 - cold brew validates stage water against brew water and recipe total independently
+  ---
+  duration_ms: 0.447908
+  type: 'test'
+  ...
+# Subtest: 参数重算保留同一豆卡已经实际采用的方案
+ok 9 - 参数重算保留同一豆卡已经实际采用的方案
+  ---
+  duration_ms: 2.767319
+  type: 'test'
+  ...
+# Subtest: 不同豆卡或手动选择方案时不会沿用旧方案
+ok 10 - 不同豆卡或手动选择方案时不会沿用旧方案
+  ---
+  duration_ms: 1.297759
+  type: 'test'
+  ...
+# Subtest: 并发计算采用 latest-wins，旧结果不能覆盖新结果
+ok 11 - 并发计算采用 latest-wins，旧结果不能覆盖新结果
+  ---
+  duration_ms: 0.59841
+  type: 'test'
+  ...
+# Subtest: 总分低于预测分不会单独触发冲煮优化
+ok 12 - 总分低于预测分不会单独触发冲煮优化
+  ---
+  duration_ms: 2.068161
+  type: 'test'
+  ...
+# Subtest: 品鉴后的具体负面维度触发可解释优化
+ok 13 - 品鉴后的具体负面维度触发可解释优化
+  ---
+  duration_ms: 0.620211
+  type: 'test'
+  ...
+# Subtest: 雷达轴只比较同组平均且无完成冲煮时不提示优化
+ok 14 - 雷达轴只比较同组平均且无完成冲煮时不提示优化
+  ---
+  duration_ms: 0.976267
+  type: 'test'
+  ...
+# Subtest: 实际执行明显偏离方案时不把负面结果归因于方案
+ok 15 - 实际执行明显偏离方案时不把负面结果归因于方案
+  ---
+  duration_ms: 0.372988
+  type: 'test'
+  ...
+# Subtest: 个人靶区至少三次证据后才改变，标准靶区保持不变
+ok 16 - 个人靶区至少三次证据后才改变，标准靶区保持不变
+  ---
+  duration_ms: 0.895305
+  type: 'test'
+  ...
+# Subtest: accepts a catalog with balanced hot and cold auto-recommend profiles
+ok 17 - accepts a catalog with balanced hot and cold auto-recommend profiles
+  ---
+  duration_ms: 1.698979
+  type: 'test'
+  ...
+# Subtest: rejects a catalog whose declared profile count differs from the payload
+ok 18 - rejects a catalog whose declared profile count differs from the payload
+  ---
+  duration_ms: 0.244227
+  type: 'test'
+  ...
+# Subtest: rejects a cold profile whose recipe water does not equal brew water + ice + bypass
+ok 19 - rejects a cold profile whose recipe water does not equal brew water + ice + bypass
+  ---
+  duration_ms: 1.150694
+  type: 'test'
+  ...
+# Subtest: rejects catalogs that cannot auto-recommend in both hot and cold modes
+ok 20 - rejects catalogs that cannot auto-recommend in both hot and cold modes
+  ---
+  duration_ms: 0.327933
+  type: 'test'
+  ...
+# Subtest: archive round-trip preserves every portable store
+ok 21 - archive round-trip preserves every portable store
+  ---
+  duration_ms: 17.49449
+  type: 'test'
+  ...
+# Subtest: archive rejects tampered store data
+ok 22 - archive rejects tampered store data
+  ---
+  duration_ms: 3.586412
+  type: 'test'
+  ...
+# Subtest: legacy 1.2.x JSON backup migrates without inventing records
+ok 23 - legacy 1.2.x JSON backup migrates without inventing records
+  ---
+  duration_ms: 0.689911
+  type: 'test'
+  ...
+# Subtest: future schema cannot be imported
+ok 24 - future schema cannot be imported
+  ---
+  duration_ms: 4.378635
+  type: 'test'
+  ...
+# Subtest: production date never falls back to roast date
+ok 25 - production date never falls back to roast date
+  ---
+  duration_ms: 4.756883
+  type: 'test'
+  ...
+# Subtest: best before and expiry dates are excluded from roast date
+ok 26 - best before and expiry dates are excluded from roast date
+  ---
+  duration_ms: 4.991602
+  type: 'test'
+  ...
+# Subtest: explicit roast date is auto-filled while other dates remain excluded
+ok 27 - explicit roast date is auto-filled while other dates remain excluded
+  ---
+  duration_ms: 0.988781
+  type: 'test'
+  ...
+# Subtest: unlabelled date requires confirmation and is never silently filled
+ok 28 - unlabelled date requires confirmation and is never silently filled
+  ---
+  duration_ms: 0.527046
+  type: 'test'
+  ...
+# Subtest: date photo role increases provenance but does not bypass confirmation
+ok 29 - date photo role increases provenance but does not bypass confirmation
+  ---
+  duration_ms: 0.623477
+  type: 'test'
+  ...
+# Subtest: invalid calendar dates are rejected
+ok 30 - invalid calendar dates are rejected
+  ---
+  duration_ms: 0.958974
+  type: 'test'
+  ...
+# Subtest: 30-case date ownership golden set has zero silent non-roast assignments
+    # Subtest: 烘焙日期：2026-07-28
+    ok 1 - 烘焙日期：2026-07-28
+      ---
+      duration_ms: 7.827789
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE 2026/07/28
+    ok 2 - ROAST DATE 2026/07/28
+      ---
+      duration_ms: 1.870521
+      type: 'test'
+      ...
+    # Subtest: ROASTED ON 2026.7.8
+    ok 3 - ROASTED ON 2026.7.8
+      ---
+      duration_ms: 0.533849
+      type: 'test'
+      ...
+    # Subtest: 焙炒日期 2026年7月28日
+    ok 4 - 焙炒日期 2026年7月28日
+      ---
+      duration_ms: 1.012254
+      type: 'test'
+      ...
+    # Subtest: RST DATE 20260728
+    ok 5 - RST DATE 20260728
+      ---
+      duration_ms: 0.668491
+      type: 'test'
+      ...
+    # Subtest: ROAST ON 28 JUL 2026
+    ok 6 - ROAST ON 28 JUL 2026
+      ---
+      duration_ms: 0.891929
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE JUL 28 2026
+    ok 7 - ROAST DATE JUL 28 2026
+      ---
+      duration_ms: 1.204134
+      type: 'test'
+      ...
+    # Subtest: 出炉日期 26年7月28日
+    ok 8 - 出炉日期 26年7月28日
+      ---
+      duration_ms: 1.494757
+      type: 'test'
+      ...
+    # Subtest: 烘焙日 26-07-28
+    ok 9 - 烘焙日 26-07-28
+      ---
+      duration_ms: 1.488315
+      type: 'test'
+      ...
+    # Subtest: 烘烤日期 26.0728
+    ok 10 - 烘烤日期 26.0728
+      ---
+      duration_ms: 0.735476
+      type: 'test'
+      ...
+    # Subtest: 生产日期：2026-07-21
+    ok 11 - 生产日期：2026-07-21
+      ---
+      duration_ms: 0.638465
+      type: 'test'
+      ...
+    # Subtest: MFG DATE 2026/07/21
+    ok 12 - MFG DATE 2026/07/21
+      ---
+      duration_ms: 0.365394
+      type: 'test'
+      ...
+    # Subtest: MFD 20260721
+    ok 13 - MFD 20260721
+      ---
+      duration_ms: 0.339515
+      type: 'test'
+      ...
+    # Subtest: 包装日期 2026.07.22
+    ok 14 - 包装日期 2026.07.22
+      ---
+      duration_ms: 0.379781
+      type: 'test'
+      ...
+    # Subtest: PACKED ON 2026-07-22
+    ok 15 - PACKED ON 2026-07-22
+      ---
+      duration_ms: 0.703737
+      type: 'test'
+      ...
+    # Subtest: PKD 20260722
+    ok 16 - PKD 20260722
+      ---
+      duration_ms: 0.385732
+      type: 'test'
+      ...
+    # Subtest: 最佳赏味期 2026-10-28
+    ok 17 - 最佳赏味期 2026-10-28
+      ---
+      duration_ms: 0.42767
+      type: 'test'
+      ...
+    # Subtest: BEST BEFORE 2026/10/28
+    ok 18 - BEST BEFORE 2026/10/28
+      ---
+      duration_ms: 0.458579
+      type: 'test'
+      ...
+    # Subtest: BBE 28 OCT 2026
+    ok 19 - BBE 28 OCT 2026
+      ---
+      duration_ms: 0.404928
+      type: 'test'
+      ...
+    # Subtest: 有效期至 2027年1月5日
+    ok 20 - 有效期至 2027年1月5日
+      ---
+      duration_ms: 0.452246
+      type: 'test'
+      ...
+    # Subtest: EXP 2027-01-05
+    ok 21 - EXP 2027-01-05
+      ---
+      duration_ms: 0.39016
+      type: 'test'
+      ...
+    # Subtest: USE BY JAN 5 2027
+    ok 22 - USE BY JAN 5 2027
+      ---
+      duration_ms: 0.406732
+      type: 'test'
+      ...
+    # Subtest: 埃塞俄比亚 / 2026-07-28
+    ok 23 - 埃塞俄比亚 / 2026-07-28
+      ---
+      duration_ms: 1.14892
+      type: 'test'
+      ...
+    # Subtest: DATE 2026/07/28
+    ok 24 - DATE 2026/07/28
+      ---
+      duration_ms: 0.323144
+      type: 'test'
+      ...
+    # Subtest: LOT 20260728
+    ok 25 - LOT 20260728
+      ---
+      duration_ms: 0.361116
+      type: 'test'
+      ...
+    # Subtest: 2026年7月28日
+    ok 26 - 2026年7月28日
+      ---
+      duration_ms: 0.348723
+      type: 'test'
+      ...
+    # Subtest: 28/07/2026
+    ok 27 - 28/07/2026
+      ---
+      duration_ms: 0.708065
+      type: 'test'
+      ...
+    # Subtest: 07/08/2026
+    ok 28 - 07/08/2026
+      ---
+      duration_ms: 0.544128
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE 07/08/2026
+    ok 29 - ROAST DATE 07/08/2026
+      ---
+      duration_ms: 0.50229
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
+    ok 30 - ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
+      ---
+      duration_ms: 0.728894
+      type: 'test'
+      ...
+    1..30
+ok 31 - 30-case date ownership golden set has zero silent non-roast assignments
+  ---
+  duration_ms: 34.754612
+  type: 'test'
+  ...
+# Subtest: review model exposes automatic, excluded and unresolved candidates together
+ok 32 - review model exposes automatic, excluded and unresolved candidates together
+  ---
+  duration_ms: 9.845766
+  type: 'test'
+  ...
+# Subtest: unresolved candidate requires an explicit date assignment before confirmation
+ok 33 - unresolved candidate requires an explicit date assignment before confirmation
+  ---
+  duration_ms: 1.076755
+  type: 'test'
+  ...
+# Subtest: user confirmation retains source provenance instead of inventing confidence 1
+ok 34 - user confirmation retains source provenance instead of inventing confidence 1
+  ---
+  duration_ms: 1.070543
+  type: 'test'
+  ...
+# Subtest: two roast date selections are rejected
+ok 35 - two roast date selections are rejected
+  ---
+  duration_ms: 1.084219
+  type: 'test'
+  ...
+# Subtest: candidate value cannot be replaced with an unrecognized date
+ok 36 - candidate value cannot be replaced with an unrecognized date
+  ---
+  duration_ms: 1.452718
+  type: 'test'
+  ...
+# Subtest: stale or fabricated candidate id is rejected
+ok 37 - stale or fabricated candidate id is rejected
+  ---
+  duration_ms: 0.821417
+  type: 'test'
+  ...
+# Subtest: all candidates may be ignored without silently restoring automatic roast date
+ok 38 - all candidates may be ignored without silently restoring automatic roast date
+  ---
+  duration_ms: 1.161173
+  type: 'test'
+  ...
+# Subtest: ambiguous day-month candidate can only resolve to one offered value
+ok 39 - ambiguous day-month candidate can only resolve to one offered value
+  ---
+  duration_ms: 1.625202
+  type: 'test'
+  ...
+# Subtest: duplicate submission of the same candidate is rejected
+ok 40 - duplicate submission of the same candidate is rejected
+  ---
+  duration_ms: 0.861723
+  type: 'test'
+  ...
+# Subtest: numeric Ethiopian variety codes are split into independent exact candidates
+ok 41 - numeric Ethiopian variety codes are split into independent exact candidates
+  ---
+  duration_ms: 24.170905
+  type: 'test'
+  ...
+# Subtest: multiple labeled varieties stay unresolved instead of silently choosing the first code
+ok 42 - multiple labeled varieties stay unresolved instead of silently choosing the first code
+  ---
+  duration_ms: 13.228708
+  type: 'test'
+  ...
+# Subtest: spaced alphanumeric variety codes survive OCR tokenization
+ok 43 - spaced alphanumeric variety codes survive OCR tokenization
+  ---
+  duration_ms: 4.592665
+  type: 'test'
+  ...
+# Subtest: explicit numeric roast levels map only within the labeled 0-6 scale
+ok 44 - explicit numeric roast levels map only within the labeled 0-6 scale
+  ---
+  duration_ms: 0.982018
+  type: 'test'
+  ...
+# Subtest: mixed label layouts preserve separate variety and roast evidence
+ok 45 - mixed label layouts preserve separate variety and roast evidence
+  ---
+  duration_ms: 2.119947
+  type: 'test'
+  ...
+# Subtest: equally exact codebook candidates remain a manual choice
+ok 46 - equally exact codebook candidates remain a manual choice
+  ---
+  duration_ms: 4.466851
+  type: 'test'
+  ...
+# Subtest: unsupported region evidence has no reliable candidates
+ok 47 - unsupported region evidence has no reliable candidates
+  ---
+  duration_ms: 2.944961
+  type: 'test'
+  ...
+# Subtest: recognition review UI contains only unresolved fields and disappears when none remain
+ok 48 - recognition review UI contains only unresolved fields and disappears when none remain
+  ---
+  duration_ms: 1.526186
+  type: 'test'
+  ...
+# Subtest: recognition provenance remains persisted for audit without becoming confirmed-field UI
+ok 49 - recognition provenance remains persisted for audit without becoming confirmed-field UI
+  ---
+  duration_ms: 0.257983
+  type: 'test'
+  ...
+# Subtest: confirmed roast date is still saved from the final form value
+ok 50 - confirmed roast date is still saved from the final form value
+  ---
+  duration_ms: 0.302686
+  type: 'test'
+  ...
+# Subtest: custom dropdown opens its editor after select change dispatch completes
+ok 51 - custom dropdown opens its editor after select change dispatch completes
+  ---
+  duration_ms: 0.237484
+  type: 'test'
+  ...
+# Subtest: reversed inline key-value keeps the semantic field association
+ok 52 - reversed inline key-value keeps the semantic field association
+  ---
+  duration_ms: 4.079455
+  type: 'test'
+  ...
+# Subtest: same-row value before label is paired by geometry and field semantics
+ok 53 - same-row value before label is paired by geometry and field semantics
+  ---
+  duration_ms: 1.358142
+  type: 'test'
+  ...
+# Subtest: vertical title and value are paired in either reading direction
+ok 54 - vertical title and value are paired in either reading direction
+  ---
+  duration_ms: 0.83869
+  type: 'test'
+  ...
+# Subtest: standalone unordered coffee entities remain available instead of being forced into unrelated fields
+ok 55 - standalone unordered coffee entities remain available instead of being forced into unrelated fields
+  ---
+  duration_ms: 2.758572
+  type: 'test'
+  ...
+# Subtest: range hyphen is preserved as value content rather than treated as a field separator
+ok 56 - range hyphen is preserved as value content rather than treated as a field separator
+  ---
+  duration_ms: 0.927035
+  type: 'test'
+  ...
+# Subtest: English labels and coffee values become Chinese canonical bean fields
+ok 57 - English labels and coffee values become Chinese canonical bean fields
+  ---
+  duration_ms: 21.041348
+  type: 'test'
+  ...
+# Subtest: unknown proper names are preserved and explicitly marked for review
+ok 58 - unknown proper names are preserved and explicitly marked for review
+  ---
+  duration_ms: 11.40838
+  type: 'test'
+  ...
+# Subtest: explicit numeric fields are parsed while unrelated numbers stay isolated
+ok 59 - explicit numeric fields are parsed while unrelated numbers stay isolated
+  ---
+  duration_ms: 9.245092
+  type: 'test'
+  ...
+# Subtest: Chinese, reverse-labelled and vertical fields share one canonical pipeline
+ok 60 - Chinese, reverse-labelled and vertical fields share one canonical pipeline
+  ---
+  duration_ms: 7.274424
+  type: 'test'
+  ...
+# Subtest: main.6 bean detail does not expose roast code and pairs process with roast date
+ok 61 - main.6 bean detail does not expose roast code and pairs process with roast date
+  ---
+  duration_ms: 1.096662
+  type: 'test'
+  ...
+# Subtest: main.6 floating quadrant, radar labels and sensory footer obey theme/layout contract
+ok 62 - main.6 floating quadrant, radar labels and sensory footer obey theme/layout contract
+  ---
+  duration_ms: 0.458077
+  type: 'test'
+  ...
+# Subtest: main.6 preserves FAB visibility ownership and opens manual OCR editor explicitly
+ok 63 - main.6 preserves FAB visibility ownership and opens manual OCR editor explicitly
+  ---
+  duration_ms: 0.371626
+  type: 'test'
+  ...
+# Subtest: main.6 package review waits for recognition handoff completion instead of racing the form renderer
+ok 64 - main.6 package review waits for recognition handoff completion instead of racing the form renderer
+  ---
+  duration_ms: 0.460321
+  type: 'test'
+  ...
+# Subtest: main.6 unresolved semantic fields preserve raw evidence for explicit bean-form confirmation
+ok 65 - main.6 unresolved semantic fields preserve raw evidence for explicit bean-form confirmation
+  ---
+  duration_ms: 0.231504
+  type: 'test'
+  ...
+1..65
+# tests 95
+# suites 0
+# pass 95
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 488.275712
 
-Node.js v22.23.2
-::error file=tests/v124b-recommendation-prompt-regression.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /BEAN_GROUP_RUNTIME_REVISION = '1\.24B-main\.16-fun-prompt-owner'/. Input:%0A%0A`const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.6';\n` +%0A  'const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEASE_REVISION)}` });\n' +%0A  '\n' +%0A  'const RUNTIME_FEATURES = Object.freeze([\n' +%0A  "  feature('data-migrations', '../data-migrations.js'),\n" +%0A  "  feature('recognition-paddle-ocr', '../recognition-paddle-ocr.js'),\n" +%0A  "  feature('recognition-quality', '../recognition-quality-controller.js'),\n" +%0A  "  feature('package-capture', '../package-capture-controller.js'),\n" +%0A  "  feature('direct-camera', '../direct-camera-controller.js'),\n" +%0A  "  feature('qr-ui', '../qr-ui-controller.js'),\n" +%0A  "  feature('integrity-ui', '../integrity-ui-controller.js'),\n" +%0A  "  feature('ui-layout', '../ui-layout-controller.js'),\n" +%0A  "  feature('selection', '../selection-controller.js'),\n" +%0A  "  feature('feature-controller', '../feature-controller.js'),\n" +%0A  "  feature('runtime-controller', '../runtime-controller.js'),\n" +%0A  "  feature('bean-groups', '../bean-groups-controller.js'),\n" +%0A  "  feature('group-interaction', '../group-interaction-controller.js'),\n" +%0A  "  feature('ui-upgrade', '../ui-upgrade-controller.js'),\n" +%0A  "  feature('origin-map', '../origin-map-controller.js'),\n" +%0A  "  feature('recognition-batch-progress', './recognition-batch-progress-controller.js'),\n" +%0A  "  feature('release-1.24b-freshness-detail', './release-1.24b-freshness-detail.js'),\n" +%0A  "  feature('release-1.24b-brew-mode', './release-1.24b-brew-mode-controller.js'),\n" +%0A  "  feature('release-1.24b-ui-policy', './release-1.24b-ui-policy.js'),\n" +%0A  "  feature('shared-sortable', '../ui/sortable-controller.js'),\n" +%0A  "  feature('sensory-tag-sort', './sensory-tag-sort-controller.js')\n" +%0A  ']);\n' +%0A  '\n' +%0A  'const failures = [];\n' +%0A  'const loaded = [];\n' +%0A  'for (const runtimeFeature of RUNTIME_FEATURES) {\n' +%0A  '  try {\n' +%0A  '    await import(runtimeFeature.path);\n' +%0A  '    loaded.push(runtimeFeature.id);\n' +%0A  '  } catch (error) {\n' +%0A  '    const failure = { id: runtimeFeature.id, path: runtimeFeature.path, message: error?.message || String(error) };\n' +%0A  '    failures.push(failure);\n' +%0A  "    console.error('正式运行功能加载失败', failure, error);\n" +%0A  "    document.dispatchEvent(new CustomEvent('luckybean:runtime-feature-error', { detail: failure }));\n" +%0A  '  }\n' +%0A  '}\n' +%0A  '\n' +%0A  'globalThis.LuckyBeanRuntimeFeatures = {\n' +%0A  '  revision: RELEASE_REVISION,\n' +%0A  '  declared: RUNTIME_FEATURES.map(runtimeFeature => runtimeFeature.id),\n' +%0A  '  loaded,\n' +%0A  '  failures\n' +%0A  '};\n' +%0A  '\n' +%0A  "document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', {\n" +%0A  '  detail: { revision: RELEASE_REVISION, declared: RUNTIME_FEATURES.length, loaded: loaded.length, failures }\n' +%0A  '}));\n'%0A%0A    at file:///home/runner/work/luckybean/luckybean/tests/v124b-recommendation-prompt-regression.mjs:37:8%0A    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)%0A    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)%0A    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {%0A  generatedMessage: true,%0A  code: 'ERR_ASSERTION',%0A  actual: `const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.6';\n` +%0A    'const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEASE_REVISION)}` });\n' +%0A    '\n' +%0A    'const RUNTIME_FEATURES = Object.freeze([\n' +%0A    "  feature('data-migrations', '../data-migrations.js'),\n" +%0A    "  feature('recognition-paddle-ocr', '../recognition-paddle-ocr.js'),\n" +%0A    "  feature('recognition-quality', '../recognition-quality-controller.js'),\n" +%0A    "  feature('package-capture', '../package-capture-controller.js'),\n" +%0A    "  feature('direct-camera', '../direct-camera-controller.js'),\n" +%0A    "  feature('qr-ui', '../qr-ui-controller.js'),\n" +%0A    "  feature('integrity-ui', '../integrity-ui-controller.js'),\n" +%0A    "  feature('ui-layout', '../ui-layout-controller.js'),\n" +%0A    "  feature('selection', '../selection-controller.js'),\n" +%0A    "  feature('feature-controller', '../feature-controller.js'),\n" +%0A    "  feature('runtime-controller', '../runtime-controller.js'),\n" +%0A    "  feature('bean-groups', '../bean-groups-controller.js'),\n" +%0A    "  feature('group-interaction', '../group-interaction-controller.js'),\n" +%0A    "  feature('ui-upgrade', '../ui-upgrade-controller.js'),\n" +%0A    "  feature('origin-map', '../origin-map-controller.js'),\n" +%0A    "  feature('recognition-batch-progress', './recognition-batch-progress-controller.js'),\n" +%0A    "  feature('release-1.24b-freshness-detail', './release-1.24b-freshness-detail.js'),\n" +%0A    "  feature('release-1.24b-brew-mode', './release-1.24b-brew-mode-controller.js'),\n" +%0A    "  feature('release-1.24b-ui-policy', './release-1.24b-ui-policy.js'),\n" +%0A    "  feature('shared-sortable', '../ui/sortable-controller.js'),\n" +%0A    "  feature('sensory-tag-sort', './sensory-tag-sort-controller.js')\n" +%0A    ']);\n' +%0A    '\n' +%0A    'const failures = [];\n' +%0A    'const loaded = [];\n' +%0A    'for (const runtimeFeature of RUNTIME_FEATURES) {\n' +%0A    '  try {\n' +%0A    '    await import(runtimeFeature.path);\n' +%0A    '    loaded.push(runtimeFeature.id);\n' +%0A    '  } catch (error) {\n' +%0A    '    const failure = { id: runtimeFeature.id, path: runtimeFeature.path, message: error?.message || String(error) };\n' +%0A    '    failures.push(failure);\n' +%0A    "    console.error('正式运行功能加载失败', failure, error);\n" +%0A    "    document.dispatchEvent(new CustomEvent('luckybean:runtime-feature-error', { detail: failure }));\n" +%0A    '  }\n' +%0A    '}\n' +%0A    '\n' +%0A    'globalThis.LuckyBeanRuntimeFeatures = {\n' +%0A    '  revision: RELEASE_REVISION,\n' +%0A    '  declared: RUNTIME_FEATURES.map(runtimeFeature => runtimeFeature.id),\n' +%0A    '  loaded,\n' +%0A    '  failures\n' +%0A    '};\n' +%0A    '\n' +%0A    "document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', {\n" +%0A    '  detail: { revision: RELEASE_REVISION, declared: RUNTIME_FEATURES.length, loaded: loaded.length, failures }\n' +%0A    '}));\n',%0A  expected: /BEAN_GROUP_RUNTIME_REVISION = '1\.24B-main\.16-fun-prompt-owner'/,%0A  operator: 'match',%0A  diff: 'simple'%0A}%0A%0ANode.js v22.23.2
+All LuckyBean static and recognition regression checks passed
