@@ -1,0 +1,59 @@
+name: Align fun prompt test contracts
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/align-fun-prompt-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  align:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Replace every stale main.11 prompt-runtime test reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          changed=[]
+          for path in Path('tests').rglob('*'):
+              if not path.is_file():
+                  continue
+              try:
+                  text=path.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              new=text.replace('1.24B-main.11-native-prompt','1.24B-main.12-fun-prompt')
+              new=new.replace(r'1\.24B-main\.11-native-prompt',r'1\.24B-main\.12-fun-prompt')
+              if new!=text:
+                  path.write_text(new,encoding='utf-8')
+                  changed.append(str(path))
+          print('changed tests:', *changed, sep='\n')
+          if not changed:
+              raise SystemExit('no stale test references found')
+          PY
+          if grep -R -n -F 'main.11-native-prompt' tests; then exit 1; fi
+          if grep -R -n -F 'main\.11-native-prompt' tests; then exit 1; fi
+          node --check src/app.js
+      - name: Commit aligned test contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'zjcrop'
+          git config user.email '127176814+zjcrop@users.noreply.github.com'
+          git add tests
+          git diff --cached --quiet && exit 0
+          git commit -m 'Align static tests with fun prompt runtime'
+          git push origin HEAD:main
