@@ -139,6 +139,13 @@ jobs:
               const events=globalThis.__verifiedPromptEvents||[];
               return events.length>prior && events.at(-1)?.mode===mode;
             },{prior,mode},{timeout:15000});
+            await page.waitForFunction(() => {
+              const node=document.querySelector('#toast');
+              if(!node) return false;
+              const style=getComputedStyle(node);
+              const rect=node.getBoundingClientRect();
+              return node.classList.contains('recommendation') && node.classList.contains('show') && Number(style.opacity)>=0.9 && rect.width>=80 && rect.height>=20;
+            }, null, { timeout: 1500 });
             const result=await page.evaluate(()=>{
               const node=document.querySelector('#toast');
               const style=getComputedStyle(node);
