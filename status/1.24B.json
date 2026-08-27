@@ -1,1 +1,1 @@
-{"source_sha":"ff7071e34f9485b54a71c5dd23b15e8634a5aaba","version":"1.24B","install_status":0,"js_status":0,"static_status":1,"passed":false,"first_error":"code: 'ERR_ASSERTION'","generated_at":"2026-08-27T12:49:44Z"}
+{"source_sha":"2f5a96b58d0fdfe7ff03da85c1e7e4d53e23ea6e","version":"1.24B","install_status":0,"js_status":0,"static_status":0,"passed":true,"first_error":"","generated_at":"2026-08-27T12:50:47Z"}
