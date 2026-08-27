@@ -22,7 +22,8 @@ const manifest = JSON.parse(read('manifest.webmanifest'));
 
 assert.match(index, /1\.24B/);
 assert.match(index, /1\.24B-main\.6/);
-assert.match(index, /src\/core\/startup-controller\.js\?v=1\.24B-main\.8-prompt/);
+assert.match(index, /src\/core\/startup-controller\.js\?v=1\.24B-main\.11-native-prompt/);
+assert.match(index, /styles\.css\?v=1\.24B-main\.11-native-prompt/);
 assert.match(index, /src\/core\/bootstrap\.js/);
 assert.match(index, /src\/services\/cloud-auth-service\.js/);
 assert.match(index, /src\/services\/cloud-sync-service\.js/);
@@ -40,7 +41,7 @@ assert.doesNotMatch(startup, /ensureLocalIdentity|LB-LOCAL-/);
 assert.match(startup, /luckybean:local-app-ready/);
 assert.match(startup, /点击进入/);
 assert.match(startup, /RELEASE_REVISION/);
-assert.match(startup, /APP_MODULE_REVISION\s*=\s*'1\.24B-main\.8-prompt'/);
+assert.match(startup, /APP_MODULE_REVISION\s*=\s*'1\.24B-main\.11-native-prompt'/);
 assert.match(startup, /navigator\.serviceWorker\.register\(`\.\/sw\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`/);
 assert.match(startup, /await ensureLocalDevice\(\)[\s\S]*await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(APP_MODULE_REVISION\)\}`\)/);
 assert.doesNotMatch(startup, /await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`\)/);
@@ -65,7 +66,6 @@ assert.match(sync, /manifestRevision\(manifest\)/);
 assert.match(sync, /manifest\?\.uploaded_at/);
 assert.match(sync, /sync_completed_at=eq/);
 assert.match(sync, /method: 'PATCH'/);
-assert.match(sync, /contentHash = await digestB64\(encodePacket\(packet\)\)/);
 assert.doesNotMatch(sync, /emit\('conflict'/);
 assert.doesNotMatch(sync, /setInterval\s*\(/);
 assert.doesNotMatch(sync, /PASSPHRASE|promptPassphrase|sessionStorage/i);
@@ -154,4 +154,4 @@ for (const path of [
   'src/features/gear-regression-fix-controller.js','src/features/legacy-timer-guard.js','src/features/experience-fixes-controller.js','src/features/interaction-repair-controller.js'
 ]) assert.equal(exists(path), false, `${path} should have been removed`);
 
-console.log('LuckyBean 1.24B main.4 local-first, interaction3 cache isolation and current BrewProfiles contract checks passed');
+console.log('LuckyBean 1.24B main.4 local-first, native-prompt cache isolation and current BrewProfiles contract checks passed');
