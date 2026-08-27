@@ -65,7 +65,9 @@ assert.match(sensorySort, /LuckyBeanSortable/);
 assert.match(sensorySort, /双击移除/);
 assert.match(sensorySort, /实时预览松手后的顺序/);
 assert.match(startup, /RELEASE_REVISION/);
-assert.match(startup, /APP_MODULE_REVISION\s*=\s*'1\.24B-main\.8-prompt'/);
+assert.match(startup, /APP_MODULE_REVISION\s*=\s*'1\.24B-main\.11-native-prompt'/);
+assert.match(index, /startup-controller\.js\?v=1\.24B-main\.11-native-prompt/);
+assert.match(index, /styles\.css\?v=1\.24B-main\.11-native-prompt/);
 assert.match(startup, /serviceWorker\.register\(`\.\/sw\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`/);
 assert.match(startup, /await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(APP_MODULE_REVISION\)\}`\)/);
 assert.doesNotMatch(startup, /await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`\)/);
@@ -101,4 +103,4 @@ for (const profile of listBrewProfiles()) {
   assert.ok(Array.isArray(plan.stages) && plan.stages.length > 0, `profile generated no stages: ${profile.id}`);
 }
 
-console.log('LuckyBean 1.24B single server account, mandatory sync, interaction3 cache, shared sorting and all-profile checks passed');
+console.log('LuckyBean 1.24B single server account, mandatory sync, native-prompt cache isolation, shared sorting and all-profile checks passed');
