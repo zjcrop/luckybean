@@ -96,56 +96,23 @@ test('selection colors are semantic and theme dependent only where contrast requ
   await expect(page.locator('[data-recommend-mode="price"] .recommend-dot')).toHaveCSS('background-color','rgb(0, 0, 0)');
 });
 
-test('selection fun prompt remains the only visible recommendation prompt while ordinary status notices still work',async({page})=>{
+test('selection uses only the original app fun prompt and does not create a second result prompt layer',async({page})=>{
   await page.locator('#fabRecommendBtn').click();
   const option=page.locator('[data-recommend-mode="freshness"]');
   await expect(option).toBeVisible();
   await option.click();
 
-  const prompt=page.locator('#lbRecommendationToast');
-  await expect(prompt).toBeVisible({timeout:1000});
-  await expect(prompt).toHaveClass(/show/,{timeout:1000});
+  const prompt=page.locator('#toast');
+  await expect(prompt).toHaveClass(/recommendation/,{timeout:5000});
+  await expect(prompt).toHaveClass(/show/,{timeout:5000});
   const promptText=(await prompt.textContent())?.trim()||'';
   expect(FRESHNESS_PROMPTS).toContain(promptText);
+  await expect(page.locator('#lbRecommendationToast')).toHaveCount(0);
 
-  const geometry=await prompt.evaluate(node=>{
-    const rect=node.getBoundingClientRect();
-    const style=getComputedStyle(node);
-    return {
-      top:rect.top,bottom:rect.bottom,left:rect.left,right:rect.right,
-      width:rect.width,height:rect.height,
-      opacity:Number(style.opacity),
-      display:style.display,
-      visibility:style.visibility,
-      background:style.backgroundColor,
-      color:style.color,
-      viewportWidth:innerWidth,viewportHeight:innerHeight
-    };
-  });
-  expect(geometry.width).toBeGreaterThan(80);
-  expect(geometry.height).toBeGreaterThan(20);
-  expect(geometry.opacity).toBeGreaterThan(0.9);
-  expect(geometry.display).not.toBe('none');
-  expect(geometry.visibility).not.toBe('hidden');
-  expect(geometry.left).toBeGreaterThanOrEqual(0);
-  expect(geometry.right).toBeLessThanOrEqual(geometry.viewportWidth+1);
-  expect(geometry.top).toBeGreaterThanOrEqual(0);
-  expect(geometry.bottom).toBeLessThanOrEqual(geometry.viewportHeight+1);
-
-  // The legacy app recommendation toast fires after the selection animation. It must stay hidden
-  // so it cannot cover the dedicated fun prompt.
-  await page.waitForTimeout(1200);
-  await expect(page.locator('#toast.toast.recommendation')).toBeHidden();
-  await expect(prompt).toHaveText(promptText);
-  await expect(prompt).toBeVisible();
-
-  // Non-recommendation status notices still use the shared toast and must remain visible.
   await page.evaluate(()=>document.dispatchEvent(new CustomEvent('luckybean:user-notice',{detail:{message:'普通状态提示',kind:'status-good'}})));
-  await expect(page.locator('#toast')).toHaveText('普通状态提示');
-  await expect(page.locator('#toast')).toBeVisible();
-  await expect(prompt).toHaveText(promptText);
+  await expect(prompt).toHaveText('普通状态提示');
+  await expect(prompt).toHaveClass(/status-good/);
   await expect(prompt).toBeVisible();
-  await expect(prompt).toHaveClass(/show/);
 });
 
 test('all five selection modes keep exactly one target group open across every native grouping method',async({page})=>{
