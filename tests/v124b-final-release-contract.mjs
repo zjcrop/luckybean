@@ -144,15 +144,20 @@ assert.match(finalize, /请查收邮件并点击链接激活账户/);
 assert.match(onboarding, /account-pending-verification/);
 assert.doesNotMatch(onboarding, /location\.reload\(|history\.go\(0\)/);
 
-// Pages publication is downstream of the successful immutable main-test SHA and adds
-// a real live browser startup gate before its receipt is considered verified.
+// Pages exposes a fast push deployment for direct user testing, while the verifiable
+// release receipt remains downstream of a successful immutable same-SHA main-test run.
 assert.match(deploy, /workflow_run:/);
 assert.match(deploy, /workflows: \["LuckyBean main tests"\]/);
 assert.match(deploy, /github\.event\.workflow_run\.conclusion == 'success'/);
+assert.match(deploy, /push:\n\s+branches: \[main\]/);
+assert.match(deploy, /luckybean-pages-main-\$\{\{ github\.event_name == 'push' && 'test' \|\| 'gated' \}\}/);
 assert.match(deploy, /head_sha=\$SOURCE_SHA/);
 assert.match(deploy, /test_conclusion/);
 assert.match(deploy, /current_main/);
-assert.match(deploy, /Live Pages browser smoke/);
+assert.match(deploy, /Live Pages native prompt browser smoke/);
+assert.match(deploy, /PROMPT_RUNTIME_REVISION: 1\.24B-main\.11-native-prompt/);
+assert.match(deploy, /appModuleRevision/);
+assert.match(deploy, /stylesRevision/);
 assert.match(deploy, /browser_smoke/);
 assert.match(deploy, /deploy-pages@v5\.0\.0/);
 assert.match(deploy, /version\.json/);
@@ -160,7 +165,6 @@ assert.match(deploy, /pages-status/);
 assert.match(deploy, /1\.24B-main\.6/);
 assert.match(deploy, /shared-live-preview-ghost-placeholder/);
 assert.match(deploy, /text-interactions/);
-assert.doesNotMatch(deploy, /on:\n\s+push:\n\s+branches: \[main\]/);
 
 // Formal Android publication remains downstream of a successful Pages run and proves
 // Pages receipt + main test + source + certificate before publication.
@@ -193,4 +197,4 @@ assert.match(build, /brew_ui=text-interactions/);
 assert.match(gradle, /versionCode 102402/);
 assert.match(gradle, /versionName '1\.24B'/);
 
-console.log('LuckyBean 1.24B main.4 final release contract with gated web-first deployment, canonical bean group state, shared sorting and text brew UI passed');
+console.log('LuckyBean 1.24B main.4 final release contract with test+gated web deployment, exact native prompt runtime, canonical bean group state, shared sorting and text brew UI passed');
