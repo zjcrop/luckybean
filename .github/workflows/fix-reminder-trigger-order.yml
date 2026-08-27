@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/fix-reminder-trigger-order.yml'
       - 'scripts/restore-fun-recommendation-prompts.py'
+      - 'scripts/align-fun-prompt-deploy.py'
 
 permissions:
   contents: write
@@ -21,6 +22,8 @@ jobs:
           fetch-depth: 0
       - name: Restore original fun prompts in actual selection owner
         run: python scripts/restore-fun-recommendation-prompts.py
+      - name: Align Pages verification with original fun prompts
+        run: python scripts/align-fun-prompt-deploy.py
       - name: Validate prompt-only repair
         run: |
           node --check src/bean-groups-controller.js
@@ -32,12 +35,14 @@ jobs:
           ! grep -Fq 'toast(`已选：' src/bean-groups-controller.js
           grep -Fq "BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.16-fun-prompt-owner'" src/features/runtime-features.js
           grep -Fq 'runtime-features.js?v=1.24B-main.16-fun-prompt-owner' index.html
+          grep -Fq 'original-fun-library-grouped-selection-owner' .github/workflows/deploy-main.yml
+          grep -Fq 'GROUP_PROMPT_RUNTIME_REVISION: 1.24B-main.16-fun-prompt-owner' .github/workflows/deploy-main.yml
           git diff --check
       - name: Commit prompt-owner repair only
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/bean-groups-controller.js src/features/runtime-features.js index.html tests/v124b-recommendation-prompt-regression.mjs tests/v124b-selection-mode-single-group.spec.mjs
+          git add src/bean-groups-controller.js src/features/runtime-features.js index.html tests/v124b-recommendation-prompt-regression.mjs tests/v124b-selection-mode-single-group.spec.mjs .github/workflows/deploy-main.yml
           git diff --cached --quiet && exit 0
           git commit -m 'Restore fun prompts in grouped selection owner'
           git push origin HEAD:main
