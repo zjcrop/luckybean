@@ -1,0 +1,112 @@
+name: Fix fun prompt toast ownership
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-fun-prompt-toast-owner.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Move grouped-selection notices to the single app toast owner
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          groups_path = Path('src/bean-groups-controller.js')
+          groups = groups_path.read_text()
+          old = """  function toast(message, kind = '') {
+            const node = $('#toast');
+            if (!node) return;
+            node.textContent = message;
+            node.className = `toast show ${kind}`;
+            setTimeout(() => { node.className = 'toast'; }, 2800);
+          }
+          """
+          new = """  function toast(message, kind = '') {
+            const text = String(message || '').trim();
+            if (!text) return;
+            document.dispatchEvent(new CustomEvent('luckybean:user-notice', {
+              detail: { message: text, kind: kind || 'status-neutral' }
+            }));
+          }
+          """
+          if old not in groups:
+              raise SystemExit('group toast owner source drifted; refusing broad edit')
+          groups = groups.replace(old, new, 1)
+          groups_path.write_text(groups)
+
+          runtime_path = Path('src/features/runtime-features.js')
+          runtime = runtime_path.read_text()
+          old_rev = "const BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.16-fun-prompt-owner';"
+          new_rev = "const BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.17-single-toast-owner';"
+          if old_rev not in runtime:
+              raise SystemExit('runtime feature revision source drifted')
+          runtime_path.write_text(runtime.replace(old_rev, new_rev, 1))
+
+          index_path = Path('index.html')
+          index = index_path.read_text()
+          old_url = 'runtime-features.js?v=1.24B-main.16-fun-prompt-owner'
+          new_url = 'runtime-features.js?v=1.24B-main.17-single-toast-owner'
+          if old_url not in index:
+              raise SystemExit('runtime-features cache key source drifted')
+          index_path.write_text(index.replace(old_url, new_url, 1))
+
+          test_path = Path('tests/v124b-recommendation-prompt-regression.mjs')
+          test = test_path.read_text()
+          test = test.replace(
+              "assert.match(groups,/toast\\(prompt, 'recommendation'\\)/);",
+              "assert.match(groups,/toast\\(prompt, 'recommendation'\\)/);\nassert.match(groups,/luckybean:user-notice/);\nassert.ok(groups.includes(\"detail: { message: text, kind: kind || 'status-neutral' }\"),'group controller must delegate toast rendering to the app notice channel');\nassert.ok(!groups.includes(\"setTimeout(() => { node.className = 'toast'; }, 2800)\"),'group controller must not own a competing toast timer');"
+          )
+          test = test.replace(
+              "BEAN_GROUP_RUNTIME_REVISION = '1\\.24B-main\\.16-fun-prompt-owner'",
+              "BEAN_GROUP_RUNTIME_REVISION = '1\\.24B-main\\.17-single-toast-owner'"
+          )
+          test = test.replace(
+              "runtime-features\\.js\\?v=1\\.24B-main\\.16-fun-prompt-owner",
+              "runtime-features\\.js\\?v=1\\.24B-main\\.17-single-toast-owner"
+          )
+          test = test.replace(
+              "duplicate 已选 result toast removed; corrected owner cache is pinned",
+              "duplicate 已选 result toast removed; one app toast owner controls all timers; corrected owner cache is pinned"
+          )
+          test_path.write_text(test)
+          PY
+      - name: Validate structural repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check src/bean-groups-controller.js
+          node --check src/features/runtime-features.js
+          node tests/v124b-recommendation-prompt-regression.mjs
+          grep -Fq "luckybean:user-notice" src/bean-groups-controller.js
+          grep -Fq "kind: kind || 'status-neutral'" src/bean-groups-controller.js
+          ! grep -Fq "setTimeout(() => { node.className = 'toast'; }, 2800)" src/bean-groups-controller.js
+          grep -Fq "BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.17-single-toast-owner'" src/features/runtime-features.js
+          grep -Fq 'runtime-features.js?v=1.24B-main.17-single-toast-owner' index.html
+          grep -Fq "toast(prompt, 'recommendation')" src/bean-groups-controller.js
+          ! grep -Fq 'toast(`已选：' src/bean-groups-controller.js
+          grep -Fq "const rounds = Math.floor(Math.random() * 5) + 4;" src/bean-groups-controller.js
+          git diff --check
+      - name: Commit source-only repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/bean-groups-controller.js src/features/runtime-features.js index.html tests/v124b-recommendation-prompt-regression.mjs
+          git diff --cached --quiet && exit 0
+          git commit -m 'Fix recommendation toast timer ownership'
+          git push origin HEAD:main
