@@ -96,19 +96,47 @@ test('selection colors are semantic and theme dependent only where contrast requ
   await expect(page.locator('[data-recommend-mode="price"] .recommend-dot')).toHaveCSS('background-color','rgb(0, 0, 0)');
 });
 
-test('selection uses only the original app fun prompt and does not create a second result prompt layer',async({page})=>{
-  await page.locator('#fabRecommendBtn').click();
-  const option=page.locator('[data-recommend-mode="freshness"]');
-  await expect(option).toBeVisible();
-  await option.click();
+test('consecutive fun prompts are controlled by one toast timer and stale timers cannot hide the second prompt',async({page})=>{
+  await page.evaluate(()=>{
+    globalThis.__selectionToastTimeline=[];
+    const toast=document.querySelector('#toast');
+    const capture=()=>globalThis.__selectionToastTimeline.push({text:(toast?.textContent||'').trim(),className:toast?.className||'',at:performance.now()});
+    capture();
+    new MutationObserver(capture).observe(toast,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class']});
+  });
 
   const prompt=page.locator('#toast');
+  await page.locator('#fabRecommendBtn').click();
+  await page.locator('[data-recommend-mode="freshness"]').click();
   await expect(prompt).toHaveClass(/recommendation/,{timeout:5000});
   await expect(prompt).toHaveClass(/show/,{timeout:5000});
-  const promptText=(await prompt.textContent())?.trim()||'';
-  expect(FRESHNESS_PROMPTS).toContain(promptText);
-  expect(promptText).not.toMatch(/^已选[:：]/);
+  const first=(await prompt.textContent())?.trim()||'';
+  expect(FRESHNESS_PROMPTS).toContain(first);
+  expect(first).not.toMatch(/^已选[:：]/);
+
+  await page.waitForTimeout(1500);
+  await page.locator('#fabRecommendBtn').click();
+  await page.locator('[data-recommend-mode="freshness"]').click();
+  await expect(prompt).toHaveClass(/recommendation/,{timeout:5000});
+  await expect(prompt).toHaveClass(/show/,{timeout:5000});
+  const second=(await prompt.textContent())?.trim()||'';
+  expect(FRESHNESS_PROMPTS).toContain(second);
+  expect(second).not.toBe(first);
+  expect(second).not.toMatch(/^已选[:：]/);
+
+  // The removed grouped-controller timer used to fire 2.8s after the first prompt.
+  // Waiting here crosses that old deadline while the second prompt must remain visible.
+  await page.waitForTimeout(1200);
+  await expect(prompt).toHaveText(second);
+  await expect(prompt).toHaveClass(/recommendation/);
+  await expect(prompt).toHaveClass(/show/);
+  await expect(prompt).toBeVisible();
   await expect(page.locator('#lbRecommendationToast')).toHaveCount(0);
+
+  const timeline=await page.evaluate(()=>globalThis.__selectionToastTimeline||[]);
+  expect(timeline.some(item=>/^已选[:：]/.test(item.text))).toBe(false);
+  const prematureHide=timeline.some(item=>item.text===second && !item.className.includes('show'));
+  expect(prematureHide).toBe(false);
 
   await page.evaluate(()=>document.dispatchEvent(new CustomEvent('luckybean:user-notice',{detail:{message:'普通状态提示',kind:'status-good'}})));
   await expect(prompt).toHaveText('普通状态提示');
