@@ -45,11 +45,11 @@ replace_exact(
     """assert.match(app,/function normalizeRecommendationMode\\(mode\\)/);\nassert.match(app,/function recommendationPrompt\\(mode\\)/);\nassert.match(app,/mode = normalizeRecommendationMode\\(mode\\)/);\nassert.match(app,/toast\\(prompt, 'recommendation'\\)/);\nassert.match(app,/luckybean:recommendation-prompt/);\nassert.doesNotMatch(app,/toast\\(prompt \\|\\| `已选：\\$\\{beanDisplayName\\(selected\\)\\}`/);\nassert.match(app,/if \\(kind === 'recommendation'\\)/);"""
 )
 
-# 5) A new immutable runtime key forces both startup/app and the top-level stylesheet off the old CDN/module cache key.
+# 5) New immutable runtime key for the application entry and tests. Workflow is updated separately
+# through the authorized GitHub connector because Actions GITHUB_TOKEN cannot edit workflow files.
 for path in [
     'index.html',
     'src/core/startup-controller.js',
-    '.github/workflows/deploy-main.yml',
     'tests/v110-local-first-sync-static.mjs',
     'tests/v120-requirements-static.mjs',
     'tests/v123d-deployment-contracts.mjs',
@@ -63,18 +63,5 @@ for path in [
     text = file.read_text(encoding='utf-8')
     if '1.24B-main.11-native-prompt' in text:
         file.write_text(text.replace('1.24B-main.11-native-prompt', '1.24B-main.12-fun-prompt'), encoding='utf-8')
-
-# The live gate previously sampled opacity at the first animation frame. Wait for the actual rendered state.
-deploy = ROOT / '.github/workflows/deploy-main.yml'
-text = deploy.read_text(encoding='utf-8')
-needle = "await page.waitForFunction(() => document.querySelector('#toast')?.classList.contains('recommendation') && document.querySelector('#toast')?.classList.contains('show'), null, { timeout:5000 });"
-if needle in text and 'await page.waitForTimeout(1100);' not in text:
-    text = text.replace(needle, needle + "\n          await page.waitForTimeout(1100);", 1)
-deploy.write_text(text, encoding='utf-8')
-
-# Remove this one-shot workflow from the repair commit; the subsequent normal user-token commit will trigger CI/Pages.
-workflow = ROOT / '.github/workflows/repair-recommendation-prompt.yml'
-if workflow.exists():
-    workflow.unlink()
 
 print('Recommendation prompt core repaired: normalized mode, fun-only output, no bean-name fallback, runtime cache bumped.')
