@@ -173,8 +173,13 @@ for(const file of ['release-1.24b-freshness-detail.js','recognition-batch-progre
 assert.match(deploy,/workflow_run:/);
 assert.match(deploy,/workflows: \["LuckyBean main tests"\]/);
 assert.match(deploy,/github\.event\.workflow_run\.conclusion == 'success'/);
+assert.match(deploy,/push:\n\s+branches: \[main\]/);
+assert.match(deploy,/luckybean-pages-main-\$\{\{ github\.event_name == 'push' && 'test' \|\| 'gated' \}\}/);
 assert.match(deploy,/head_sha=\$SOURCE_SHA/);
-assert.match(deploy,/Live Pages browser smoke/);
+assert.match(deploy,/Live Pages native prompt browser smoke/);
+assert.match(deploy,/PROMPT_RUNTIME_REVISION: 1\.24B-main\.11-native-prompt/);
+assert.match(deploy,/appModuleRevision/);
+assert.match(deploy,/stylesRevision/);
 assert.match(deploy,/browser_smoke/);
 assert.match(deploy,/deploy-pages@v5\.0\.0/);
 assert.match(deploy,/canonical-state-api/);
@@ -182,7 +187,6 @@ assert.match(deploy,/shared-live-preview-ghost-placeholder/);
 assert.match(deploy,/single-activate-double-remove-longpress-preview/);
 assert.match(deploy,/text-interactions/);
 assert.match(deploy,/pages-status/);
-assert.doesNotMatch(deploy,/on:\n\s+push:\n\s+branches: \[main\]/);
 assert.match(build,/Restore official release keystore/);
 assert.match(build,/assembleRelease/);
 assert.match(build,/apksigner/);
@@ -193,4 +197,4 @@ assert.match(build,/brew_ui=text-interactions/);
 assert.match(build,/CERT_SHA256\.txt/);
 assert.match(build,/release-status/);
 
-console.log('LuckyBean 1.24B main.4 complete modification-plan contract with canonical bean groups, gated Pages, shared sorting and text brew UI passed');
+console.log('LuckyBean 1.24B main.4 complete modification-plan contract with canonical bean groups, test+gated Pages, exact native prompt runtime, shared sorting and text brew UI passed');
