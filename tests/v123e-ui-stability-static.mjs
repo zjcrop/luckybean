@@ -100,8 +100,12 @@ assert.match(beanGroups,/hasActiveGroup: \(\) => Boolean\(beanGroupState\.groupK
 assert.match(beanGroups,/activeGroup: \(\) => beanGroupState\.groupKey/);
 assert.doesNotMatch(beanGroups,/let activeGroup|data-v099t-group-back|>收</);
 assert.match(app,/const RECOMMENDATION_PROMPTS = Object\.freeze/);
+assert.match(app,/function normalizeRecommendationMode\(mode\)/);
 assert.match(app,/function recommendationPrompt\(mode\)/);
-assert.match(app,/toast\(prompt \|\| `已选：\$\{beanDisplayName\(selected\)\}`, 'recommendation'\)/);
+assert.match(app,/mode = normalizeRecommendationMode\(mode\)/);
+assert.match(app,/toast\(prompt, 'recommendation'\)/);
+assert.match(app,/luckybean:recommendation-prompt/);
+assert.doesNotMatch(app,/toast\(prompt \|\| `已选：\$\{beanDisplayName\(selected\)\}`/);
 assert.doesNotMatch(groupNavigation,/RECOMMENDATION_PROMPT_REVISION|RECOMMENDATION_PROMPTS|lbRecommendationToast|showRecommendationPromptForMode|MutationObserver/);
 assert.match(groupNavigation,/LuckyBeanBeanGroupState/);
 assert.match(groupNavigation,/luckybean:navigation-back/);
@@ -143,4 +147,4 @@ const sourceFiles=walk('src').filter(file=>/\.(?:js|mjs|css)$/.test(file));
 const bodyObserverFiles=sourceFiles.filter(file=>{const source=read(file);return /MutationObserver/.test(source)&&/\.observe\(document\.body\s*,/.test(source);});
 assert.deepEqual(bodyObserverFiles,[],`global body MutationObservers remain: ${bodyObserverFiles.join(', ')}`);
 
-console.log(`LuckyBean 1.24B ${releaseRevision} canonical UI stability, native recommendation prompt ownership, shared bean-group state, shared sorting and text brew UI regression checks passed`);
+console.log(`LuckyBean 1.24B ${releaseRevision} canonical UI stability, fun-only native recommendation prompt ownership, shared bean-group state, shared sorting and text brew UI regression checks passed`);
