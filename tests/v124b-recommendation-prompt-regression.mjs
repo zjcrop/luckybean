@@ -4,11 +4,9 @@ import fs from 'node:fs';
 const index=fs.readFileSync('index.html','utf8');
 const app=fs.readFileSync('src/app.js','utf8');
 const guard=fs.readFileSync('src/features/release-1.24b-group-navigation.js','utf8');
-const deploy=fs.readFileSync('.github/workflows/deploy-main.yml','utf8');
 
 for(const mode of ['leaderboard','freshness','price','remaining','random']){
   assert.match(app,new RegExp(`${mode}: \\[`),`missing application recommendation prompt pool for ${mode}`);
-  assert.match(guard,new RegExp(`${mode}:\\[`),`missing immediate recommendation prompt pool for ${mode}`);
 }
 for(const sentence of [
   '直取榜首，不问其余。',
@@ -16,32 +14,21 @@ for(const sentence of [
   '此只价冠诸豆，足见君之慧眼独钟。',
   '余粒无多，宜趁兴饮尽，为此豆作结。',
   '闭目拈签，任其自然。'
-]){
-  assert.ok(app.includes(sentence),`application prompt library lost sentence: ${sentence}`);
-  assert.ok(guard.includes(sentence),`immediate prompt library lost sentence: ${sentence}`);
-}
+]) assert.ok(app.includes(sentence),`application prompt library lost sentence: ${sentence}`);
+
 assert.match(app,/function recommendationPrompt\(mode\)/);
 assert.match(app,/toast\(prompt \|\| `已选：\$\{beanDisplayName\(selected\)\}`, 'recommendation'\)/);
+assert.match(app,/if \(kind === 'recommendation'\)/);
 
-assert.match(index,/release-1\.24b-group-navigation\.js\?v=1\.24B-main\.9-immediate/);
-assert.doesNotMatch(index,/release-1\.24b-group-navigation\.js\?v=1\.24B-main\.7-prompt/);
-assert.match(index,/data-recommendation-prompt-revision="1\.24B-main\.9-immediate"/);
-assert.match(index,/body\[data-recommendation-prompt-revision\] #toast\.toast\.recommendation\{display:none!important\}/);
-assert.doesNotMatch(index,/#toast\.toast\.status-(?:good|warn|bad)[^{]*\{[^}]*display:none/);
-assert.match(guard,/RECOMMENDATION_PROMPT_REVISION='1\.24B-main\.9-immediate'/);
-assert.match(guard,/lbRecommendationToast/);
-assert.match(guard,/function showRecommendationPromptForMode\(mode\)/);
-assert.match(guard,/closest\?\.\('\[data-recommend-mode\]'\)/);
-assert.match(guard,/showRecommendationPromptForMode\(trigger\.dataset\.recommendMode\)/);
-assert.match(guard,/recommendationHideTimer=setTimeout\(\(\)=>node\.classList\.remove\('show'\),6000\)/);
-assert.match(guard,/z-index:10060!important/);
-assert.match(guard,/background:#e8d7ad!important/);
-assert.match(guard,/font-family:FangSong/);
-assert.match(guard,/MutationObserver\(mirrorRecommendationPrompt\)/);
-assert.match(guard,/directPromptLockUntil/);
-assert.doesNotMatch(guard,/function recommendBean|filteredBeans\(|recommendationScore\(/,'prompt UI must not own or alter selection algorithms');
-assert.match(deploy,/recommendationPrompt\":\"main\.9-immediate/);
-assert.match(deploy,/Live recommendation prompt visibility failed/);
-assert.match(deploy,/promptRevision !== '1\.24B-main\.9-immediate'/);
+assert.match(index,/release-1\.24b-group-navigation\.js\?v=1\.24B-main\.10-native-prompt/);
+assert.doesNotMatch(index,/body\[data-recommendation-prompt-revision\] #toast\.toast\.recommendation/);
+assert.doesNotMatch(index,/data-recommendation-prompt-revision=/);
 
-console.log('LuckyBean recommendation prompt contract passed: original five prompt libraries are immediate and visible, duplicate legacy recommendation toast is suppressed, ordinary status toasts remain available, and selection algorithms remain untouched');
+assert.doesNotMatch(guard,/RECOMMENDATION_PROMPTS|lbRecommendationToast|showRecommendationPromptForMode|MutationObserver|directPromptLockUntil/,
+  'group-navigation adapter must not own, mirror, hide, or duplicate recommendation prompts');
+assert.match(guard,/\.recommend-menu \[data-recommend-mode="price"\] \.recommend-dot\{background:#fff!important;\}/);
+assert.match(guard,/html\[data-theme="light"\] \.recommend-menu \[data-recommend-mode="price"\] \.recommend-dot\{background:#000!important;\}/);
+assert.match(guard,/LuckyBeanBeanGroupState/);
+assert.doesNotMatch(guard,/function recommendBean|filteredBeans\(|recommendationScore\(/,'group-navigation adapter must not alter selection algorithms');
+
+console.log('LuckyBean recommendation prompt contract passed: app.js exclusively owns the original fun prompt library; duplicate prompt layer removed; grouping and theme adapters remain isolated');
