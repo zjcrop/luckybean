@@ -21,7 +21,7 @@ concurrency:
 env:
   SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
   RELEASE_REVISION: 1.24B-main.6
-  PROMPT_RUNTIME_REVISION: 1.24B-main.11-native-prompt
+  PROMPT_RUNTIME_REVISION: 1.24B-main.12-fun-prompt
 
 jobs:
   build-site:
@@ -62,7 +62,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Validate native recommendation prompt source before publishing
+      - name: Validate fun-only recommendation prompt source before publishing
         shell: bash
         run: |
           set -euo pipefail
@@ -78,12 +78,20 @@ jobs:
           grep -Fq "['process', '按处理法']" src/app.js
           grep -Fq 'data-close-bean-group' src/app.js
           grep -Fq 'const RECOMMENDATION_PROMPTS' src/app.js
+          grep -Fq 'function normalizeRecommendationMode(mode)' src/app.js
           grep -Fq 'function recommendationPrompt(mode)' src/app.js
-          grep -Fq "toast(prompt || \`已选：\${beanDisplayName(selected)}\`, 'recommendation')" src/app.js
+          grep -Fq 'mode = normalizeRecommendationMode(mode)' src/app.js
+          grep -Fq "toast(prompt, 'recommendation')" src/app.js
+          grep -Fq 'luckybean:recommendation-prompt' src/app.js
+          ! grep -Fq 'toast(prompt || `已选：${beanDisplayName(selected)}`' src/app.js
           grep -Fq '直取榜首，不问其余。' src/app.js
-          grep -Fq 'startup-controller.js?v=1.24B-main.11-native-prompt' index.html
-          grep -Fq 'styles.css?v=1.24B-main.11-native-prompt' index.html
-          grep -Fq "APP_MODULE_REVISION = '1.24B-main.11-native-prompt'" src/core/startup-controller.js
+          grep -Fq '此只风味精绝，君既选中，甚是妥当。' src/app.js
+          grep -Fq '此只价冠诸豆，足见君之慧眼独钟。' src/app.js
+          grep -Fq '余粒无多，宜趁兴饮尽，为此豆作结。' src/app.js
+          grep -Fq '闭目拈签，任其自然。' src/app.js
+          grep -Fq 'startup-controller.js?v=1.24B-main.12-fun-prompt' index.html
+          grep -Fq 'styles.css?v=1.24B-main.12-fun-prompt' index.html
+          grep -Fq "APP_MODULE_REVISION = '1.24B-main.12-fun-prompt'" src/core/startup-controller.js
           grep -Fq 'app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}' src/core/startup-controller.js
           grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' index.html
           grep -Fq '.toast.show { opacity: 1; transform: translate(-50%, 0); }' styles.css
@@ -110,7 +118,7 @@ jobs:
           cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
           cp -R src public contracts schemas _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.6","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","recommendationPrompt":"native-app-toast","groupAdapterRevision":"1.24B-main.10-native-prompt","appModuleRevision":"1.24B-main.11-native-prompt","stylesRevision":"1.24B-main.11-native-prompt","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","scoreLayout":"viewport-safe-next-line-range","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.6"}\n' "$SOURCE_SHA" > _site/version.json
+          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.6","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","recommendationPrompt":"fun-only-native-app-toast","groupAdapterRevision":"1.24B-main.10-native-prompt","appModuleRevision":"1.24B-main.12-fun-prompt","stylesRevision":"1.24B-main.12-fun-prompt","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","scoreLayout":"viewport-safe-next-line-range","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.6"}\n' "$SOURCE_SHA" > _site/version.json
       - uses: actions/configure-pages@v6.0.0
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
@@ -134,7 +142,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ env.SOURCE_SHA }}
-      - name: Verify published runtime URLs exactly
+      - name: Verify published fun-prompt runtime URLs exactly
         shell: bash
         run: |
           set -euo pipefail
@@ -151,27 +159,31 @@ jobs:
             curl -L -fsS "$base/src/features/release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt" -o /tmp/group-navigation-runtime.js || true
             if grep -Fq "$SOURCE_SHA" /tmp/version.json 2>/dev/null \
               && grep -Fq '"version":"1.24B"' /tmp/version.json \
-              && grep -Fq '"recommendationPrompt":"native-app-toast"' /tmp/version.json \
+              && grep -Fq '"recommendationPrompt":"fun-only-native-app-toast"' /tmp/version.json \
               && grep -Fq '"groupAdapterRevision":"1.24B-main.10-native-prompt"' /tmp/version.json \
-              && grep -Fq '"appModuleRevision":"1.24B-main.11-native-prompt"' /tmp/version.json \
-              && grep -Fq '"stylesRevision":"1.24B-main.11-native-prompt"' /tmp/version.json \
-              && grep -Fq 'startup-controller.js?v=1.24B-main.11-native-prompt' /tmp/index.html \
-              && grep -Fq 'styles.css?v=1.24B-main.11-native-prompt' /tmp/index.html \
+              && grep -Fq '"appModuleRevision":"1.24B-main.12-fun-prompt"' /tmp/version.json \
+              && grep -Fq '"stylesRevision":"1.24B-main.12-fun-prompt"' /tmp/version.json \
+              && grep -Fq 'startup-controller.js?v=1.24B-main.12-fun-prompt' /tmp/index.html \
+              && grep -Fq 'styles.css?v=1.24B-main.12-fun-prompt' /tmp/index.html \
               && grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' /tmp/index.html \
-              && grep -Fq "APP_MODULE_REVISION = '1.24B-main.11-native-prompt'" /tmp/startup-runtime.js \
+              && grep -Fq "APP_MODULE_REVISION = '1.24B-main.12-fun-prompt'" /tmp/startup-runtime.js \
               && grep -Fq 'app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}' /tmp/startup-runtime.js \
               && grep -Fq 'const RECOMMENDATION_PROMPTS' /tmp/app-runtime.js \
+              && grep -Fq 'function normalizeRecommendationMode(mode)' /tmp/app-runtime.js \
               && grep -Fq 'function recommendationPrompt(mode)' /tmp/app-runtime.js \
+              && grep -Fq "toast(prompt, 'recommendation')" /tmp/app-runtime.js \
+              && grep -Fq 'luckybean:recommendation-prompt' /tmp/app-runtime.js \
+              && ! grep -Fq 'toast(prompt || `已选：${beanDisplayName(selected)}`' /tmp/app-runtime.js \
               && grep -Fq '直取榜首，不问其余。' /tmp/app-runtime.js \
               && grep -Fq '.toast.show { opacity: 1; transform: translate(-50%, 0); }' /tmp/styles-runtime.css \
               && ! grep -Fq 'lbRecommendationToast' /tmp/group-navigation-runtime.js \
               && ! grep -Fq 'RECOMMENDATION_PROMPTS' /tmp/group-navigation-runtime.js \
               && grep -Fq 'LuckyBeanBeanGroupState' /tmp/group-navigation-runtime.js; then
-              echo "LuckyBean Pages serves exact native prompt runtime assets for $SOURCE_SHA"
+              echo "LuckyBean Pages serves exact fun-only prompt runtime assets for $SOURCE_SHA"
               break
             fi
             if [ "$attempt" = 30 ]; then
-              echo 'Pages still does not serve the exact native prompt runtime assets'
+              echo 'Pages still does not serve the exact fun-only prompt runtime assets'
               cat /tmp/version.json || true
               exit 1
             fi
@@ -191,12 +203,23 @@ jobs:
           import { chromium } from '@playwright/test';
           const sha = process.env.SOURCE_SHA;
           const revision = process.env.PROMPT_RUNTIME_REVISION;
-          const expectedFreshnessPrompts = [
-            '此只风味精绝，君既选中，甚是妥当。',
-            '正逢此只风味最盛，您这一选，再好不过。',
-            '此只正值风味精妙处，既已选定，便是良配。',
-            '此只正得意时，恰被君眼相中，眼光不差。'
-          ];
+          const expectedPrompts = {
+            leaderboard: [
+              '直取榜首，不问其余。','依榜索魁，必得佳味。','榜单在前，今朝且试头筹。','榜魁已定，此只风味精绝，不负众望。','一举摘魁，恰逢此豆风味正酣。','众里寻它，终得榜首，宜细细品之。','照榜点将，专挑那个第一名！'
+            ],
+            freshness: [
+              '此只风味精绝，君既选中，甚是妥当。','正逢此只风味最盛，您这一选，再好不过。','此只正值风味精妙处，既已选定，便是良配。','此只正得意时，恰被君眼相中，眼光不差。'
+            ],
+            price: [
+              '此只价冠诸豆，足见君之慧眼独钟。','此只乃众豆之魁，承君青睐，身价自高。','此只位列首席，价亦昂，唯君堪配此味。','既择此只风骨，当知众豆之中，以此最为矜贵。'
+            ],
+            remaining: [
+              '余粒无多，宜趁兴饮尽，为此豆作结。','所剩几何，当及时啜饮，不负此豆风华。','残豆将尽，速饮之，好与此只从容作别。','此豆见底啦，趁风味未散，快快饮尽收场！'
+            ],
+            random: [
+              '闭目拈签，任其自然。','信手拈签，以定今日之选。','且凭一签，决此豆归谁。','一签落地，此只当归于君。','签指此只，风味正酣，君可安心享之。','得此签，恰逢余粒无几，缘分也。','伸手拈一签，看天意选哪只！'
+            ]
+          };
           const browser = await chromium.launch({ headless: true });
           const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
           await context.addInitScript(() => {
@@ -212,6 +235,7 @@ jobs:
           await page.waitForFunction(() => document.documentElement.dataset.startup === 'ready', null, { timeout:20000 });
           const runtime = await page.evaluate(expectedRevision => {
             const resources = performance.getEntriesByType('resource').map(entry => entry.name);
+            const appUrls = resources.filter(url => url.includes('/src/app.js'));
             return {
               startup: document.documentElement.dataset.startup,
               beansActive: document.querySelector('#pageBeans')?.classList.contains('active') || false,
@@ -220,12 +244,12 @@ jobs:
               duplicatePromptLayer: Boolean(document.querySelector('#lbRecommendationToast')),
               overflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
               startupUrl: resources.find(url => url.includes('/src/core/startup-controller.js')) || '',
-              appUrl: resources.find(url => url.includes('/src/app.js')) || '',
+              appUrls,
               stylesUrl: document.querySelector('link[href*="styles.css"]')?.href || '',
               expectedRevision
             };
           }, revision);
-          if (runtime.startup !== 'ready' || !runtime.beansActive || runtime.appHidden || !runtime.groupApi || runtime.duplicatePromptLayer || !runtime.overflow || !runtime.startupUrl.includes(`v=${revision}`) || !runtime.appUrl.includes(`v=${revision}`) || !runtime.stylesUrl.includes(`v=${revision}`)) {
+          if (runtime.startup !== 'ready' || !runtime.beansActive || runtime.appHidden || !runtime.groupApi || runtime.duplicatePromptLayer || !runtime.overflow || !runtime.startupUrl.includes(`v=${revision}`) || runtime.appUrls.length !== 1 || !runtime.appUrls.every(url => url.includes(`v=${revision}`)) || !runtime.stylesUrl.includes(`v=${revision}`)) {
             throw new Error(`Live Pages runtime asset contract failed: ${JSON.stringify(runtime)}`);
           }
 
@@ -260,39 +284,71 @@ jobs:
               document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh',{detail:{source}}));
               setTimeout(resolve,3000);
             });
+            globalThis.__lbPromptEvents=[];
+            globalThis.__lbToastTimeline=[];
+            document.addEventListener('luckybean:recommendation-prompt', event => {
+              globalThis.__lbPromptEvents.push({ ...event.detail, at: performance.now() });
+            });
+            const toast=document.querySelector('#toast');
+            const capture=()=>globalThis.__lbToastTimeline.push({ text:(toast?.textContent||'').trim(), className:toast?.className||'', at:performance.now() });
+            capture();
+            new MutationObserver(capture).observe(toast,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class']});
           });
 
-          await page.locator('#fabRecommendBtn').click();
-          const freshness = page.locator('[data-recommend-mode="freshness"]');
-          await freshness.waitFor({ state:'visible', timeout:3000 });
-          await freshness.click();
-          const prompt = page.locator('#toast');
-          await page.waitForFunction(() => document.querySelector('#toast')?.classList.contains('recommendation') && document.querySelector('#toast')?.classList.contains('show'), null, { timeout:5000 });
-          const promptResult = await prompt.evaluate(node => {
-            const rect=node.getBoundingClientRect();
-            const style=getComputedStyle(node);
-            return {
-              text:(node.textContent||'').trim(),
-              recommendation:node.classList.contains('recommendation'),
-              show:node.classList.contains('show'),
-              opacity:Number(style.opacity),
-              width:rect.width,
-              height:rect.height,
-              left:rect.left,
-              right:rect.right,
-              top:rect.top,
-              bottom:rect.bottom,
-              viewportWidth:innerWidth,
-              viewportHeight:innerHeight,
-              duplicatePromptLayer:Boolean(document.querySelector('#lbRecommendationToast'))
-            };
-          });
-          if (!expectedFreshnessPrompts.includes(promptResult.text) || !promptResult.recommendation || !promptResult.show || promptResult.duplicatePromptLayer || promptResult.opacity < 0.9 || promptResult.width < 80 || promptResult.height < 20 || promptResult.left < 0 || promptResult.right > promptResult.viewportWidth + 1 || promptResult.top < 0 || promptResult.bottom > promptResult.viewportHeight + 1) {
-            throw new Error(`Live native recommendation prompt visibility failed: ${JSON.stringify(promptResult)}`);
+          const modes = ['leaderboard','freshness','price','remaining','random'];
+          const results = [];
+          for (let index=0; index<modes.length; index+=1) {
+            const mode=modes[index];
+            const priorEvents=await page.evaluate(() => globalThis.__lbPromptEvents.length);
+            await page.locator('#fabRecommendBtn').click();
+            const option=page.locator(`[data-recommend-mode="${mode}"]`);
+            await option.waitFor({ state:'visible', timeout:3000 });
+            await option.click();
+            await page.waitForFunction(({count,mode}) => {
+              const events=globalThis.__lbPromptEvents||[];
+              return events.length>count && events.at(-1)?.mode===mode;
+            }, {count:priorEvents,mode}, { timeout:20000 });
+            await page.waitForFunction(({mode,allowed}) => {
+              const event=(globalThis.__lbPromptEvents||[]).at(-1);
+              const node=document.querySelector('#toast');
+              const text=(node?.textContent||'').trim();
+              return event?.mode===mode && allowed.includes(event?.prompt) && text===event.prompt && node?.classList.contains('recommendation') && node?.classList.contains('show');
+            }, {mode,allowed:expectedPrompts[mode]}, { timeout:5000 });
+            await page.waitForTimeout(1100);
+            const result=await page.evaluate(() => {
+              const node=document.querySelector('#toast');
+              const style=getComputedStyle(node);
+              const rect=node.getBoundingClientRect();
+              return {
+                text:(node.textContent||'').trim(),
+                recommendation:node.classList.contains('recommendation'),
+                show:node.classList.contains('show'),
+                opacity:Number(style.opacity),
+                width:rect.width,
+                height:rect.height,
+                left:rect.left,
+                right:rect.right,
+                top:rect.top,
+                bottom:rect.bottom,
+                viewportWidth:innerWidth,
+                viewportHeight:innerHeight,
+                event:(globalThis.__lbPromptEvents||[]).at(-1),
+                timeline:[...(globalThis.__lbToastTimeline||[])],
+                duplicatePromptLayer:Boolean(document.querySelector('#lbRecommendationToast'))
+              };
+            });
+            const recentTimeline=result.timeline.filter(item => item.at >= (result.event?.at||0)-50);
+            const resultPromptOk=expectedPrompts[mode].includes(result.text) && result.event?.prompt===result.text && result.event?.mode===mode;
+            const noBeanResult=recentTimeline.every(item => !/^已选[:：]/.test(item.text));
+            const visible=result.recommendation && result.show && !result.duplicatePromptLayer && result.opacity>=0.9 && result.width>=80 && result.height>=20 && result.left>=0 && result.right<=result.viewportWidth+1 && result.top>=0 && result.bottom<=result.viewportHeight+1;
+            if (!resultPromptOk || !noBeanResult || !visible) {
+              throw new Error(`Live fun recommendation prompt failed for ${mode}: ${JSON.stringify(result)}`);
+            }
+            results.push({mode,text:result.text});
           }
           if (pageErrors.length) throw new Error(`Live Pages pageerror: ${pageErrors.join(' | ')}`);
           await browser.close();
-          console.log(`Live Pages native prompt click smoke passed for ${sha}: ${promptResult.text}`);
+          console.log(`Live Pages five-mode fun prompt smoke passed for ${sha}: ${JSON.stringify(results)}`);
           NODE
       - name: Write verifiable Pages receipt
         if: ${{ github.event_name != 'push' }}
@@ -300,7 +356,7 @@ jobs:
         run: |
           set -euo pipefail
           receipt=$(mktemp)
-          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","recommendation_prompt":"native-app-toast","group_adapter_revision":"1.24B-main.10-native-prompt","app_module_revision":"1.24B-main.11-native-prompt","styles_revision":"1.24B-main.11-native-prompt","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
+          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","recommendation_prompt":"fun-only-native-app-toast","group_adapter_revision":"1.24B-main.10-native-prompt","app_module_revision":"1.24B-main.12-fun-prompt","styles_revision":"1.24B-main.12-fun-prompt","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
           git config user.name github-actions[bot]
           git config user.email 41898282+zjcrop@users.noreply.github.com
           if git ls-remote --exit-code --heads origin pages-status >/dev/null 2>&1; then
