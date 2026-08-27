@@ -1,5 +1,6 @@
 name: Fix fun prompt toast ownership
 
+# trigger: single-toast-owner-repair
 on:
   push:
     branches: [main]
