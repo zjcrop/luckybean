@@ -11,6 +11,7 @@ const RUNTIME_FEATURES = Object.freeze([
   feature('direct-camera', '../direct-camera-controller.js'),
   feature('qr-ui', '../qr-ui-controller.js'),
   feature('integrity-ui', '../integrity-ui-controller.js'),
+  feature('recognition-review-owner', '../ui/recognition-review-owner-controller.js'),
   feature('ui-layout', '../ui-layout-controller.js'),
   feature('selection', '../selection-controller.js'),
   feature('feature-controller', '../feature-controller.js'),
