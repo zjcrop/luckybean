@@ -14,6 +14,41 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
   const MODE_FRESHNESS = 'freshness-ratio';
   const MODE_REMAINING = 'remaining-50';
   const SELECTED_KEY = 'luckybean.selected.bean.v098';
+  const RECOMMENDATION_PROMPTS = Object.freeze({
+    leaderboard: [
+      '直取榜首，不问其余。', '依榜索魁，必得佳味。', '榜单在前，今朝且试头筹。',
+      '榜魁已定，此只风味精绝，不负众望。', '一举摘魁，恰逢此豆风味正酣。',
+      '众里寻它，终得榜首，宜细细品之。', '照榜点将，专挑那个第一名！'
+    ],
+    freshness: [
+      '此只风味精绝，君既选中，甚是妥当。', '正逢此只风味最盛，您这一选，再好不过。',
+      '此只正值风味精妙处，既已选定，便是良配。', '此只正得意时，恰被君眼相中，眼光不差。'
+    ],
+    price: [
+      '此只价冠诸豆，足见君之慧眼独钟。', '此只乃众豆之魁，承君青睐，身价自高。',
+      '此只位列首席，价亦昂，唯君堪配此味。', '既择此只风骨，当知众豆之中，以此最为矜贵。'
+    ],
+    remaining: [
+      '余粒无多，宜趁兴饮尽，为此豆作结。', '所剩几何，当及时啜饮，不负此豆风华。',
+      '残豆将尽，速饮之，好与此只从容作别。', '此豆见底啦，趁风味未散，快快饮尽收场！'
+    ],
+    random: [
+      '闭目拈签，任其自然。', '信手拈签，以定今日之选。', '且凭一签，决此豆归谁。',
+      '一签落地，此只当归于君。', '签指此只，风味正酣，君可安心享之。',
+      '得此签，恰逢余粒无几，缘分也。', '伸手拈一签，看天意选哪只！'
+    ]
+  });
+  const recommendationPromptMemory = Object.create(null);
+
+  function recommendationPrompt(mode) {
+    const pool = RECOMMENDATION_PROMPTS[mode] || [];
+    if (!pool.length) return '';
+    const previous = recommendationPromptMemory[mode] || '';
+    const choices = pool.filter(value => value !== previous);
+    const selected = choices[Math.floor(Math.random() * choices.length)] || pool[0];
+    recommendationPromptMemory[mode] = selected;
+    return selected;
+  }
   const CACHE_TTL = 30000;
   const ROAST_LABELS = Object.freeze({
     'RL-L0': '极浅烘', 'RL-L1': '浅烘', 'RL-L2': '浅中烘', 'RL-L3': '中烘',
@@ -294,7 +329,9 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
         selected = pickBean(mode, active, scoreMap);
         await animateBean(selected, index, { persist: true, duration: 820 });
       }
-      toast(`已选：${labelFor(index, 'countries', selected.countryCode, '未定国家')} · ${labelFor(index, 'varieties', selected.varietyCode, '未定豆种')}`, 'recommendation');
+      const prompt = recommendationPrompt(mode);
+      document.dispatchEvent(new CustomEvent('luckybean:recommendation-prompt', { detail: { mode, prompt, beanId: selected?.id || '' } }));
+      toast(prompt, 'recommendation');
     } finally { recommendationBusy = false; }
   }
 

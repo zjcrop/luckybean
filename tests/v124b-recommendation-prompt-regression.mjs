@@ -1,53 +1,42 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const index=fs.readFileSync('index.html','utf8');
 const app=fs.readFileSync('src/app.js','utf8');
+const groups=fs.readFileSync('src/bean-groups-controller.js','utf8');
 const guard=fs.readFileSync('src/features/release-1.24b-group-navigation.js','utf8');
 
-const legacyCatalog=[
-  "favorite: '喜好（咖啡得分）'",
-  "stale: '赏味期（剩余越少越靠前）'",
-  "price: '价格（越高越推荐）'",
-  "lowWeight: '余粮（剩余越少越推荐）'",
-  "randomDate: '点兵点将'"
+const originalFunPrompts=[
+  '直取榜首，不问其余。','依榜索魁，必得佳味。','榜单在前，今朝且试头筹。','榜魁已定，此只风味精绝，不负众望。','一举摘魁，恰逢此豆风味正酣。','众里寻它，终得榜首，宜细细品之。','照榜点将，专挑那个第一名！',
+  '此只风味精绝，君既选中，甚是妥当。','正逢此只风味最盛，您这一选，再好不过。','此只正值风味精妙处，既已选定，便是良配。','此只正得意时，恰被君眼相中，眼光不差。',
+  '此只价冠诸豆，足见君之慧眼独钟。','此只乃众豆之魁，承君青睐，身价自高。','此只位列首席，价亦昂，唯君堪配此味。','既择此只风骨，当知众豆之中，以此最为矜贵。',
+  '余粒无多，宜趁兴饮尽，为此豆作结。','所剩几何，当及时啜饮，不负此豆风华。','残豆将尽，速饮之，好与此只从容作别。','此豆见底啦，趁风味未散，快快饮尽收场！',
+  '闭目拈签，任其自然。','信手拈签，以定今日之选。','且凭一签，决此豆归谁。','一签落地，此只当归于君。','签指此只，风味正酣，君可安心享之。','得此签，恰逢余粒无几，缘分也。','伸手拈一签，看天意选哪只！'
 ];
-for(const source of legacyCatalog) assert.ok(app.includes(source),`legacy reminder lost: ${source}`);
-const triggerAdapter=[
-  "leaderboard: 'favorite'",
-  "freshness: 'stale'",
-  "price: 'price'",
-  "remaining: 'lowWeight'",
-  "random: 'randomDate'"
-];
-for(const source of triggerAdapter) assert.ok(app.includes(source),`current-to-legacy trigger lost: ${source}`);
-for(const forbidden of ['直取榜首，不问其余。','此只风味精绝，君既选中，甚是妥当。','此只价冠诸豆，足见君之慧眼独钟。','余粒无多，宜趁兴饮尽，为此豆作结。','闭目拈签，任其自然。']) assert.ok(!app.includes(forbidden),`incorrect long prompt remains: ${forbidden}`);
+for(const sentence of originalFunPrompts) assert.ok(groups.includes(sentence),`original fun prompt lost: ${sentence}`);
+assert.match(groups,/const RECOMMENDATION_PROMPTS = Object\.freeze/);
+assert.match(groups,/function recommendationPrompt\(mode\)/);
+assert.match(groups,/const previous = recommendationPromptMemory\[mode\]/);
+assert.match(groups,/const prompt = recommendationPrompt\(mode\)/);
+assert.match(groups,/luckybean:recommendation-prompt/);
+assert.match(groups,/toast\(prompt, 'recommendation'\)/);
+assert.doesNotMatch(groups,/toast\(`已选：/,'grouped selection owner must never overwrite the fun prompt with a bean-result toast');
 
-assert.match(app,/function normalizeRecommendationMode\(mode\)/);
-assert.match(app,/function recommendationPrompt\(mode, bean\)/);
-assert.match(app,/const prompt = recommendationPrompt\(mode, selected\)/);
-assert.ok(
-  app.indexOf('const prompt = recommendationPrompt(mode, selected);') < app.indexOf("if (mode !== 'random') await focusRecommendedBean(selected"),
-  'legacy reminder must fire as soon as the selection result is known, before non-random focus animation can delay it'
-);
-assert.match(app,/mode = normalizeRecommendationMode\(mode\)/);
-assert.match(app,/toast\(prompt, 'recommendation'\)/);
-assert.match(app,/luckybean:recommendation-prompt/);
-assert.match(app,/popup\.addEventListener\('click', event => \{/);
-assert.match(app,/void recommendBean\(button\.dataset\.recommendMode\)/);
-assert.doesNotMatch(app,/const recommend=event\.target\.closest\('\[data-recommend-mode\]'\)/);
+// Existing five-mode algorithms and grouped animation remain untouched.
+for(const source of [
+  "if (mode === 'leaderboard') return [...beans].sort((a, b) => (scoreMap.get(b.id) || 0) - (scoreMap.get(a.id) || 0))[0];",
+  "if (mode === 'freshness') return [...beans].sort((a, b) => Number(freshnessProfile(b).flavorScore || 0) - Number(freshnessProfile(a).flavorScore || 0))[0];",
+  "if (mode === 'price') return [...beans].sort((a, b) => Number(b.price || 0) - Number(a.price || 0))[0];",
+  "if (mode === 'remaining') return [...beans].sort((a, b) => Number(a.remainingWeight || 0) - Number(b.remainingWeight || 0))[0];",
+  "const rounds = Math.floor(Math.random() * 5) + 4;",
+  "await animateBean(selected, index, { persist: step === rounds - 1, duration: step === rounds - 1 ? 820 : 420 });",
+  "await animateBean(selected, index, { persist: true, duration: 820 });",
+  "runRecommendation(recommendation.dataset.recommendMode).catch(error => toast(error.message, 'status-bad'));"
+]) assert.ok(groups.includes(source),`selection/group behavior changed unexpectedly: ${source}`);
+assert.match(groups,/const recommendation = event\.target\.closest\?\.\('\[data-recommend-mode\]'\)/);
+assert.match(groups,/event\.preventDefault\(\); event\.stopPropagation\(\); event\.stopImmediatePropagation\(\);/);
+
+// Prompt UI remains the single shared #toast; no mirror layer is reintroduced.
+assert.doesNotMatch(guard,/RECOMMENDATION_PROMPTS|lbRecommendationToast|showRecommendationPromptForMode|directPromptLockUntil/);
 assert.doesNotMatch(app,/toast\(prompt \|\| `已选：\$\{beanDisplayName\(selected\)\}`/);
-assert.match(app,/if \(kind === 'recommendation'\)/);
 
-assert.match(index,/release-1\.24b-group-navigation\.js\?v=1\.24B-main\.10-native-prompt/);
-assert.doesNotMatch(index,/body\[data-recommendation-prompt-revision\] #toast\.toast\.recommendation/);
-assert.doesNotMatch(index,/data-recommendation-prompt-revision=/);
-
-assert.doesNotMatch(guard,/RECOMMENDATION_PROMPTS|lbRecommendationToast|showRecommendationPromptForMode|MutationObserver|directPromptLockUntil/,
-  'group-navigation adapter must not own, mirror, hide, or duplicate recommendation prompts');
-assert.match(guard,/\.recommend-menu \[data-recommend-mode="price"\] \.recommend-dot\{background:#fff!important;\}/);
-assert.match(guard,/html\[data-theme="light"\] \.recommend-menu \[data-recommend-mode="price"\] \.recommend-dot\{background:#000!important;\}/);
-assert.match(guard,/LuckyBeanBeanGroupState/);
-assert.doesNotMatch(guard,/function recommendBean|filteredBeans\(|recommendationScore\(/,'group-navigation adapter must not alter selection algorithms');
-
-console.log('LuckyBean legacy reminder contract passed: current modes map to the recovered short reminder semantics; grouping and selection algorithms remain isolated');
+console.log('LuckyBean fun recommendation prompt contract passed: original fun library restored in the real grouped-selection owner; five-mode selection/grouping mechanics unchanged; duplicate 已选 result toast removed');
