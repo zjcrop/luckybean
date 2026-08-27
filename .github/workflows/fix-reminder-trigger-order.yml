@@ -1,4 +1,4 @@
-name: Fix reminder trigger order
+name: Fix recommendation prompt owner
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - '.github/workflows/fix-reminder-trigger-order.yml'
-      - 'scripts/repair-reminder-trigger-order.py'
+      - 'scripts/restore-fun-recommendation-prompts.py'
 
 permissions:
   contents: write
@@ -19,23 +19,22 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - name: Apply reminder-only repair
-        run: python scripts/repair-reminder-trigger-order.py
-      - name: Validate reminder-only repair
+      - name: Restore original fun prompts in actual selection owner
+        run: python scripts/restore-fun-recommendation-prompts.py
+      - name: Validate prompt-only repair
         run: |
-          node --check src/app.js
-          node --check src/core/startup-controller.js
+          node --check src/bean-groups-controller.js
           node tests/v124b-recommendation-prompt-regression.mjs
-          grep -Fq "APP_MODULE_REVISION = '1.24B-main.15-reminder-trigger'" src/core/startup-controller.js
-          grep -Fq 'startup-controller.js?v=1.24B-main.15-reminder-trigger' index.html
-          ! grep -Fq 'const RECOMMENDATION_PROMPTS' src/app.js
-          ! grep -Fq '直取榜首，不问其余。' src/app.js
+          grep -Fq "const rounds = Math.floor(Math.random() * 5) + 4;" src/bean-groups-controller.js
+          grep -Fq "runRecommendation(recommendation.dataset.recommendMode)" src/bean-groups-controller.js
+          grep -Fq "toast(prompt, 'recommendation')" src/bean-groups-controller.js
+          ! grep -Fq 'toast(`已选：' src/bean-groups-controller.js
           git diff --check
-      - name: Commit repaired runtime
+      - name: Commit prompt-owner repair only
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/app.js src/core/startup-controller.js index.html tests
+          git add src/bean-groups-controller.js tests/v124b-recommendation-prompt-regression.mjs tests/v124b-selection-mode-single-group.spec.mjs
           git diff --cached --quiet && exit 0
-          git commit -m 'Fire legacy reminder before selection focus animation'
+          git commit -m 'Restore fun prompts in grouped selection owner'
           git push origin HEAD:main
