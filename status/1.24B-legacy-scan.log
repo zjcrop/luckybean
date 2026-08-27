@@ -65,7 +65,7 @@ src/domain/recognition/recognition-document.js:337:    parserVersion: '1.23E-rec
 src/domain/recognition/recognition-date-review.js:1:export const DATE_REVIEW_VERSION = '1.23E-date-review.3';
 src/cloud-codec.js:236:  // 1.23D/early 1.23E accidentally serialized an object array with String(array).
 .github/workflows/diagnose-main.yml:49:              "1\\.23E|v123e|V123E|1023[0-9]{2}|main-v123e|1\\.23D|v123d|V123D|main-v123d" \
-.github/workflows/build-main.yml:117:          ! grep -Fq 'LuckyBeanAndroid/1.23E' "$file"
+.github/workflows/build-main.yml:121:          ! grep -Fq 'LuckyBeanAndroid/1.23E' "$file"
 package.json:10:    "test:smoke": "playwright test tests/v110-startup-smoke.spec.mjs tests/v123e-ui-interaction.spec.mjs tests/v124b-ocr-worker-runtime.spec.mjs --browser=chromium --reporter=line --workers=1",
 sw.js:6:  'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
 DEVELOPMENT_STATUS.md:7:当前 main 以 1.24B 为唯一发布基线；下方 1.23D/1.23E 内容仅作为历史检查点保留，不再代表当前部署版本。
