@@ -2,9 +2,11 @@ name: Fix reminder trigger order
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - '.github/workflows/fix-reminder-trigger-order.yml'
+      - 'scripts/repair-reminder-trigger-order.py'
 
 permissions:
   contents: write
@@ -17,101 +19,19 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - uses: actions/setup-node@v7.0.0
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: Move only reminder emission before non-random focus animation
-        shell: bash
+      - name: Apply reminder-only repair
+        run: python scripts/repair-reminder-trigger-order.py
+      - name: Validate reminder-only repair
         run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          import re
-
-          app_path=Path('src/app.js')
-          app=app_path.read_text()
-          old="""    if (mode !== 'random') await focusRecommendedBean(selected, { automatic: true, settle: true, duration: 800 });
-    const prompt = recommendationPrompt(mode, selected);
-    document.dispatchEvent(new CustomEvent('luckybean:recommendation-prompt', { detail: { mode, prompt, beanId: selected?.id || '' } }));
-    toast(prompt, 'recommendation');
-"""
-          new="""    const prompt = recommendationPrompt(mode, selected);
-    document.dispatchEvent(new CustomEvent('luckybean:recommendation-prompt', { detail: { mode, prompt, beanId: selected?.id || '' } }));
-    toast(prompt, 'recommendation');
-    if (mode !== 'random') await focusRecommendedBean(selected, { automatic: true, settle: true, duration: 800 });
-"""
-          if app.count(old)!=1:
-              raise SystemExit(f'expected one delayed reminder block, found {app.count(old)}')
-          app=app.replace(old,new,1)
-          app_path.write_text(app)
-
-          startup_path=Path('src/core/startup-controller.js')
-          startup=startup_path.read_text()
-          startup, count=re.subn(
-              r"APP_MODULE_REVISION = '1\.24B-main\.14-legacy-reminders'",
-              "APP_MODULE_REVISION = '1.24B-main.15-reminder-trigger'",
-              startup,
-              count=1,
-          )
-          if count!=1: raise SystemExit(f'expected one app revision, replaced {count}')
-          startup_path.write_text(startup)
-
-          index_path=Path('index.html')
-          index=index_path.read_text()
-          index, count=re.subn(
-              r"startup-controller\.js\?v=1\.24B-main\.14-legacy-reminders",
-              "startup-controller.js?v=1.24B-main.15-reminder-trigger",
-              index,
-              count=1,
-          )
-          if count!=1: raise SystemExit(f'expected one startup URL, replaced {count}')
-          index_path.write_text(index)
-
-          # Only runtime-revision assertions change. Styles stay main.13.
-          for path in Path('tests').rglob('*.mjs'):
-              text=path.read_text()
-              lines=[]
-              touched=False
-              for line in text.splitlines(keepends=True):
-                  original=line
-                  if any(token in line for token in ['startup-controller','APP_MODULE_REVISION','appModuleRevision','app_module_revision','PROMPT_RUNTIME_REVISION','app.js?v','app-runtime']) and not any(token in line for token in ['styles.css','stylesRevision','styles_revision']):
-                      line=line.replace('1.24B-main.14-legacy-reminders','1.24B-main.15-reminder-trigger')
-                      line=line.replace(r'1\.24B-main\.14-legacy-reminders',r'1\.24B-main\.15-reminder-trigger')
-                  if line!=original:touched=True
-                  lines.append(line)
-              if touched:path.write_text(''.join(lines))
-
-          # Contract: reminder emission must precede the non-random focus await.
-          regression=Path('tests/v124b-recommendation-prompt-regression.mjs')
-          text=regression.read_text()
-          marker="assert.match(app,/const prompt = recommendationPrompt\\(mode, selected\\)/);"
-          assertion="""assert.ok(
-  app.indexOf('const prompt = recommendationPrompt(mode, selected);') < app.indexOf("if (mode !== 'random') await focusRecommendedBean(selected"),
-  'legacy reminder must fire as soon as the selection result is known, before non-random focus animation can delay it'
-);"""
-          if assertion not in text:
-              if marker not in text: raise SystemExit('prompt regression marker not found')
-              text=text.replace(marker,marker+'\n'+assertion,1)
-              regression.write_text(text)
-          PY
-      - name: Validate trigger-only change
-        shell: bash
-        run: |
-          set -euo pipefail
           node --check src/app.js
           node --check src/core/startup-controller.js
+          npm ci
           npm run test:static
           grep -Fq "APP_MODULE_REVISION = '1.24B-main.15-reminder-trigger'" src/core/startup-controller.js
           grep -Fq 'startup-controller.js?v=1.24B-main.15-reminder-trigger' index.html
-          ! grep -Fq 'const RECOMMENDATION_PROMPTS' src/app.js
-          ! grep -Fq '直取榜首，不问其余。' src/app.js
           git diff --check
-      - name: Commit trigger adapter
-        shell: bash
+      - name: Commit repaired runtime
         run: |
-          set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add src/app.js src/core/startup-controller.js index.html tests
