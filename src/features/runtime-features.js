@@ -1,5 +1,7 @@
 const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.6';
 const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEASE_REVISION)}` });
+const BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.16-fun-prompt-owner';
+const pinnedFeature = (id, path, revision) => ({ id, path: `${path}?v=${encodeURIComponent(revision)}` });
 
 const RUNTIME_FEATURES = Object.freeze([
   feature('data-migrations', '../data-migrations.js'),
@@ -13,7 +15,7 @@ const RUNTIME_FEATURES = Object.freeze([
   feature('selection', '../selection-controller.js'),
   feature('feature-controller', '../feature-controller.js'),
   feature('runtime-controller', '../runtime-controller.js'),
-  feature('bean-groups', '../bean-groups-controller.js'),
+  pinnedFeature('bean-groups', '../bean-groups-controller.js', BEAN_GROUP_RUNTIME_REVISION),
   feature('group-interaction', '../group-interaction-controller.js'),
   feature('ui-upgrade', '../ui-upgrade-controller.js'),
   feature('origin-map', '../origin-map-controller.js'),
