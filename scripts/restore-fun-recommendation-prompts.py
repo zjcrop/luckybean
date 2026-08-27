@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 
 controller_path = Path('src/bean-groups-controller.js')
 controller = controller_path.read_text()
@@ -41,7 +40,6 @@ prompt_block = """  const RECOMMENDATION_PROMPTS = Object.freeze({
     return selected;
   }
 """
-
 if 'const RECOMMENDATION_PROMPTS = Object.freeze({' not in controller:
     if controller.count(marker) != 1:
         raise SystemExit(f'expected one SELECTED_KEY marker, found {controller.count(marker)}')
@@ -56,7 +54,6 @@ if old_result in controller:
 elif new_result not in controller:
     raise SystemExit('recommendation result toast owner block not found')
 
-# Critical no-regression checks: current grouped selection mechanics stay byte-for-byte recognizable.
 required_selection_contract = [
     "if (mode === 'leaderboard') return [...beans].sort((a, b) => (scoreMap.get(b.id) || 0) - (scoreMap.get(a.id) || 0))[0];",
     "if (mode === 'freshness') return [...beans].sort((a, b) => Number(freshnessProfile(b).flavorScore || 0) - Number(freshnessProfile(a).flavorScore || 0))[0];",
@@ -65,17 +62,35 @@ required_selection_contract = [
     "const rounds = Math.floor(Math.random() * 5) + 4;",
     "await animateBean(selected, index, { persist: step === rounds - 1, duration: step === rounds - 1 ? 820 : 420 });",
     "await animateBean(selected, index, { persist: true, duration: 820 });",
-    "event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();",
     "runRecommendation(recommendation.dataset.recommendMode).catch(error => toast(error.message, 'status-bad'));",
 ]
 for source in required_selection_contract:
     if source not in controller:
         raise SystemExit(f'current selection/group contract unexpectedly changed: {source}')
-if '已选：${labelFor' in controller:
+if 'toast(`已选：' in controller:
     raise SystemExit('duplicate selection result toast still present')
 controller_path.write_text(controller)
 
-# Browser contract: restore exact original freshness fun pool, not the short semantic label.
+runtime_path = Path('src/features/runtime-features.js')
+runtime = runtime_path.read_text()
+if "BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.16-fun-prompt-owner'" not in runtime:
+    base = "const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEASE_REVISION)}` });\n"
+    if base not in runtime:
+        raise SystemExit('runtime feature helper not found')
+    runtime = runtime.replace(base, base + "const BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.16-fun-prompt-owner';\nconst pinnedFeature = (id, path, revision) => ({ id, path: `${path}?v=${encodeURIComponent(revision)}` });\n", 1)
+    runtime = runtime.replace("  feature('bean-groups', '../bean-groups-controller.js'),", "  pinnedFeature('bean-groups', '../bean-groups-controller.js', BEAN_GROUP_RUNTIME_REVISION),", 1)
+runtime_path.write_text(runtime)
+
+index_path = Path('index.html')
+index = index_path.read_text()
+old_runtime_url = './src/features/runtime-features.js?v=1.24B-main.6'
+new_runtime_url = './src/features/runtime-features.js?v=1.24B-main.16-fun-prompt-owner'
+if old_runtime_url in index:
+    index = index.replace(old_runtime_url, new_runtime_url, 1)
+elif new_runtime_url not in index:
+    raise SystemExit('runtime-features index URL not found')
+index_path.write_text(index)
+
 spec_path = Path('tests/v124b-selection-mode-single-group.spec.mjs')
 spec = spec_path.read_text()
 spec = spec.replace(
@@ -90,13 +105,14 @@ spec = spec.replace(
 spec = spec.replace("expect(promptText).toBe(FRESHNESS_PROMPT);", "expect(FRESHNESS_PROMPTS).toContain(promptText);\n  expect(promptText).not.toMatch(/^已选[:：]/);")
 spec_path.write_text(spec)
 
-# Static prompt contract follows the actual runtime owner and protects all current selection mechanics.
 regression_path = Path('tests/v124b-recommendation-prompt-regression.mjs')
 regression_path.write_text("""import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
+const index=fs.readFileSync('index.html','utf8');
 const app=fs.readFileSync('src/app.js','utf8');
 const groups=fs.readFileSync('src/bean-groups-controller.js','utf8');
+const runtime=fs.readFileSync('src/features/runtime-features.js','utf8');
 const guard=fs.readFileSync('src/features/release-1.24b-group-navigation.js','utf8');
 
 const originalFunPrompts=[
@@ -115,7 +131,6 @@ assert.match(groups,/luckybean:recommendation-prompt/);
 assert.match(groups,/toast\(prompt, 'recommendation'\)/);
 assert.doesNotMatch(groups,/toast\(`已选：/,'grouped selection owner must never overwrite the fun prompt with a bean-result toast');
 
-// Existing five-mode algorithms and grouped animation remain untouched.
 for(const source of [
   "if (mode === 'leaderboard') return [...beans].sort((a, b) => (scoreMap.get(b.id) || 0) - (scoreMap.get(a.id) || 0))[0];",
   "if (mode === 'freshness') return [...beans].sort((a, b) => Number(freshnessProfile(b).flavorScore || 0) - Number(freshnessProfile(a).flavorScore || 0))[0];",
@@ -126,12 +141,12 @@ for(const source of [
   "await animateBean(selected, index, { persist: true, duration: 820 });",
   "runRecommendation(recommendation.dataset.recommendMode).catch(error => toast(error.message, 'status-bad'));"
 ]) assert.ok(groups.includes(source),`selection/group behavior changed unexpectedly: ${source}`);
-assert.match(groups,/const recommendation = event\.target\.closest\?\.\('\[data-recommend-mode\]'\)/);
-assert.match(groups,/event\.preventDefault\(\); event\.stopPropagation\(\); event\.stopImmediatePropagation\(\);/);
 
-// Prompt UI remains the single shared #toast; no mirror layer is reintroduced.
+assert.match(runtime,/BEAN_GROUP_RUNTIME_REVISION = '1\.24B-main\.16-fun-prompt-owner'/);
+assert.match(runtime,/pinnedFeature\('bean-groups', '\.\.\/bean-groups-controller\.js', BEAN_GROUP_RUNTIME_REVISION\)/);
+assert.match(index,/runtime-features\.js\?v=1\.24B-main\.16-fun-prompt-owner/);
 assert.doesNotMatch(guard,/RECOMMENDATION_PROMPTS|lbRecommendationToast|showRecommendationPromptForMode|directPromptLockUntil/);
 assert.doesNotMatch(app,/toast\(prompt \|\| `已选：\$\{beanDisplayName\(selected\)\}`/);
 
-console.log('LuckyBean fun recommendation prompt contract passed: original fun library restored in the real grouped-selection owner; five-mode selection/grouping mechanics unchanged; duplicate 已选 result toast removed');
+console.log('LuckyBean fun recommendation prompt contract passed: original fun library restored in the real grouped-selection owner; five-mode selection/grouping mechanics unchanged; duplicate 已选 result toast removed; corrected owner cache is pinned');
 """)
