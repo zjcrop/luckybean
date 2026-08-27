@@ -39,14 +39,13 @@ jobs:
           ! grep -Fq 'toast(prompt || `已选：${beanDisplayName(selected)}`' src/app.js
           grep -Fq '1.24B-main.12-fun-prompt' index.html
           grep -Fq "APP_MODULE_REVISION = '1.24B-main.12-fun-prompt'" src/core/startup-controller.js
-          test ! -e .github/workflows/repair-recommendation-prompt.yml
       - name: Commit core repair to main
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'zjcrop'
           git config user.email '127176814+zjcrop@users.noreply.github.com'
-          git add -A
+          git add src/app.js index.html src/core/startup-controller.js tests/v124b-recommendation-prompt-regression.mjs tests/v110-local-first-sync-static.mjs tests/v120-requirements-static.mjs tests/v123d-deployment-contracts.mjs tests/v123e-ui-stability-static.mjs tests/v124b-final-release-contract.mjs tests/v124b-complete-plan-contract.mjs
           git diff --cached --quiet && exit 0
           git commit -m 'Restore fun-only recommendation prompt runtime'
           git push origin HEAD:main
