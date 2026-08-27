@@ -163,7 +163,7 @@ assert.match(deployWorkflow, /test_conclusion/);
 assert.match(deployWorkflow, /current_main/);
 assert.match(deployWorkflow, /actions\/deploy-pages@v5\.0\.0/);
 assert.match(deployWorkflow, /Live Pages five-mode legacy reminder browser smoke/);
-assert.match(deployWorkflow, /PROMPT_RUNTIME_REVISION: 1\.24B-main\.14-legacy-reminders/);
+assert.match(deployWorkflow, /PROMPT_RUNTIME_REVISION: 1\.24B-main\.15-reminder-trigger/);
 assert.match(deployWorkflow, /appModuleRevision/);
 assert.match(deployWorkflow, /stylesRevision/);
 assert.match(deployWorkflow, /browser_smoke/);

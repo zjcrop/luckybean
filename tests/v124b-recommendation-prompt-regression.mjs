@@ -26,6 +26,10 @@ for(const forbidden of ['直取榜首，不问其余。','此只风味精绝，�
 assert.match(app,/function normalizeRecommendationMode\(mode\)/);
 assert.match(app,/function recommendationPrompt\(mode, bean\)/);
 assert.match(app,/const prompt = recommendationPrompt\(mode, selected\)/);
+assert.ok(
+  app.indexOf('const prompt = recommendationPrompt(mode, selected);') < app.indexOf("if (mode !== 'random') await focusRecommendedBean(selected"),
+  'legacy reminder must fire as soon as the selection result is known, before non-random focus animation can delay it'
+);
 assert.match(app,/mode = normalizeRecommendationMode\(mode\)/);
 assert.match(app,/toast\(prompt, 'recommendation'\)/);
 assert.match(app,/luckybean:recommendation-prompt/);

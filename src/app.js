@@ -931,10 +931,10 @@ async function recommendBean(mode) {
         await focusRecommendedBean(bean, { automatic: true, settle: true, duration: 800 });
       }
     }
-    if (mode !== 'random') await focusRecommendedBean(selected, { automatic: true, settle: true, duration: 800 });
     const prompt = recommendationPrompt(mode, selected);
     document.dispatchEvent(new CustomEvent('luckybean:recommendation-prompt', { detail: { mode, prompt, beanId: selected?.id || '' } }));
     toast(prompt, 'recommendation');
+    if (mode !== 'random') await focusRecommendedBean(selected, { automatic: true, settle: true, duration: 800 });
   } finally {
     state.recommendationRun = false;
   }

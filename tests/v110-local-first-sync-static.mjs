@@ -22,7 +22,7 @@ const manifest = JSON.parse(read('manifest.webmanifest'));
 
 assert.match(index, /1\.24B/);
 assert.match(index, /1\.24B-main\.6/);
-assert.match(index, /src\/core\/startup-controller\.js\?v=1\.24B-main\.14-legacy-reminders/);
+assert.match(index, /src\/core\/startup-controller\.js\?v=1\.24B-main\.15-reminder-trigger/);
 assert.match(index, /styles\.css\?v=1\.24B-main\.13-local-menu-prompt/);
 assert.match(index, /src\/core\/bootstrap\.js/);
 assert.match(index, /src\/services\/cloud-auth-service\.js/);
@@ -41,7 +41,7 @@ assert.doesNotMatch(startup, /ensureLocalIdentity|LB-LOCAL-/);
 assert.match(startup, /luckybean:local-app-ready/);
 assert.match(startup, /点击进入/);
 assert.match(startup, /RELEASE_REVISION/);
-assert.match(startup, /APP_MODULE_REVISION\s*=\s*'1\.24B-main\.14-legacy-reminders'/);
+assert.match(startup, /APP_MODULE_REVISION\s*=\s*'1\.24B-main\.15-reminder-trigger'/);
 assert.match(startup, /navigator\.serviceWorker\.register\(`\.\/sw\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`/);
 assert.match(startup, /await ensureLocalDevice\(\)[\s\S]*await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(APP_MODULE_REVISION\)\}`\)/);
 assert.doesNotMatch(startup, /await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`\)/);

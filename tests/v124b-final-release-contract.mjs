@@ -155,7 +155,7 @@ assert.match(deploy, /head_sha=\$SOURCE_SHA/);
 assert.match(deploy, /test_conclusion/);
 assert.match(deploy, /current_main/);
 assert.match(deploy, /Live Pages five-mode legacy reminder browser smoke/);
-assert.match(deploy, /PROMPT_RUNTIME_REVISION: 1\.24B-main\.14-legacy-reminders/);
+assert.match(deploy, /PROMPT_RUNTIME_REVISION: 1\.24B-main\.15-reminder-trigger/);
 assert.match(deploy, /appModuleRevision/);
 assert.match(deploy, /stylesRevision/);
 assert.match(deploy, /browser_smoke/);
