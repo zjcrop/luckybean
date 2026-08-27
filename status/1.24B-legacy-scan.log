@@ -60,6 +60,8 @@ scripts/migrate-release-1.24b.mjs:53:  ['version=1.23E', `version=${VERSION}`],
 scripts/migrate-release-1.24b.mjs:54:  ['version_code=102322', `version_code=${VERSION_CODE}`],
 scripts/migrate-release-1.24b.mjs:55:  ['revision=1.23E-main-sync.11', `revision=${REVISION}`]
 scripts/migrate-release-1.24b.mjs:72:  status = `${marker}\n\n当前版本：\`${VERSION}\`  \n发布修订：\`${REVISION}\`  \nAndroid：\`versionCode ${VERSION_CODE}\` / \`versionName ${VERSION}\`\n\n当前 main 以 1.24B 为唯一发布基线；下方 1.23D/1.23E 内容仅作为历史检查点保留，不再代表当前部署版本。\n\n---\n\n${status}`;
+scripts/repair-recommendation-menu-owner.py:33:    'tests/v123d-deployment-contracts.mjs',
+scripts/repair-recommendation-menu-owner.py:34:    'tests/v123e-ui-stability-static.mjs',
 src/domain/recognition/recognition-date-classifier.js:4:export const DATE_CLASSIFIER_VERSION = '1.23D-date-fields.2';
 src/domain/recognition/recognition-document.js:337:    parserVersion: '1.23E-recognition-layout.2',
 src/domain/recognition/recognition-date-review.js:1:export const DATE_REVIEW_VERSION = '1.23E-date-review.3';
