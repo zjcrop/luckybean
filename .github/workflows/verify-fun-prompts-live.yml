@@ -1,0 +1,125 @@
+name: Verify live fun recommendation prompts
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-fun-prompts-live.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: luckybean-live-fun-prompt-check
+  cancel-in-progress: true
+
+jobs:
+  verify-live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verify actual grouped selection owner and five fun prompt pools
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { chromium } from '@playwright/test';
+
+          const pools = {
+            leaderboard: ['直取榜首，不问其余。','依榜索魁，必得佳味。','榜单在前，今朝且试头筹。','榜魁已定，此只风味精绝，不负众望。','一举摘魁，恰逢此豆风味正酣。','众里寻它，终得榜首，宜细细品之。','照榜点将，专挑那个第一名！'],
+            freshness: ['此只风味精绝，君既选中，甚是妥当。','正逢此只风味最盛，您这一选，再好不过。','此只正值风味精妙处，既已选定，便是良配。','此只正得意时，恰被君眼相中，眼光不差。'],
+            price: ['此只价冠诸豆，足见君之慧眼独钟。','此只乃众豆之魁，承君青睐，身价自高。','此只位列首席，价亦昂，唯君堪配此味。','既择此只风骨，当知众豆之中，以此最为矜贵。'],
+            remaining: ['余粒无多，宜趁兴饮尽，为此豆作结。','所剩几何，当及时啜饮，不负此豆风华。','残豆将尽，速饮之，好与此只从容作别。','此豆见底啦，趁风味未散，快快饮尽收场！'],
+            random: ['闭目拈签，任其自然。','信手拈签，以定今日之选。','且凭一签，决此豆归谁。','一签落地，此只当归于君。','签指此只，风味正酣，君可安心享之。','得此签，恰逢余粒无几，缘分也。','伸手拈一签，看天意选哪只！']
+          };
+
+          const browser = await chromium.launch({ headless: true });
+          const context = await browser.newContext({ viewport:{ width:390, height:844 } });
+          await context.addInitScript(() => {
+            localStorage.setItem('luckybean.onboarding.v2', JSON.stringify({stage:'existing-user',updatedAt:new Date().toISOString(),reason:'live-fun-prompt-check'}));
+          });
+          const page = await context.newPage();
+          const errors=[];
+          page.on('pageerror', error => errors.push(error.message));
+          await page.goto('https://zjcrop.github.io/luckybean/?fun-prompt-check='+Date.now(), {waitUntil:'domcontentloaded',timeout:30000});
+          const splash=page.locator('#splashScreen');
+          if(await splash.isVisible().catch(()=>false)) await splash.click();
+          await page.locator('#appShell').waitFor({state:'visible',timeout:20000});
+          await page.waitForFunction(() => document.documentElement.dataset.startup==='ready', null, {timeout:20000});
+
+          const runtime = await page.evaluate(() => {
+            const resources=performance.getEntriesByType('resource').map(entry=>entry.name);
+            return {
+              loader: resources.find(url=>url.includes('/src/features/runtime-features.js')) || '',
+              groupedOwner: resources.find(url=>url.includes('/src/bean-groups-controller.js')) || '',
+              duplicateLayer:Boolean(document.querySelector('#lbRecommendationToast'))
+            };
+          });
+          if(!runtime.loader.includes('1.24B-main.16-fun-prompt-owner') || !runtime.groupedOwner.includes('1.24B-main.16-fun-prompt-owner') || runtime.duplicateLayer){
+            throw new Error('Wrong live recommendation runtime: '+JSON.stringify(runtime));
+          }
+
+          await page.evaluate(async () => {
+            const db=await import('./src/db.js');
+            const now=new Date().toISOString();
+            await db.bulkPut('beans',[
+              {id:'fun-live-a',name:'趣味提示验收A',countryCode:'ET',varietyCode:'GESHA',processCode:'WA',roastCode:'RL-L1',roastDate:'2026-08-23',price:80,initialWeight:100,remainingWeight:30,archived:false,source:'manual',createdAt:now,updatedAt:now},
+              {id:'fun-live-b',name:'趣味提示验收B',countryCode:'CO',varietyCode:'BOURBON',processCode:'NA',roastCode:'RL-L2',roastDate:'2026-08-23',price:120,initialWeight:100,remainingWeight:50,archived:false,source:'manual',createdAt:now,updatedAt:now},
+              {id:'fun-live-c',name:'趣味提示验收C',countryCode:'PA',varietyCode:'GESHA',processCode:'WA',roastCode:'RL-L1',roastDate:'2026-08-23',price:160,initialWeight:100,remainingWeight:70,archived:false,source:'manual',createdAt:now,updatedAt:now}
+            ]);
+            await new Promise(resolve=>{
+              const source='live-fun-prompt-seed';
+              const done=e=>{if(e.detail?.source!==source)return;document.removeEventListener('luckybean:app-refreshed',done);resolve();};
+              document.addEventListener('luckybean:app-refreshed',done);
+              document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh',{detail:{source}}));
+              setTimeout(resolve,3000);
+            });
+            globalThis.__funPromptEvents=[];
+            globalThis.__funToastTimeline=[];
+            document.addEventListener('luckybean:recommendation-prompt',e=>globalThis.__funPromptEvents.push({...e.detail,at:performance.now()}));
+            const toast=document.querySelector('#toast');
+            const capture=()=>globalThis.__funToastTimeline.push({text:(toast?.textContent||'').trim(),className:toast?.className||'',at:performance.now()});
+            capture();
+            new MutationObserver(capture).observe(toast,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class']});
+          });
+
+          const results=[];
+          for(const mode of Object.keys(pools)){
+            const before=await page.evaluate(()=>globalThis.__funPromptEvents.length);
+            await page.locator('#fabRecommendBtn').click();
+            const option=page.locator(`[data-recommend-mode="${mode}"]`);
+            await option.waitFor({state:'visible',timeout:3000});
+            await option.click();
+            await page.waitForFunction(({before,mode})=>{
+              const events=globalThis.__funPromptEvents||[];
+              return events.length>before && events.at(-1)?.mode===mode;
+            },{before,mode},{timeout:20000});
+            const event=await page.evaluate(()=>globalThis.__funPromptEvents.at(-1));
+            if(!pools[mode].includes(event.prompt)) throw new Error(`Unexpected ${mode} prompt: ${JSON.stringify(event)}`);
+            await page.waitForFunction(prompt=>{
+              const toast=document.querySelector('#toast');
+              return (toast?.textContent||'').trim()===prompt && toast?.classList.contains('recommendation') && toast?.classList.contains('show');
+            },event.prompt,{timeout:5000});
+            await page.waitForTimeout(900);
+            const state=await page.evaluate(eventAt=>{
+              const toast=document.querySelector('#toast');
+              const style=getComputedStyle(toast);
+              const timeline=(globalThis.__funToastTimeline||[]).filter(item=>item.at>=eventAt-80);
+              return {text:(toast.textContent||'').trim(),opacity:Number(style.opacity),show:toast.classList.contains('show'),timeline};
+            },event.at);
+            if(state.text!==event.prompt || !state.show || state.opacity<0.9) throw new Error(`Prompt not visibly retained for ${mode}: ${JSON.stringify(state)}`);
+            if(state.timeline.some(item=>/^已选[:：]/.test(item.text))) throw new Error(`Duplicate 已选 result toast still appeared for ${mode}: ${JSON.stringify(state.timeline)}`);
+            results.push({mode,prompt:event.prompt});
+          }
+          if(errors.length) throw new Error('Live page errors: '+errors.join(' | '));
+          console.log('LIVE_FUN_PROMPTS_OK '+JSON.stringify(results));
+          await browser.close();
+          NODE
