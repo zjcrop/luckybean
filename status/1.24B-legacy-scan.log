@@ -25,8 +25,6 @@ scripts/run-core-tests.mjs:12:  'tests/v123e-gear-catalog-editor-ui.spec.mjs',
 scripts/run-core-tests.mjs:13:  'tests/v123e-sensory-actions-ui.spec.mjs',
 scripts/run-core-tests.mjs:14:  'tests/v123e-recognition-pipeline-ui.spec.mjs',
 scripts/run-core-tests.mjs:15:  'tests/v123e-cold-brew-ui.spec.mjs',
-scripts/repair-recommendation-prompt.py:55:    'tests/v123d-deployment-contracts.mjs',
-scripts/repair-recommendation-prompt.py:56:    'tests/v123e-ui-stability-static.mjs',
 scripts/run-static-tests.mjs:9:  'tests/v123d-main-parity.mjs',
 scripts/run-static-tests.mjs:12:  'tests/v123d-deployment-contracts.mjs',
 scripts/run-static-tests.mjs:13:  'tests/v123d-ui-sensory-regressions.mjs',
@@ -66,7 +64,6 @@ src/domain/recognition/recognition-date-classifier.js:4:export const DATE_CLASSI
 src/domain/recognition/recognition-document.js:337:    parserVersion: '1.23E-recognition-layout.2',
 src/domain/recognition/recognition-date-review.js:1:export const DATE_REVIEW_VERSION = '1.23E-date-review.3';
 src/cloud-codec.js:236:  // 1.23D/early 1.23E accidentally serialized an object array with String(array).
-.github/workflows/repair-recommendation-prompt.yml:48:          git add src/app.js index.html src/core/startup-controller.js tests/v124b-recommendation-prompt-regression.mjs tests/v110-local-first-sync-static.mjs tests/v120-requirements-static.mjs tests/v123d-deployment-contracts.mjs tests/v123e-ui-stability-static.mjs tests/v124b-final-release-contract.mjs tests/v124b-complete-plan-contract.mjs
 .github/workflows/diagnose-main.yml:49:              "1\\.23E|v123e|V123E|1023[0-9]{2}|main-v123e|1\\.23D|v123d|V123D|main-v123d" \
 .github/workflows/build-main.yml:117:          ! grep -Fq 'LuckyBeanAndroid/1.23E' "$file"
 package.json:10:    "test:smoke": "playwright test tests/v110-startup-smoke.spec.mjs tests/v123e-ui-interaction.spec.mjs tests/v124b-ocr-worker-runtime.spec.mjs --browser=chromium --reporter=line --workers=1",
