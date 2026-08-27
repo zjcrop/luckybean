@@ -140,10 +140,12 @@ function toast(message, kind = '') {
   clearTimeout(toastCleanupTimer);
   node.textContent = message;
   if (kind === 'recommendation') {
-    node.className = 'toast recommendation';
-    requestAnimationFrame(() => requestAnimationFrame(() => node.classList.add('show')));
+    const text = String(message || '').trim();
+    if (!text) return;
+    node.textContent = text;
+    node.className = 'toast recommendation show';
     toastTimer = setTimeout(() => node.classList.remove('show'), 6000);
-    toastCleanupTimer = setTimeout(() => { node.className = 'toast'; }, 7000);
+    toastCleanupTimer = setTimeout(() => { node.className = 'toast'; node.textContent = ''; }, 7000);
     return;
   }
   node.className = `toast show ${kind}`;
@@ -880,13 +882,18 @@ const RECOMMENDATION_PROMPTS = Object.freeze({
   ]
 });
 
+function normalizeRecommendationMode(mode) {
+  const value = String(mode || '').trim();
+  return Object.prototype.hasOwnProperty.call(RECOMMENDATION_PROMPTS, value) ? value : 'random';
+}
+
 function recommendationPrompt(mode) {
-  const pool = RECOMMENDATION_PROMPTS[mode] || [];
-  if (!pool.length) return '';
-  const previous = state.recommendationPromptMemory[mode] || '';
+  const key = normalizeRecommendationMode(mode);
+  const pool = RECOMMENDATION_PROMPTS[key];
+  const previous = state.recommendationPromptMemory[key] || '';
   const choices = pool.filter(value => value !== previous);
   const selected = choices[Math.floor(Math.random() * choices.length)] || pool[0];
-  state.recommendationPromptMemory[mode] = selected;
+  state.recommendationPromptMemory[key] = selected;
   return selected;
 }
 
@@ -902,6 +909,7 @@ function openRecommendMenu() {
 }
 
 async function recommendBean(mode) {
+  mode = normalizeRecommendationMode(mode);
   closePopups();
   const beans = filteredBeans();
   if (!beans.length) return toast('没有可推荐的豆卡');
@@ -927,7 +935,8 @@ async function recommendBean(mode) {
     }
     if (mode !== 'random') await focusRecommendedBean(selected, { automatic: true, settle: true, duration: 800 });
     const prompt = recommendationPrompt(mode);
-    toast(prompt || `已选：${beanDisplayName(selected)}`, 'recommendation');
+    document.dispatchEvent(new CustomEvent('luckybean:recommendation-prompt', { detail: { mode, prompt, beanId: selected?.id || '' } }));
+    toast(prompt, 'recommendation');
   } finally {
     state.recommendationRun = false;
   }

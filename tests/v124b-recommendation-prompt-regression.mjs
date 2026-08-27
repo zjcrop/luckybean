@@ -16,8 +16,12 @@ for(const sentence of [
   '闭目拈签，任其自然。'
 ]) assert.ok(app.includes(sentence),`application prompt library lost sentence: ${sentence}`);
 
+assert.match(app,/function normalizeRecommendationMode\(mode\)/);
 assert.match(app,/function recommendationPrompt\(mode\)/);
-assert.match(app,/toast\(prompt \|\| `已选：\$\{beanDisplayName\(selected\)\}`, 'recommendation'\)/);
+assert.match(app,/mode = normalizeRecommendationMode\(mode\)/);
+assert.match(app,/toast\(prompt, 'recommendation'\)/);
+assert.match(app,/luckybean:recommendation-prompt/);
+assert.doesNotMatch(app,/toast\(prompt \|\| `已选：\$\{beanDisplayName\(selected\)\}`/);
 assert.match(app,/if \(kind === 'recommendation'\)/);
 
 assert.match(index,/release-1\.24b-group-navigation\.js\?v=1\.24B-main\.10-native-prompt/);
