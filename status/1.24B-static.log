@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 5.972799
+  duration_ms: 4.067816
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 2.31309
+  duration_ms: 1.706073
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 2.963775
+  duration_ms: 2.257163
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 2.269394
+  duration_ms: 1.791082
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.930328
+  duration_ms: 0.672316
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 3.276649
+  duration_ms: 2.450976
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 1.007935
+  duration_ms: 0.706467
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 25.401291
+# duration_ms 18.138909
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 6.448679
+  duration_ms: 4.431341
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 4.401611
+  duration_ms: 3.195289
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 4.376683
+  duration_ms: 3.460722
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 3.373455
+  duration_ms: 2.595838
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 2.655318
+  duration_ms: 2.173811
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 1.121718
+  duration_ms: 0.898777
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 28.977172
+# duration_ms 21.153448
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -160,317 +160,620 @@ LuckyBean Android gallery URI routing regression checks passed
 LuckyBean 1.24B compact small-brew, automatic-field and Android upgrade contract passed
 
 [static] tests/v123e-ui-stability-static.mjs
-node:internal/modules/run_main:123
-    triggerUncaughtException(
-    ^
+LuckyBean 1.24B 1.24B-main.6 canonical UI stability, fun-only native recommendation prompt ownership, shared bean-group state, shared sorting and text brew UI regression checks passed
 
-AssertionError [ERR_ASSERTION]: The input did not match the regular expression /toast\(prompt \|\| `已选：\$\{beanDisplayName\(selected\)\}`, 'recommendation'\)/. Input:
+[static] tests/v123e-navigation-back-static.mjs
+LuckyBean canonical page stack, overlay back, Android gesture back and compact bean metadata contracts passed
 
-"import { APP_VERSION, SCHEMA_VERSION, $, $$, uid, esc, clamp, todayISO, formatDate, freshness, freshnessProfile, downloadBlob, safeJsonParse, assertPlainObject, assertSafeJson, browserTitle, parseNumber } from './utils.js';\n" +
-  "import { openDb, all, get, put, remove, bulkPut, getSetting, setSetting, clearAll, migrateLegacy } from './db.js';\n" +
-  "import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, REMOTE_CODEBOOK_URL } from './codebook.js';\n" +
-  "import { CameraScanner, scanQrFile, decodeJsQrResult } from './qr.js';\n" +
-  "import { computeFallbackPlan, requestPrivatePlan, validatePlan, FALLBACK_ENGINE_VERSION, buildCorrectedPlan, listBrewProfiles, recommendProfile } from './brew-engine.js';\n" +
-  "import { brewProfileCatalogStatus } from './services/brew-profile-catalog-service.js';\n" +
-  "import { listWaterProfiles, inferWaterProfile } from './water-profiles.js';\n" +
-  "import { buildCompactSharePayload, encodeSharePayload, decodeSharePayload } from './share-codec.js';\n" +
-  "import { computeAutomaticScore, sensoryPreferenceTags, buildPreferenceModel, recommendedBeanIds } from './preference-model.js';\n" +
-  "import { commitCompletedBrew, permanentlyDeleteBrewRecords } from './domain/history/history-service.js';\n" +
-  "import { attachSensoryToCompletedBrew, attachOptimizationDraft, completeOptimizationValidation } from './domain/history/history-sensory-service.js';\n" +
-  "import { assessTastingForOptimization } from './domain/sensory/brew-optimization-assessment.js';\n" +
-  "import { buildBeanConsumptionSummary, DEFAULT_CAFFEINE_HEALTH_SETTINGS } from './domain/beans/bean-consumption-summary.js';\n" +
-  "import { beanGroupState, setBeanGroupMode, openBeanGroupState, closeBeanGroupState, hasActiveBeanGroup } from './domain/beans/bean-group-state.js';\n" +
-  "import { createLocalReferenceAnalysis } from './services/local-reference-analysis.js';\n" +
-  "import { adaptAuthoritativePlan } from './services/brew-analysis-service.js';\n" +
-  "import { BrewCalculationCoordinator } from './services/brew-calculation-coordinator.js';\n" +
-  "import './renderers/brew-spatial-controller.js';\n" +
-  "import './ui/brew-trend-panel.js';\n" +
-  "import { openHistoryScreen } from './ui/history/history-screen.js';\n" +
-  "import { migrateLegacyBrewHistory } from './domain/history/history-migration.js';\n" +
-  "import './services/provider-bootstrap-controller.js';\n" +
-  "import { renderProviderStatusPanel } from './ui/provider-status-panel.js';\n" +
-  "import './sensory-professional-controller.js';\n" +
-  "import { createPortableArchive, inspectPortableArchive, restorePortableArchive, MAX_ARCHIVE_BYTES } from './domain/archive/luckybean-archive-service.js';\n" +
-  "import { recognitionDocumentFromText } from './domain/recognition/recognition-document.js';\n" +
-  "import { analyzeRecognitionDocument } from './domain/recognition/recognition-pipeline.js';\n" +
-  "import { classifyRecognitionDates } from './domain/recognition/recognition-date-classifier.js';\n" +
-  "import { buildDateReviewModel, resolveDateReviewSelections } from './domain/recognition/recognition-date-review.js';\n" +
-  '\n' +
-  'const PAGE_META = {\n' +
-  "  beans: { nav: '藏', title: '豆藏', browser: '豆藏' },\n" +
-  "  brew: { nav: '酌', title: '小酌', browser: '小酌' },\n" +
-  "  sensory: { nav: '鉴', title: '品鉴', browser: '品鉴' },\n" +
-  "  settings: { nav: '器', title: '器设', browser: '器设' }\n" +
-  '};\n' +
-  '\n' +
-  'const ROASTS = [\n' +
-  "  ['RL-L0', '极浅烘'], ['RL-L1', '浅烘'], ['RL-L2', '浅中烘'], ['RL-L3', '中烘'],\n" +
-  "  ['RL-L4', '中深烘'], ['RL-L5', '深烘'], ['RL-L6', '极深烘']\n" +
-  '];\n' +
-  'const ROAST_NAME = new Map(ROASTS);\n' +
-  'const DRIPPER_MATERIALS = Object.freeze([\n' +
-  "  ['glass', '玻璃'], ['ceramic', '陶瓷'], ['plastic', '塑料'], ['titanium', '钛']\n" +
-  ']);\n' +
-  'const DRIPPER_MATERIAL_LABEL = new Map(DRIPPER_MATERIALS);\n' +
-  'function normalizeDripperMaterial(value) {\n' +
-  "  const key = String(value || '').toLowerCase();\n" +
-  "  return DRIPPER_MATERIAL_LABEL.has(key) ? key : 'plastic';\n" +
-  '}\n' +
-  "function dripperMaterialOptions(selected = 'plastic') {\n" +
-  '  const normalized = normalizeDripperMaterial(selected);\n' +
-  '  return DRIPPER_MATERIALS.map(([value, label]) => `<option value="${value}"${value === normalized ? \' selected\' : \'\'}>${label}</option>`).join(\'\');\n' +
-  '}\n' +
-  "const STATUS_COLOR = { resting: '#5f8a73', peak: '#de9a42', good: '#bc8d55', decline: '#77736c', urgent: '#575757' };\n" +
-  'const DEFAULT_SETTINGS = {\n' +
-  '  ui: { planVisualsExpanded: true, temporaryVisualOpen: false, dripperListOpen: false },\n' +
-  '  brew: {\n' +
-  "    apiEndpoint: '', mode: 'simple', method: 'pourover', serveMode: 'hot', doseMode: 'auto', doseG: 15, ratio: 15.5, ratioMode: 'auto',\n" +
-  "    profileId: 'recommended', segmentMode: 'auto', segments: 3, lowTempFirst: true,\n" +
-  "    dripper: '平底滤杯', dripperMaterial: 'plastic', filterPaperId: '', grinder: '', waterProfileId: 'plain', waterVolumeL: 5,\n" +
-  "    customWater: { name: '我的水型', tds: 85, tendency: { floral: 0, acidity: 0, sweetness: 0, body: 0, bitterness: 0, astringency: 0 }, note: '' }, flavorTargets: { acidity: 1.5, floral: 2, fruity: 2, sweetness: 2, bitterness: 2, astringency: 2 },\n" +
-  "    firstCoolingMode: 'auto', firstTemperatureC: 87, tailCoolingMode: 'auto', tailTemperatureC: 86,\n" +
-  '    temperatureTune: 0, grindTune: 0, bloomTune: 0, repeatability: false,\n' +
-  '    environment: { ambientTemperatureC: 25, relativeHumidityPct: null, initialBedTemperatureC: 25 }\n' +
-  '  },\n' +
-  "  identity: { mode: 'guest', nickname: '访客', publicId: '', idSalt: '', verified: false, email: '', phone: '', wechat: '', qq: '' },\n" +
-  "  gear: { filters: [], drippers: [{ id: 'dripper_flat', name: '平底滤杯', type: '平底滤杯', material: 'plastic' }], grinders: [] },\n" +
-  '  health: { ...DEFAULT_CAFFEINE_HEALTH_SETTINGS },\n' +
-  '  sensoryRecentLimit: 50,\n' +
-  '  shareRecordLimit: 5,\n' +
-  "  groupMethod: 'country'\n" +
-  '};\n' +
-  'const SENSORY_NODES = [\n' +
-  "  { id: 'floral', label: '花香', type: 'multi', groups: [{ label: '香气', options: ['无', '白花', '茉莉', '玫瑰', '橙花', '紫罗兰', '洋甘菊'] }, { label: '风味强度', single: true, intensity: true, options: ['无', '低', '中', '强'] }] },\n" +
-  "  { id: 'fruit', label: '果香', type: 'multi', groups: [{ label: '果香', options: ['无', '柑橘', '莓果', '桃子', '苹果', '葡萄', '热带水果', '干果'] }, { label: '风味强度', single: true, intensity: true, options: ['无', '低', '中', '强'] }] },\n" +
-  "  { id: 'other', label: '其他', type: 'multi', groups: [{ label: '其他风味', options: ['无', '茶感', '香料', '坚果', '巧克力', '酒香', '草本', '豆腐/豆味'] }, { label: '风味强度', single: true, intensity: true, options: ['无', '低', '中', '强'] }, { label: '酵感强度', single: true, intensity: true, options: ['无', '低', '中', '强'] }, { label: '增味强度', single: true, intensity: true, options: ['无', '低', '中', '强'] }] },\n" +
-  "  { id: 'sweet', label: '甜', type: 'grouped', groups: [\n" +
-  "    { label: '风味倾向', single: false, options: ['蜂蜜', '蔗糖', '红糖', '焦糖', '枫糖', '糖浆', '太妃糖'] },\n" +
-  "    { label: '风味强度', single: true, options: ['无', '低', '适中', '高'] }\n" +
-  '  ] },\n' +
-  "  { id: 'acid', label: '酸', type: 'grouped', groups: [\n" +
-  "    { label: '风味倾向 / 指向性', single: false, options: ['柑橘', '醋酸', '柠檬', '醋栗', '苹果', '葡萄'] },\n" +
-  "    { label: '风味强度', single: true, options: ['无', '微酸', '圆润舒适', '尖锐'] }\n" +
-  '  ] },\n' +
-  "  { id: 'bitter', label: '苦', type: 'single', groups: [{ label: '苦感', single: true, options: ['无', '低', '适中', '偏高', '焦苦'] }] },\n" +
-  "  { id: 'mouthfeel', label: '口感', type: 'multi', groups: [{ label: '质地', options: ['轻盈', '顺滑', '圆润', '奶油感', '厚重', '干涩', '收敛'] }] },\n" +
-  "  { id: 'negative', label: '负面', type: 'multi', groups: [{ label: '负面风味', options: ['无', '纸味', '木质', '土味', '霉味', '发酵过度', '药感', '橡胶', '金属感'] }] },\n" +
-  "  { id: 'score', label: '总分', type: 'score', groups: [] },\n" +
-  "  { id: 'note', label: '札记', type: 'note', groups: [] }\n" +
-  '];\n' +
-  '\n' +
-  'const state = {\n' +
-  '  db: null, codebook: null, codebookIndex: null, codebookMeta: null,\n' +
-  '  beans: [], brewSessions: [], sensoryRecords: [], inventoryEvents: [], preferenceModel: null, recommendedIds: new Set(),\n' +
-  "  settings: structuredClone(DEFAULT_SETTINGS), page: 'beans', selectedBeanId: null,\n" +
-  "  filter: { search: '', country: '', variety: '', process: '', flavors: [], sort: 'freshness', dir: 'asc' },\n" +
-  '  recommendedBeanId: null, currentPlan: null, currentBrewInput: null,\n' +
-  "  brewProfileOverride: null, brewDripperOverride: null, brewEntryMode: 'normal',\n" +
-  '  beanFormSource: null, beanFormDraft: null, cameraScanner: null,\n' +
-  '  timer: { interval: null, paused: false, stageIndex: 0, remaining: 0, actionCues:new Set() }, currentExecution: null,\n' +
-  "  get activeGroupKey(){ return beanGroupState.groupKey; }, set activeGroupKey(value){ value ? openBeanGroupState(value) : closeBeanGroupState(); }, groupAnimationMode: 'manual', recommendationTimer: null, recommendationRun: false, recommendationPromptMemory: {}, preferenceBoardOpen: false, settingsFocusFilterId: '',\n" +
-  "  evaluation: null, pendingSensoryContext: null, sensoryHistoryOpen: false, sensoryFilter: { beanId: '', minScore: '', maxScore: '', start: '', end: '', expanded: false }\n" +
-  '};\n' +
-  '\n' +
-  "function openBeanGroup(groupKey, { animation = 'manual' } = {}) {\n" +
-  "  const key = String(groupKey || '').trim();\n" +
-  '  if (!key) return false;\n' +
-  '  state.groupAnimationMode = animation;\n' +
-  "  setBeanGroupMode('native');\n" +
-  '  openBeanGroupState(key);\n' +
-  '  renderBeans();\n' +
-  "  document.dispatchEvent(new CustomEvent('luckybean:bean-group-opened', { detail: { groupKey: key, groupMethod: state.settings.groupMethod || 'country' } }));\n" +
-  '  return true;\n' +
-  '}\n' +
-  '\n' +
-  'function closeBeanGroup({ render = true } = {}) {\n' +
-  '  const changed = hasActiveBeanGroup();\n' +
-  '  if (!changed) return false;\n' +
-  "  state.groupAnimationMode = 'manual';\n" +
-  '  const mode = beanGroupState.mode;\n' +
-  '  closeBeanGroupState();\n' +
-  "  if (render && mode === 'native') renderBeans();\n" +
-  "  document.dispatchEvent(new CustomEvent('luckybean:bean-group-closed', { detail: { mode, source: 'canonical' } }));\n" +
-  '  return true;\n' +
-  '}\n' +
-  '\n' +
-  'globalThis.LuckyBeanBeanGroupState = Object.freeze({\n' +
-  '  hasActiveGroup: hasActiveBeanGroup,\n' +
-  '  open: groupKey => openBeanGroup(groupKey),\n' +
-  '  close: () => closeBeanGroup()\n' +
-  '});\n' +
-  '\n' +
-  'let toastTimer;\n' +
-  'let toastCleanupTimer;\n' +
-  'const brewCalculationCoordinator = new BrewCalculationCoordinator(requestPrivatePlan);\n' +
-  "function toast(message, kind = '') {\n" +
-  "  const node = $('#toast');\n" +
-  '  clearTimeout(toastTimer);\n' +
-  '  clearTimeout(toastCleanupTimer);\n' +
-  '  node.textContent = message;\n' +
-  "  if (kind === 'recommendation') {\n" +
-  "    const text = String(message || '').trim();\n" +
-  '    if (!text) return;\n' +
-  '    node.textContent = text;\n' +
-  "    node.className = 'toast recommendation show';\n" +
-  "    toastTimer = setTimeout(() => node.classList.remove('sho"... 217108 more characters
+[static] tests/v123e-brew-optimization-regression.mjs
+post-tasting optimization, deterministic spatial trend and release-signature guards passed
 
-    at file:///home/runner/work/luckybean/luckybean/tests/v123e-ui-stability-static.mjs:104:8
-    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
-  generatedMessage: true,
-  code: 'ERR_ASSERTION',
-  actual: "import { APP_VERSION, SCHEMA_VERSION, $, $$, uid, esc, clamp, todayISO, formatDate, freshness, freshnessProfile, downloadBlob, safeJsonParse, assertPlainObject, assertSafeJson, browserTitle, parseNumber } from './utils.js';\n" +
-    "import { openDb, all, get, put, remove, bulkPut, getSetting, setSetting, clearAll, migrateLegacy } from './db.js';\n" +
-    "import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, REMOTE_CODEBOOK_URL } from './codebook.js';\n" +
-    "import { CameraScanner, scanQrFile, decodeJsQrResult } from './qr.js';\n" +
-    "import { computeFallbackPlan, requestPrivatePlan, validatePlan, FALLBACK_ENGINE_VERSION, buildCorrectedPlan, listBrewProfiles, recommendProfile } from './brew-engine.js';\n" +
-    "import { brewProfileCatalogStatus } from './services/brew-profile-catalog-service.js';\n" +
-    "import { listWaterProfiles, inferWaterProfile } from './water-profiles.js';\n" +
-    "import { buildCompactSharePayload, encodeSharePayload, decodeSharePayload } from './share-codec.js';\n" +
-    "import { computeAutomaticScore, sensoryPreferenceTags, buildPreferenceModel, recommendedBeanIds } from './preference-model.js';\n" +
-    "import { commitCompletedBrew, permanentlyDeleteBrewRecords } from './domain/history/history-service.js';\n" +
-    "import { attachSensoryToCompletedBrew, attachOptimizationDraft, completeOptimizationValidation } from './domain/history/history-sensory-service.js';\n" +
-    "import { assessTastingForOptimization } from './domain/sensory/brew-optimization-assessment.js';\n" +
-    "import { buildBeanConsumptionSummary, DEFAULT_CAFFEINE_HEALTH_SETTINGS } from './domain/beans/bean-consumption-summary.js';\n" +
-    "import { beanGroupState, setBeanGroupMode, openBeanGroupState, closeBeanGroupState, hasActiveBeanGroup } from './domain/beans/bean-group-state.js';\n" +
-    "import { createLocalReferenceAnalysis } from './services/local-reference-analysis.js';\n" +
-    "import { adaptAuthoritativePlan } from './services/brew-analysis-service.js';\n" +
-    "import { BrewCalculationCoordinator } from './services/brew-calculation-coordinator.js';\n" +
-    "import './renderers/brew-spatial-controller.js';\n" +
-    "import './ui/brew-trend-panel.js';\n" +
-    "import { openHistoryScreen } from './ui/history/history-screen.js';\n" +
-    "import { migrateLegacyBrewHistory } from './domain/history/history-migration.js';\n" +
-    "import './services/provider-bootstrap-controller.js';\n" +
-    "import { renderProviderStatusPanel } from './ui/provider-status-panel.js';\n" +
-    "import './sensory-professional-controller.js';\n" +
-    "import { createPortableArchive, inspectPortableArchive, restorePortableArchive, MAX_ARCHIVE_BYTES } from './domain/archive/luckybean-archive-service.js';\n" +
-    "import { recognitionDocumentFromText } from './domain/recognition/recognition-document.js';\n" +
-    "import { analyzeRecognitionDocument } from './domain/recognition/recognition-pipeline.js';\n" +
-    "import { classifyRecognitionDates } from './domain/recognition/recognition-date-classifier.js';\n" +
-    "import { buildDateReviewModel, resolveDateReviewSelections } from './domain/recognition/recognition-date-review.js';\n" +
-    '\n' +
-    'const PAGE_META = {\n' +
-    "  beans: { nav: '藏', title: '豆藏', browser: '豆藏' },\n" +
-    "  brew: { nav: '酌', title: '小酌', browser: '小酌' },\n" +
-    "  sensory: { nav: '鉴', title: '品鉴', browser: '品鉴' },\n" +
-    "  settings: { nav: '器', title: '器设', browser: '器设' }\n" +
-    '};\n' +
-    '\n' +
-    'const ROASTS = [\n' +
-    "  ['RL-L0', '极浅烘'], ['RL-L1', '浅烘'], ['RL-L2', '浅中烘'], ['RL-L3', '中烘'],\n" +
-    "  ['RL-L4', '中深烘'], ['RL-L5', '深烘'], ['RL-L6', '极深烘']\n" +
-    '];\n' +
-    'const ROAST_NAME = new Map(ROASTS);\n' +
-    'const DRIPPER_MATERIALS = Object.freeze([\n' +
-    "  ['glass', '玻璃'], ['ceramic', '陶瓷'], ['plastic', '塑料'], ['titanium', '钛']\n" +
-    ']);\n' +
-    'const DRIPPER_MATERIAL_LABEL = new Map(DRIPPER_MATERIALS);\n' +
-    'function normalizeDripperMaterial(value) {\n' +
-    "  const key = String(value || '').toLowerCase();\n" +
-    "  return DRIPPER_MATERIAL_LABEL.has(key) ? key : 'plastic';\n" +
-    '}\n' +
-    "function dripperMaterialOptions(selected = 'plastic') {\n" +
-    '  const normalized = normalizeDripperMaterial(selected);\n' +
-    '  return DRIPPER_MATERIALS.map(([value, label]) => `<option value="${value}"${value === normalized ? \' selected\' : \'\'}>${label}</option>`).join(\'\');\n' +
-    '}\n' +
-    "const STATUS_COLOR = { resting: '#5f8a73', peak: '#de9a42', good: '#bc8d55', decline: '#77736c', urgent: '#575757' };\n" +
-    'const DEFAULT_SETTINGS = {\n' +
-    '  ui: { planVisualsExpanded: true, temporaryVisualOpen: false, dripperListOpen: false },\n' +
-    '  brew: {\n' +
-    "    apiEndpoint: '', mode: 'simple', method: 'pourover', serveMode: 'hot', doseMode: 'auto', doseG: 15, ratio: 15.5, ratioMode: 'auto',\n" +
-    "    profileId: 'recommended', segmentMode: 'auto', segments: 3, lowTempFirst: true,\n" +
-    "    dripper: '平底滤杯', dripperMaterial: 'plastic', filterPaperId: '', grinder: '', waterProfileId: 'plain', waterVolumeL: 5,\n" +
-    "    customWater: { name: '我的水型', tds: 85, tendency: { floral: 0, acidity: 0, sweetness: 0, body: 0, bitterness: 0, astringency: 0 }, note: '' }, flavorTargets: { acidity: 1.5, floral: 2, fruity: 2, sweetness: 2, bitterness: 2, astringency: 2 },\n" +
-    "    firstCoolingMode: 'auto', firstTemperatureC: 87, tailCoolingMode: 'auto', tailTemperatureC: 86,\n" +
-    '    temperatureTune: 0, grindTune: 0, bloomTune: 0, repeatability: false,\n' +
-    '    environment: { ambientTemperatureC: 25, relativeHumidityPct: null, initialBedTemperatureC: 25 }\n' +
-    '  },\n' +
-    "  identity: { mode: 'guest', nickname: '访客', publicId: '', idSalt: '', verified: false, email: '', phone: '', wechat: '', qq: '' },\n" +
-    "  gear: { filters: [], drippers: [{ id: 'dripper_flat', name: '平底滤杯', type: '平底滤杯', material: 'plastic' }], grinders: [] },\n" +
-    '  health: { ...DEFAULT_CAFFEINE_HEALTH_SETTINGS },\n' +
-    '  sensoryRecentLimit: 50,\n' +
-    '  shareRecordLimit: 5,\n' +
-    "  groupMethod: 'country'\n" +
-    '};\n' +
-    'const SENSORY_NODES = [\n' +
-    "  { id: 'floral', label: '花香', type: 'multi', groups: [{ label: '香气', options: ['无', '白花', '茉莉', '玫瑰', '橙花', '紫罗兰', '洋甘菊'] }, { label: '风味强度', single: true, intensity: true, options: ['无', '低', '中', '强'] }] },\n" +
-    "  { id: 'fruit', label: '果香', type: 'multi', groups: [{ label: '果香', options: ['无', '柑橘', '莓果', '桃子', '苹果', '葡萄', '热带水果', '干果'] }, { label: '风味强度', single: true, intensity: true, options: ['无', '低', '中', '强'] }] },\n" +
-    "  { id: 'other', label: '其他', type: 'multi', groups: [{ label: '其他风味', options: ['无', '茶感', '香料', '坚果', '巧克力', '酒香', '草本', '豆腐/豆味'] }, { label: '风味强度', single: true, intensity: true, options: ['无', '低', '中', '强'] }, { label: '酵感强度', single: true, intensity: true, options: ['无', '低', '中', '强'] }, { label: '增味强度', single: true, intensity: true, options: ['无', '低', '中', '强'] }] },\n" +
-    "  { id: 'sweet', label: '甜', type: 'grouped', groups: [\n" +
-    "    { label: '风味倾向', single: false, options: ['蜂蜜', '蔗糖', '红糖', '焦糖', '枫糖', '糖浆', '太妃糖'] },\n" +
-    "    { label: '风味强度', single: true, options: ['无', '低', '适中', '高'] }\n" +
-    '  ] },\n' +
-    "  { id: 'acid', label: '酸', type: 'grouped', groups: [\n" +
-    "    { label: '风味倾向 / 指向性', single: false, options: ['柑橘', '醋酸', '柠檬', '醋栗', '苹果', '葡萄'] },\n" +
-    "    { label: '风味强度', single: true, options: ['无', '微酸', '圆润舒适', '尖锐'] }\n" +
-    '  ] },\n' +
-    "  { id: 'bitter', label: '苦', type: 'single', groups: [{ label: '苦感', single: true, options: ['无', '低', '适中', '偏高', '焦苦'] }] },\n" +
-    "  { id: 'mouthfeel', label: '口感', type: 'multi', groups: [{ label: '质地', options: ['轻盈', '顺滑', '圆润', '奶油感', '厚重', '干涩', '收敛'] }] },\n" +
-    "  { id: 'negative', label: '负面', type: 'multi', groups: [{ label: '负面风味', options: ['无', '纸味', '木质', '土味', '霉味', '发酵过度', '药感', '橡胶', '金属感'] }] },\n" +
-    "  { id: 'score', label: '总分', type: 'score', groups: [] },\n" +
-    "  { id: 'note', label: '札记', type: 'note', groups: [] }\n" +
-    '];\n' +
-    '\n' +
-    'const state = {\n' +
-    '  db: null, codebook: null, codebookIndex: null, codebookMeta: null,\n' +
-    '  beans: [], brewSessions: [], sensoryRecords: [], inventoryEvents: [], preferenceModel: null, recommendedIds: new Set(),\n' +
-    "  settings: structuredClone(DEFAULT_SETTINGS), page: 'beans', selectedBeanId: null,\n" +
-    "  filter: { search: '', country: '', variety: '', process: '', flavors: [], sort: 'freshness', dir: 'asc' },\n" +
-    '  recommendedBeanId: null, currentPlan: null, currentBrewInput: null,\n' +
-    "  brewProfileOverride: null, brewDripperOverride: null, brewEntryMode: 'normal',\n" +
-    '  beanFormSource: null, beanFormDraft: null, cameraScanner: null,\n' +
-    '  timer: { interval: null, paused: false, stageIndex: 0, remaining: 0, actionCues:new Set() }, currentExecution: null,\n' +
-    "  get activeGroupKey(){ return beanGroupState.groupKey; }, set activeGroupKey(value){ value ? openBeanGroupState(value) : closeBeanGroupState(); }, groupAnimationMode: 'manual', recommendationTimer: null, recommendationRun: false, recommendationPromptMemory: {}, preferenceBoardOpen: false, settingsFocusFilterId: '',\n" +
-    "  evaluation: null, pendingSensoryContext: null, sensoryHistoryOpen: false, sensoryFilter: { beanId: '', minScore: '', maxScore: '', start: '', end: '', expanded: false }\n" +
-    '};\n' +
-    '\n' +
-    "function openBeanGroup(groupKey, { animation = 'manual' } = {}) {\n" +
-    "  const key = String(groupKey || '').trim();\n" +
-    '  if (!key) return false;\n' +
-    '  state.groupAnimationMode = animation;\n' +
-    "  setBeanGroupMode('native');\n" +
-    '  openBeanGroupState(key);\n' +
-    '  renderBeans();\n' +
-    "  document.dispatchEvent(new CustomEvent('luckybean:bean-group-opened', { detail: { groupKey: key, groupMethod: state.settings.groupMethod || 'country' } }));\n" +
-    '  return true;\n' +
-    '}\n' +
-    '\n' +
-    'function closeBeanGroup({ render = true } = {}) {\n' +
-    '  const changed = hasActiveBeanGroup();\n' +
-    '  if (!changed) return false;\n' +
-    "  state.groupAnimationMode = 'manual';\n" +
-    '  const mode = beanGroupState.mode;\n' +
-    '  closeBeanGroupState();\n' +
-    "  if (render && mode === 'native') renderBeans();\n" +
-    "  document.dispatchEvent(new CustomEvent('luckybean:bean-group-closed', { detail: { mode, source: 'canonical' } }));\n" +
-    '  return true;\n' +
-    '}\n' +
-    '\n' +
-    'globalThis.LuckyBeanBeanGroupState = Object.freeze({\n' +
-    '  hasActiveGroup: hasActiveBeanGroup,\n' +
-    '  open: groupKey => openBeanGroup(groupKey),\n' +
-    '  close: () => closeBeanGroup()\n' +
-    '});\n' +
-    '\n' +
-    'let toastTimer;\n' +
-    'let toastCleanupTimer;\n' +
-    'const brewCalculationCoordinator = new BrewCalculationCoordinator(requestPrivatePlan);\n' +
-    "function toast(message, kind = '') {\n" +
-    "  const node = $('#toast');\n" +
-    '  clearTimeout(toastTimer);\n' +
-    '  clearTimeout(toastCleanupTimer);\n' +
-    '  node.textContent = message;\n' +
-    "  if (kind === 'recommendation') {\n" +
-    "    const text = String(message || '').trim();\n" +
-    '    if (!text) return;\n' +
-    '    node.textContent = text;\n' +
-    "    node.className = 'toast recommendation show';\n" +
-    "    toastTimer = setTimeout(() => node.classList.remove('sho"... 217108 more characters,
-  expected: /toast\(prompt \|\| `已选：\$\{beanDisplayName\(selected\)\}`, 'recommendation'\)/,
-  operator: 'match',
-  diff: 'simple'
-}
+[static] tests/v123e-recognition-pipeline-static.mjs
+Recognition document is the single translated and structured bean-entry source
 
-Node.js v22.23.2
-::error file=tests/v123e-ui-stability-static.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /toast\(prompt \|\| `已选：\$\{beanDisplayName\(selected\)\}`, 'recommendation'\)/. Input:%0A%0A"import { APP_VERSION, SCHEMA_VERSION, $, $$, uid, esc, clamp, todayISO, formatDate, freshness, freshnessProfile, downloadBlob, safeJsonParse, assertPlainObject, assertSafeJson, browserTitle, parseNumber } from './utils.js';\n" +%0A  "import { openDb, all, get, put, remove, bulkPut, getSetting, setSetting, clearAll, migrateLegacy } from './db.js';\n" +%0A  "import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, REMOTE_CODEBOOK_URL } from './codebook.js';\n" +%0A  "import { CameraScanner, scanQrFile, decodeJsQrResult } from './qr.js';\n" +%0A  "import { computeFallbackPlan, requestPrivatePlan, validatePlan, FALLBACK_ENGINE_VERSION, buildCorrectedPlan, listBrewProfiles, recommendProfile } from './brew-engine.js';\n" +%0A  "import { brewProfileCatalogStatus } from './services/brew-profile-catalog-service.js';\n" +%0A  "import { listWaterProfiles, inferWaterProfile } from './water-profiles.js';\n" +%0A  "import { buildCompactSharePayload, encodeSharePayload, decodeSharePayload } from './share-codec.js';\n" +%0A  "import { computeAutomaticScore, sensoryPreferenceTags, buildPreferenceModel, recommendedBeanIds } from './preference-model.js';\n" +%0A  "import { commitCompletedBrew, permanentlyDeleteBrewRecords } from './domain/history/history-service.js';\n" +%0A  "import { attachSensoryToCompletedBrew, attachOptimizationDraft, completeOptimizationValidation } from './domain/history/history-sensory-service.js';\n" +%0A  "import { assessTastingForOptimization } from './domain/sensory/brew-optimization-assessment.js';\n" +%0A  "import { buildBeanConsumptionSummary, DEFAULT_CAFFEINE_HEALTH_SETTINGS } from './domain/beans/bean-consumption-summary.js';\n" +%0A  "import { beanGroupState, setBeanGroupMode, openBeanGroupState, closeBeanGroupState, hasActiveBeanGroup } from './domain/beans/bean-group-state.js';\n" +%0A  "import { createLocalReferenceAnalysis } from './services/local-reference-analysis.js';\n" +%0A  "import { adaptAuthoritativePlan } from './services/brew-analysis-service.js';\n" +%0A  "import { BrewCalculationCoordinator } from './services/brew-calculation-coordinator.js';\n" +%0A  "import './renderers/brew-spatial-controller.js';\n" +%0A  "import './ui/brew-trend-panel.js';\n" +%0A  "import { openHistoryScreen } from './ui/history/history-screen.js';\n" +%0A  "import { migrateLegacyBrewHistory } from './domain/history/history-migration.js';\n" +%0A  "import './services/provider-bootstrap-controller.js';\n" +%0A  "import { renderProviderStatusPanel } from './ui/provider-status-panel.js';\n" +%0A  "import './sensory-professional-controller.js';\n" +%0A  "import { createPortableArchive, inspectPortableArchive, restorePortableArchive, MAX_ARCHIVE_BYTES } from './domain/archive/luckybean-archive-service.js';\n" +%0A  "import { recognitionDocumentFromText } from './domain/recognition/recognition-document.js';\n" +%0A  "import { analyzeRecognitionDocument } from './domain/recognition/recognition-pipeline.js';\n" +%0A  "import { classifyRecognitionDates } from './domain/recognition/recognition-date-classifier.js';\n" +%0A  "import { buildDateReviewModel, resolveDateReviewSelections } from './domain/recognition/recognition-date-review.js';\n" +%0A  '\n' +%0A  'const PAGE_META = {\n' +%0A  "  beans: { nav: '藏', title: '豆藏', browser: '豆藏' },\n" +%0A  "  brew: { nav: '酌', title: '小酌', browser: '小酌' },\n" +%0A  "  sensory: { nav: '鉴', title: '品鉴', browser: '品鉴' },\n" +%0A  "  settings: { nav: '器', title: '器设', browser: '器设' }\n" +%0A  '};\n' +%0A  '\n' +%0A  'const ROASTS = [\n' +%0A  "  ['RL-L0', '极浅烘'], ['RL-L1', '浅烘'], ['RL-L2', '浅中烘'], ['RL-L3', '中烘'],\n" +%0A  "  ['RL-L4', '中深烘'], ['RL-L5', '深烘'], ['RL-L6', '极深烘']\n" +%0A  '];\n' +%0A  'const ROAST_NAME = new Map(ROASTS);\n' +%0A  'const DRIPPER_MATERIALS = Object.freeze([\n' +%0A  "  ['glass', '玻璃'], ['ceramic', '陶瓷'], ['plastic', '塑料'], ['titanium', '钛']\n" +%0A  ']);\n' +%0A  'const DRIPPER_MATERIAL_LABEL = new Map(DRIPPER_MATERIALS);\n' +%0A  'function normalizeDripperMaterial(value) {\n' +%0A  "  const key = String(value || '').toLowerCase();\n" +%0A  "  return DRIPPER_MATERIAL_LABEL.has(key) ? key : 'plastic';\n" +%0A  '}\n' +%0A  "function dripperMaterialOptions(selected = 'plastic') {\n" +%0A  '  const normalized = normalizeDripperMaterial(selected);\n' +%0A  '  return DRIPPER_MATERIALS.map(([value, label]) => `<option value="${value}"${value === normalized ? \' selected\' : \'\'}>${label}</option>`).join(\'\');\n' +%0A  '}\n' +%0A  "const STATUS_COLOR = { resting: '#5f8a73', peak: '#de9a42', good: '#bc8d55', decline: '#77736c', urgent: '#575757' };\n" +%0A  'const DEFAULT_SETTINGS = {\n' +%0A  '  ui: { planVisualsExpanded: true, temporaryVisualOpen: false, dripperListOpen: false },\n' +%0A  '  brew: {\n' +%0A  "    apiEndpoint: '', mode: 'simple', method: 'pourover', serveMode: 'hot', doseMode: 'auto', doseG: 15, ratio: 15.5, ratioMode: 'auto',\n" +%0A  "    profileId: 'recommended', segmentMode: 'auto', segments: 3, lowTempFirst: true,\n" +%0A  "    dripper: '平底滤杯', dripperMaterial: 'plastic', filterPaperId: '', grinder: '', waterProfileId: 'plain', waterVolumeL: 5,\n" +%0A  "    customWater: { name: '我的水型', tds: 85, tendency: { floral: 0, acidity: 0, sweetness: 0, body: 0, bitterness: 0, astringency: 0 }, note: '' }, flavorTargets: { acidity: 1.5, floral: 2, fruity: 2, sweetness: 2, bitterness: 2, astringency: 2 },\n" +%0A  "    firstCoolingMode: 'auto', firstTemperatureC: 87, tailCoolingMode: 'auto', tailTemperatureC: 86,\n" +%0A  '    temperatureTune: 0, grindTune: 0, bloomTune: 0, repeatability: false,\n' +%0A  '    environment: { ambientTemperatureC: 25, relativeHumidityPct: null, initialBedTemperatureC: 25 }\n' +%0A  '  },\n' +%0A  "  identity: { mode: 'guest', nickname: '访客', publicId: '', idSalt: '', verified: false, email: '', phone: '', wechat: '', qq: '' },\n" +%0A  "  gear: { filters: [], drippers: [{ id: 'dripper_flat', name: '平底滤杯', type: '平底滤杯', material: 'plastic' }], grinders: [] },\n" +%0A  '  health: { ...DEFAULT_CAFFEINE_HEALTH_SETTINGS },\n' +%0A  '  sensoryRecentLimit: 50,\n' +%0A  '  shareRecordLimit: 5,\n' +%0A  "  groupMethod: 'country'\n" +%0A  '};\n' +%0A  'const SENSORY_NODES = [\n' +%0A  "  { id: 'floral', label: '花香', type: 'multi', groups: [{ label: '香气', options: ['无', '白花', '茉莉', '玫瑰', '橙花', '紫罗兰', '洋甘菊'] }, { label: '风味强度', single: true, intensity: true, options: ['无', '低', '中', '强'] }] },\n" +%0A  "  { id: 'fruit', label: '果香', type: 'multi', groups: [{ label: '果香', options: ['无', '柑橘', '莓果', '桃子', '苹果', '葡萄', '热带水果', '干果'] }, { label: '风味强度', single: true, intensity: true, options: ['无', '低', '中', '强'] }] },\n" +%0A  "  { id: 'other', label: '其他', type: 'multi', groups: [{ label: '其他风味', options: ['无', '茶感', '香料', 
+[static] tests/v124b-lifecycle-ocr-storage-regression.mjs
+LuckyBean 1.24B lifecycle, serial OCR, transit/frozen storage, order parsing and local brew regression checks passed
+
+[static] tests/v124b-ocr-worker-freeze-regression.mjs
+LuckyBean 1.24B browser OCR is Worker-only, prewarmed, timeout-bounded, and has no automatic Tesseract/main-thread fallback
+
+[static] tests/v124b-final-release-contract.mjs
+LuckyBean 1.24B main.4 final release contract with test+gated web deployment, exact native prompt runtime, canonical bean group state, shared sorting and text brew UI passed
+
+[static] tests/v124b-complete-plan-contract.mjs
+LuckyBean 1.24B main.4 complete modification-plan contract with canonical bean groups, test+gated Pages, exact native prompt runtime, shared sorting and text brew UI passed
+
+[static] tests/v124b-ui-policy-regression.mjs
+LuckyBean 1.24B single-owner bean group state, hidden preference leaderboard policy, shared live-preview sorting, text brew UI and Web/Android parity contracts passed
+
+[static] tests/v124b-recommendation-prompt-regression.mjs
+LuckyBean recommendation prompt contract passed: app.js exclusively owns the original fun prompt library; duplicate prompt layer removed; grouping and theme adapters remain isolated
+
+[static] npm run test:recognition
+
+> luckybean-static-app@1.24.2 test:recognition
+> node --test test/*.test.js
+
+TAP version 13
+# Subtest: sums every bean remaining weight and counts authoritative consumption events once
+ok 1 - sums every bean remaining weight and counts authoritative consumption events once
+  ---
+  duration_ms: 1.756929
+  type: 'test'
+  ...
+# Subtest: restored mistaken brew is removed from today total
+ok 2 - restored mistaken brew is removed from today total
+  ---
+  duration_ms: 0.293219
+  type: 'test'
+  ...
+# Subtest: warns when latest completed consumption is within the configured sleep buffer
+ok 3 - warns when latest completed consumption is within the configured sleep buffer
+  ---
+  duration_ms: 0.347303
+  type: 'test'
+  ...
+# Subtest: uses a higher caffeine estimate for robusta beans
+ok 4 - uses a higher caffeine estimate for robusta beans
+  ---
+  duration_ms: 1.385701
+  type: 'test'
+  ...
+# Subtest: brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
+ok 5 - brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
+  ---
+  duration_ms: 0.734467
+  type: 'test'
+  ...
+# Subtest: production analysis envelope adapts into a plan accepted by the page validator
+ok 6 - production analysis envelope adapts into a plan accepted by the page validator
+  ---
+  duration_ms: 0.868411
+  type: 'test'
+  ...
+# Subtest: unknown analysis contracts and unversioned legacy plans remain rejected
+ok 7 - unknown analysis contracts and unversioned legacy plans remain rejected
+  ---
+  duration_ms: 0.580569
+  type: 'test'
+  ...
+# Subtest: cold brew validates stage water against brew water and recipe total independently
+ok 8 - cold brew validates stage water against brew water and recipe total independently
+  ---
+  duration_ms: 0.40385
+  type: 'test'
+  ...
+# Subtest: 参数重算保留同一豆卡已经实际采用的方案
+ok 9 - 参数重算保留同一豆卡已经实际采用的方案
+  ---
+  duration_ms: 2.307902
+  type: 'test'
+  ...
+# Subtest: 不同豆卡或手动选择方案时不会沿用旧方案
+ok 10 - 不同豆卡或手动选择方案时不会沿用旧方案
+  ---
+  duration_ms: 0.732278
+  type: 'test'
+  ...
+# Subtest: 并发计算采用 latest-wins，旧结果不能覆盖新结果
+ok 11 - 并发计算采用 latest-wins，旧结果不能覆盖新结果
+  ---
+  duration_ms: 0.392779
+  type: 'test'
+  ...
+# Subtest: 总分低于预测分不会单独触发冲煮优化
+ok 12 - 总分低于预测分不会单独触发冲煮优化
+  ---
+  duration_ms: 1.487753
+  type: 'test'
+  ...
+# Subtest: 品鉴后的具体负面维度触发可解释优化
+ok 13 - 品鉴后的具体负面维度触发可解释优化
+  ---
+  duration_ms: 0.520127
+  type: 'test'
+  ...
+# Subtest: 雷达轴只比较同组平均且无完成冲煮时不提示优化
+ok 14 - 雷达轴只比较同组平均且无完成冲煮时不提示优化
+  ---
+  duration_ms: 0.775718
+  type: 'test'
+  ...
+# Subtest: 实际执行明显偏离方案时不把负面结果归因于方案
+ok 15 - 实际执行明显偏离方案时不把负面结果归因于方案
+  ---
+  duration_ms: 0.237488
+  type: 'test'
+  ...
+# Subtest: 个人靶区至少三次证据后才改变，标准靶区保持不变
+ok 16 - 个人靶区至少三次证据后才改变，标准靶区保持不变
+  ---
+  duration_ms: 0.662505
+  type: 'test'
+  ...
+# Subtest: accepts a catalog with balanced hot and cold auto-recommend profiles
+ok 17 - accepts a catalog with balanced hot and cold auto-recommend profiles
+  ---
+  duration_ms: 1.146241
+  type: 'test'
+  ...
+# Subtest: rejects a catalog whose declared profile count differs from the payload
+ok 18 - rejects a catalog whose declared profile count differs from the payload
+  ---
+  duration_ms: 0.205526
+  type: 'test'
+  ...
+# Subtest: rejects a cold profile whose recipe water does not equal brew water + ice + bypass
+ok 19 - rejects a cold profile whose recipe water does not equal brew water + ice + bypass
+  ---
+  duration_ms: 1.122618
+  type: 'test'
+  ...
+# Subtest: rejects catalogs that cannot auto-recommend in both hot and cold modes
+ok 20 - rejects catalogs that cannot auto-recommend in both hot and cold modes
+  ---
+  duration_ms: 0.233595
+  type: 'test'
+  ...
+# Subtest: archive round-trip preserves every portable store
+ok 21 - archive round-trip preserves every portable store
+  ---
+  duration_ms: 11.708423
+  type: 'test'
+  ...
+# Subtest: archive rejects tampered store data
+ok 22 - archive rejects tampered store data
+  ---
+  duration_ms: 2.25087
+  type: 'test'
+  ...
+# Subtest: legacy 1.2.x JSON backup migrates without inventing records
+ok 23 - legacy 1.2.x JSON backup migrates without inventing records
+  ---
+  duration_ms: 0.431825
+  type: 'test'
+  ...
+# Subtest: future schema cannot be imported
+ok 24 - future schema cannot be imported
+  ---
+  duration_ms: 2.226091
+  type: 'test'
+  ...
+# Subtest: production date never falls back to roast date
+ok 25 - production date never falls back to roast date
+  ---
+  duration_ms: 3.640441
+  type: 'test'
+  ...
+# Subtest: best before and expiry dates are excluded from roast date
+ok 26 - best before and expiry dates are excluded from roast date
+  ---
+  duration_ms: 3.904221
+  type: 'test'
+  ...
+# Subtest: explicit roast date is auto-filled while other dates remain excluded
+ok 27 - explicit roast date is auto-filled while other dates remain excluded
+  ---
+  duration_ms: 1.265584
+  type: 'test'
+  ...
+# Subtest: unlabelled date requires confirmation and is never silently filled
+ok 28 - unlabelled date requires confirmation and is never silently filled
+  ---
+  duration_ms: 0.410364
+  type: 'test'
+  ...
+# Subtest: date photo role increases provenance but does not bypass confirmation
+ok 29 - date photo role increases provenance but does not bypass confirmation
+  ---
+  duration_ms: 0.494503
+  type: 'test'
+  ...
+# Subtest: invalid calendar dates are rejected
+ok 30 - invalid calendar dates are rejected
+  ---
+  duration_ms: 0.776955
+  type: 'test'
+  ...
+# Subtest: 30-case date ownership golden set has zero silent non-roast assignments
+    # Subtest: 烘焙日期：2026-07-28
+    ok 1 - 烘焙日期：2026-07-28
+      ---
+      duration_ms: 6.00249
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE 2026/07/28
+    ok 2 - ROAST DATE 2026/07/28
+      ---
+      duration_ms: 1.379507
+      type: 'test'
+      ...
+    # Subtest: ROASTED ON 2026.7.8
+    ok 3 - ROASTED ON 2026.7.8
+      ---
+      duration_ms: 0.393521
+      type: 'test'
+      ...
+    # Subtest: 焙炒日期 2026年7月28日
+    ok 4 - 焙炒日期 2026年7月28日
+      ---
+      duration_ms: 0.769604
+      type: 'test'
+      ...
+    # Subtest: RST DATE 20260728
+    ok 5 - RST DATE 20260728
+      ---
+      duration_ms: 0.560892
+      type: 'test'
+      ...
+    # Subtest: ROAST ON 28 JUL 2026
+    ok 6 - ROAST ON 28 JUL 2026
+      ---
+      duration_ms: 0.71008
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE JUL 28 2026
+    ok 7 - ROAST DATE JUL 28 2026
+      ---
+      duration_ms: 1.490381
+      type: 'test'
+      ...
+    # Subtest: 出炉日期 26年7月28日
+    ok 8 - 出炉日期 26年7月28日
+      ---
+      duration_ms: 1.262447
+      type: 'test'
+      ...
+    # Subtest: 烘焙日 26-07-28
+    ok 9 - 烘焙日 26-07-28
+      ---
+      duration_ms: 1.159801
+      type: 'test'
+      ...
+    # Subtest: 烘烤日期 26.0728
+    ok 10 - 烘烤日期 26.0728
+      ---
+      duration_ms: 0.54658
+      type: 'test'
+      ...
+    # Subtest: 生产日期：2026-07-21
+    ok 11 - 生产日期：2026-07-21
+      ---
+      duration_ms: 0.493092
+      type: 'test'
+      ...
+    # Subtest: MFG DATE 2026/07/21
+    ok 12 - MFG DATE 2026/07/21
+      ---
+      duration_ms: 0.255916
+      type: 'test'
+      ...
+    # Subtest: MFD 20260721
+    ok 13 - MFD 20260721
+      ---
+      duration_ms: 0.227577
+      type: 'test'
+      ...
+    # Subtest: 包装日期 2026.07.22
+    ok 14 - 包装日期 2026.07.22
+      ---
+      duration_ms: 0.29164
+      type: 'test'
+      ...
+    # Subtest: PACKED ON 2026-07-22
+    ok 15 - PACKED ON 2026-07-22
+      ---
+      duration_ms: 0.522986
+      type: 'test'
+      ...
+    # Subtest: PKD 20260722
+    ok 16 - PKD 20260722
+      ---
+      duration_ms: 2.373491
+      type: 'test'
+      ...
+    # Subtest: 最佳赏味期 2026-10-28
+    ok 17 - 最佳赏味期 2026-10-28
+      ---
+      duration_ms: 0.284507
+      type: 'test'
+      ...
+    # Subtest: BEST BEFORE 2026/10/28
+    ok 18 - BEST BEFORE 2026/10/28
+      ---
+      duration_ms: 0.284987
+      type: 'test'
+      ...
+    # Subtest: BBE 28 OCT 2026
+    ok 19 - BBE 28 OCT 2026
+      ---
+      duration_ms: 0.257289
+      type: 'test'
+      ...
+    # Subtest: 有效期至 2027年1月5日
+    ok 20 - 有效期至 2027年1月5日
+      ---
+      duration_ms: 0.286646
+      type: 'test'
+      ...
+    # Subtest: EXP 2027-01-05
+    ok 21 - EXP 2027-01-05
+      ---
+      duration_ms: 0.29141
+      type: 'test'
+      ...
+    # Subtest: USE BY JAN 5 2027
+    ok 22 - USE BY JAN 5 2027
+      ---
+      duration_ms: 0.257706
+      type: 'test'
+      ...
+    # Subtest: 埃塞俄比亚 / 2026-07-28
+    ok 23 - 埃塞俄比亚 / 2026-07-28
+      ---
+      duration_ms: 1.142372
+      type: 'test'
+      ...
+    # Subtest: DATE 2026/07/28
+    ok 24 - DATE 2026/07/28
+      ---
+      duration_ms: 0.225976
+      type: 'test'
+      ...
+    # Subtest: LOT 20260728
+    ok 25 - LOT 20260728
+      ---
+      duration_ms: 0.226858
+      type: 'test'
+      ...
+    # Subtest: 2026年7月28日
+    ok 26 - 2026年7月28日
+      ---
+      duration_ms: 0.238145
+      type: 'test'
+      ...
+    # Subtest: 28/07/2026
+    ok 27 - 28/07/2026
+      ---
+      duration_ms: 0.544568
+      type: 'test'
+      ...
+    # Subtest: 07/08/2026
+    ok 28 - 07/08/2026
+      ---
+      duration_ms: 0.363947
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE 07/08/2026
+    ok 29 - ROAST DATE 07/08/2026
+      ---
+      duration_ms: 0.3605
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
+    ok 30 - ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
+      ---
+      duration_ms: 0.433992
+      type: 'test'
+      ...
+    1..30
+ok 31 - 30-case date ownership golden set has zero silent non-roast assignments
+  ---
+  duration_ms: 27.631272
+  type: 'test'
+  ...
+# Subtest: review model exposes automatic, excluded and unresolved candidates together
+ok 32 - review model exposes automatic, excluded and unresolved candidates together
+  ---
+  duration_ms: 6.558
+  type: 'test'
+  ...
+# Subtest: unresolved candidate requires an explicit date assignment before confirmation
+ok 33 - unresolved candidate requires an explicit date assignment before confirmation
+  ---
+  duration_ms: 0.783534
+  type: 'test'
+  ...
+# Subtest: user confirmation retains source provenance instead of inventing confidence 1
+ok 34 - user confirmation retains source provenance instead of inventing confidence 1
+  ---
+  duration_ms: 0.697348
+  type: 'test'
+  ...
+# Subtest: two roast date selections are rejected
+ok 35 - two roast date selections are rejected
+  ---
+  duration_ms: 0.928095
+  type: 'test'
+  ...
+# Subtest: candidate value cannot be replaced with an unrecognized date
+ok 36 - candidate value cannot be replaced with an unrecognized date
+  ---
+  duration_ms: 0.38192
+  type: 'test'
+  ...
+# Subtest: stale or fabricated candidate id is rejected
+ok 37 - stale or fabricated candidate id is rejected
+  ---
+  duration_ms: 0.48451
+  type: 'test'
+  ...
+# Subtest: all candidates may be ignored without silently restoring automatic roast date
+ok 38 - all candidates may be ignored without silently restoring automatic roast date
+  ---
+  duration_ms: 0.771795
+  type: 'test'
+  ...
+# Subtest: ambiguous day-month candidate can only resolve to one offered value
+ok 39 - ambiguous day-month candidate can only resolve to one offered value
+  ---
+  duration_ms: 1.200502
+  type: 'test'
+  ...
+# Subtest: duplicate submission of the same candidate is rejected
+ok 40 - duplicate submission of the same candidate is rejected
+  ---
+  duration_ms: 0.670102
+  type: 'test'
+  ...
+# Subtest: numeric Ethiopian variety codes are split into independent exact candidates
+ok 41 - numeric Ethiopian variety codes are split into independent exact candidates
+  ---
+  duration_ms: 35.022885
+  type: 'test'
+  ...
+# Subtest: multiple labeled varieties stay unresolved instead of silently choosing the first code
+ok 42 - multiple labeled varieties stay unresolved instead of silently choosing the first code
+  ---
+  duration_ms: 15.442581
+  type: 'test'
+  ...
+# Subtest: spaced alphanumeric variety codes survive OCR tokenization
+ok 43 - spaced alphanumeric variety codes survive OCR tokenization
+  ---
+  duration_ms: 8.339956
+  type: 'test'
+  ...
+# Subtest: explicit numeric roast levels map only within the labeled 0-6 scale
+ok 44 - explicit numeric roast levels map only within the labeled 0-6 scale
+  ---
+  duration_ms: 0.996107
+  type: 'test'
+  ...
+# Subtest: mixed label layouts preserve separate variety and roast evidence
+ok 45 - mixed label layouts preserve separate variety and roast evidence
+  ---
+  duration_ms: 1.835315
+  type: 'test'
+  ...
+# Subtest: equally exact codebook candidates remain a manual choice
+ok 46 - equally exact codebook candidates remain a manual choice
+  ---
+  duration_ms: 2.498771
+  type: 'test'
+  ...
+# Subtest: unsupported region evidence has no reliable candidates
+ok 47 - unsupported region evidence has no reliable candidates
+  ---
+  duration_ms: 2.262343
+  type: 'test'
+  ...
+# Subtest: recognition review UI contains only unresolved fields and disappears when none remain
+ok 48 - recognition review UI contains only unresolved fields and disappears when none remain
+  ---
+  duration_ms: 0.791459
+  type: 'test'
+  ...
+# Subtest: recognition provenance remains persisted for audit without becoming confirmed-field UI
+ok 49 - recognition provenance remains persisted for audit without becoming confirmed-field UI
+  ---
+  duration_ms: 0.17351
+  type: 'test'
+  ...
+# Subtest: confirmed roast date is still saved from the final form value
+ok 50 - confirmed roast date is still saved from the final form value
+  ---
+  duration_ms: 0.138518
+  type: 'test'
+  ...
+# Subtest: custom dropdown opens its editor after select change dispatch completes
+ok 51 - custom dropdown opens its editor after select change dispatch completes
+  ---
+  duration_ms: 0.080698
+  type: 'test'
+  ...
+# Subtest: reversed inline key-value keeps the semantic field association
+ok 52 - reversed inline key-value keeps the semantic field association
+  ---
+  duration_ms: 2.16704
+  type: 'test'
+  ...
+# Subtest: same-row value before label is paired by geometry and field semantics
+ok 53 - same-row value before label is paired by geometry and field semantics
+  ---
+  duration_ms: 1.057334
+  type: 'test'
+  ...
+# Subtest: vertical title and value are paired in either reading direction
+ok 54 - vertical title and value are paired in either reading direction
+  ---
+  duration_ms: 0.738329
+  type: 'test'
+  ...
+# Subtest: standalone unordered coffee entities remain available instead of being forced into unrelated fields
+ok 55 - standalone unordered coffee entities remain available instead of being forced into unrelated fields
+  ---
+  duration_ms: 2.311009
+  type: 'test'
+  ...
+# Subtest: range hyphen is preserved as value content rather than treated as a field separator
+ok 56 - range hyphen is preserved as value content rather than treated as a field separator
+  ---
+  duration_ms: 0.757268
+  type: 'test'
+  ...
+# Subtest: English labels and coffee values become Chinese canonical bean fields
+ok 57 - English labels and coffee values become Chinese canonical bean fields
+  ---
+  duration_ms: 22.681451
+  type: 'test'
+  ...
+# Subtest: unknown proper names are preserved and explicitly marked for review
+ok 58 - unknown proper names are preserved and explicitly marked for review
+  ---
+  duration_ms: 8.684261
+  type: 'test'
+  ...
+# Subtest: explicit numeric fields are parsed while unrelated numbers stay isolated
+ok 59 - explicit numeric fields are parsed while unrelated numbers stay isolated
+  ---
+  duration_ms: 6.722342
+  type: 'test'
+  ...
+# Subtest: Chinese, reverse-labelled and vertical fields share one canonical pipeline
+ok 60 - Chinese, reverse-labelled and vertical fields share one canonical pipeline
+  ---
+  duration_ms: 5.352108
+  type: 'test'
+  ...
+# Subtest: main.6 bean detail does not expose roast code and pairs process with roast date
+ok 61 - main.6 bean detail does not expose roast code and pairs process with roast date
+  ---
+  duration_ms: 1.12343
+  type: 'test'
+  ...
+# Subtest: main.6 floating quadrant, radar labels and sensory footer obey theme/layout contract
+ok 62 - main.6 floating quadrant, radar labels and sensory footer obey theme/layout contract
+  ---
+  duration_ms: 0.558901
+  type: 'test'
+  ...
+# Subtest: main.6 preserves FAB visibility ownership and opens manual OCR editor explicitly
+ok 63 - main.6 preserves FAB visibility ownership and opens manual OCR editor explicitly
+  ---
+  duration_ms: 0.45314
+  type: 'test'
+  ...
+# Subtest: main.6 package review waits for recognition handoff completion instead of racing the form renderer
+ok 64 - main.6 package review waits for recognition handoff completion instead of racing the form renderer
+  ---
+  duration_ms: 0.533023
+  type: 'test'
+  ...
+# Subtest: main.6 unresolved semantic fields preserve raw evidence for explicit bean-form confirmation
+ok 65 - main.6 unresolved semantic fields preserve raw evidence for explicit bean-form confirmation
+  ---
+  duration_ms: 0.256882
+  type: 'test'
+  ...
+1..65
+# tests 95
+# suites 0
+# pass 95
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 362.495352
+
+All LuckyBean static and recognition regression checks passed
