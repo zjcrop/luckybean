@@ -39,7 +39,7 @@ for(const source of [
 
 assert.match(runtime,/BEAN_GROUP_RUNTIME_REVISION = '1\.24B-main\.17-single-toast-owner'/);
 assert.match(runtime,/pinnedFeature\('bean-groups', '\.\.\/bean-groups-controller\.js', BEAN_GROUP_RUNTIME_REVISION\)/);
-assert.match(index,/runtime-features\.js\?v=1\.24B-main\.17-single-toast-owner/);
+assert.match(index,/runtime-features\.js\?v=1\.24B-main\.18-review-owner/);
 assert.doesNotMatch(guard,/RECOMMENDATION_PROMPTS|lbRecommendationToast|showRecommendationPromptForMode|directPromptLockUntil/);
 assert.doesNotMatch(app,/toast\(prompt \|\| `已选：\$\{beanDisplayName\(selected\)\}`/);
 assert.match(app,/clearTimeout\(toastTimer\)/);
