@@ -21,7 +21,7 @@ concurrency:
 env:
   SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
   RELEASE_REVISION: 1.24B-main.6
-  PROMPT_RUNTIME_REVISION: 1.24B-main.12-fun-prompt
+  PROMPT_RUNTIME_REVISION: 1.24B-main.13-local-menu-prompt
 
 jobs:
   build-site:
@@ -81,6 +81,9 @@ jobs:
           grep -Fq 'function normalizeRecommendationMode(mode)' src/app.js
           grep -Fq 'function recommendationPrompt(mode)' src/app.js
           grep -Fq 'mode = normalizeRecommendationMode(mode)' src/app.js
+          grep -Fq "popup.addEventListener('click', event => {" src/app.js
+          grep -Fq 'void recommendBean(button.dataset.recommendMode)' src/app.js
+          ! grep -Fq "const recommend=event.target.closest('[data-recommend-mode]')" src/app.js
           grep -Fq "toast(prompt, 'recommendation')" src/app.js
           grep -Fq 'luckybean:recommendation-prompt' src/app.js
           ! grep -Fq 'toast(prompt || `已选：${beanDisplayName(selected)}`' src/app.js
@@ -89,9 +92,9 @@ jobs:
           grep -Fq '此只价冠诸豆，足见君之慧眼独钟。' src/app.js
           grep -Fq '余粒无多，宜趁兴饮尽，为此豆作结。' src/app.js
           grep -Fq '闭目拈签，任其自然。' src/app.js
-          grep -Fq 'startup-controller.js?v=1.24B-main.12-fun-prompt' index.html
-          grep -Fq 'styles.css?v=1.24B-main.12-fun-prompt' index.html
-          grep -Fq "APP_MODULE_REVISION = '1.24B-main.12-fun-prompt'" src/core/startup-controller.js
+          grep -Fq 'startup-controller.js?v=1.24B-main.13-local-menu-prompt' index.html
+          grep -Fq 'styles.css?v=1.24B-main.13-local-menu-prompt' index.html
+          grep -Fq "APP_MODULE_REVISION = '1.24B-main.13-local-menu-prompt'" src/core/startup-controller.js
           grep -Fq 'app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}' src/core/startup-controller.js
           grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' index.html
           grep -Fq '.toast.show { opacity: 1; transform: translate(-50%, 0); }' styles.css
@@ -118,7 +121,7 @@ jobs:
           cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
           cp -R src public contracts schemas _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.6","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","recommendationPrompt":"fun-only-native-app-toast","groupAdapterRevision":"1.24B-main.10-native-prompt","appModuleRevision":"1.24B-main.12-fun-prompt","stylesRevision":"1.24B-main.12-fun-prompt","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","scoreLayout":"viewport-safe-next-line-range","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.6"}\n' "$SOURCE_SHA" > _site/version.json
+          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.6","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","recommendationPrompt":"fun-only-native-app-toast","recommendationClickOwner":"local-menu","groupAdapterRevision":"1.24B-main.10-native-prompt","appModuleRevision":"1.24B-main.13-local-menu-prompt","stylesRevision":"1.24B-main.13-local-menu-prompt","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","scoreLayout":"viewport-safe-next-line-range","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.6"}\n' "$SOURCE_SHA" > _site/version.json
       - uses: actions/configure-pages@v6.0.0
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
@@ -160,17 +163,21 @@ jobs:
             if grep -Fq "$SOURCE_SHA" /tmp/version.json 2>/dev/null \
               && grep -Fq '"version":"1.24B"' /tmp/version.json \
               && grep -Fq '"recommendationPrompt":"fun-only-native-app-toast"' /tmp/version.json \
+              && grep -Fq '"recommendationClickOwner":"local-menu"' /tmp/version.json \
               && grep -Fq '"groupAdapterRevision":"1.24B-main.10-native-prompt"' /tmp/version.json \
-              && grep -Fq '"appModuleRevision":"1.24B-main.12-fun-prompt"' /tmp/version.json \
-              && grep -Fq '"stylesRevision":"1.24B-main.12-fun-prompt"' /tmp/version.json \
-              && grep -Fq 'startup-controller.js?v=1.24B-main.12-fun-prompt' /tmp/index.html \
-              && grep -Fq 'styles.css?v=1.24B-main.12-fun-prompt' /tmp/index.html \
+              && grep -Fq '"appModuleRevision":"1.24B-main.13-local-menu-prompt"' /tmp/version.json \
+              && grep -Fq '"stylesRevision":"1.24B-main.13-local-menu-prompt"' /tmp/version.json \
+              && grep -Fq 'startup-controller.js?v=1.24B-main.13-local-menu-prompt' /tmp/index.html \
+              && grep -Fq 'styles.css?v=1.24B-main.13-local-menu-prompt' /tmp/index.html \
               && grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' /tmp/index.html \
-              && grep -Fq "APP_MODULE_REVISION = '1.24B-main.12-fun-prompt'" /tmp/startup-runtime.js \
+              && grep -Fq "APP_MODULE_REVISION = '1.24B-main.13-local-menu-prompt'" /tmp/startup-runtime.js \
               && grep -Fq 'app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}' /tmp/startup-runtime.js \
               && grep -Fq 'const RECOMMENDATION_PROMPTS' /tmp/app-runtime.js \
               && grep -Fq 'function normalizeRecommendationMode(mode)' /tmp/app-runtime.js \
               && grep -Fq 'function recommendationPrompt(mode)' /tmp/app-runtime.js \
+              && grep -Fq "popup.addEventListener('click', event => {" /tmp/app-runtime.js \
+              && grep -Fq 'void recommendBean(button.dataset.recommendMode)' /tmp/app-runtime.js \
+              && ! grep -Fq "const recommend=event.target.closest('[data-recommend-mode]')" /tmp/app-runtime.js \
               && grep -Fq "toast(prompt, 'recommendation')" /tmp/app-runtime.js \
               && grep -Fq 'luckybean:recommendation-prompt' /tmp/app-runtime.js \
               && ! grep -Fq 'toast(prompt || `已选：${beanDisplayName(selected)}`' /tmp/app-runtime.js \
@@ -179,11 +186,11 @@ jobs:
               && ! grep -Fq 'lbRecommendationToast' /tmp/group-navigation-runtime.js \
               && ! grep -Fq 'RECOMMENDATION_PROMPTS' /tmp/group-navigation-runtime.js \
               && grep -Fq 'LuckyBeanBeanGroupState' /tmp/group-navigation-runtime.js; then
-              echo "LuckyBean Pages serves exact fun-only prompt runtime assets for $SOURCE_SHA"
+              echo "LuckyBean Pages serves exact fun-only local-menu prompt runtime assets for $SOURCE_SHA"
               break
             fi
             if [ "$attempt" = 30 ]; then
-              echo 'Pages still does not serve the exact fun-only prompt runtime assets'
+              echo 'Pages still does not serve the exact fun-only local-menu prompt runtime assets'
               cat /tmp/version.json || true
               exit 1
             fi
@@ -356,7 +363,7 @@ jobs:
         run: |
           set -euo pipefail
           receipt=$(mktemp)
-          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","recommendation_prompt":"fun-only-native-app-toast","group_adapter_revision":"1.24B-main.10-native-prompt","app_module_revision":"1.24B-main.12-fun-prompt","styles_revision":"1.24B-main.12-fun-prompt","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
+          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","recommendation_prompt":"fun-only-native-app-toast","recommendation_click_owner":"local-menu","group_adapter_revision":"1.24B-main.10-native-prompt","app_module_revision":"1.24B-main.13-local-menu-prompt","styles_revision":"1.24B-main.13-local-menu-prompt","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
           git config user.name github-actions[bot]
           git config user.email 41898282+zjcrop@users.noreply.github.com
           if git ls-remote --exit-code --heads origin pages-status >/dev/null 2>&1; then
