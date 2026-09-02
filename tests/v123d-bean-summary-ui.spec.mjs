@@ -1,6 +1,8 @@
+import fs from 'node:fs';
 import { test, expect } from '@playwright/test';
 
 const BASE_URL = 'http://127.0.0.1:4173';
+const RELEASE_META = JSON.parse(fs.readFileSync(new URL('../release.json', import.meta.url), 'utf8'));
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -46,7 +48,7 @@ test('bean digest stays concise while preference analytics live only in settings
   await expect(page.locator('.preference-board-strip')).toHaveCount(0);
   await expect(page.locator('.bean-consumption-summary > small')).toHaveCount(0);
   await expect(page.locator('#v099fBeanModules')).toHaveCount(0);
-  await expect(page.locator('html')).toHaveAttribute('data-ui-policy-revision', '1.24B-main.6');
+  await expect(page.locator('html')).toHaveAttribute('data-ui-policy-revision', RELEASE_META.revision);
 
   await page.locator('[data-page-target="settings"]').click();
   const dataCollection = page.locator('#settingsContent .data-category');
