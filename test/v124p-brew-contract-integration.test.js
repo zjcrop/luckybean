@@ -1,9 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { attachBrewContracts, toCanonicalBrewPlan } from '../src/contracts/brew-contract-adapter.js';
 import { BrewCalculationCoordinator } from '../src/services/brew-calculation-coordinator.js';
 import { compareAnalyses } from '../src/domain/history/history-comparison.js';
 import { getFlavorVectorFields } from '../src/flavor-vector.js';
+import { createLocalReferenceAnalysis } from '../src/services/local-reference-analysis.js';
 
 const spatial = {
   schemaVersion: 'brew-spatial/1.3',
@@ -92,4 +94,32 @@ test('history comparison prefers persisted BrewResult flavor over legacy traject
   assert.equal(comparison.resultContract, 'BrewResult 1.1');
   assert.ok(sweetness.delta > .1);
   assert.equal(sweetness.direction.key, 'significant-up');
+});
+
+test('local reference uses the same contracts but cannot masquerade as professional spatial output', async () => {
+  const analysis = await createLocalReferenceAnalysis(
+    { brew: { profileId:'two-pulse', serveMode:'hot' }, environment:{ ambientTemperatureC:25 } },
+    { profile:{ id:'two-pulse' }, stages:[
+      { name:'第一段·闷蒸', stageWaterG:45, cumulativeWaterG:45, temperatureC:90, durationSec:35 },
+      { name:'第二段·主体', stageWaterG:195, cumulativeWaterG:240, temperatureC:88, durationSec:110 }
+    ] },
+    'offline-test'
+  );
+  assert.equal(analysis.brewPlan.schemaVersion, 'brew-plan/1.0');
+  assert.equal(analysis.brewResult.version, '1.1');
+  assert.equal(analysis.brewResult.metadata.executionSource, 'local-reference');
+  assert.equal(analysis.brewResult.physical.spatial, null);
+  assert.equal(analysis.brewResult.uncertainty.level, 'high');
+  assert.equal(analysis.trajectory.schemaVersion, 'brew-spatial/1.2');
+  assert.equal(analysis.trajectory.targets.length, 0);
+});
+
+test('history and optimization consumers are wired to BrewResult without treating model flavor as sensory truth', () => {
+  const historyUi = fs.readFileSync(new URL('../src/ui/history/history-screen.js', import.meta.url), 'utf8');
+  const sensoryHistory = fs.readFileSync(new URL('../src/domain/history/history-sensory-service.js', import.meta.url), 'utf8');
+  assert.match(historyUi, /brewResult\?\.physical\?\.spatial/);
+  assert.match(historyUi, /historySpatialScene\(record\)/);
+  assert.match(sensoryHistory, /optimizationBaseline/);
+  assert.match(sensoryHistory, /modelFlavorUsedAsSensoryTruth:false/);
+  assert.match(sensoryHistory, /brew-optimization-validation\/1\.1/);
 });
