@@ -45,10 +45,6 @@ jobs:
         shell: bash
         run: |
           set -eu
-          # GitHub invokes bash with -o pipefail. Disable it explicitly for this
-          # marker-verification step and avoid stream-to-grep assertions entirely:
-          # grep -q may close early and make unzip/aapt exit with SIGPIPE even when
-          # the marker is present. Each APK entry is extracted once to a temp file.
           set +o pipefail
           apk=android/app/build/outputs/apk/debug/app-debug.apk
           test -f "$apk"
@@ -58,7 +54,7 @@ jobs:
           grep -q 'SystemClock.elapsedRealtime()' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
 
           contract_tmp=$(mktemp -d)
-          trap 'rm -rf "$contract_tmp"' EXIT
+          trap 'rm -rf "$contract_tmp" || true' EXIT
           extract_entry() {
             entry="$1"
             target="$contract_tmp/$(printf '%s' "$entry" | tr '/.' '__')"
@@ -125,6 +121,10 @@ jobs:
             exit 1
           }
           printf 'canonical-state-api\nshared-live-preview-ghost-placeholder\nsingle-activate-double-remove-longpress-preview\nbrew_ui=text-interactions\n' > android-contracts.txt
+          echo 'APK canonical contract verification passed'
+          rm -rf "$contract_tmp"
+          trap - EXIT
+          exit 0
 
       - name: Android 10 runtime startup smoke
         if: steps.compile.outputs.status == '0'
