@@ -8,9 +8,7 @@ tests/v120-requirements-static.mjs:53:  'luckybean-main-v123d-',
 tests/v124b-ui-policy-regression.mjs:101:assert.match(androidGradle, /versionCode 102402/);
 tests/v124b-ui-policy-regression.mjs:103:console.log('LuckyBean 1.24B single-owner bean group state, hidden preference leaderboard policy, shared live-preview sorting, text brew UI and Web/Android parity contracts passed');
 tests/v124b-ocr-worker-freeze-regression.mjs:39:console.log('LuckyBean 1.24B browser OCR is Worker-only, prewarmed, timeout-bounded, and has no automatic Tesseract/main-thread fallback');
-tests/v124b-lifecycle-ocr-storage-regression.mjs:70:assert.match(gradle,/versionCode 102402/);
-tests/v124b-lifecycle-ocr-storage-regression.mjs:77:assert.match(sw,/luckybean-main-v124b-/);
-tests/v124b-lifecycle-ocr-storage-regression.mjs:79:console.log('LuckyBean 1.24B lifecycle, serial OCR, transit/frozen storage, order parsing and local brew regression checks passed');
+tests/v124b-lifecycle-ocr-storage-regression.mjs:80:assert.ok(sw.includes("'luckybean-main-v124b-'"),'previous 1.24B cache prefix must remain in legacy cleanup list');
 tests/v124b-complete-plan-contract.mjs:47:assert.match(gradle,/versionCode 102402/);
 tests/v124b-complete-plan-contract.mjs:200:console.log('LuckyBean 1.24B main.4 complete modification-plan contract with canonical bean groups, test+gated Pages, exact native prompt runtime, shared sorting and text brew UI passed');
 tests/v110-local-first-sync-static.mjs:122:assert.match(sw, /'luckybean-main-v124b-'/);
