@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const exists = path => fs.existsSync(new URL(`../${path}`, import.meta.url));
 
+const release = JSON.parse(read('release.json'));
 const index = read('index.html');
 const startup = read('src/core/startup-controller.js');
 const bootstrap = read('src/core/bootstrap.js');
@@ -20,10 +21,10 @@ const spatial = read('src/renderers/brew-spatial-view.js');
 const sw = read('sw.js');
 const manifest = JSON.parse(read('manifest.webmanifest'));
 
-assert.match(index, /1\.24B/);
-assert.match(index, /1\.24B-main\.6/);
-assert.match(index, /src\/core\/startup-controller\.js\?v=1\.24B-main\.15-reminder-trigger/);
-assert.match(index, /styles\.css\?v=1\.24B-main\.13-local-menu-prompt/);
+assert.ok(index.includes(`application-version\" content=\"${release.displayVersion}\"`));
+assert.ok(index.includes(`release-revision\" content=\"${release.revision}\"`));
+assert.ok(index.includes(`src/core/startup-controller.js?v=${release.revision}`));
+assert.ok(index.includes(`styles.css?v=${release.revision}`));
 assert.match(index, /src\/core\/bootstrap\.js/);
 assert.match(index, /src\/services\/cloud-auth-service\.js/);
 assert.match(index, /src\/services\/cloud-sync-service\.js/);
@@ -41,10 +42,9 @@ assert.doesNotMatch(startup, /ensureLocalIdentity|LB-LOCAL-/);
 assert.match(startup, /luckybean:local-app-ready/);
 assert.match(startup, /点击进入/);
 assert.match(startup, /RELEASE_REVISION/);
-assert.match(startup, /APP_MODULE_REVISION\s*=\s*'1\.24B-main\.15-reminder-trigger'/);
+assert.match(startup, /APP_MODULE_REVISION\s*=\s*RELEASE_REVISION/);
 assert.match(startup, /navigator\.serviceWorker\.register\(`\.\/sw\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`/);
 assert.match(startup, /await ensureLocalDevice\(\)[\s\S]*await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(APP_MODULE_REVISION\)\}`\)/);
-assert.doesNotMatch(startup, /await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`\)/);
 assert.doesNotMatch(startup, /fetch\s*\(/);
 
 assert.match(auth, /REMEMBER_MS\s*=\s*7\s*\*\s*24/);
@@ -111,13 +111,15 @@ assert.match(runtimeFeatures, /try\s*\{[\s\S]*await import\(\w+\.path\)/);
 assert.match(runtimeFeatures, /LuckyBeanRuntimeFeatures/);
 assert.match(runtimeFeatures, /runtime-feature-error/);
 assert.match(runtimeFeatures, /shared-sortable/);
+assert.match(runtimeFeatures, /BEAN_GROUP_RUNTIME_REVISION = RELEASE_REVISION/);
 assert.doesNotMatch(runtimeFeatures, /v109-history-management\.js|v099-trajectory-signal-bridge\.js|v099i-trajectory-space\.js/);
 assert.doesNotMatch(runtimeFeatures, /v095-ui\.js|theme-bridge\.js/);
 
-assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124b-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-6-ui2`/);
-assert.match(sw, /REVISION = '1\.24B-main\.6'/);
+assert.ok(sw.includes(`CACHE_PREFIX = '${release.cachePrefix}'`));
+assert.ok(sw.includes(`CACHE_NAME = \`${'${CACHE_PREFIX}'}${release.cacheRevision}\``));
+assert.ok(sw.includes(`REVISION = '${release.revision}'`));
 assert.match(sw, /LEGACY_CACHE_PREFIXES = \[/);
+assert.match(sw, /'luckybean-main-v124b-'/);
 assert.match(sw, /'luckybean-main-v123e-'/);
 assert.match(sw, /'luckybean-main-v123d-'/);
 assert.match(sw, /key\.startsWith\(CACHE_PREFIX\) && key !== CACHE_NAME/);
@@ -145,7 +147,7 @@ assert.match(sw, /Luckybean-END\.webp/);
 assert.match(sw, /public\/vendor\/jsvectormap\/world\.js/);
 assert.doesNotMatch(sw, /v109-history-management\.js|v099-trajectory-signal-bridge\.js|v099i-trajectory-space\.js/);
 assert.doesNotMatch(sw, /v095-ui\.js|theme-bridge\.js|splash-red\.jpg|settings-mascot\.png/);
-assert.equal(manifest.version, '1.24B');
+assert.equal(manifest.version, release.displayVersion);
 
 for (const path of [
   'src/v109-supabase-auth-gate.js','src/v099f-cloud-sync.js','src/v099j-runtime-stability.js','src/v099o-dom-stability.js','src/v099h-splash-assets.js',
@@ -154,4 +156,4 @@ for (const path of [
   'src/features/gear-regression-fix-controller.js','src/features/legacy-timer-guard.js','src/features/experience-fixes-controller.js','src/features/interaction-repair-controller.js'
 ]) assert.equal(exists(path), false, `${path} should have been removed`);
 
-console.log('LuckyBean 1.24B main.4 local-first, native-prompt cache isolation and current BrewProfiles contract checks passed');
+console.log(`LuckyBean ${release.displayVersion} local-first, cache isolation and current BrewProfiles contract checks passed`);
