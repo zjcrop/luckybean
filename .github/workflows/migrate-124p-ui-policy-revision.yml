@@ -1,0 +1,43 @@
+name: LuckyBean 1.24P UI policy revision migration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/migrate-124p-ui-policy-revision.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Replace legacy UI policy revision with canonical page revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('src/features/release-1.24b-ui-policy.js')
+          text=path.read_text()
+          old="const UI_POLICY_REVISION = '1.24B-main.6';"
+          new="const UI_POLICY_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name=\"release-revision\"]')?.content || '1.24P-main.1';"
+          if old in text:
+              text=text.replace(old,new,1)
+              path.write_text(text)
+          elif new not in text:
+              raise SystemExit('expected UI policy revision line not found')
+          PY
+          grep -Fq "const UI_POLICY_REVISION = document.body?.dataset.releaseRevision" src/features/release-1.24b-ui-policy.js
+      - name: Commit exact migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then exit 0; fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/features/release-1.24b-ui-policy.js
+          git commit -m 'fix: derive UI policy revision from canonical release metadata'
+          git push origin HEAD:main
