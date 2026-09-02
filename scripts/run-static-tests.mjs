@@ -9,7 +9,7 @@ const tests = [
   'tests/v123d-main-parity.mjs',
   'tests/v124-stable-data-format.mjs',
   'tests/v125-root-state-models.mjs',
-  'tests/v123d-deployment-contracts.mjs',
+  'tests/v124p-release-contract.mjs',
   'tests/v123d-ui-sensory-regressions.mjs',
   'tests/v123e-batch-onboarding-static.mjs',
   'tests/v126-full-integration-static.mjs',
@@ -27,8 +27,6 @@ const tests = [
   'tests/v123e-recognition-pipeline-static.mjs',
   'tests/v124b-lifecycle-ocr-storage-regression.mjs',
   'tests/v124b-ocr-worker-freeze-regression.mjs',
-  'tests/v124b-final-release-contract.mjs',
-  'tests/v124b-complete-plan-contract.mjs',
   'tests/v124b-ui-policy-regression.mjs',
   'tests/v124b-recommendation-prompt-regression.mjs'
 ];
