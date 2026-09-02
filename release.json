@@ -1,0 +1,14 @@
+{
+  "product": "LuckyBean",
+  "displayVersion": "1.24P",
+  "semver": "1.24.16",
+  "revision": "1.24P-main.1",
+  "androidVersionCode": 102416,
+  "androidUserAgent": "LuckyBeanAndroid/1.24P",
+  "releaseTag": "v1.24P-main.1",
+  "cachePrefix": "luckybean-main-v124p-",
+  "cacheRevision": "main-1-brewresult",
+  "schemaVersion": 9,
+  "brewResultVersion": "1.1",
+  "brewPlanVersion": "brew-plan/1.0"
+}
