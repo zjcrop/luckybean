@@ -1,7 +1,8 @@
 import { parseNaturalLanguage } from '../../codebook.js';
+import { automaticEntityResolutionDecision } from '../../services/coffee-knowledge-adapter.js';
 import { resolveRecognitionRelations, resolverPriorityDescription } from './recognition-field-resolver-1.24b.js';
 
-export const RECOGNITION_PIPELINE_VERSION = '1.24B-recognition-pipeline.1';
+export const RECOGNITION_PIPELINE_VERSION = '1.24B-recognition-pipeline.2';
 
 const RELATION_TO_RESULT = Object.freeze({
   country: 'countryCode',
@@ -113,6 +114,52 @@ function relationConfidence(relations, field) {
   return Number(resolvedRelations(relations, field).winner?.confidence || 0);
 }
 
+function enforceEntityResolutionSafety(parsed, book) {
+  const coreCode = String(parsed?.entityCode || '');
+  if (!coreCode) return;
+  const evidence = clean(parsed?.evidence?.entityCode);
+  const explicitCoreCode = normalizedComparable(evidence) === normalizedComparable(coreCode);
+  const decision = automaticEntityResolutionDecision(book, coreCode, { explicitCoreCode });
+  if (!decision.issue) return;
+
+  parsed.parseMetadata ||= {};
+  if (!decision.blocked) {
+    parsed.parseMetadata.entityResolution = {
+      blocked: false,
+      explicitCoreCode: true,
+      coreCode,
+      issueClass: decision.issueClass,
+      resolutionStatus: decision.resolutionStatus,
+      automaticRecognitionPolicy: decision.automaticRecognitionPolicy,
+      requiredContext: decision.requiredContext,
+      historicalCoreCompatibility: true
+    };
+    return;
+  }
+
+  const display = evidence || labelForCode(book, 'entities', coreCode);
+  const originalConfidence = Number(parsed?.confidence?.entityCode || 0);
+  delete parsed.entityCode;
+  if (display && !parsed.entityCustomName) parsed.entityCustomName = display;
+  parsed.evidence ||= {};
+  parsed.confidence ||= {};
+  if (display && !parsed.evidence.entityCustomName) parsed.evidence.entityCustomName = display;
+  if (display && !parsed.evidence.entityCode) parsed.evidence.entityCode = display;
+  parsed.confidence.entityCustomName = Math.max(Number(parsed.confidence.entityCustomName || 0), originalConfidence);
+  parsed.confidence.entityCode = Math.min(originalConfidence || 0.45, 0.45);
+  parsed.parseMetadata.entityResolution = {
+    blocked: true,
+    explicitCoreCode: false,
+    candidateCoreCode: coreCode,
+    issueClass: decision.issueClass,
+    resolutionStatus: decision.resolutionStatus,
+    automaticRecognitionPolicy: decision.automaticRecognitionPolicy,
+    requiredContext: decision.requiredContext,
+    manualConfirmationRequired: true,
+    historicalCoreCompatibility: true
+  };
+}
+
 function buildFieldRows(document, parsed, book) {
   const relations = relationEvidence(document);
   const rows = [];
@@ -181,6 +228,7 @@ export function analyzeRecognitionDocument(document, book) {
     .filter(Boolean)
     .join('\n');
   const parsed = parseNaturalLanguage(semanticText, book);
+  enforceEntityResolutionSafety(parsed, book);
   const fields = buildFieldRows(document, parsed, book);
   const reviewFields = fields.filter(item => item.status === 'review');
 
