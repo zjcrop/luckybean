@@ -139,7 +139,7 @@ public final class MainActivity extends Activity {
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
         settings.setSupportZoom(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " LuckyBeanAndroid/1.24B");
+        settings.setUserAgentString(settings.getUserAgentString() + " LuckyBeanAndroid/" + BuildConfig.VERSION_NAME);
 
         webView.addJavascriptInterface(new NativeFileBridge(), "LuckyBeanNative");
 
