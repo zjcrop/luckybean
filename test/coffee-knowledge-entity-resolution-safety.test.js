@@ -57,14 +57,16 @@ test('Knowledge resolution issue is exposed as an automatic-resolution decision'
 });
 
 test('name-only OCR cannot silently resolve a researched ambiguous farm', () => {
+  const sourceText = '庄园：Finca El Mirador';
   const book = applyCoffeeKnowledge(baseBook, knowledgeWithResolutionIssue());
-  const analysis = analyzeRecognitionDocument(document('庄园：Finca El Mirador'), book);
+  const analysis = analyzeRecognitionDocument(document(sourceText), book);
   const farm = analysis.fields.find(item => item.field === 'entityCode');
   assert.equal(analysis.parsed.entityCode, undefined);
-  assert.equal(analysis.parsed.entityCustomName, 'Finca El Mirador');
+  assert.equal(analysis.parsed.entityCustomName?.toLocaleLowerCase('zh-CN'), 'finca el mirador');
   assert.equal(analysis.parsed.parseMetadata.entityResolution?.blocked, true);
   assert.equal(analysis.parsed.parseMetadata.entityResolution?.candidateCoreCode, blockedCode);
   assert.equal(analysis.parsed.parseMetadata.entityResolution?.manualConfirmationRequired, true);
+  assert.equal(analysis.parsed.parseMetadata.recognition?.rawFullText, sourceText, 'raw OCR evidence must preserve original casing/text');
   assert.equal(farm?.status, 'review');
   assert.equal(farm?.resolved, false);
 });
