@@ -160,3 +160,16 @@ html[data-theme="light"] .lb-open-guide { border-color: #b58d51; background: #e8
   .lb-auto-profile strong { grid-column: 1 / -1; }
   .lb-guide-dialog { width: 94vw; }
 }
+
+
+/* recognition-preflight/1.24P */
+.recognition-preflight-card{max-width:760px;margin:0 auto;display:grid;gap:14px}
+.recognition-preflight-grid{border:1px solid rgba(190,151,80,.24);border-radius:16px;overflow:hidden;background:rgba(255,255,255,.025)}
+.recognition-preflight-row{display:grid;grid-template-columns:minmax(92px,34%) 1fr;gap:12px;align-items:center;padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.07)}
+.recognition-preflight-row:last-child{border-bottom:0}.recognition-preflight-row.is-review{outline:1px solid rgba(190,151,80,.35);outline-offset:-1px}
+.recognition-preflight-row span{font-size:12px;color:var(--muted,#aaa)}.recognition-preflight-row strong{font-size:14px;font-weight:600;word-break:break-word}
+.recognition-preflight-extra,.recognition-source-details{padding:12px 14px;border:1px solid rgba(190,151,80,.2);border-radius:14px;background:rgba(255,255,255,.02)}
+.recognition-preflight-extra h3{margin:0 0 8px;font-size:13px}.recognition-preflight-extra p{margin:4px 0;font-size:12px;color:var(--muted,#aaa)}
+.recognition-source-details pre{white-space:pre-wrap;word-break:break-word;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;max-height:34vh;overflow:auto}
+.recognition-preflight-actions{position:sticky;bottom:0;padding:12px 0 calc(8px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg,#090a0a) 28%)}
+@media(max-width:520px){.recognition-preflight-row{grid-template-columns:90px 1fr}}
