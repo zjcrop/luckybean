@@ -5,6 +5,6 @@
 Vendored jsQR -> public/vendor/jsqr/jsQR.js
 Vendored PP-OCR runtime -> public/vendor/paddleocr (5 ESM modules)
 
-added 4 packages, and audited 5 packages in 27s
+added 4 packages, and audited 5 packages in 24s
 
 found 0 vulnerabilities
