@@ -1,8 +1,12 @@
+import groovy.json.JsonSlurper
+
 plugins {
     id 'com.android.application'
 }
 
 def repositoryRoot = rootProject.projectDir.parentFile
+def releaseMetaFile = new File(repositoryRoot, 'release.json')
+def releaseMeta = new JsonSlurper().parse(releaseMetaFile)
 def generatedWebAssets = layout.buildDirectory.dir('generated/luckybeanWebAssets')
 def releaseStoreFile = System.getenv('LUCKYBEAN_KEYSTORE_FILE')
 def releaseStorePassword = System.getenv('LUCKYBEAN_STORE_PASSWORD')
@@ -15,6 +19,7 @@ tasks.register('syncLuckyBeanWebAssets') {
         new File(repositoryRoot, 'index.html'),
         new File(repositoryRoot, 'manifest.webmanifest'),
         new File(repositoryRoot, 'sw.js'),
+        releaseMetaFile,
         fileTree(repositoryRoot) { include '*.css' },
         fileTree(new File(repositoryRoot, 'src')),
         fileTree(new File(repositoryRoot, 'public')),
@@ -29,7 +34,7 @@ tasks.register('syncLuckyBeanWebAssets') {
         File webCache = new File(output, 'web-cache')
         copy {
             from(repositoryRoot) {
-                include 'index.html', 'recognition-test.html', '*.css', 'manifest.webmanifest', 'sw.js'
+                include 'index.html', 'recognition-test.html', 'release.json', '*.css', 'manifest.webmanifest', 'sw.js'
                 include 'src/**', 'public/**', 'contracts/**'
             }
             into webCache
@@ -54,8 +59,8 @@ android {
         applicationId 'com.luckybean.app'
         minSdk 26
         targetSdk 35
-        versionCode 102402
-        versionName '1.24B'
+        versionCode (releaseMeta.androidVersionCode as int)
+        versionName releaseMeta.displayVersion as String
     }
     sourceSets { main.assets.srcDir(generatedWebAssets) }
     signingConfigs {
