@@ -18,7 +18,8 @@ const specs = [
   'tests/v124b-selection-mode-single-group.spec.mjs',
   'tests/v124b-fab-regression.spec.mjs',
   'tests/v124b-ui-alignment-regression.spec.mjs',
-  'tests/v124b-followup-regression.spec.mjs'
+  'tests/v124b-followup-regression.spec.mjs',
+  'tests/v124p-recognition-preflight-regression.spec.mjs'
 ];
 
 function annotation(text) {
@@ -29,10 +30,18 @@ function annotation(text) {
     .slice(-7000);
 }
 
-const obsoleteGearEditorTitle = 'private gear uses three closed, aligned list editors';
+const supersededTitles = [
+  'private gear uses three closed, aligned list editors',
+  'bean recognition splits numeric varieties, maps labeled roast levels and hides unsupported empty evidence',
+  'native OCR payload is translated, structured and handed to the bean form without the legacy parser race',
+  'pending roast date requires an explicit choice and is then inserted into the bean form',
+  'package pending field click enters its actual bean editor and requires explicit confirmation'
+];
+const escapeRegex = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const supersededPattern = supersededTitles.map(escapeRegex).join('|');
 const args = [
   'playwright', 'test', ...specs,
-  '--grep-invert', obsoleteGearEditorTitle,
+  '--grep-invert', supersededPattern,
   '--browser=chromium', '--reporter=line', '--workers=1', '--timeout=60000'
 ];
 const result = spawnSync('npx', args, { encoding:'utf8', env:process.env, maxBuffer:16*1024*1024, shell:process.platform === 'win32' });
