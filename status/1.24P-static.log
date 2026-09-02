@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 5.230205
+  duration_ms: 5.141967
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 13.07834
+  duration_ms: 2.126814
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 3.642442
+  duration_ms: 2.549241
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 2.577842
+  duration_ms: 1.984223
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.897235
+  duration_ms: 0.808889
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 3.304952
+  duration_ms: 2.775096
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.953464
+  duration_ms: 0.885934
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 35.699663
+# duration_ms 22.181331
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 5.773237
+  duration_ms: 5.537514
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 3.727128
+  duration_ms: 3.733077
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 4.352261
+  duration_ms: 3.764544
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 3.119612
+  duration_ms: 2.788887
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 2.408482
+  duration_ms: 2.358358
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 1.075556
+  duration_ms: 1.069806
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 25.915867
+# duration_ms 24.896979
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -182,124 +182,15 @@ node:internal/modules/run_main:123
     triggerUncaughtException(
     ^
 
-AssertionError [ERR_ASSERTION]: The input did not match the regular expression /1\.24B-main\.6/. Input:
-
-`const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.1';\n` +
-  'const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEASE_REVISION)}` });\n' +
-  'const BEAN_GROUP_RUNTIME_REVISION = RELEASE_REVISION;\n' +
-  'const pinnedFeature = (id, path, revision) => ({ id, path: `${path}?v=${encodeURIComponent(revision)}` });\n' +
-  '\n' +
-  'const RUNTIME_FEATURES = Object.freeze([\n' +
-  "  feature('data-migrations', '../data-migrations.js'),\n" +
-  "  feature('recognition-paddle-ocr', '../recognition-paddle-ocr.js'),\n" +
-  "  feature('recognition-quality', '../recognition-quality-controller.js'),\n" +
-  "  feature('package-capture', '../package-capture-controller.js'),\n" +
-  "  feature('direct-camera', '../direct-camera-controller.js'),\n" +
-  "  feature('qr-ui', '../qr-ui-controller.js'),\n" +
-  "  feature('integrity-ui', '../integrity-ui-controller.js'),\n" +
-  "  feature('recognition-review-owner', '../ui/recognition-review-owner-controller.js'),\n" +
-  "  feature('ui-layout', '../ui-layout-controller.js'),\n" +
-  "  feature('selection', '../selection-controller.js'),\n" +
-  "  feature('feature-controller', '../feature-controller.js'),\n" +
-  "  feature('runtime-controller', '../runtime-controller.js'),\n" +
-  "  pinnedFeature('bean-groups', '../bean-groups-controller.js', BEAN_GROUP_RUNTIME_REVISION),\n" +
-  "  feature('group-interaction', '../group-interaction-controller.js'),\n" +
-  "  feature('ui-upgrade', '../ui-upgrade-controller.js'),\n" +
-  "  feature('origin-map', '../origin-map-controller.js'),\n" +
-  "  feature('recognition-batch-progress', './recognition-batch-progress-controller.js'),\n" +
-  "  feature('release-1.24b-freshness-detail', './release-1.24b-freshness-detail.js'),\n" +
-  "  feature('release-1.24b-brew-mode', './release-1.24b-brew-mode-controller.js'),\n" +
-  "  feature('release-1.24b-ui-policy', './release-1.24b-ui-policy.js'),\n" +
-  "  feature('shared-sortable', '../ui/sortable-controller.js'),\n" +
-  "  feature('sensory-tag-sort', './sensory-tag-sort-controller.js')\n" +
-  ']);\n' +
-  '\n' +
-  'const failures = [];\n' +
-  'const loaded = [];\n' +
-  'for (const runtimeFeature of RUNTIME_FEATURES) {\n' +
-  '  try {\n' +
-  '    await import(runtimeFeature.path);\n' +
-  '    loaded.push(runtimeFeature.id);\n' +
-  '  } catch (error) {\n' +
-  '    const failure = { id: runtimeFeature.id, path: runtimeFeature.path, message: error?.message || String(error) };\n' +
-  '    failures.push(failure);\n' +
-  "    console.error('正式运行功能加载失败', failure, error);\n" +
-  "    document.dispatchEvent(new CustomEvent('luckybean:runtime-feature-error', { detail: failure }));\n" +
-  '  }\n' +
-  '}\n' +
-  '\n' +
-  'globalThis.LuckyBeanRuntimeFeatures = {\n' +
-  '  revision: RELEASE_REVISION,\n' +
-  '  declared: RUNTIME_FEATURES.map(runtimeFeature => runtimeFeature.id),\n' +
-  '  loaded,\n' +
-  '  failures\n' +
-  '};\n' +
-  '\n' +
-  "document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', {\n" +
-  '  detail: { revision: RELEASE_REVISION, declared: RUNTIME_FEATURES.length, loaded: loaded.length, failures }\n' +
-  '}));\n'
-
-    at file:///home/runner/work/luckybean/luckybean/tests/v124b-ui-policy-regression.mjs:88:8 {
-  generatedMessage: true,
+AssertionError [ERR_ASSERTION]: UI policy revision must match canonical release metadata
+    at file:///home/runner/work/luckybean/luckybean/tests/v124b-ui-policy-regression.mjs:22:8 {
+  generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: `const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.1';\n` +
-    'const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEASE_REVISION)}` });\n' +
-    'const BEAN_GROUP_RUNTIME_REVISION = RELEASE_REVISION;\n' +
-    'const pinnedFeature = (id, path, revision) => ({ id, path: `${path}?v=${encodeURIComponent(revision)}` });\n' +
-    '\n' +
-    'const RUNTIME_FEATURES = Object.freeze([\n' +
-    "  feature('data-migrations', '../data-migrations.js'),\n" +
-    "  feature('recognition-paddle-ocr', '../recognition-paddle-ocr.js'),\n" +
-    "  feature('recognition-quality', '../recognition-quality-controller.js'),\n" +
-    "  feature('package-capture', '../package-capture-controller.js'),\n" +
-    "  feature('direct-camera', '../direct-camera-controller.js'),\n" +
-    "  feature('qr-ui', '../qr-ui-controller.js'),\n" +
-    "  feature('integrity-ui', '../integrity-ui-controller.js'),\n" +
-    "  feature('recognition-review-owner', '../ui/recognition-review-owner-controller.js'),\n" +
-    "  feature('ui-layout', '../ui-layout-controller.js'),\n" +
-    "  feature('selection', '../selection-controller.js'),\n" +
-    "  feature('feature-controller', '../feature-controller.js'),\n" +
-    "  feature('runtime-controller', '../runtime-controller.js'),\n" +
-    "  pinnedFeature('bean-groups', '../bean-groups-controller.js', BEAN_GROUP_RUNTIME_REVISION),\n" +
-    "  feature('group-interaction', '../group-interaction-controller.js'),\n" +
-    "  feature('ui-upgrade', '../ui-upgrade-controller.js'),\n" +
-    "  feature('origin-map', '../origin-map-controller.js'),\n" +
-    "  feature('recognition-batch-progress', './recognition-batch-progress-controller.js'),\n" +
-    "  feature('release-1.24b-freshness-detail', './release-1.24b-freshness-detail.js'),\n" +
-    "  feature('release-1.24b-brew-mode', './release-1.24b-brew-mode-controller.js'),\n" +
-    "  feature('release-1.24b-ui-policy', './release-1.24b-ui-policy.js'),\n" +
-    "  feature('shared-sortable', '../ui/sortable-controller.js'),\n" +
-    "  feature('sensory-tag-sort', './sensory-tag-sort-controller.js')\n" +
-    ']);\n' +
-    '\n' +
-    'const failures = [];\n' +
-    'const loaded = [];\n' +
-    'for (const runtimeFeature of RUNTIME_FEATURES) {\n' +
-    '  try {\n' +
-    '    await import(runtimeFeature.path);\n' +
-    '    loaded.push(runtimeFeature.id);\n' +
-    '  } catch (error) {\n' +
-    '    const failure = { id: runtimeFeature.id, path: runtimeFeature.path, message: error?.message || String(error) };\n' +
-    '    failures.push(failure);\n' +
-    "    console.error('正式运行功能加载失败', failure, error);\n" +
-    "    document.dispatchEvent(new CustomEvent('luckybean:runtime-feature-error', { detail: failure }));\n" +
-    '  }\n' +
-    '}\n' +
-    '\n' +
-    'globalThis.LuckyBeanRuntimeFeatures = {\n' +
-    '  revision: RELEASE_REVISION,\n' +
-    '  declared: RUNTIME_FEATURES.map(runtimeFeature => runtimeFeature.id),\n' +
-    '  loaded,\n' +
-    '  failures\n' +
-    '};\n' +
-    '\n' +
-    "document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', {\n" +
-    '  detail: { revision: RELEASE_REVISION, declared: RUNTIME_FEATURES.length, loaded: loaded.length, failures }\n' +
-    '}));\n',
-  expected: /1\.24B-main\.6/,
-  operator: 'match',
+  actual: false,
+  expected: true,
+  operator: '==',
   diff: 'simple'
 }
 
 Node.js v22.23.2
-::error file=tests/v124b-ui-policy-regression.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /1\.24B-main\.6/. Input:%0A%0A`const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.1';\n` +%0A  'const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEASE_REVISION)}` });\n' +%0A  'const BEAN_GROUP_RUNTIME_REVISION = RELEASE_REVISION;\n' +%0A  'const pinnedFeature = (id, path, revision) => ({ id, path: `${path}?v=${encodeURIComponent(revision)}` });\n' +%0A  '\n' +%0A  'const RUNTIME_FEATURES = Object.freeze([\n' +%0A  "  feature('data-migrations', '../data-migrations.js'),\n" +%0A  "  feature('recognition-paddle-ocr', '../recognition-paddle-ocr.js'),\n" +%0A  "  feature('recognition-quality', '../recognition-quality-controller.js'),\n" +%0A  "  feature('package-capture', '../package-capture-controller.js'),\n" +%0A  "  feature('direct-camera', '../direct-camera-controller.js'),\n" +%0A  "  feature('qr-ui', '../qr-ui-controller.js'),\n" +%0A  "  feature('integrity-ui', '../integrity-ui-controller.js'),\n" +%0A  "  feature('recognition-review-owner', '../ui/recognition-review-owner-controller.js'),\n" +%0A  "  feature('ui-layout', '../ui-layout-controller.js'),\n" +%0A  "  feature('selection', '../selection-controller.js'),\n" +%0A  "  feature('feature-controller', '../feature-controller.js'),\n" +%0A  "  feature('runtime-controller', '../runtime-controller.js'),\n" +%0A  "  pinnedFeature('bean-groups', '../bean-groups-controller.js', BEAN_GROUP_RUNTIME_REVISION),\n" +%0A  "  feature('group-interaction', '../group-interaction-controller.js'),\n" +%0A  "  feature('ui-upgrade', '../ui-upgrade-controller.js'),\n" +%0A  "  feature('origin-map', '../origin-map-controller.js'),\n" +%0A  "  feature('recognition-batch-progress', './recognition-batch-progress-controller.js'),\n" +%0A  "  feature('release-1.24b-freshness-detail', './release-1.24b-freshness-detail.js'),\n" +%0A  "  feature('release-1.24b-brew-mode', './release-1.24b-brew-mode-controller.js'),\n" +%0A  "  feature('release-1.24b-ui-policy', './release-1.24b-ui-policy.js'),\n" +%0A  "  feature('shared-sortable', '../ui/sortable-controller.js'),\n" +%0A  "  feature('sensory-tag-sort', './sensory-tag-sort-controller.js')\n" +%0A  ']);\n' +%0A  '\n' +%0A  'const failures = [];\n' +%0A  'const loaded = [];\n' +%0A  'for (const runtimeFeature of RUNTIME_FEATURES) {\n' +%0A  '  try {\n' +%0A  '    await import(runtimeFeature.path);\n' +%0A  '    loaded.push(runtimeFeature.id);\n' +%0A  '  } catch (error) {\n' +%0A  '    const failure = { id: runtimeFeature.id, path: runtimeFeature.path, message: error?.message || String(error) };\n' +%0A  '    failures.push(failure);\n' +%0A  "    console.error('正式运行功能加载失败', failure, error);\n" +%0A  "    document.dispatchEvent(new CustomEvent('luckybean:runtime-feature-error', { detail: failure }));\n" +%0A  '  }\n' +%0A  '}\n' +%0A  '\n' +%0A  'globalThis.LuckyBeanRuntimeFeatures = {\n' +%0A  '  revision: RELEASE_REVISION,\n' +%0A  '  declared: RUNTIME_FEATURES.map(runtimeFeature => runtimeFeature.id),\n' +%0A  '  loaded,\n' +%0A  '  failures\n' +%0A  '};\n' +%0A  '\n' +%0A  "document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', {\n" +%0A  '  detail: { revision: RELEASE_REVISION, declared: RUNTIME_FEATURES.length, loaded: loaded.length, failures }\n' +%0A  '}));\n'%0A%0A    at file:///home/runner/work/luckybean/luckybean/tests/v124b-ui-policy-regression.mjs:88:8 {%0A  generatedMessage: true,%0A  code: 'ERR_ASSERTION',%0A  actual: `const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.1';\n` +%0A    'const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEASE_REVISION)}` });\n' +%0A    'const BEAN_GROUP_RUNTIME_REVISION = RELEASE_REVISION;\n' +%0A    'const pinnedFeature = (id, path, revision) => ({ id, path: `${path}?v=${encodeURIComponent(revision)}` });\n' +%0A    '\n' +%0A    'const RUNTIME_FEATURES = Object.freeze([\n' +%0A    "  feature('data-migrations', '../data-migrations.js'),\n" +%0A    "  feature('recognition-paddle-ocr', '../recognition-paddle-ocr.js'),\n" +%0A    "  feature('recognition-quality', '../recognition-quality-controller.js'),\n" +%0A    "  feature('package-capture', '../package-capture-controller.js'),\n" +%0A    "  feature('direct-camera', '../direct-camera-controller.js'),\n" +%0A    "  feature('qr-ui', '../qr-ui-controller.js'),\n" +%0A    "  feature('integrity-ui', '../integrity-ui-controller.js'),\n" +%0A    "  feature('recognition-review-owner', '../ui/recognition-review-owner-controller.js'),\n" +%0A    "  feature('ui-layout', '../ui-layout-controller.js'),\n" +%0A    "  feature('selection', '../selection-controller.js'),\n" +%0A    "  feature('feature-controller', '../feature-controller.js'),\n" +%0A    "  feature('runtime-controller', '../runtime-controller.js'),\n" +%0A    "  pinnedFeature('bean-groups', '../bean-groups-controller.js', BEAN_GROUP_RUNTIME_REVISION),\n" +%0A    "  feature('group-interaction', '../group-interaction-controller.js'),\n" +%0A    "  feature('ui-upgrade', '../ui-upgrade-controller.js'),\n" +%0A    "  feature('origin-map', '../origin-map-controller.js'),\n" +%0A    "  feature('recognition-batch-progress', './recognition-batch-progress-controller.js'),\n" +%0A    "  feature('release-1.24b-freshness-detail', './release-1.24b-freshness-detail.js'),\n" +%0A    "  feature('release-1.24b-brew-mode', './release-1.24b-brew-mode-controller.js'),\n" +%0A    "  feature('release-1.24b-ui-policy', './release-1.24b-ui-policy.js'),\n" +%0A    "  feature('shared-sortable', '../ui/sortable-controller.js'),\n" +%0A    "  feature('sensory-tag-sort', './sensory-tag-sort-controller.js')\n" +%0A    ']);\n' +%0A    '\n' +%0A    'const failures = [];\n' +%0A    'const loaded = [];\n' +%0A    'for (const runtimeFeature of RUNTIME_FEATURES) {\n' +%0A    '  try {\n' +%0A    '    await import(runtimeFeature.path);\n' +%0A    '    loaded.push(runtimeFeature.id);\n' +%0A    '  } catch (error) {\n' +%0A    '    const failure = { id: runtimeFeature.id, path: runtimeFeature.path, message: error?.message || String(error) };\n' +%0A    '    failures.push(failure);\n' +%0A    "    console.error('正式运行功能加载失败', failure, error);\n" +%0A    "    document.dispatchEvent(new CustomEvent('luckybean:runtime-feature-error', { detail: failure }));\n" +%0A    '  }\n' +%0A    '}\n' +%0A    '\n' +%0A    'globalThis.LuckyBeanRuntimeFeatures = {\n' +%0A    '  revision: RELEASE_REVISION,\n' +%0A    '  declared: RUNTIME_FEATURES.map(runtimeFeature => runtimeFeature.id),\n' +%0A    '  loaded,\n' +%0A    '  failures\n' +%0A    '};\n' +%0A    '\n' +%0A    "document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', {\n" +%0A    '  detail: { revision: RELEASE_REVI
+::error file=tests/v124b-ui-policy-regression.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: UI policy revision must match canonical release metadata%0A    at file:///home/runner/work/luckybean/luckybean/tests/v124b-ui-policy-regression.mjs:22:8 {%0A  generatedMessage: false,%0A  code: 'ERR_ASSERTION',%0A  actual: false,%0A  expected: true,%0A  operator: '==',%0A  diff: 'simple'%0A}%0A%0ANode.js v22.23.2

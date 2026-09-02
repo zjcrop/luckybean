@@ -5,8 +5,6 @@ tests/v123e-cloud-gear-sync.mjs:25:console.log('LuckyBean 1.23E gear cloud-sync 
 tests/v120-requirements-static.mjs:51:  'luckybean-main-v124b-',
 tests/v120-requirements-static.mjs:52:  'luckybean-main-v123e-',
 tests/v120-requirements-static.mjs:53:  'luckybean-main-v123d-',
-tests/v124b-ui-policy-regression.mjs:101:assert.match(androidGradle, /versionCode 102402/);
-tests/v124b-ui-policy-regression.mjs:103:console.log('LuckyBean 1.24B single-owner bean group state, hidden preference leaderboard policy, shared live-preview sorting, text brew UI and Web/Android parity contracts passed');
 tests/v124b-ocr-worker-freeze-regression.mjs:39:console.log('LuckyBean 1.24B browser OCR is Worker-only, prewarmed, timeout-bounded, and has no automatic Tesseract/main-thread fallback');
 tests/v124b-lifecycle-ocr-storage-regression.mjs:80:assert.ok(sw.includes("'luckybean-main-v124b-'"),'previous 1.24B cache prefix must remain in legacy cleanup list');
 tests/v124b-complete-plan-contract.mjs:47:assert.match(gradle,/versionCode 102402/);
