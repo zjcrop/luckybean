@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 const read = path => readFileSync(path, 'utf8');
 
 test('isolated unresolved country review is preserved without stealing mixed candidate panels', () => {
+  const release = JSON.parse(read('release.json'));
   const runtime = read('src/features/runtime-features.js');
   const owner = read('src/ui/recognition-review-owner-controller.js');
   const integrity = read('src/integrity-ui-controller.js');
@@ -17,5 +18,5 @@ test('isolated unresolved country review is preserved without stealing mixed can
   assert.match(owner, /rows\.every\(row => DIRECT_MANUAL_REVIEW_FIELDS\.has\(row\.dataset\.evidenceField \|\| ''\)\)/);
   assert.match(owner, /container\.dataset\.integrityEvidence = '1'/);
   assert.match(integrity, /container\.dataset\.integrityEvidence === '1'/);
-  assert.match(index, /runtime-features\.js\?v=1\.24B-main\.18-review-owner/);
+  assert.ok(index.includes(`runtime-features.js?v=${release.revision}`));
 });
