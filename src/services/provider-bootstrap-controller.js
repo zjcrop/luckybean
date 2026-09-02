@@ -5,33 +5,39 @@ import { activateCodebook } from '../db.js';
 
 let running = null;
 
-async function activateBrewIon(result) {
+async function activateBrewIon(result, knowledgeResult = null) {
   const active = result?.active || await getActiveProvider('brewion');
   if (!active?.data) return null;
   const data = validateCodebook(structuredClone(active.data));
+  const knowledgeActive = knowledgeResult?.active || await getActiveProvider('brewion-knowledge');
+  if (knowledgeActive?.data?.contract === 'coffee-knowledge/1.0' && knowledgeActive.data?._format === 'coffee-knowledge-bundle') {
+    data.coffeeKnowledge = structuredClone(knowledgeActive.data);
+  }
   const record = {
     id: 'active',
     data,
-    source: 'brewion-provider',
+    source: data.coffeeKnowledge ? 'brewion-provider+knowledge' : 'brewion-provider',
     hash: active.artifactSha256,
     version: active.dataVersion,
     releaseId: active.releaseId,
+    knowledgeVersion: knowledgeActive?.dataVersion || null,
+    knowledgeSha256: knowledgeActive?.artifactSha256 || null,
     updatedAt: active.generatedAt,
     checkedAt: new Date().toISOString()
   };
   await activateCodebook(record);
   const reconciliation = await reconcileCustomCodes(data);
   document.dispatchEvent(new CustomEvent('luckybean:codebook-provider-activated', {
-    detail: { data, meta: record, reconciliation }
+    detail: { data, meta: record, reconciliation, knowledge: knowledgeActive || null }
   }));
-  return { data, meta: record, reconciliation };
+  return { data, meta: record, reconciliation, knowledge: knowledgeActive || null };
 }
 
 export async function refreshProviders({ force = false } = {}) {
   if (running) return running;
   running = (async () => {
     const results = await updateAllProviders({ force });
-    const brewion = await activateBrewIon(results.brewion);
+    const brewion = await activateBrewIon(results.brewion, results['brewion-knowledge']);
     document.dispatchEvent(new CustomEvent('luckybean:providers-ready', { detail: { results, brewion } }));
     return { results, brewion };
   })().finally(() => { running = null; });
