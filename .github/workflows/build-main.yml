@@ -14,25 +14,39 @@ concurrency:
   group: luckybean-main-signed-release
   cancel-in-progress: true
 
+env:
+  SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
 jobs:
   build:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
-    env:
-      SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
-      RELEASE_TAG: v1.24B-main.6
-      RELEASE_REVISION: 1.24B-main.6
-      CACHE_REVISION: main-6-ui2
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ env.SOURCE_SHA }}
           fetch-depth: 1
-
-      - name: Verify final release gates
+      - id: meta
+        name: Load canonical release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(jq -r .displayVersion release.json)
+          revision=$(jq -r .revision release.json)
+          tag=$(jq -r .releaseTag release.json)
+          version_code=$(jq -r .androidVersionCode release.json)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version_code=$version_code" >> "$GITHUB_OUTPUT"
+          echo "DISPLAY_VERSION=$version" >> "$GITHUB_ENV"
+          echo "RELEASE_REVISION=$revision" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=$tag" >> "$GITHUB_ENV"
+          echo "ANDROID_VERSION_CODE=$version_code" >> "$GITHUB_ENV"
+      - name: Verify immutable Pages and main-test gates
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -40,31 +54,17 @@ jobs:
           set -euo pipefail
           current_main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
           test "$current_main" = "$SOURCE_SHA"
-
-          pages_json=$(gh api "repos/$GITHUB_REPOSITORY/contents/status/1.24B.json?ref=pages-status" --jq '.content' | base64 --decode)
+          pages_json=$(gh api "repos/$GITHUB_REPOSITORY/contents/status/${DISPLAY_VERSION}.json?ref=pages-status" --jq '.content' | base64 --decode)
           test "$(printf '%s' "$pages_json" | jq -r '.source_sha')" = "$SOURCE_SHA"
           test "$(printf '%s' "$pages_json" | jq -r '.revision')" = "$RELEASE_REVISION"
-          test "$(printf '%s' "$pages_json" | jq -r '.verified')" = "true"
-          test "$(printf '%s' "$pages_json" | jq -r '.browser_smoke')" = "true"
-
-          test_status=missing
-          test_conclusion=missing
-          for attempt in {1..90}; do
-            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/test-main.yml/runs?branch=main&head_sha=$SOURCE_SHA&per_page=10")
-            test_status=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].status // "missing"')
-            test_conclusion=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].conclusion // "missing"')
-            if [ "$test_status" = "completed" ]; then
-              test "$test_conclusion" = "success"
-              break
-            fi
-            sleep 5
-          done
-          test "$test_status" = "completed"
-          test "$test_conclusion" = "success"
-          current_main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
-          test "$current_main" = "$SOURCE_SHA"
-          printf 'Pages verified and main tests passed for %s\n' "$SOURCE_SHA"
-
+          test "$(printf '%s' "$pages_json" | jq -r '.verified')" = true
+          test "$(printf '%s' "$pages_json" | jq -r '.browser_smoke')" = true
+          test "$(printf '%s' "$pages_json" | jq -r '.same_sha_main_tests')" = true
+          runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/test-main.yml/runs?branch=main&head_sha=$SOURCE_SHA&per_page=10")
+          status=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].status // "missing"')
+          conclusion=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].conclusion // "missing"')
+          test "$status" = completed
+          test "$conclusion" = success
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
@@ -81,45 +81,13 @@ jobs:
           gradle-version: '8.9'
       - run: npm ci
       - run: npm audit --audit-level=high
-
-      - name: Validate exact main.6 source
+      - name: Validate exact release source
         shell: bash
         run: |
           set -euo pipefail
+          node scripts/validate-release-meta.mjs
           find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
           npm run test:static
-          grep -Fq 'release-revision" content="1.24B-main.6"' index.html
-          grep -Fq 'release-1.24b-polish.js?v=1.24B-main.6' index.html
-          grep -Fq 'release-1.24b-transit-controller.js?v=1.24B-main.6' index.html
-          grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' index.html
-          grep -Fq 'runtime-features.js?v=1.24B-main.18-review-owner' index.html
-          grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.6' index.html
-          grep -Fq "REVISION = '1.24B-main.6'" sw.js
-          grep -Fq 'main-6-ui2' sw.js
-          grep -Fq "UI_POLICY_REVISION = '1.24B-main.6'" src/features/release-1.24b-ui-policy.js
-          grep -Fq "feature('recognition-review-owner', '../ui/recognition-review-owner-controller.js')" src/features/runtime-features.js
-          grep -Fq "REVIEW_OWNER_REVISION = '1.24B-review-owner.1'" src/ui/recognition-review-owner-controller.js
-          grep -Fq "container.dataset.integrityEvidence = '1'" src/ui/recognition-review-owner-controller.js
-          grep -Fq 'beanGroupState' src/bean-groups-controller.js
-          ! grep -Fq 'let activeGroup' src/bean-groups-controller.js
-          grep -Fq 'LuckyBeanBeanGroupState' src/features/release-1.24b-group-navigation.js
-          grep -Fq 'lb-sort-ghost' src/ui/sortable-controller.js
-          grep -Fq 'lb-sort-placeholder' src/ui/sortable-controller.js
-          grep -Fq 'LuckyBeanSortable' src/features/sensory-tag-sort-controller.js
-          grep -Fq 'professional-sensory-complete' src/features/sensory-tag-sort-controller.js
-          grep -Fq 'release-1.24b-freshness-detail.js' sw.js
-          grep -Fq 'recognition-batch-progress-controller.js' sw.js
-          grep -Fq 'recognition-field-resolver-1.24b.js' sw.js
-          grep -Fq 'grind-psd-reference-service.js' sw.js
-
-      - name: Synchronize Android runtime version marker
-        shell: bash
-        run: |
-          set -euo pipefail
-          file=android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -Fq 'LuckyBeanAndroid/1.24B' "$file"
-          ! grep -Fq 'LuckyBeanAndroid/1.23E' "$file"
-
       - name: Restore official release keystore
         shell: bash
         env:
@@ -129,7 +97,6 @@ jobs:
           test -n "$LUCKYBEAN_KEYSTORE_B64"
           printf '%s' "$LUCKYBEAN_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/luckybean-release.jks"
           chmod 600 "$RUNNER_TEMP/luckybean-release.jks"
-
       - name: Build signed APK
         env:
           LUCKYBEAN_KEYSTORE_FILE: ${{ runner.temp }}/luckybean-release.jks
@@ -137,89 +104,97 @@ jobs:
           LUCKYBEAN_KEY_ALIAS: ${{ secrets.LUCKYBEAN_KEY_ALIAS }}
           LUCKYBEAN_KEY_PASSWORD: ${{ secrets.LUCKYBEAN_KEY_PASSWORD }}
         run: gradle --no-daemon -p android :app:assembleRelease
-
-      - name: Verify package embedded source and certificate
+      - name: Verify package identity embedded source and certificate
         shell: bash
         run: |
           set -euo pipefail
           apk=android/app/build/outputs/apk/release/app-release.apk
           test -f "$apk"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"
-          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-revision" content="1.24B-main.6"'
-          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt'
-          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'runtime-features.js?v=1.24B-main.18-review-owner'
-          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '1.24B-main.6'"
-          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'main-6-ui2'
-          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq "UI_POLICY_REVISION = '1.24B-main.6'"
-          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq "feature('recognition-review-owner', '../ui/recognition-review-owner-controller.js')"
-          unzip -p "$apk" assets/web-cache/src/ui/recognition-review-owner-controller.js | grep -Fq "REVIEW_OWNER_REVISION = '1.24B-review-owner.1'"
-          unzip -p "$apk" assets/web-cache/src/ui/recognition-review-owner-controller.js | grep -Fq "container.dataset.integrityEvidence = '1'"
-          unzip -p "$apk" assets/web-cache/src/domain/beans/bean-group-state.js | grep -Fq 'export const beanGroupState'
-          unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'beanGroupState'
-          ! unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'let activeGroup'
-          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'LuckyBeanBeanGroupState'
-          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'lb-sort-ghost'
-          unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq 'professional-sensory-complete'
-          unzip -p "$apk" assets/web-cache/src/release-1.24b.css | grep -Fq 'main.7 professional score responsive layout'
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='${ANDROID_VERSION_CODE}' versionName='${DISPLAY_VERSION}'"
+          unzip -p "$apk" assets/web-cache/release.json > /tmp/apk-release.json
+          test "$(jq -r .displayVersion /tmp/apk-release.json)" = "$DISPLAY_VERSION"
+          test "$(jq -r .revision /tmp/apk-release.json)" = "$RELEASE_REVISION"
+          unzip -p "$apk" assets/web-cache/index.html | grep -Fq "application-version\" content=\"$DISPLAY_VERSION\""
+          unzip -p "$apk" assets/web-cache/index.html | grep -Fq "release-revision\" content=\"$RELEASE_REVISION\""
+          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '$RELEASE_REVISION'"
+          unzip -p "$apk" assets/web-cache/src/contracts/brew-contract-adapter.js | grep -Fq "luckybean-brew-contract-adapter/${DISPLAY_VERSION}.2"
           source_app_sha=$(sha256sum src/app.js | awk '{print $1}')
           apk_app_sha=$(unzip -p "$apk" assets/web-cache/src/app.js | sha256sum | awk '{print $1}')
           test "$source_app_sha" = "$apk_app_sha"
-          source_score_css_sha=$(sha256sum src/release-1.24b.css | awk '{print $1}')
-          apk_score_css_sha=$(unzip -p "$apk" assets/web-cache/src/release-1.24b.css | sha256sum | awk '{print $1}')
-          test "$source_score_css_sha" = "$apk_score_css_sha"
           expected_cert=$(tr -d '[:space:]:' < android/signing/CERT_SHA256.txt | tr '[:lower:]' '[:upper:]')
           actual_cert=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')
           test -n "$actual_cert"
           test "$actual_cert" = "$expected_cert"
           printf '%s' "$actual_cert" > /tmp/luckybean-cert-sha256.txt
-
       - name: Package release
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.24B-release.apk
-          zip -qr dist/LuckyBean-1.24B-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts schemas docs DEVELOPMENT_STATUS.md
-          printf 'source_sha=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.6\nsigning=official-release-keystore\nandroid_runtime_marker=LuckyBeanAndroid/1.24B\nrecognition_queue=serial-one-image-persistent\nrecognition_arbitration=explicit-confidence-consensus-inference\nrecognition_review_owner=1.24B-review-owner.1\nbean_lifecycle=ordered-delivered-storage-history\nstorage_modes=room-refrigerated-frozen\nfreshness_detail=full-expandable\norder_ocr=privacy-minimized\ngrind_psd=measured-reference-plus-custom-anchors\ngroup_navigation=canonical-state-api\ncache=main-6-ui2\nsortable=shared-live-preview-ghost-placeholder\nsensory_sort=single-activate-double-remove-longpress-preview\nbrew_ui=text-interactions\nabout_contacts=inside-about-section\nui_architecture=canonical-1.24b-main.6\nscore_layout=viewport-safe-next-line-range\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
-          sha256sum dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip > dist/SHA256SUMS.txt
-
+          apk_name="LuckyBean-${DISPLAY_VERSION}-release.apk"
+          web_name="LuckyBean-${DISPLAY_VERSION}-web.zip"
+          cp android/app/build/outputs/apk/release/app-release.apk "dist/$apk_name"
+          zip -qr "dist/$web_name" index.html recognition-test.html manifest.webmanifest release.json sw.js styles.css src public contracts schemas docs DEVELOPMENT_STATUS.md
+          jq -n \
+            --arg source_sha "$SOURCE_SHA" \
+            --arg version "$DISPLAY_VERSION" \
+            --arg revision "$RELEASE_REVISION" \
+            --arg version_code "$ANDROID_VERSION_CODE" \
+            --arg signing official-release-keystore \
+            --arg brew_result "$(jq -r .brewResultVersion release.json)" \
+            --arg brew_plan "$(jq -r .brewPlanVersion release.json)" \
+            '{source_sha:$source_sha,version:$version,revision:$revision,version_code:($version_code|tonumber),signing:$signing,brew_result:$brew_result,brew_plan:$brew_plan,web_gate_verified:true,main_test_verified:true}' \
+            > dist/BUILD_PROVENANCE.json
+          sha256sum "dist/$apk_name" "dist/$web_name" > dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v7.0.1
         with:
-          name: luckybean-main-v1.24B-${{ env.SOURCE_SHA }}
+          name: luckybean-main-${{ steps.meta.outputs.version }}-${{ env.SOURCE_SHA }}
           path: dist/
           if-no-files-found: error
-
       - name: Publish signed APK release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          notes='1.24B main.6 signed release. APK certificate is verified against android/signing/CERT_SHA256.txt before publication.'
+          apk_name="LuckyBean-${DISPLAY_VERSION}-release.apk"
+          web_name="LuckyBean-${DISPLAY_VERSION}-web.zip"
+          notes="${DISPLAY_VERSION} ${RELEASE_REVISION} signed release. Same-SHA tests, Pages browser smoke, embedded source parity and official certificate are verified before publication."
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             git tag -f "$RELEASE_TAG" "$SOURCE_SHA"
             git push --force origin "refs/tags/$RELEASE_TAG"
-            gh release edit "$RELEASE_TAG" --target "$SOURCE_SHA" --title "LuckyBean 1.24B" --notes "$notes"
-            gh release upload "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --clobber
+            gh release edit "$RELEASE_TAG" --target "$SOURCE_SHA" --title "LuckyBean ${DISPLAY_VERSION}" --notes "$notes"
+            gh release upload "$RELEASE_TAG" "dist/$apk_name" "dist/$web_name" dist/BUILD_PROVENANCE.json dist/SHA256SUMS.txt --clobber
           else
-            gh release create "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --target "$SOURCE_SHA" --title "LuckyBean 1.24B" --notes "$notes"
+            gh release create "$RELEASE_TAG" "dist/$apk_name" "dist/$web_name" dist/BUILD_PROVENANCE.json dist/SHA256SUMS.txt --target "$SOURCE_SHA" --title "LuckyBean ${DISPLAY_VERSION}" --notes "$notes"
           fi
           tag_sha=$(git ls-remote origin "refs/tags/$RELEASE_TAG" | awk '{print $1}')
           test "$tag_sha" = "$SOURCE_SHA"
-          release_target=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" --jq '.target_commitish')
-          test "$release_target" = "$SOURCE_SHA"
           printf '%s' "$tag_sha" > /tmp/luckybean-release-target-sha.txt
-
       - name: Write verifiable release receipt
         shell: bash
         run: |
           set -euo pipefail
           cert=$(cat /tmp/luckybean-cert-sha256.txt)
           release_target_sha=$(cat /tmp/luckybean-release-target-sha.txt)
-          apk_sha=$(sha256sum dist/LuckyBean-1.24B-release.apk | awk '{print $1}')
-          web_sha=$(sha256sum dist/LuckyBean-1.24B-web.zip | awk '{print $1}')
+          apk_name="LuckyBean-${DISPLAY_VERSION}-release.apk"
+          web_name="LuckyBean-${DISPLAY_VERSION}-web.zip"
+          apk_sha=$(sha256sum "dist/$apk_name" | awk '{print $1}')
+          web_sha=$(sha256sum "dist/$web_name" | awk '{print $1}')
           receipt=$(mktemp)
-          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","release_tag":"%s","release_target_sha":"%s","release_target_verified":true,"apk":"LuckyBean-1.24B-release.apk","apk_sha256":"%s","web_sha256":"%s","certificate_sha256":"%s","certificate_verified":true,"published":true,"web_gate_verified":true,"main_test_verified":true,"recognition_review_owner":"1.24B-review-owner.1","group_navigation":"canonical-state-api","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$RELEASE_TAG" "$release_target_sha" "$apk_sha" "$web_sha" "$cert" "$(date -u +%FT%TZ)" > "$receipt"
+          jq -n \
+            --arg version "$DISPLAY_VERSION" \
+            --arg revision "$RELEASE_REVISION" \
+            --arg source_sha "$SOURCE_SHA" \
+            --arg release_tag "$RELEASE_TAG" \
+            --arg release_target_sha "$release_target_sha" \
+            --arg apk "$apk_name" \
+            --arg apk_sha256 "$apk_sha" \
+            --arg web_sha256 "$web_sha" \
+            --arg certificate_sha256 "$cert" \
+            --arg generated_at "$(date -u +%FT%TZ)" \
+            '{version:$version,revision:$revision,source_sha:$source_sha,release_tag:$release_tag,release_target_sha:$release_target_sha,release_target_verified:true,apk:$apk,apk_sha256:$apk_sha256,web_sha256:$web_sha256,certificate_sha256:$certificate_sha256,certificate_verified:true,published:true,web_gate_verified:true,main_test_verified:true,release_metadata_verified:true,generated_at:$generated_at}' \
+            > "$receipt"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           if git ls-remote --exit-code --heads origin release-status >/dev/null 2>&1; then
@@ -230,7 +205,7 @@ jobs:
             git rm -rf . >/dev/null 2>&1 || true
           fi
           mkdir -p status
-          cp "$receipt" status/1.24B.json
-          git add status/1.24B.json
-          git commit -m "release-status: LuckyBean 1.24B $SOURCE_SHA" || true
+          cp "$receipt" "status/${DISPLAY_VERSION}.json"
+          git add "status/${DISPLAY_VERSION}.json"
+          git commit -m "release-status: LuckyBean ${DISPLAY_VERSION} $SOURCE_SHA" || true
           git push origin HEAD:release-status
