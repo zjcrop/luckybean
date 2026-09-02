@@ -126,34 +126,6 @@ src/features/release-1.24b-ui-policy.js:2:const UI_POLICY_REVISION = '1.24B-main
 .github/workflows/fix-reminder-trigger-order.yml:37:          grep -Fq 'runtime-features.js?v=1.24B-main.16-fun-prompt-owner' index.html
 .github/workflows/fix-reminder-trigger-order.yml:39:          grep -Fq 'GROUP_PROMPT_RUNTIME_REVISION: 1.24B-main.16-fun-prompt-owner' .github/workflows/deploy-main.yml
 .github/workflows/diagnose-main.yml:57:              "1\\.24B|1\\.23E|1\\.23D|102402|main-v124b|main-v123e|main-v123d" \
-.github/workflows/deploy-main.yml:23:  RELEASE_REVISION: 1.24B-main.6
-.github/workflows/deploy-main.yml:24:  PROMPT_RUNTIME_REVISION: 1.24B-main.15-reminder-trigger
-.github/workflows/deploy-main.yml:25:  STYLES_RUNTIME_REVISION: 1.24B-main.13-local-menu-prompt
-.github/workflows/deploy-main.yml:72:          grep -Fq 'application-version" content="1.24B"' index.html
-.github/workflows/deploy-main.yml:73:          grep -Fq 'release-revision" content="1.24B-main.6"' index.html
-.github/workflows/deploy-main.yml:74:          grep -Fq "REVISION = '1.24B-main.6'" sw.js
-.github/workflows/deploy-main.yml:104:          grep -Fq 'startup-controller.js?v=1.24B-main.15-reminder-trigger' index.html
-.github/workflows/deploy-main.yml:105:          grep -Fq 'styles.css?v=1.24B-main.13-local-menu-prompt' index.html
-.github/workflows/deploy-main.yml:106:          grep -Fq "APP_MODULE_REVISION = '1.24B-main.15-reminder-trigger'" src/core/startup-controller.js
-.github/workflows/deploy-main.yml:108:          grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' index.html
-.github/workflows/deploy-main.yml:124:          grep -Fq "UI_POLICY_REVISION = '1.24B-main.6'" src/features/release-1.24b-ui-policy.js
-.github/workflows/deploy-main.yml:142:          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.6","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","recommendationPrompt":"legacy-short-reminder-current-mode-adapter","recommendationClickOwner":"local-menu","groupAdapterRevision":"1.24B-main.10-native-prompt","appModuleRevision":"1.24B-main.15-reminder-trigger","stylesRevision":"1.24B-main.13-local-menu-prompt","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","scoreLayout":"viewport-safe-next-line-range","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.6"}\n' "$SOURCE_SHA" > _site/version.json
-.github/workflows/deploy-main.yml:177:            curl -L -fsS "$base/src/release-1.24b.css?v=1.24B-main.6" -o /tmp/release.css || true
-.github/workflows/deploy-main.yml:178:            curl -L -fsS "$base/src/domain/beans/bean-group-state.js?v=1.24B-main.6" -o /tmp/group-state.js || true
-.github/workflows/deploy-main.yml:179:            curl -L -fsS "$base/src/bean-groups-controller.js?v=1.24B-main.6" -o /tmp/bean-groups.js || true
-.github/workflows/deploy-main.yml:180:            curl -L -fsS "$base/src/features/release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt" -o /tmp/group-navigation-runtime.js || true
-.github/workflows/deploy-main.yml:182:              && grep -Fq '"version":"1.24B"' /tmp/version.json \
-.github/workflows/deploy-main.yml:185:              && grep -Fq '"groupAdapterRevision":"1.24B-main.10-native-prompt"' /tmp/version.json \
-.github/workflows/deploy-main.yml:186:              && grep -Fq '"appModuleRevision":"1.24B-main.15-reminder-trigger"' /tmp/version.json \
-.github/workflows/deploy-main.yml:187:              && grep -Fq '"stylesRevision":"1.24B-main.13-local-menu-prompt"' /tmp/version.json \
-.github/workflows/deploy-main.yml:188:              && grep -Fq 'startup-controller.js?v=1.24B-main.15-reminder-trigger' /tmp/index.html \
-.github/workflows/deploy-main.yml:189:              && grep -Fq 'styles.css?v=1.24B-main.13-local-menu-prompt' /tmp/index.html \
-.github/workflows/deploy-main.yml:190:              && grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' /tmp/index.html \
-.github/workflows/deploy-main.yml:191:              && grep -Fq "APP_MODULE_REVISION = '1.24B-main.15-reminder-trigger'" /tmp/startup-runtime.js \
-.github/workflows/deploy-main.yml:388:          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","recommendation_prompt":"legacy-short-reminder-current-mode-adapter","recommendation_click_owner":"local-menu","group_adapter_revision":"1.24B-main.10-native-prompt","app_module_revision":"1.24B-main.15-reminder-trigger","styles_revision":"1.24B-main.13-local-menu-prompt","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
-.github/workflows/deploy-main.yml:399:          cp "$receipt" status/1.24B.json
-.github/workflows/deploy-main.yml:400:          git add status/1.24B.json
-.github/workflows/deploy-main.yml:401:          git commit -m "pages-status: LuckyBean 1.24B $SOURCE_SHA" || true
 .github/workflows/build-main.yml:26:      RELEASE_TAG: v1.24B-main.6
 .github/workflows/build-main.yml:27:      RELEASE_REVISION: 1.24B-main.6
 .github/workflows/build-main.yml:44:          pages_json=$(gh api "repos/$GITHUB_REPOSITORY/contents/status/1.24B.json?ref=pages-status" --jq '.content' | base64 --decode)
