@@ -22,9 +22,6 @@ tests/v122-cloud-sync-safety.mjs:61:console.log('v1.23D cloud union baseline and
 tests/v123e-navigation-back-static.mjs:14:assert.equal(revision, '1.24B-main.6');
 tests/v123d-bean-summary-ui.spec.mjs:49:  await expect(page.locator('html')).toHaveAttribute('data-ui-policy-revision', '1.24B-main.6');
 tests/v127-user-regressions-static.mjs:47:console.log('v127 canonical cooling/gear ownership and 1.24B Android image pipeline static checks passed');
-tests/v123e-ui-stability-static.mjs:42:assert.equal(releaseRevision,'1.24B-main.6');
-tests/v123e-ui-stability-static.mjs:44:assert.match(sw,/CACHE_PREFIX = 'luckybean-main-v124b-'/);
-tests/v123e-ui-stability-static.mjs:152:console.log(`LuckyBean 1.24B ${releaseRevision} canonical UI stability, fun-only native recommendation prompt ownership, shared bean-group state, shared sorting and text brew UI regression checks passed`);
 tests/v123d-deployment-contracts.mjs:43:assert.equal(releaseRevision, '1.24B-main.6');
 tests/v123d-deployment-contracts.mjs:48:assert.equal(Number(versionCodeMatch[1]), 102402);
 tests/v123d-deployment-contracts.mjs:52:assert.equal(manifest.version, '1.24B');
