@@ -103,6 +103,7 @@ src/features/release-1.24b-ui-policy.js:2:const UI_POLICY_REVISION = '1.24B-main
 .github/workflows/fix-reminder-trigger-order.yml:37:          grep -Fq 'runtime-features.js?v=1.24B-main.16-fun-prompt-owner' index.html
 .github/workflows/fix-reminder-trigger-order.yml:39:          grep -Fq 'GROUP_PROMPT_RUNTIME_REVISION: 1.24B-main.16-fun-prompt-owner' .github/workflows/deploy-main.yml
 .github/workflows/diagnose-main.yml:57:              "1\\.24B|1\\.23E|1\\.23D|102402|main-v124b|main-v123e|main-v123d" \
+.github/workflows/migrate-124p-ui-policy-revision.yml:25:          old="const UI_POLICY_REVISION = '1.24B-main.6';"
 .github/workflows/verified-release-main.yml:23:      RELEASE_TAG: v1.24B-main.6
 .github/workflows/verified-release-main.yml:83:          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"
 .github/workflows/verified-release-main.yml:105:          cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.24B-release.apk
