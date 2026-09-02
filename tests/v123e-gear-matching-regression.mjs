@@ -8,6 +8,7 @@ import {
 } from '../src/domain/matching/flavor-vector.js';
 
 const read = path => fs.readFileSync(path, 'utf8');
+const release = JSON.parse(read('release.json'));
 const qr = read('src/qr.js');
 const service = read('src/services/brew-analysis-service.js');
 const gearController = read('src/ui/gear-controller.js');
@@ -18,10 +19,10 @@ const build = read('android/app/build.gradle');
 const revisionMatch = index.match(/release-revision" content="([^"]+)"/);
 assert.ok(revisionMatch, 'release revision missing');
 const releaseRevision = revisionMatch[1];
-assert.equal(releaseRevision, '1.24B-main.6');
-const versionCodeMatch = build.match(/versionCode\s+(\d+)/);
-assert.ok(versionCodeMatch, 'Android versionCode missing');
-assert.ok(Number(versionCodeMatch[1]) > 102314, `upgrade versionCode must exceed prior release 102314, got ${versionCodeMatch[1]}`);
+assert.equal(releaseRevision, release.revision);
+assert.ok(Number(release.androidVersionCode) > 102314, `upgrade versionCode must exceed prior release 102314, got ${release.androidVersionCode}`);
+assert.match(build, /versionCode \(releaseMeta\.androidVersionCode as int\)/);
+assert.match(build, /versionName releaseMeta\.displayVersion as String/);
 
 assert.equal(MATCH_AXES.length, 8);
 assert.doesNotMatch(qr, /decodeEncryptedShareEnvelope/);
@@ -69,4 +70,4 @@ assert.equal(envelope.contract, 'luckybean-match/1.1');
 assert.equal(envelope.match_vector.length, 8);
 assert.equal(envelope.target_vector.length, 8);
 assert.match(envelope.signature, /^LMS1-FC1-X[0-9A-F]{16}-Q\d+$/);
-console.log('LuckyBean 1.24B canonical gear binding, direct bean matching, QR runtime and upgrade release checks passed');
+console.log(`LuckyBean ${release.displayVersion} canonical gear binding, direct bean matching, QR runtime and upgrade release checks passed`);
