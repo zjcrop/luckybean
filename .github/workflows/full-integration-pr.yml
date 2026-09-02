@@ -44,10 +44,12 @@ jobs:
         if: steps.compile.outputs.status == '0'
         shell: bash
         run: |
-          # Do not enable pipefail here: `grep -q` intentionally exits as soon as
-          # a marker is found, which can give `unzip -p` SIGPIPE (141) and turn a
-          # successful artifact assertion into a false CI failure.
           set -eu
+          # GitHub invokes bash with -o pipefail. Disable it explicitly for this
+          # marker-verification step and avoid stream-to-grep assertions entirely:
+          # grep -q may close early and make unzip/aapt exit with SIGPIPE even when
+          # the marker is present. Each APK entry is extracted once to a temp file.
+          set +o pipefail
           apk=android/app/build/outputs/apk/debug/app-debug.apk
           test -f "$apk"
           grep -q "versionCode 102402" android/app/build.gradle
@@ -55,35 +57,73 @@ jobs:
           grep -q 'LuckyBeanAndroid/1.24B' android/app/src/main/java/com/luckybean/app/MainActivity.java
           grep -q 'SystemClock.elapsedRealtime()' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
 
-          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-revision" content="1.24B-main.6"'
-          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '1.24B-main.6'"
-          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'main-6-ui2'
-          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq '1.24B-main.6'
-          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq "feature('shared-sortable'"
-          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq 'sensory-tag-sort-controller.js'
-          unzip -p "$apk" assets/web-cache/src/domain/beans/bean-group-state.js | grep -Fq 'export const beanGroupState'
-          unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'beanGroupState.groupKey'
-          unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'async function closeActiveGroup'
-          ! unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'let activeGroup'
-          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'LuckyBeanBeanGroupState'
-          ! unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'dispatchEvent(new MouseEvent'
-          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'lb-sort-ghost'
-          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'lb-sort-placeholder'
-          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'onPreview'
-          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'onCommit'
-          unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq 'LuckyBeanSortable'
-          unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq 'professional-sensory-complete'
-          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq "UI_POLICY_REVISION = '1.24B-main.6'"
-          unzip -p "$apk" assets/web-cache/src/release-1.24b.css | grep -Fq 'main.7 professional score responsive layout'
-          unzip -p "$apk" assets/web-cache/src/recognition-bridge.js | grep -Fq "dataUrl: nativeSource ? '' : await blobToDataUrl(image.blob)"
-          unzip -p "$apk" assets/web-cache/src/package-capture-controller.js | grep -Fq 'bindAndroidImageSource(id, nativeSource)'
-          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.1'"
-          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_SPATIAL_CONTRACT = 'brew-spatial/1.3'"
+          contract_tmp=$(mktemp -d)
+          trap 'rm -rf "$contract_tmp"' EXIT
+          extract_entry() {
+            entry="$1"
+            target="$contract_tmp/$(printf '%s' "$entry" | tr '/.' '__')"
+            if ! unzip -p "$apk" "$entry" > "$target"; then
+              echo "APK contract entry missing or unreadable: $entry" >&2
+              exit 1
+            fi
+            printf '%s' "$target"
+          }
+          assert_entry_contains() {
+            entry="$1"
+            needle="$2"
+            target=$(extract_entry "$entry")
+            if ! grep -Fq "$needle" "$target"; then
+              echo "APK contract marker missing: $entry :: $needle" >&2
+              exit 1
+            fi
+          }
+          assert_entry_absent() {
+            entry="$1"
+            needle="$2"
+            target=$(extract_entry "$entry")
+            if grep -Fq "$needle" "$target"; then
+              echo "Forbidden APK contract marker present: $entry :: $needle" >&2
+              exit 1
+            fi
+          }
+
+          assert_entry_contains assets/web-cache/index.html 'release-revision" content="1.24B-main.6"'
+          assert_entry_contains assets/web-cache/sw.js "REVISION = '1.24B-main.6'"
+          assert_entry_contains assets/web-cache/sw.js 'main-6-ui2'
+          assert_entry_contains assets/web-cache/src/features/runtime-features.js '1.24B-main.6'
+          assert_entry_contains assets/web-cache/src/features/runtime-features.js "feature('shared-sortable'"
+          assert_entry_contains assets/web-cache/src/features/runtime-features.js 'sensory-tag-sort-controller.js'
+          assert_entry_contains assets/web-cache/src/domain/beans/bean-group-state.js 'export const beanGroupState'
+          assert_entry_contains assets/web-cache/src/bean-groups-controller.js 'beanGroupState.groupKey'
+          assert_entry_contains assets/web-cache/src/bean-groups-controller.js 'async function closeActiveGroup'
+          assert_entry_absent assets/web-cache/src/bean-groups-controller.js 'let activeGroup'
+          assert_entry_contains assets/web-cache/src/features/release-1.24b-group-navigation.js 'LuckyBeanBeanGroupState'
+          assert_entry_absent assets/web-cache/src/features/release-1.24b-group-navigation.js 'dispatchEvent(new MouseEvent'
+          assert_entry_contains assets/web-cache/src/ui/sortable-controller.js 'lb-sort-ghost'
+          assert_entry_contains assets/web-cache/src/ui/sortable-controller.js 'lb-sort-placeholder'
+          assert_entry_contains assets/web-cache/src/ui/sortable-controller.js 'onPreview'
+          assert_entry_contains assets/web-cache/src/ui/sortable-controller.js 'onCommit'
+          assert_entry_contains assets/web-cache/src/features/sensory-tag-sort-controller.js 'LuckyBeanSortable'
+          assert_entry_contains assets/web-cache/src/features/sensory-tag-sort-controller.js 'professional-sensory-complete'
+          assert_entry_contains assets/web-cache/src/features/release-1.24b-ui-policy.js "UI_POLICY_REVISION = '1.24B-main.6'"
+          assert_entry_contains assets/web-cache/src/release-1.24b.css 'main.7 professional score responsive layout'
+          assert_entry_contains assets/web-cache/src/recognition-bridge.js "dataUrl: nativeSource ? '' : await blobToDataUrl(image.blob)"
+          assert_entry_contains assets/web-cache/src/package-capture-controller.js 'bindAndroidImageSource(id, nativeSource)'
+          assert_entry_contains assets/web-cache/src/services/brew-analysis-service.js "BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.1'"
+          assert_entry_contains assets/web-cache/src/services/brew-analysis-service.js "BREW_SPATIAL_CONTRACT = 'brew-spatial/1.3'"
 
           source_css_sha=$(sha256sum src/release-1.24b.css | awk '{print $1}')
-          apk_css_sha=$(unzip -p "$apk" assets/web-cache/src/release-1.24b.css | sha256sum | awk '{print $1}')
-          test "$source_css_sha" = "$apk_css_sha"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"
+          apk_css_file=$(extract_entry assets/web-cache/src/release-1.24b.css)
+          apk_css_sha=$(sha256sum "$apk_css_file" | awk '{print $1}')
+          test "$source_css_sha" = "$apk_css_sha" || {
+            echo "APK CSS differs from canonical source" >&2
+            exit 1
+          }
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" > "$contract_tmp/badging.txt"
+          grep -Fq "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'" "$contract_tmp/badging.txt" || {
+            echo "APK package identity mismatch" >&2
+            exit 1
+          }
           printf 'canonical-state-api\nshared-live-preview-ghost-placeholder\nsingle-activate-double-remove-longpress-preview\nbrew_ui=text-interactions\n' > android-contracts.txt
 
       - name: Android 10 runtime startup smoke
