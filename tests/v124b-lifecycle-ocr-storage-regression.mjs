@@ -15,6 +15,7 @@ import { parseCoffeeOrderText } from '../src/domain/recognition/order-recognitio
 import { LOCAL_BREW_RECIPES_124B } from '../src/data/local-brew-recipes-1.24b.js';
 
 const read = path => fs.readFileSync(path,'utf8');
+const release = JSON.parse(read('release.json'));
 
 const legacyCold = normalizeBeanRecord({ refrigerated:true });
 assert.equal(legacyCold.storage.currentMode, StorageMode.REFRIGERATED, 'legacy refrigerated bean must migrate to refrigerated storage mode');
@@ -65,15 +66,17 @@ const sw = read('sw.js');
 const gradle = read('android/app/build.gradle');
 const recognition = read('src/recognition-bridge.js');
 const integration = read('src/features/release-1.24b-finalize.js');
-assert.match(index,/application-version" content="1\.24B"/);
+assert.ok(index.includes(`application-version" content="${release.displayVersion}"`));
 assert.match(index,/release-1\.24b-finalize\.js/);
-assert.match(gradle,/versionCode 102402/);
-assert.match(gradle,/versionName '1\.24B'/);
+assert.match(gradle,/versionCode \(releaseMeta\.androidVersionCode as int\)/);
+assert.match(gradle,/versionName releaseMeta\.displayVersion as String/);
+assert.equal(release.androidVersionCode,102416);
 assert.match(recognition,/queueConcurrency\s*:\s*1/);
 assert.match(recognition,/for \(let index\s*=\s*0; index\s*<\s*images\.length; index\s*\+=\s*1\)/);
 assert.match(integration,/订单录入/);
 assert.match(integration,/灰色|data-lb-transit-section|lb-bean-card/);
 assert.match(integration,/LOCAL_BREW_RECIPES_124B/);
-assert.match(sw,/luckybean-main-v124b-/);
+assert.ok(sw.includes(`CACHE_PREFIX = '${release.cachePrefix}'`));
+assert.ok(sw.includes("'luckybean-main-v124b-'"),'previous 1.24B cache prefix must remain in legacy cleanup list');
 
-console.log('LuckyBean 1.24B lifecycle, serial OCR, transit/frozen storage, order parsing and local brew regression checks passed');
+console.log(`LuckyBean ${release.displayVersion} lifecycle, serial OCR, transit/frozen storage, order parsing and local brew regression checks passed`);
