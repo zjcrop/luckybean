@@ -1,4 +1,6 @@
-export const BREW_CALCULATION_COORDINATOR_CONTRACT = 'brew-calculation-coordinator/1.0';
+import { attachBrewContracts } from '../contracts/brew-contract-adapter.js';
+
+export const BREW_CALCULATION_COORDINATOR_CONTRACT = 'brew-calculation-coordinator/1.1';
 
 function clone(value) { return structuredClone(value); }
 
@@ -29,7 +31,8 @@ export class BrewCalculationCoordinator {
     const revision = ++this.revision;
     const authoritativeInput = preserveExecutedProfile(input, previousPlan, beanId);
     const startedAt = performance.now();
-    const plan = await this.request(endpoint, authoritativeInput);
+    const rawPlan = await this.request(endpoint, authoritativeInput);
+    const plan = attachBrewContracts(rawPlan, authoritativeInput);
     return {
       contract: BREW_CALCULATION_COORDINATOR_CONTRACT,
       plan,
