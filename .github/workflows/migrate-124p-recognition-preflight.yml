@@ -22,6 +22,25 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Preserve current recognition provenance contracts
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          path = Path('scripts/migrate_124p_recognition_preflight.py')
+          text = path.read_text(encoding='utf-8')
+
+          start = text.index("    if 'source.internalEvidence || source.evidence || {}' not in s:")
+          end = text.index("    if 'function openRecognitionPreflight' not in s:", start)
+          text = text[:start] + text[end:]
+          text = text.replace("    internalEvidence: parsed.evidence,\n    internalConfidence: parsed.confidence", "    evidence: parsed.evidence,\n    confidence: parsed.confidence")
+
+          start = text.index("    if 'MULTILINGUAL_VALUE_NORMALIZATION' not in s:")
+          end = text.index("    write(path, s)", start)
+          text = text[:start] + text[end:]
+
+          path.write_text(text, encoding='utf-8')
+          PY
       - name: Apply recognition migration
         run: python3 scripts/migrate_124p_recognition_preflight.py
       - name: Validate migrated source
