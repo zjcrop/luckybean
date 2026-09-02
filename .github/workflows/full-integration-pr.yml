@@ -42,46 +42,7 @@ jobs:
 
       - name: Verify native execution and canonical web contracts
         if: steps.compile.outputs.status == '0'
-        shell: bash
-        run: |
-          set -euo pipefail
-          apk=android/app/build/outputs/apk/debug/app-debug.apk
-          test -f "$apk"
-          grep -q "versionCode 102402" android/app/build.gradle
-          grep -q "versionName '1.24B'" android/app/build.gradle
-          grep -q 'LuckyBeanAndroid/1.24B' android/app/src/main/java/com/luckybean/app/MainActivity.java
-          grep -q 'SystemClock.elapsedRealtime()' android/app/src/main/java/com/luckybean/app/BrewTimerService.java
-
-          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-revision" content="1.24B-main.6"'
-          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '1.24B-main.6'"
-          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq 'main-6-ui2'
-          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq '1.24B-main.6'
-          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq "feature('shared-sortable'"
-          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq 'sensory-tag-sort-controller.js'
-          unzip -p "$apk" assets/web-cache/src/domain/beans/bean-group-state.js | grep -Fq 'export const beanGroupState'
-          unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'beanGroupState.groupKey'
-          unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'async function closeActiveGroup'
-          ! unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq 'let activeGroup'
-          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'LuckyBeanBeanGroupState'
-          ! unzip -p "$apk" assets/web-cache/src/features/release-1.24b-group-navigation.js | grep -Fq 'dispatchEvent(new MouseEvent'
-          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'lb-sort-ghost'
-          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'lb-sort-placeholder'
-          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'onPreview'
-          unzip -p "$apk" assets/web-cache/src/ui/sortable-controller.js | grep -Fq 'onCommit'
-          unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq 'LuckyBeanSortable'
-          unzip -p "$apk" assets/web-cache/src/features/sensory-tag-sort-controller.js | grep -Fq 'professional-sensory-complete'
-          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq "UI_POLICY_REVISION = '1.24B-main.6'"
-          unzip -p "$apk" assets/web-cache/src/release-1.24b.css | grep -Fq 'main.7 professional score responsive layout'
-          unzip -p "$apk" assets/web-cache/src/recognition-bridge.js | grep -Fq "dataUrl: nativeSource ? '' : await blobToDataUrl(image.blob)"
-          unzip -p "$apk" assets/web-cache/src/package-capture-controller.js | grep -Fq 'bindAndroidImageSource(id, nativeSource)'
-          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.1'"
-          unzip -p "$apk" assets/web-cache/src/services/brew-analysis-service.js | grep -Fq "BREW_SPATIAL_CONTRACT = 'brew-spatial/1.3'"
-
-          source_css_sha=$(sha256sum src/release-1.24b.css | awk '{print $1}')
-          apk_css_sha=$(unzip -p "$apk" assets/web-cache/src/release-1.24b.css | sha256sum | awk '{print $1}')
-          test "$source_css_sha" = "$apk_css_sha"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"
-          printf 'canonical-state-api\nshared-live-preview-ghost-placeholder\nsingle-activate-double-remove-longpress-preview\nbrew_ui=text-interactions\n' > android-contracts.txt
+        run: python3 scripts/verify_android_apk_contracts.py android/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Android 10 runtime startup smoke
         if: steps.compile.outputs.status == '0'
@@ -130,10 +91,34 @@ jobs:
         if: steps.compile.outputs.status == '0'
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p dist
-          cp android/app/build/outputs/apk/debug/app-debug.apk dist/LuckyBean-1.24B-full-integration-debug.apk
-          sha256sum dist/LuckyBean-1.24B-full-integration-debug.apk > dist/SHA256SUMS.txt
-          printf 'source_sha=%s\nbranch=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.6\ncache=main-6-ui2\ngroup_navigation=canonical-state-api\nsortable=shared-live-preview-ghost-placeholder\nsensory_sort=single-activate-double-remove-longpress-preview\nbrew_ui=text-interactions\nscore_layout=viewport-safe-next-line-range\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist/BUILD_PROVENANCE.txt
+          version=$(python3 -c "import json; print(json.load(open('release.json', encoding='utf-8'))['displayVersion'])")
+          artifact="dist/LuckyBean-${version}-full-integration-debug.apk"
+          cp android/app/build/outputs/apk/debug/app-debug.apk "$artifact"
+          sha256sum "$artifact" > dist/SHA256SUMS.txt
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          release = json.loads(Path('release.json').read_text(encoding='utf-8'))
+          lines = [
+              f"source_sha={os.environ['GITHUB_SHA']}",
+              f"branch={os.environ['GITHUB_REF_NAME']}",
+              f"version={release['displayVersion']}",
+              f"version_code={release['androidVersionCode']}",
+              f"revision={release['revision']}",
+              f"cache={release['cacheRevision']}",
+              f"android_user_agent={release['androidUserAgent']}",
+              "group_navigation=canonical-state-api",
+              "sortable=shared-live-preview-ghost-placeholder",
+              "sensory_sort=single-activate-double-remove-longpress-preview",
+              "brew_ui=text-interactions",
+              "score_layout=viewport-safe-next-line-range",
+          ]
+          Path('dist/BUILD_PROVENANCE.txt').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+          PY
 
       - name: Upload Android build diagnostics
         if: always()
