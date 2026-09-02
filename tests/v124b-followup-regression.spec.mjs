@@ -133,6 +133,11 @@ test('package pending field click enters its actual bean editor and requires exp
   await expect(packageRow).toHaveAttribute('role', 'button');
   await packageRow.click();
 
+  const preflight = page.locator('[data-overlay="recognition-preflight"]');
+  await expect(preflight).toBeVisible({ timeout: 10000 });
+  await expect(preflight.locator('.recognition-preflight-card')).toContainText('待确认');
+  await preflight.locator('#preflightConfirmBtn').click();
+
   const form = page.locator('#beanForm');
   await expect(form).toBeVisible({ timeout: 10000 });
   const pending = form.locator('[data-recognition-review="pending"] .evidence-row[data-evidence-field="countryCode"]');

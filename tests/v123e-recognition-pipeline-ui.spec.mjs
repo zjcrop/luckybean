@@ -46,6 +46,10 @@ test('native OCR payload is translated, structured and handed to the bean form w
   await expect(page.locator('.bag-semantic-summary')).toContainText('待确认 0 项');
 
   await page.locator('#bagHandoffBtn').click();
+  const preflight = page.locator('[data-overlay="recognition-preflight"]');
+  await expect(preflight).toBeVisible();
+  await expect(preflight.locator('.recognition-preflight-card')).toContainText('埃塞俄比亚');
+  await preflight.locator('#preflightConfirmBtn').click();
   await expect(page.locator('#beanForm')).toBeVisible();
   await expect(page.locator('#beanCountry')).toHaveValue('CO-EA');
   await expect(page.locator('#beanRegion')).toHaveValue('RG-EA-GU');
@@ -75,6 +79,10 @@ test('pending roast date requires an explicit choice and is then inserted into t
   await type.selectOption('roastDate');
   await expect(review.locator('#dateReviewContinueBtn')).toBeEnabled();
   await review.locator('#dateReviewContinueBtn').click();
+  const preflight = page.locator('[data-overlay="recognition-preflight"]');
+  await expect(preflight).toBeVisible();
+  await expect(preflight.locator('.recognition-preflight-card')).toContainText('2026-07-28');
+  await preflight.locator('#preflightConfirmBtn').click();
   await expect(page.locator('#beanForm')).toBeVisible();
   await expect(page.locator('#beanRoastDate')).toHaveValue('2026-07-28');
 });

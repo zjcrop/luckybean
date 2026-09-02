@@ -275,6 +275,9 @@ test('bean recognition splits numeric varieties, maps labeled roast levels and h
     'NET WEIGHT: 150 g'
   ].join('\n'));
   await page.locator('#parseTextBtn').click();
+  const preflight = page.locator('[data-overlay="recognition-preflight"]');
+  await expect(preflight).toBeVisible();
+  await preflight.locator('#preflightConfirmBtn').click();
   await expect(page.locator('[data-overlay="bean-form"]')).toBeVisible();
   await expect(page.locator('#beanRoast')).toHaveValue('RL-L2');
   await expect(page.locator('#beanVariety')).toHaveValue('');
