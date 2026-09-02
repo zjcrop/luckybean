@@ -13,7 +13,24 @@ const round = (value, digits = 1) => {
   return Math.round((Number(value) + Number.EPSILON) * factor) / factor;
 };
 
+function resultFlavor(analysis) {
+  return analysis?.brewResult?.flavor || analysis?.plan?.contracts?.brewResult?.flavor || null;
+}
+
+function resultFlavorMap(analysis) {
+  const flavor = resultFlavor(analysis);
+  if (!flavor || typeof flavor !== 'object') return new Map();
+  const map = new Map();
+  for (const [id] of SIGNALS) {
+    const value = number(flavor[id]);
+    if (value != null) map.set(id, Math.abs(value) > 1.5 ? value / 100 : value);
+  }
+  return map;
+}
+
 function summaryMap(analysis) {
+  const unified = resultFlavorMap(analysis);
+  if (unified.size) return unified;
   const map = new Map();
   for (const item of analysis?.trajectory?.summary || []) {
     const score = number(item.mean) == null && number(item.peak) == null
@@ -94,8 +111,9 @@ export function compareAnalyses(previousInput, currentInput) {
             : '当前方案与上次整体接近，主要变化有限。';
 
   return {
-    previousFingerprint: previous.analysisFingerprint || '',
-    currentFingerprint: current.analysisFingerprint || '',
+    previousFingerprint: previous.analysisFingerprint || previous.brewResult?.metadata?.analysisFingerprint || '',
+    currentFingerprint: current.analysisFingerprint || current.brewResult?.metadata?.analysisFingerprint || '',
+    resultContract: previous.brewResult?.version && current.brewResult?.version ? `BrewResult ${current.brewResult.version}` : 'legacy-analysis',
     signals,
     parameters,
     headline,
