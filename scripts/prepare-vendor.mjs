@@ -13,3 +13,5 @@ if (!fs.existsSync(source)) throw new Error(`jsQR runtime not installed: ${sourc
 fs.mkdirSync(targetDir, { recursive: true });
 fs.copyFileSync(source, target);
 console.log(`Vendored jsQR -> ${path.relative(root, target)}`);
+
+await import('./prepare-paddleocr-vendor.mjs');
