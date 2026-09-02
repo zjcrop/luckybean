@@ -1,7 +1,7 @@
 import { buildBrewResult } from '../brew-result-schema.js';
 
 export const BREW_PLAN_SCHEMA_VERSION = 'brew-plan/1.0';
-export const BREW_CONTRACT_ADAPTER_VERSION = 'luckybean-brew-contract-adapter/1.24P.1';
+export const BREW_CONTRACT_ADAPTER_VERSION = 'luckybean-brew-contract-adapter/1.24P.2';
 
 const STAGE_TYPES = new Set(['BLOOM', 'POUR', 'STEEP', 'STIR', 'RELEASE', 'DRAIN', 'COOL']);
 const MOTIONS = new Set(['CENTER', 'SMALL_CIRCLE', 'CIRCLE', 'SPIRAL_OUT', 'SPIRAL_IN', 'NONE']);
@@ -74,9 +74,45 @@ export function toCanonicalBrewPlan(plan = {}, input = {}) {
   };
 }
 
+function findSpatialScene(plan = {}) {
+  if (plan.executionSource === 'local-reference') return null;
+  const candidates = [
+    plan.visualization3d,
+    plan.trajectory,
+    plan.analysisSnapshot?.trajectory
+  ];
+  return candidates.find(scene => scene && /^brew-spatial\//.test(String(scene.schemaVersion || ''))) || null;
+}
+
+function flavorScale(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return null;
+  return Math.abs(number) <= 1.5 ? number * 100 : number;
+}
+
+function flavorFromSpatial(plan = {}) {
+  const spatial = findSpatialScene(plan);
+  const result = {};
+  for (const item of spatial?.summary || []) {
+    const mean = Number(item?.mean);
+    const peak = Number(item?.peak);
+    if (!Number.isFinite(mean) && !Number.isFinite(peak)) continue;
+    const score = (Number.isFinite(mean) ? mean : 0) * .58 + (Number.isFinite(peak) ? peak : 0) * .42;
+    const normalized = flavorScale(score);
+    if (normalized != null) result[String(item.id || '')] = normalized;
+  }
+  if (result.floral != null || result.fruity != null) {
+    const values = [result.floral, result.fruity].filter(Number.isFinite);
+    if (values.length) result.aroma = values.reduce((sum, value) => sum + value, 0) / values.length;
+  }
+  return result;
+}
+
 function findFlavorSource(plan = {}) {
+  const derived = flavorFromSpatial(plan);
   const sources = [plan.flavor, plan.analysis?.flavor, plan.professional?.flavor, plan.optimizer?.flavor];
-  return sources.find(source => source && typeof source === 'object' && !Array.isArray(source)) || {};
+  const explicit = sources.find(source => source && typeof source === 'object' && !Array.isArray(source)) || {};
+  return { ...derived, ...explicit };
 }
 
 function inferUncertainty(plan = {}) {
@@ -94,13 +130,28 @@ export function attachBrewContracts(plan = {}, input = {}) {
       temperature: plan.temperature || plan.professional?.temperature || null,
       trajectory: Array.isArray(plan.trajectory) ? plan.trajectory : [],
       stages: brewPlan.stages,
-      extraction: plan.extraction || plan.analysis?.extraction || null
+      extraction: plan.extraction || plan.analysis?.extraction || null,
+      spatial: findSpatialScene(plan)
     },
     flavor: findFlavorSource(plan),
-    uncertainty: inferUncertainty(plan)
+    uncertainty: inferUncertainty(plan),
+    metadata: {
+      inputFingerprint: plan.analysisSnapshot?.metadata?.inputFingerprint || null,
+      analysisFingerprint: plan.analysisFingerprint || plan.analysisSnapshot?.analysisFingerprint || null,
+      executionSource: plan.executionSource || null,
+      adapterVersion: BREW_CONTRACT_ADAPTER_VERSION
+    }
   });
+  const analysisSnapshot = plan.analysisSnapshot && typeof plan.analysisSnapshot === 'object'
+    ? {
+        ...plan.analysisSnapshot,
+        brewPlan: structuredClone(brewPlan),
+        brewResult: structuredClone(brewResult)
+      }
+    : plan.analysisSnapshot;
   return {
     ...plan,
+    ...(analysisSnapshot ? { analysisSnapshot } : {}),
     contracts: {
       ...(plan.contracts || {}),
       adapterVersion: BREW_CONTRACT_ADAPTER_VERSION,
