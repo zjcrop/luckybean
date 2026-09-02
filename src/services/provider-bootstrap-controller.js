@@ -1,5 +1,6 @@
 import { updateAllProviders, getActiveProvider } from './provider-package-service.js';
 import { reconcileCustomCodes } from './codebook-reconciliation-service.js';
+import { applyCoffeeKnowledge } from './coffee-knowledge-adapter.js';
 import { validateCodebook } from '../codebook.js';
 import { activateCodebook } from '../db.js';
 
@@ -8,11 +9,11 @@ let running = null;
 async function activateBrewIon(result, knowledgeResult = null) {
   const active = result?.active || await getActiveProvider('brewion');
   if (!active?.data) return null;
-  const data = validateCodebook(structuredClone(active.data));
   const knowledgeActive = knowledgeResult?.active || await getActiveProvider('brewion-knowledge');
-  if (knowledgeActive?.data?.contract === 'coffee-knowledge/1.0' && knowledgeActive.data?._format === 'coffee-knowledge-bundle') {
-    data.coffeeKnowledge = structuredClone(knowledgeActive.data);
-  }
+  const baseData = validateCodebook(structuredClone(active.data));
+  const data = knowledgeActive?.data
+    ? validateCodebook(applyCoffeeKnowledge(baseData, knowledgeActive.data))
+    : baseData;
   const record = {
     id: 'active',
     data,
@@ -22,6 +23,7 @@ async function activateBrewIon(result, knowledgeResult = null) {
     releaseId: active.releaseId,
     knowledgeVersion: knowledgeActive?.dataVersion || null,
     knowledgeSha256: knowledgeActive?.artifactSha256 || null,
+    knowledgeAliasesApplied: Number(data?.coffeeKnowledgeClient?.aliasesAppliedToMatchingRows || 0),
     updatedAt: active.generatedAt,
     checkedAt: new Date().toISOString()
   };
