@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: luckybean-main-signed-release
+  group: luckybean-main-signed-release-${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion || 'manual' }}
   cancel-in-progress: true
 
 env:
