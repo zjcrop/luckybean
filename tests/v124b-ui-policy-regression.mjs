@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [policy, app, beanGroupState, beanGroups, groupNavigation, sharedSort, sensorySort, runtime, polish, index, serviceWorker, androidGradle] = await Promise.all([
+const [releaseText, policy, app, beanGroupState, beanGroups, groupNavigation, sharedSort, sensorySort, runtime, polish, index, serviceWorker, androidGradle] = await Promise.all([
+  readFile('release.json', 'utf8'),
   readFile('src/features/release-1.24b-ui-policy.js', 'utf8'),
   readFile('src/app.js', 'utf8'),
   readFile('src/domain/beans/bean-group-state.js', 'utf8'),
@@ -15,8 +16,10 @@ const [policy, app, beanGroupState, beanGroups, groupNavigation, sharedSort, sen
   readFile('sw.js', 'utf8'),
   readFile('android/app/build.gradle', 'utf8')
 ]);
+const release = JSON.parse(releaseText);
 
-assert.match(policy, /UI_POLICY_REVISION = '1\.24B-main\.6'/);
+assert.match(policy, /UI_POLICY_REVISION/);
+assert.ok(policy.includes(release.revision), 'UI policy revision must match canonical release metadata');
 assert.match(policy, /button\.textContent = '合并云端'/);
 assert.match(policy, /aspect-ratio:\s*2\s*\/\s*1/);
 assert.match(app, /preference-board-strip/);
@@ -39,8 +42,6 @@ assert.match(policy, /border:\s*0\s*!important/);
 assert.match(policy, /observe\('brewContent'\)/);
 assert.match(policy, /\.lb-other-brew-panel/);
 
-// Group state is a domain-level single owner. The UI policy and release adapter cannot
-// infer active state from DOM or synthesize clicks into another controller.
 assert.doesNotMatch(policy, /page\.addEventListener\('click'/);
 assert.doesNotMatch(policy, /group-collapse-zone/);
 assert.match(beanGroupState, /export const beanGroupState/);
@@ -63,7 +64,6 @@ assert.match(groupNavigation, /LuckyBeanBeanGroupState/);
 assert.match(groupNavigation, /luckybean:navigation-back/);
 assert.doesNotMatch(groupNavigation, /LuckyBeanV099tBeanGroups|api\.closeActiveGroup|dispatchEvent\(new MouseEvent|nativePanel|nativeCollapse|dx<=-72|\.bean-grid/);
 
-// All user-orderable scenes share one live-preview engine.
 assert.match(sharedSort, /globalThis\.LuckyBeanSortable = \{ register \}/);
 assert.match(sharedSort, /lb-sort-ghost/);
 assert.match(sharedSort, /lb-sort-placeholder/);
@@ -85,19 +85,19 @@ assert.match(runtime, /shared-sortable/);
 assert.ok(runtime.indexOf("feature('shared-sortable'") < runtime.indexOf("feature('sensory-tag-sort'"), 'shared sorter must load before sensory adapter');
 assert.match(runtime, /release-1\.24b-ui-policy\.js/);
 assert.match(runtime, /sensory-tag-sort-controller\.js/);
-assert.match(runtime, /1\.24B-main\.6/);
+assert.ok(runtime.includes(release.revision));
 assert.match(polish, /import '\.\/release-1\.24b-ui-policy\.js';/);
-assert.match(index, /release-revision" content="1\.24B-main\.6"/);
-assert.match(index, /release-1\.24b-polish\.js\?v=1\.24B-main\.6/);
-assert.match(serviceWorker, /REVISION = '1\.24B-main\.6'/);
-assert.match(serviceWorker, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-6-ui2`/);
+assert.ok(index.includes(`release-revision" content="${release.revision}"`));
+assert.ok(index.includes(`release-1.24b-polish.js?v=${release.revision}`));
+assert.ok(serviceWorker.includes(`REVISION = '${release.revision}'`));
+assert.ok(serviceWorker.includes(`CACHE_NAME = \`\${CACHE_PREFIX}${release.cacheRevision}\``));
 assert.match(serviceWorker, /release-1\.24b-ui-policy\.js/);
 assert.match(serviceWorker, /release-1\.24b-group-navigation\.js/);
 assert.match(serviceWorker, /src\/ui\/sortable-controller\.js/);
 assert.match(serviceWorker, /sensory-tag-sort-controller\.js/);
 
 assert.match(androidGradle, /include 'src\/\*\*'/);
-assert.match(androidGradle, /versionName '1\.24B'/);
-assert.match(androidGradle, /versionCode 102402/);
+assert.match(androidGradle, /versionName releaseMeta\.displayVersion as String/);
+assert.match(androidGradle, /versionCode \(releaseMeta\.androidVersionCode as int\)/);
 
-console.log('LuckyBean 1.24B single-owner bean group state, hidden preference leaderboard policy, shared live-preview sorting, text brew UI and Web/Android parity contracts passed');
+console.log(`LuckyBean ${release.displayVersion} single-owner bean group state, hidden preference leaderboard policy, shared live-preview sorting, text brew UI and Web/Android parity contracts passed`);
