@@ -1,4 +1,5 @@
 const CORE_TABLES = ['countries', 'regions', 'entities', 'varieties', 'processes', 'flavors'];
+const ENTITY_RESOLUTION_MODEL_KEY = 'catalog/entity_resolution_issues_v1.json';
 
 function aliasText(record) {
   return String(record?.alias || record?.name || '').normalize('NFKC').trim();
@@ -17,6 +18,11 @@ function usableLocalizedRecord(record) {
   // never promotes their source metadata to official/canonical status.
   return ['ai_translated', 'ai_transliterated'].includes(type)
     && String(record.reviewStatus || '').startsWith('pending');
+}
+
+function resolutionIssuesFromKnowledge(knowledge) {
+  const model = knowledge?.supplementalModels?.[ENTITY_RESOLUTION_MODEL_KEY];
+  return Array.isArray(model?.issues) ? model.issues : [];
 }
 
 export function applyCoffeeKnowledge(baseBook, knowledge) {
@@ -58,12 +64,18 @@ export function applyCoffeeKnowledge(baseBook, knowledge) {
     });
   }
 
+  const resolutionIssues = resolutionIssuesFromKnowledge(knowledge)
+    .filter(issue => issue?.coreCode && issue?.blockAutomaticEntityResolution === true)
+    .map(issue => structuredClone(issue));
+
   book.coffeeKnowledge = structuredClone(knowledge);
   book.coffeeKnowledgeClient = {
     contract: knowledge.contract,
     version: String(knowledge.version || ''),
     aliasesAppliedToMatchingRows: applied.length,
     appliedAliases: applied,
+    entityResolutionIssues: resolutionIssues,
+    blockedAutomaticEntityCodes: resolutionIssues.map(issue => String(issue.coreCode)),
     qrIndexesChanged: false
   };
   return book;
@@ -82,4 +94,33 @@ export function canonicalRegionId(book, coreCode) {
 export function canonicalCountryDisplay(book, coreCode) {
   const country = book?.coffeeKnowledge?.countries?.find(record => record?.code === coreCode);
   return country?.canonicalGeo || null;
+}
+
+export function entityResolutionIssue(book, coreCode) {
+  const code = String(coreCode || '');
+  if (!code) return null;
+  const clientIssue = book?.coffeeKnowledgeClient?.entityResolutionIssues?.find(issue => String(issue?.coreCode || '') === code);
+  if (clientIssue) return clientIssue;
+  return resolutionIssuesFromKnowledge(book?.coffeeKnowledge)
+    .find(issue => String(issue?.coreCode || '') === code) || null;
+}
+
+export function automaticEntityResolutionDecision(book, coreCode, { explicitCoreCode = false } = {}) {
+  const code = String(coreCode || '');
+  const issue = entityResolutionIssue(book, code);
+  if (!issue || issue.blockAutomaticEntityResolution !== true) {
+    return { coreCode: code, blocked: false, explicitCoreCode: Boolean(explicitCoreCode), issue: null, requiredContext: [] };
+  }
+  const requiredContext = Array.isArray(issue.requiredContext) ? [...issue.requiredContext] : [];
+  return {
+    coreCode: code,
+    blocked: !explicitCoreCode,
+    explicitCoreCode: Boolean(explicitCoreCode),
+    issueClass: String(issue.issueClass || ''),
+    resolutionStatus: String(issue.resolutionStatus || ''),
+    automaticRecognitionPolicy: String(issue.automaticRecognitionPolicy || 'manual_confirmation_required'),
+    requiredContext,
+    manualConfirmationRequired: !explicitCoreCode,
+    issue
+  };
 }
