@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const read = path => fs.readFileSync(path, 'utf8');
+const release = JSON.parse(read('release.json'));
 const app = read('src/app.js');
 const css = read('src/ui/app-components.css');
 const releaseCss = read('src/release-1.24b.css');
@@ -12,10 +13,11 @@ const flavorGuide = read('src/ui/flavor-guide-controller.js');
 const cooling = read('src/ui/brew-cooling-controller.js');
 const build = read('android/app/build.gradle');
 
-const versionCodeMatch = build.match(/versionCode\s+(\d+)/);
-assert.ok(versionCodeMatch, 'Android versionCode missing');
-assert.equal(Number(versionCodeMatch[1]), 102402);
-assert.match(build, /versionName '1\.24B'/);
+assert.equal(release.displayVersion, '1.24P');
+assert.equal(release.androidVersionCode, 102416);
+assert.match(build, /releaseMetaFile = new File\(repositoryRoot, 'release\.json'\)/);
+assert.match(build, /versionCode \(releaseMeta\.androidVersionCode as int\)/);
+assert.match(build, /versionName releaseMeta\.displayVersion as String/);
 
 const renderStart = app.indexOf('function renderBrew()');
 const renderEnd = app.indexOf('function openCoolingDialog', renderStart);
@@ -56,4 +58,4 @@ assert.match(releaseCss,/\.lb-compact-hidden-label/);
 assert.match(releaseIntegration,/灰色框选为自动计算选项/);
 assert.match(releaseUi,/data-lb-local-method-row/);
 assert.match(releaseUi,/研磨|fineAnchor/);
-console.log('LuckyBean 1.24B compact small-brew, automatic-field and Android upgrade contract passed');
+console.log(`LuckyBean ${release.displayVersion} compact small-brew, automatic-field and Android upgrade contract passed`);
