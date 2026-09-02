@@ -1,6 +1,5 @@
 name: LuckyBean observable main gate
 
-# Final 1.24B main.3 validation trigger. Keep this workflow read/diagnose-only with respect to main.
 on:
   push:
     branches: [main]
@@ -16,14 +15,20 @@ concurrency:
 jobs:
   diagnose:
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
           cache: npm
-      - name: Run observable release gate and full legacy scan
+      - name: Load canonical release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "DISPLAY_VERSION=$(jq -r .displayVersion release.json)" >> "$GITHUB_ENV"
+          echo "RELEASE_REVISION=$(jq -r .revision release.json)" >> "$GITHUB_ENV"
+      - name: Run observable source gate
         id: gate
         shell: bash
         run: |
@@ -37,32 +42,37 @@ jobs:
             js_status=99
           fi
           if [ "$install_status" -eq 0 ] && [ "$js_status" -eq 0 ]; then
+            node scripts/validate-release-meta.mjs > /tmp/release-meta.log 2>&1
+            release_status=$?
             npm run test:static > /tmp/static.log 2>&1
             static_status=$?
           else
+            release_status=99
             static_status=99
           fi
           {
-            echo '# LuckyBean legacy/current-version reference scan'
-            echo '# Matches are evidence only; legacy compatibility references may be intentional.'
-            grep -RInE --exclude-dir=.git --exclude-dir=node_modules --exclude='*.lock' \
-              "1\\.23E|v123e|V123E|1023[0-9]{2}|main-v123e|1\\.23D|v123d|V123D|main-v123d" \
+            echo '# LuckyBean legacy version reference scan'
+            echo '# Evidence only: old filenames/tests may remain intentionally for compatibility.'
+            grep -RInE --exclude-dir=.git --exclude-dir=node_modules --exclude='package-lock.json' \
+              "1\\.24B|1\\.23E|1\\.23D|102402|main-v124b|main-v123e|main-v123d" \
               tests scripts src android .github package.json manifest.webmanifest index.html sw.js DEVELOPMENT_STATUS.md README.md 2>/dev/null || true
           } > /tmp/legacy-scan.log
-          printf 'install=%s\njs=%s\nstatic=%s\n' "$install_status" "$js_status" "$static_status" > /tmp/gate-status
+          printf 'install=%s\njs=%s\nrelease=%s\nstatic=%s\n' "$install_status" "$js_status" "$release_status" "$static_status" > /tmp/gate-status
           cat /tmp/gate-status
+          tail -c 8000 /tmp/release-meta.log 2>/dev/null || true
           tail -c 8000 /tmp/static.log 2>/dev/null || true
           exit 0
-      - name: Write observable receipt, logs and full legacy scan
+      - name: Write observable receipt
         shell: bash
         run: |
           set -euo pipefail
           . /tmp/gate-status
           overall=false
-          if [ "$install" = 0 ] && [ "$js" = 0 ] && [ "$static" = 0 ]; then overall=true; fi
-          first_error=$( { grep -m1 -E 'AssertionError|Static regression failed|ERR_ASSERTION|Error:' /tmp/static.log 2>/dev/null || true; } | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))' )
+          if [ "$install" = 0 ] && [ "$js" = 0 ] && [ "$release" = 0 ] && [ "$static" = 0 ]; then overall=true; fi
+          first_error=$( { grep -hm1 -E 'AssertionError|Static regression failed|ERR_ASSERTION|Error:' /tmp/release-meta.log /tmp/static.log 2>/dev/null || true; } | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))' )
           receipt=$(mktemp)
-          printf '{"source_sha":"%s","version":"1.24B","install_status":%s,"js_status":%s,"static_status":%s,"passed":%s,"first_error":%s,"generated_at":"%s"}\n' "$GITHUB_SHA" "$install" "$js" "$static" "$overall" "$first_error" "$(date -u +%FT%TZ)" > "$receipt"
+          printf '{"source_sha":"%s","version":"%s","revision":"%s","install_status":%s,"js_status":%s,"release_status":%s,"static_status":%s,"passed":%s,"first_error":%s,"generated_at":"%s"}\n' \
+            "$GITHUB_SHA" "$DISPLAY_VERSION" "$RELEASE_REVISION" "$install" "$js" "$release" "$static" "$overall" "$first_error" "$(date -u +%FT%TZ)" > "$receipt"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git fetch origin ci-status:ci-status 2>/dev/null || true
@@ -73,11 +83,12 @@ jobs:
             git rm -rf . >/dev/null 2>&1 || true
           fi
           mkdir -p status
-          cp "$receipt" status/1.24B.json
-          cp /tmp/static.log status/1.24B-static.log 2>/dev/null || true
-          cp /tmp/js-check.log status/1.24B-js.log 2>/dev/null || true
-          cp /tmp/npm-ci.log status/1.24B-npm.log 2>/dev/null || true
-          cp /tmp/legacy-scan.log status/1.24B-legacy-scan.log 2>/dev/null || true
+          cp "$receipt" "status/${DISPLAY_VERSION}.json"
+          cp /tmp/static.log "status/${DISPLAY_VERSION}-static.log" 2>/dev/null || true
+          cp /tmp/release-meta.log "status/${DISPLAY_VERSION}-release-meta.log" 2>/dev/null || true
+          cp /tmp/js-check.log "status/${DISPLAY_VERSION}-js.log" 2>/dev/null || true
+          cp /tmp/npm-ci.log "status/${DISPLAY_VERSION}-npm.log" 2>/dev/null || true
+          cp /tmp/legacy-scan.log "status/${DISPLAY_VERSION}-legacy-scan.log" 2>/dev/null || true
           git add status/
-          git commit -m "ci-status: LuckyBean 1.24B $GITHUB_SHA" || true
+          git commit -m "ci-status: LuckyBean ${DISPLAY_VERSION} $GITHUB_SHA" || true
           git push origin HEAD:ci-status
