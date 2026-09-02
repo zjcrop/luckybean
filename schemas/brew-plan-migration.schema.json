@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zjcrop.github.io/luckybean/contracts/brew-plan-migration/1.0",
+  "title": "Lucky Bean brew plan migration rules",
+  "description": "Migration rules from legacy brew plans to extensible brew-plan format.",
+  "type": "object",
+  "properties": {
+    "sourceSchema": {
+      "type": "string"
+    },
+    "targetSchema": {
+      "const": "brew-plan/1.0"
+    },
+    "defaultValues": {
+      "type": "object",
+      "properties": {
+        "brewType": {
+          "const": "POUR_OVER"
+        },
+        "valveState": {
+          "const": "OPEN"
+        },
+        "stages": {
+          "type": "array"
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "properties": {
+        "preserveLegacyPlan": {
+          "const": true
+        },
+        "allowMissingNewFields": {
+          "const": true
+        }
+      }
+    }
+  }
+}
