@@ -1,0 +1,73 @@
+name: One-time recognition preflight test migration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/migrate-recognition-preflight-tests.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Migrate legacy recognition navigation assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              if new in text:
+                  return
+              if old not in text:
+                  raise SystemExit(f'missing migration anchor in {path}: {old!r}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          replace_once(
+              'tests/v120-requirements-ui.spec.mjs',
+              "  await page.locator('#parseTextBtn').click();\n  await expect(page.locator('[data-overlay=\"bean-form\"]')).toBeVisible();",
+              "  await page.locator('#parseTextBtn').click();\n  const preflight = page.locator('[data-overlay=\"recognition-preflight\"]');\n  await expect(preflight).toBeVisible();\n  await preflight.locator('#preflightConfirmBtn').click();\n  await expect(page.locator('[data-overlay=\"bean-form\"]')).toBeVisible();"
+          )
+
+          replace_once(
+              'tests/v123e-recognition-pipeline-ui.spec.mjs',
+              "  await page.locator('#bagHandoffBtn').click();\n  await expect(page.locator('#beanForm')).toBeVisible();",
+              "  await page.locator('#bagHandoffBtn').click();\n  const preflight = page.locator('[data-overlay=\"recognition-preflight\"]');\n  await expect(preflight).toBeVisible();\n  await expect(preflight.locator('.recognition-preflight-card')).toContainText('埃塞俄比亚');\n  await preflight.locator('#preflightConfirmBtn').click();\n  await expect(page.locator('#beanForm')).toBeVisible();"
+          )
+
+          replace_once(
+              'tests/v123e-recognition-pipeline-ui.spec.mjs',
+              "  await review.locator('#dateReviewContinueBtn').click();\n  await expect(page.locator('#beanForm')).toBeVisible();",
+              "  await review.locator('#dateReviewContinueBtn').click();\n  const preflight = page.locator('[data-overlay=\"recognition-preflight\"]');\n  await expect(preflight).toBeVisible();\n  await expect(preflight.locator('.recognition-preflight-card')).toContainText('2026-07-28');\n  await preflight.locator('#preflightConfirmBtn').click();\n  await expect(page.locator('#beanForm')).toBeVisible();"
+          )
+
+          replace_once(
+              'tests/v124b-followup-regression.spec.mjs',
+              "  await packageRow.click();\n\n  const form = page.locator('#beanForm');",
+              "  await packageRow.click();\n\n  const preflight = page.locator('[data-overlay=\"recognition-preflight\"]');\n  await expect(preflight).toBeVisible({ timeout: 10000 });\n  await expect(preflight.locator('.recognition-preflight-card')).toContainText('待确认');\n  await preflight.locator('#preflightConfirmBtn').click();\n\n  const form = page.locator('#beanForm');"
+          )
+          PY
+          node --check tests/v120-requirements-ui.spec.mjs
+          node --check tests/v123e-recognition-pipeline-ui.spec.mjs
+          node --check tests/v124b-followup-regression.spec.mjs
+          git diff --check
+      - name: Commit migrated tests and remove migration workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'zjcrop'
+          git config user.email '127176814+zjcrop@users.noreply.github.com'
+          git rm .github/workflows/migrate-recognition-preflight-tests.yml
+          git add tests/v120-requirements-ui.spec.mjs tests/v123e-recognition-pipeline-ui.spec.mjs tests/v124b-followup-regression.spec.mjs
+          git commit -m 'test: follow recognition preflight before bean form assertions'
+          git push origin HEAD:main
