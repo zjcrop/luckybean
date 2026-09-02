@@ -2,9 +2,8 @@ import { get, put } from '../db.js';
 
 const DEVICE_RECORD_ID = 'cloud.device.id.v3';
 const SPLASH_READY_TIMEOUT_MS = 12000;
-const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.3';
-// Dedicated cache key for the restored native recommendation prompt runtime.
-const APP_MODULE_REVISION = '1.24B-main.15-reminder-trigger';
+const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.1';
+const APP_MODULE_REVISION = RELEASE_REVISION;
 let enterRequested = false;
 let shellReady = false;
 
