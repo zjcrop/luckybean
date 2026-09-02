@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
 const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const release = JSON.parse(read('release.json'));
 const app = read('src/app.js');
 const professional = read('src/sensory-professional-controller.js');
 const integrity = read('src/integrity-ui-controller.js');
@@ -9,6 +10,7 @@ const account = read('src/ui/account-sync-panel.js');
 const runtime = read('src/features/runtime-features.js');
 const sw = read('sw.js');
 const androidBuild = read('android/app/build.gradle');
+const androidActivity = read('android/app/src/main/java/com/luckybean/app/MainActivity.java');
 const androidBridge = read('android/native-bridge.js');
 const dataContract = JSON.parse(read('contracts/luckybean-brew-data.schema.json'));
 
@@ -50,12 +52,17 @@ assert.match(account, /<span>账户<\/span><small>唯一的登录与自动同步
 assert.doesNotMatch(runtime, /postbrew-sensory/);
 assert.doesNotMatch(sw, /postbrew-sensory-controller/);
 assert.match(androidBuild, /applicationId 'com\.luckybean\.app'/);
-const versionCodeMatch = androidBuild.match(/versionCode\s+(\d+)/);
-assert.ok(versionCodeMatch, 'Android versionCode missing');
-assert.equal(Number(versionCodeMatch[1]), 102402, `LuckyBean 1.24B versionCode mismatch: ${versionCodeMatch[1]}`);
-assert.match(androidBuild, /versionName '1\.24B'/);
+assert.match(androidBuild, /releaseMetaFile = new File\(repositoryRoot, 'release\.json'\)/);
+assert.match(androidBuild, /new JsonSlurper\(\)\.parse\(releaseMetaFile\)/);
+assert.match(androidBuild, /versionCode \(releaseMeta\.androidVersionCode as int\)/);
+assert.match(androidBuild, /versionName releaseMeta\.displayVersion as String/);
+assert.equal(release.androidVersionCode, 102416);
+assert.equal(release.displayVersion, '1.24P');
+assert.equal(release.androidUserAgent, `LuckyBeanAndroid/${release.displayVersion}`);
+assert.match(androidActivity, /LuckyBeanAndroid\/" \+ BuildConfig\.VERSION_NAME/);
+assert.doesNotMatch(androidActivity, /LuckyBeanAndroid\/1\.24B/);
 assert.match(androidBridge, /https:\/\/zjcrop\.github\.io\/luckybean\//);
 assert.doesNotMatch(androidBridge, /zjcrop\.github\.io\/(?:BrewIon\/luckybean|LuckyBean)\//);
 assert.equal(dataContract.$id, 'https://zjcrop.github.io/luckybean/contracts/luckybean-brew-data.schema.json');
 
-console.log('v1.2.5 independent sensory state machines and LuckyBean 1.24B Android package contracts passed');
+console.log(`v1.2.5 independent sensory state machines and LuckyBean ${release.displayVersion} Android package contracts passed`);
