@@ -6,6 +6,11 @@ export const PROVIDER_REGISTRY = Object.freeze({
     contract: 'coffee-codebook/1.0', required: true,
     manifestUrl: 'https://raw.githubusercontent.com/zjcrop/BrewIon/main/provider/releases/latest.json'
   },
+  'brewion-knowledge': {
+    contract: 'coffee-knowledge/1.0', required: false,
+    manifestProvider: 'brewion', manifestShape: 'knowledge-release',
+    manifestUrl: 'https://raw.githubusercontent.com/zjcrop/BrewIon/main/coffee-knowledge/releases/latest.json'
+  },
   'grind-psd': {
     contract: 'grinder-reference/1.0', required: false,
     manifestUrl: 'https://raw.githubusercontent.com/zjcrop/Grind-PSD/main/provider/releases/latest.json'
@@ -40,24 +45,62 @@ function requestDone(tx) {
     tx.onabort = () => reject(tx.error || new Error('Provider切换已回滚'));
   });
 }
-function artifactFor(manifest) {
+function absoluteArtifactUrl(manifestUrl, name) {
+  try { return new URL(String(name || ''), manifestUrl).href; }
+  catch { return ''; }
+}
+function artifactFor(registry, manifest) {
+  if (registry.manifestShape === 'knowledge-release') {
+    const artifact = manifest?.artifact;
+    if (!artifact?.name) return null;
+    return {
+      kind: 'knowledge',
+      url: absoluteArtifactUrl(registry.manifestUrl, artifact.name),
+      sha256: artifact.sha256,
+      bytes: artifact.bytes
+    };
+  }
   return manifest?.artifacts?.find(item => item.kind === 'full') || manifest?.artifacts?.find(item => item.kind === 'catalog') || manifest?.artifacts?.[0];
 }
-function validateManifest(provider, registry, manifest) {
-  if (!manifest || manifest.provider !== provider) throw new Error(`${provider} Manifest身份不匹配`);
+function normalizedReleaseMetadata(provider, registry, manifest) {
+  const expectedProvider = registry.manifestProvider || provider;
+  if (!manifest || manifest.provider !== expectedProvider) throw new Error(`${provider} Manifest身份不匹配`);
   if (manifest.contract !== registry.contract) throw new Error(`${provider}契约不匹配：${manifest.contract || 'missing'}`);
-  if (!manifest.releaseId || !manifest.dataVersion) throw new Error(`${provider} Manifest缺少版本`);
-  const artifact = artifactFor(manifest);
+  const artifact = artifactFor(registry, manifest);
   if (!artifact?.url || !artifact.sha256 || !Number.isFinite(Number(artifact.bytes))) throw new Error(`${provider}缺少可校验的完整数据包`);
-  return artifact;
+
+  if (registry.manifestShape === 'knowledge-release') {
+    if (!manifest.version || manifest._format !== 'coffee-knowledge-release-manifest') throw new Error(`${provider} Manifest缺少知识库版本`);
+    const releaseId = `knowledge:${manifest.version}:${String(artifact.sha256).slice(0, 16)}`;
+    return {
+      artifact,
+      releaseId,
+      dataVersion: String(manifest.version),
+      schemaVersion: String(manifest._schemaVersion || ''),
+      generatedAt: manifest.updatedAt || ''
+    };
+  }
+
+  if (!manifest.releaseId || !manifest.dataVersion) throw new Error(`${provider} Manifest缺少版本`);
+  return {
+    artifact,
+    releaseId: manifest.releaseId,
+    dataVersion: manifest.dataVersion,
+    schemaVersion: manifest.schemaVersion || '',
+    generatedAt: manifest.generatedAt || ''
+  };
 }
 async function parseAndVerify(provider, manifest, artifact) {
   const response = await timeoutFetch(artifact.url, 15000);
   if (response.bytes.byteLength !== Number(artifact.bytes)) throw new Error(`${provider}数据包字节数不一致`);
-  const hash = await sha256Hex(response.text);
+  const hash = await sha256Hex(response.bytes);
   if (hash.toLowerCase() !== String(artifact.sha256).toLowerCase()) throw new Error(`${provider}数据包SHA-256校验失败`);
   let data;
   try { data = JSON.parse(response.text); } catch { throw new Error(`${provider}数据包不是有效JSON`); }
+  if (provider === 'brewion-knowledge') {
+    if (data?._format !== 'coffee-knowledge-bundle' || data?.contract !== 'coffee-knowledge/1.0') throw new Error('brewion-knowledge数据包契约无效');
+    if (data?.compatibility?.qrIndexesChanged === true) throw new Error('brewion-knowledge不得拥有或修改QR索引');
+  }
   return { data, hash, bytes: response.bytes.byteLength, artifactUrl: response.url };
 }
 
@@ -73,8 +116,9 @@ export async function updateProvider(provider, { force = false } = {}) {
   const manifestResponse = await timeoutFetch(registry.manifestUrl, 10000);
   let manifest;
   try { manifest = JSON.parse(manifestResponse.text); } catch { throw new Error(`${provider} Manifest不是有效JSON`); }
-  const artifact = validateManifest(provider, registry, manifest);
-  if (!force && current?.releaseId === manifest.releaseId && current?.artifactSha256 === artifact.sha256) {
+  const release = normalizedReleaseMetadata(provider, registry, manifest);
+  const artifact = release.artifact;
+  if (!force && current?.releaseId === release.releaseId && current?.artifactSha256 === artifact.sha256) {
     return { updated: false, active: current, checked: true };
   }
   const verified = await parseAndVerify(provider, manifest, artifact);
@@ -82,10 +126,10 @@ export async function updateProvider(provider, { force = false } = {}) {
     id: `${CANDIDATE_PREFIX}${provider}`,
     provider,
     contract: manifest.contract,
-    releaseId: manifest.releaseId,
-    dataVersion: manifest.dataVersion,
-    schemaVersion: manifest.schemaVersion || '',
-    generatedAt: manifest.generatedAt || '',
+    releaseId: release.releaseId,
+    dataVersion: release.dataVersion,
+    schemaVersion: release.schemaVersion,
+    generatedAt: release.generatedAt,
     manifest: structuredClone(manifest),
     artifactSha256: verified.hash,
     artifactBytes: verified.bytes,
@@ -98,7 +142,7 @@ export async function updateProvider(provider, { force = false } = {}) {
   const store = tx.objectStore('syncMetadata');
   store.put(candidate);
   store.put({ ...candidate, id: `${ACTIVE_PREFIX}${provider}`, activatedAt: new Date().toISOString() });
-  store.put({ id: `${CHECK_PREFIX}${provider}`, provider, checkedAt: new Date().toISOString(), releaseId: manifest.releaseId, ok: true });
+  store.put({ id: `${CHECK_PREFIX}${provider}`, provider, checkedAt: new Date().toISOString(), releaseId: release.releaseId, ok: true });
   await requestDone(tx);
   const active = { ...candidate, id: `${ACTIVE_PREFIX}${provider}` };
   document.dispatchEvent(new CustomEvent('luckybean:provider-updated', { detail: { provider, previous: current, active } }));
