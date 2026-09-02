@@ -55,6 +55,9 @@ tasks.register('syncLuckyBeanWebAssets') {
 android {
     namespace 'com.luckybean.app'
     compileSdk 35
+    buildFeatures {
+        buildConfig true
+    }
     defaultConfig {
         applicationId 'com.luckybean.app'
         minSdk 26
