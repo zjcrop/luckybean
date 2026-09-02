@@ -16,6 +16,18 @@ function transactionDone(tx) {
   });
 }
 
+function brewResultBaseline(record) {
+  const result = record?.analysisSnapshot?.brewResult || record?.analysisSnapshot?.plan?.contracts?.brewResult;
+  if (!result || typeof result !== 'object') return null;
+  return {
+    contract: `BrewResult/${result.version || 'unknown'}`,
+    analysisFingerprint: result.metadata?.analysisFingerprint || record?.analysisSnapshot?.analysisFingerprint || '',
+    executionSource: result.metadata?.executionSource || record?.analysisSnapshot?.plan?.executionSource || '',
+    flavor: structuredClone(result.flavor || {}),
+    uncertainty: structuredClone(result.uncertainty || {})
+  };
+}
+
 export async function attachSensoryToCompletedBrew({ recordId, sensoryRecord, nextPlanDraft = null }) {
   if (!recordId) throw new Error('缺少冲煮历史记录ID');
   if (!sensoryRecord?.id) throw new Error('缺少品鉴记录ID');
@@ -95,8 +107,26 @@ export async function attachOptimizationDraft({ recordId, sensoryRecordId, nextP
     const sensoryRecord=await requestValue(sensory.get(sensoryRecordId));
     if (!record || record.schemaVersion!==BREW_HISTORY_SCHEMA || !sensoryRecord) { tx.abort(); throw new Error('冲煮或品鉴记录不存在'); }
     const at=new Date().toISOString(), revision=Number(record.revision||1)+1, revisionId=`${record.id}:revision:${revision}`;
-    const draft={ ...structuredClone(nextPlanDraft), optimizationStatus:'pending-validation', sourceHistoryId:record.id, sourceSensoryId:sensoryRecord.id, createdAt:nextPlanDraft.createdAt||at };
-    const next={ ...record, nextPlanDraft:draft, correctedPlanId:draft.id, optimizationAssessment:structuredClone(assessment||sensoryRecord.optimizationAssessment||null), revision, revisionHeadId:revisionId, updatedAt:at, syncState:'pending' };
+    const baseline=brewResultBaseline(record);
+    const draft={
+      ...structuredClone(nextPlanDraft),
+      optimizationStatus:'pending-validation',
+      sourceHistoryId:record.id,
+      sourceSensoryId:sensoryRecord.id,
+      optimizationBaseline:baseline,
+      createdAt:nextPlanDraft.createdAt||at
+    };
+    const next={
+      ...record,
+      nextPlanDraft:draft,
+      correctedPlanId:draft.id,
+      optimizationAssessment:structuredClone(assessment||sensoryRecord.optimizationAssessment||null),
+      optimizationBaseline:baseline,
+      revision,
+      revisionHeadId:revisionId,
+      updatedAt:at,
+      syncState:'pending'
+    };
     sensory.put({ ...sensoryRecord, correctedPlanId:draft.id, optimizationStatus:'pending-validation', updatedAt:at });
     sessions.put(next);
     revisions.put({ id:revisionId, brewSessionId:record.id, revision, kind:'optimization-draft-created', snapshot:structuredClone(next), createdAt:at });
@@ -120,16 +150,21 @@ export async function completeOptimizationValidation({ validation, newSensoryRec
     if (!source?.nextPlanDraft || (sourceSensoryId && source.nextPlanDraft.sourceSensoryId!==sourceSensoryId)) {
       tx.abort(); return null;
     }
+    const validationHistoryId=String(newSensoryRecord.brewSessionId||'');
+    const validationHistory=validationHistoryId ? await requestValue(sessions.get(validationHistoryId)) : null;
     const originalKeys=new Set((source.optimizationAssessment?.issues||source.nextPlanDraft.correction?.assessment?.issues||[]).map(issue=>issue.key));
     const repeated=(newSensoryRecord.optimizationAssessment?.issues||[]).map(issue=>issue.key).filter(key=>originalKeys.has(key));
     const executionReliable=newSensoryRecord.optimizationAssessment?.executionReliable!==false;
     const status=!executionReliable?'inconclusive':repeated.length===0?'effective':repeated.length<originalKeys.size?'partially-effective':'ineffective';
     const at=new Date().toISOString(), revision=Number(source.revision||1)+1, revisionId=`${source.id}:revision:${revision}`;
     const validationResult={
-      contract:'brew-optimization-validation/1.0', status, validatedAt:at,
+      contract:'brew-optimization-validation/1.1', status, validatedAt:at,
       sourceHistoryId:source.id, sourceSensoryId:sourceSensoryId||source.nextPlanDraft.sourceSensoryId,
-      validationHistoryId:String(newSensoryRecord.brewSessionId||''), validationSensoryId:newSensoryRecord.id,
+      validationHistoryId, validationSensoryId:newSensoryRecord.id,
       originalIssueKeys:[...originalKeys], repeatedIssueKeys:repeated,
+      baselineBrewResult:source.optimizationBaseline||brewResultBaseline(source),
+      validationBrewResult:brewResultBaseline(validationHistory),
+      modelFlavorUsedAsSensoryTruth:false,
       reason:!executionReliable?'本次实际执行存在明显偏差，不能可靠判断方案效果。':repeated.length===0?'原低分维度未再次出现。':`仍出现：${repeated.join('、')}`
     };
     const draft={...source.nextPlanDraft,optimizationStatus:status,validationResult};
