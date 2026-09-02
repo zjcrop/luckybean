@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 const BASE_URL = 'http://127.0.0.1:4173';
 const PNG_1X1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
 
-test('native OCR payload is translated, structured and handed to the bean form without the legacy parser race', async ({ page }) => {
+test('native OCR payload is translated, structured, confirmed and handed to the bean form without the legacy parser race', async ({ page }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/, route => route.abort('failed'));
   await page.goto(`${BASE_URL}/?recognition-pipeline=2`, { waitUntil: 'domcontentloaded' });
   await page.locator('#splashScreen').click();
