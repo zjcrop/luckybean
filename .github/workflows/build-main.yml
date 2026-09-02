@@ -161,15 +161,19 @@ jobs:
           web_name="LuckyBean-${DISPLAY_VERSION}-web.zip"
           notes="${DISPLAY_VERSION} ${RELEASE_REVISION} signed release. Same-SHA tests, Pages browser smoke, embedded source parity and official certificate are verified before publication."
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            # GITHUB_TOKEN cannot PATCH an existing Release target when the resolved
+            # commit contains workflow changes. The tag is the immutable source
+            # identity; move it first, then replace only release assets.
             git tag -f "$RELEASE_TAG" "$SOURCE_SHA"
             git push --force origin "refs/tags/$RELEASE_TAG"
-            gh release edit "$RELEASE_TAG" --target "$SOURCE_SHA" --title "LuckyBean ${DISPLAY_VERSION}" --notes "$notes"
             gh release upload "$RELEASE_TAG" "dist/$apk_name" "dist/$web_name" dist/BUILD_PROVENANCE.json dist/SHA256SUMS.txt --clobber
           else
             gh release create "$RELEASE_TAG" "dist/$apk_name" "dist/$web_name" dist/BUILD_PROVENANCE.json dist/SHA256SUMS.txt --target "$SOURCE_SHA" --title "LuckyBean ${DISPLAY_VERSION}" --notes "$notes"
           fi
           tag_sha=$(git ls-remote origin "refs/tags/$RELEASE_TAG" | awk '{print $1}')
           test "$tag_sha" = "$SOURCE_SHA"
+          release_assets=$(gh release view "$RELEASE_TAG" --json assets --jq '[.assets[].name]')
+          printf '%s' "$release_assets" | jq -e --arg apk "$apk_name" --arg web "$web_name" 'index($apk) != null and index($web) != null and index("BUILD_PROVENANCE.json") != null and index("SHA256SUMS.txt") != null' >/dev/null
           printf '%s' "$tag_sha" > /tmp/luckybean-release-target-sha.txt
       - name: Write verifiable release receipt
         shell: bash
