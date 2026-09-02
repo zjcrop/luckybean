@@ -1,4 +1,5 @@
 import { sha256Hex } from '../utils.js';
+import { attachBrewContracts } from '../contracts/brew-contract-adapter.js';
 
 const ANALYSIS_CONTRACT = 'brew-analysis/2.0';
 const SPATIAL_CONTRACT = 'brew-spatial/1.2';
@@ -27,7 +28,7 @@ export async function createLocalReferenceAnalysis(input, plan, reason = '') {
   const fingerprint = `local:${await sha256Hex(JSON.stringify({ input, stages: plan?.stages || [] }))}`;
   const trajectory = {
     schemaVersion: SPATIAL_CONTRACT,
-    generatedBy: 'luckybean-local-reference/1.0.0',
+    generatedBy: 'luckybean-local-reference/1.1.0',
     planFingerprint: fingerprint,
     axes: {
       x: { id: 'time_s', label: '时间', unit: 's' },
@@ -68,15 +69,23 @@ export async function createLocalReferenceAnalysis(input, plan, reason = '') {
       verticalScale: 1
     }
   };
+  const localPlan = attachBrewContracts({
+    ...structuredClone(plan || {}),
+    executionSource: 'local-reference',
+    analysisFingerprint: fingerprint,
+    trajectory
+  }, input);
   return {
     contract: ANALYSIS_CONTRACT,
     requestId: `local-${crypto.randomUUID()}`,
     generatedAt: new Date().toISOString(),
     analysisFingerprint: fingerprint,
-    engine: { endpoint: 'local-reference', apiVersion: '1.0.0', outputContract: 'local-reference-plan/1.0' },
+    engine: { endpoint: 'local-reference', apiVersion: '1.1.0', outputContract: 'local-reference-plan/1.1' },
     input: structuredClone(input || {}),
-    plan: structuredClone(plan || {}),
+    plan: structuredClone(localPlan),
     trajectory,
+    brewPlan: structuredClone(localPlan.contracts.brewPlan),
+    brewResult: structuredClone(localPlan.contracts.brewResult),
     prediction: trajectory.prediction,
     integrations: {
       sourceVersions: {},
