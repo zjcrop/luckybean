@@ -126,42 +126,6 @@ src/features/release-1.24b-ui-policy.js:2:const UI_POLICY_REVISION = '1.24B-main
 .github/workflows/fix-reminder-trigger-order.yml:37:          grep -Fq 'runtime-features.js?v=1.24B-main.16-fun-prompt-owner' index.html
 .github/workflows/fix-reminder-trigger-order.yml:39:          grep -Fq 'GROUP_PROMPT_RUNTIME_REVISION: 1.24B-main.16-fun-prompt-owner' .github/workflows/deploy-main.yml
 .github/workflows/diagnose-main.yml:57:              "1\\.24B|1\\.23E|1\\.23D|102402|main-v124b|main-v123e|main-v123d" \
-.github/workflows/build-main.yml:26:      RELEASE_TAG: v1.24B-main.6
-.github/workflows/build-main.yml:27:      RELEASE_REVISION: 1.24B-main.6
-.github/workflows/build-main.yml:44:          pages_json=$(gh api "repos/$GITHUB_REPOSITORY/contents/status/1.24B.json?ref=pages-status" --jq '.content' | base64 --decode)
-.github/workflows/build-main.yml:91:          grep -Fq 'release-revision" content="1.24B-main.6"' index.html
-.github/workflows/build-main.yml:92:          grep -Fq 'release-1.24b-polish.js?v=1.24B-main.6' index.html
-.github/workflows/build-main.yml:93:          grep -Fq 'release-1.24b-transit-controller.js?v=1.24B-main.6' index.html
-.github/workflows/build-main.yml:94:          grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' index.html
-.github/workflows/build-main.yml:95:          grep -Fq 'runtime-features.js?v=1.24B-main.18-review-owner' index.html
-.github/workflows/build-main.yml:96:          grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.6' index.html
-.github/workflows/build-main.yml:97:          grep -Fq "REVISION = '1.24B-main.6'" sw.js
-.github/workflows/build-main.yml:99:          grep -Fq "UI_POLICY_REVISION = '1.24B-main.6'" src/features/release-1.24b-ui-policy.js
-.github/workflows/build-main.yml:101:          grep -Fq "REVIEW_OWNER_REVISION = '1.24B-review-owner.1'" src/ui/recognition-review-owner-controller.js
-.github/workflows/build-main.yml:120:          grep -Fq 'LuckyBeanAndroid/1.24B' "$file"
-.github/workflows/build-main.yml:121:          ! grep -Fq 'LuckyBeanAndroid/1.23E' "$file"
-.github/workflows/build-main.yml:147:          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"
-.github/workflows/build-main.yml:148:          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-revision" content="1.24B-main.6"'
-.github/workflows/build-main.yml:149:          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt'
-.github/workflows/build-main.yml:150:          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'runtime-features.js?v=1.24B-main.18-review-owner'
-.github/workflows/build-main.yml:151:          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '1.24B-main.6'"
-.github/workflows/build-main.yml:153:          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq "UI_POLICY_REVISION = '1.24B-main.6'"
-.github/workflows/build-main.yml:155:          unzip -p "$apk" assets/web-cache/src/ui/recognition-review-owner-controller.js | grep -Fq "REVIEW_OWNER_REVISION = '1.24B-review-owner.1'"
-.github/workflows/build-main.yml:181:          cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.24B-release.apk
-.github/workflows/build-main.yml:182:          zip -qr dist/LuckyBean-1.24B-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts schemas docs DEVELOPMENT_STATUS.md
-.github/workflows/build-main.yml:183:          printf 'source_sha=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.6\nsigning=official-release-keystore\nandroid_runtime_marker=LuckyBeanAndroid/1.24B\nrecognition_queue=serial-one-image-persistent\nrecognition_arbitration=explicit-confidence-consensus-inference\nrecognition_review_owner=1.24B-review-owner.1\nbean_lifecycle=ordered-delivered-storage-history\nstorage_modes=room-refrigerated-frozen\nfreshness_detail=full-expandable\norder_ocr=privacy-minimized\ngrind_psd=measured-reference-plus-custom-anchors\ngroup_navigation=canonical-state-api\ncache=main-6-ui2\nsortable=shared-live-preview-ghost-placeholder\nsensory_sort=single-activate-double-remove-longpress-preview\nbrew_ui=text-interactions\nabout_contacts=inside-about-section\nui_architecture=canonical-1.24b-main.6\nscore_layout=viewport-safe-next-line-range\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
-.github/workflows/build-main.yml:184:          sha256sum dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip > dist/SHA256SUMS.txt
-.github/workflows/build-main.yml:188:          name: luckybean-main-v1.24B-${{ env.SOURCE_SHA }}
-.github/workflows/build-main.yml:198:          notes='1.24B main.6 signed release. APK certificate is verified against android/signing/CERT_SHA256.txt before publication.'
-.github/workflows/build-main.yml:202:            gh release edit "$RELEASE_TAG" --target "$SOURCE_SHA" --title "LuckyBean 1.24B" --notes "$notes"
-.github/workflows/build-main.yml:203:            gh release upload "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --clobber
-.github/workflows/build-main.yml:205:            gh release create "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --target "$SOURCE_SHA" --title "LuckyBean 1.24B" --notes "$notes"
-.github/workflows/build-main.yml:219:          apk_sha=$(sha256sum dist/LuckyBean-1.24B-release.apk | awk '{print $1}')
-.github/workflows/build-main.yml:220:          web_sha=$(sha256sum dist/LuckyBean-1.24B-web.zip | awk '{print $1}')
-.github/workflows/build-main.yml:222:          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","release_tag":"%s","release_target_sha":"%s","release_target_verified":true,"apk":"LuckyBean-1.24B-release.apk","apk_sha256":"%s","web_sha256":"%s","certificate_sha256":"%s","certificate_verified":true,"published":true,"web_gate_verified":true,"main_test_verified":true,"recognition_review_owner":"1.24B-review-owner.1","group_navigation":"canonical-state-api","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$RELEASE_TAG" "$release_target_sha" "$apk_sha" "$web_sha" "$cert" "$(date -u +%FT%TZ)" > "$receipt"
-.github/workflows/build-main.yml:233:          cp "$receipt" status/1.24B.json
-.github/workflows/build-main.yml:234:          git add status/1.24B.json
-.github/workflows/build-main.yml:235:          git commit -m "release-status: LuckyBean 1.24B $SOURCE_SHA" || true
 .github/workflows/verified-release-main.yml:23:      RELEASE_TAG: v1.24B-main.6
 .github/workflows/verified-release-main.yml:83:          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"
 .github/workflows/verified-release-main.yml:105:          cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.24B-release.apk
