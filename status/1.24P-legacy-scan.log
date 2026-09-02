@@ -14,7 +14,6 @@ tests/v110-local-first-sync-static.mjs:124:assert.match(sw, /'luckybean-main-v12
 tests/v124b-final-release-contract.mjs:197:assert.match(gradle, /versionCode 102402/);
 tests/v124b-final-release-contract.mjs:200:console.log('LuckyBean 1.24B main.4 final release contract with test+gated web deployment, exact native prompt runtime, canonical bean group state, shared sorting and text brew UI passed');
 tests/v122-cloud-sync-safety.mjs:61:console.log('v1.23D cloud union baseline and deletion propagation checks passed');
-tests/v123d-bean-summary-ui.spec.mjs:49:  await expect(page.locator('html')).toHaveAttribute('data-ui-policy-revision', '1.24B-main.6');
 tests/v127-user-regressions-static.mjs:47:console.log('v127 canonical cooling/gear ownership and 1.24B Android image pipeline static checks passed');
 tests/v123d-deployment-contracts.mjs:43:assert.equal(releaseRevision, '1.24B-main.6');
 tests/v123d-deployment-contracts.mjs:48:assert.equal(Number(versionCodeMatch[1]), 102402);
