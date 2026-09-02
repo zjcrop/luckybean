@@ -5,6 +5,7 @@ import path from 'node:path';
 const read = file => fs.readFileSync(file, 'utf8');
 function walk(dir){return fs.readdirSync(dir,{withFileTypes:true}).flatMap(entry=>{const full=path.join(dir,entry.name);return entry.isDirectory()?walk(full):[full];});}
 
+const release=JSON.parse(read('release.json'));
 const index=read('index.html');
 const sw=read('sw.js');
 const app=read('src/app.js');
@@ -39,10 +40,10 @@ const qrUi=read('src/qr-ui-controller.js');
 const revisionMatch=index.match(/release-revision" content="([^"]+)"/);
 assert.ok(revisionMatch);
 const releaseRevision=revisionMatch[1];
-assert.equal(releaseRevision,'1.24B-main.6');
+assert.equal(releaseRevision,release.revision);
 assert.ok(sw.includes(`REVISION = '${releaseRevision}'`));
-assert.match(sw,/CACHE_PREFIX = 'luckybean-main-v124b-'/);
-assert.match(sw,/CACHE_NAME = `\$\{CACHE_PREFIX\}main-6-ui2`/);
+assert.ok(sw.includes(`CACHE_PREFIX = '${release.cachePrefix}'`));
+assert.ok(sw.includes(`CACHE_NAME = \`\${CACHE_PREFIX}${release.cacheRevision}\``));
 
 for(const active of ['app-layout.css','app-components.css','bean-card.css','professional-sensory.css','viewport-controller.js','gear-controller.js','brew-cooling-controller.js','flavor-guide-controller.js','onboarding-controller.js','bean-card-controller.js','bean-enrichment-service.js','release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-polish.js','release-1.24b-group-navigation.js'])assert.ok(index.includes(active),`index missing ${active}`);
 for(const runtimeActive of ['release-1.24b-ui-policy.js','release-1.24b-brew-mode-controller.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','sortable-controller.js','sensory-tag-sort-controller.js'])assert.ok(runtimeFeatures.includes(runtimeActive),`runtime graph missing ${runtimeActive}`);
@@ -78,7 +79,7 @@ assert.doesNotMatch(gear,/MutationObserver/);
 assert.doesNotMatch(account,/MutationObserver|setInterval/);
 assert.doesNotMatch(voice,/MutationObserver/);
 assert.match(runtimeFeatures,/RELEASE_REVISION/);
-assert.match(runtimeFeatures,/1\.24B-main\.6/);
+assert.ok(runtimeFeatures.includes(release.revision));
 assert.match(runtimeFeatures,/shared-sortable/);
 assert.match(qrUi,/overlayObserver\.observe\(root/);
 assert.doesNotMatch(qrUi,/observe\(document\.body/);
@@ -90,7 +91,6 @@ assert.match(beanCards,/CANCEL_DISTANCE = 8/);
 assert.match(beanCards,/moveBeansToRecycle/);
 assert.match(lifecycle,/RECYCLE_RETENTION_MS = 7 \* 24 \* 60 \* 60 \* 1000/);
 
-// One canonical group state owns native + freshness + remaining grouping.
 assert.match(beanGroupState,/export const beanGroupState = \{ mode: 'native', groupKey: '' \}/);
 assert.match(beanGroupState,/setBeanGroupMode/);
 assert.match(beanGroupState,/openBeanGroupState/);
@@ -149,4 +149,4 @@ const sourceFiles=walk('src').filter(file=>/\.(?:js|mjs|css)$/.test(file));
 const bodyObserverFiles=sourceFiles.filter(file=>{const source=read(file);return /MutationObserver/.test(source)&&/\.observe\(document\.body\s*,/.test(source);});
 assert.deepEqual(bodyObserverFiles,[],`global body MutationObservers remain: ${bodyObserverFiles.join(', ')}`);
 
-console.log(`LuckyBean 1.24B ${releaseRevision} canonical UI stability, fun-only native recommendation prompt ownership, shared bean-group state, shared sorting and text brew UI regression checks passed`);
+console.log(`LuckyBean ${release.displayVersion} ${releaseRevision} canonical UI stability, fun-only native recommendation prompt ownership, shared bean-group state, shared sorting and text brew UI regression checks passed`);
