@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const release = JSON.parse(read('release.json'));
 const appearance = read('src/ui/appearance-controller.js');
 const voice = read('src/ui/voice-settings-controller.js');
 const sensory = read('src/sensory-professional-controller.js');
@@ -10,8 +11,9 @@ const styles = read('styles.css');
 const layout = read('src/ui/app-layout.css');
 const sensoryCss = read('src/ui/professional-sensory.css');
 const sensoryActionsCss = read('src/ui/sensory-wizard-actions.css');
+const utils = read('src/utils.js');
 
-assert.match(read('src/utils.js'), /APP_VERSION = '1\.24B'/, 'the locked app version must be 1.24B');
+assert.ok(utils.includes(`APP_VERSION = '${release.displayVersion}'`), `the locked app version must match ${release.displayVersion}`);
 
 assert.match(appearance, /theme === 'dark' \? '☀️' : '🌙'/, 'dark mode must offer the sun action and light mode the moon action');
 assert.match(appearance, /screen\.dataset\.splashVariant = normalized/, 'the persisted splash choice must restore its matching background after refresh');
@@ -52,4 +54,4 @@ assert.match(app, /dripperMaterial:\s*normalizeDripperMaterial\(/, 'LuckyBean mu
 assert.match(app, /data-add-bean-option="regions"/, 'region must retain a local add-option action');
 assert.match(app, /data-add-bean-option="entities"/, 'estate and processing-station must retain a local add-option action');
 
-console.log('LuckyBean 1.24B canonical settings and sensory regression contracts passed');
+console.log(`LuckyBean ${release.displayVersion} canonical settings and sensory regression contracts passed`);
