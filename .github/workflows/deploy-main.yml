@@ -155,6 +155,7 @@ jobs:
           if(await splash.isVisible().catch(()=>false)) await splash.click();
           await page.locator('#appShell').waitFor({state:'visible',timeout:20000});
           await page.waitForFunction(()=>document.documentElement.dataset.startup==='ready',null,{timeout:20000});
+          await page.waitForFunction(()=>Boolean(globalThis.LuckyBeanRuntimeFeatures),null,{timeout:60000});
           const runtime=await page.evaluate(()=>({
             version:document.querySelector('meta[name="application-version"]')?.content||'',
             revision:document.querySelector('meta[name="release-revision"]')?.content||'',
