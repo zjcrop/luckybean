@@ -1,10 +1,10 @@
 /**
  * Unified flavor vector layer.
  *
- * Provides a shared data contract for recommendation, brew calculation,
- * 3D visualization and sensory feedback modules.
+ * Provides a shared superset data contract for recommendation, brew calculation,
+ * 3D visualization, history comparison and sensory feedback modules.
  */
-export const FLAVOR_VECTOR_VERSION = '1.0.1';
+export const FLAVOR_VECTOR_VERSION = '1.1.0';
 
 const FIELDS = [
   'acidity',
@@ -13,8 +13,17 @@ const FIELDS = [
   'aroma',
   'body',
   'clarity',
-  'fermentation'
+  'fermentation',
+  'aftertaste',
+  'floral',
+  'fruity',
+  'astringency'
 ];
+
+function sourceValue(input, field) {
+  if (field === 'clarity' && input?.clarity == null && input?.clean != null) return input.clean;
+  return input?.[field];
+}
 
 function normalize(value, fallback = 50) {
   if (value === null || value === undefined || value === '') return fallback;
@@ -24,7 +33,7 @@ function normalize(value, fallback = 50) {
 }
 
 export function createFlavorVector(input = {}) {
-  return Object.fromEntries(FIELDS.map(field => [field, normalize(input[field], 50)]));
+  return Object.fromEntries(FIELDS.map(field => [field, normalize(sourceValue(input, field), 50)]));
 }
 
 /**
@@ -33,18 +42,21 @@ export function createFlavorVector(input = {}) {
  * from being mistaken for a measured/predicted 50/100 value.
  */
 export function normalizeFlavorVector(input = {}) {
-  return Object.fromEntries(FIELDS.map(field => [field, normalize(input[field], null)]));
+  return Object.fromEntries(FIELDS.map(field => [field, normalize(sourceValue(input, field), null)]));
 }
 
 export function mergeFlavorVector(base = {}, patch = {}) {
-  return createFlavorVector({ ...base, ...patch });
+  const merged = { ...base, ...patch };
+  if (patch.clean !== undefined && patch.clarity === undefined) merged.clarity = patch.clean;
+  return createFlavorVector(merged);
 }
 
 export function applySensoryFeedback(vector = {}, feedback = {}) {
   const result = { ...vector };
   for (const field of FIELDS) {
-    if (feedback[field] !== undefined) {
-      result[field] = normalize(Number(result[field]) + Number(feedback[field]));
+    const delta = sourceValue(feedback, field);
+    if (delta !== undefined && delta !== null) {
+      result[field] = normalize(Number(result[field] ?? 50) + Number(delta));
     }
   }
   return result;
