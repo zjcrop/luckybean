@@ -18,7 +18,9 @@ function isProfessionalScene(scene) {
 
 function sceneFromPlan(plan) {
   if (!plan || plan.executionSource === 'local-reference') return null;
+  const resultSpatial = plan.contracts?.brewResult?.physical?.spatial || plan.analysisSnapshot?.brewResult?.physical?.spatial;
   const candidates = [
+    resultSpatial,
     plan.visualization3d,
     SUPPORTED_SPATIAL_CONTRACTS.has(plan.trajectory?.schemaVersion) ? plan.trajectory : null,
     plan.analysisSnapshot?.trajectory
@@ -70,7 +72,7 @@ async function renderScene(target, scene, plan) {
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const mounted = brewSpatialView.mountPreview(target, adaptForView(scene));
   if (!mounted) throw new Error('3D预览组件未能挂载');
-  lastRender = { target, scene:structuredClone(scene), planFingerprint:String(scene.planFingerprint || plan?.analysisFingerprint || '') };
+  lastRender = { target, scene:structuredClone(scene), planFingerprint:String(scene.planFingerprint || plan?.contracts?.brewResult?.metadata?.analysisFingerprint || plan?.analysisFingerprint || '') };
   return true;
 }
 
@@ -98,7 +100,7 @@ async function mount(plan) {
     return false;
   }
   try { return await renderScene(target,scene,plan); }
-  catch (error) { lastRender = { target, scene:structuredClone(scene), planFingerprint:String(scene.planFingerprint || plan?.analysisFingerprint || '') }; renderError(target,error); return false; }
+  catch (error) { lastRender = { target, scene:structuredClone(scene), planFingerprint:String(scene.planFingerprint || plan?.contracts?.brewResult?.metadata?.analysisFingerprint || plan?.analysisFingerprint || '') }; renderError(target,error); return false; }
 }
 
 function clear() {
@@ -126,7 +128,7 @@ document.addEventListener('luckybean:open-spatial-scene', event => {
 });
 
 globalThis.LuckyBeanSpatial = {
-  revision: 'brew-spatial-view/1.4.0',
+  revision: 'brew-spatial-view/1.5.0-brew-result',
   mount,
   retry: retryLastRender,
   clear,
