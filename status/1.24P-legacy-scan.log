@@ -1,0 +1,244 @@
+# LuckyBean legacy version reference scan
+# Evidence only: old filenames/tests may remain intentionally for compatibility.
+tests/v125-root-state-models.mjs:55:assert.equal(Number(versionCodeMatch[1]), 102402, `LuckyBean 1.24B versionCode mismatch: ${versionCodeMatch[1]}`);
+tests/v125-root-state-models.mjs:61:console.log('v1.2.5 independent sensory state machines and LuckyBean 1.24B Android package contracts passed');
+tests/v123e-cloud-gear-sync.mjs:15:assert.deepEqual(normalizeGearRows('[object Object],[object Object]', 'grinder'), [], 'corrupted 1.23D/early-1.23E grinder placeholders must be ignored safely');
+tests/v123e-cloud-gear-sync.mjs:25:console.log('LuckyBean 1.23E gear cloud-sync compatibility checks passed');
+tests/v120-requirements-static.mjs:44:assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124b-'/);
+tests/v120-requirements-static.mjs:48:  'luckybean-main-v123e-',
+tests/v120-requirements-static.mjs:49:  'luckybean-main-v123d-',
+tests/v120-requirements-static.mjs:106:console.log('LuckyBean 1.24B single server account, mandatory sync, native-prompt cache isolation, shared sorting and all-profile checks passed');
+tests/v124b-ui-policy-regression.mjs:101:assert.match(androidGradle, /versionCode 102402/);
+tests/v124b-ui-policy-regression.mjs:103:console.log('LuckyBean 1.24B single-owner bean group state, hidden preference leaderboard policy, shared live-preview sorting, text brew UI and Web/Android parity contracts passed');
+tests/v123e-gear-matching-regression.mjs:21:assert.equal(releaseRevision, '1.24B-main.6');
+tests/v123e-gear-matching-regression.mjs:72:console.log('LuckyBean 1.24B canonical gear binding, direct bean matching, QR runtime and upgrade release checks passed');
+tests/v123e-interaction-repair-static.mjs:19:assert.equal(releaseRevision, '1.24B-main.6');
+tests/v123e-interaction-repair-static.mjs:57:console.log('LuckyBean 1.24B canonical QR, bean matching, gear, flavor taxonomy, user-guide and interaction3 release checks passed');
+tests/v124b-ocr-worker-freeze-regression.mjs:39:console.log('LuckyBean 1.24B browser OCR is Worker-only, prewarmed, timeout-bounded, and has no automatic Tesseract/main-thread fallback');
+tests/v124b-lifecycle-ocr-storage-regression.mjs:70:assert.match(gradle,/versionCode 102402/);
+tests/v124b-lifecycle-ocr-storage-regression.mjs:77:assert.match(sw,/luckybean-main-v124b-/);
+tests/v124b-lifecycle-ocr-storage-regression.mjs:79:console.log('LuckyBean 1.24B lifecycle, serial OCR, transit/frozen storage, order parsing and local brew regression checks passed');
+tests/v124b-complete-plan-contract.mjs:47:assert.match(gradle,/versionCode 102402/);
+tests/v124b-complete-plan-contract.mjs:200:console.log('LuckyBean 1.24B main.4 complete modification-plan contract with canonical bean groups, test+gated Pages, exact native prompt runtime, shared sorting and text brew UI passed');
+tests/v110-local-first-sync-static.mjs:117:assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124b-'/);
+tests/v110-local-first-sync-static.mjs:121:assert.match(sw, /'luckybean-main-v123e-'/);
+tests/v110-local-first-sync-static.mjs:122:assert.match(sw, /'luckybean-main-v123d-'/);
+tests/v110-local-first-sync-static.mjs:148:assert.equal(manifest.version, '1.24B');
+tests/v110-local-first-sync-static.mjs:157:console.log('LuckyBean 1.24B main.4 local-first, native-prompt cache isolation and current BrewProfiles contract checks passed');
+tests/v123e-freshness-timeline-regression.mjs:16:assert.equal(releaseRevision, '1.24B-main.6');
+tests/v123e-freshness-timeline-regression.mjs:45:console.log('LuckyBean 1.24B immediate one-line freshness timeline and stage grouping checks passed');
+tests/v123e-small-brew-five-row-regression.mjs:17:assert.equal(Number(versionCodeMatch[1]), 102402);
+tests/v123e-small-brew-five-row-regression.mjs:59:console.log('LuckyBean 1.24B compact small-brew, automatic-field and Android upgrade contract passed');
+tests/v124b-final-release-contract.mjs:197:assert.match(gradle, /versionCode 102402/);
+tests/v124b-final-release-contract.mjs:200:console.log('LuckyBean 1.24B main.4 final release contract with test+gated web deployment, exact native prompt runtime, canonical bean group state, shared sorting and text brew UI passed');
+tests/v122-cloud-sync-safety.mjs:61:console.log('v1.23D cloud union baseline and deletion propagation checks passed');
+tests/v123e-navigation-back-static.mjs:14:assert.equal(revision, '1.24B-main.6');
+tests/v123d-ui-sensory-regressions.mjs:14:assert.match(read('src/utils.js'), /APP_VERSION = '1\.24B'/, 'the locked app version must be 1.24B');
+tests/v123d-ui-sensory-regressions.mjs:55:console.log('LuckyBean 1.24B canonical settings and sensory regression contracts passed');
+tests/v123d-bean-summary-ui.spec.mjs:49:  await expect(page.locator('html')).toHaveAttribute('data-ui-policy-revision', '1.24B-main.6');
+tests/v127-user-regressions-static.mjs:47:console.log('v127 canonical cooling/gear ownership and 1.24B Android image pipeline static checks passed');
+tests/v123e-ui-stability-static.mjs:42:assert.equal(releaseRevision,'1.24B-main.6');
+tests/v123e-ui-stability-static.mjs:44:assert.match(sw,/CACHE_PREFIX = 'luckybean-main-v124b-'/);
+tests/v123e-ui-stability-static.mjs:152:console.log(`LuckyBean 1.24B ${releaseRevision} canonical UI stability, fun-only native recommendation prompt ownership, shared bean-group state, shared sorting and text brew UI regression checks passed`);
+tests/v123d-deployment-contracts.mjs:43:assert.equal(releaseRevision, '1.24B-main.6');
+tests/v123d-deployment-contracts.mjs:48:assert.equal(Number(versionCodeMatch[1]), 102402);
+tests/v123d-deployment-contracts.mjs:52:assert.equal(manifest.version, '1.24B');
+tests/v123d-deployment-contracts.mjs:55:for (const module of ['release-1.24b-integration.js','release-1.24b-finalize.js','release-1.24b-transit-controller.js','release-1.24b-group-navigation.js','release-1.24b-about-controller.js','release-1.24b-polish.js']) assert.ok(index.includes(module), `missing direct 1.24B module ${module}`);
+tests/v123d-deployment-contracts.mjs:56:for (const runtimeModule of ['release-1.24b-ui-policy.js','release-1.24b-brew-mode-controller.js','release-1.24b-freshness-detail.js','recognition-batch-progress-controller.js','sortable-controller.js','sensory-tag-sort-controller.js']) assert.ok(runtimeFeatures.includes(runtimeModule), `missing runtime 1.24B module ${runtimeModule}`);
+tests/v123d-deployment-contracts.mjs:72:assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124b-'/);
+tests/v123d-deployment-contracts.mjs:74:assert.match(sw, /luckybean-main-v123e-/);
+tests/v123d-deployment-contracts.mjs:179:assert.match(buildWorkflow, /version_code=102402/);
+tests/v123d-deployment-contracts.mjs:194:console.log(`LuckyBean 1.24B ${releaseRevision} test+gated Pages, signed Android, canonical bean group state, native prompt runtime, shared sorting, text brew UI, serial OCR, lifecycle, frozen freshness and BrewProfiles contracts passed`);
+tests/v124b-current-identity-scan.mjs:19:  if(text.includes('1.24B-main.2')||text.includes('${CACHE_PREFIX}main-2'))stale.push(file);
+tests/v124b-current-identity-scan.mjs:27:console.log('LuckyBean 1.24B current identity scan passed: main.3 is the sole active release revision');
+scripts/restore-fun-recommendation-prompts.py:76:if "BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.16-fun-prompt-owner'" not in runtime:
+scripts/restore-fun-recommendation-prompts.py:80:    runtime = runtime.replace(base, base + "const BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.16-fun-prompt-owner';\nconst pinnedFeature = (id, path, revision) => ({ id, path: `${path}?v=${encodeURIComponent(revision)}` });\n", 1)
+scripts/restore-fun-recommendation-prompts.py:86:old_runtime_url = './src/features/runtime-features.js?v=1.24B-main.6'
+scripts/restore-fun-recommendation-prompts.py:87:new_runtime_url = './src/features/runtime-features.js?v=1.24B-main.16-fun-prompt-owner'
+scripts/validate-release-meta.mjs:22:assert.ok(Number.isInteger(release.androidVersionCode) && release.androidVersionCode > 102402, 'Android versionCode must increase beyond 1.24B');
+scripts/validate-release-meta.mjs:57:assert.ok(!activity.includes('LuckyBeanAndroid/1.24B'), 'Android source must not advertise previous release UA');
+scripts/finalize-1.24b-main3.mjs:9:// Final resource revision: product version stays 1.24B, all current web/android resources move together.
+scripts/finalize-1.24b-main3.mjs:14:for(const file of files) if(fs.existsSync(path.join(ROOT,file))) replace(file,'1.24B-main.2','1.24B-main.3',{required:false});
+scripts/finalize-1.24b-main3.mjs:15:for(const file of fs.readdirSync(path.join(ROOT,'tests')).filter(x=>x.endsWith('.mjs'))) replace(`tests/${file}`,'1.24B-main.2','1.24B-main.3',{required:false});
+scripts/finalize-1.24b-main3.mjs:50:replace('src/app.js','Luckybean-END.webp?v=1.24B-main.2','Luckybean-END.webp?v=1.24B-main.3',{required:false});
+scripts/finalize-1.24b-main3.mjs:52:console.log('LuckyBean 1.24B main.3 completion migration applied');
+scripts/release-main3-identity.mjs:14:  text=text.replaceAll('1.24B-main.2','1.24B-main.3');
+scripts/release-main3-identity.mjs:19:// Signed release must verify every final runtime module, not merely the early 1.24B subset.
+scripts/release-main3-identity.mjs:22:build=build.replaceAll('RELEASE_TAG: v1.24B-main.2','RELEASE_TAG: v1.24B-main.3');
+scripts/release-main3-identity.mjs:29:build=build.replaceAll('1.24B main.2 signed release.','1.24B main.3 signed release.');
+scripts/release-main3-identity.mjs:32:console.log('Current release identities migrated to 1.24B-main.3');
+scripts/repair-reminder-trigger-order.py:24:    "APP_MODULE_REVISION = '1.24B-main.15-reminder-trigger'",
+scripts/repair-reminder-trigger-order.py:36:    "startup-controller.js?v=1.24B-main.15-reminder-trigger",
+scripts/repair-reminder-trigger-order.py:55:            line = line.replace('1.24B-main.14-legacy-reminders', '1.24B-main.15-reminder-trigger')
+scripts/align-fun-prompt-deploy.py:7:    '  STYLES_RUNTIME_REVISION: 1.24B-main.13-local-menu-prompt\n',
+scripts/align-fun-prompt-deploy.py:8:    "  STYLES_RUNTIME_REVISION: 1.24B-main.13-local-menu-prompt\n  GROUP_PROMPT_RUNTIME_REVISION: 1.24B-main.16-fun-prompt-owner\n",
+scripts/align-fun-prompt-deploy.py:16:    '"appModuleRevision":"1.24B-main.15-reminder-trigger","stylesRevision"',
+scripts/align-fun-prompt-deploy.py:17:    '"appModuleRevision":"1.24B-main.15-reminder-trigger","groupPromptOwnerRevision":"1.24B-main.16-fun-prompt-owner","stylesRevision"',
+scripts/align-fun-prompt-deploy.py:20:    '"app_module_revision":"1.24B-main.15-reminder-trigger","styles_revision"',
+scripts/align-fun-prompt-deploy.py:21:    '"app_module_revision":"1.24B-main.15-reminder-trigger","group_prompt_owner_revision":"1.24B-main.16-fun-prompt-owner","styles_revision"',
+scripts/align-fun-prompt-deploy.py:39:          grep -Fq "BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.16-fun-prompt-owner'" src/features/runtime-features.js
+scripts/align-fun-prompt-deploy.py:41:          grep -Fq 'runtime-features.js?v=1.24B-main.16-fun-prompt-owner' index.html
+scripts/align-fun-prompt-deploy.py:49:curl_marker = '            curl -L -fsS "$base/src/bean-groups-controller.js?v=1.24B-main.6" -o /tmp/bean-groups.js || true\n'
+scripts/align-fun-prompt-deploy.py:62:verify_checks = """              && grep -Fq "BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.16-fun-prompt-owner'" /tmp/runtime-features.js \\
+scripts/migrate-release-1.24b.mjs:3:const VERSION = '1.24B';
+scripts/migrate-release-1.24b.mjs:4:const REVISION = '1.24B-main.2';
+scripts/migrate-release-1.24b.mjs:5:const VERSION_CODE = '102402';
+scripts/migrate-release-1.24b.mjs:19:]) replaceExact(path, [["1.23E-main-sync.4", REVISION]]);
+scripts/migrate-release-1.24b.mjs:22:  ['LuckyBeanAndroid/1.23E', `LuckyBeanAndroid/${VERSION}`]
+scripts/migrate-release-1.24b.mjs:26:  ['Luckybean-END.webp?v=1.23E-main-sync.3', `Luckybean-END.webp?v=${REVISION}`]
+scripts/migrate-release-1.24b.mjs:30:  ["/APP_VERSION = '1\\.23E'/, 'the locked app version must be 1.23E'", "/APP_VERSION = '1\\.24B'/, 'the locked app version must be 1.24B'"],
+scripts/migrate-release-1.24b.mjs:31:  ["LuckyBean 1.23E canonical settings and sensory regression contracts passed", "LuckyBean 1.24B canonical settings and sensory regression contracts passed"]
+scripts/migrate-release-1.24b.mjs:41:    ['LuckyBean 1.23E ', 'LuckyBean 1.24B '],
+scripts/migrate-release-1.24b.mjs:42:    ['and 1.23E Android image pipeline', 'and 1.24B Android image pipeline']
+scripts/migrate-release-1.24b.mjs:49:  ["versionName '1.23E'", `versionName '${VERSION}'`],
+scripts/migrate-release-1.24b.mjs:50:  ['LuckyBeanAndroid/1.23E', `LuckyBeanAndroid/${VERSION}`],
+scripts/migrate-release-1.24b.mjs:51:  ["versionCode='102322' versionName='1.23E'", `versionCode='${VERSION_CODE}' versionName='${VERSION}'`],
+scripts/migrate-release-1.24b.mjs:52:  ['LuckyBean-1.23E-full-integration-debug.apk', `LuckyBean-${VERSION}-full-integration-debug.apk`],
+scripts/migrate-release-1.24b.mjs:53:  ['version=1.23E', `version=${VERSION}`],
+scripts/migrate-release-1.24b.mjs:55:  ['revision=1.23E-main-sync.11', `revision=${REVISION}`]
+scripts/migrate-release-1.24b.mjs:70:const marker = '# LuckyBean 1.24B — 当前开发状态';
+scripts/migrate-release-1.24b.mjs:72:  status = `${marker}\n\n当前版本：\`${VERSION}\`  \n发布修订：\`${REVISION}\`  \nAndroid：\`versionCode ${VERSION_CODE}\` / \`versionName ${VERSION}\`\n\n当前 main 以 1.24B 为唯一发布基线；下方 1.23D/1.23E 内容仅作为历史检查点保留，不再代表当前部署版本。\n\n---\n\n${status}`;
+src/app.js:2618:  <details class="settings-category"><summary><span>本物</span><small>关于本工具和开发小哥的一切</small></summary><div class="settings-category-body about-content"><figure class="about-illustration"><img src="./public/Luckybean-END.webp?v=1.24B-main.2" alt="富贵盒子猫咪插图" loading="lazy" decoding="async"><figcaption>富贵盒子</figcaption></figure><h2>富贵盒子</h2><p>咖啡豆管理、冲煮辅助、品鉴记录与本地数据归档工具。</p><dl><dt>版本</dt><dd>${APP_VERSION}</dd><dt>数据结构</dt><dd>${SCHEMA_VERSION}</dd><dt>离线引擎</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>数据源</dt><dd>公开编码数据 ${esc(meta.version||state.codebook.version||'6')}</dd><dt>开发与维护</dt><dd>zjcrop</dd></dl></div></details>
+src/domain/recognition/recognition-date-classifier.js:4:export const DATE_CLASSIFIER_VERSION = '1.23D-date-fields.2';
+src/domain/recognition/recognition-document.js:337:    parserVersion: '1.23E-recognition-layout.2',
+src/domain/recognition/recognition-pipeline.js:4:export const RECOGNITION_PIPELINE_VERSION = '1.24B-recognition-pipeline.1';
+src/domain/recognition/recognition-field-resolver-1.24b.js:1:// Lucky Bean 1.24B multi-image field arbitration.
+src/domain/recognition/recognition-date-review.js:1:export const DATE_REVIEW_VERSION = '1.23E-date-review.3';
+src/release-1.24b.css:1:/* Lucky Bean 1.24B compact UI states */
+src/release-1.24b.css:63:/* LuckyBean 1.24B main.6 detail/fab/sensory corrections */
+src/release-1.24b.css:173:/* LuckyBean 1.24B main.7 professional score responsive layout.
+src/ui/appearance-controller.js:3:const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.3';
+src/ui/release-1.24b-followup-controller.js:395:export const followupUiRevision = '1.24B-followup.3';
+src/ui/recognition-review-owner-controller.js:1:const REVIEW_OWNER_REVISION = '1.24B-review-owner.1';
+src/cloud-codec.js:236:  // 1.23D/early 1.23E accidentally serialized an object array with String(array).
+src/release-1.24b.js:1:// Lucky Bean 1.24B release feature module
+src/release-1.24b.js:4:export const LB_VERSION = '1.24B';
+src/features/release-1.24b-freshness-detail.js:59:console.info('[LuckyBean] 1.24B full freshness detail active');
+src/features/release-1.24b-transit-controller.js:98:console.info('[LuckyBean] 1.24B transit lifecycle controller active');
+src/features/recognition-batch-progress-controller.js:53:console.info('[LuckyBean] 1.24B serial OCR progress UI active');
+src/features/release-1.24b-finalize.js:137:console.info('[LuckyBean] 1.24B final integration active');
+src/features/release-1.24b-group-navigation.js:48:console.info('[LuckyBean] 1.24B canonical bean-group state active; group UI adapter loaded');
+src/features/release-1.24b-about-controller.js:25:console.info('[LuckyBean] 1.24B 本物 contact placement active');
+src/features/release-1.24b-polish.js:68:console.info('[LuckyBean] 1.24B help, Grind-PSD, brew-mode and UI policy active');
+src/features/release-1.24b-ui-policy.js:1:// LuckyBean 1.24B main.4 — canonical UI policy shared by Web and Android WebView.
+src/features/release-1.24b-ui-policy.js:2:const UI_POLICY_REVISION = '1.24B-main.6';
+.github/workflows/fix-reminder-trigger-order.yml:36:          grep -Fq "BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.16-fun-prompt-owner'" src/features/runtime-features.js
+.github/workflows/fix-reminder-trigger-order.yml:37:          grep -Fq 'runtime-features.js?v=1.24B-main.16-fun-prompt-owner' index.html
+.github/workflows/fix-reminder-trigger-order.yml:39:          grep -Fq 'GROUP_PROMPT_RUNTIME_REVISION: 1.24B-main.16-fun-prompt-owner' .github/workflows/deploy-main.yml
+.github/workflows/diagnose-main.yml:57:              "1\\.24B|1\\.23E|1\\.23D|102402|main-v124b|main-v123e|main-v123d" \
+.github/workflows/deploy-main.yml:23:  RELEASE_REVISION: 1.24B-main.6
+.github/workflows/deploy-main.yml:24:  PROMPT_RUNTIME_REVISION: 1.24B-main.15-reminder-trigger
+.github/workflows/deploy-main.yml:25:  STYLES_RUNTIME_REVISION: 1.24B-main.13-local-menu-prompt
+.github/workflows/deploy-main.yml:72:          grep -Fq 'application-version" content="1.24B"' index.html
+.github/workflows/deploy-main.yml:73:          grep -Fq 'release-revision" content="1.24B-main.6"' index.html
+.github/workflows/deploy-main.yml:74:          grep -Fq "REVISION = '1.24B-main.6'" sw.js
+.github/workflows/deploy-main.yml:104:          grep -Fq 'startup-controller.js?v=1.24B-main.15-reminder-trigger' index.html
+.github/workflows/deploy-main.yml:105:          grep -Fq 'styles.css?v=1.24B-main.13-local-menu-prompt' index.html
+.github/workflows/deploy-main.yml:106:          grep -Fq "APP_MODULE_REVISION = '1.24B-main.15-reminder-trigger'" src/core/startup-controller.js
+.github/workflows/deploy-main.yml:108:          grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' index.html
+.github/workflows/deploy-main.yml:124:          grep -Fq "UI_POLICY_REVISION = '1.24B-main.6'" src/features/release-1.24b-ui-policy.js
+.github/workflows/deploy-main.yml:142:          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.6","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","recommendationPrompt":"legacy-short-reminder-current-mode-adapter","recommendationClickOwner":"local-menu","groupAdapterRevision":"1.24B-main.10-native-prompt","appModuleRevision":"1.24B-main.15-reminder-trigger","stylesRevision":"1.24B-main.13-local-menu-prompt","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","scoreLayout":"viewport-safe-next-line-range","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.6"}\n' "$SOURCE_SHA" > _site/version.json
+.github/workflows/deploy-main.yml:177:            curl -L -fsS "$base/src/release-1.24b.css?v=1.24B-main.6" -o /tmp/release.css || true
+.github/workflows/deploy-main.yml:178:            curl -L -fsS "$base/src/domain/beans/bean-group-state.js?v=1.24B-main.6" -o /tmp/group-state.js || true
+.github/workflows/deploy-main.yml:179:            curl -L -fsS "$base/src/bean-groups-controller.js?v=1.24B-main.6" -o /tmp/bean-groups.js || true
+.github/workflows/deploy-main.yml:180:            curl -L -fsS "$base/src/features/release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt" -o /tmp/group-navigation-runtime.js || true
+.github/workflows/deploy-main.yml:182:              && grep -Fq '"version":"1.24B"' /tmp/version.json \
+.github/workflows/deploy-main.yml:185:              && grep -Fq '"groupAdapterRevision":"1.24B-main.10-native-prompt"' /tmp/version.json \
+.github/workflows/deploy-main.yml:186:              && grep -Fq '"appModuleRevision":"1.24B-main.15-reminder-trigger"' /tmp/version.json \
+.github/workflows/deploy-main.yml:187:              && grep -Fq '"stylesRevision":"1.24B-main.13-local-menu-prompt"' /tmp/version.json \
+.github/workflows/deploy-main.yml:188:              && grep -Fq 'startup-controller.js?v=1.24B-main.15-reminder-trigger' /tmp/index.html \
+.github/workflows/deploy-main.yml:189:              && grep -Fq 'styles.css?v=1.24B-main.13-local-menu-prompt' /tmp/index.html \
+.github/workflows/deploy-main.yml:190:              && grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' /tmp/index.html \
+.github/workflows/deploy-main.yml:191:              && grep -Fq "APP_MODULE_REVISION = '1.24B-main.15-reminder-trigger'" /tmp/startup-runtime.js \
+.github/workflows/deploy-main.yml:388:          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","recommendation_prompt":"legacy-short-reminder-current-mode-adapter","recommendation_click_owner":"local-menu","group_adapter_revision":"1.24B-main.10-native-prompt","app_module_revision":"1.24B-main.15-reminder-trigger","styles_revision":"1.24B-main.13-local-menu-prompt","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
+.github/workflows/deploy-main.yml:399:          cp "$receipt" status/1.24B.json
+.github/workflows/deploy-main.yml:400:          git add status/1.24B.json
+.github/workflows/deploy-main.yml:401:          git commit -m "pages-status: LuckyBean 1.24B $SOURCE_SHA" || true
+.github/workflows/build-main.yml:26:      RELEASE_TAG: v1.24B-main.6
+.github/workflows/build-main.yml:27:      RELEASE_REVISION: 1.24B-main.6
+.github/workflows/build-main.yml:44:          pages_json=$(gh api "repos/$GITHUB_REPOSITORY/contents/status/1.24B.json?ref=pages-status" --jq '.content' | base64 --decode)
+.github/workflows/build-main.yml:91:          grep -Fq 'release-revision" content="1.24B-main.6"' index.html
+.github/workflows/build-main.yml:92:          grep -Fq 'release-1.24b-polish.js?v=1.24B-main.6' index.html
+.github/workflows/build-main.yml:93:          grep -Fq 'release-1.24b-transit-controller.js?v=1.24B-main.6' index.html
+.github/workflows/build-main.yml:94:          grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' index.html
+.github/workflows/build-main.yml:95:          grep -Fq 'runtime-features.js?v=1.24B-main.18-review-owner' index.html
+.github/workflows/build-main.yml:96:          grep -Fq 'release-1.24b-about-controller.js?v=1.24B-main.6' index.html
+.github/workflows/build-main.yml:97:          grep -Fq "REVISION = '1.24B-main.6'" sw.js
+.github/workflows/build-main.yml:99:          grep -Fq "UI_POLICY_REVISION = '1.24B-main.6'" src/features/release-1.24b-ui-policy.js
+.github/workflows/build-main.yml:101:          grep -Fq "REVIEW_OWNER_REVISION = '1.24B-review-owner.1'" src/ui/recognition-review-owner-controller.js
+.github/workflows/build-main.yml:120:          grep -Fq 'LuckyBeanAndroid/1.24B' "$file"
+.github/workflows/build-main.yml:121:          ! grep -Fq 'LuckyBeanAndroid/1.23E' "$file"
+.github/workflows/build-main.yml:147:          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"
+.github/workflows/build-main.yml:148:          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-revision" content="1.24B-main.6"'
+.github/workflows/build-main.yml:149:          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt'
+.github/workflows/build-main.yml:150:          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'runtime-features.js?v=1.24B-main.18-review-owner'
+.github/workflows/build-main.yml:151:          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '1.24B-main.6'"
+.github/workflows/build-main.yml:153:          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq "UI_POLICY_REVISION = '1.24B-main.6'"
+.github/workflows/build-main.yml:155:          unzip -p "$apk" assets/web-cache/src/ui/recognition-review-owner-controller.js | grep -Fq "REVIEW_OWNER_REVISION = '1.24B-review-owner.1'"
+.github/workflows/build-main.yml:181:          cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.24B-release.apk
+.github/workflows/build-main.yml:182:          zip -qr dist/LuckyBean-1.24B-web.zip index.html recognition-test.html manifest.webmanifest sw.js styles.css src public contracts schemas docs DEVELOPMENT_STATUS.md
+.github/workflows/build-main.yml:183:          printf 'source_sha=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.6\nsigning=official-release-keystore\nandroid_runtime_marker=LuckyBeanAndroid/1.24B\nrecognition_queue=serial-one-image-persistent\nrecognition_arbitration=explicit-confidence-consensus-inference\nrecognition_review_owner=1.24B-review-owner.1\nbean_lifecycle=ordered-delivered-storage-history\nstorage_modes=room-refrigerated-frozen\nfreshness_detail=full-expandable\norder_ocr=privacy-minimized\ngrind_psd=measured-reference-plus-custom-anchors\ngroup_navigation=canonical-state-api\ncache=main-6-ui2\nsortable=shared-live-preview-ghost-placeholder\nsensory_sort=single-activate-double-remove-longpress-preview\nbrew_ui=text-interactions\nabout_contacts=inside-about-section\nui_architecture=canonical-1.24b-main.6\nscore_layout=viewport-safe-next-line-range\n' "$SOURCE_SHA" > dist/BUILD_PROVENANCE.txt
+.github/workflows/build-main.yml:184:          sha256sum dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip > dist/SHA256SUMS.txt
+.github/workflows/build-main.yml:188:          name: luckybean-main-v1.24B-${{ env.SOURCE_SHA }}
+.github/workflows/build-main.yml:198:          notes='1.24B main.6 signed release. APK certificate is verified against android/signing/CERT_SHA256.txt before publication.'
+.github/workflows/build-main.yml:202:            gh release edit "$RELEASE_TAG" --target "$SOURCE_SHA" --title "LuckyBean 1.24B" --notes "$notes"
+.github/workflows/build-main.yml:203:            gh release upload "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --clobber
+.github/workflows/build-main.yml:205:            gh release create "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/LuckyBean-1.24B-web.zip dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --target "$SOURCE_SHA" --title "LuckyBean 1.24B" --notes "$notes"
+.github/workflows/build-main.yml:219:          apk_sha=$(sha256sum dist/LuckyBean-1.24B-release.apk | awk '{print $1}')
+.github/workflows/build-main.yml:220:          web_sha=$(sha256sum dist/LuckyBean-1.24B-web.zip | awk '{print $1}')
+.github/workflows/build-main.yml:222:          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","release_tag":"%s","release_target_sha":"%s","release_target_verified":true,"apk":"LuckyBean-1.24B-release.apk","apk_sha256":"%s","web_sha256":"%s","certificate_sha256":"%s","certificate_verified":true,"published":true,"web_gate_verified":true,"main_test_verified":true,"recognition_review_owner":"1.24B-review-owner.1","group_navigation":"canonical-state-api","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$RELEASE_TAG" "$release_target_sha" "$apk_sha" "$web_sha" "$cert" "$(date -u +%FT%TZ)" > "$receipt"
+.github/workflows/build-main.yml:233:          cp "$receipt" status/1.24B.json
+.github/workflows/build-main.yml:234:          git add status/1.24B.json
+.github/workflows/build-main.yml:235:          git commit -m "release-status: LuckyBean 1.24B $SOURCE_SHA" || true
+.github/workflows/verified-release-main.yml:23:      RELEASE_TAG: v1.24B-main.6
+.github/workflows/verified-release-main.yml:83:          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"
+.github/workflows/verified-release-main.yml:105:          cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.24B-release.apk
+.github/workflows/verified-release-main.yml:106:          apk_sha=$(sha256sum dist/LuckyBean-1.24B-release.apk | awk '{print $1}')
+.github/workflows/verified-release-main.yml:109:          sha256sum dist/LuckyBean-1.24B-release.apk > dist/SHA256SUMS.txt
+.github/workflows/verified-release-main.yml:113:          name: luckybean-verified-v1.24B-${{ env.RELEASE_SHA }}
+.github/workflows/verified-release-main.yml:123:          notes='LuckyBean 1.24B signed release. Product source is byte-identical to the fully validated parent; APK embedded web source and official signing certificate are verified.'
+.github/workflows/verified-release-main.yml:127:            gh release edit "$RELEASE_TAG" --target "$RELEASE_SHA" --title "LuckyBean 1.24B" --notes "$notes"
+.github/workflows/verified-release-main.yml:128:            gh release upload "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --clobber
+.github/workflows/verified-release-main.yml:130:            gh release create "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --target "$RELEASE_SHA" --title "LuckyBean 1.24B" --notes "$notes"
+.github/workflows/fix-fun-prompt-toast-owner.yml:54:          old_rev = "const BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.16-fun-prompt-owner';"
+.github/workflows/fix-fun-prompt-toast-owner.yml:55:          new_rev = "const BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.17-single-toast-owner';"
+.github/workflows/fix-fun-prompt-toast-owner.yml:62:          old_url = 'runtime-features.js?v=1.24B-main.16-fun-prompt-owner'
+.github/workflows/fix-fun-prompt-toast-owner.yml:63:          new_url = 'runtime-features.js?v=1.24B-main.17-single-toast-owner'
+.github/workflows/fix-fun-prompt-toast-owner.yml:98:          grep -Fq "BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.17-single-toast-owner'" src/features/runtime-features.js
+.github/workflows/fix-fun-prompt-toast-owner.yml:99:          grep -Fq 'runtime-features.js?v=1.24B-main.17-single-toast-owner' index.html
+.github/workflows/full-integration-pr.yml:50:          grep -q "versionCode 102402" android/app/build.gradle
+.github/workflows/full-integration-pr.yml:51:          grep -q "versionName '1.24B'" android/app/build.gradle
+.github/workflows/full-integration-pr.yml:52:          grep -q 'LuckyBeanAndroid/1.24B' android/app/src/main/java/com/luckybean/app/MainActivity.java
+.github/workflows/full-integration-pr.yml:55:          unzip -p "$apk" assets/web-cache/index.html | grep -Fq 'release-revision" content="1.24B-main.6"'
+.github/workflows/full-integration-pr.yml:56:          unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '1.24B-main.6'"
+.github/workflows/full-integration-pr.yml:58:          unzip -p "$apk" assets/web-cache/src/features/runtime-features.js | grep -Fq '1.24B-main.6'
+.github/workflows/full-integration-pr.yml:73:          unzip -p "$apk" assets/web-cache/src/features/release-1.24b-ui-policy.js | grep -Fq "UI_POLICY_REVISION = '1.24B-main.6'"
+.github/workflows/full-integration-pr.yml:83:          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"
+.github/workflows/full-integration-pr.yml:134:          cp android/app/build/outputs/apk/debug/app-debug.apk dist/LuckyBean-1.24B-full-integration-debug.apk
+.github/workflows/full-integration-pr.yml:135:          sha256sum dist/LuckyBean-1.24B-full-integration-debug.apk > dist/SHA256SUMS.txt
+.github/workflows/full-integration-pr.yml:136:          printf 'source_sha=%s\nbranch=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.6\ncache=main-6-ui2\ngroup_navigation=canonical-state-api\nsortable=shared-live-preview-ghost-placeholder\nsensory_sort=single-activate-double-remove-longpress-preview\nbrew_ui=text-interactions\nscore_layout=viewport-safe-next-line-range\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist/BUILD_PROVENANCE.txt
+.github/workflows/verify-fun-prompts-live.yml:48:          const revision='1.24B-main.17-single-toast-owner';
+sw.js:6:  'luckybean-main-v124b-', 'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
+DEVELOPMENT_STATUS.md:1:# LuckyBean 1.24B — 当前开发状态
+DEVELOPMENT_STATUS.md:3:当前版本：`1.24B`  
+DEVELOPMENT_STATUS.md:4:发布修订：`1.24B-main.2`  
+DEVELOPMENT_STATUS.md:5:Android：`versionCode 102402` / `versionName 1.24B`
+DEVELOPMENT_STATUS.md:7:当前 main 以 1.24B 为唯一发布基线；下方 1.23D/1.23E 内容仅作为历史检查点保留，不再代表当前部署版本。
+DEVELOPMENT_STATUS.md:11:# LuckyBean 1.23E — 开发状态
+DEVELOPMENT_STATUS.md:14:发布修订：`1.23E-main-sync.11`
+DEVELOPMENT_STATUS.md:15:Android：`versionCode 102322` / `versionName 1.23E`
+DEVELOPMENT_STATUS.md:24:- Android `versionCode` 提升为 `102322`，产品版本仍为 `1.23E`；缓存修订提升为 `1.23E-main-sync.11`。
+DEVELOPMENT_STATUS.md:32:- Android `versionCode` 提升为 `102321`，产品版本仍为 `1.23E`；缓存修订提升为 `1.23E-main-sync.10`。
+DEVELOPMENT_STATUS.md:42:- Android `versionCode` 提升为 `102320`，产品版本仍为 `1.23E`；正式 APK 仅使用 GitHub Actions 中的既有发布私钥签名，私钥不得进入源码、构建资源或 APK。
+DEVELOPMENT_STATUS.md:59:> 后续完整开发顺序、未关闭问题和验收门禁统一见 `docs/LuckyBean-1.23D-DEVELOPMENT-HANDBOOK.md`。本文件记录当前检查点，不代表历史业务问题已经全部关闭。
+DEVELOPMENT_STATUS.md:64:当前部署：LuckyBean `1.23D`，唯一来源为 GitHub `main` 的最新成功部署提交。
+DEVELOPMENT_STATUS.md:66:内部资源修订：`1.23D-main-sync.5`（仅用于清除旧 PWA/WebView 缓存，不是第二条版本线）
+DEVELOPMENT_STATUS.md:71:- 暂不推进 2.0、Compose、Room 或 KMP，先在 1.2.3 行为基线上完成 1.23D 的问题修复与验收。
+DEVELOPMENT_STATUS.md:72:- Web/PWA 继续使用 IndexedDB；既有 Android 测试壳随 1.23D Web 版本验证。
+DEVELOPMENT_STATUS.md:80:2. 数据 Schema 从 7 升至 8，应用显示版本回正为 `1.23D`。
+DEVELOPMENT_STATUS.md:87:6. PWA 离线资源表已纳入归档与结构化识别模块，版本缓存已切换到 1.23D。
+DEVELOPMENT_STATUS.md:94:13. 将 1.23D 改动移植到远端最新 main，保留独立品鉴状态机、器具模型、分享地址和既有主线回归测试。
+DEVELOPMENT_STATUS.md:96:15. 将 Web、PWA、Android、Actions 和构建产物版本统一为 `1.23D`；Android `versionCode` 为 `102304`。
+README.md:7:当前主线版本：1.24B
+README.md:25:## 1.24B
+README.md:27:1.24B 包含豆卡生命周期、在途/冷冻状态、订单识别、多图串行 OCR、完整豆卡详情、高密度小酌界面、研磨建议和 BrewSession 计时/语音同步重构。

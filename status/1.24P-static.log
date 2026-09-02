@@ -1,0 +1,174 @@
+
+> luckybean-static-app@1.24.16 test:static
+> node scripts/run-static-tests.mjs
+
+
+[static] tests/v110-local-first-sync-static.mjs
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /1\.24B/. Input:
+
+'<!doctype html>\n' +
+  '<html lang="zh-CN" data-startup="booting">\n' +
+  '<head>\n' +
+  '  <meta charset="utf-8">\n' +
+  '  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n' +
+  '  <meta name="theme-color" content="#080909">\n' +
+  '  <meta name="application-version" content="1.24P">\n' +
+  '  <meta name="release-revision" content="1.24P-main.1">\n' +
+  `  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">\n` +
+  '  <title>富贵盒子 1.24P</title>\n' +
+  '  <link rel="manifest" href="./manifest.webmanifest?v=1.24P-main.1">\n' +
+  '  <link rel="icon" href="./public/app-logo.webp?v=1.24P-main.1" type="image/webp">\n' +
+  '  <link rel="apple-touch-icon" href="./public/app-logo.webp?v=1.24P-main.1">\n' +
+  '  <link rel="stylesheet" href="./styles.css?v=1.24P-main.1">\n' +
+  '  <link rel="stylesheet" href="./src/ui/app-layout.css?v=1.24P-main.1">\n' +
+  '  <link rel="stylesheet" href="./src/ui/app-components.css?v=1.24P-main.1">\n' +
+  '  <link rel="stylesheet" href="./src/ui/bean-card.css?v=1.24P-main.1">\n' +
+  '  <link rel="stylesheet" href="./src/ui/professional-sensory.css?v=1.24P-main.1">\n' +
+  '  <link rel="stylesheet" href="./src/ui/sensory-wizard-actions.css?v=1.24P-main.1">\n' +
+  '  <link rel="stylesheet" href="./src/release-1.24b.css?v=1.24P-main.1">\n' +
+  '  <style id="startupCritical">\n' +
+  '    #splashScreen{display:flex!important;cursor:pointer}\n' +
+  '    #splashScreen.hidden{display:none!important}\n' +
+  '    #splashStatus{position:absolute;left:20px;right:20px;bottom:max(34px,calc(20px + env(safe-area-inset-bottom)));text-align:center;color:#f5ead2;font-size:13px;letter-spacing:.08em;text-shadow:0 2px 10px rgba(0,0,0,.72)}\n' +
+  '    .cloud-account-panel{margin:0 0 16px;padding:14px;border:1px solid rgba(190,151,80,.35);border-radius:14px;background:rgba(255,255,255,.035)}\n' +
+  '    .cloud-account-panel .setting-row{align-items:flex-start}\n' +
+  '    .cloud-account-panel .text-actions{margin-top:12px}\n' +
+  '  </style>\n' +
+  '</head>\n' +
+  '<body data-release="1.24P" data-release-revision="1.24P-main.1">\n' +
+  '  <section id="splashScreen" class="splash-screen" data-splash-variant="red" role="button" tabindex="0" aria-live="polite" aria-label="点击进入富贵盒子">\n' +
+  '    <img id="splashImage" src="./public/splash-art-red.webp?v=1.24P-main.1" alt="富贵盒子红色启动画面" loading="eager" decoding="async" fetchpriority="high">\n' +
+  '    <span id="splashStatus">正在准备本地数据…</span>\n' +
+  '  </section>\n' +
+  '  <div id="appShell" class="app-shell hidden">\n' +
+  '    <main id="mainContent" class="main-content">\n' +
+  '      <section id="pageBeans" class="page active" data-page="beans" aria-labelledby="titleBeans"><div class="page-heading centered-page-heading beans-page-heading"><div class="page-seal-slot"><h1 id="titleBeans" class="page-seal">豆藏</h1></div><div class="top-controls"><button class="small-control" id="groupBtn" type="button">分组</button><button class="small-control" id="manageBtn" type="button">管理</button><button class="theme-toggle" id="themeToggleBtn" type="button" aria-label="切换到白色模式"></button></div></div><div id="activeFilterBar" class="active-filter-bar hidden"></div><div id="beanGroups" class="bean-groups" aria-live="polite"></div></section>\n' +
+  '      <section id="pageBrew" class="page" data-page="brew" aria-labelledby="titleBrew"><div class="page-heading centered-page-heading brew-page-heading"><div class="page-seal-slot"><h1 id="titleBrew" class="page-seal">小酌</h1></div><div id="brewHeadingBean" class="brew-heading-bean"></div></div><div id="brewContent"></div><div id="brewSpatialMount" class="brew-spatial-mount" aria-live="polite"></div></section>\n' +
+  '      <section id="pageSensory" class="page" data-page="sensory" aria-labelledby="titleSensory"><div class="page-heading centered-page-heading"><div class="page-seal-slot"><h1 id="titleSensory" class="page-seal">品鉴</h1></div></div><div id="sensoryContent"></div></section>\n' +
+  '      <section id="pageSettings" class="page" data-page="settings" aria-labelledby="titleSettings"><div class="page-heading centered-page-heading"><div class="page-seal-slot"><h1 id="titleSettings" class="page-seal">器设</h1></div></div><div id="settingsContent"></div></section>\n' +
+  '    </main>\n' +
+  '    <div id="fabWrap" class="fab-wrap action-grid" aria-label="豆藏快捷操作"><button id="fabSearchBtn" class="fab text-fab" type="button" aria-label="搜索豆卡">搜索</button><button id="fabAddBtn" class="fab text-fab" type="button" aria-label="新增豆卡">添丁</button><button id="fabHistoryBtn" class="fab text-fab" type="button" aria-label="追溯往昔记录">溯旧</button><button id="fabRecommendBtn" class="fab text-fab" type="button" aria-label="选择推荐豆卡">选择</button></div>\n' +
+  '    <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>\n' +
+  '  </div>\n' +
+  '  <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept=".luckybean,application/vnd.luckybean.archive+json,application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>\n' +
+  '  <script type="module" src="./src/core/startup-controller.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/services/cloud-auth-service.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/services/cloud-sync-service.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/core/bootstrap.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/services/bean-enrichment-service.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/ui/viewport-controller.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/ui/navigation-controller.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/ui/account-sync-panel.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/ui/appearance-controller.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/ui/voice-settings-controller.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/ui/gear-controller.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/ui/grinder-controller.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/ui/recognition-interaction-controller.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/ui/brew-cooling-controller.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/ui/flavor-guide-controller.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/ui/onboarding-controller.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/ui/bean-card-controller.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/ui/fab-controller.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/features/runtime-features.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/features/full-integration-controller-v3.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/features/freshness-timeline-controller.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/features/release-1.24b-integration.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/features/release-1.24b-finalize.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/features/release-1.24b-transit-controller.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/features/release-1.24b-group-navigation.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/features/release-1.24b-about-controller.js?v=1.24P-main.1"></script>\n' +
+  '  <script type="module" src="./src/features/release-1.24b-polish.js?v=1.24P-main.1"></script>\n' +
+  '</body>\n' +
+  '</html>'
+
+    at file:///home/runner/work/luckybean/luckybean/tests/v110-local-first-sync-static.mjs:23:8
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: '<!doctype html>\n' +
+    '<html lang="zh-CN" data-startup="booting">\n' +
+    '<head>\n' +
+    '  <meta charset="utf-8">\n' +
+    '  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n' +
+    '  <meta name="theme-color" content="#080909">\n' +
+    '  <meta name="application-version" content="1.24P">\n' +
+    '  <meta name="release-revision" content="1.24P-main.1">\n' +
+    `  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">\n` +
+    '  <title>富贵盒子 1.24P</title>\n' +
+    '  <link rel="manifest" href="./manifest.webmanifest?v=1.24P-main.1">\n' +
+    '  <link rel="icon" href="./public/app-logo.webp?v=1.24P-main.1" type="image/webp">\n' +
+    '  <link rel="apple-touch-icon" href="./public/app-logo.webp?v=1.24P-main.1">\n' +
+    '  <link rel="stylesheet" href="./styles.css?v=1.24P-main.1">\n' +
+    '  <link rel="stylesheet" href="./src/ui/app-layout.css?v=1.24P-main.1">\n' +
+    '  <link rel="stylesheet" href="./src/ui/app-components.css?v=1.24P-main.1">\n' +
+    '  <link rel="stylesheet" href="./src/ui/bean-card.css?v=1.24P-main.1">\n' +
+    '  <link rel="stylesheet" href="./src/ui/professional-sensory.css?v=1.24P-main.1">\n' +
+    '  <link rel="stylesheet" href="./src/ui/sensory-wizard-actions.css?v=1.24P-main.1">\n' +
+    '  <link rel="stylesheet" href="./src/release-1.24b.css?v=1.24P-main.1">\n' +
+    '  <style id="startupCritical">\n' +
+    '    #splashScreen{display:flex!important;cursor:pointer}\n' +
+    '    #splashScreen.hidden{display:none!important}\n' +
+    '    #splashStatus{position:absolute;left:20px;right:20px;bottom:max(34px,calc(20px + env(safe-area-inset-bottom)));text-align:center;color:#f5ead2;font-size:13px;letter-spacing:.08em;text-shadow:0 2px 10px rgba(0,0,0,.72)}\n' +
+    '    .cloud-account-panel{margin:0 0 16px;padding:14px;border:1px solid rgba(190,151,80,.35);border-radius:14px;background:rgba(255,255,255,.035)}\n' +
+    '    .cloud-account-panel .setting-row{align-items:flex-start}\n' +
+    '    .cloud-account-panel .text-actions{margin-top:12px}\n' +
+    '  </style>\n' +
+    '</head>\n' +
+    '<body data-release="1.24P" data-release-revision="1.24P-main.1">\n' +
+    '  <section id="splashScreen" class="splash-screen" data-splash-variant="red" role="button" tabindex="0" aria-live="polite" aria-label="点击进入富贵盒子">\n' +
+    '    <img id="splashImage" src="./public/splash-art-red.webp?v=1.24P-main.1" alt="富贵盒子红色启动画面" loading="eager" decoding="async" fetchpriority="high">\n' +
+    '    <span id="splashStatus">正在准备本地数据…</span>\n' +
+    '  </section>\n' +
+    '  <div id="appShell" class="app-shell hidden">\n' +
+    '    <main id="mainContent" class="main-content">\n' +
+    '      <section id="pageBeans" class="page active" data-page="beans" aria-labelledby="titleBeans"><div class="page-heading centered-page-heading beans-page-heading"><div class="page-seal-slot"><h1 id="titleBeans" class="page-seal">豆藏</h1></div><div class="top-controls"><button class="small-control" id="groupBtn" type="button">分组</button><button class="small-control" id="manageBtn" type="button">管理</button><button class="theme-toggle" id="themeToggleBtn" type="button" aria-label="切换到白色模式"></button></div></div><div id="activeFilterBar" class="active-filter-bar hidden"></div><div id="beanGroups" class="bean-groups" aria-live="polite"></div></section>\n' +
+    '      <section id="pageBrew" class="page" data-page="brew" aria-labelledby="titleBrew"><div class="page-heading centered-page-heading brew-page-heading"><div class="page-seal-slot"><h1 id="titleBrew" class="page-seal">小酌</h1></div><div id="brewHeadingBean" class="brew-heading-bean"></div></div><div id="brewContent"></div><div id="brewSpatialMount" class="brew-spatial-mount" aria-live="polite"></div></section>\n' +
+    '      <section id="pageSensory" class="page" data-page="sensory" aria-labelledby="titleSensory"><div class="page-heading centered-page-heading"><div class="page-seal-slot"><h1 id="titleSensory" class="page-seal">品鉴</h1></div></div><div id="sensoryContent"></div></section>\n' +
+    '      <section id="pageSettings" class="page" data-page="settings" aria-labelledby="titleSettings"><div class="page-heading centered-page-heading"><div class="page-seal-slot"><h1 id="titleSettings" class="page-seal">器设</h1></div></div><div id="settingsContent"></div></section>\n' +
+    '    </main>\n' +
+    '    <div id="fabWrap" class="fab-wrap action-grid" aria-label="豆藏快捷操作"><button id="fabSearchBtn" class="fab text-fab" type="button" aria-label="搜索豆卡">搜索</button><button id="fabAddBtn" class="fab text-fab" type="button" aria-label="新增豆卡">添丁</button><button id="fabHistoryBtn" class="fab text-fab" type="button" aria-label="追溯往昔记录">溯旧</button><button id="fabRecommendBtn" class="fab text-fab" type="button" aria-label="选择推荐豆卡">选择</button></div>\n' +
+    '    <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>\n' +
+    '  </div>\n' +
+    '  <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept=".luckybean,application/vnd.luckybean.archive+json,application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>\n' +
+    '  <script type="module" src="./src/core/startup-controller.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/services/cloud-auth-service.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/services/cloud-sync-service.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/core/bootstrap.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/services/bean-enrichment-service.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/ui/viewport-controller.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/ui/navigation-controller.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/ui/account-sync-panel.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/ui/appearance-controller.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/ui/voice-settings-controller.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/ui/gear-controller.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/ui/grinder-controller.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/ui/recognition-interaction-controller.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/ui/brew-cooling-controller.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/ui/flavor-guide-controller.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/ui/onboarding-controller.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/ui/bean-card-controller.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/ui/fab-controller.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/features/runtime-features.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/features/full-integration-controller-v3.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/features/freshness-timeline-controller.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/features/release-1.24b-integration.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/features/release-1.24b-finalize.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/features/release-1.24b-transit-controller.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/features/release-1.24b-group-navigation.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/features/release-1.24b-about-controller.js?v=1.24P-main.1"></script>\n' +
+    '  <script type="module" src="./src/features/release-1.24b-polish.js?v=1.24P-main.1"></script>\n' +
+    '</body>\n' +
+    '</html>',
+  expected: /1\.24B/,
+  operator: 'match',
+  diff: 'simple'
+}
+
+Node.js v22.23.2
+::error file=tests/v110-local-first-sync-static.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /1\.24B/. Input:%0A%0A'<!doctype html>\n' +%0A  '<html lang="zh-CN" data-startup="booting">\n' +%0A  '<head>\n' +%0A  '  <meta charset="utf-8">\n' +%0A  '  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n' +%0A  '  <meta name="theme-color" content="#080909">\n' +%0A  '  <meta name="application-version" content="1.24P">\n' +%0A  '  <meta name="release-revision" content="1.24P-main.1">\n' +%0A  `  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">\n` +%0A  '  <title>富贵盒子 1.24P</title>\n' +%0A  '  <link rel="manifest" href="./manifest.webmanifest?v=1.24P-main.1">\n' +%0A  '  <link rel="icon" href="./public/app-logo.webp?v=1.24P-main.1" type="image/webp">\n' +%0A  '  <link rel="apple-touch-icon" href="./public/app-logo.webp?v=1.24P-main.1">\n' +%0A  '  <link rel="stylesheet" href="./styles.css?v=1.24P-main.1">\n' +%0A  '  <link rel="stylesheet" href="./src/ui/app-layout.css?v=1.24P-main.1">\n' +%0A  '  <link rel="stylesheet" href="./src/ui/app-components.css?v=1.24P-main.1">\n' +%0A  '  <link rel="stylesheet" href="./src/ui/bean-card.css?v=1.24P-main.1">\n' +%0A  '  <link rel="stylesheet" href="./src/ui/professional-sensory.css?v=1.24P-main.1">\n' +%0A  '  <link rel="stylesheet" href="./src/ui/sensory-wizard-actions.css?v=1.24P-main.1">\n' +%0A  '  <link rel="stylesheet" href="./src/release-1.24b.css?v=1.24P-main.1">\n' +%0A  '  <style id="startupCritical">\n' +%0A  '    #splashScreen{display:flex!important;cursor:pointer}\n' +%0A  '    #splashScreen.hidden{display:none!important}\n' +%0A  '    #splashStatus{position:absolute;left:20px;right:20px;bottom:max(34px,calc(20px + env(safe-area-inset-bottom)));text-align:center;color:#f5ead2;font-size:13px;letter-spacing:.08em;text-shadow:0 2px 10px rgba(0,0,0,.72)}\n' +%0A  '    .cloud-account-panel{margin:0 0 16px;padding:14px;border:1px solid rgba(190,151,80,.35);border-radius:14px;background:rgba(255,255,255,.035)}\n' +%0A  '    .cloud-account-panel .setting-row{align-items:flex-start}\n' +%0A  '    .cloud-account-panel .text-actions{margin-top:12px}\n' +%0A  '  </style>\n' +%0A  '</head>\n' +%0A  '<body data-release="1.24P" data-release-revision="1.24P-main.1">\n' +%0A  '  <section id="splashScreen" class="splash-screen" data-splash-variant="red" role="button" tabindex="0" aria-live="polite" aria-label="点击进入富贵盒子">\n' +%0A  '    <img id="splashImage" src="./public/splash-art-red.webp?v=1.24P-main.1" alt="富贵盒子红色启动画面" loading="eager" decoding="async" fetchpriority="high">\n' +%0A  '    <span id="splashStatus">正在准备本地数据…</span>\n' +%0A  '  </section>\n' +%0A  '  <div id="appShell" class="app-shell hidden">\n' +%0A  '    <main id="mainContent" class="main-content">\n' +%0A  '      <section id="pageBeans" class="page active" data-page="beans" aria-labelledby="titleBeans"><div class="page-heading centered-page-heading beans-page-heading"><div class="page-seal-slot"><h1 id="titleBeans" class="page-seal">豆藏</h1></div><div class="top-controls"><button class="small-control" id="groupBtn" type="button">分组</button><button class="small-control" id="manageBtn" type="button">管理</button><button class="theme-toggle" id="themeToggleBtn" type="button" aria-label="切换到白色模式"></button></div></div><div id="activeFilterBar" class="active-filter-bar hidden"></div><div id="beanGroups" class="bean-groups" aria-live="polite"></div></section>\n' +%0A  '      <section id="pageBrew" class="page" data-page="brew" aria-labelledby="titleBrew"><div class="page-heading centered-page-heading brew-page-heading"><div class="page-seal-slot"><h1 id="titleBrew" class="page-seal">小酌</h1></div><div id="brewHeadingBean" class="brew-heading-bean"></div></div><div id="brewContent"></div><div id="brewSpatialMount" class="brew-spatial-mount" aria-live="polite"></div></section>\n' +%0A  '      <section id="pageSensory" class="page" data-page="sensory" aria-labelledby="titleSensory"><div class="page-heading centered-page-heading"><div class="page-seal-slot"><h1 id="titleSensory" class="page-seal">品鉴</h1></div></div><div id="sensoryContent"></div></section>\n' +%0A  '      <section id="pageSettings" class="page" data-page="settings" aria-labelledby="titleSettings"><div class="page-heading centered-page-heading"><div class="page-seal-slot"><h1 id="titleSettings" class="page-seal">器设</h1></div></div><div id="settingsContent"></div></section>\n' +%0A  '    </main>\n' +%0A  '    <div id="fabWrap" class="fab-wrap action-grid" aria-label="豆藏快捷操作"><button id="fabSearchBtn" class="fab text-fab" type="button" aria-label="搜索豆卡">搜索</button><button id="fabAddBtn" class="fab text-fab" type="button" aria-label="新增豆卡">添丁</button><button id="fabHistoryBtn" class="fab text-fab" type="button" aria-label="追溯往昔记录">溯旧</button><button id="fabRecommendBtn" class="fab text-fab" type="button" aria-label="选择推荐豆卡">选择</button></div>\n' +%0A  '    <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>\n' +%0A  '  </div>\n' +%0A  '  <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept=".luckybean,application/vnd.luckybean.archive+json,application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>\n' +%0A  '  <script type="module" src="./src/core/startup-controller.js?v=1.24P-main.1"></script>\n' +%0A  '  <script type="module" src="./src/services/cloud-auth-service.js?v=1.24P-main.1"></script>\n' +%0A  '  <script type="module" src="./src/services/cloud-sync-service.js?v=1.24P-main.1"></script>\n' +%0A  '  <script type="module" src="./src/core/bootstrap.js?v=1.24P-main.1"></script>\n' +%0A  '  <script type="module" src="./src/services/bean-enrichment-service.js?v=1.24P-main.1"></script>\n' +%0A  '  <script type="module" src="./src/ui/viewport-controller.js?v=1.24P-main.1"></script>\n' +%0A  '  <script type="module" src="./src/ui/navigation-controller.js?v=1.24P-main.1"></script>\n' +%0A  '  <script typ
