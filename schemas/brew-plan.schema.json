@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zjcrop.github.io/luckybean/contracts/brew-plan/1.0",
+  "title": "LuckyBean brew plan schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "brewType", "stages"],
+  "properties": {
+    "schemaVersion": {
+      "const": "brew-plan/1.0"
+    },
+    "brewType": {
+      "enum": [
+        "POUR_OVER",
+        "IMMERSION_RELEASE",
+        "ICE_BREW"
+      ]
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["stageType"],
+        "properties": {
+          "stageType": {
+            "enum": [
+              "BLOOM",
+              "POUR",
+              "STEEP",
+              "STIR",
+              "RELEASE",
+              "DRAIN",
+              "COOL"
+            ]
+          },
+          "waterG": {
+            "type": "number",
+            "minimum": 0
+          },
+          "temperatureC": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "durationSec": {
+            "type": "number",
+            "minimum": 0
+          },
+          "motion": {
+            "enum": [
+              "CENTER",
+              "SMALL_CIRCLE",
+              "CIRCLE",
+              "SPIRAL_OUT",
+              "SPIRAL_IN",
+              "NONE"
+            ]
+          },
+          "valveState": {
+            "enum": [
+              "OPEN",
+              "CLOSED"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
