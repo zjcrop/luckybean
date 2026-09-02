@@ -9,8 +9,6 @@ tests/v124b-ui-policy-regression.mjs:101:assert.match(androidGradle, /versionCod
 tests/v124b-ui-policy-regression.mjs:103:console.log('LuckyBean 1.24B single-owner bean group state, hidden preference leaderboard policy, shared live-preview sorting, text brew UI and Web/Android parity contracts passed');
 tests/v123e-gear-matching-regression.mjs:21:assert.equal(releaseRevision, '1.24B-main.6');
 tests/v123e-gear-matching-regression.mjs:72:console.log('LuckyBean 1.24B canonical gear binding, direct bean matching, QR runtime and upgrade release checks passed');
-tests/v123e-interaction-repair-static.mjs:19:assert.equal(releaseRevision, '1.24B-main.6');
-tests/v123e-interaction-repair-static.mjs:57:console.log('LuckyBean 1.24B canonical QR, bean matching, gear, flavor taxonomy, user-guide and interaction3 release checks passed');
 tests/v124b-ocr-worker-freeze-regression.mjs:39:console.log('LuckyBean 1.24B browser OCR is Worker-only, prewarmed, timeout-bounded, and has no automatic Tesseract/main-thread fallback');
 tests/v124b-lifecycle-ocr-storage-regression.mjs:70:assert.match(gradle,/versionCode 102402/);
 tests/v124b-lifecycle-ocr-storage-regression.mjs:77:assert.match(sw,/luckybean-main-v124b-/);
