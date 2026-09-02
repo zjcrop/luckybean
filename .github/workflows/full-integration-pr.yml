@@ -91,10 +91,34 @@ jobs:
         if: steps.compile.outputs.status == '0'
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p dist
-          cp android/app/build/outputs/apk/debug/app-debug.apk dist/LuckyBean-1.24B-full-integration-debug.apk
-          sha256sum dist/LuckyBean-1.24B-full-integration-debug.apk > dist/SHA256SUMS.txt
-          printf 'source_sha=%s\nbranch=%s\nversion=1.24B\nversion_code=102402\nrevision=1.24B-main.6\ncache=main-6-ui2\ngroup_navigation=canonical-state-api\nsortable=shared-live-preview-ghost-placeholder\nsensory_sort=single-activate-double-remove-longpress-preview\nbrew_ui=text-interactions\nscore_layout=viewport-safe-next-line-range\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist/BUILD_PROVENANCE.txt
+          version=$(python3 -c "import json; print(json.load(open('release.json', encoding='utf-8'))['displayVersion'])")
+          artifact="dist/LuckyBean-${version}-full-integration-debug.apk"
+          cp android/app/build/outputs/apk/debug/app-debug.apk "$artifact"
+          sha256sum "$artifact" > dist/SHA256SUMS.txt
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          release = json.loads(Path('release.json').read_text(encoding='utf-8'))
+          lines = [
+              f"source_sha={os.environ['GITHUB_SHA']}",
+              f"branch={os.environ['GITHUB_REF_NAME']}",
+              f"version={release['displayVersion']}",
+              f"version_code={release['androidVersionCode']}",
+              f"revision={release['revision']}",
+              f"cache={release['cacheRevision']}",
+              f"android_user_agent={release['androidUserAgent']}",
+              "group_navigation=canonical-state-api",
+              "sortable=shared-live-preview-ghost-placeholder",
+              "sensory_sort=single-activate-double-remove-longpress-preview",
+              "brew_ui=text-interactions",
+              "score_layout=viewport-safe-next-line-range",
+          ]
+          Path('dist/BUILD_PROVENANCE.txt').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+          PY
 
       - name: Upload Android build diagnostics
         if: always()
