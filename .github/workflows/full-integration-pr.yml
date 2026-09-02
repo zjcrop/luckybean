@@ -53,11 +53,16 @@ jobs:
           export ANDROID_AVD_HOME="$RUNNER_TEMP/android-avd"
           mkdir -p "$ANDROID_AVD_HOME"
 
-          # Supplying an explicit device profile prevents newer avdmanager versions
-          # from waiting on the interactive custom-hardware prompt. Keep creation
-          # bounded so an SDK tooling regression cannot consume the whole job.
+          # setup-android installs a versioned command-line-tools directory. Use
+          # the newest numeric avdmanager rather than a potentially stale
+          # cmdline-tools/latest symlink, which can lag the SDK repository XML.
+          avdmanager=$(find "$ANDROID_HOME/cmdline-tools" -maxdepth 3 -type f -name avdmanager -print \
+            | grep -E '/[0-9]+([.][0-9]+)*/bin/avdmanager$' \
+            | sort -V \
+            | tail -n 1)
+          test -n "$avdmanager"
           timeout --kill-after=10s 90s \
-            "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
+            "$avdmanager" create avd \
             -n luckybean-api29 \
             -k 'system-images;android-29;google_apis;x86_64' \
             --device 'pixel_2' \
@@ -68,8 +73,10 @@ jobs:
           accel_args=()
           if [ -e /dev/kvm ]; then
             sudo chmod 666 /dev/kvm || true
+            "$ANDROID_HOME/emulator/emulator-check" accel > emulator-accel.log 2>&1 || true
           else
             accel_args=(-accel off)
+            printf 'KVM unavailable; using software acceleration\n' > emulator-accel.log
           fi
 
           emulator_serial=''
@@ -81,25 +88,25 @@ jobs:
             adb start-server >/dev/null
             nohup "$ANDROID_HOME/emulator/emulator" \
               -avd luckybean-api29 \
+              -port 5554 \
               -no-window -noaudio -no-boot-anim -no-metrics \
               -gpu swiftshader_indirect -no-snapshot -wipe-data \
               "${accel_args[@]}" > "$log" 2>&1 &
             emulator_pid=$!
+            emulator_serial='emulator-5554'
 
-            if ! timeout --kill-after=10s 120s adb wait-for-device; then
-              tail -n 200 "$log" >&2 || true
-              return 1
-            fi
-
-            emulator_serial=$(adb devices | awk '$1 ~ /^emulator-/ && $2 == "device" { print $1; exit }')
-            if [ -z "$emulator_serial" ]; then
+            if ! timeout --kill-after=10s 120s adb -s "$emulator_serial" wait-for-device; then
               tail -n 200 "$log" >&2 || true
               return 1
             fi
 
             boot_completed=''
             for i in $(seq 1 90); do
-              boot_completed=$(timeout --kill-after=1s 3s adb -s "$emulator_serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)
+              if ! kill -0 "$emulator_pid" 2>/dev/null; then
+                tail -n 200 "$log" >&2 || true
+                return 1
+              fi
+              boot_completed=$(adb -s "$emulator_serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)
               [ "$boot_completed" = '1' ] && return 0
               sleep 2
             done
@@ -135,7 +142,38 @@ jobs:
             exit 1
           fi
 
-          timeout --kill-after=15s 300s adb -s "$emulator_serial" install -r "$apk"
+          # sys.boot_completed can precede Package Manager readiness. Wait for
+          # pm itself, then avoid the host-side `adb install` streaming path,
+          # which can hang indefinitely against API29 with newer platform-tools.
+          pm_ready=false
+          for i in $(seq 1 45); do
+            if timeout --kill-after=2s 8s adb -s "$emulator_serial" shell pm path android > package-manager-ready.txt 2>&1 \
+              && grep -q '^package:' package-manager-ready.txt; then
+              pm_ready=true
+              break
+            fi
+            sleep 2
+          done
+          if [ "$pm_ready" != 'true' ]; then
+            echo 'Android Package Manager did not become ready' >&2
+            cat package-manager-ready.txt >&2 || true
+            exit 1
+          fi
+
+          remote_apk='/data/local/tmp/LuckyBean-integration.apk'
+          timeout --kill-after=10s 120s adb -s "$emulator_serial" push "$apk" "$remote_apk" > android-push.txt 2>&1
+          set +e
+          timeout --kill-after=10s 120s adb -s "$emulator_serial" shell pm install -r "$remote_apk" > android-install.txt 2>&1
+          install_status=$?
+          set -e
+          cat android-install.txt
+          if [ "$install_status" -ne 0 ] || ! grep -q '^Success' android-install.txt; then
+            echo "Android package install failed with status $install_status" >&2
+            adb -s "$emulator_serial" shell dumpsys package com.luckybean.app > android-package-dump.txt 2>&1 || true
+            exit 1
+          fi
+          adb -s "$emulator_serial" shell rm -f "$remote_apk" >/dev/null 2>&1 || true
+
           timeout --kill-after=2s 10s adb -s "$emulator_serial" logcat -c || true
           set +e
           timeout --kill-after=5s 30s adb -s "$emulator_serial" shell am start -W -n com.luckybean.app/.MainActivity > android-start.txt 2>&1
@@ -193,7 +231,12 @@ jobs:
           path: |
             android-build.log
             avd-create.log
+            emulator-accel.log
             android-emulator*.log
+            package-manager-ready.txt
+            android-push.txt
+            android-install.txt
+            android-package-dump.txt
             android-start.txt
             android-runtime.log
             android-contracts.txt
