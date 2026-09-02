@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
+const release=JSON.parse(fs.readFileSync('release.json','utf8'));
 const index=fs.readFileSync('index.html','utf8');
 const app=fs.readFileSync('src/app.js','utf8');
 const groups=fs.readFileSync('src/bean-groups-controller.js','utf8');
@@ -37,13 +38,14 @@ for(const source of [
   "runRecommendation(recommendation.dataset.recommendMode).catch(error => toast(error.message, 'status-bad'));"
 ]) assert.ok(groups.includes(source),`selection/group behavior changed unexpectedly: ${source}`);
 
-assert.match(runtime,/BEAN_GROUP_RUNTIME_REVISION = '1\.24B-main\.17-single-toast-owner'/);
+assert.match(runtime,/BEAN_GROUP_RUNTIME_REVISION = RELEASE_REVISION/);
 assert.match(runtime,/pinnedFeature\('bean-groups', '\.\.\/bean-groups-controller\.js', BEAN_GROUP_RUNTIME_REVISION\)/);
-assert.match(index,/runtime-features\.js\?v=1\.24B-main\.18-review-owner/);
+assert.ok(runtime.includes(release.revision),'runtime release fallback must match canonical metadata');
+assert.ok(index.includes(`runtime-features.js?v=${release.revision}`),'runtime feature entry must use canonical release revision');
 assert.doesNotMatch(guard,/RECOMMENDATION_PROMPTS|lbRecommendationToast|showRecommendationPromptForMode|directPromptLockUntil/);
 assert.doesNotMatch(app,/toast\(prompt \|\| `已选：\$\{beanDisplayName\(selected\)\}`/);
 assert.match(app,/clearTimeout\(toastTimer\)/);
 assert.match(app,/clearTimeout\(toastCleanupTimer\)/);
 assert.match(app,/toastTimer = setTimeout\(\(\) => node\.classList\.remove\('show'\), 6000\)/);
 
-console.log('LuckyBean fun recommendation prompt contract passed: original fun library restored in the real grouped-selection owner; five-mode selection/grouping mechanics unchanged; duplicate 已选 result toast removed; one canonical app toast owner controls all timers; corrected owner cache is pinned');
+console.log(`LuckyBean ${release.displayVersion} fun recommendation prompt contract passed: original fun library retained, five-mode selection mechanics unchanged, duplicate result toast removed, and runtime cache follows canonical release metadata`);
