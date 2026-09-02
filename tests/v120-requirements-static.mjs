@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { listBrewProfiles, computeFallbackPlan } from '../src/brew-engine.js';
 
 const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const escapeRegex = value => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const release = JSON.parse(read('release.json'));
 const index = read('index.html');
 const app = read('src/app.js');
 const runtime = read('src/features/runtime-features.js');
@@ -41,10 +43,12 @@ assert.match(auth, /唯一的服务器同步账号/);
 assert.match(sync, /function ensureAutomatic/);
 assert.doesNotMatch(sync, /ENABLE_KEY|setEnabled|reason: 'disabled'|emit\('disabled'/);
 assert.doesNotMatch(startup, /ensureLocalIdentity|LB-LOCAL-|getSetting|setSetting/);
-assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124b-'/);
-assert.match(sw, /CACHE_NAME = `\$\{CACHE_PREFIX\}main-6-ui2`/);
+
+assert.match(sw, new RegExp(`CACHE_PREFIX = '${escapeRegex(release.cachePrefix)}'`));
+assert.match(sw, new RegExp(`CACHE_NAME = \\\`\\$\\{CACHE_PREFIX\\}${escapeRegex(release.cacheRevision)}\\\``));
 assert.match(sw, /LEGACY_CACHE_PREFIXES = \[/);
 for (const prefix of [
+  'luckybean-main-v124b-',
   'luckybean-main-v123e-',
   'luckybean-main-v123d-',
   'luckybean-main-v123-',
@@ -52,7 +56,7 @@ for (const prefix of [
   'luckybean-v121-account-test-',
   'luckybean-v122-cloud-safety-test-'
 ]) assert.ok(sw.includes(`'${prefix}'`), `missing legacy cache prefix ${prefix}`);
-assert.match(sw, /1\.24B-main\.6/);
+assert.match(sw, new RegExp(`REVISION = '${escapeRegex(release.revision)}'`));
 assert.match(sw, /src\/ui\/sortable-controller\.js/);
 assert.match(sw, /src\/features\/sensory-tag-sort-controller\.js/);
 assert.match(runtime, /shared-sortable/);
@@ -65,12 +69,11 @@ assert.match(sensorySort, /LuckyBeanSortable/);
 assert.match(sensorySort, /双击移除/);
 assert.match(sensorySort, /实时预览松手后的顺序/);
 assert.match(startup, /RELEASE_REVISION/);
-assert.match(startup, /APP_MODULE_REVISION\s*=\s*'1\.24B-main\.15-reminder-trigger'/);
-assert.match(index, /startup-controller\.js\?v=1\.24B-main\.15-reminder-trigger/);
-assert.match(index, /styles\.css\?v=1\.24B-main\.13-local-menu-prompt/);
+assert.match(startup, /APP_MODULE_REVISION\s*=\s*RELEASE_REVISION/);
+assert.match(index, new RegExp(`startup-controller\\.js\\?v=${escapeRegex(release.revision)}`));
+assert.match(index, new RegExp(`styles\\.css\\?v=${escapeRegex(release.revision)}`));
 assert.match(startup, /serviceWorker\.register\(`\.\/sw\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`/);
 assert.match(startup, /await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(APP_MODULE_REVISION\)\}`\)/);
-assert.doesNotMatch(startup, /await import\(`\.\.\/app\.js\?v=\$\{encodeURIComponent\(RELEASE_REVISION\)\}`\)/);
 assert.match(spatial, /#brewSpatialMount/);
 assert.match(sensory, /data-v120-radar-node/);
 assert.match(sensory, /pointermove/);
@@ -103,4 +106,4 @@ for (const profile of listBrewProfiles()) {
   assert.ok(Array.isArray(plan.stages) && plan.stages.length > 0, `profile generated no stages: ${profile.id}`);
 }
 
-console.log('LuckyBean 1.24B single server account, mandatory sync, native-prompt cache isolation, shared sorting and all-profile checks passed');
+console.log(`LuckyBean ${release.displayVersion} single server account, mandatory sync, cache isolation, shared sorting and all-profile checks passed`);
