@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 4.764872
+  duration_ms: 5.170731
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 2.232137
+  duration_ms: 2.001684
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 2.570869
+  duration_ms: 2.636396
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 1.953606
+  duration_ms: 1.856838
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.708445
+  duration_ms: 0.741207
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.611422
+  duration_ms: 2.70963
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.778082
+  duration_ms: 0.827942
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 20.856267
+# duration_ms 21.583099
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 5.16293
+  duration_ms: 5.643129
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 3.545954
+  duration_ms: 3.772899
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 3.620998
+  duration_ms: 3.807483
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 2.779672
+  duration_ms: 2.918105
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 2.264809
+  duration_ms: 2.382599
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 0.92039
+  duration_ms: 1.101589
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 23.610161
+# duration_ms 25.422062
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -192,812 +192,648 @@ TAP version 13
 # Subtest: sums every bean remaining weight and counts authoritative consumption events once
 ok 1 - sums every bean remaining weight and counts authoritative consumption events once
   ---
-  duration_ms: 2.174132
+  duration_ms: 2.277205
   type: 'test'
   ...
 # Subtest: restored mistaken brew is removed from today total
 ok 2 - restored mistaken brew is removed from today total
   ---
-  duration_ms: 0.361928
+  duration_ms: 0.340117
   type: 'test'
   ...
 # Subtest: warns when latest completed consumption is within the configured sleep buffer
 ok 3 - warns when latest completed consumption is within the configured sleep buffer
   ---
-  duration_ms: 0.423143
+  duration_ms: 0.459806
   type: 'test'
   ...
 # Subtest: uses a higher caffeine estimate for robusta beans
 ok 4 - uses a higher caffeine estimate for robusta beans
   ---
-  duration_ms: 1.570152
+  duration_ms: 1.43552
   type: 'test'
   ...
 # Subtest: brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
 ok 5 - brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
   ---
-  duration_ms: 0.914575
+  duration_ms: 0.97948
   type: 'test'
   ...
 # Subtest: production analysis envelope adapts into a plan accepted by the page validator
 ok 6 - production analysis envelope adapts into a plan accepted by the page validator
   ---
-  duration_ms: 0.879922
+  duration_ms: 0.955354
   type: 'test'
   ...
 # Subtest: unknown analysis contracts and unversioned legacy plans remain rejected
 ok 7 - unknown analysis contracts and unversioned legacy plans remain rejected
   ---
-  duration_ms: 0.483069
+  duration_ms: 0.542459
   type: 'test'
   ...
 # Subtest: cold brew validates stage water against brew water and recipe total independently
 ok 8 - cold brew validates stage water against brew water and recipe total independently
   ---
-  duration_ms: 0.298196
+  duration_ms: 0.323472
   type: 'test'
   ...
 # Subtest: 参数重算保留同一豆卡已经实际采用的方案
 ok 9 - 参数重算保留同一豆卡已经实际采用的方案
   ---
-  duration_ms: 4.473525
+  duration_ms: 4.837651
   type: 'test'
   ...
 # Subtest: 不同豆卡或手动选择方案时不会沿用旧方案
 ok 10 - 不同豆卡或手动选择方案时不会沿用旧方案
   ---
-  duration_ms: 1.286149
+  duration_ms: 1.318505
   type: 'test'
   ...
 # Subtest: 并发计算采用 latest-wins，旧结果不能覆盖新结果
 ok 11 - 并发计算采用 latest-wins，旧结果不能覆盖新结果
   ---
-  duration_ms: 0.593602
+  duration_ms: 0.615277
   type: 'test'
   ...
 # Subtest: 总分低于预测分不会单独触发冲煮优化
 ok 12 - 总分低于预测分不会单独触发冲煮优化
   ---
-  duration_ms: 2.561584
+  duration_ms: 1.950889
   type: 'test'
   ...
 # Subtest: 品鉴后的具体负面维度触发可解释优化
 ok 13 - 品鉴后的具体负面维度触发可解释优化
   ---
-  duration_ms: 1.360362
+  duration_ms: 0.618031
   type: 'test'
   ...
 # Subtest: 雷达轴只比较同组平均且无完成冲煮时不提示优化
 ok 14 - 雷达轴只比较同组平均且无完成冲煮时不提示优化
   ---
-  duration_ms: 1.367413
+  duration_ms: 0.947463
   type: 'test'
   ...
 # Subtest: 实际执行明显偏离方案时不把负面结果归因于方案
 ok 15 - 实际执行明显偏离方案时不把负面结果归因于方案
   ---
-  duration_ms: 0.409701
+  duration_ms: 0.344073
   type: 'test'
   ...
 # Subtest: 个人靶区至少三次证据后才改变，标准靶区保持不变
 ok 16 - 个人靶区至少三次证据后才改变，标准靶区保持不变
   ---
-  duration_ms: 1.190401
+  duration_ms: 0.834904
   type: 'test'
   ...
 # Subtest: accepts a catalog with balanced hot and cold auto-recommend profiles
 ok 17 - accepts a catalog with balanced hot and cold auto-recommend profiles
   ---
-  duration_ms: 1.425844
+  duration_ms: 1.499986
   type: 'test'
   ...
 # Subtest: rejects a catalog whose declared profile count differs from the payload
 ok 18 - rejects a catalog whose declared profile count differs from the payload
   ---
-  duration_ms: 0.225735
+  duration_ms: 0.259957
   type: 'test'
   ...
 # Subtest: rejects a cold profile whose recipe water does not equal brew water + ice + bypass
 ok 19 - rejects a cold profile whose recipe water does not equal brew water + ice + bypass
   ---
-  duration_ms: 1.065933
+  duration_ms: 1.765021
   type: 'test'
   ...
 # Subtest: rejects catalogs that cannot auto-recommend in both hot and cold modes
 ok 20 - rejects catalogs that cannot auto-recommend in both hot and cold modes
   ---
-  duration_ms: 0.285889
+  duration_ms: 0.286177
   type: 'test'
   ...
 # Subtest: Coffee Knowledge provider is optional and preserves QR-core ownership
 ok 21 - Coffee Knowledge provider is optional and preserves QR-core ownership
   ---
-  duration_ms: 0.879589
+  duration_ms: 1.279287
   type: 'test'
   ...
 # Subtest: knowledge aliases augment matching without changing QR indexes or visible columns
 ok 22 - knowledge aliases augment matching without changing QR indexes or visible columns
   ---
-  duration_ms: 1.17259
+  duration_ms: 1.949096
   type: 'test'
   ...
 # Subtest: Japanese/Korean OCR text resolves to existing v6 codes through hidden knowledge aliases
 ok 23 - Japanese/Korean OCR text resolves to existing v6 codes through hidden knowledge aliases
   ---
-  duration_ms: 6.224062
+  duration_ms: 9.648813
   type: 'test'
   ...
 # Subtest: canonical knowledge identity is available without rewriting decoded core codes
 ok 24 - canonical knowledge identity is available without rewriting decoded core codes
   ---
-  duration_ms: 0.426805
+  duration_ms: 0.594336
   type: 'test'
   ...
 # Subtest: archive round-trip preserves every portable store
 ok 25 - archive round-trip preserves every portable store
   ---
-  duration_ms: 15.529495
+  duration_ms: 16.752172
   type: 'test'
   ...
 # Subtest: archive rejects tampered store data
 ok 26 - archive rejects tampered store data
   ---
-  duration_ms: 2.893263
+  duration_ms: 3.21978
   type: 'test'
   ...
 # Subtest: legacy 1.2.x JSON backup migrates without inventing records
 ok 27 - legacy 1.2.x JSON backup migrates without inventing records
   ---
-  duration_ms: 0.552738
+  duration_ms: 0.600895
   type: 'test'
   ...
 # Subtest: future schema cannot be imported
 ok 28 - future schema cannot be imported
   ---
-  duration_ms: 3.470992
+  duration_ms: 3.571794
   type: 'test'
   ...
 # Subtest: production date never falls back to roast date
 ok 29 - production date never falls back to roast date
   ---
-  duration_ms: 4.173583
+  duration_ms: 5.340581
   type: 'test'
   ...
 # Subtest: best before and expiry dates are excluded from roast date
 ok 30 - best before and expiry dates are excluded from roast date
   ---
-  duration_ms: 4.578868
+  duration_ms: 5.612908
   type: 'test'
   ...
 # Subtest: explicit roast date is auto-filled while other dates remain excluded
 ok 31 - explicit roast date is auto-filled while other dates remain excluded
   ---
-  duration_ms: 1.738425
+  duration_ms: 1.592314
   type: 'test'
   ...
 # Subtest: unlabelled date requires confirmation and is never silently filled
 ok 32 - unlabelled date requires confirmation and is never silently filled
   ---
-  duration_ms: 0.488889
+  duration_ms: 0.413997
   type: 'test'
   ...
 # Subtest: date photo role increases provenance but does not bypass confirmation
 ok 33 - date photo role increases provenance but does not bypass confirmation
   ---
-  duration_ms: 0.666234
+  duration_ms: 0.662828
   type: 'test'
   ...
 # Subtest: invalid calendar dates are rejected
 ok 34 - invalid calendar dates are rejected
   ---
-  duration_ms: 0.902537
+  duration_ms: 0.960211
   type: 'test'
   ...
 # Subtest: 30-case date ownership golden set has zero silent non-roast assignments
     # Subtest: 烘焙日期：2026-07-28
     ok 1 - 烘焙日期：2026-07-28
       ---
-      duration_ms: 7.115542
+      duration_ms: 5.13829
       type: 'test'
       ...
     # Subtest: ROAST DATE 2026/07/28
     ok 2 - ROAST DATE 2026/07/28
       ---
-      duration_ms: 1.651374
+      duration_ms: 1.279387
       type: 'test'
       ...
     # Subtest: ROASTED ON 2026.7.8
     ok 3 - ROASTED ON 2026.7.8
       ---
-      duration_ms: 0.510273
+      duration_ms: 0.427898
       type: 'test'
       ...
     # Subtest: 焙炒日期 2026年7月28日
     ok 4 - 焙炒日期 2026年7月28日
       ---
-      duration_ms: 0.959527
+      duration_ms: 0.855405
       type: 'test'
       ...
     # Subtest: RST DATE 20260728
     ok 5 - RST DATE 20260728
       ---
-      duration_ms: 0.601676
+      duration_ms: 0.546195
       type: 'test'
       ...
     # Subtest: ROAST ON 28 JUL 2026
     ok 6 - ROAST ON 28 JUL 2026
       ---
-      duration_ms: 0.594256
+      duration_ms: 1.229863
       type: 'test'
       ...
     # Subtest: ROAST DATE JUL 28 2026
     ok 7 - ROAST DATE JUL 28 2026
       ---
-      duration_ms: 1.31399
+      duration_ms: 1.102954
       type: 'test'
       ...
     # Subtest: 出炉日期 26年7月28日
     ok 8 - 出炉日期 26年7月28日
       ---
-      duration_ms: 1.418585
+      duration_ms: 1.302682
       type: 'test'
       ...
     # Subtest: 烘焙日 26-07-28
     ok 9 - 烘焙日 26-07-28
       ---
-      duration_ms: 1.273311
+      duration_ms: 1.270684
       type: 'test'
       ...
     # Subtest: 烘烤日期 26.0728
     ok 10 - 烘烤日期 26.0728
       ---
-      duration_ms: 2.177237
+      duration_ms: 0.606064
       type: 'test'
       ...
     # Subtest: 生产日期：2026-07-21
     ok 11 - 生产日期：2026-07-21
       ---
-      duration_ms: 0.580973
+      duration_ms: 0.534126
       type: 'test'
       ...
     # Subtest: MFG DATE 2026/07/21
     ok 12 - MFG DATE 2026/07/21
       ---
-      duration_ms: 0.315001
+      duration_ms: 0.298004
       type: 'test'
       ...
     # Subtest: MFD 20260721
     ok 13 - MFD 20260721
       ---
-      duration_ms: 0.26264
+      duration_ms: 0.293738
       type: 'test'
       ...
     # Subtest: 包装日期 2026.07.22
     ok 14 - 包装日期 2026.07.22
       ---
-      duration_ms: 0.325277
+      duration_ms: 0.408769
       type: 'test'
       ...
     # Subtest: PACKED ON 2026-07-22
     ok 15 - PACKED ON 2026-07-22
       ---
-      duration_ms: 0.681277
+      duration_ms: 0.633354
       type: 'test'
       ...
     # Subtest: PKD 20260722
     ok 16 - PKD 20260722
       ---
-      duration_ms: 0.325951
+      duration_ms: 0.329331
       type: 'test'
       ...
     # Subtest: 最佳赏味期 2026-10-28
     ok 17 - 最佳赏味期 2026-10-28
       ---
-      duration_ms: 0.374067
+      duration_ms: 0.379636
       type: 'test'
       ...
     # Subtest: BEST BEFORE 2026/10/28
     ok 18 - BEST BEFORE 2026/10/28
       ---
-      duration_ms: 0.338863
+      duration_ms: 0.316412
       type: 'test'
       ...
     # Subtest: BBE 28 OCT 2026
     ok 19 - BBE 28 OCT 2026
       ---
-      duration_ms: 0.319956
+      duration_ms: 0.336963
       type: 'test'
       ...
     # Subtest: 有效期至 2027年1月5日
     ok 20 - 有效期至 2027年1月5日
       ---
-      duration_ms: 0.375666
+      duration_ms: 0.350122
       type: 'test'
       ...
     # Subtest: EXP 2027-01-05
     ok 21 - EXP 2027-01-05
       ---
-      duration_ms: 0.328558
+      duration_ms: 0.305996
       type: 'test'
       ...
     # Subtest: USE BY JAN 5 2027
     ok 22 - USE BY JAN 5 2027
       ---
-      duration_ms: 0.344563
+      duration_ms: 0.329081
       type: 'test'
       ...
     # Subtest: 埃塞俄比亚 / 2026-07-28
     ok 23 - 埃塞俄比亚 / 2026-07-28
       ---
-      duration_ms: 1.875367
+      duration_ms: 1.124717
       type: 'test'
       ...
     # Subtest: DATE 2026/07/28
     ok 24 - DATE 2026/07/28
       ---
-      duration_ms: 0.276189
+      duration_ms: 0.254289
       type: 'test'
       ...
     # Subtest: LOT 20260728
     ok 25 - LOT 20260728
       ---
-      duration_ms: 0.266997
+      duration_ms: 0.287959
       type: 'test'
       ...
     # Subtest: 2026年7月28日
     ok 26 - 2026年7月28日
       ---
-      duration_ms: 0.307028
+      duration_ms: 0.264945
       type: 'test'
       ...
     # Subtest: 28/07/2026
     ok 27 - 28/07/2026
       ---
-      duration_ms: 0.620014
+      duration_ms: 0.621456
       type: 'test'
       ...
     # Subtest: 07/08/2026
     ok 28 - 07/08/2026
       ---
-      duration_ms: 0.470529
+      duration_ms: 0.419285
       type: 'test'
       ...
     # Subtest: ROAST DATE 07/08/2026
     ok 29 - ROAST DATE 07/08/2026
       ---
-      duration_ms: 0.418423
+      duration_ms: 0.454338
       type: 'test'
       ...
     # Subtest: ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
     ok 30 - ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
       ---
-      duration_ms: 0.507242
+      duration_ms: 0.563901
       type: 'test'
       ...
     1..30
 ok 35 - 30-case date ownership golden set has zero silent non-roast assignments
   ---
-  duration_ms: 31.517186
+  duration_ms: 26.419674
   type: 'test'
   ...
 # Subtest: review model exposes automatic, excluded and unresolved candidates together
 ok 36 - review model exposes automatic, excluded and unresolved candidates together
   ---
-  duration_ms: 8.970003
+  duration_ms: 6.660108
   type: 'test'
   ...
 # Subtest: unresolved candidate requires an explicit date assignment before confirmation
 ok 37 - unresolved candidate requires an explicit date assignment before confirmation
   ---
-  duration_ms: 0.9937
+  duration_ms: 0.698281
   type: 'test'
   ...
 # Subtest: user confirmation retains source provenance instead of inventing confidence 1
 ok 38 - user confirmation retains source provenance instead of inventing confidence 1
   ---
-  duration_ms: 0.860421
+  duration_ms: 0.583259
   type: 'test'
   ...
 # Subtest: two roast date selections are rejected
 ok 39 - two roast date selections are rejected
   ---
-  duration_ms: 0.838019
+  duration_ms: 1.334299
   type: 'test'
   ...
 # Subtest: candidate value cannot be replaced with an unrecognized date
 ok 40 - candidate value cannot be replaced with an unrecognized date
   ---
-  duration_ms: 1.290028
+  duration_ms: 0.353187
   type: 'test'
   ...
 # Subtest: stale or fabricated candidate id is rejected
 ok 41 - stale or fabricated candidate id is rejected
   ---
-  duration_ms: 0.700438
+  duration_ms: 0.499205
   type: 'test'
   ...
 # Subtest: all candidates may be ignored without silently restoring automatic roast date
 ok 42 - all candidates may be ignored without silently restoring automatic roast date
   ---
-  duration_ms: 0.846864
+  duration_ms: 0.687916
   type: 'test'
   ...
 # Subtest: ambiguous day-month candidate can only resolve to one offered value
 ok 43 - ambiguous day-month candidate can only resolve to one offered value
   ---
-  duration_ms: 1.273753
+  duration_ms: 1.043706
   type: 'test'
   ...
 # Subtest: duplicate submission of the same candidate is rejected
 ok 44 - duplicate submission of the same candidate is rejected
   ---
-  duration_ms: 0.529946
+  duration_ms: 0.538332
   type: 'test'
   ...
 # Subtest: numeric Ethiopian variety codes are split into independent exact candidates
 ok 45 - numeric Ethiopian variety codes are split into independent exact candidates
   ---
-  duration_ms: 40.969126
+  duration_ms: 37.211923
   type: 'test'
   ...
 # Subtest: multiple labeled varieties stay unresolved instead of silently choosing the first code
 ok 46 - multiple labeled varieties stay unresolved instead of silently choosing the first code
   ---
-  duration_ms: 20.064867
+  duration_ms: 18.723992
   type: 'test'
   ...
 # Subtest: spaced alphanumeric variety codes survive OCR tokenization
 ok 47 - spaced alphanumeric variety codes survive OCR tokenization
   ---
-  duration_ms: 9.678585
+  duration_ms: 12.706902
   type: 'test'
   ...
 # Subtest: explicit numeric roast levels map only within the labeled 0-6 scale
 ok 48 - explicit numeric roast levels map only within the labeled 0-6 scale
   ---
-  duration_ms: 0.958103
+  duration_ms: 1.346958
   type: 'test'
   ...
 # Subtest: mixed label layouts preserve separate variety and roast evidence
 ok 49 - mixed label layouts preserve separate variety and roast evidence
   ---
-  duration_ms: 2.47472
+  duration_ms: 3.433698
   type: 'test'
   ...
 # Subtest: equally exact codebook candidates remain a manual choice
 ok 50 - equally exact codebook candidates remain a manual choice
   ---
-  duration_ms: 5.165313
+  duration_ms: 5.996429
   type: 'test'
   ...
 # Subtest: unsupported region evidence has no reliable candidates
 ok 51 - unsupported region evidence has no reliable candidates
   ---
-  duration_ms: 4.555105
+  duration_ms: 4.861136
   type: 'test'
   ...
 # Subtest: recognition review UI contains only unresolved fields and disappears when none remain
 ok 52 - recognition review UI contains only unresolved fields and disappears when none remain
   ---
-  duration_ms: 1.402
+  duration_ms: 1.298676
   type: 'test'
   ...
 # Subtest: recognition provenance remains persisted for audit without becoming confirmed-field UI
 ok 53 - recognition provenance remains persisted for audit without becoming confirmed-field UI
   ---
-  duration_ms: 0.281562
+  duration_ms: 0.2553
   type: 'test'
   ...
 # Subtest: confirmed roast date is still saved from the final form value
 ok 54 - confirmed roast date is still saved from the final form value
   ---
-  duration_ms: 0.275573
+  duration_ms: 0.251495
   type: 'test'
   ...
 # Subtest: custom dropdown opens its editor after select change dispatch completes
 ok 55 - custom dropdown opens its editor after select change dispatch completes
   ---
-  duration_ms: 0.175096
+  duration_ms: 0.160729
   type: 'test'
   ...
 # Subtest: reversed inline key-value keeps the semantic field association
 ok 56 - reversed inline key-value keeps the semantic field association
   ---
-  duration_ms: 2.743702
+  duration_ms: 2.369923
   type: 'test'
   ...
 # Subtest: same-row value before label is paired by geometry and field semantics
 ok 57 - same-row value before label is paired by geometry and field semantics
   ---
-  duration_ms: 1.000467
+  duration_ms: 0.839812
   type: 'test'
   ...
 # Subtest: vertical title and value are paired in either reading direction
 ok 58 - vertical title and value are paired in either reading direction
   ---
-  duration_ms: 0.490687
+  duration_ms: 1.290844
   type: 'test'
   ...
 # Subtest: standalone unordered coffee entities remain available instead of being forced into unrelated fields
 ok 59 - standalone unordered coffee entities remain available instead of being forced into unrelated fields
   ---
-  duration_ms: 1.452806
+  duration_ms: 0.655206
   type: 'test'
   ...
 # Subtest: range hyphen is preserved as value content rather than treated as a field separator
 ok 60 - range hyphen is preserved as value content rather than treated as a field separator
   ---
-  duration_ms: 0.596264
+  duration_ms: 0.529029
   type: 'test'
   ...
 # Subtest: English labels and coffee values become Chinese canonical bean fields
 ok 61 - English labels and coffee values become Chinese canonical bean fields
   ---
-  duration_ms: 29.973708
+  duration_ms: 27.733533
   type: 'test'
   ...
 # Subtest: unknown proper names are preserved and explicitly marked for review
 ok 62 - unknown proper names are preserved and explicitly marked for review
   ---
-  duration_ms: 14.400596
+  duration_ms: 19.335955
   type: 'test'
   ...
 # Subtest: explicit numeric fields are parsed while unrelated numbers stay isolated
 ok 63 - explicit numeric fields are parsed while unrelated numbers stay isolated
   ---
-  duration_ms: 10.270279
+  duration_ms: 14.763163
   type: 'test'
   ...
 # Subtest: Chinese, reverse-labelled and vertical fields share one canonical pipeline
 ok 64 - Chinese, reverse-labelled and vertical fields share one canonical pipeline
   ---
-  duration_ms: 6.825482
+  duration_ms: 11.912278
   type: 'test'
   ...
 # Subtest: isolated unresolved country review is preserved without stealing mixed candidate panels
-not ok 65 - isolated unresolved country review is preserved without stealing mixed candidate panels
+ok 65 - isolated unresolved country review is preserved without stealing mixed candidate panels
   ---
-  duration_ms: 2.554062
+  duration_ms: 1.222783
   type: 'test'
-  location: '/home/runner/work/luckybean/luckybean/test/recognition-review-owner.test.js:7:1'
-  failureType: 'testCodeFailure'
-  error: |-
-    The input did not match the regular expression /runtime-features\.js\?v=1\.24B-main\.18-review-owner/. Input:
-    
-    '<!doctype html>\n' +
-      '<html lang="zh-CN" data-startup="booting">\n' +
-      '<head>\n' +
-      '  <meta charset="utf-8">\n' +
-      '  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n' +
-      '  <meta name="theme-color" content="#080909">\n' +
-      '  <meta name="application-version" content="1.24P">\n' +
-      '  <meta name="release-revision" content="1.24P-main.1">\n' +
-      `  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">\n` +
-      '  <title>富贵盒子 1.24P</title>\n' +
-      '  <link rel="manifest" href="./manifest.webmanifest?v=1.24P-main.1">\n' +
-      '  <link rel="icon" href="./public/app-logo.webp?v=1.24P-main.1" type="image/webp">\n' +
-      '  <link rel="apple-touch-icon" href="./public/app-logo.webp?v=1.24P-main.1">\n' +
-      '  <link rel="stylesheet" href="./styles.css?v=1.24P-main.1">\n' +
-      '  <link rel="stylesheet" href="./src/ui/app-layout.css?v=1.24P-main.1">\n' +
-      '  <link rel="stylesheet" href="./src/ui/app-components.css?v=1.24P-main.1">\n' +
-      '  <link rel="stylesheet" href="./src/ui/bean-card.css?v=1.24P-main.1">\n' +
-      '  <link rel="stylesheet" href="./src/ui/professional-sensory.css?v=1.24P-main.1">\n' +
-      '  <link rel="stylesheet" href="./src/ui/sensory-wizard-actions.css?v=1.24P-main.1">\n' +
-      '  <link rel="stylesheet" href="./src/release-1.24b.css?v=1.24P-main.1">\n' +
-      '  <style id="startupCritical">\n' +
-      '    #splashScreen{display:flex!important;cursor:pointer}\n' +
-      '    #splashScreen.hidden{display:none!important}\n' +
-      '    #splashStatus{position:absolute;left:20px;right:20px;bottom:max(34px,calc(20px + env(safe-area-inset-bottom)));text-align:center;color:#f5ead2;font-size:13px;letter-spacing:.08em;text-shadow:0 2px 10px rgba(0,0,0,.72)}\n' +
-      '    .cloud-account-panel{margin:0 0 16px;padding:14px;border:1px solid rgba(190,151,80,.35);border-radius:14px;background:rgba(255,255,255,.035)}\n' +
-      '    .cloud-account-panel .setting-row{align-items:flex-start}\n' +
-      '    .cloud-account-panel .text-actions{margin-top:12px}\n' +
-      '  </style>\n' +
-      '</head>\n' +
-      '<body data-release="1.24P" data-release-revision="1.24P-main.1">\n' +
-      '  <section id="splashScreen" class="splash-screen" data-splash-variant="red" role="button" tabindex="0" aria-live="polite" aria-label="点击进入富贵盒子">\n' +
-      '    <img id="splashImage" src="./public/splash-art-red.webp?v=1.24P-main.1" alt="富贵盒子红色启动画面" loading="eager" decoding="async" fetchpriority="high">\n' +
-      '    <span id="splashStatus">正在准备本地数据…</span>\n' +
-      '  </section>\n' +
-      '  <div id="appShell" class="app-shell hidden">\n' +
-      '    <main id="mainContent" class="main-content">\n' +
-      '      <section id="pageBeans" class="page active" data-page="beans" aria-labelledby="titleBeans"><div class="page-heading centered-page-heading beans-page-heading"><div class="page-seal-slot"><h1 id="titleBeans" class="page-seal">豆藏</h1></div><div class="top-controls"><button class="small-control" id="groupBtn" type="button">分组</button><button class="small-control" id="manageBtn" type="button">管理</button><button class="theme-toggle" id="themeToggleBtn" type="button" aria-label="切换到白色模式"></button></div></div><div id="activeFilterBar" class="active-filter-bar hidden"></div><div id="beanGroups" class="bean-groups" aria-live="polite"></div></section>\n' +
-      '      <section id="pageBrew" class="page" data-page="brew" aria-labelledby="titleBrew"><div class="page-heading centered-page-heading brew-page-heading"><div class="page-seal-slot"><h1 id="titleBrew" class="page-seal">小酌</h1></div><div id="brewHeadingBean" class="brew-heading-bean"></div></div><div id="brewContent"></div><div id="brewSpatialMount" class="brew-spatial-mount" aria-live="polite"></div></section>\n' +
-      '      <section id="pageSensory" class="page" data-page="sensory" aria-labelledby="titleSensory"><div class="page-heading centered-page-heading"><div class="page-seal-slot"><h1 id="titleSensory" class="page-seal">品鉴</h1></div></div><div id="sensoryContent"></div></section>\n' +
-      '      <section id="pageSettings" class="page" data-page="settings" aria-labelledby="titleSettings"><div class="page-heading centered-page-heading"><div class="page-seal-slot"><h1 id="titleSettings" class="page-seal">器设</h1></div></div><div id="settingsContent"></div></section>\n' +
-      '    </main>\n' +
-      '    <div id="fabWrap" class="fab-wrap action-grid" aria-label="豆藏快捷操作"><button id="fabSearchBtn" class="fab text-fab" type="button" aria-label="搜索豆卡">搜索</button><button id="fabAddBtn" class="fab text-fab" type="button" aria-label="新增豆卡">添丁</button><button id="fabHistoryBtn" class="fab text-fab" type="button" aria-label="追溯往昔记录">溯旧</button><button id="fabRecommendBtn" class="fab text-fab" type="button" aria-label="选择推荐豆卡">选择</button></div>\n' +
-      '    <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>\n' +
-      '  </div>\n' +
-      '  <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept=".luckybean,application/vnd.luckybean.archive+json,application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>\n' +
-      '  <script type="module" src="./src/core/startup-controller.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/services/cloud-auth-service.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/services/cloud-sync-service.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/core/bootstrap.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/services/bean-enrichment-service.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/ui/viewport-controller.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/ui/navigation-controller.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/ui/account-sync-panel.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/ui/appearance-controller.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/ui/voice-settings-controller.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/ui/gear-controller.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/ui/grinder-controller.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/ui/recognition-interaction-controller.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/ui/brew-cooling-controller.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/ui/flavor-guide-controller.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/ui/onboarding-controller.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/ui/bean-card-controller.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/ui/fab-controller.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/features/runtime-features.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/features/full-integration-controller-v3.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/features/freshness-timeline-controller.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/features/release-1.24b-integration.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/features/release-1.24b-finalize.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/features/release-1.24b-transit-controller.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/features/release-1.24b-group-navigation.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/features/release-1.24b-about-controller.js?v=1.24P-main.1"></script>\n' +
-      '  <script type="module" src="./src/features/release-1.24b-polish.js?v=1.24P-main.1"></script>\n' +
-      '</body>\n' +
-      '</html>'
-    
-  code: 'ERR_ASSERTION'
-  name: 'AssertionError'
-  expected:
-  actual: |-
-    <!doctype html>
-    <html lang="zh-CN" data-startup="booting">
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-      <meta name="theme-color" content="#080909">
-      <meta name="application-version" content="1.24P">
-      <meta name="release-revision" content="1.24P-main.1">
-      <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
-      <title>富贵盒子 1.24P</title>
-      <link rel="manifest" href="./manifest.webmanifest?v=1.24P-main.1">
-      <link rel="icon" href="./public/app-logo.webp?v=1.24P-main.1" type="image/webp">
-      <link rel="apple-touch-icon" href="./public/app-logo.webp?v=1.24P-main.1">
-      <link rel="stylesheet" href="./styles.css?v=1.24P-main.1">
-      <link rel="stylesheet" href="./src/ui/app-layout.css?v=1.24P-main.1">
-      <link rel="stylesheet" href="./src/ui/app-components.css?v=1.24P-main.1">
-      <link rel="stylesheet" href="./src/ui/bean-card.css?v=1.24P-main.1">
-      <link rel="stylesheet" href="./src/ui/professional-sensory.css?v=1.24P-main.1">
-      <link rel="stylesheet" href="./src/ui/sensory-wizard-actions.css?v=1.24P-main.1">
-      <link rel="stylesheet" href="./src/release-1.24b.css?v=1.24P-main.1">
-      <style id="startupCritical">
-        #splashScreen{display:flex!important;cursor:pointer}
-        #splashScreen.hidden{display:none!important}
-        #splashStatus{position:absolute;left:20px;right:20px;bottom:max(34px,calc(20px + env(safe-area-inset-bottom)));text-align:center;color:#f5ead2;font-size:13px;letter-spacing:.08em;text-shadow:0 2px 10px rgba(0,0,0,.72)}
-        .cloud-account-panel{margin:0 0 16px;padding:14px;border:1px solid rgba(190,151,80,.35);border-radius:14px;background:rgba(255,255,255,.035)}
-        .cloud-account-panel .setting-row{align-items:flex-start}
-        .cloud-account-panel .text-actions{margin-top:12px}
-      </style>
-    </head>
-    <body data-release="1.24P" data-release-revision="1.24P-main.1">
-      <section id="splashScreen" class="splash-screen" data-splash-variant="red" role="button" tabindex="0" aria-live="polite" aria-label="点击进入富贵盒子">
-        <img id="splashImage" src="./public/splash-art-red.webp?v=1.24P-main.1" alt="富贵盒子红色启动画面" loading="eager" decoding="async" fetchpriority="high">
-        <span id="splashStatus">正在准备本地数据…</span>
-      </section>
-      <div id="appShell" class="app-shell hidden">
-        <main id="mainContent" class="main-content">
-          <section id="pageBeans" class="page active" data-page="beans" aria-labelledby="titleBeans"><div class="page-heading centered-page-heading beans-page-heading"><div class="page-seal-slot"><h1 id="titleBeans" class="page-seal">豆藏</h1></div><div class="top-controls"><button class="small-control" id="groupBtn" type="button">分组</button><button class="small-control" id="manageBtn" type="button">管理</button><button class="theme-toggle" id="themeToggleBtn" type="button" aria-label="切换到白色模式"></button></div></div><div id="activeFilterBar" class="active-filter-bar hidden"></div><div id="beanGroups" class="bean-groups" aria-live="polite"></div></section>
-          <section id="pageBrew" class="page" data-page="brew" aria-labelledby="titleBrew"><div class="page-heading centered-page-heading brew-page-heading"><div class="page-seal-slot"><h1 id="titleBrew" class="page-seal">小酌</h1></div><div id="brewHeadingBean" class="brew-heading-bean"></div></div><div id="brewContent"></div><div id="brewSpatialMount" class="brew-spatial-mount" aria-live="polite"></div></section>
-          <section id="pageSensory" class="page" data-page="sensory" aria-labelledby="titleSensory"><div class="page-heading centered-page-heading"><div class="page-seal-slot"><h1 id="titleSensory" class="page-seal">品鉴</h1></div></div><div id="sensoryContent"></div></section>
-          <section id="pageSettings" class="page" data-page="settings" aria-labelledby="titleSettings"><div class="page-heading centered-page-heading"><div class="page-seal-slot"><h1 id="titleSettings" class="page-seal">器设</h1></div></div><div id="settingsContent"></div></section>
-        </main>
-        <div id="fabWrap" class="fab-wrap action-grid" aria-label="豆藏快捷操作"><button id="fabSearchBtn" class="fab text-fab" type="button" aria-label="搜索豆卡">搜索</button><button id="fabAddBtn" class="fab text-fab" type="button" aria-label="新增豆卡">添丁</button><button id="fabHistoryBtn" class="fab text-fab" type="button" aria-label="追溯往昔记录">溯旧</button><button id="fabRecommendBtn" class="fab text-fab" type="button" aria-label="选择推荐豆卡">选择</button></div>
-        <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>
-      </div>
-      <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept=".luckybean,application/vnd.luckybean.archive+json,application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
-      <script type="module" src="./src/core/startup-controller.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/services/cloud-auth-service.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/services/cloud-sync-service.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/core/bootstrap.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/services/bean-enrichment-service.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/ui/viewport-controller.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/ui/navigation-controller.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/ui/account-sync-panel.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/ui/appearance-controller.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/ui/voice-settings-controller.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/ui/gear-controller.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/ui/grinder-controller.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/ui/recognition-interaction-controller.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/ui/brew-cooling-controller.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/ui/flavor-guide-controller.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/ui/onboarding-controller.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/ui/bean-card-controller.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/ui/fab-controller.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/features/runtime-features.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/features/full-integration-controller-v3.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/features/freshness-timeline-controller.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/features/release-1.24b-integration.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/features/release-1.24b-finalize.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/features/release-1.24b-transit-controller.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/features/release-1.24b-group-navigation.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/features/release-1.24b-about-controller.js?v=1.24P-main.1"></script>
-      <script type="module" src="./src/features/release-1.24b-polish.js?v=1.24P-main.1"></script>
-    </body>
-    </html>
-  operator: 'match'
-  stack: |-
-    TestContext.<anonymous> (file:///home/runner/work/luckybean/luckybean/test/recognition-review-owner.test.js:20:10)
-    Test.runInAsyncScope (node:async_hooks:214:14)
-    Test.run (node:internal/test_runner/test:1047:25)
-    Test.start (node:internal/test_runner/test:944:17)
-    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
   ...
 # Subtest: main.6 bean detail does not expose roast code and pairs process with roast date
 ok 66 - main.6 bean detail does not expose roast code and pairs process with roast date
   ---
-  duration_ms: 1.409803
+  duration_ms: 1.398926
   type: 'test'
   ...
 # Subtest: main.6 floating quadrant, radar labels and sensory footer obey theme/layout contract
 ok 67 - main.6 floating quadrant, radar labels and sensory footer obey theme/layout contract
   ---
-  duration_ms: 0.67054
+  duration_ms: 0.662167
   type: 'test'
   ...
 # Subtest: main.6 preserves FAB visibility ownership and opens manual OCR editor explicitly
 ok 68 - main.6 preserves FAB visibility ownership and opens manual OCR editor explicitly
   ---
-  duration_ms: 0.478539
+  duration_ms: 0.446656
   type: 'test'
   ...
 # Subtest: main.6 package review waits for recognition handoff completion instead of racing the form renderer
 ok 69 - main.6 package review waits for recognition handoff completion instead of racing the form renderer
   ---
-  duration_ms: 0.60694
+  duration_ms: 0.450542
   type: 'test'
   ...
 # Subtest: main.6 unresolved semantic fields preserve review evidence for explicit bean-form confirmation
 ok 70 - main.6 unresolved semantic fields preserve review evidence for explicit bean-form confirmation
   ---
-  duration_ms: 0.296252
+  duration_ms: 0.226809
   type: 'test'
   ...
 # Subtest: canonical brew plan preserves immersion semantics without replacing legacy plan
 ok 71 - canonical brew plan preserves immersion semantics without replacing legacy plan
   ---
-  duration_ms: 2.041595
+  duration_ms: 2.20694
   type: 'test'
   ...
 # Subtest: BrewResult 1.1 carries spatial evidence and a superset flavor vector
 ok 72 - BrewResult 1.1 carries spatial evidence and a superset flavor vector
   ---
-  duration_ms: 1.242864
+  duration_ms: 1.6302
   type: 'test'
   ...
 # Subtest: calculation coordinator attaches contracts on the authoritative runtime path
 ok 73 - calculation coordinator attaches contracts on the authoritative runtime path
   ---
-  duration_ms: 1.49862
+  duration_ms: 1.828336
   type: 'test'
   ...
 # Subtest: history comparison prefers persisted BrewResult flavor over legacy trajectory summaries
 ok 74 - history comparison prefers persisted BrewResult flavor over legacy trajectory summaries
   ---
-  duration_ms: 1.134972
+  duration_ms: 1.699233
   type: 'test'
   ...
 # Subtest: local reference uses the same contracts but cannot masquerade as professional spatial output
 ok 75 - local reference uses the same contracts but cannot masquerade as professional spatial output
   ---
-  duration_ms: 7.774284
+  duration_ms: 14.108692
   type: 'test'
   ...
 # Subtest: history and optimization consumers are wired to BrewResult without treating model flavor as sensory truth
 ok 76 - history and optimization consumers are wired to BrewResult without treating model flavor as sensory truth
   ---
-  duration_ms: 0.592661
+  duration_ms: 0.945409
   type: 'test'
   ...
 1..76
 # tests 106
 # suites 0
-# pass 105
-# fail 1
+# pass 106
+# fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 503.651564
-::error file=test,title=Recognition regression failed::> luckybean-static-app@1.24.16 test:recognition%0A> node --test test/*.test.js%0A%0ATAP version 13%0A# Subtest: sums every bean remaining weight and counts authoritative consumption events once%0Aok 1 - sums every bean remaining weight and counts authoritative consumption events once%0A  ---%0A  duration_ms: 2.174132%0A  type: 'test'%0A  ...%0A# Subtest: restored mistaken brew is removed from today total%0Aok 2 - restored mistaken brew is removed from today total%0A  ---%0A  duration_ms: 0.361928%0A  type: 'test'%0A  ...%0A# Subtest: warns when latest completed consumption is within the configured sleep buffer%0Aok 3 - warns when latest completed consumption is within the configured sleep buffer%0A  ---%0A  duration_ms: 0.423143%0A  type: 'test'%0A  ...%0A# Subtest: uses a higher caffeine estimate for robusta beans%0Aok 4 - uses a higher caffeine estimate for robusta beans%0A  ---%0A  duration_ms: 1.570152%0A  type: 'test'%0A  ...%0A# Subtest: brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion%0Aok 5 - brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion%0A  ---%0A  duration_ms: 0.914575%0A  type: 'test'%0A  ...%0A# Subtest: production analysis envelope adapts into a plan accepted by the page validator%0Aok 6 - production analysis envelope adapts into a plan accepted by the page validator%0A  ---%0A  duration_ms: 0.879922%0A  type: 'test'%0A  ...%0A# Subtest: unknown analysis contracts and unversioned legacy plans remain rejected%0Aok 7 - unknown analysis contracts and unversioned legacy plans remain rejected%0A  ---%0A  duration_ms: 0.483069%0A  type: 'test'%0A  ...%0A# Subtest: cold brew validates stage water against brew water and recipe total independently%0Aok 8 - cold brew validates stage water against brew water and recipe total independently%0A  ---%0A  duration_ms: 0.298196%0A  type: 'test'%0A  ...%0A# Subtest: 参数重算保留同一豆卡已经实际采用的方案%0Aok 9 - 参数重算保留同一豆卡已经实际采用的方案%0A  ---%0A  duration_ms: 4.473525%0A  type: 'test'%0A  ...%0A# Subtest: 不同豆卡或手动选择方案时不会沿用旧方案%0Aok 10 - 不同豆卡或手动选择方案时不会沿用旧方案%0A  ---%0A  duration_ms: 1.286149%0A  type: 'test'%0A  ...%0A# Subtest: 并发计算采用 latest-wins，旧结果不能覆盖新结果%0Aok 11 - 并发计算采用 latest-wins，旧结果不能覆盖新结果%0A  ---%0A  duration_ms: 0.593602%0A  type: 'test'%0A  ...%0A# Subtest: 总分低于预测分不会单独触发冲煮优化%0Aok 12 - 总分低于预测分不会单独触发冲煮优化%0A  ---%0A  duration_ms: 2.561584%0A  type: 'test'%0A  ...%0A# Subtest: 品鉴后的具体负面维度触发可解释优化%0Aok 13 - 品鉴后的具体负面维度触发可解释优化%0A  ---%0A  duration_ms: 1.360362%0A  type: 'test'%0A  ...%0A# Subtest: 雷达轴只比较同组平均且无完成冲煮时不提示优化%0Aok 14 - 雷达轴只比较同组平均且无完成冲煮时不提示优化%0A  ---%0A  duration_ms: 1.367413%0A  type: 'test'%0A  ...%0A# Subtest: 实际执行明显偏离方案时不把负面结果归因于方案%0Aok 15 - 实际执行明显偏离方案时不把负面结果归因于方案%0A  ---%0A  duration_ms: 0.409701%0A  type: 'test'%0A  ...%0A# Subtest: 个人靶区至少三次证据后才改变，标准靶区保持不变%0Aok 16 - 个人靶区至少三次证据后才改变，标准靶区保持不变%0A  ---%0A  duration_ms: 1.190401%0A  type: 'test'%0A  ...%0A# Subtest: accepts a catalog with balanced hot and cold auto-recommend profiles%0Aok 17 - accepts a catalog with balanced hot and cold auto-recommend profiles%0A  ---%0A  duration_ms: 1.425844%0A  type: 'test'%0A  ...%0A# Subtest: rejects a catalog whose declared profile count differs from the payload%0Aok 18 - rejects a catalog whose declared profile count differs from the payload%0A  ---%0A  duration_ms: 0.225735%0A  type: 'test'%0A  ...%0A# Subtest: rejects a cold profile whose recipe water does not equal brew water + ice + bypass%0Aok 19 - rejects a cold profile whose recipe water does not equal brew water + ice + bypass%0A  ---%0A  duration_ms: 1.065933%0A  type: 'test'%0A  ...%0A# Subtest: rejects catalogs that cannot auto-recommend in both hot and cold modes%0Aok 20 - rejects catalogs that cannot auto-recommend in both hot and cold modes%0A  ---%0A  duration_ms: 0.285889%0A  type: 'test'%0A  ...%0A# Subtest: Coffee Knowledge provider is optional and preserves QR-core ownership%0Aok 21 - Coffee Knowledge provider is optional and preserves QR-core ownership%0A  ---%0A  duration_ms: 0.879589%0A  type: 'test'%0A  ...%0A# Subtest: knowledge aliases augment matching without changing QR indexes or visible columns%0Aok 22 - knowledge aliases augment matching without changing QR indexes or visible columns%0A  ---%0A  duration_ms: 1.17259%0A  type: 'test'%0A  ...%0A# Subtest: Japanese/Korean OCR text resolves to existing v6 codes through hidden knowledge aliases%0Aok 23 - Japanese/Korean OCR text resolves to existing v6 codes through hidden knowledge aliases%0A  ---%0A  duration_ms: 6.224062%0A  type: 'test'%0A  ...%0A# Subtest: canonical knowledge identity is available without rewriting decoded core codes%0Aok 24 - canonical knowledge identity is available without rewriting decoded core codes%0A  ---%0A  duration_ms: 0.426805%0A  type: 'test'%0A  ...%0A# Subtest: archive round-trip preserves every portable store%0Aok 25 - archive round-trip preserves every portable store%0A  ---%0A  duration_ms: 15.529495%0A  type: 'test'%0A  ...%0A# Subtest: archive rejects tampered store data%0Aok 26 - archive rejects tampered store data%0A  ---%0A  duration_ms: 2.893263%0A  type: 'test'%0A  ...%0A# Subtest: legacy 1.2.x JSON backup migrates without inventing records%0Aok 27 - legacy 1.2.x JSON backup migrates without inventing records%0A  ---%0A  duration_ms: 0.552738%0A  type: 'test'%0A  ...%0A# Subtest: future schema cannot be imported%0Aok 28 - future schema cannot be imported%0A  ---%0A  duration_ms: 3.470992%0A  type: 'test'%0A  ...%0A# Subtest: production date never falls back to roast date%0Aok 29 - production date never falls back to roast date%0A  ---%0A  duration_ms: 4.173583%0A  type: 'test'%0A  ...%0A# Subtest: best before and expiry dates are excluded from roast date%0Aok 30 - best before and expiry dates are excluded from roast date%0A  ---%0A  duration_ms: 4.578868%0A  type: 'test'%0A  ...%0A# Subtest: explicit roast date is auto-filled while other dates remain excluded%0Aok 31 - explicit roast date is auto-filled while other dates remain excluded%0A  ---%0A  duration_ms: 1.738425%0A  type: 'test'%0A  ...%0A# Subtest: unlabelled date requires confirmation and is never silently filled%0Aok 32 - unlabelled date requires confirmation and is never silently filled%0A  ---%0A  duration_ms: 0.488889%0A  type: 'test'%0A  ...%0A# Subtest: date photo role increases provenance but does not bypass confirmation%0Aok 33 - date photo role increases provenance but does not bypass confirmation%0A  ---%0A  duration_ms: 0.666234%0A  type: 'test'%0A  ...%0A# Subtest: invalid calendar dates are rejected%0Aok 34 - invalid calendar dates are rejected%0A  ---%0A  duration_ms: 0.902537%0A  type: 'test'%0A  ...%0A# Subtest: 30-case date ownership golden set has zero silent non-roast assignments%0A    # Subtest: 烘焙日期：2026-07-28%0A    ok 1 - 烘焙日期：2026-07-28%0A      ---%0A      duration_ms: 7.115542%0A      type: 'test'%0A      ...%0A    # Subtest: ROAST DATE 2026/07/28%0A    ok 2 - ROAST DATE 2026/07/28%0A      ---%0A      duration_ms: 1.651374%0A      ty
+# duration_ms 530.356023
+
+All LuckyBean static and recognition regression checks passed
