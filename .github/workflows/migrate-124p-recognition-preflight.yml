@@ -1,0 +1,137 @@
+name: One-time 1.24P recognition preflight migration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/migrate-124p-recognition-preflight.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Apply current-architecture recognition migration
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, required=True):
+              p=Path(path); s=p.read_text()
+              if old not in s:
+                  if required: raise SystemExit(f'missing migration anchor in {path}: {old[:90]!r}')
+                  return False
+              p.write_text(s.replace(old,new,1))
+              return True
+
+          # app.js: preserve current date-review/entity-safety flow; add harvest first-class field and preflight.
+          replace('src/app.js',
+            "import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, parseNaturalLanguage, REMOTE_CODEBOOK_URL } from './codebook.js';",
+            "import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, parseNaturalLanguage, parseHarvestSeasonValue, REMOTE_CODEBOOK_URL } from './codebook.js';")
+          replace('src/app.js',
+            "return [codeName('regions', bean.regionCode, ''), codeName('processes', bean.processCode, '')].filter(Boolean).join(' · ') || '产区与处理法未记录';",
+            "return [codeName('regions', bean.regionCode, ''), bean.harvestSeason ? `产季 ${bean.harvestSeason}` : '', codeName('processes', bean.processCode, '')].filter(Boolean).join(' · ') || '产区与处理法未记录';")
+          replace('src/app.js',
+            "${fieldHtml('beanVariety','豆种',`<select id=\"beanVariety\" class=\"control\">${beanSelectOptions('varieties',state.codebook.varieties,bean.varietyCode)}</select>`,'required')}\n        ${fieldHtml('beanProcess'",
+            "${fieldHtml('beanVariety','豆种',`<select id=\"beanVariety\" class=\"control\">${beanSelectOptions('varieties',state.codebook.varieties,bean.varietyCode)}</select>`,'required')}\n        ${fieldHtml('beanHarvestSeason','产季',`<input id=\"beanHarvestSeason\" class=\"control\" maxlength=\"20\" value=\"${esc(bean.harvestSeason || (bean.harvestYear ? String(bean.harvestYear) : ''))}\" placeholder=\"例如 2025/26\">`)}\n        ${fieldHtml('beanProcess'")
+          replace('src/app.js',
+            ".map(([key, value]) => `<div class=\"evidence-row\" data-evidence-field=\"${esc(key)}\" data-evidence-value=\"${esc(String(value))}\"><span>${esc(labels[key]||key)}</span><span>${esc(value)}</span><span>${Math.round((confidence[key]||0)*100)}%</span></div>`)",
+            ".map(([key, value]) => `<div class=\"evidence-row\" data-evidence-field=\"${esc(key)}\" data-evidence-value=\"${esc(String(value))}\"><span>${esc(labels[key]||key)}</span><span>${esc(value)}</span><span>待确认</span></div>`)")
+          replace('src/app.js',
+            "const now = new Date().toISOString();\n    const record = {",
+            "const now = new Date().toISOString();\n    const harvestInput = formValue('beanHarvestSeason');\n    const harvestParsed = parseHarvestSeasonValue(harvestInput);\n    const record = {")
+          replace('src/app.js',
+            "countryCode, regionCode: formValue('beanRegion'), entityCode: formValue('beanEntity'), varietyCode, processCode: formValue('beanProcess'),\n      roastColor:",
+            "countryCode, regionCode: formValue('beanRegion'), entityCode: formValue('beanEntity'), varietyCode, processCode: formValue('beanProcess'),\n      harvestSeason: harvestParsed.normalizedValue || harvestInput, harvestYear: harvestParsed.harvestYear || 0, harvestEndYear: harvestParsed.harvestEndYear || 0,\n      roastColor:")
+          replace('src/app.js',
+            "varietyCode: formValue('beanVariety'), processCode: formValue('beanProcess'), roastColor:",
+            "varietyCode: formValue('beanVariety'), harvestSeason: formValue('beanHarvestSeason'), processCode: formValue('beanProcess'), roastColor:")
+          replace('src/app.js',
+            "openBeanForm(merged, { type: 'text', text: sourceText, recognitionDocument, evidence: parsed.evidence, confidence: parsed.confidence, parseMetadata: parsed.parseMetadata });\n}\n\nfunction openRecognitionDateReview",
+            "openRecognitionPreflight({ merged, parsed, sourceText, dateDecision, recognitionDocument });\n}\n\nfunction recognitionPreflightRows(bean = {}, parsed = {}) {\n  const review = new Set(parsed.parseMetadata?.recognition?.reviewFields || []);\n  const flavorText = (bean.flavorCodes || []).map(code => codeName('flavors', code, '')).filter(Boolean).join('、');\n  const rows = [\n    ['countryCode','国家', codeName('countries', bean.countryCode, bean.countryCustomName || '')],\n    ['regionCode','产区', codeName('regions', bean.regionCode, bean.regionCustomName || '')],\n    ['entityCode','庄园 / 处理站', codeName('entities', bean.entityCode, bean.entityCustomName || '')],\n    ['varietyCode','豆种', codeName('varieties', bean.varietyCode, bean.varietyCustomName || '')],\n    ['harvestYear','产季', bean.harvestSeason || (bean.harvestYear ? String(bean.harvestYear) : '')],\n    ['processCode','处理法', codeName('processes', bean.processCode, bean.processCustomName || '')],\n    ['altitude','海拔', bean.altitude ? `${bean.altitude} m` : ''],\n    ['roasterName','烘焙商', bean.roasterName || ''],\n    ['roastDate','烘焙日期', bean.roastDate || ''],\n    ['roastCode','烘焙度', ROAST_NAME.get(bean.roastCode) || ''],\n    ['roastColor','烘焙色值', bean.roastColor ? `Agtron ${bean.roastColor}` : ''],\n    ['flavorCodes','风味', flavorText || (bean.customFlavorNames || []).join('、')],\n    ['initialWeight','净含量', bean.initialWeight ? `${bean.initialWeight} g` : '']\n  ];\n  return rows.map(([field,label,value]) => ({ field, label, value: String(value || '').trim() || '—', review: review.has(field) }));\n}\n\nfunction recognitionPreflightExtra(parsed, dateDecision) {\n  const items = [];\n  for (const candidate of dateDecision?.candidates || []) {\n    if (candidate.decision === 'exclude') items.push(`${candidate.fieldLabel}：${candidate.normalizedValue || candidate.rawValue}`);\n    else if (candidate.decision === 'review') items.push(`未自动写入日期：${candidate.rawValue}`);\n  }\n  for (const value of parsed.customFlavorNames || []) items.push(`未编码风味：${value}`);\n  return [...new Set(items)];\n}\n\nfunction openRecognitionPreflight({ merged, parsed, sourceText, dateDecision, recognitionDocument }) {\n  const rows = recognitionPreflightRows(merged, parsed);\n  const extra = recognitionPreflightExtra(parsed, dateDecision);\n  const correctedCount = Object.values(parsed.parseMetadata || {}).filter(item => item && typeof item === 'object' && item.normalizedValue && item.rawValue && item.normalizedValue !== item.rawValue).length;\n  const rowHtml = rows.map(row => `<div class=\"recognition-preflight-row${row.review ? ' is-review' : ''}\"><span>${esc(row.label)}${row.review ? ' · 待确认' : ''}</span><strong>${esc(row.value)}</strong></div>`).join('');\n  const extraHtml = extra.length ? `<section class=\"recognition-preflight-extra\"><h3>其他识别信息</h3>${extra.map(item => `<p>${esc(item)}</p>`).join('')}</section>` : '';\n  const detailSummary = `已自动识别、翻译并整理${correctedCount ? `，其中规范化 ${correctedCount} 项` : ''}。原始文字与置信度仅保留在识别元数据中。`;\n  const content = `${dialogHeader('识别信息确认', '已自动识别、翻译并整理标签信息；待确认项不会静默写入标准编码')}<section class=\"recognition-preflight-card\"><div class=\"recognition-preflight-grid\">${rowHtml}</div>${extraHtml}<details class=\"recognition-source-details\"><summary>查看识别原文</summary><pre>${esc(sourceText)}</pre></details></section><div class=\"row recognition-preflight-actions\"><button id=\"preflightBackBtn\" class=\"button subtle\" type=\"button\">返回识别</button><span class=\"grow\"></span><button id=\"preflightConfirmBtn\" class=\"button primary\" type=\"button\">确认并填入</button></div>`;\n  const overlay = showOverlay(content, { full: true, id: 'recognition-preflight' });\n  bindClose(overlay);\n  $('#preflightBackBtn').addEventListener('click', () => openTextRecognition(sourceText, merged, recognitionDocument));\n  $('#preflightConfirmBtn').addEventListener('click', () => openBeanForm(merged, { type: 'text', text: sourceText, recognitionDocument, evidence: parsed.evidence, confidence: parsed.confidence, parseMetadata: parsed.parseMetadata, preflightSummary: detailSummary }));\n}\n\nfunction openRecognitionDateReview")
+          replace('src/app.js', "粘贴豆袋文字，系统按 BrewIon 词表提取字段", "支持简体、繁体、英文、日文和韩文；系统先识别、归一化，再进入固定格式确认")
+          replace('src/app.js', "例如：埃塞俄比亚 古吉 日晒 Heirloom，浅烘，2026-07-20，海拔2100m，净重150g，茉莉、蓝莓、蜂蜜", "例如：埃塞俄比亚 古吉 日晒 Heirloom，2026产季，浅烘，2026-07-20，海拔2100m")
+          replace('src/app.js', "低置信度字段会要求人工确认；确认后表单仅显示最终值，识别证据保留为内部来源记录。", "识别结果会先按固定字段顺序展示；确认后再填入豆卡。置信度不在普通界面显示，只保留为内部来源记录。")
+          replace('src/app.js', ">识别并填表</button>", ">识别并整理</button>")
+          # QR: keep harvest as field instead of duplicating it in notes when the old line is still present.
+          replace('src/app.js',
+            "decoded.notes = [`扫码识别`, decoded.agtron ? `Agtron ${decoded.agtron}` : '', decoded.harvestYear ? `产季 ${decoded.harvestYear}` : ''].filter(Boolean).join('；');",
+            "decoded.harvestSeason = decoded.harvestSeason || (decoded.harvestYear ? String(decoded.harvestYear) : '');\n    decoded.notes = [`扫码识别`, decoded.agtron ? `Agtron ${decoded.agtron}` : ''].filter(Boolean).join('；');",
+            required=False)
+
+          # codebook.js: add explicit zh-Hant / ja / ko field aliases and selected value normalization.
+          lex = {
+          "  country: ['产地国','原产国','原产地','国家','产地','origin','country of origin','origin country','country'],": "  country: ['产地国','原产国','原产地','国家','产地','產地國','原產國','原產地','國家','產地','生産国','原産国','原産地','생산국','원산국','원산지','origin','country of origin','origin country','country'],",
+          "  region: ['产区','地区','区域','省','州','县','region','growing region','origin region','zone','district','province','terroir'],": "  region: ['产区','地区','区域','省','州','县','產區','地區','區域','産地','地域','生産地域','生産地','산지','지역','생산 지역','생산지','region','growing region','origin region','zone','district','province','terroir'],",
+          "  entity: ['庄园','农场','生产者','农户','合作社','处理站','水洗站','处理厂','磨坊','工厂','producer','farmer','grower','farm','estate','finca','hacienda','cooperative','co-op','coop','washing station','ws','wet mill','dry mill','mill','factory'],": "  entity: ['庄园','农场','生产者','农户','合作社','处理站','水洗站','处理厂','磨坊','工厂','莊園','農場','生產者','農戶','處理站','水洗站','處理廠','農園','生産者','協同組合','精製所','ウォッシングステーション','농장','생산자','협동조합','가공소','워싱 스테이션','producer','farmer','grower','farm','estate','finca','hacienda','cooperative','co-op','coop','washing station','ws','wet mill','dry mill','mill','factory'],",
+          "  variety: ['豆种','品种','咖啡品种','栽培种','种属','variety','varietal','cultivar','var.','var','cv.','cv','species','botanical variety'],": "  variety: ['豆种','品种','咖啡品种','栽培种','种属','豆種','品種','咖啡品種','栽培種','種屬','栽培品種','品種名','품종','재배 품종','variety','varietal','cultivar','var.','var','cv.','cv','species','botanical variety'],",
+          "  process: ['处理法','处理方式','加工法','加工方式','发酵方式','处理工艺','process','processing','processing method','proc.','proc','method','fermentation'],": "  process: ['处理法','处理方式','加工法','加工方式','发酵方式','处理工艺','處理法','處理方式','加工法','發酵方式','精製方法','精製法','加工方法','処理方法','発酵方法','가공 방식','가공법','프로세싱','정제 방식','발효 방식','process','processing','processing method','proc.','proc','method','fermentation'],",
+          "  roast: ['烘焙度','烘焙程度','焙度','roast level','roast profile','roast'],": "  roast: ['烘焙度','烘焙程度','焙度','焙煎度','ローストレベル','焼き加減','배전도','로스팅 정도','로스트 레벨','roast level','roast profile','roast'],",
+          "  roastDate: ['烘焙日期','烘焙时间','烘焙日','焙炒日期','烘烤日期','出炉日期','roast date','roasted on','roast on','rst date','rst dt','rd'],": "  roastDate: ['烘焙日期','烘焙时间','烘焙日','焙炒日期','烘烤日期','出炉日期','烘焙時間','焙煎日','焙煎日付','焙煎年月日','로스팅 날짜','로스팅일','배전일','roast date','roasted on','roast on','rst date','rst dt','rd'],",
+          "  harvest: ['产季','收获季','收获年份','采收季','采收年份','生豆产季','crop','crop year','harvest','harvest year','season','crop season','cy'],": "  harvest: ['产季','收获季','收获年份','采收季','采收年份','生豆产季','收获年度','產季','收穫季','收穫年份','採收季','採收年份','生豆產季','收穫年度','採收年度','クロップ','クロップ年','クロップ年度','収穫年','収穫年度','収穫期','収穫シーズン','年産','크롭','크롭 연도','수확 연도','수확년도','수확기','수확 시기','수확 시즌','생산 연도','crop','crop year','harvest','harvest year','season','crop season','cy'],",
+          "  flavor: ['风味','风味描述','杯测风味','风味标签','品鉴笔记','香气','flavor notes','flavour notes','tasting notes','cup notes','cupping notes','sensory notes','aroma'],": "  flavor: ['风味','风味描述','杯测风味','风味标签','品鉴笔记','香气','風味','風味描述','杯測風味','香氣','フレーバー','カッピングコメント','テイスティングノート','香り','플레이버','향미','컵노트','테이스팅 노트','아로마','flavor notes','flavour notes','tasting notes','cup notes','cupping notes','sensory notes','aroma'],",
+          "  altitude: ['海拔','种植海拔','高度','elevation','altitude','elev.','elev','alt.','alt','masl','m.a.s.l.','meters above sea level','metres above sea level','ft asl','feet above sea level'],": "  altitude: ['海拔','种植海拔','高度','種植海拔','標高','栽培標高','고도','재배 고도','elevation','altitude','elev.','elev','alt.','alt','masl','m.a.s.l.','meters above sea level','metres above sea level','ft asl','feet above sea level'],",
+          "  roastColor: ['烘焙色值','色值','艾格壮','agtron','gourmet agtron','commercial agtron','roast color','colour value','color value','whole bean color','ground color'],": "  roastColor: ['烘焙色值','色值','艾格壮','艾格壯','焙煎色','アグトロン','배전 색도','애그트론','agtron','gourmet agtron','commercial agtron','roast color','colour value','color value','whole bean color','ground color'],",
+          "  weight: ['净重','重量','克重','包装重量','net weight','net wt','net wt.','n.w.','nw'],": "  weight: ['净重','重量','克重','包装重量','淨重','包裝重量','内容量','正味重量','중량','내용량','순중량','net weight','net wt','net wt.','n.w.','nw'],"
+          }
+          for old,new in lex.items(): replace('src/codebook.js',old,new)
+          replace('src/codebook.js',
+            "function bestTableMatch(value, rows) {\n  const source = normalizeLabelValue(value);",
+            "const MULTILINGUAL_VALUE_NORMALIZATION = Object.freeze([\n  [/^(?:ゲイシャ|ゲシャ|게이샤)$/i, 'Gesha'],\n  [/^(?:ウォッシュド|水洗式|워시드|수세식)$/i, 'Washed'],\n  [/^(?:ナチュラル|自然乾燥|내추럴|건식)$/i, 'Natural'],\n  [/^(?:ハニー|허니)$/i, 'Honey'],\n  [/^(?:エチオピア|에티오피아)$/i, 'Ethiopia'],\n  [/^(?:コロンビア|콜롬비아)$/i, 'Colombia'],\n  [/^(?:パナマ|파나마)$/i, 'Panama'],\n  [/^(?:ケニア|케냐)$/i, 'Kenya'],\n  [/^(?:ブラジル|브라질)$/i, 'Brazil']\n]);\n\nfunction normalizeMultilingualValue(value) {\n  const raw = normalizeLabelValue(value);\n  for (const [pattern, canonical] of MULTILINGUAL_VALUE_NORMALIZATION) if (pattern.test(raw)) return canonical;\n  return raw;\n}\n\nfunction bestTableMatch(value, rows) {\n  const source = normalizeMultilingualValue(value);")
+          replace('src/codebook.js',
+            "export function parseHarvestSeasonValue(value) {\n  const text=normalizeLabelValue(value);\n  let m=text.match(/(?:^|\\D)(20\\d{2}|\\d{2})\\s*[-–—\\/]\\s*(20\\d{2}|\\d{2})(?:\\s*(?:crop|产季|season))?(?:\\D|$)/i);\n  if(m){const a=fullYear(m[1]),b=fullYear(m[2]);return {rawValue:m[0].trim(),normalizedValue:`${a}/${b}`,harvestYear:a,harvestEndYear:b,formatId:'HARVEST_RANGE',confidence:0.98,candidates:[`${a}/${b}`],warnings:[]};}\n  m=text.match(/(?:^|\\D)(20\\d{2}|\\d{2})(?:\\s*(?:产季|年度|年|crop|crop year|harvest|season))?(?:\\D|$)/i);\n  if(m){const year=fullYear(m[1]);return {rawValue:m[0].trim(),normalizedValue:String(year),harvestYear:year,harvestEndYear:year,formatId:'HARVEST_YEAR',confidence:0.97,candidates:[String(year)],warnings:[]};}\n  return {rawValue:text,normalizedValue:'',harvestYear:0,harvestEndYear:0,formatId:'UNRECOGNIZED',confidence:0,candidates:[],warnings:text?['产季年份格式未识别。']:[]};\n}",
+            "export function parseHarvestSeasonValue(value) {\n  const text=normalizeLabelValue(value);\n  const suffix='(?:crop(?:\\\\s*year|\\\\s*season)?|harvest(?:\\\\s*year|\\\\s*season)?|season|产季|產季|收获年度|收穫年度|クロップ(?:年|年度)?|収穫(?:年|年度|期|シーズン)|年産|크롭(?:\\\\s*연도)?|수확(?:\\\\s*연도|년도|기|\\\\s*시기|\\\\s*시즌)|생산\\\\s*연도)';\n  let m=text.match(new RegExp(`(?:^|\\\\D)(20\\\\d{2}|\\\\d{2})\\\\s*[-–—/]\\\\s*(20\\\\d{2}|\\\\d{2})(?:\\\\s*${suffix})?(?:\\\\D|$)`,'i'));\n  if(m){const a=fullYear(m[1]),rawB=fullYear(m[2]);const b=rawB<a&&m[2].length===2?a-(a%100)+Number(m[2]):rawB;return {rawValue:m[0].trim(),normalizedValue:`${a}/${b}`,harvestYear:a,harvestEndYear:b,formatId:'HARVEST_RANGE',confidence:0.985,candidates:[`${a}/${b}`],warnings:[]};}\n  m=text.match(new RegExp(`(?:^|\\\\D)(20\\\\d{2}|\\\\d{2})(?:\\\\s*${suffix})?(?:\\\\D|$)`,'i'));\n  if(m){const year=fullYear(m[1]);return {rawValue:m[0].trim(),normalizedValue:String(year),harvestYear:year,harvestEndYear:year,formatId:'HARVEST_YEAR',confidence:0.975,candidates:[String(year)],warnings:[]};}\n  return {rawValue:text,normalizedValue:'',harvestYear:0,harvestEndYear:0,formatId:'UNRECOGNIZED',confidence:0,candidates:[],warnings:text?['产季年份格式未识别。']:[]};\n}")
+          replace('src/codebook.js',
+            "    [/极浅|超浅|lightest/i, 'RL-L0'], [/浅中|medium\\s*light/i, 'RL-L2'], [/浅烘|浅度|light/i, 'RL-L1'],\n    [/中深|medium\\s*dark/i, 'RL-L4'], [/中烘|中度|medium/i, 'RL-L3'], [/极深|法式|very\\s*dark/i, 'RL-L6'], [/深烘|深度|dark/i, 'RL-L5']",
+            "    [/极浅|超浅|極淺|最浅煎り|lightest/i, 'RL-L0'], [/浅中|淺中|中浅煎り|미디엄 라이트|medium\\s*light/i, 'RL-L2'], [/浅烘|浅度|淺焙|浅煎り|ライトロースト|약배전|라이트 로스트|light/i, 'RL-L1'],\n    [/中深|中深焙|中深煎り|강중배전|medium\\s*dark/i, 'RL-L4'], [/中烘|中度|中焙|中煎り|ミディアムロースト|중배전|미디엄 로스트|medium/i, 'RL-L3'], [/极深|極深|法式|深深煎り|프렌치 로스트|very\\s*dark/i, 'RL-L6'], [/深烘|深度|深焙|深煎り|ダークロースト|강배전|다크 로스트|dark/i, 'RL-L5']")
+
+          # recognition-document.js: spatial field anchors in Japanese/Korean.
+          rec = {
+          "  country: ['国家','产国','原产国','生产国','咖啡产国','國家','產國','原產國','country','country of origin','origin country'],": "  country: ['国家','产国','原产国','生产国','咖啡产国','國家','產國','原產國','生産国','原産国','생산국','원산국','country','country of origin','origin country'],",
+          "  variety: ['品种','豆种','树种','咖啡品种','栽培种','種屬','品種','豆種','樹種','variety','varietal','cultivar','botanical variety','var.','var','cv.','cv'],": "  variety: ['品种','豆种','树种','咖啡品种','栽培种','種屬','品種','豆種','樹種','栽培品種','품종','재배 품종','variety','varietal','cultivar','botanical variety','var.','var','cv.','cv'],",
+          "  process: ['处理法','处理方式','处理','精制法','后制处理','后制法','加工法','加工方式','发酵方式','处理工艺','處理法','處理方式','後製法','process','processing','processing method','post-harvest process','proc.','proc','method'],": "  process: ['处理法','处理方式','处理','精制法','后制处理','后制法','加工法','加工方式','发酵方式','处理工艺','處理法','處理方式','後製法','精製方法','精製法','加工方法','処理方法','가공 방식','가공법','프로세싱','정제 방식','process','processing','processing method','post-harvest process','proc.','proc','method'],",
+          "  roastDate: ['烘焙日期','烘焙日','烘豆日期','烘焙时间','出炉日期','焙炒日期','烘烤日期','烘焙日期','烘焙日','烘豆日期','烘焙時間','出爐日期','roast date','roasted on','roasting date','date roasted','roast on','rst date','rst dt','rd'],": "  roastDate: ['烘焙日期','烘焙日','烘豆日期','烘焙时间','出炉日期','焙炒日期','烘烤日期','烘焙時間','出爐日期','焙煎日','焙煎日付','焙煎年月日','로스팅 날짜','로스팅일','배전일','roast date','roasted on','roasting date','date roasted','roast on','rst date','rst dt','rd'],",
+          "  harvest: ['产季','收获季','采收季','采收年份','收获年份','年度','生豆产季','產季','收穫季','採收季','crop','crop year','harvest','harvest year','season','crop season','cy'],": "  harvest: ['产季','收获季','采收季','采收年份','收获年份','年度','生豆产季','收获年度','產季','收穫季','採收季','採收年份','收穫年份','生豆產季','收穫年度','採收年度','クロップ','クロップ年','クロップ年度','収穫年','収穫年度','収穫期','収穫シーズン','年産','크롭','크롭 연도','수확 연도','수확년도','수확기','수확 시기','수확 시즌','생산 연도','crop','crop year','harvest','harvest year','season','crop season','cy'],",
+          "  roast: ['烘焙度','焙度','烘焙程度','烘焙程度描述','焙度','roast level','roast profile','roast'],": "  roast: ['烘焙度','焙度','烘焙程度','烘焙程度描述','焙度','焙煎度','ローストレベル','焼き加減','배전도','로스팅 정도','로스트 레벨','roast level','roast profile','roast'],"
+          }
+          for old,new in rec.items(): replace('src/domain/recognition/recognition-document.js',old,new)
+
+          css=Path('src/ui/app-components.css')
+          c=css.read_text()
+          marker='/* recognition-preflight/1.24P */'
+          if marker not in c:
+              c += '''\n\n/* recognition-preflight/1.24P */\n.recognition-preflight-card{max-width:760px;margin:0 auto;display:grid;gap:14px}\n.recognition-preflight-grid{border:1px solid rgba(190,151,80,.24);border-radius:16px;overflow:hidden;background:rgba(255,255,255,.025)}\n.recognition-preflight-row{display:grid;grid-template-columns:minmax(92px,34%) 1fr;gap:12px;align-items:center;padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.07)}\n.recognition-preflight-row:last-child{border-bottom:0}.recognition-preflight-row.is-review{outline:1px solid rgba(190,151,80,.35);outline-offset:-1px}\n.recognition-preflight-row span{font-size:12px;color:var(--muted,#aaa)}.recognition-preflight-row strong{font-size:14px;font-weight:600;word-break:break-word}\n.recognition-preflight-extra,.recognition-source-details{padding:12px 14px;border:1px solid rgba(190,151,80,.2);border-radius:14px;background:rgba(255,255,255,.02)}\n.recognition-preflight-extra h3{margin:0 0 8px;font-size:13px}.recognition-preflight-extra p{margin:4px 0;font-size:12px;color:var(--muted,#aaa)}\n.recognition-source-details pre{white-space:pre-wrap;word-break:break-word;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;max-height:34vh;overflow:auto}\n.recognition-preflight-actions{position:sticky;bottom:0;padding:12px 0 calc(8px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg,#090a0a) 28%)}\n.recognition-audit-details{grid-column:1/-1;margin-top:4px}\n@media(max-width:520px){.recognition-preflight-row{grid-template-columns:90px 1fr}}\n'''
+              css.write_text(c)
+
+          Path('docs/recognition-preflight.md').write_text('''# Recognition Preflight 1.24P\n\nLuckyBean inserts a confirmation stage between OCR parsing and the formal bean-card draft.\n\n## Flow\n\n`OCR -> layout relations -> multilingual normalization -> field audit -> date ownership review (when required) -> fixed-format preflight -> user confirmation -> bean form`\n\nThe ordinary UI does not expose confidence percentages. Confidence and source evidence remain internal recognition metadata for conflict resolution and traceability.\n\n## Supported label languages\n\nField anchors and selected canonical value aliases cover Simplified Chinese, Traditional Chinese, English, Japanese, and Korean. Original OCR text is retained even when a display value is normalized or translated.\n\n## Harvest season\n\n`harvestSeason` is an optional first-class bean field, with derived `harvestYear` and `harvestEndYear` where a year or year range is parseable. Explicit crop/harvest lines are treated as harvest data and are not permitted to silently become roast, altitude, or weight values.\n\n## Safety\n\nAmbiguous Knowledge entities marked `blockAutomaticEntityResolution` remain review candidates rather than silently receiving a stable entity code. Explicit stable core codes remain compatible with historical QR/encoded inputs.\n\n## Fixed preflight order\n\nCountry, region, farm/station, variety, harvest season, process, altitude, roaster, roast date, roast level, roast color, flavor, and net weight are displayed in a stable order. Missing values remain visibly blank (`—`) instead of being guessed.\n''')
+
+          Path('test/harvest-multilingual-preflight.test.js').write_text('''import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { DEFAULT_LABEL_LEXICON, parseHarvestSeasonValue, parseNaturalLanguage } from '../src/codebook.js';\nimport { RECOGNITION_FIELD_ALIASES, recognitionDocumentFromText } from '../src/domain/recognition/recognition-document.js';\n\nconst emptyBook = { countries: [], regions: [], entities: [], varieties: [], processes: [], flavors: [] };\n\ntest('harvest aliases cover simplified/traditional/English/Japanese/Korean', () => {\n  for (const token of ['产季','產季','crop year','クロップ年度','収穫年','수확년도','크롭 연도']) {\n    assert.ok(DEFAULT_LABEL_LEXICON.harvest.includes(token), token);\n    assert.ok(RECOGNITION_FIELD_ALIASES.harvest.includes(token), token);\n  }\n});\n\ntest('harvest parser normalizes Chinese, Japanese and Korean seasons', () => {\n  assert.equal(parseHarvestSeasonValue('產季：2025/26').normalizedValue, '2025/2026');\n  assert.equal(parseHarvestSeasonValue('25/26クロップ').normalizedValue, '2025/2026');\n  assert.equal(parseHarvestSeasonValue('수확년도 2026').normalizedValue, '2026');\n  assert.equal(parseHarvestSeasonValue('2026年産').normalizedValue, '2026');\n});\n\ntest('harvest line cannot leak into roast altitude or weight', () => {\n  const result = parseNaturalLanguage('產季：2025/26\\n品種：ゲイシャ', emptyBook);\n  assert.equal(result.harvestSeason, '2025/2026');\n  assert.equal(result.roastCode, undefined);\n  assert.equal(result.altitude, undefined);\n  assert.equal(result.initialWeight, undefined);\n});\n\ntest('layout parser recognizes reversed Japanese and Korean harvest labels', () => {\n  const ja = recognitionDocumentFromText('2025/26：クロップ年度');\n  const ko = recognitionDocumentFromText('2026：수확년도');\n  assert.equal(ja.relations[0]?.field, 'harvest');\n  assert.equal(ko.relations[0]?.field, 'harvest');\n});\n\ntest('explicit labeled numeric roast level is normalized without scanning crop numbers', () => {\n  const result = parseNaturalLanguage('CROP YEAR: 2025/26\\nROAST LEVEL: L2', emptyBook);\n  assert.equal(result.harvestSeason, '2025/2026');\n  assert.equal(result.roastCode, 'RL-L2');\n});\n''')
+          PY
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run recognition target gates
+        run: |
+          node --check src/app.js
+          node --check src/codebook.js
+          node --check src/domain/recognition/recognition-document.js
+          node --test test/harvest-multilingual-preflight.test.js test/coffee-knowledge-entity-resolution-safety.test.js
+          npm run test:static
+      - name: Commit migration result
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/app.js src/codebook.js src/domain/recognition/recognition-document.js src/ui/app-components.css docs/recognition-preflight.md test/harvest-multilingual-preflight.test.js
+          git commit -m 'feat: complete multilingual recognition preflight and harvest field'
+          git push origin HEAD:main
