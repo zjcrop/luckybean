@@ -20,8 +20,6 @@ tests/v124b-complete-plan-contract.mjs:200:console.log('LuckyBean 1.24B main.4 c
 tests/v110-local-first-sync-static.mjs:122:assert.match(sw, /'luckybean-main-v124b-'/);
 tests/v110-local-first-sync-static.mjs:123:assert.match(sw, /'luckybean-main-v123e-'/);
 tests/v110-local-first-sync-static.mjs:124:assert.match(sw, /'luckybean-main-v123d-'/);
-tests/v123e-freshness-timeline-regression.mjs:16:assert.equal(releaseRevision, '1.24B-main.6');
-tests/v123e-freshness-timeline-regression.mjs:45:console.log('LuckyBean 1.24B immediate one-line freshness timeline and stage grouping checks passed');
 tests/v123e-small-brew-five-row-regression.mjs:17:assert.equal(Number(versionCodeMatch[1]), 102402);
 tests/v123e-small-brew-five-row-regression.mjs:59:console.log('LuckyBean 1.24B compact small-brew, automatic-field and Android upgrade contract passed');
 tests/v124b-final-release-contract.mjs:197:assert.match(gradle, /versionCode 102402/);
