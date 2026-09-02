@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 3.979793
+  duration_ms: 4.942279
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 67.986232
+  duration_ms: 2.299774
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 2.258092
+  duration_ms: 2.912125
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 1.545425
+  duration_ms: 1.917172
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.686253
+  duration_ms: 0.763517
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.24571
+  duration_ms: 2.754561
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.695406
+  duration_ms: 0.792307
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 83.958772
+# duration_ms 21.76647
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 4.505533
+  duration_ms: 5.500779
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 2.84473
+  duration_ms: 4.019495
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 3.133808
+  duration_ms: 4.026788
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 2.436776
+  duration_ms: 3.12664
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 1.791501
+  duration_ms: 2.628619
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 0.953509
+  duration_ms: 1.091916
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 20.110572
+# duration_ms 25.827723
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -157,22 +157,31 @@ LuckyBean 1.24P canonical gear binding, direct bean matching, QR runtime and upg
 LuckyBean Android gallery URI routing regression checks passed
 
 [static] tests/v123e-small-brew-five-row-regression.mjs
+LuckyBean 1.24P compact small-brew, automatic-field and Android upgrade contract passed
+
+[static] tests/v123e-ui-stability-static.mjs
 node:internal/modules/run_main:123
     triggerUncaughtException(
     ^
 
-AssertionError [ERR_ASSERTION]: Android versionCode missing
-    at file:///home/runner/work/luckybean/luckybean/tests/v123e-small-brew-five-row-regression.mjs:16:8
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ '1.24P-main.1'
+- '1.24B-main.6'
+       ^
+
+    at file:///home/runner/work/luckybean/luckybean/tests/v123e-ui-stability-static.mjs:42:8
     at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
-  generatedMessage: false,
+  generatedMessage: true,
   code: 'ERR_ASSERTION',
-  actual: null,
-  expected: true,
-  operator: '==',
+  actual: '1.24P-main.1',
+  expected: '1.24B-main.6',
+  operator: 'strictEqual',
   diff: 'simple'
 }
 
 Node.js v22.23.2
-::error file=tests/v123e-small-brew-five-row-regression.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: Android versionCode missing%0A    at file:///home/runner/work/luckybean/luckybean/tests/v123e-small-brew-five-row-regression.mjs:16:8%0A    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)%0A    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)%0A    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {%0A  generatedMessage: false,%0A  code: 'ERR_ASSERTION',%0A  actual: null,%0A  expected: true,%0A  operator: '==',%0A  diff: 'simple'%0A}%0A%0ANode.js v22.23.2
+::error file=tests/v123e-ui-stability-static.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: Expected values to be strictly equal:%0A+ actual - expected%0A%0A+ '1.24P-main.1'%0A- '1.24B-main.6'%0A       ^%0A%0A    at file:///home/runner/work/luckybean/luckybean/tests/v123e-ui-stability-static.mjs:42:8%0A    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)%0A    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)%0A    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {%0A  generatedMessage: true,%0A  code: 'ERR_ASSERTION',%0A  actual: '1.24P-main.1',%0A  expected: '1.24B-main.6',%0A  operator: 'strictEqual',%0A  diff: 'simple'%0A}%0A%0ANode.js v22.23.2

@@ -16,8 +16,6 @@ tests/v124b-complete-plan-contract.mjs:200:console.log('LuckyBean 1.24B main.4 c
 tests/v110-local-first-sync-static.mjs:122:assert.match(sw, /'luckybean-main-v124b-'/);
 tests/v110-local-first-sync-static.mjs:123:assert.match(sw, /'luckybean-main-v123e-'/);
 tests/v110-local-first-sync-static.mjs:124:assert.match(sw, /'luckybean-main-v123d-'/);
-tests/v123e-small-brew-five-row-regression.mjs:17:assert.equal(Number(versionCodeMatch[1]), 102402);
-tests/v123e-small-brew-five-row-regression.mjs:59:console.log('LuckyBean 1.24B compact small-brew, automatic-field and Android upgrade contract passed');
 tests/v124b-final-release-contract.mjs:197:assert.match(gradle, /versionCode 102402/);
 tests/v124b-final-release-contract.mjs:200:console.log('LuckyBean 1.24B main.4 final release contract with test+gated web deployment, exact native prompt runtime, canonical bean group state, shared sorting and text brew UI passed');
 tests/v122-cloud-sync-safety.mjs:61:console.log('v1.23D cloud union baseline and deletion propagation checks passed');
