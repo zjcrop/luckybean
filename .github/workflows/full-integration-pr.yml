@@ -44,7 +44,10 @@ jobs:
         if: steps.compile.outputs.status == '0'
         shell: bash
         run: |
-          set -euo pipefail
+          # Do not enable pipefail here: `grep -q` intentionally exits as soon as
+          # a marker is found, which can give `unzip -p` SIGPIPE (141) and turn a
+          # successful artifact assertion into a false CI failure.
+          set -eu
           apk=android/app/build/outputs/apk/debug/app-debug.apk
           test -f "$apk"
           grep -q "versionCode 102402" android/app/build.gradle
