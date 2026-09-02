@@ -4,7 +4,7 @@
  * Provides a shared data contract for recommendation, brew calculation,
  * 3D visualization and sensory feedback modules.
  */
-export const FLAVOR_VECTOR_VERSION = '1.0.0';
+export const FLAVOR_VECTOR_VERSION = '1.0.1';
 
 const FIELDS = [
   'acidity',
@@ -17,21 +17,23 @@ const FIELDS = [
 ];
 
 function normalize(value, fallback = 50) {
+  if (value === null || value === undefined || value === '') return fallback;
   const number = Number(value);
   if (!Number.isFinite(number)) return fallback;
   return Math.max(0, Math.min(100, Math.round(number)));
 }
 
 export function createFlavorVector(input = {}) {
-  return {
-    acidity: normalize(input.acidity),
-    sweetness: normalize(input.sweetness),
-    bitterness: normalize(input.bitterness),
-    aroma: normalize(input.aroma),
-    body: normalize(input.body),
-    clarity: normalize(input.clarity),
-    fermentation: normalize(input.fermentation)
-  };
+  return Object.fromEntries(FIELDS.map(field => [field, normalize(input[field], 50)]));
+}
+
+/**
+ * Contract-safe normalization: missing dimensions remain null instead of being
+ * silently converted to a neutral score. This prevents missing model evidence
+ * from being mistaken for a measured/predicted 50/100 value.
+ */
+export function normalizeFlavorVector(input = {}) {
+  return Object.fromEntries(FIELDS.map(field => [field, normalize(input[field], null)]));
 }
 
 export function mergeFlavorVector(base = {}, patch = {}) {
