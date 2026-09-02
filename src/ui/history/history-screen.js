@@ -17,6 +17,13 @@ function profileTitle(record) {
   const plan = record.analysisSnapshot?.plan || {};
   return plan.profile?.label || plan.metadata?.profileId || plan.profileVersion?.split('@')[0] || '冲煮方案';
 }
+function historySpatialScene(record) {
+  const analysis = record?.analysisSnapshot || {};
+  return analysis.brewResult?.physical?.spatial
+    || analysis.plan?.contracts?.brewResult?.physical?.spatial
+    || analysis.trajectory
+    || null;
+}
 function recordSearchText(record, bean) {
   const plan = record.analysisSnapshot?.plan || {};
   return [bean?.name, profileTitle(record), record.execution?.notes?.join(' '), plan.warnings?.map?.(item => item.message || item)?.join(' ')].filter(Boolean).join(' ').toLowerCase();
@@ -97,7 +104,7 @@ function openHistoryDetail(record, bean) {
     <div class="history-detail-actions"><button type="button" data-history-spatial>查看三维轨迹</button><button type="button" data-history-replay>载入复刻</button><button type="button" data-history-back>返回</button></div>
   </div></div>`;
   root.querySelectorAll('[data-history-back]').forEach(button=>button.addEventListener('click',()=>openHistoryScreen()));
-  root.querySelector('[data-history-spatial]')?.addEventListener('click',()=>document.dispatchEvent(new CustomEvent('luckybean:open-spatial-scene',{detail:{scene:analysis.trajectory}})));
+  root.querySelector('[data-history-spatial]')?.addEventListener('click',()=>document.dispatchEvent(new CustomEvent('luckybean:open-spatial-scene',{detail:{scene:historySpatialScene(record)}})));
   root.querySelector('[data-history-replay]')?.addEventListener('click',()=>document.dispatchEvent(new CustomEvent('luckybean:request-history-replay',{detail:{recordId:record.id}})));
 }
 
@@ -122,7 +129,7 @@ function openHistoryComparison(selected, beanMap) {
   root.querySelectorAll('[data-history-comparison-back]').forEach(button=>button.addEventListener('click',()=>openHistoryScreen()));
   root.querySelectorAll('[data-history-comparison-spatial]').forEach(button=>button.addEventListener('click',()=>{
     const record=button.dataset.historyComparisonSpatial==='previous'?previous:current;
-    document.dispatchEvent(new CustomEvent('luckybean:open-spatial-scene',{detail:{scene:record.analysisSnapshot?.trajectory}}));
+    document.dispatchEvent(new CustomEvent('luckybean:open-spatial-scene',{detail:{scene:historySpatialScene(record)}}));
   }));
 }
 
