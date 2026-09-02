@@ -1,7 +1,5 @@
 # LuckyBean legacy version reference scan
 # Evidence only: old filenames/tests may remain intentionally for compatibility.
-tests/v125-root-state-models.mjs:55:assert.equal(Number(versionCodeMatch[1]), 102402, `LuckyBean 1.24B versionCode mismatch: ${versionCodeMatch[1]}`);
-tests/v125-root-state-models.mjs:61:console.log('v1.2.5 independent sensory state machines and LuckyBean 1.24B Android package contracts passed');
 tests/v123e-cloud-gear-sync.mjs:15:assert.deepEqual(normalizeGearRows('[object Object],[object Object]', 'grinder'), [], 'corrupted 1.23D/early-1.23E grinder placeholders must be ignored safely');
 tests/v123e-cloud-gear-sync.mjs:25:console.log('LuckyBean 1.23E gear cloud-sync compatibility checks passed');
 tests/v120-requirements-static.mjs:51:  'luckybean-main-v124b-',

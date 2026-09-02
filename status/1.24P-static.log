@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 5.789686
+  duration_ms: 5.028155
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 2.221853
+  duration_ms: 1.996796
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 2.57974
+  duration_ms: 2.482851
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 1.878403
+  duration_ms: 1.853843
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.832222
+  duration_ms: 0.75116
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.755758
+  duration_ms: 2.722588
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.898155
+  duration_ms: 0.894704
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 23.130781
+# duration_ms 21.44731
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 6.244915
+  duration_ms: 5.578766
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 3.816506
+  duration_ms: 3.779104
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 3.73272
+  duration_ms: 3.616301
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 2.857368
+  duration_ms: 2.827165
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 2.287606
+  duration_ms: 2.345476
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 1.088229
+  duration_ms: 0.985859
   type: 'test'
   ...
 1..6
@@ -115,28 +115,223 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 26.165179
+# duration_ms 24.92181
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
 
 [static] tests/v125-root-state-models.mjs
+v1.2.5 independent sensory state machines and LuckyBean 1.24P Android package contracts passed
+
+[static] tests/v124p-release-contract.mjs
+LuckyBean 1.24P canonical release identity, BrewResult consumers and same-SHA signed deployment contract passed
+
+[static] tests/v123d-ui-sensory-regressions.mjs
 node:internal/modules/run_main:123
     triggerUncaughtException(
     ^
 
-AssertionError [ERR_ASSERTION]: Android versionCode missing
-    at file:///home/runner/work/luckybean/luckybean/tests/v125-root-state-models.mjs:54:8
+AssertionError [ERR_ASSERTION]: the locked app version must be 1.24B
+    at file:///home/runner/work/luckybean/luckybean/tests/v123d-ui-sensory-regressions.mjs:14:8
     at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: null,
-  expected: true,
-  operator: '==',
+  actual: "export const APP_VERSION = '1.24P';\n" +
+    'export const SCHEMA_VERSION = 9;\n' +
+    '\n' +
+    'export const $ = (selector, root = document) => root.querySelector(selector);\n' +
+    'export const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];\n' +
+    '\n' +
+    "export function uid(prefix = 'id') {\n" +
+    '  if (globalThis.crypto?.randomUUID) return `${prefix}_${crypto.randomUUID()}`;\n' +
+    '  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;\n' +
+    '}\n' +
+    '\n' +
+    'export function esc(value) {\n' +
+    "  return String(value ?? '')\n" +
+    "    .replaceAll('&', '&amp;')\n" +
+    "    .replaceAll('<', '&lt;')\n" +
+    "    .replaceAll('>', '&gt;')\n" +
+    `    .replaceAll('"', '&quot;')\n` +
+    `    .replaceAll("'", '&#39;');\n` +
+    '}\n' +
+    '\n' +
+    'export function clamp(value, min, max) {\n' +
+    '  return Math.min(max, Math.max(min, Number(value) || 0));\n' +
+    '}\n' +
+    '\n' +
+    'export function todayISO() {\n' +
+    '  return new Date().toISOString().slice(0, 10);\n' +
+    '}\n' +
+    '\n' +
+    'export function formatDate(value) {\n' +
+    "  if (!value) return '—';\n" +
+    '  const d = new Date(value);\n' +
+    "  return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString('zh-CN');\n" +
+    '}\n' +
+    '\n' +
+    'export function daysBetween(a, b = new Date()) {\n' +
+    '  const da = new Date(a);\n' +
+    '  const db = new Date(b);\n' +
+    '  if (Number.isNaN(da.getTime()) || Number.isNaN(db.getTime())) return 0;\n' +
+    '  return Math.floor((db - da) / 86400000);\n' +
+    '}\n' +
+    '\n' +
+    'export function debounce(fn, wait = 160) {\n' +
+    '  let timer;\n' +
+    '  return (...args) => {\n' +
+    '    clearTimeout(timer);\n' +
+    '    timer = setTimeout(() => fn(...args), wait);\n' +
+    '  };\n' +
+    '}\n' +
+    '\n' +
+    "export function downloadBlob(filename, content, type = 'application/octet-stream') {\n" +
+    '  const blob = content instanceof Blob ? content : new Blob([content], { type });\n' +
+    '  if (globalThis.LuckyBeanNative?.saveFile) {\n' +
+    '    blob.arrayBuffer().then(buffer => {\n' +
+    '      const bytes = new Uint8Array(buffer);\n' +
+    "      let binary = '';\n" +
+    '      const chunkSize = 0x8000;\n' +
+    '      for (let offset = 0; offset < bytes.length; offset += chunkSize) {\n' +
+    '        binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));\n' +
+    '      }\n' +
+    "      globalThis.LuckyBeanNative.saveFile(btoa(binary), String(filename || 'luckybean-export.bin'), blob.type || type);\n" +
+    "    }).catch(error => console.error('Android 文件导出失败', error));\n" +
+    '    return;\n' +
+    '  }\n' +
+    '  const url = URL.createObjectURL(blob);\n' +
+    "  const anchor = document.createElement('a');\n" +
+    '  anchor.href = url;\n' +
+    '  anchor.download = filename;\n' +
+    '  document.body.append(anchor);\n' +
+    '  anchor.click();\n' +
+    '  anchor.remove();\n' +
+    '  setTimeout(() => URL.revokeObjectURL(url), 0);\n' +
+    '}\n' +
+    '\n' +
+    'export function parseNumber(value, fallback = 0) {\n' +
+    '  const n = Number(value);\n' +
+    '  return Number.isFinite(n) ? n : fallback;\n' +
+    '}\n' +
+    '\n' +
+    'export async function sha256Hex(value) {\n' +
+    "  const bytes = typeof value === 'string' ? new TextEncoder().encode(value) : value;\n" +
+    "  if (!crypto?.subtle) return '';\n" +
+    "  const digest = await crypto.subtle.digest('SHA-256', bytes);\n" +
+    "  return [...new Uint8Array(digest)].map(v => v.toString(16).padStart(2, '0')).join('');\n" +
+    '}\n' +
+    '\n' +
+    'export function safeJsonParse(text, fallback = null) {\n' +
+    '  try { return JSON.parse(text); } catch { return fallback; }\n' +
+    '}\n' +
+    '\n' +
+    "export function assertSafeJson(value, path = 'root', depth = 0) {\n" +
+    '  if (depth > 20) throw new Error(`${path} 嵌套层级过深`);\n' +
+    "  if (value === null || ['string', 'number', 'boolean'].includes(typeof value)) return value;\n" +
+    '  if (Array.isArray(value)) {\n' +
+    '    if (value.length > 100000) throw new Error(`${path} 数组过大`);\n' +
+    '    value.forEach((item, index) => assertSafeJson(item, `${path}[${index}]`, depth + 1));\n' +
+    '    return value;\n' +
+    '  }\n' +
+    "  if (typeof value !== 'object') throw new Error(`${path} 包含不支持的数据类型`);\n" +
+    '  for (const [key, item] of Object.entries(value)) {\n' +
+    "    if (['__proto__', 'prototype', 'constructor'].includes(key)) throw new Error(`${path} 包含危险字段 ${key}`);\n" +
+    '    assertSafeJson(item, `${path}.${key}`, depth + 1);\n' +
+    '  }\n' +
+    '  return value;\n' +
+    '}\n' +
+    '\n' +
+    "export function assertPlainObject(value, label = '对象') {\n" +
+    "  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label}格式无效`);\n" +
+    '  for (const key of Object.keys(value)) {\n' +
+    "    if (['__proto__', 'prototype', 'constructor'].includes(key)) throw new Error(`${label}包含危险字段`);\n" +
+    '  }\n' +
+    '  return value;\n' +
+    '}\n' +
+    '\n' +
+    'export function browserTitle(pageTitle) {\n' +
+    '  document.title = `${pageTitle} · 富贵盒子`;\n' +
+    '}\n' +
+    '\n' +
+    'function effectiveStorageAge(bean, now, roastDate) {\n' +
+    '  const rawAge = Math.max(0, (new Date(now) - new Date(roastDate)) / 86400000);\n' +
+    '  const factors = { room: 1, refrigerated: 0.35, frozen: 0.08 };\n' +
+    '  const history = Array.isArray(bean?.storage?.history) ? bean.storage.history : [];\n' +
+    '  if (history.length) {\n' +
+    '    const start = new Date(roastDate);\n' +
+    '    const end = new Date(now);\n' +
+    '    let days = 0;\n' +
+    '    for (const period of history) {\n' +
+    '      const pStart = new Date(period.startAt || roastDate);\n' +
+    '      const pEnd = new Date(period.endAt || end);\n' +
+    '      const a = pStart < start ? start : pStart;\n' +
+    '      const b = pEnd > end ? end : pEnd;\n' +
+    '      if (b <= a) continue;\n' +
+    '      days += ((b - a) / 86400000) * Number(factors[period.mode] ?? 1);\n' +
+    '    }\n' +
+    '    return Math.max(0, days);\n' +
+    '  }\n' +
+    "  const mode = bean?.storage?.currentMode || bean?.storageMode || (bean?.refrigerated ? 'refrigerated' : 'room');\n" +
+    "  if (mode === 'room') return rawAge;\n" +
+    '  const storageStart = bean?.freezeDate || bean?.storage?.startedAt || roastDate;\n' +
+    '  const before = Math.max(0, (new Date(storageStart) - new Date(roastDate)) / 86400000);\n' +
+    '  const stored = Math.max(0, (new Date(now) - new Date(storageStart)) / 86400000);\n' +
+    '  return before + stored * Number(factors[mode] ?? 1);\n' +
+    '}\n' +
+    '\n' +
+    'export function freshnessProfile(bean, now = new Date()) {\n' +
+    '  const rawAge = Math.max(0, daysBetween(bean.roastDate, now));\n' +
+    "  const roast = bean.roastCode || 'RL-L2';\n" +
+    '  const effectiveAge = effectiveStorageAge(bean, now, bean.roastDate);\n' +
+    '  const ranges = {\n' +
+    "    'RL-L0': [10, 35, 65], 'RL-L1': [8, 30, 55], 'RL-L2': [7, 25, 45],\n" +
+    "    'RL-L3': [5, 20, 35], 'RL-L4': [4, 16, 28], 'RL-L5': [3, 12, 22], 'RL-L6': [2, 9, 16]\n" +
+    '  };\n' +
+    "  let [start, peakEnd, end] = ranges[roast] || ranges['RL-L2'];\n" +
+    "  const variety = String(bean.varietyCode || '').toUpperCase();\n" +
+    "  const process = String(bean.processCode || '').toUpperCase();\n" +
+    '  if (/GE|GESHA|JA58|JA10|JA12|SL28|SL34|PB|SID/.test(variety)) { start += 3; peakEnd += 7; end += 8; }\n' +
+    '  if (/NA|ANA|CM|FERM|DF|TS/.test(process)) { peakEnd += 3; end += 5; }\n' +
+    '  const peakDay = start + (peakEnd - start) * 0.58;\n' +
+    '  const fullDay = end + 7;\n' +
+    '  const progress = clamp(0.2 + 0.8 * effectiveAge / Math.max(1, fullDay), 0.2, 1);\n' +
+    '  let stage;\n' +
+    '  if (effectiveAge < start * .33) stage = 0;\n' +
+    '  else if (effectiveAge < start * .67) stage = 1;\n' +
+    '  else if (effectiveAge < start) stage = 2;\n' +
+    '  else if (effectiveAge < peakDay - 4) stage = 3;\n' +
+    '  else if (effectiveAge < peakDay - 1) stage = 4;\n' +
+    '  else if (effectiveAge <= peakDay + 2) stage = 5;\n' +
+    '  else if (effectiveAge <= peakEnd) stage = 6;\n' +
+    '  else if (effectiveAge <= end) stage = 7;\n' +
+    '  else if (effectiveAge <= end + 7) stage = 8;\n' +
+    '  else stage = 9;\n' +
+    "  const colors = ['#ff8a24','#f69a24','#e8b72d','#d5d83b','#8dc75b','#3fa56a','#74a566','#8b9383','#747474','#595959'];\n" +
+    "  const labels = ['养豆初期','养豆中','养豆末期','风味上升','接近高峰','赏味高峰','高峰后段','风味衰减','赏味期后','尽快处理'];\n" +
+    '  const sigma = Math.max(5, (end - start) / 2.2);\n' +
+    '  let flavorScore = 100 * Math.exp(-((effectiveAge - peakDay) ** 2) / (2 * sigma ** 2));\n' +
+    '  if (effectiveAge > end) flavorScore *= Math.exp(-(effectiveAge - end) / 22);\n' +
+    '  flavorScore = clamp(flavorScore, 0, 100);\n' +
+    '  const rising = effectiveAge < peakDay;\n' +
+    '  return {\n' +
+    '    age: rawAge, effectiveAge, start, peakDay, peakEnd, end, fullDay,\n' +
+    '    stage, color: colors[stage], label: labels[stage], progress,\n' +
+    "    flavorScore: Math.round(flavorScore), trend: rising ? '上升' : '下降', rising,\n" +
+    '    remaining: end - effectiveAge,\n' +
+    "    key: stage <= 2 ? 'resting' : stage <= 6 ? 'peak' : stage === 7 ? 'good' : stage === 8 ? 'decline' : 'urgent',\n" +
+    '    rank: 10 - stage\n' +
+    '  };\n' +
+    '}\n' +
+    '\n' +
+    'export function freshness(bean) {\n' +
+    '  return freshnessProfile(bean);\n' +
+    '}\n',
+  expected: /APP_VERSION = '1\.24B'/,
+  operator: 'match',
   diff: 'simple'
 }
 
 Node.js v22.23.2
-::error file=tests/v125-root-state-models.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: Android versionCode missing%0A    at file:///home/runner/work/luckybean/luckybean/tests/v125-root-state-models.mjs:54:8%0A    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)%0A    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)%0A    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {%0A  generatedMessage: false,%0A  code: 'ERR_ASSERTION',%0A  actual: null,%0A  expected: true,%0A  operator: '==',%0A  diff: 'simple'%0A}%0A%0ANode.js v22.23.2
+::error file=tests/v123d-ui-sensory-regressions.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: the locked app version must be 1.24B%0A    at file:///home/runner/work/luckybean/luckybean/tests/v123d-ui-sensory-regressions.mjs:14:8%0A    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)%0A    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)%0A    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {%0A  generatedMessage: false,%0A  code: 'ERR_ASSERTION',%0A  actual: "export const APP_VERSION = '1.24P';\n" +%0A    'export const SCHEMA_VERSION = 9;\n' +%0A    '\n' +%0A    'export const $ = (selector, root = document) => root.querySelector(selector);\n' +%0A    'export const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];\n' +%0A    '\n' +%0A    "export function uid(prefix = 'id') {\n" +%0A    '  if (globalThis.crypto?.randomUUID) return `${prefix}_${crypto.randomUUID()}`;\n' +%0A    '  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;\n' +%0A    '}\n' +%0A    '\n' +%0A    'export function esc(value) {\n' +%0A    "  return String(value ?? '')\n" +%0A    "    .replaceAll('&', '&amp;')\n" +%0A    "    .replaceAll('<', '&lt;')\n" +%0A    "    .replaceAll('>', '&gt;')\n" +%0A    `    .replaceAll('"', '&quot;')\n` +%0A    `    .replaceAll("'", '&#39;');\n` +%0A    '}\n' +%0A    '\n' +%0A    'export function clamp(value, min, max) {\n' +%0A    '  return Math.min(max, Math.max(min, Number(value) || 0));\n' +%0A    '}\n' +%0A    '\n' +%0A    'export function todayISO() {\n' +%0A    '  return new Date().toISOString().slice(0, 10);\n' +%0A    '}\n' +%0A    '\n' +%0A    'export function formatDate(value) {\n' +%0A    "  if (!value) return '—';\n" +%0A    '  const d = new Date(value);\n' +%0A    "  return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString('zh-CN');\n" +%0A    '}\n' +%0A    '\n' +%0A    'export function daysBetween(a, b = new Date()) {\n' +%0A    '  const da = new Date(a);\n' +%0A    '  const db = new Date(b);\n' +%0A    '  if (Number.isNaN(da.getTime()) || Number.isNaN(db.getTime())) return 0;\n' +%0A    '  return Math.floor((db - da) / 86400000);\n' +%0A    '}\n' +%0A    '\n' +%0A    'export function debounce(fn, wait = 160) {\n' +%0A    '  let timer;\n' +%0A    '  return (...args) => {\n' +%0A    '    clearTimeout(timer);\n' +%0A    '    timer = setTimeout(() => fn(...args), wait);\n' +%0A    '  };\n' +%0A    '}\n' +%0A    '\n' +%0A    "export function downloadBlob(filename, content, type = 'application/octet-stream') {\n" +%0A    '  const blob = content instanceof Blob ? content : new Blob([content], { type });\n' +%0A    '  if (globalThis.LuckyBeanNative?.saveFile) {\n' +%0A    '    blob.arrayBuffer().then(buffer => {\n' +%0A    '      const bytes = new Uint8Array(buffer);\n' +%0A    "      let binary = '';\n" +%0A    '      const chunkSize = 0x8000;\n' +%0A    '      for (let offset = 0; offset < bytes.length; offset += chunkSize) {\n' +%0A    '        binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));\n' +%0A    '      }\n' +%0A    "      globalThis.LuckyBeanNative.saveFile(btoa(binary), String(filename || 'luckybean-export.bin'), blob.type || type);\n" +%0A    "    }).catch(error => console.error('Android 文件导出失败', error));\n" +%0A    '    return;\n' +%0A    '  }\n' +%0A    '  const url = URL.createObjectURL(blob);\n' +%0A    "  const anchor = document.createElement('a');\n" +%0A    '  anchor.href = url;\n' +%0A    '  anchor.download = filename;\n' +%0A    '  document.body.append(anchor);\n' +%0A    '  anchor.click();\n' +%0A    '  anchor.remove();\n' +%0A    '  setTimeout(() => URL.revokeObjectURL(url), 0);\n' +%0A    '}\n' +%0A    '\n' +%0A    'export function parseNumber(value, fallback = 0) {\n' +%0A    '  const n = Number(value);\n' +%0A    '  return Number.isFinite(n) ? n : fallback;\n' +%0A    '}\n' +%0A    '\n' +%0A    'export async function sha256Hex(value) {\n' +%0A    "  const bytes = typeof value === 'string' ? new TextEncoder().encode(value) : value;\n" +%0A    "  if (!crypto?.subtle) return '';\n" +%0A    "  const digest = await crypto.subtle.digest('SHA-256', bytes);\n" +%0A    "  return [...new Uint8Array(digest)].map(v => v.toString(16).padStart(2, '0')).join('');\n" +%0A    '}\n' +%0A    '\n' +%0A    'export function safeJsonParse(text, fallback = null) {\n' +%0A    '  try { return JSON.parse(text); } catch { return fallback; }\n' +%0A    '}\n' +%0A    '\n' +%0A    "export function assertSafeJson(value, path = 'root', depth = 0) {\n" +%0A    '  if (depth > 20) throw new Error(`${path} 嵌套层级过深`);\n' +%0A    "  if (value === null || ['string', 'number', 'boolean'].includes(typeof value)) return value;\n" +%0A    '  if (Array.isArray(value)) {\n' +%0A    '    if (value.length > 100000) throw new Error(`${path} 数组过大`);\n' +%0A    '    value.forEach((item, index) => assertSafeJson(item, `${path}[${index}]`, depth + 1));\n' +%0A    '    return value;\n' +%0A    '  }\n' +%0A    "  if (typeof value !== 'object') throw new Error(`${path} 包含不支持的数据类型`);\n" +%0A    '  for (const [key, item] of Object.entries(value)) {\n' +%0A    "    if (['__proto__', 'prototype', 'constructor'].includes(key)) throw new Error(`${path} 包含危险字段 ${key}`);\n" +%0A    '    assertSafeJson(item, `${path}.${key}`, depth + 1);\n' +%0A    '  }\n' +%0A    '  return value;\n' +%0A    '}\n' +%0A    '\n' +%0A    "export function assertPlainObject(value, label = '对象') {\n" +%0A    "  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label}格式无效`);\n" +%0A    '  for (const key of Object.keys(value)) {\n' +%0A    "    if (['__proto__', 'prototype', 'constructor'].includes(key)) throw new Error(`${label}包含危险字段`);\n" +%0A    '  }\n' +%0A    '  return value;\n' +%0A    '}\n' +%0A    '\n' +%0A    'export function browserTitle(pageTitle) {\n' +%0A    '  document.title = `${pageTitle} · 富贵盒子`;\n' +%0A    '}\n' +%0A    '\n' +%0A    'function effectiveStorageAge(bean, now, roastDate) {\n' +%0A    '  const rawAge = Math.max(0, (new Date(now) - new Date(roastDate)) / 86400000);\n' +%0A    '  const factors = { room: 1, refrigerated: 0.35, frozen: 0.08 };\n' +%0A    '  const history = Array.isArray(bean?.storage?.history) ? bean.storage.history : [];\n' +%0A    '  if (history.length) {\n' +%0A    '    const start = new Date(roastDate);\n' +%0A    '    const end = new Date(now);\n' +%0A    '    let days = 0;\n' +%0A    '    for (const period of history) {\n' +%0A    '      const pStart = new Date(period.startAt || roastDate);\n' +%0A    '      const pEnd = new Date(period.endAt || end);\n' +%0A    '      const a = pStart < start ? start : pStart;\n' +%0A    '      const b = pEnd > end ? end : pEnd;\n' +%0A    '      if (b <= a) continue;\n' +%0A    '      days += ((b - a) / 86400000) * Number(factors[period.mode] ?? 1);\n' +%0A    '    }\n' +%0A    '    return Math.max(0, days
