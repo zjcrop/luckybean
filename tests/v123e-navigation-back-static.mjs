@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const read = path => fs.readFileSync(path, 'utf8');
+const release = JSON.parse(read('release.json'));
 const index = read('index.html');
 const navigation = read('src/ui/navigation-controller.js');
 const components = read('src/ui/app-components.css');
@@ -11,7 +12,7 @@ const build = read('android/app/build.gradle');
 const sw = read('sw.js');
 
 const revision = index.match(/release-revision" content="([^"]+)"/)?.[1];
-assert.equal(revision, '1.24B-main.6');
+assert.equal(revision, release.revision);
 assert.ok(index.includes(`src/ui/navigation-controller.js?v=${revision}`));
 assert.ok(sw.includes('ui/navigation-controller.js'));
 assert.match(navigation, /globalThis\.LuckyBeanNavigation/);
@@ -35,7 +36,8 @@ assert.match(activity, /getOnBackInvokedDispatcher/);
 assert.match(activity, /PRIORITY_DEFAULT/);
 assert.match(activity, /public void onBackPressed\(\)\s*\{\s*handleSystemBack\(\);\s*\}/s);
 assert.match(manifest, /android:enableOnBackInvokedCallback="true"/);
-const versionCode = Number(build.match(/versionCode\s+(\d+)/)?.[1] || 0);
-assert.ok(versionCode > 102315, `upgrade versionCode must exceed previous signed build: ${versionCode}`);
+assert.ok(Number(release.androidVersionCode) > 102315, `upgrade versionCode must exceed previous signed build: ${release.androidVersionCode}`);
+assert.match(build, /versionCode \(releaseMeta\.androidVersionCode as int\)/);
+assert.match(build, /versionName releaseMeta\.displayVersion as String/);
 
-console.log('LuckyBean canonical page stack, overlay back, Android gesture back and compact bean metadata contracts passed');
+console.log(`LuckyBean ${release.displayVersion} canonical page stack, overlay back, Android gesture back and compact bean metadata contracts passed`);
