@@ -4,8 +4,6 @@ on:
   workflow_run:
     workflows: ["LuckyBean main tests"]
     types: [completed]
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -15,26 +13,36 @@ permissions:
   id-token: write
 
 concurrency:
-  group: luckybean-pages-main-${{ github.event_name == 'push' && 'test' || 'gated' }}
+  group: luckybean-pages-main-gated
   cancel-in-progress: true
 
 env:
   SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
-  RELEASE_REVISION: 1.24B-main.6
-  PROMPT_RUNTIME_REVISION: 1.24B-main.15-reminder-trigger
-  STYLES_RUNTIME_REVISION: 1.24B-main.13-local-menu-prompt
 
 jobs:
   build-site:
-    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      revision: ${{ steps.meta.outputs.revision }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ env.SOURCE_SHA }}
           fetch-depth: 1
-      - name: Verify same-SHA main test gate
-        if: ${{ github.event_name != 'push' }}
+      - id: meta
+        name: Load canonical release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(jq -r .displayVersion release.json)
+          revision=$(jq -r .revision release.json)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "DISPLAY_VERSION=$version" >> "$GITHUB_ENV"
+          echo "RELEASE_REVISION=$revision" >> "$GITHUB_ENV"
+      - name: Verify immutable same-SHA test gate
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -43,103 +51,38 @@ jobs:
           current_main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
           test "$current_main" = "$SOURCE_SHA"
           runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/test-main.yml/runs?branch=main&head_sha=$SOURCE_SHA&per_page=10")
-          test_status=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].status // "missing"')
-          test_conclusion=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].conclusion // "missing"')
-          test "$test_status" = "completed"
-          test "$test_conclusion" = "success"
-          echo "Same-SHA main tests verified for $SOURCE_SHA"
-      - name: Verify current main for test deploy
-        if: ${{ github.event_name == 'push' }}
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          current_main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
-          test "$current_main" = "$SOURCE_SHA"
-          echo "Main test deploy source verified for $SOURCE_SHA"
+          status=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].status // "missing"')
+          conclusion=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].conclusion // "missing"')
+          test "$status" = completed
+          test "$conclusion" = success
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Validate legacy reminder adapter source before publishing
+      - name: Validate deployable source
         shell: bash
         run: |
           set -euo pipefail
+          node scripts/validate-release-meta.mjs
           find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
           npm run test:static
-          grep -Fq 'application-version" content="1.24B"' index.html
-          grep -Fq 'release-revision" content="1.24B-main.6"' index.html
-          grep -Fq "REVISION = '1.24B-main.6'" sw.js
-          grep -Fq 'main-6-ui2' sw.js
-          grep -Fq 'bean-group-state.js' src/app.js
-          grep -Fq 'function openBeanGroup' src/app.js
-          grep -Fq 'function closeBeanGroup' src/app.js
-          grep -Fq "['process', '按处理法']" src/app.js
-          grep -Fq 'data-close-bean-group' src/app.js
-          grep -Fq 'const LEGACY_RECOMMENDATION_REMINDERS' src/app.js
-          grep -Fq 'const CURRENT_TO_LEGACY_RECOMMENDATION_MODE' src/app.js
-          grep -Fq "leaderboard: 'favorite'" src/app.js
-          grep -Fq "freshness: 'stale'" src/app.js
-          grep -Fq "price: 'price'" src/app.js
-          grep -Fq "remaining: 'lowWeight'" src/app.js
-          grep -Fq "random: 'randomDate'" src/app.js
-          grep -Fq 'function normalizeRecommendationMode(mode)' src/app.js
-          grep -Fq 'function recommendationPrompt(mode, bean)' src/app.js
-          grep -Fq 'mode = normalizeRecommendationMode(mode)' src/app.js
-          grep -Fq 'const prompt = recommendationPrompt(mode, selected)' src/app.js
-          grep -Fq "popup.addEventListener('click', event => {" src/app.js
-          grep -Fq 'void recommendBean(button.dataset.recommendMode)' src/app.js
-          ! grep -Fq "const recommend=event.target.closest('[data-recommend-mode]')" src/app.js
-          grep -Fq "toast(prompt, 'recommendation')" src/app.js
-          grep -Fq 'luckybean:recommendation-prompt' src/app.js
-          ! grep -Fq 'toast(prompt || `已选：${beanDisplayName(selected)}`' src/app.js
-          ! grep -Fq 'const RECOMMENDATION_PROMPTS' src/app.js
-          ! grep -Fq '直取榜首，不问其余。' src/app.js
-          ! grep -Fq '此只风味精绝，君既选中，甚是妥当。' src/app.js
-          ! grep -Fq '此只价冠诸豆，足见君之慧眼独钟。' src/app.js
-          ! grep -Fq '余粒无多，宜趁兴饮尽，为此豆作结。' src/app.js
-          ! grep -Fq '闭目拈签，任其自然。' src/app.js
-          grep -Fq 'startup-controller.js?v=1.24B-main.15-reminder-trigger' index.html
-          grep -Fq 'styles.css?v=1.24B-main.13-local-menu-prompt' index.html
-          grep -Fq "APP_MODULE_REVISION = '1.24B-main.15-reminder-trigger'" src/core/startup-controller.js
-          grep -Fq 'app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}' src/core/startup-controller.js
-          grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' index.html
-          grep -Fq '.toast.show { opacity: 1; transform: translate(-50%, 0); }' styles.css
-          ! grep -Fq 'data-recommendation-prompt-revision=' index.html
-          ! grep -Fq 'lbRecommendationToast' src/features/release-1.24b-group-navigation.js
-          ! grep -Fq 'RECOMMENDATION_PROMPTS' src/features/release-1.24b-group-navigation.js
-          ! grep -Fq 'LEGACY_RECOMMENDATION_REMINDERS' src/features/release-1.24b-group-navigation.js
-          ! grep -Fq 'showRecommendationPromptForMode' src/features/release-1.24b-group-navigation.js
-          grep -Fq '.recommend-menu [data-recommend-mode="price"] .recommend-dot{background:#fff!important;}' src/features/release-1.24b-group-navigation.js
-          grep -Fq 'html[data-theme="light"] .recommend-menu [data-recommend-mode="price"] .recommend-dot{background:#000!important;}' src/features/release-1.24b-group-navigation.js
-          grep -Fq 'beanGroupState' src/bean-groups-controller.js
-          ! grep -Fq 'let activeGroup' src/bean-groups-controller.js
-          grep -Fq 'LuckyBeanBeanGroupState' src/features/release-1.24b-group-navigation.js
-          ! grep -Fq 'dispatchEvent(new MouseEvent' src/features/release-1.24b-group-navigation.js
-          grep -Fq 'lb-sort-ghost' src/ui/sortable-controller.js
-          grep -Fq 'lb-sort-placeholder' src/ui/sortable-controller.js
-          grep -Fq 'LuckyBeanSortable' src/features/sensory-tag-sort-controller.js
-          grep -Fq "UI_POLICY_REVISION = '1.24B-main.6'" src/features/release-1.24b-ui-policy.js
-          grep -Fq 'main.7 professional score responsive layout' src/release-1.24b.css
-          python - <<'PY'
-          from pathlib import Path
-          app=Path('src/app.js').read_text()
-          prompt=app.index('const prompt = recommendationPrompt(mode, selected);')
-          focus=app.index("if (mode !== 'random') await focusRecommendedBean(selected")
-          if prompt >= focus:
-              raise SystemExit('recommendation reminder is still delayed behind focus animation')
-          PY
       - name: Prepare exact tested web site
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p _site
-          cp index.html recognition-test.html manifest.webmanifest sw.js styles.css _site/
+          cp index.html recognition-test.html manifest.webmanifest release.json sw.js styles.css _site/
           cp -R src public contracts schemas _site/
           touch _site/.nojekyll
-          printf '{"commit":"%s","version":"1.24B","revision":"1.24B-main.6","recognitionQueue":"serial-one-image-persistent","recognitionArbitration":"explicit-confidence-consensus-inference","beanLifecycle":"ordered-delivered-storage-history","storageModes":"room-refrigerated-frozen","freshnessAge":"effective-storage-history","freshnessDetail":"full-expandable","orderOcr":"privacy-minimized","grindPsd":"measured-reference-plus-custom-anchors","localBrewMethods":"offline-no-timer","groupNavigation":"canonical-state-api","recommendationPrompt":"legacy-short-reminder-current-mode-adapter","recommendationClickOwner":"local-menu","groupAdapterRevision":"1.24B-main.10-native-prompt","appModuleRevision":"1.24B-main.15-reminder-trigger","stylesRevision":"1.24B-main.13-local-menu-prompt","sortable":"shared-live-preview-ghost-placeholder","sensorySort":"single-activate-double-remove-longpress-preview","brewUi":"text-interactions","scoreLayout":"viewport-safe-next-line-range","aboutContacts":"inside-about-section","uiArchitecture":"canonical-1.24b-main.6"}\n' "$SOURCE_SHA" > _site/version.json
+          jq -n \
+            --arg commit "$SOURCE_SHA" \
+            --arg version "$DISPLAY_VERSION" \
+            --arg revision "$RELEASE_REVISION" \
+            --arg brewResult "$(jq -r .brewResultVersion release.json)" \
+            --arg brewPlan "$(jq -r .brewPlanVersion release.json)" \
+            '{commit:$commit,version:$version,revision:$revision,brewResult:$brewResult,brewPlan:$brewPlan,gate:"same-sha-main-tests",uiArchitecture:"canonical-release-metadata"}' \
+            > _site/version.json
       - uses: actions/configure-pages@v6.0.0
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
@@ -156,238 +99,89 @@ jobs:
         uses: actions/deploy-pages@v5.0.0
 
   verify-pages:
-    needs: deploy-pages
+    needs: [build-site, deploy-pages]
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 15
+    env:
+      DISPLAY_VERSION: ${{ needs.build-site.outputs.version }}
+      RELEASE_REVISION: ${{ needs.build-site.outputs.revision }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ env.SOURCE_SHA }}
-      - name: Verify published legacy-reminder runtime URLs exactly
-        shell: bash
-        run: |
-          set -euo pipefail
-          base='https://zjcrop.github.io/luckybean'
-          for attempt in {1..30}; do
-            curl -L -fsS "$base/version.json?check=$SOURCE_SHA" -o /tmp/version.json || true
-            curl -L -fsS "$base/?check=$SOURCE_SHA" -o /tmp/index.html || true
-            curl -L -fsS "$base/src/core/startup-controller.js?v=$PROMPT_RUNTIME_REVISION" -o /tmp/startup-runtime.js || true
-            curl -L -fsS "$base/src/app.js?v=$PROMPT_RUNTIME_REVISION" -o /tmp/app-runtime.js || true
-            curl -L -fsS "$base/styles.css?v=$STYLES_RUNTIME_REVISION" -o /tmp/styles-runtime.css || true
-            curl -L -fsS "$base/src/release-1.24b.css?v=1.24B-main.6" -o /tmp/release.css || true
-            curl -L -fsS "$base/src/domain/beans/bean-group-state.js?v=1.24B-main.6" -o /tmp/group-state.js || true
-            curl -L -fsS "$base/src/bean-groups-controller.js?v=1.24B-main.6" -o /tmp/bean-groups.js || true
-            curl -L -fsS "$base/src/features/release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt" -o /tmp/group-navigation-runtime.js || true
-            if grep -Fq "$SOURCE_SHA" /tmp/version.json 2>/dev/null \
-              && grep -Fq '"version":"1.24B"' /tmp/version.json \
-              && grep -Fq '"recommendationPrompt":"legacy-short-reminder-current-mode-adapter"' /tmp/version.json \
-              && grep -Fq '"recommendationClickOwner":"local-menu"' /tmp/version.json \
-              && grep -Fq '"groupAdapterRevision":"1.24B-main.10-native-prompt"' /tmp/version.json \
-              && grep -Fq '"appModuleRevision":"1.24B-main.15-reminder-trigger"' /tmp/version.json \
-              && grep -Fq '"stylesRevision":"1.24B-main.13-local-menu-prompt"' /tmp/version.json \
-              && grep -Fq 'startup-controller.js?v=1.24B-main.15-reminder-trigger' /tmp/index.html \
-              && grep -Fq 'styles.css?v=1.24B-main.13-local-menu-prompt' /tmp/index.html \
-              && grep -Fq 'release-1.24b-group-navigation.js?v=1.24B-main.10-native-prompt' /tmp/index.html \
-              && grep -Fq "APP_MODULE_REVISION = '1.24B-main.15-reminder-trigger'" /tmp/startup-runtime.js \
-              && grep -Fq 'app.js?v=${encodeURIComponent(APP_MODULE_REVISION)}' /tmp/startup-runtime.js \
-              && grep -Fq 'const LEGACY_RECOMMENDATION_REMINDERS' /tmp/app-runtime.js \
-              && grep -Fq 'const CURRENT_TO_LEGACY_RECOMMENDATION_MODE' /tmp/app-runtime.js \
-              && grep -Fq "leaderboard: 'favorite'" /tmp/app-runtime.js \
-              && grep -Fq "freshness: 'stale'" /tmp/app-runtime.js \
-              && grep -Fq "random: 'randomDate'" /tmp/app-runtime.js \
-              && grep -Fq 'function normalizeRecommendationMode(mode)' /tmp/app-runtime.js \
-              && grep -Fq 'function recommendationPrompt(mode, bean)' /tmp/app-runtime.js \
-              && grep -Fq "popup.addEventListener('click', event => {" /tmp/app-runtime.js \
-              && grep -Fq 'void recommendBean(button.dataset.recommendMode)' /tmp/app-runtime.js \
-              && ! grep -Fq "const recommend=event.target.closest('[data-recommend-mode]')" /tmp/app-runtime.js \
-              && grep -Fq "toast(prompt, 'recommendation')" /tmp/app-runtime.js \
-              && grep -Fq 'luckybean:recommendation-prompt' /tmp/app-runtime.js \
-              && ! grep -Fq 'toast(prompt || `已选：${beanDisplayName(selected)}`' /tmp/app-runtime.js \
-              && ! grep -Fq 'const RECOMMENDATION_PROMPTS' /tmp/app-runtime.js \
-              && ! grep -Fq '直取榜首，不问其余。' /tmp/app-runtime.js \
-              && grep -Fq '.toast.show { opacity: 1; transform: translate(-50%, 0); }' /tmp/styles-runtime.css \
-              && ! grep -Fq 'lbRecommendationToast' /tmp/group-navigation-runtime.js \
-              && ! grep -Fq 'RECOMMENDATION_PROMPTS' /tmp/group-navigation-runtime.js \
-              && ! grep -Fq 'LEGACY_RECOMMENDATION_REMINDERS' /tmp/group-navigation-runtime.js \
-              && grep -Fq 'LuckyBeanBeanGroupState' /tmp/group-navigation-runtime.js; then
-              echo "LuckyBean Pages serves exact legacy-reminder adapter runtime assets for $SOURCE_SHA"
-              break
-            fi
-            if [ "$attempt" = 30 ]; then
-              echo 'Pages still does not serve the exact legacy-reminder adapter runtime assets'
-              cat /tmp/version.json || true
-              exit 1
-            fi
-            sleep 10
-          done
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: Live Pages five-mode legacy reminder browser smoke
+      - name: Verify exact published identity and browser runtime
         shell: bash
         run: |
           set -euo pipefail
+          base='https://zjcrop.github.io/luckybean'
+          found=false
+          for attempt in {1..30}; do
+            curl -L -fsS "$base/version.json?check=$SOURCE_SHA" -o /tmp/version.json || true
+            curl -L -fsS "$base/release.json?check=$SOURCE_SHA" -o /tmp/release.json || true
+            curl -L -fsS "$base/?check=$SOURCE_SHA" -o /tmp/index.html || true
+            curl -L -fsS "$base/sw.js?check=$SOURCE_SHA" -o /tmp/sw.js || true
+            if test "$(jq -r .commit /tmp/version.json 2>/dev/null)" = "$SOURCE_SHA" \
+              && test "$(jq -r .version /tmp/version.json 2>/dev/null)" = "$DISPLAY_VERSION" \
+              && test "$(jq -r .revision /tmp/version.json 2>/dev/null)" = "$RELEASE_REVISION" \
+              && test "$(jq -r .displayVersion /tmp/release.json 2>/dev/null)" = "$DISPLAY_VERSION" \
+              && grep -Fq "application-version\" content=\"$DISPLAY_VERSION\"" /tmp/index.html \
+              && grep -Fq "release-revision\" content=\"$RELEASE_REVISION\"" /tmp/index.html \
+              && grep -Fq "REVISION = '$RELEASE_REVISION'" /tmp/sw.js; then
+              found=true
+              break
+            fi
+            sleep 10
+          done
+          test "$found" = true
           node --input-type=module <<'NODE'
           import { chromium } from '@playwright/test';
-          const sha = process.env.SOURCE_SHA;
-          const appRevision = process.env.PROMPT_RUNTIME_REVISION;
-          const stylesRevision = process.env.STYLES_RUNTIME_REVISION;
-          const expectedPrompts = {
-            leaderboard: '喜好（咖啡得分）',
-            freshness: '赏味期（剩余越少越靠前）',
-            price: '价格（越高越推荐）',
-            remaining: '余粮（剩余越少越推荐）'
-          };
-          const rejectedPrompts = [
-            '直取榜首，不问其余。',
-            '此只风味精绝，君既选中，甚是妥当。',
-            '此只价冠诸豆，足见君之慧眼独钟。',
-            '余粒无多，宜趁兴饮尽，为此豆作结。',
-            '闭目拈签，任其自然。'
-          ];
-          const promptMatches = (mode, text) => mode === 'random' ? /^点兵点将→.+/.test(text) : text === expectedPrompts[mode];
-          const browser = await chromium.launch({ headless: true });
-          const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
-          await context.addInitScript(() => {
-            localStorage.setItem('luckybean.onboarding.v2', JSON.stringify({ stage:'existing-user', updatedAt:new Date().toISOString(), reason:'pages-live-gate' }));
-          });
-          const page = await context.newPage();
-          const pageErrors = [];
-          page.on('pageerror', error => pageErrors.push(error.message));
-          await page.goto(`https://zjcrop.github.io/luckybean/?live-check=${sha}`, { waitUntil:'domcontentloaded', timeout:30000 });
-          const splash = page.locator('#splashScreen');
-          if (await splash.isVisible().catch(() => false)) await splash.click();
-          await page.locator('#appShell').waitFor({ state:'visible', timeout:20000 });
-          await page.waitForFunction(() => document.documentElement.dataset.startup === 'ready', null, { timeout:20000 });
-          const runtime = await page.evaluate(() => {
-            const resources = performance.getEntriesByType('resource').map(entry => entry.name);
-            const appUrls = resources.filter(url => url.includes('/src/app.js'));
-            return {
-              startup: document.documentElement.dataset.startup,
-              beansActive: document.querySelector('#pageBeans')?.classList.contains('active') || false,
-              appHidden: document.querySelector('#appShell')?.classList.contains('hidden') || false,
-              groupApi: Boolean(globalThis.LuckyBeanBeanGroupState?.close),
-              duplicatePromptLayer: Boolean(document.querySelector('#lbRecommendationToast')),
-              overflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
-              startupUrl: resources.find(url => url.includes('/src/core/startup-controller.js')) || '',
-              appUrls,
-              stylesUrl: document.querySelector('link[href*="styles.css"]')?.href || ''
-            };
-          });
-          if (runtime.startup !== 'ready' || !runtime.beansActive || runtime.appHidden || !runtime.groupApi || runtime.duplicatePromptLayer || !runtime.overflow || !runtime.startupUrl.includes(`v=${appRevision}`) || runtime.appUrls.length !== 1 || !runtime.appUrls.every(url => url.includes(`v=${appRevision}`)) || !runtime.stylesUrl.includes(`v=${stylesRevision}`)) {
-            throw new Error(`Live Pages runtime asset contract failed: ${JSON.stringify(runtime)}`);
-          }
-
-          await page.evaluate(async () => {
-            const db = await import('./src/db.js');
-            const now = new Date().toISOString();
-            const beans = [0,1,2].map(index => ({
-              id:`pages-prompt-${index}`,
-              name:`线上提示验收豆${index+1}`,
-              countryCode:index ? 'CO' : 'ET',
-              varietyCode:index ? 'BOURBON' : 'GESHA',
-              processCode:index ? 'NA' : 'WA',
-              roastCode:index ? 'RL-L2' : 'RL-L1',
-              roastDate:'2026-08-23',
-              price:80+index*30,
-              initialWeight:100,
-              remainingWeight:30+index*20,
-              archived:false,
-              source:'manual',
-              createdAt:now,
-              updatedAt:now
-            }));
-            await db.bulkPut('beans', beans);
-            await new Promise(resolve => {
-              const source='pages-live-prompt-seed';
-              const done=event=>{
-                if(event.detail?.source!==source)return;
-                document.removeEventListener('luckybean:app-refreshed',done);
-                resolve();
-              };
-              document.addEventListener('luckybean:app-refreshed',done);
-              document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh',{detail:{source}}));
-              setTimeout(resolve,3000);
-            });
-            globalThis.__lbPromptEvents=[];
-            globalThis.__lbToastTimeline=[];
-            document.addEventListener('luckybean:recommendation-prompt', event => {
-              globalThis.__lbPromptEvents.push({ ...event.detail, at: performance.now() });
-            });
-            const toast=document.querySelector('#toast');
-            const capture=()=>globalThis.__lbToastTimeline.push({ text:(toast?.textContent||'').trim(), className:toast?.className||'', at:performance.now() });
-            capture();
-            new MutationObserver(capture).observe(toast,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class']});
-          });
-
-          const modes = ['leaderboard','freshness','price','remaining','random'];
-          const results = [];
-          for (const mode of modes) {
-            const priorEvents=await page.evaluate(() => globalThis.__lbPromptEvents.length);
-            await page.locator('#fabRecommendBtn').click();
-            const option=page.locator(`[data-recommend-mode="${mode}"]`);
-            await option.waitFor({ state:'visible', timeout:3000 });
-            await option.click();
-            await page.waitForFunction(({count,mode}) => {
-              const events=globalThis.__lbPromptEvents||[];
-              return events.length>count && events.at(-1)?.mode===mode;
-            }, {count:priorEvents,mode}, { timeout:20000 });
-            await page.waitForFunction(({mode,expected}) => {
-              const event=(globalThis.__lbPromptEvents||[]).at(-1);
-              const node=document.querySelector('#toast');
-              const text=(node?.textContent||'').trim();
-              const matches=mode==='random' ? /^点兵点将→.+/.test(text) : text===expected;
-              return event?.mode===mode && event?.prompt===text && matches && node?.classList.contains('recommendation') && node?.classList.contains('show');
-            }, {mode,expected:expectedPrompts[mode]||''}, { timeout:5000 });
-            await page.waitForTimeout(1100);
-            const result=await page.evaluate(() => {
-              const node=document.querySelector('#toast');
-              const style=getComputedStyle(node);
-              const rect=node.getBoundingClientRect();
-              return {
-                text:(node.textContent||'').trim(),
-                recommendation:node.classList.contains('recommendation'),
-                show:node.classList.contains('show'),
-                opacity:Number(style.opacity),
-                width:rect.width,
-                height:rect.height,
-                left:rect.left,
-                right:rect.right,
-                top:rect.top,
-                bottom:rect.bottom,
-                viewportWidth:innerWidth,
-                viewportHeight:innerHeight,
-                event:(globalThis.__lbPromptEvents||[]).at(-1),
-                timeline:[...(globalThis.__lbToastTimeline||[])],
-                duplicatePromptLayer:Boolean(document.querySelector('#lbRecommendationToast'))
-              };
-            });
-            const recentTimeline=result.timeline.filter(item => item.at >= (result.event?.at||0)-50);
-            const resultPromptOk=promptMatches(mode,result.text) && result.event?.prompt===result.text && result.event?.mode===mode;
-            const noBeanResult=recentTimeline.every(item => !/^已选[:：]/.test(item.text));
-            const noRejectedLongPrompt=recentTimeline.every(item => !rejectedPrompts.includes(item.text));
-            const visible=result.recommendation && result.show && !result.duplicatePromptLayer && result.opacity>=0.9 && result.width>=80 && result.height>=20 && result.left>=0 && result.right<=result.viewportWidth+1 && result.top>=0 && result.bottom<=result.viewportHeight+1;
-            if (!resultPromptOk || !noBeanResult || !noRejectedLongPrompt || !visible) {
-              throw new Error(`Live legacy recommendation reminder failed for ${mode}: ${JSON.stringify(result)}`);
-            }
-            results.push({mode,text:result.text});
-          }
-          if (pageErrors.length) throw new Error(`Live Pages pageerror: ${pageErrors.join(' | ')}`);
+          const sha=process.env.SOURCE_SHA;
+          const expectedVersion=process.env.DISPLAY_VERSION;
+          const expectedRevision=process.env.RELEASE_REVISION;
+          const browser=await chromium.launch({headless:true});
+          const context=await browser.newContext({viewport:{width:390,height:844}});
+          await context.addInitScript(()=>localStorage.setItem('luckybean.onboarding.v2',JSON.stringify({stage:'existing-user',updatedAt:new Date().toISOString(),reason:'pages-124p-gate'})));
+          const page=await context.newPage();
+          const pageErrors=[];
+          page.on('pageerror',error=>pageErrors.push(error.message));
+          await page.goto(`https://zjcrop.github.io/luckybean/?live-check=${sha}`,{waitUntil:'domcontentloaded',timeout:30000});
+          const splash=page.locator('#splashScreen');
+          if(await splash.isVisible().catch(()=>false)) await splash.click();
+          await page.locator('#appShell').waitFor({state:'visible',timeout:20000});
+          await page.waitForFunction(()=>document.documentElement.dataset.startup==='ready',null,{timeout:20000});
+          const runtime=await page.evaluate(()=>({
+            version:document.querySelector('meta[name="application-version"]')?.content||'',
+            revision:document.querySelector('meta[name="release-revision"]')?.content||'',
+            bodyVersion:document.body?.dataset.release||'',
+            runtimeRevision:globalThis.LuckyBeanRuntimeFeatures?.revision||'',
+            runtimeFailures:globalThis.LuckyBeanRuntimeFeatures?.failures?.length??-1,
+            overflow:document.documentElement.scrollWidth<=document.documentElement.clientWidth+1,
+            startup:document.documentElement.dataset.startup
+          }));
+          if(runtime.version!==expectedVersion||runtime.bodyVersion!==expectedVersion||runtime.revision!==expectedRevision||runtime.runtimeRevision!==expectedRevision||runtime.runtimeFailures!==0||!runtime.overflow||runtime.startup!=='ready') throw new Error(`1.24P Pages runtime mismatch: ${JSON.stringify(runtime)}`);
+          if(pageErrors.length) throw new Error(`Pages pageerror: ${pageErrors.join(' | ')}`);
           await browser.close();
-          console.log(`Live Pages five-mode legacy reminder smoke passed for ${sha}: ${JSON.stringify(results)}`);
           NODE
       - name: Write verifiable Pages receipt
-        if: ${{ github.event_name != 'push' }}
         shell: bash
         run: |
           set -euo pipefail
           receipt=$(mktemp)
-          printf '{"version":"1.24B","revision":"1.24B-main.6","source_sha":"%s","pages_url":"https://zjcrop.github.io/luckybean/","verified":true,"browser_smoke":true,"group_navigation":"canonical-state-api","recommendation_prompt":"legacy-short-reminder-current-mode-adapter","recommendation_click_owner":"local-menu","group_adapter_revision":"1.24B-main.10-native-prompt","app_module_revision":"1.24B-main.15-reminder-trigger","styles_revision":"1.24B-main.13-local-menu-prompt","sortable":"shared-live-preview-ghost-placeholder","sensory_sort":"single-activate-double-remove-longpress-preview","brew_ui":"text-interactions","score_layout":"viewport-safe-next-line-range","generated_at":"%s"}\n' "$SOURCE_SHA" "$(date -u +%FT%TZ)" > "$receipt"
+          jq -n \
+            --arg version "$DISPLAY_VERSION" \
+            --arg revision "$RELEASE_REVISION" \
+            --arg source_sha "$SOURCE_SHA" \
+            --arg generated_at "$(date -u +%FT%TZ)" \
+            '{version:$version,revision:$revision,source_sha:$source_sha,pages_url:"https://zjcrop.github.io/luckybean/",verified:true,browser_smoke:true,same_sha_main_tests:true,release_metadata:true,generated_at:$generated_at}' \
+            > "$receipt"
           git config user.name github-actions[bot]
-          git config user.email 41898282+zjcrop@users.noreply.github.com
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           if git ls-remote --exit-code --heads origin pages-status >/dev/null 2>&1; then
             git fetch origin pages-status:pages-status
             git switch pages-status
@@ -396,7 +190,7 @@ jobs:
             git rm -rf . >/dev/null 2>&1 || true
           fi
           mkdir -p status
-          cp "$receipt" status/1.24B.json
-          git add status/1.24B.json
-          git commit -m "pages-status: LuckyBean 1.24B $SOURCE_SHA" || true
+          cp "$receipt" "status/${DISPLAY_VERSION}.json"
+          git add "status/${DISPLAY_VERSION}.json"
+          git commit -m "pages-status: LuckyBean ${DISPLAY_VERSION} $SOURCE_SHA" || true
           git push origin HEAD:pages-status
