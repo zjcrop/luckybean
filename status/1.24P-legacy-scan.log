@@ -4,10 +4,9 @@ tests/v125-root-state-models.mjs:55:assert.equal(Number(versionCodeMatch[1]), 10
 tests/v125-root-state-models.mjs:61:console.log('v1.2.5 independent sensory state machines and LuckyBean 1.24B Android package contracts passed');
 tests/v123e-cloud-gear-sync.mjs:15:assert.deepEqual(normalizeGearRows('[object Object],[object Object]', 'grinder'), [], 'corrupted 1.23D/early-1.23E grinder placeholders must be ignored safely');
 tests/v123e-cloud-gear-sync.mjs:25:console.log('LuckyBean 1.23E gear cloud-sync compatibility checks passed');
-tests/v120-requirements-static.mjs:44:assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124b-'/);
-tests/v120-requirements-static.mjs:48:  'luckybean-main-v123e-',
-tests/v120-requirements-static.mjs:49:  'luckybean-main-v123d-',
-tests/v120-requirements-static.mjs:106:console.log('LuckyBean 1.24B single server account, mandatory sync, native-prompt cache isolation, shared sorting and all-profile checks passed');
+tests/v120-requirements-static.mjs:51:  'luckybean-main-v124b-',
+tests/v120-requirements-static.mjs:52:  'luckybean-main-v123e-',
+tests/v120-requirements-static.mjs:53:  'luckybean-main-v123d-',
 tests/v124b-ui-policy-regression.mjs:101:assert.match(androidGradle, /versionCode 102402/);
 tests/v124b-ui-policy-regression.mjs:103:console.log('LuckyBean 1.24B single-owner bean group state, hidden preference leaderboard policy, shared live-preview sorting, text brew UI and Web/Android parity contracts passed');
 tests/v123e-gear-matching-regression.mjs:21:assert.equal(releaseRevision, '1.24B-main.6');
