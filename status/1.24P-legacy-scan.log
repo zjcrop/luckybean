@@ -20,11 +20,9 @@ tests/v124b-lifecycle-ocr-storage-regression.mjs:77:assert.match(sw,/luckybean-m
 tests/v124b-lifecycle-ocr-storage-regression.mjs:79:console.log('LuckyBean 1.24B lifecycle, serial OCR, transit/frozen storage, order parsing and local brew regression checks passed');
 tests/v124b-complete-plan-contract.mjs:47:assert.match(gradle,/versionCode 102402/);
 tests/v124b-complete-plan-contract.mjs:200:console.log('LuckyBean 1.24B main.4 complete modification-plan contract with canonical bean groups, test+gated Pages, exact native prompt runtime, shared sorting and text brew UI passed');
-tests/v110-local-first-sync-static.mjs:117:assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124b-'/);
-tests/v110-local-first-sync-static.mjs:121:assert.match(sw, /'luckybean-main-v123e-'/);
-tests/v110-local-first-sync-static.mjs:122:assert.match(sw, /'luckybean-main-v123d-'/);
-tests/v110-local-first-sync-static.mjs:148:assert.equal(manifest.version, '1.24B');
-tests/v110-local-first-sync-static.mjs:157:console.log('LuckyBean 1.24B main.4 local-first, native-prompt cache isolation and current BrewProfiles contract checks passed');
+tests/v110-local-first-sync-static.mjs:122:assert.match(sw, /'luckybean-main-v124b-'/);
+tests/v110-local-first-sync-static.mjs:123:assert.match(sw, /'luckybean-main-v123e-'/);
+tests/v110-local-first-sync-static.mjs:124:assert.match(sw, /'luckybean-main-v123d-'/);
 tests/v123e-freshness-timeline-regression.mjs:16:assert.equal(releaseRevision, '1.24B-main.6');
 tests/v123e-freshness-timeline-regression.mjs:45:console.log('LuckyBean 1.24B immediate one-line freshness timeline and stage grouping checks passed');
 tests/v123e-small-brew-five-row-regression.mjs:17:assert.equal(Number(versionCodeMatch[1]), 102402);
