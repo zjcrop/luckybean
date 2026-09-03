@@ -161,9 +161,33 @@ jobs:
           install_status=$?
           set -e
           cat android-install.txt
-          if [ "$install_status" -ne 0 ] || ! grep -q '^Success' android-install.txt; then
-            echo "Android package install failed with status $install_status" >&2
-            adb -s "$emulator_serial" shell dumpsys package com.luckybean.app > android-package-dump.txt 2>&1 || true
+
+          # API29 package manager can finish installing the APK but leave the host-side
+          # adb shell command blocked until timeout. Device state is authoritative:
+          # accept a non-zero/timeout shell status only when dumpsys proves that the
+          # exact release.json version is actually installed. This keeps the runtime
+          # gate strict without misclassifying an adb transport hang as install failure.
+          expected_version=$(python3 -c "import json; print(json.load(open('release.json', encoding='utf-8'))['displayVersion'])")
+          expected_code=$(python3 -c "import json; print(json.load(open('release.json', encoding='utf-8'))['androidVersionCode'])")
+          package_verified=false
+          if timeout --kill-after=5s 30s adb -s "$emulator_serial" shell dumpsys package com.luckybean.app > android-package-dump.txt 2>&1 \
+            && grep -q 'installed=true' android-package-dump.txt \
+            && grep -q "versionCode=${expected_code} " android-package-dump.txt \
+            && grep -q "versionName=${expected_version}" android-package-dump.txt; then
+            package_verified=true
+          fi
+
+          if [ "$install_status" -eq 0 ] && grep -q '^Success' android-install.txt; then
+            test "$package_verified" = 'true' || {
+              echo 'pm install reported Success but installed package identity is wrong or missing' >&2
+              cat android-package-dump.txt >&2 || true
+              exit 1
+            }
+          elif [ "$package_verified" = 'true' ]; then
+            echo "pm install shell returned status ${install_status}, but device-side package state verifies the exact LuckyBean release; continuing runtime startup smoke"
+          else
+            echo "Android package install failed with status $install_status and device-side package verification failed" >&2
+            cat android-package-dump.txt >&2 || true
             exit 1
           fi
           adb -s "$emulator_serial" shell rm -f "$remote_apk" >/dev/null 2>&1 || true
