@@ -1,0 +1,93 @@
+name: LuckyBean patch splash core race
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-patch-splash-core-race
+  cancel-in-progress: false
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Patch only the splash persistence navigation race
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('tests/v120-requirements-ui.spec.mjs')
+          source = path.read_text(encoding='utf-8')
+          old = """  for (let attempt = 0; attempt < 3; attempt += 1) {
+            try {
+              await page.goto(`${BASE_URL}/?requirements-splash-preview-persisted=1`, { waitUntil: 'domcontentloaded' });
+              break;
+            } catch (error) {
+              const message = String(error?.message || error || '');
+              const navigationRace = /ERR_ABORTED|frame was detached/i.test(message);
+              if (!navigationRace || attempt === 2) throw error;
+              await page.waitForTimeout(250);
+              await page.waitForLoadState('domcontentloaded').catch(() => {});
+            }
+          }
+          await page.waitForFunction(() => document.documentElement.dataset.appearanceController === 'ready');
+          await expect(page.locator('#splashScreen')).toHaveAttribute('data-splash-variant', 'white');
+          await expect(page.locator('#splashScreen')).toHaveCSS('background-color', 'rgb(243, 239, 229)');
+          """
+          new = """  const persistedPage = await page.context().newPage();
+          await installBrewProfilesBrowserFixture(persistedPage);
+          await persistedPage.goto(`${BASE_URL}/?requirements-splash-preview-persisted=1`, { waitUntil: 'domcontentloaded' });
+          await persistedPage.waitForFunction(
+            () => document.documentElement.dataset.appearanceController === 'ready',
+            null,
+            { timeout: 15000 }
+          );
+          await expect(persistedPage.locator('#splashScreen')).toHaveAttribute('data-splash-variant', 'white');
+          await expect(persistedPage.locator('#splashScreen')).toHaveCSS('background-color', 'rgb(243, 239, 229)');
+          await persistedPage.close();
+          """
+          if source.count(old) != 1:
+              raise SystemExit(f'expected exactly one splash navigation block, found {source.count(old)}')
+          path.write_text(source.replace(old, new), encoding='utf-8')
+          PY
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run the exact previously failing Core scenario
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 > /tmp/luckybean-patch-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            curl --fail --silent http://127.0.0.1:4173/ >/dev/null && break
+            sleep 1
+          done
+          npx playwright test tests/v120-requirements-ui.spec.mjs --grep 'settings splash previews keep their red and white backgrounds' --browser=chromium --reporter=line --workers=1
+      - name: Commit tested patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add tests/v120-requirements-ui.spec.mjs
+          git diff --cached --check
+          git diff --cached --quiet && exit 0
+          git commit -m 'test: isolate splash persistence navigation'
+          git push origin HEAD:main
