@@ -1,5 +1,18 @@
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
+function ensureStyles() {
+  if (document.querySelector('link[data-lb-pour-guide-style]')) return;
+  const moduleUrl = new URL(import.meta.url);
+  const href = new URL('./brew-pour-guide.css', moduleUrl);
+  href.search = moduleUrl.search;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = href.href;
+  link.dataset.lbPourGuideStyle = 'true';
+  document.head.append(link);
+}
+ensureStyles();
+
 let currentPlan = null;
 let renderedKey = '';
 let observer = null;
@@ -52,68 +65,45 @@ function buildSvg(pattern, period) {
   const svg = svgElement('svg', { viewBox:'0 0 160 160', role:'img', 'aria-label':`注水轨迹：${pattern}` });
   svg.classList.add('brew-pour-guide-svg');
   svg.style.setProperty('--lb-pour-period', `${period.toFixed(2)}s`);
-
   const bed = svgElement('circle', { cx:80, cy:80, r:59 });
   bed.classList.add('brew-pour-bed');
   svg.append(bed);
 
   if (pattern === 'center') {
-    const dot = svgElement('circle', { cx:80, cy:80, r:9 });
-    dot.classList.add('brew-pour-center-dot');
-    const pulse = svgElement('circle', { cx:80, cy:80, r:19 });
-    pulse.classList.add('brew-pour-center-pulse');
-    svg.append(pulse, dot);
-    return svg;
+    const dot = svgElement('circle', { cx:80, cy:80, r:9 }); dot.classList.add('brew-pour-center-dot');
+    const pulse = svgElement('circle', { cx:80, cy:80, r:19 }); pulse.classList.add('brew-pour-center-pulse');
+    svg.append(pulse, dot); return svg;
   }
   if (pattern === 'circle') {
-    const ring = svgElement('circle', { cx:80, cy:80, r:37 });
-    ring.classList.add('brew-pour-path');
-    const rotor = svgElement('g');
-    rotor.classList.add('brew-pour-rotor');
-    const dot = svgElement('circle', { cx:80, cy:43, r:7 });
-    dot.classList.add('brew-pour-dot');
-    rotor.append(dot); svg.append(ring, rotor);
-    return svg;
+    const ring = svgElement('circle', { cx:80, cy:80, r:37 }); ring.classList.add('brew-pour-path');
+    const rotor = svgElement('g'); rotor.classList.add('brew-pour-rotor');
+    const dot = svgElement('circle', { cx:80, cy:43, r:7 }); dot.classList.add('brew-pour-dot');
+    rotor.append(dot); svg.append(ring, rotor); return svg;
   }
   if (pattern === 'spiral-out' || pattern === 'spiral-in') {
     const d = spiralPath(pattern === 'spiral-in');
-    const path = svgElement('path', { d, pathLength:100 });
-    path.classList.add('brew-pour-path', 'brew-pour-spiral');
-    const dot = svgElement('circle', { r:6 });
-    dot.classList.add('brew-pour-dot');
+    const path = svgElement('path', { d, pathLength:100 }); path.classList.add('brew-pour-path', 'brew-pour-spiral');
+    const dot = svgElement('circle', { r:6 }); dot.classList.add('brew-pour-dot');
     const motion = svgElement('animateMotion', { dur:`${period.toFixed(2)}s`, repeatCount:'indefinite', path:d });
-    dot.append(motion); svg.append(path, dot);
-    return svg;
+    dot.append(motion); svg.append(path, dot); return svg;
   }
   if (pattern === 'immersion') {
-    const fill = svgElement('circle', { cx:80, cy:80, r:48 });
-    fill.classList.add('brew-pour-immersion-fill');
-    const wave = svgElement('path', { d:'M34 80 Q49 69 64 80 T94 80 T124 80' });
-    wave.classList.add('brew-pour-wave');
-    svg.append(fill, wave);
-    return svg;
+    const fill = svgElement('circle', { cx:80, cy:80, r:48 }); fill.classList.add('brew-pour-immersion-fill');
+    const wave = svgElement('path', { d:'M34 80 Q49 69 64 80 T94 80 T124 80' }); wave.classList.add('brew-pour-wave');
+    svg.append(fill, wave); return svg;
   }
   if (pattern === 'release') {
-    const valve = svgElement('path', { d:'M51 60 H109 M58 70 H102 M80 70 V111' });
-    valve.classList.add('brew-pour-release-valve');
-    const drop = svgElement('path', { d:'M80 96 C72 108 67 116 67 124 A13 13 0 0 0 93 124 C93 116 88 108 80 96Z' });
-    drop.classList.add('brew-pour-release-drop');
-    svg.append(valve, drop);
-    return svg;
+    const valve = svgElement('path', { d:'M51 60 H109 M58 70 H102 M80 70 V111' }); valve.classList.add('brew-pour-release-valve');
+    const drop = svgElement('path', { d:'M80 96 C72 108 67 116 67 124 A13 13 0 0 0 93 124 C93 116 88 108 80 96Z' }); drop.classList.add('brew-pour-release-drop');
+    svg.append(valve, drop); return svg;
   }
-  const pulse = svgElement('circle', { cx:80, cy:80, r:23 });
-  pulse.classList.add('brew-pour-pulse');
-  const dot = svgElement('circle', { cx:80, cy:80, r:7 });
-  dot.classList.add('brew-pour-dot');
-  svg.append(pulse, dot);
-  return svg;
+  const pulse = svgElement('circle', { cx:80, cy:80, r:23 }); pulse.classList.add('brew-pour-pulse');
+  const dot = svgElement('circle', { cx:80, cy:80, r:7 }); dot.classList.add('brew-pour-dot');
+  svg.append(pulse, dot); return svg;
 }
 
 function patternLabel(pattern) {
-  return ({
-    center:'中心定点', circle:'稳定绕圈', 'spiral-out':'螺旋向外', 'spiral-in':'螺旋向内',
-    pulse:'脉冲注水', immersion:'保持浸泡', release:'开阀释放', hold:'等待 / 静置'
-  })[pattern] || '按方案注水';
+  return ({ center:'中心定点', circle:'稳定绕圈', 'spiral-out':'螺旋向外', 'spiral-in':'螺旋向内', pulse:'脉冲注水', immersion:'保持浸泡', release:'开阀释放', hold:'等待 / 静置' })[pattern] || '按方案注水';
 }
 
 function activeStageIndex() {
@@ -138,22 +128,13 @@ export function renderPourGuide() {
   existing?.remove();
 
   const guide = document.createElement('section');
-  guide.className = 'brew-pour-guide';
-  guide.dataset.lbPourGuide = pattern;
-  guide.dataset.stageIndex = String(index + 1);
-  const visual = document.createElement('div');
-  visual.className = 'brew-pour-guide-visual';
-  visual.append(buildSvg(pattern, period));
-  const copy = document.createElement('div');
-  copy.className = 'brew-pour-guide-copy';
-  const title = document.createElement('strong');
-  title.textContent = patternLabel(pattern);
-  const metrics = document.createElement('span');
-  metrics.textContent = `${stageWater.toFixed(0)}g · 累计 ${cumulative.toFixed(0)}g${flow > 0 ? ` · ${flow.toFixed(1)}g/s` : ''}`;
-  const note = document.createElement('small');
-  note.textContent = '轨迹仅用于执行节奏提示；实际水流与落点以手部操作为准。';
+  guide.className = 'brew-pour-guide'; guide.dataset.lbPourGuide = pattern; guide.dataset.stageIndex = String(index + 1);
+  const visual = document.createElement('div'); visual.className = 'brew-pour-guide-visual'; visual.append(buildSvg(pattern, period));
+  const copy = document.createElement('div'); copy.className = 'brew-pour-guide-copy';
+  const title = document.createElement('strong'); title.textContent = patternLabel(pattern);
+  const metrics = document.createElement('span'); metrics.textContent = `${stageWater.toFixed(0)}g · 累计 ${cumulative.toFixed(0)}g${flow > 0 ? ` · ${flow.toFixed(1)}g/s` : ''}`;
+  const note = document.createElement('small'); note.textContent = '轨迹仅用于执行节奏提示；实际水流与落点以手部操作为准。';
   copy.append(title, metrics, note); guide.append(visual, copy);
-
   const anchor = timer.querySelector('.timer-stage-grid');
   (anchor || timer.querySelector('#timerStageText') || timer.firstElementChild)?.insertAdjacentElement('afterend', guide);
   renderedKey = key;
@@ -163,9 +144,7 @@ export function renderPourGuide() {
 
 function rememberPlan(plan) {
   if (!plan?.stages?.length) return;
-  currentPlan = plan;
-  renderedKey = '';
-  queueMicrotask(renderPourGuide);
+  currentPlan = plan; renderedKey = ''; queueMicrotask(renderPourGuide);
 }
 
 document.addEventListener('luckybean:plan-ready', event => rememberPlan(event.detail?.plan));
@@ -178,14 +157,7 @@ function startObserver() {
   observer = new MutationObserver(() => renderPourGuide());
   observer.observe(root, { childList:true, subtree:true, characterData:true });
 }
-
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startObserver, { once:true });
 else startObserver();
 
-globalThis.LuckyBeanPourGuide = Object.freeze({
-  revision:'pour-guide/1.0.0',
-  patternForStage,
-  animationPeriod,
-  render:renderPourGuide,
-  setPlan:rememberPlan
-});
+globalThis.LuckyBeanPourGuide = Object.freeze({ revision:'pour-guide/1.0.0', patternForStage, animationPeriod, render:renderPourGuide, setPlan:rememberPlan });
