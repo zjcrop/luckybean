@@ -1,0 +1,51 @@
+name: LuckyBean cleanup transient branches
+
+on:
+  workflow_run:
+    workflows: ["LuckyBean main signed release"]
+    types: [completed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-cleanup-transient-branches
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Delete transient finalize branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t refs < <(gh api --paginate "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/finalize/" --jq '.[].ref')
+          for ref in "${refs[@]}"; do
+            branch="${ref#refs/heads/}"
+            [ -n "$branch" ] || continue
+            git push origin --delete "$branch"
+          done
+      - name: Verify release branch baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual=$(gh api --paginate "repos/$GITHUB_REPOSITORY/branches?per_page=100" --jq '.[].name' | sort)
+          expected=$(printf '%s\n' ci-status main pages-status release-status | sort)
+          if [ "$actual" != "$expected" ]; then
+            echo 'Unexpected branches remain after release cleanup:' >&2
+            comm -3 <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") >&2 || true
+            exit 1
+          fi
