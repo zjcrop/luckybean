@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRecognitionDocument } from '../src/domain/recognition/recognition-document.js';
 import { analyzeRecognitionDocument } from '../src/domain/recognition/recognition-pipeline.js';
+import { applyCoffeeKnowledge } from '../src/services/coffee-knowledge-adapter.js';
 
 const book = JSON.parse(readFileSync(new URL('../public/fallback-codebook.json', import.meta.url), 'utf8'));
 const box = (left, top, right, bottom) => [[left, top], [right, top], [right, bottom], [left, bottom]];
@@ -19,6 +20,39 @@ function pairedDocument(pairs) {
     blocks,
     engine: 'native-golden',
     fullText: blocks.map(item => item.text).join('\n')
+  });
+}
+
+function withKnowledgeOnlyVarieties(base) {
+  return applyCoffeeKnowledge(base, {
+    _format: 'coffee-knowledge-bundle',
+    contract: 'coffee-knowledge/1.0',
+    version: '1.0.0-alpha.test',
+    compatibility: { qrIndexesChanged: false },
+    localizedNames: [],
+    localizedAliases: [],
+    supplementalModels: {},
+    unboundKnowledge: {
+      varietyDetails: [
+        {
+          id: 'WCR-HP-ANACAFE-14',
+          recordType: 'cultivar_or_breeding_population',
+          canonicalNameEn: 'Anacafe 14',
+          sourceRefs: ['SRC-WCR-CATALOG'],
+          confidence: 1,
+          coreEligibility: 'pending_consumer_ocr_frequency_review'
+        },
+        {
+          id: 'WCR-HP-CATIMOR-129',
+          recordType: 'cultivar_selection',
+          canonicalNameEn: 'Catimor 129',
+          aliases: ['Cat129', 'Nyika'],
+          sourceRefs: ['SRC-WCR-CATALOG'],
+          confidence: 1,
+          coreEligibility: 'pending_consumer_ocr_frequency_review'
+        }
+      ]
+    }
   });
 }
 
@@ -62,6 +96,44 @@ test('unknown proper names are preserved and explicitly marked for review', () =
   assert.equal(analysis.parsed.entityCustomName, 'Fazenda Esperanca Experimental Lot');
   assert.equal(farm?.status, 'review');
   assert.equal(farm?.rawValue, 'Fazenda Esperanca Experimental Lot');
+});
+
+test('knowledge-only WCR variety is surfaced as a sourced review candidate without fabricating a core code', () => {
+  const knowledgeBook = withKnowledgeOnlyVarieties(book);
+  const document = pairedDocument([
+    ['COUNTRY', 'GUATEMALA'],
+    ['VARIETY', 'Anacafe 14']
+  ]);
+  const analysis = analyzeRecognitionDocument(document, knowledgeBook);
+  const variety = analysis.fields.find(item => item.field === 'varietyCode');
+  const candidate = analysis.parsed.parseMetadata.knowledgeOnlyVariety;
+
+  assert.equal(analysis.pipelineVersion, '1.24P-recognition-pipeline.3');
+  assert.equal(analysis.parsed.varietyCode, undefined);
+  assert.equal(analysis.parsed.varietyCustomName, 'Anacafe 14');
+  assert.equal(candidate?.knowledgeId, 'WCR-HP-ANACAFE-14');
+  assert.equal(candidate?.qrCoreCode, null);
+  assert.equal(candidate?.qrEligible, false);
+  assert.equal(candidate?.manualConfirmationRequired, true);
+  assert.deepEqual(candidate?.sourceRefs, ['SRC-WCR-CATALOG']);
+  assert.equal(variety?.status, 'review');
+  assert.equal(variety?.resolved, false);
+  assert.equal(variety?.knowledgeCandidate?.knowledgeOnly, true);
+  assert.equal(variety?.knowledgeCandidate?.productionCoreApproved, false);
+});
+
+test('knowledge-only source alias normalizes to canonical display but stays unresolved', () => {
+  const knowledgeBook = withKnowledgeOnlyVarieties(book);
+  const document = pairedDocument([['VARIETY', 'Cat129']]);
+  const analysis = analyzeRecognitionDocument(document, knowledgeBook);
+  const variety = analysis.fields.find(item => item.field === 'varietyCode');
+
+  assert.equal(analysis.parsed.varietyCode, undefined);
+  assert.equal(analysis.parsed.parseMetadata.knowledgeOnlyVariety?.knowledgeId, 'WCR-HP-CATIMOR-129');
+  assert.equal(analysis.parsed.parseMetadata.knowledgeOnlyVariety?.matchedNameType, 'source_alias');
+  assert.equal(variety?.rawValue, 'Cat129');
+  assert.equal(variety?.standardValue, 'Catimor 129');
+  assert.equal(variety?.status, 'review');
 });
 
 test('explicit numeric fields are parsed while unrelated numbers stay isolated', () => {
