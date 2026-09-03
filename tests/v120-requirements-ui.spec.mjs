@@ -244,21 +244,17 @@ test('settings splash previews keep their red and white backgrounds', async ({ p
   await white.click();
   const persistedSplash = await page.evaluate(() => JSON.parse(localStorage.getItem('luckybean.ui.v095') || '{}').splash);
   expect(persistedSplash).toBe('white');
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      await page.goto(`${BASE_URL}/?requirements-splash-preview-persisted=1`, { waitUntil: 'domcontentloaded' });
-      break;
-    } catch (error) {
-      const message = String(error?.message || error || '');
-      const navigationRace = /ERR_ABORTED|frame was detached/i.test(message);
-      if (!navigationRace || attempt === 2) throw error;
-      await page.waitForTimeout(250);
-      await page.waitForLoadState('domcontentloaded').catch(() => {});
-    }
-  }
-  await page.waitForFunction(() => document.documentElement.dataset.appearanceController === 'ready');
-  await expect(page.locator('#splashScreen')).toHaveAttribute('data-splash-variant', 'white');
-  await expect(page.locator('#splashScreen')).toHaveCSS('background-color', 'rgb(243, 239, 229)');
+  const persistedPage = await page.context().newPage();
+await installBrewProfilesBrowserFixture(persistedPage);
+await persistedPage.goto(`${BASE_URL}/?requirements-splash-preview-persisted=1`, { waitUntil: 'domcontentloaded' });
+await persistedPage.waitForFunction(
+  () => document.documentElement.dataset.appearanceController === 'ready',
+  null,
+  { timeout: 15000 }
+);
+await expect(persistedPage.locator('#splashScreen')).toHaveAttribute('data-splash-variant', 'white');
+await expect(persistedPage.locator('#splashScreen')).toHaveCSS('background-color', 'rgb(243, 239, 229)');
+await persistedPage.close();
 });
 
 test('bean recognition splits numeric varieties, maps labeled roast levels and hides unsupported empty evidence', async ({ page }) => {
