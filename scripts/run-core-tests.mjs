@@ -19,7 +19,8 @@ const specs = [
   'tests/v124b-fab-regression.spec.mjs',
   'tests/v124b-ui-alignment-regression.spec.mjs',
   'tests/v124b-followup-regression.spec.mjs',
-  'tests/v124p-recognition-preflight-regression.spec.mjs'
+  'tests/v124p-recognition-preflight-regression.spec.mjs',
+  'tests/v124p-pour-guide-ui.spec.mjs'
 ];
 
 function annotation(text) {
