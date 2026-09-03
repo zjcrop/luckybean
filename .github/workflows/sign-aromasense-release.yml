@@ -1,0 +1,159 @@
+name: AromaSense official signer handoff
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/sign-aromasense-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  AROMASENSE_REPOSITORY: zjcrop/AromaSense
+  AROMASENSE_SOURCE_SHA: 1ee27d01009b231cbb93997be260c4e685b7d598
+  AROMASENSE_VERSION: 0.1C
+  AROMASENSE_VERSION_CODE: '10103'
+  AROMASENSE_CLOUD_URL: https://aromasense-api.zj-crop.workers.dev
+  AROMASENSE_FIREBASE_API_KEY: AIzaSyAsY_w3pxgBlnr0tFYKuAvNJUeEhN1RCU0
+  AROMASENSE_FIREBASE_PROJECT_ID: romasense-f23eb
+
+jobs:
+  sign:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout signer repository
+        uses: actions/checkout@v7.0.1
+        with:
+          path: signer
+          fetch-depth: 1
+
+      - name: Checkout immutable AromaSense source
+        uses: actions/checkout@v7.0.1
+        with:
+          repository: zjcrop/AromaSense
+          ref: ${{ env.AROMASENSE_SOURCE_SHA }}
+          path: aromasense
+          fetch-depth: 1
+
+      - name: Verify AromaSense source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C aromasense rev-parse HEAD)" = "$AROMASENSE_SOURCE_SHA"
+          remote_main=$(git ls-remote https://github.com/zjcrop/AromaSense.git refs/heads/main | awk '{print $1}')
+          test "$remote_main" = "$AROMASENSE_SOURCE_SHA"
+          test "$(tr -d '[:space:]:' < aromasense/mobile/android/signing/CERT_SHA256.txt | tr '[:lower:]' '[:upper:]')" = 'B66B3E33F4DB34A4A9A14FCA4A571A426B8DEE31C720AF86983A7B5402D05AFB'
+
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24'
+      - uses: actions/setup-java@v5.7.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4.0.1
+      - name: Install Android build tools
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - uses: gradle/actions/setup-gradle@v6.3.0
+        with:
+          gradle-version: '9.5.0'
+
+      - name: Install and verify AromaSense source
+        working-directory: aromasense
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund
+          npm run check
+
+      - name: Restore official signing keystore without exporting it
+        shell: bash
+        env:
+          LUCKYBEAN_KEYSTORE_B64: ${{ secrets.LUCKYBEAN_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "$LUCKYBEAN_KEYSTORE_B64"
+          printf '%s' "$LUCKYBEAN_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/official-release.jks"
+          chmod 600 "$RUNNER_TEMP/official-release.jks"
+
+      - name: Build AromaSense production signed APK
+        working-directory: aromasense
+        shell: bash
+        env:
+          AROMASENSE_KEYSTORE_FILE: ${{ runner.temp }}/official-release.jks
+          AROMASENSE_STORE_PASSWORD: ${{ secrets.LUCKYBEAN_STORE_PASSWORD }}
+          AROMASENSE_KEY_ALIAS: ${{ secrets.LUCKYBEAN_KEY_ALIAS }}
+          AROMASENSE_KEY_PASSWORD: ${{ secrets.LUCKYBEAN_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$AROMASENSE_STORE_PASSWORD"
+          test -n "$AROMASENSE_KEY_ALIAS"
+          test -n "$AROMASENSE_KEY_PASSWORD"
+          export GITHUB_SHA="$AROMASENSE_SOURCE_SHA"
+          gradle --no-daemon -p mobile/android :app:assembleRelease
+
+      - name: Verify signed APK identity source and official certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=aromasense/mobile/android/app/build/outputs/apk/release/app-release.apk
+          test -f "$apk"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.zjcrop.aromasense' versionCode='${AROMASENSE_VERSION_CODE}' versionName='${AROMASENSE_VERSION}'"
+          unzip -p "$apk" assets/www/index.html > /tmp/aromasense-index.html
+          unzip -p "$apk" assets/www/luckybean-recognition-core.js > /tmp/aromasense-recognition.js
+          grep -Fq "data-cloud-base-url=\"${AROMASENSE_CLOUD_URL}\"" /tmp/aromasense-index.html
+          grep -Fq "data-build-id=\"${AROMASENSE_SOURCE_SHA:0:16}\"" /tmp/aromasense-index.html
+          grep -Fq '1.24P-recognition-pipeline.3' /tmp/aromasense-recognition.js
+          grep -Fq 'knowledgeOnlyVariety' /tmp/aromasense-recognition.js
+          expected_cert=$(tr -d '[:space:]:' < aromasense/mobile/android/signing/CERT_SHA256.txt | tr '[:lower:]' '[:upper:]')
+          actual_cert=$("$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')
+          test -n "$actual_cert"
+          test "$actual_cert" = "$expected_cert"
+          echo "CERT_SHA256=$actual_cert" >> "$GITHUB_ENV"
+
+      - name: Package signer handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          apk_name="AromaSense-${AROMASENSE_VERSION}-release.apk"
+          cp aromasense/mobile/android/app/build/outputs/apk/release/app-release.apk "dist/$apk_name"
+          apk_sha=$(sha256sum "dist/$apk_name" | awk '{print $1}')
+          jq -n \
+            --arg source_repository "$AROMASENSE_REPOSITORY" \
+            --arg source_sha "$AROMASENSE_SOURCE_SHA" \
+            --arg version "$AROMASENSE_VERSION" \
+            --arg version_code "$AROMASENSE_VERSION_CODE" \
+            --arg certificate "$CERT_SHA256" \
+            --arg apk "$apk_name" \
+            --arg apk_sha256 "$apk_sha" \
+            '{handoff_format:"aromasense-official-signer/1",source_repository:$source_repository,source_sha:$source_sha,version:$version,version_code:($version_code|tonumber),certificate_sha256:$certificate,certificate_verified:true,signer_repository:"zjcrop/luckybean",private_key_exported:false,apk:$apk,apk_sha256:$apk_sha256}' \
+            > dist/SIGNER_PROVENANCE.json
+          sha256sum "dist/$apk_name" > dist/SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: AromaSense-${{ env.AROMASENSE_VERSION }}-official-signed-${{ env.AROMASENSE_SOURCE_SHA }}
+          path: dist/
+          if-no-files-found: error
+
+      - name: Publish public signer handoff release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        working-directory: signer
+        run: |
+          set -euo pipefail
+          tag="aromasense-signer-v${AROMASENSE_VERSION}-${AROMASENSE_SOURCE_SHA:0:12}"
+          apk_name="AromaSense-${AROMASENSE_VERSION}-release.apk"
+          assets_dir="$GITHUB_WORKSPACE/dist"
+          notes="Controlled signer handoff for zjcrop/AromaSense source ${AROMASENSE_SOURCE_SHA}. The official private key remains inside LuckyBean Actions; the APK certificate and source binding are verified before publication."
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$assets_dir/$apk_name" "$assets_dir/SIGNER_PROVENANCE.json" "$assets_dir/SHA256SUMS.txt" --clobber
+          else
+            gh release create "$tag" "$assets_dir/$apk_name" "$assets_dir/SIGNER_PROVENANCE.json" "$assets_dir/SHA256SUMS.txt" --target "$GITHUB_SHA" --title "AromaSense ${AROMASENSE_VERSION} signer handoff" --notes "$notes"
+          fi
+          gh release view "$tag" --json assets --jq '[.assets[].name]' | jq -e --arg apk "$apk_name" 'index($apk) != null and index("SIGNER_PROVENANCE.json") != null and index("SHA256SUMS.txt") != null' >/dev/null
