@@ -24,27 +24,44 @@ jobs:
         with:
           ref: main
           fetch-depth: 1
-      - name: Delete transient finalize branches
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Delete transient and fully merged branches
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t refs < <(gh api --paginate "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/finalize/" --jq '.[].ref')
-          for ref in "${refs[@]}"; do
-            branch="${ref#refs/heads/}"
+          git fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*'
+          mapfile -t branches < <(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin | sort)
+          for branch in "${branches[@]}"; do
+            case "$branch" in
+              main|ci-status|pages-status|release-status) continue ;;
+            esac
             [ -n "$branch" ] || continue
-            git push origin --delete "$branch"
+            remote_ref="refs/remotes/origin/$branch"
+            if git merge-base --is-ancestor "$remote_ref" refs/remotes/origin/main; then
+              echo "Deleting fully merged branch: $branch"
+              git push origin --delete "$branch"
+            else
+              echo "Preserving unmerged branch: $branch"
+            fi
           done
-      - name: Verify transient branches are gone
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Verify no fully merged disposable branches remain
         shell: bash
         run: |
           set -euo pipefail
-          remaining=$(gh api --paginate "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/finalize/" --jq '.[].ref')
-          if [ -n "$remaining" ]; then
-            echo 'Transient finalize branches remain after cleanup:' >&2
-            printf '%s\n' "$remaining" >&2
+          git fetch --prune --no-tags origin '+refs/heads/*:refs/remotes/origin/*'
+          unexpected=()
+          mapfile -t branches < <(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin | sort)
+          for branch in "${branches[@]}"; do
+            case "$branch" in
+              main|ci-status|pages-status|release-status) continue ;;
+            esac
+            [ -n "$branch" ] || continue
+            remote_ref="refs/remotes/origin/$branch"
+            if git merge-base --is-ancestor "$remote_ref" refs/remotes/origin/main; then
+              unexpected+=("$branch")
+            fi
+          done
+          if [ "${#unexpected[@]}" -ne 0 ]; then
+            echo 'Fully merged branches remain after cleanup:' >&2
+            printf '%s\n' "${unexpected[@]}" >&2
             exit 1
           fi
