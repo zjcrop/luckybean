@@ -39,6 +39,8 @@ const CORE = [
   versioned('./src/ui/professional-sensory.css'),
   versioned('./src/ui/sensory-wizard-actions.css'),
   versioned('./src/ui/brew-action-emphasis.css'),
+  versioned('./src/ui/brew-pour-guide.js'),
+  versioned('./src/ui/brew-pour-guide.css'),
   versioned('./src/ui/brew-optimization.css'),
   versioned('./src/app.js'),
   versioned('./src/flavor-vector.js'),
