@@ -1,0 +1,14 @@
+/* LuckyBean 1.24P: emphasize decisive brew actions without changing layout. */
+#pageBrew #generatePlanBtn,
+#pageBrew #brewProfile,
+#pageBrew #startBrewBtn,
+[data-overlay="brew-prepare"] #confirmBrewPreparedBtn {
+  font-weight: 800 !important;
+  letter-spacing: .02em;
+}
+
+[data-overlay="brew-prepare"] #repeatPreparationBtn,
+[data-overlay="brew-prepare"] #cancelPreparationBtn,
+[data-overlay="timer"] .timer-actions .button {
+  font-weight: 700 !important;
+}
