@@ -11,6 +11,7 @@ const tests = [
   'tests/v125-root-state-models.mjs',
   'tests/v124p-release-contract.mjs',
   'tests/v124p-execution-copy-regression.mjs',
+  'tests/v124p-brew-action-emphasis.mjs',
   'tests/v123d-ui-sensory-regressions.mjs',
   'tests/v123e-batch-onboarding-static.mjs',
   'tests/v126-full-integration-static.mjs',
