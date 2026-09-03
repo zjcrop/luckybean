@@ -1,8 +1,9 @@
 import { parseNaturalLanguage } from '../../codebook.js';
 import { automaticEntityResolutionDecision } from '../../services/coffee-knowledge-adapter.js';
+import { bestKnowledgeOnlyVarietyCandidate } from '../../services/knowledge-only-variety-candidates.js';
 import { resolveRecognitionRelations, resolverPriorityDescription } from './recognition-field-resolver-1.24b.js';
 
-export const RECOGNITION_PIPELINE_VERSION = '1.24B-recognition-pipeline.2';
+export const RECOGNITION_PIPELINE_VERSION = '1.24P-recognition-pipeline.3';
 
 const RELATION_TO_RESULT = Object.freeze({
   country: 'countryCode',
@@ -114,6 +115,33 @@ function relationConfidence(relations, field) {
   return Number(resolvedRelations(relations, field).winner?.confidence || 0);
 }
 
+function enforceKnowledgeOnlyVarietyCandidate(parsed, book) {
+  if (parsed?.varietyCode) return;
+  const evidence = clean(
+    parsed?.varietyCustomName
+    || parsed?.evidence?.varietyCode
+    || parsed?.evidence?.varietyCustomName
+  );
+  if (!evidence) return;
+  const candidate = bestKnowledgeOnlyVarietyCandidate(book, evidence);
+  if (!candidate) return;
+
+  parsed.parseMetadata ||= {};
+  parsed.evidence ||= {};
+  parsed.confidence ||= {};
+  parsed.parseMetadata.knowledgeOnlyVariety = structuredClone(candidate);
+  if (!parsed.varietyCustomName) parsed.varietyCustomName = evidence;
+  if (!parsed.evidence.varietyCode) parsed.evidence.varietyCode = evidence;
+  if (!parsed.evidence.varietyCustomName) parsed.evidence.varietyCustomName = evidence;
+  parsed.confidence.varietyCustomName = Math.max(
+    Number(parsed.confidence.varietyCustomName || 0),
+    Math.min(0.86, Number(candidate.score || 0))
+  );
+  // Keep the categorical varietyCode unresolved. Candidate confidence is metadata,
+  // not permission to assign a QR/core code that does not exist in v6.
+  parsed.confidence.varietyCode = Math.min(Number(parsed.confidence.varietyCode || 0.45), 0.49);
+}
+
 function enforceEntityResolutionSafety(parsed, book) {
   const coreCode = String(parsed?.entityCode || '');
   if (!coreCode) return;
@@ -169,6 +197,9 @@ function buildFieldRows(document, parsed, book) {
     const rawValue = rawForField(relations, field, parsed);
     const value = parsed?.[field];
     const customValue = customField ? parsed?.[customField] : null;
+    const knowledgeCandidate = field === 'varietyCode'
+      ? parsed?.parseMetadata?.knowledgeOnlyVariety || null
+      : null;
     let standardValue = '';
     if (field === 'flavorCodes') {
       const codes = Array.isArray(value) ? value : [];
@@ -179,6 +210,7 @@ function buildFieldRows(document, parsed, book) {
     } else {
       standardValue = displayScalar(field, value);
     }
+    if (!standardValue && knowledgeCandidate?.canonicalNameEn) standardValue = clean(knowledgeCandidate.canonicalNameEn);
     if (!standardValue && customValue) standardValue = Array.isArray(customValue) ? customValue.join('、') : clean(customValue);
     if (!rawValue && !standardValue) continue;
 
@@ -200,6 +232,7 @@ function buildFieldRows(document, parsed, book) {
       translated,
       status: requiresReview ? 'review' : (translated ? 'translated' : 'resolved'),
       sources: resolution.winner?.sources || relations.get(field) || [],
+      ...(knowledgeCandidate ? { knowledgeCandidate: structuredClone(knowledgeCandidate) } : {}),
       resolution:{
         priority:resolverPriorityDescription(),
         conflict:Boolean(resolution.conflict),
@@ -228,6 +261,7 @@ export function analyzeRecognitionDocument(document, book) {
     .filter(Boolean)
     .join('\n');
   const parsed = parseNaturalLanguage(semanticText, book);
+  enforceKnowledgeOnlyVarietyCandidate(parsed, book);
   enforceEntityResolutionSafety(parsed, book);
   const fields = buildFieldRows(document, parsed, book);
   const reviewFields = fields.filter(item => item.status === 'review');
