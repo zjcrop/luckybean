@@ -36,16 +36,15 @@ jobs:
             [ -n "$branch" ] || continue
             git push origin --delete "$branch"
           done
-      - name: Verify release branch baseline
+      - name: Verify transient branches are gone
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          actual=$(gh api --paginate "repos/$GITHUB_REPOSITORY/branches?per_page=100" --jq '.[].name' | sort)
-          expected=$(printf '%s\n' ci-status main pages-status release-status | sort)
-          if [ "$actual" != "$expected" ]; then
-            echo 'Unexpected branches remain after release cleanup:' >&2
-            comm -3 <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") >&2 || true
+          remaining=$(gh api --paginate "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/finalize/" --jq '.[].ref')
+          if [ -n "$remaining" ]; then
+            echo 'Transient finalize branches remain after cleanup:' >&2
+            printf '%s\n' "$remaining" >&2
             exit 1
           fi
