@@ -2,6 +2,7 @@ import { all, get, put, getSetting } from '../db.js';
 import { sha256Hex } from '../utils.js';
 import { loadCodebook, makeIndex, displayName } from '../codebook.js';
 import { BREW_API_ENDPOINT, brewApiJson } from './brew-api-client.js';
+import { sanitizeExecutionText, sanitizeExecutionPlanText } from './execution-text-sanitizer.js';
 import { buildMatchingEnvelope, MATCH_CONTRACT, resolveDripperPhysics, resolveFilterPaperPhysics } from '../domain/matching/flavor-vector.js';
 
 export const BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.1';
@@ -78,12 +79,12 @@ function mapStage(stage, index) {
   const temperature = Number(stage.pourTemperature ?? stage.temperatureC ?? stage.temp ?? 90);
   const bedTemperature = Number(stage.bedTemperatureEnd ?? stage.estimatedBedTemperature ?? stage.coreTemperatureC ?? temperature);
   const flow = Number(stage.flow ?? stage.flowGPerSec ?? 0);
-  return { ...stage, index:Number(stage.index ?? index + 1), start, end, pour, cumulative, temp:temperature, flow, startSec:start, durationSec:Math.max(0,end-start), stageWaterG:pour, cumulativeWaterG:cumulative, temperatureC:temperature, coreTemperatureC:bedTemperature, flowGPerSec:flow, method:String(stage.method || stage.transitionCondition || ''), notice:String(stage.notice || stage.source?.timing || '') };
+  return { ...stage, index:Number(stage.index ?? index + 1), start, end, pour, cumulative, temp:temperature, flow, startSec:start, durationSec:Math.max(0,end-start), stageWaterG:pour, cumulativeWaterG:cumulative, temperatureC:temperature, coreTemperatureC:bedTemperature, flowGPerSec:flow, method:String(stage.method || stage.transitionCondition || ''), notice:sanitizeExecutionText(stage.notice || stage.source?.timing || '') };
 }
 
 export function adaptAuthoritativePlan(analysis) {
   validateAnalysis(analysis);
-  const source = structuredClone(analysis.plan), stages = (source.stages || []).map(mapStage), summary = source.summary || {};
+  const source = sanitizeExecutionPlanText(structuredClone(analysis.plan)), stages = (source.stages || []).map(mapStage), summary = source.summary || {};
   const totalWater = Number(summary.totalWater ?? source.totals?.waterG ?? stages.at(-1)?.cumulative ?? 0);
   const brewWater = Number(summary.brewWaterG ?? source.totals?.brewWaterG ?? stages.at(-1)?.cumulative ?? totalWater);
   const ice = Number(summary.iceG ?? source.totals?.iceG ?? 0);

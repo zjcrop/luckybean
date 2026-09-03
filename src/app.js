@@ -1,3 +1,4 @@
+import { sanitizeExecutionText, sanitizeExecutionPlanText } from './services/execution-text-sanitizer.js';
 import { APP_VERSION, SCHEMA_VERSION, $, $$, uid, esc, clamp, todayISO, formatDate, freshness, freshnessProfile, downloadBlob, safeJsonParse, assertPlainObject, assertSafeJson, browserTitle, parseNumber } from './utils.js';
 import { openDb, all, get, put, remove, bulkPut, getSetting, setSetting, clearAll, migrateLegacy } from './db.js';
 import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, parseHarvestSeasonValue, REMOTE_CODEBOOK_URL } from './codebook.js';
@@ -1858,7 +1859,7 @@ async function generatePlan() {
     try {
       const result = await brewCalculationCoordinator.calculate({ endpoint:state.settings.brew.apiEndpoint, input:requestedInput, previousPlan:state.currentPlan, beanId:bean.id });
       if (!result.latest) return;
-      plan = result.plan;
+      plan = sanitizeExecutionPlanText(result.plan);
       state.currentBrewInput = result.input;
     } catch (error) {
       const failure = new Error(`${error.message} 未生成本地替代三维图，避免将参考轨迹误认为专业靶区。`);
@@ -1895,6 +1896,7 @@ async function generatePlan() {
 }
 
 function planHtml(plan) {
+  plan = sanitizeExecutionPlanText(plan);
   const flavor = plan.flavorFit || {};
   const first = plan.stages?.[0];
   const water = plan.water;
@@ -1957,10 +1959,12 @@ function exportCurrentPlan(format = 'json') {
 
 function stopSpeech() { if (globalThis.__LUCKYBEAN_ANDROID__) return; if (globalThis.speechSynthesis) speechSynthesis.cancel(); }
 function speak(text) {
+  text = sanitizeExecutionText(text);
   if (globalThis.__LUCKYBEAN_ANDROID__ || !globalThis.speechSynthesis || !text) return;
   stopSpeech(); const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'zh-CN'; utterance.rate = 1.05; speechSynthesis.speak(utterance);
 }
 function preparationSpeech(plan) {
+  plan = sanitizeExecutionPlanText(plan);
   const prepared = (plan?.executionActions || []).find(action => action.type === 'prepare' && action.speech)?.speech;
   if (prepared) return String(prepared);
   const first = plan?.stages?.[0];
@@ -1985,6 +1989,7 @@ function beginTimedBrew() {
 
 function startTimer() {
   if (!state.currentPlan) return;
+  state.currentPlan = sanitizeExecutionPlanText(state.currentPlan);
   const speech = preparationSpeech(state.currentPlan);
   const actions = (state.currentPlan.executionActions || []).filter(action => action.phase === 'before-timer');
   const overlay = showOverlay(`<div class="brew-prepare-dialog">${dialogHeader('冲煮准备', '准备阶段不计入冲煮时间；确认后才开始第一段。', { centered:true })}<div class="brew-preparation-card"><strong>${state.currentBrewInput?.brew?.serveMode === 'cold' ? '❄ 冰冲准备' : '♨ 热冲准备'}</strong><p>${esc(speech)}</p></div>${actions.filter(action=>action.type!=='prepare').map(action=>`<p class="brew-prepare-action">${esc(action.speech || '')}</p>`).join('')}<div class="row"><button id="repeatPreparationBtn" class="button" type="button">重播提示</button><span class="grow"></span><button id="cancelPreparationBtn" class="button" type="button">返回</button><button id="confirmBrewPreparedBtn" class="button primary" type="button">准备好了，开始</button></div></div>`, { id:'brew-prepare', backdropClose:false, dialogClass:'bottom-sheet' });

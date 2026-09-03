@@ -64,6 +64,7 @@ const CORE = [
   versioned('./src/services/cloud-sync-safety.js'),
   versioned('./src/services/bean-enrichment-service.js'),
   versioned('./src/cloud-codec.js'),
+  versioned('./src/services/execution-text-sanitizer.js'),
   versioned('./src/services/brew-analysis-service.js'),
   versioned('./src/services/brew-calculation-coordinator.js'),
   versioned('./src/services/brew-api-client.js'),
