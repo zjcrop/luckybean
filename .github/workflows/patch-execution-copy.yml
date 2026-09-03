@@ -1,0 +1,117 @@
+name: LuckyBean patch execution copy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luckybean-patch-execution-copy
+  cancel-in-progress: false
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Patch execution copy at authoritative and defensive runtime boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one anchor, found {count}: {old[:80]!r}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          app = Path('src/app.js')
+          text = app.read_text(encoding='utf-8')
+          imp = "import { sanitizeExecutionText, sanitizeExecutionPlanText } from './services/execution-text-sanitizer.js';\n"
+          if imp not in text:
+              text = imp + text
+          app.write_text(text, encoding='utf-8')
+
+          replace_once('src/app.js',
+              "function speak(text) {\n  if (globalThis.__LUCKYBEAN_ANDROID__ || !globalThis.speechSynthesis || !text) return;",
+              "function speak(text) {\n  text = sanitizeExecutionText(text);\n  if (globalThis.__LUCKYBEAN_ANDROID__ || !globalThis.speechSynthesis || !text) return;")
+          replace_once('src/app.js',
+              "function preparationSpeech(plan) {\n  const prepared =",
+              "function preparationSpeech(plan) {\n  plan = sanitizeExecutionPlanText(plan);\n  const prepared =")
+          replace_once('src/app.js',
+              "function startTimer() {\n  if (!state.currentPlan) return;\n  const speech = preparationSpeech(state.currentPlan);",
+              "function startTimer() {\n  if (!state.currentPlan) return;\n  state.currentPlan = sanitizeExecutionPlanText(state.currentPlan);\n  const speech = preparationSpeech(state.currentPlan);")
+          replace_once('src/app.js',
+              "function planHtml(plan) {\n  const flavor = plan.flavorFit || {};",
+              "function planHtml(plan) {\n  plan = sanitizeExecutionPlanText(plan);\n  const flavor = plan.flavorFit || {};")
+          replace_once('src/app.js',
+              "      plan = result.plan;\n      state.currentBrewInput = result.input;",
+              "      plan = sanitizeExecutionPlanText(result.plan);\n      state.currentBrewInput = result.input;")
+
+          service = Path('src/services/brew-analysis-service.js')
+          text = service.read_text(encoding='utf-8')
+          imp = "import { sanitizeExecutionText, sanitizeExecutionPlanText } from './execution-text-sanitizer.js';\n"
+          if imp not in text:
+              anchor = "import { BREW_API_ENDPOINT, brewApiJson } from './brew-api-client.js';\n"
+              if anchor not in text:
+                  raise SystemExit('brew-analysis-service import anchor missing')
+              text = text.replace(anchor, anchor + imp, 1)
+          service.write_text(text, encoding='utf-8')
+          replace_once('src/services/brew-analysis-service.js',
+              "notice:String(stage.notice || stage.source?.timing || '')",
+              "notice:sanitizeExecutionText(stage.notice || stage.source?.timing || '')")
+          replace_once('src/services/brew-analysis-service.js',
+              "  const source = structuredClone(analysis.plan), stages = (source.stages || []).map(mapStage), summary = source.summary || {};",
+              "  const source = sanitizeExecutionPlanText(structuredClone(analysis.plan)), stages = (source.stages || []).map(mapStage), summary = source.summary || {};")
+
+          sw = Path('sw.js')
+          text = sw.read_text(encoding='utf-8')
+          asset = "  versioned('./src/services/execution-text-sanitizer.js'),\n"
+          if asset not in text:
+              anchor = "  versioned('./src/services/brew-analysis-service.js'),\n"
+              if anchor not in text:
+                  raise SystemExit('sw brew-analysis anchor missing')
+              text = text.replace(anchor, asset + anchor, 1)
+          sw.write_text(text, encoding='utf-8')
+
+          runner = Path('scripts/run-static-tests.mjs')
+          text = runner.read_text(encoding='utf-8')
+          testline = "  'tests/v124p-execution-copy-regression.mjs',\n"
+          if testline not in text:
+              anchor = "  'tests/v124p-release-contract.mjs',\n"
+              if anchor not in text:
+                  raise SystemExit('static runner anchor missing')
+              text = text.replace(anchor, anchor + testline, 1)
+          runner.write_text(text, encoding='utf-8')
+          PY
+      - run: npm ci
+      - name: Validate targeted execution copy regression
+        run: node tests/v124p-execution-copy-regression.mjs
+      - name: Validate full static gate
+        run: npm run test:static
+      - name: Commit tested runtime patch and remove one-time workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/patch-execution-copy.yml
+          git add src/app.js src/services/brew-analysis-service.js src/services/execution-text-sanitizer.js sw.js scripts/run-static-tests.mjs tests/v124p-execution-copy-regression.mjs
+          git diff --cached --check
+          git commit -m 'fix: remove hidden Excel execution references'
+          git push origin HEAD:main
