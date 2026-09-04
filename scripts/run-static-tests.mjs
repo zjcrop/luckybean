@@ -8,6 +8,7 @@ const tests = [
   'tests/v123-brewprofiles-integration.mjs',
   'tests/v123d-main-parity.mjs',
   'tests/v124-stable-data-format.mjs',
+  'tests/foundation-contract-regression.mjs',
   'tests/v125-root-state-models.mjs',
   'tests/v124p-release-contract.mjs',
   'tests/v124p-execution-copy-regression.mjs',
