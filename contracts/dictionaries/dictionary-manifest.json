@@ -1,0 +1,24 @@
+{
+  "contract":"coffee-dictionary/1.0",
+  "defaultLocale":"zh",
+  "fallbackLocale":"en",
+  "supportedLocales":["zh","en","ja","ko"],
+  "stableIdRequired":true,
+  "files":{
+    "origin":"origin.seed.json",
+    "variety":"variety.seed.json",
+    "processing":"processing.seed.json",
+    "roast":"roast.seed.json",
+    "flavor":"flavor.seed.json",
+    "defect":"defect.seed.json",
+    "equipment":"equipment.seed.json",
+    "ocrNormalization":"ocr-normalization.seed.json"
+  },
+  "rules":{
+    "preferBilingual":true,
+    "allowSingleLanguageWhenUnknown":true,
+    "preserveLegacyIds":true,
+    "aliasesAreNonCanonical":true,
+    "ocrAliasesAreNormalizationOnly":true
+  }
+}
