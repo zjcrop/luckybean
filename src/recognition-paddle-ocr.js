@@ -1,10 +1,5 @@
 const VERSION = '0.4.2';
-const RUNTIME_BASE = new URL('../public/vendor/paddleocr/', import.meta.url);
-const SDK_URL = new URL('sdk.mjs', RUNTIME_BASE).href;
-const WORKER_URL = new URL('worker.js', RUNTIME_BASE).href;
-const ORT_WASM = new URL('ort/', RUNTIME_BASE).href;
-const DET_MODEL = new URL('models/PP-OCRv5_mobile_det_onnx_infer.tar', RUNTIME_BASE).href;
-const REC_MODEL = new URL('models/PP-OCRv5_mobile_rec_onnx_infer.tar', RUNTIME_BASE).href;
+const DEFAULT_RUNTIME_BASE = new URL('../public/vendor/paddleocr/', import.meta.url);
 const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;
 const LOW_MEMORY = Number(navigator.deviceMemory || 4) <= 4 || /iPhone|iPad|iPod/i.test(navigator.userAgent);
 const LIMIT_SIDE = LOW_MEMORY ? 736 : 960;
@@ -17,8 +12,28 @@ let engineGeneration = 0;
 let busy = false;
 let disposeTimer = 0;
 
+function runtimeBase() {
+  const configured = String(globalThis.CoffeeFoundationOcrAssetBase || '').trim();
+  if (!configured) return DEFAULT_RUNTIME_BASE;
+  try {
+    return new URL(configured, globalThis.location?.href || import.meta.url);
+  } catch {
+    return DEFAULT_RUNTIME_BASE;
+  }
+}
+
+function assetUrl(relativePath) {
+  return new URL(relativePath, runtimeBase()).href;
+}
+
 function emit(status, progress = 0) {
   globalThis.dispatchEvent(new CustomEvent('luckybean:ocr-progress', {
+    detail: {
+      status: String(status || ''),
+      progress: Math.max(0, Math.min(100, Number(progress) || 0))
+    }
+  }));
+  globalThis.dispatchEvent(new CustomEvent('coffee-foundation:ocr-progress', {
     detail: {
       status: String(status || ''),
       progress: Math.max(0, Math.min(100, Number(progress) || 0))
@@ -46,7 +61,7 @@ function withTimeout(promise, timeoutMs, message, onTimeout) {
 async function loadModule() {
   if (!modulePromise) {
     emit('正在加载本地 PP-OCRv5 网页运行时', 2);
-    modulePromise = import(SDK_URL).catch(error => {
+    modulePromise = import(assetUrl('sdk.mjs')).catch(error => {
       modulePromise = null;
       throw new Error(`本地 PP-OCRv5 SDK 加载失败：${error.message}`);
     });
@@ -56,7 +71,7 @@ async function loadModule() {
 
 function createModuleWorker() {
   try {
-    return new Worker(WORKER_URL, { type: 'module', name: 'luckybean-ppocr-v5' });
+    return new Worker(assetUrl('worker.js'), { type: 'module', name: 'luckybean-ppocr-v5' });
   } catch (error) {
     throw new Error(`本地 PP-OCRv5 Worker 创建失败：${error.message}`);
   }
@@ -69,15 +84,15 @@ async function createWorkerEngine() {
     lang: 'ch',
     ocrVersion: 'PP-OCRv5',
     textDetectionModelName: 'PP-OCRv5_mobile_det',
-    textDetectionModelAsset: { url: DET_MODEL },
+    textDetectionModelAsset: { url: assetUrl('models/PP-OCRv5_mobile_det_onnx_infer.tar') },
     textRecognitionModelName: 'PP-OCRv5_mobile_rec',
-    textRecognitionModelAsset: { url: REC_MODEL },
+    textRecognitionModelAsset: { url: assetUrl('models/PP-OCRv5_mobile_rec_onnx_infer.tar') },
     worker: { createWorker: () => createModuleWorker() },
     textDetectionBatchSize: 1,
     textRecognitionBatchSize: 1,
     ortOptions: {
       backend: 'wasm',
-      wasmPaths: ORT_WASM,
+      wasmPaths: assetUrl('ort/'),
       numThreads: 1,
       simd: true
     }
@@ -253,13 +268,16 @@ function schedulePreload() {
   }
 }
 
-globalThis.LuckyBeanPaddleOCR = {
+const paddleOcrApi = Object.freeze({
   version: VERSION,
   engine: ENGINE,
   lowMemory: LOW_MEMORY,
   workerOnly: true,
   runtimeOrigin: 'same-origin-vendored',
   workerBootstrap: 'same-origin-vendored-module',
+  runtimeBase() {
+    return runtimeBase().href;
+  },
   recognizeCoffeeBag(images) {
     return run(() => predict(images));
   },
@@ -269,7 +287,10 @@ globalThis.LuckyBeanPaddleOCR = {
   },
   preload,
   dispose
-};
+});
+
+globalThis.LuckyBeanPaddleOCR = paddleOcrApi;
+globalThis.CoffeeFoundationPaddleOCR = paddleOcrApi;
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && LOW_MEMORY && !busy) void dispose();
