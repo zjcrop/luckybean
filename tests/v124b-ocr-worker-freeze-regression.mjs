@@ -12,11 +12,16 @@ const [releaseText, paddle, bridge, runtime, capture, vendor] = await Promise.al
 const release = JSON.parse(releaseText);
 
 assert.match(paddle, /worker:\s*\{\s*createWorker:/, 'PP-OCR must use an explicit dedicated Worker factory');
-assert.match(paddle, /new Worker\(WORKER_URL,\s*\{\s*type:\s*'module'/, 'PP-OCR worker must be a same-origin vendored module worker');
+assert.match(paddle, /new Worker\(assetUrl\('worker\.js'\),\s*\{\s*type:\s*'module'/, 'PP-OCR worker must resolve through the relocatable same-origin asset base');
 assert.match(paddle, /runtimeOrigin:\s*'same-origin-vendored'/, 'provider must advertise a same-origin runtime');
-assert.match(paddle, /public\/vendor\/paddleocr/, 'runtime must resolve from the LuckyBean same-origin vendor directory');
-assert.match(paddle, /textDetectionModelAsset:\s*\{\s*url:\s*DET_MODEL\s*\}/, 'detection model must be pinned to a same-origin asset');
-assert.match(paddle, /textRecognitionModelAsset:\s*\{\s*url:\s*REC_MODEL\s*\}/, 'recognition model must be pinned to a same-origin asset');
+assert.match(paddle, /public\/vendor\/paddleocr/, 'LuckyBean standalone runtime must retain its native source-module vendor default');
+assert.match(paddle, /CoffeeFoundationOcrAssetBase/, 'Foundation consumers must be able to provide a relocated OCR asset base');
+assert.match(paddle, /function defaultRuntimeBase\(\)[\s\S]*new URL\('\.\.\/public\/vendor\/paddleocr\/',\s*import\.meta\.url\)/, 'import.meta fallback must be lazy and source-module only');
+assert.doesNotMatch(paddle, /const\s+DEFAULT_RUNTIME_BASE\s*=\s*new URL\([^\n]*import\.meta\.url/, 'import.meta must not be evaluated at module initialization because classic-IIFE consumers cannot provide it');
+assert.match(paddle, /if \(configured\)[\s\S]*new URL\(configured,\s*globalThis\.location\?\.href\s*\|\|\s*'http:\/\/localhost\/'\)/, 'configured consumer base must resolve without touching import.meta');
+assert.match(paddle, /textDetectionModelAsset:\s*\{\s*url:\s*assetUrl\('models\/PP-OCRv5_mobile_det_onnx_infer\.tar'\)\s*\}/, 'detection model must resolve from the configured same-origin asset base');
+assert.match(paddle, /textRecognitionModelAsset:\s*\{\s*url:\s*assetUrl\('models\/PP-OCRv5_mobile_rec_onnx_infer\.tar'\)\s*\}/, 'recognition model must resolve from the configured same-origin asset base');
+assert.match(paddle, /wasmPaths:\s*assetUrl\('ort\/'\)/, 'ONNX Runtime WASM must resolve from the configured same-origin asset base');
 assert.doesNotMatch(paddle, /cdn\.jsdelivr\.net/, 'browser OCR source must not depend on jsDelivr at runtime');
 assert.doesNotMatch(paddle, /paddle-model-ecology\.bj\.bcebos\.com/, 'browser OCR source must not fetch Paddle models cross-origin at runtime');
 assert.doesNotMatch(paddle, /worker:\s*false/, 'PP-OCR must never fall back to direct main-thread mode');
@@ -52,4 +57,4 @@ assert.match(bridge, /webPaddle:\s*Boolean\(globalThis\.LuckyBeanPaddleOCR\?\.wo
 assert.match(capture, /finally\s*\{[\s\S]*captureState\.busy\s*=\s*false;[\s\S]*render\(\)/, 'package recognition must always restore interactive UI state');
 assert.match(capture, /recognitionQueued\s*=\s*false/, 'recognition click queue must always be releasable');
 
-console.log(`LuckyBean ${release.displayVersion} browser OCR is same-origin, Worker-only, prewarmed, timeout-bounded, and has no automatic Tesseract/main-thread fallback`);
+console.log(`LuckyBean ${release.displayVersion} browser OCR is same-origin, Worker-only, relocatable, prewarmed, timeout-bounded, and has no automatic Tesseract/main-thread fallback`);
