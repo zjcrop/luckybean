@@ -1,1 +1,1 @@
-{"source_sha":"4dd012d539e1a88e010a98e42f0e4fd91b84d919","version":"1.24P","revision":"1.24P-main.1","install_status":0,"js_status":0,"release_status":0,"static_status":0,"passed":true,"first_error":"","generated_at":"2026-09-04T05:32:32Z"}
+{"source_sha":"5c929ea263311f094ba4336a07e86c950f3c7000","version":"1.24P","revision":"1.24P-main.1","install_status":0,"js_status":0,"release_status":0,"static_status":1,"passed":false,"first_error":"AssertionError [ERR_ASSERTION]: PP-OCR worker must be a same-origin vendored module worker","generated_at":"2026-09-04T05:44:38Z"}
