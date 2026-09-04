@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Coffee Core Dictionary",
+  "type": "object",
+  "properties": {
+    "id": {"type":"string"},
+    "name_zh": {"type":"string"},
+    "name_en": {"type":"string"},
+    "name_ja": {"type":"string"},
+    "name_ko": {"type":"string"},
+    "aliases": {"type":"array","items":{"type":"string"}},
+    "ocr_aliases": {"type":"array","items":{"type":"string"}}
+  },
+  "required":["id","name_zh","name_en"]
+}
