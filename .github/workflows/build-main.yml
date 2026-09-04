@@ -54,17 +54,29 @@ jobs:
           set -euo pipefail
           current_main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
           test "$current_main" = "$SOURCE_SHA"
+
           pages_json=$(gh api "repos/$GITHUB_REPOSITORY/contents/status/${DISPLAY_VERSION}.json?ref=pages-status" --jq '.content' | base64 --decode)
           test "$(printf '%s' "$pages_json" | jq -r '.source_sha')" = "$SOURCE_SHA"
           test "$(printf '%s' "$pages_json" | jq -r '.revision')" = "$RELEASE_REVISION"
           test "$(printf '%s' "$pages_json" | jq -r '.verified')" = true
           test "$(printf '%s' "$pages_json" | jq -r '.browser_smoke')" = true
           test "$(printf '%s' "$pages_json" | jq -r '.same_sha_main_tests')" = true
+
           runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/test-main.yml/runs?branch=main&head_sha=$SOURCE_SHA&per_page=10")
+          test_run_id=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].id // empty')
           status=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].status // "missing"')
           conclusion=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].conclusion // "missing"')
+          test -n "$test_run_id"
           test "$status" = completed
           test "$conclusion" = success
+
+          # Security audit is performed once in the immutable same-SHA main gate.
+          # Requiring the exact audit step to be successful preserves the hard
+          # security gate while avoiding a second call to npm's retiring quick
+          # audit endpoint during release packaging.
+          test_jobs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$test_run_id/jobs?per_page=100")
+          audit_conclusion=$(printf '%s' "$test_jobs" | jq -r '[.jobs[].steps[]? | select(.name == "Audit full dependency boundary")][0].conclusion // "missing"')
+          test "$audit_conclusion" = success
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
@@ -80,7 +92,6 @@ jobs:
         with:
           gradle-version: '8.9'
       - run: npm ci
-      - run: npm audit --audit-level=high
       - name: Validate exact release source
         shell: bash
         run: |
