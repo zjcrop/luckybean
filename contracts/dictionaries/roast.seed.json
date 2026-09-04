@@ -1,0 +1,10 @@
+{
+  "version":"1.0",
+  "items":[
+    {"id":"roast-light","name":{"zh":"浅烘焙","en":"Light Roast","ja":"","ko":""},"aliases":["浅烘","light","light roast"],"ocrAliases":[]},
+    {"id":"roast-medium-light","name":{"zh":"中浅烘焙","en":"Medium-Light Roast","ja":"","ko":""},"aliases":["中浅烘","medium light","medium-light"],"ocrAliases":[]},
+    {"id":"roast-medium","name":{"zh":"中烘焙","en":"Medium Roast","ja":"","ko":""},"aliases":["中烘","medium","medium roast"],"ocrAliases":[]},
+    {"id":"roast-medium-dark","name":{"zh":"中深烘焙","en":"Medium-Dark Roast","ja":"","ko":""},"aliases":["中深烘","medium dark","medium-dark"],"ocrAliases":[]},
+    {"id":"roast-dark","name":{"zh":"深烘焙","en":"Dark Roast","ja":"","ko":""},"aliases":["深烘","dark","dark roast"],"ocrAliases":[]}
+  ]
+}
