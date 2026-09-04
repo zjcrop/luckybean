@@ -1,0 +1,11 @@
+{
+  "version":"1.0",
+  "fields":{
+    "origin":"coffee origin identifier",
+    "variety":"coffee variety identifier",
+    "processing":"processing method identifier",
+    "flavor":"sensory identifier",
+    "ocr":"recognition normalization mapping"
+  },
+  "languages":["zh-CN","en","ja","ko"]
+}
