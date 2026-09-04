@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 5.520475
+  duration_ms: 5.814337
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 2.356161
+  duration_ms: 1.930201
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 2.594715
+  duration_ms: 2.705307
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 1.896276
+  duration_ms: 2.123412
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.851293
+  duration_ms: 0.902153
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.729736
+  duration_ms: 2.807909
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.880718
+  duration_ms: 0.91143
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 22.816535
+# duration_ms 23.525759
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 5.849907
+  duration_ms: 6.423744
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 3.655277
+  duration_ms: 3.923359
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 3.794756
+  duration_ms: 3.886791
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 2.902807
+  duration_ms: 2.95884
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 2.3125
+  duration_ms: 2.349183
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 1.16662
+  duration_ms: 1.1315
   type: 'test'
   ...
 1..6
@@ -115,88 +115,337 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 25.716236
+# duration_ms 26.857285
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
 
 [static] tests/foundation-contract-regression.mjs
-Coffee Foundation local contract regression passed
-
-[static] tests/v125-root-state-models.mjs
-v1.2.5 independent sensory state machines and LuckyBean 1.24P Android package contracts passed
-
-[static] tests/v124p-release-contract.mjs
-LuckyBean 1.24P canonical release identity, BrewResult consumers and same-SHA signed deployment contract passed
-
-[static] tests/v124p-execution-copy-regression.mjs
-v124p execution copy regression: ok
-
-[static] tests/v124p-brew-action-emphasis.mjs
-1.24P brew calculation, automatic selection, timer start and preparation actions are visually emphasized
-
-[static] tests/v124p-pour-guide-regression.mjs
-1.24P dynamic pour guidance contract passed
-
-[static] tests/v123d-ui-sensory-regressions.mjs
-LuckyBean 1.24P canonical settings and sensory regression contracts passed
-
-[static] tests/v123e-batch-onboarding-static.mjs
-LuckyBean canonical bean lifecycle, long-press onboarding, matching and spatial-preservation checks passed
-
-[static] tests/v126-full-integration-static.mjs
-v126 canonical full integration static checks passed
-
-[static] tests/v127-user-regressions-static.mjs
-v127 canonical cooling/gear ownership and 1.24B Android image pipeline static checks passed
-
-[static] tests/v123e-cloud-gear-sync.mjs
-LuckyBean 1.23E gear cloud-sync compatibility checks passed
-
-[static] tests/v123e-plan-contract-regression.mjs
-Verified LuckyBean plan and brew-history validators accept BrewProfiles 2.0/2.1 and spatial 1.1/1.2/1.3 while rejecting unknown plan contracts.
-
-[static] tests/v123e-freshness-timeline-regression.mjs
-LuckyBean 1.24P immediate one-line freshness timeline and stage grouping checks passed
-
-[static] tests/v123e-interaction-repair-static.mjs
-LuckyBean 1.24P canonical QR, bean matching, gear, flavor taxonomy, user-guide and interaction release checks passed
-
-[static] tests/v123e-gear-matching-regression.mjs
-LuckyBean 1.24P canonical gear binding, direct bean matching, QR runtime and upgrade release checks passed
-
-[static] tests/v123e-android-gallery-uri-regression.mjs
-LuckyBean Android gallery URI routing regression checks passed
-
-[static] tests/v123e-small-brew-five-row-regression.mjs
-LuckyBean 1.24P compact small-brew, automatic-field and Android upgrade contract passed
-
-[static] tests/v123e-ui-stability-static.mjs
-LuckyBean 1.24P 1.24P-main.1 canonical UI stability, fun-only native recommendation prompt ownership, shared bean-group state, shared sorting and text brew UI regression checks passed
-
-[static] tests/v123e-navigation-back-static.mjs
-LuckyBean 1.24P canonical page stack, overlay back, Android gesture back and compact bean metadata contracts passed
-
-[static] tests/v123e-brew-optimization-regression.mjs
-post-tasting optimization, deterministic spatial trend and release-signature guards passed
-
-[static] tests/v123e-recognition-pipeline-static.mjs
-Recognition document is the single translated and structured bean-entry source
-
-[static] tests/v124b-lifecycle-ocr-storage-regression.mjs
-LuckyBean 1.24P lifecycle, serial OCR, transit/frozen storage, order parsing and local brew regression checks passed
-
-[static] tests/v124b-ocr-worker-freeze-regression.mjs
 node:internal/modules/run_main:123
     triggerUncaughtException(
     ^
 
-AssertionError [ERR_ASSERTION]: PP-OCR worker must be a same-origin vendored module worker
-    at file:///home/runner/work/luckybean/luckybean/tests/v124b-ocr-worker-freeze-regression.mjs:15:8 {
-  generatedMessage: false,
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /DEFAULT_RUNTIME_BASE\s*=\s*new URL\('\.\.\/public\/vendor\/paddleocr\//. Input:
+
+"const VERSION = '0.4.3';\n" +
+  'const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;\n' +
+  'const LOW_MEMORY = Number(navigator.deviceMemory || 4) <= 4 || /iPhone|iPad|iPod/i.test(navigator.userAgent);\n' +
+  'const LIMIT_SIDE = LOW_MEMORY ? 736 : 960;\n' +
+  'const ENGINE_INIT_TIMEOUT_MS = 75000;\n' +
+  'const PREDICT_TIMEOUT_MS = 45000;\n' +
+  '\n' +
+  'let modulePromise = null;\n' +
+  'let enginePromise = null;\n' +
+  'let engineGeneration = 0;\n' +
+  'let busy = false;\n' +
+  'let disposeTimer = 0;\n' +
+  '\n' +
+  'function defaultRuntimeBase() {\n' +
+  '  // Keep the source-module default for LuckyBean itself, but do not evaluate\n' +
+  '  // import.meta.url at module initialization time. Downstream consumers such as\n' +
+  '  // AromaSense bundle this file into a classic IIFE where import.meta is not\n' +
+  '  // available. Those consumers must provide CoffeeFoundationOcrAssetBase.\n' +
+  "  return new URL('../public/vendor/paddleocr/', import.meta.url);\n" +
+  '}\n' +
+  '\n' +
+  'function runtimeBase() {\n' +
+  "  const configured = String(globalThis.CoffeeFoundationOcrAssetBase || '').trim();\n" +
+  '  if (configured) {\n' +
+  '    try {\n' +
+  "      return new URL(configured, globalThis.location?.href || 'http://localhost/');\n" +
+  '    } catch {\n' +
+  "      // Fall through to LuckyBean's native source-module location.\n" +
+  '    }\n' +
+  '  }\n' +
+  '  return defaultRuntimeBase();\n' +
+  '}\n' +
+  '\n' +
+  'function assetUrl(relativePath) {\n' +
+  '  return new URL(relativePath, runtimeBase()).href;\n' +
+  '}\n' +
+  '\n' +
+  'function emit(status, progress = 0) {\n' +
+  "  globalThis.dispatchEvent(new CustomEvent('luckybean:ocr-progress', {\n" +
+  '    detail: {\n' +
+  "      status: String(status || ''),\n" +
+  '      progress: Math.max(0, Math.min(100, Number(progress) || 0))\n' +
+  '    }\n' +
+  '  }));\n' +
+  "  globalThis.dispatchEvent(new CustomEvent('coffee-foundation:ocr-progress', {\n" +
+  '    detail: {\n' +
+  "      status: String(status || ''),\n" +
+  '      progress: Math.max(0, Math.min(100, Number(progress) || 0))\n' +
+  '    }\n' +
+  '  }));\n' +
+  '}\n' +
+  '\n' +
+  'function timeoutError(message) {\n' +
+  '  const error = new Error(message);\n' +
+  "  error.name = 'RecognitionTimeoutError';\n" +
+  '  return error;\n' +
+  '}\n' +
+  '\n' +
+  'function withTimeout(promise, timeoutMs, message, onTimeout) {\n' +
+  '  let timer = 0;\n' +
+  '  const timeout = new Promise((_, reject) => {\n' +
+  '    timer = globalThis.setTimeout(() => {\n' +
+  '      try { onTimeout?.(); } catch { /* timeout cleanup is best-effort */ }\n' +
+  '      reject(timeoutError(message));\n' +
+  '    }, timeoutMs);\n' +
+  '  });\n' +
+  '  return Promise.race([promise, timeout]).finally(() => globalThis.clearTimeout(timer));\n' +
+  '}\n' +
+  '\n' +
+  'async function loadModule() {\n' +
+  '  if (!modulePromise) {\n' +
+  "    emit('正在加载本地 PP-OCRv5 网页运行时', 2);\n" +
+  "    modulePromise = import(assetUrl('sdk.mjs')).catch(error => {\n" +
+  '      modulePromise = null;\n' +
+  '      throw new Error(`本地 PP-OCRv5 SDK 加载失败：${error.message}`);\n' +
+  '    });\n' +
+  '  }\n' +
+  '  return modulePromise;\n' +
+  '}\n' +
+  '\n' +
+  'function createModuleWorker() {\n' +
+  '  try {\n' +
+  "    return new Worker(assetUrl('worker.js'), { type: 'module', name: 'luckybean-ppocr-v5' });\n" +
+  '  } catch (error) {\n' +
+  '    throw new Error(`本地 PP-OCRv5 Worker 创建失败：${error.message}`);\n' +
+  '  }\n' +
+  '}\n' +
+  '\n' +
+  'async function createWorkerEngine() {\n' +
+  '  const module = await loadModule();\n' +
+  "  if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');\n" +
+  '  return module.PaddleOCR.create({\n' +
+  "    lang: 'ch',\n" +
+  "    ocrVersion: 'PP-OCRv5',\n" +
+  "    textDetectionModelName: 'PP-OCRv5_mobile_det',\n" +
+  "    textDetectionModelAsset: { url: assetUrl('models/PP-OCRv5_mobile_det_onnx_infer.tar') },\n" +
+  "    textRecognitionModelName: 'PP-OCRv5_mobile_rec',\n" +
+  "    textRecognitionModelAsset: { url: assetUrl('models/PP-OCRv5_mobile_rec_onnx_infer.tar') },\n" +
+  '    worker: { createWorker: () => createModuleWorker() },\n' +
+  '    textDetectionBatchSize: 1,\n' +
+  '    textRecognitionBatchSize: 1,\n' +
+  '    ortOptions: {\n' +
+  "      backend: 'wasm',\n" +
+  "      wasmPaths: assetUrl('ort/'),\n" +
+  '      numThreads: 1,\n' +
+  '      simd: true\n' +
+  '    }\n' +
+  '  });\n' +
+  '}\n' +
+  '\n' +
+  'function disposeInstance(ocr) {\n' +
+  '  if (!ocr?.dispose) return;\n' +
+  '  Promise.resolve().then(() => ocr.dispose()).catch(() => {});\n' +
+  '}\n' +
+  '\n' +
+  'function detachEngine() {\n' +
+  '  const current = enginePromise;\n' +
+  '  enginePromise = null;\n' +
+  '  engineGeneration += 1;\n' +
+  '  if (current) current.then(disposeInstance).catch(() => {});\n' +
+  '}\n' +
+  '\n' +
+  'async function startWorkerEngine() {\n' +
+  '  const generation = ++engineGeneration;\n' +
+  '  const raw = createWorkerEngine();\n' +
+  '  try {\n' +
+  '    const ocr = await withTimeout(\n' +
+  '      raw,\n' +
+  '      ENGINE_INIT_TIMEOUT_MS,\n' +
+  "      'PP-OCRv5 Worker 初始化超时，已退出本次识别；界面仍可继续操作',\n" +
+  '      () => {\n' +
+  '        if (generation === engineGeneration) engineGeneration += 1;\n' +
+  '      }\n' +
+  '    );\n' +
+  '    if (generation !== engineGeneration) {\n' +
+  '      disposeInstance(ocr);\n' +
+  "      throw new Error('PP-OCRv5 Worker 初始化结果已失效，请重新识别');\n" +
+  '    }\n' +
+  '    return ocr;\n' +
+  '  } catch (error) {\n' +
+  '    raw.then(ocr => {\n' +
+  '      if (generation !== engineGeneration) disposeInstance(ocr);\n' +
+  '    }).catch(() => {});\n' +
+  '    throw error;\n' +
+  '  }\n' +
+  '}\n' +
+  '\n' +
+  'async function ensureEngine() {\n' +
+  '  globalThis.clearTimeout(disposeTimer);\n' +
+  '  if (enginePromise) return enginePromise;\n' +
+  "  emit('正在后台准备本地 PP-OCRv5 中文检测与识别模型', 7);\n" +
+  '  const pending = startWorkerEngine();\n' +
+  '  const tracked = pending.then(ocr => {\n' +
+  "    emit('PP-OCRv5 Worker 中文模型已就绪', 18);\n" +
+  '    return ocr;\n' +
+  '  }).catch(error => {\n' +
+  '    if (enginePromise === tracked) enginePromise = null;\n' +
+  '    throw new Error(`PP-OCRv5 Worker 初始化失败：${error.message}`);\n' +
+  '  });\n' +
+  '  enginePromise = tracked;\n' +
+  '  return tracked;\n' +
+  '}\n' +
+  '\n' +
+  'async function dispose() {\n' +
+  '  globalThis.clearTimeout(disposeTimer);\n' +
+  '  const current = enginePromise;\n' +
+  '  enginePromise = null;\n' +
+  '  engineGeneration += 1;\n' +
+  '  if (!current) return;\n' +
+  '  try {\n' +
+  '    const ocr = await current;\n' +
+  '    await ocr?.dispose?.();\n' +
+  '  } catch { /* failed initialization has nothing reliable to dispose */ }\n' +
+  '}\n' +
+  '\n' +
+  'function scheduleDispose() {\n' +
+  '  globalThis.clearTimeout(disposeTimer);\n' +
+  '  disposeTimer = globalThis.setTimeout(() => { void dispose(); }, LOW_MEMORY ? 30000 : 120000);\n' +
+  '}\n' +
+  '\n' +
+  'function meaningful(text) {\n' +
+  "  const chars = [...String(text || '')];\n" +
+  '  if (!chars.length) return 0;\n' +
+  '  return chars.filter(char => /[\\p{Script=Han}A-Za-z0-9年月日海拔处理烘焙庄园产区豆种%°./:+-]/u.test(char)).length / chars.length;\n' +
+  '}\n' +
+  '\n' +
+  'function normalizeItems(result, imageId) {\n' +
+  '  return (result?.items || [])\n' +
+  '    .map(item => ({\n' +
+  "      text: String(item?.text || '').trim(),\n" +
+  '      confidence: Number(item?.score ?? 0),\n' +
+  '      polygon: item?.poly || null,\n' +
+  '      imageId,\n' +
+  '      engine: ENGINE\n' +
+  '    }))\n' +
+  '    .filter(item => item.text && item.confidence >= 0.28 && meaningful(item.text) >= 0.55)\n' +
+  '    .sort((a, b) => {\n' +
+  '      const ay = Number(a.polygon?.[0]?.[1] || 0);\n' +
+  '      const by = Number(b.polygon?.[0]?.[1] || 0);\n' +
+  '      return ay - by || Number(a.polygon?.[0]?.[0] || 0) - Number(b.polygon?.[0]?.[0] || 0);\n' +
+  '    });\n' +
+  '}\n' +
+  '\n' +
+  'async function predict(images) {\n' +
+  '  const ocr = await ensureEngine();\n' +
+  '  const blocks = [];\n' +
+  '  const groups = [];\n' +
+  '  for (let index = 0; index < images.length; index += 1) {\n' +
+  '    const image = images[index];\n' +
+  '    emit(`PP-OCRv5 Worker 正在识别第 ${index + 1}/${images.length} 张图片`, 20 + Math.round(index / Math.max(1, images.length) * 70));\n' +
+  '    const prediction = ocr.predict(image.blob, {\n' +
+  '      textDetLimitSideLen: LIMIT_SIDE,\n' +
+  "      textDetLimitType: 'min',\n" +
+  '      textDetMaxSideLimit: 2200,\n' +
+  '      textDetThresh: 0.22,\n' +
+  '      textDetBoxThresh: 0.35,\n' +
+  '      textDetUnclipRatio: 1.55,\n' +
+  '      textRecScoreThresh: 0.28\n' +
+  '    });\n' +
+  '    const results = await withTimeout(\n' +
+  '      prediction,\n' +
+  '      PREDICT_TIMEOUT_MS,\n' +
+  '      `PP-OCRv5 第 ${index + 1} 张图片识别超时，已退出本次任务`,\n' +
+  '      detachEngine\n' +
+  '    );\n' +
+  '    const result = results?.[0];\n' +
+  '    const current = normalizeItems(result, image.id);\n' +
+  '    blocks.push(...current);\n' +
+  "    if (current.length) groups.push(current.map(item => item.text).join('\\n'));\n" +
+  '    await new Promise(resolve => globalThis.setTimeout(resolve, 0));\n' +
+  '  }\n' +
+  "  if (!blocks.length) throw new Error('PP-OCRv5 没有得到可信文字。请靠近文字区域拍摄，避免整只包装占画面过小。');\n" +
+  "  emit('PP-OCRv5 中英文识别完成', 100);\n" +
+  '  scheduleDispose();\n' +
+  '  return {\n' +
+  "    engine: `${ENGINE}${LOW_MEMORY ? '-low-memory-worker' : '-worker'}`,\n" +
+  '    blocks,\n' +
+  "    fullText: groups.join('\\n\\n')\n" +
+  '  };\n' +
+  '}\n' +
+  '\n' +
+  'async function run(task) {\n' +
+  "  if (busy) throw new Error('识别任务正在运行，请勿重复点击');\n" +
+  '  busy = true;\n' +
+  '  try {\n' +
+  '    return await task();\n' +
+  '  } catch (error) {\n' +
+  '    detachEngine();\n' +
+  '    emit(`识别失败：${error.message}`, 0);\n' +
+  '    throw new Error(`${error.message}；已停止当前任务，不会切换到主线程 OCR 或 Tesseract 重处理。`);\n' +
+  '  } finally {\n' +
+  '    busy = false;\n' +
+  '    if (enginePromise) scheduleDispose();\n' +
+  '  }\n' +
+  '}\n' +
+  '\n' +
+  'async function preload() {\n' +
+  '  if (globalThis.__LUCKYBEAN_ANDROID__) return null;\n' +
+  '  try {\n' +
+  '    const ocr = await ensureEngine();\n' +
+  "    emit('PP-OCRv5 Worker 已在后台预热', 18);\n" +
+  '    scheduleDispose();\n' +
+  '    return ocr;\n' +
+  '  } catch (error) {\n' +
+  '    emit(`PP-OCRv5 后台预热未完成：${error.message}`, 0);\n' +
+  '    return null;\n' +
+  '  }\n' +
+  '}\n' +
+  '\n' +
+  'function schedulePreload() {\n' +
+  '  if (globalThis.__LUCKYBEAN_ANDROID__) return;\n' +
+  '  const start = () => { void preload(); };\n' +
+  "  if (typeof globalThis.requestIdleCallback === 'function') {\n" +
+  '    globalThis.requestIdleCallback(start, { timeout: 4000 });\n' +
+  '  } else {\n' +
+  '    globalThis.setTimeout(start, 1200);\n' +
+  '  }\n' +
+  '}\n' +
+  '\n' +
+  'const paddleOcrApi = Object.freeze({\n' +
+  '  version: VERSION,\n' +
+  '  engine: ENGINE,\n' +
+  '  lowMemory: LOW_MEMORY,\n' +
+  '  workerOnly: true,\n' +
+  "  runtimeOrigin: 'same-origin-vendored',\n" +
+  "  workerBootstrap: 'same-origin-vendored-module',\n" +
+  '  runtimeBase() {\n' +
+  '    return runtimeBase().href;\n' +
+  '  },\n' +
+  '  recognizeCoffeeBag(images) {\n' +
+  '    return run(() => predict(images));\n' +
+  '  },\n' +
+  '  async recognize(blob) {\n' +
+  "    const result = await run(() => predict([{ id: 'single', blob }]));\n" +
+  '    return { blocks: result.blocks };\n' +
+  '  },\n' +
+  '  preload,\n' +
+  '  dispose\n' +
+  '});\n' +
+  '\n' +
+  'globalThis.LuckyBeanPaddleOCR = paddleOcrApi;\n' +
+  'globalThis.CoffeeFoundationPaddleOCR = paddleOcrApi;\n' +
+  '\n' +
+  "document.addEventListener('visibilitychange', () => {\n" +
+  '  if (document.hidden && LOW_MEMORY && !busy) void dispose();\n' +
+  '});\n' +
+  "globalThis.addEventListener('pagehide', () => {\n" +
+  '  if (!busy) void dispose();\n' +
+  '});\n' +
+  'document.documentElement.dataset.webOcr = `ppocr-v5-${VERSION}-self-hosted-worker-only`;\n' +
+  'schedulePreload();\n'
+
+    at file:///home/runner/work/luckybean/luckybean/tests/foundation-contract-regression.mjs:29:8
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  generatedMessage: true,
   code: 'ERR_ASSERTION',
-  actual: "const VERSION = '0.4.2';\n" +
-    "const DEFAULT_RUNTIME_BASE = new URL('../public/vendor/paddleocr/', import.meta.url);\n" +
+  actual: "const VERSION = '0.4.3';\n" +
     'const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;\n' +
     'const LOW_MEMORY = Number(navigator.deviceMemory || 4) <= 4 || /iPhone|iPad|iPod/i.test(navigator.userAgent);\n' +
     'const LIMIT_SIDE = LOW_MEMORY ? 736 : 960;\n' +
@@ -209,14 +458,24 @@ AssertionError [ERR_ASSERTION]: PP-OCR worker must be a same-origin vendored mod
     'let busy = false;\n' +
     'let disposeTimer = 0;\n' +
     '\n' +
+    'function defaultRuntimeBase() {\n' +
+    '  // Keep the source-module default for LuckyBean itself, but do not evaluate\n' +
+    '  // import.meta.url at module initialization time. Downstream consumers such as\n' +
+    '  // AromaSense bundle this file into a classic IIFE where import.meta is not\n' +
+    '  // available. Those consumers must provide CoffeeFoundationOcrAssetBase.\n' +
+    "  return new URL('../public/vendor/paddleocr/', import.meta.url);\n" +
+    '}\n' +
+    '\n' +
     'function runtimeBase() {\n' +
     "  const configured = String(globalThis.CoffeeFoundationOcrAssetBase || '').trim();\n" +
-    '  if (!configured) return DEFAULT_RUNTIME_BASE;\n' +
-    '  try {\n' +
-    '    return new URL(configured, globalThis.location?.href || import.meta.url);\n' +
-    '  } catch {\n' +
-    '    return DEFAULT_RUNTIME_BASE;\n' +
+    '  if (configured) {\n' +
+    '    try {\n' +
+    "      return new URL(configured, globalThis.location?.href || 'http://localhost/');\n" +
+    '    } catch {\n' +
+    "      // Fall through to LuckyBean's native source-module location.\n" +
+    '    }\n' +
     '  }\n' +
+    '  return defaultRuntimeBase();\n' +
     '}\n' +
     '\n' +
     'function assetUrl(relativePath) {\n' +
@@ -497,10 +756,10 @@ AssertionError [ERR_ASSERTION]: PP-OCR worker must be a same-origin vendored mod
     '});\n' +
     'document.documentElement.dataset.webOcr = `ppocr-v5-${VERSION}-self-hosted-worker-only`;\n' +
     'schedulePreload();\n',
-  expected: /new Worker\(WORKER_URL,\s*\{\s*type:\s*'module'/,
+  expected: /DEFAULT_RUNTIME_BASE\s*=\s*new URL\('\.\.\/public\/vendor\/paddleocr\//,
   operator: 'match',
   diff: 'simple'
 }
 
 Node.js v22.23.2
-::error file=tests/v124b-ocr-worker-freeze-regression.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: PP-OCR worker must be a same-origin vendored module worker%0A    at file:///home/runner/work/luckybean/luckybean/tests/v124b-ocr-worker-freeze-regression.mjs:15:8 {%0A  generatedMessage: false,%0A  code: 'ERR_ASSERTION',%0A  actual: "const VERSION = '0.4.2';\n" +%0A    "const DEFAULT_RUNTIME_BASE = new URL('../public/vendor/paddleocr/', import.meta.url);\n" +%0A    'const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;\n' +%0A    'const LOW_MEMORY = Number(navigator.deviceMemory || 4) <= 4 || /iPhone|iPad|iPod/i.test(navigator.userAgent);\n' +%0A    'const LIMIT_SIDE = LOW_MEMORY ? 736 : 960;\n' +%0A    'const ENGINE_INIT_TIMEOUT_MS = 75000;\n' +%0A    'const PREDICT_TIMEOUT_MS = 45000;\n' +%0A    '\n' +%0A    'let modulePromise = null;\n' +%0A    'let enginePromise = null;\n' +%0A    'let engineGeneration = 0;\n' +%0A    'let busy = false;\n' +%0A    'let disposeTimer = 0;\n' +%0A    '\n' +%0A    'function runtimeBase() {\n' +%0A    "  const configured = String(globalThis.CoffeeFoundationOcrAssetBase || '').trim();\n" +%0A    '  if (!configured) return DEFAULT_RUNTIME_BASE;\n' +%0A    '  try {\n' +%0A    '    return new URL(configured, globalThis.location?.href || import.meta.url);\n' +%0A    '  } catch {\n' +%0A    '    return DEFAULT_RUNTIME_BASE;\n' +%0A    '  }\n' +%0A    '}\n' +%0A    '\n' +%0A    'function assetUrl(relativePath) {\n' +%0A    '  return new URL(relativePath, runtimeBase()).href;\n' +%0A    '}\n' +%0A    '\n' +%0A    'function emit(status, progress = 0) {\n' +%0A    "  globalThis.dispatchEvent(new CustomEvent('luckybean:ocr-progress', {\n" +%0A    '    detail: {\n' +%0A    "      status: String(status || ''),\n" +%0A    '      progress: Math.max(0, Math.min(100, Number(progress) || 0))\n' +%0A    '    }\n' +%0A    '  }));\n' +%0A    "  globalThis.dispatchEvent(new CustomEvent('coffee-foundation:ocr-progress', {\n" +%0A    '    detail: {\n' +%0A    "      status: String(status || ''),\n" +%0A    '      progress: Math.max(0, Math.min(100, Number(progress) || 0))\n' +%0A    '    }\n' +%0A    '  }));\n' +%0A    '}\n' +%0A    '\n' +%0A    'function timeoutError(message) {\n' +%0A    '  const error = new Error(message);\n' +%0A    "  error.name = 'RecognitionTimeoutError';\n" +%0A    '  return error;\n' +%0A    '}\n' +%0A    '\n' +%0A    'function withTimeout(promise, timeoutMs, message, onTimeout) {\n' +%0A    '  let timer = 0;\n' +%0A    '  const timeout = new Promise((_, reject) => {\n' +%0A    '    timer = globalThis.setTimeout(() => {\n' +%0A    '      try { onTimeout?.(); } catch { /* timeout cleanup is best-effort */ }\n' +%0A    '      reject(timeoutError(message));\n' +%0A    '    }, timeoutMs);\n' +%0A    '  });\n' +%0A    '  return Promise.race([promise, timeout]).finally(() => globalThis.clearTimeout(timer));\n' +%0A    '}\n' +%0A    '\n' +%0A    'async function loadModule() {\n' +%0A    '  if (!modulePromise) {\n' +%0A    "    emit('正在加载本地 PP-OCRv5 网页运行时', 2);\n" +%0A    "    modulePromise = import(assetUrl('sdk.mjs')).catch(error => {\n" +%0A    '      modulePromise = null;\n' +%0A    '      throw new Error(`本地 PP-OCRv5 SDK 加载失败：${error.message}`);\n' +%0A    '    });\n' +%0A    '  }\n' +%0A    '  return modulePromise;\n' +%0A    '}\n' +%0A    '\n' +%0A    'function createModuleWorker() {\n' +%0A    '  try {\n' +%0A    "    return new Worker(assetUrl('worker.js'), { type: 'module', name: 'luckybean-ppocr-v5' });\n" +%0A    '  } catch (error) {\n' +%0A    '    throw new Error(`本地 PP-OCRv5 Worker 创建失败：${error.message}`);\n' +%0A    '  }\n' +%0A    '}\n' +%0A    '\n' +%0A    'async function createWorkerEngine() {\n' +%0A    '  const module = await loadModule();\n' +%0A    "  if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');\n" +%0A    '  return module.PaddleOCR.create({\n' +%0A    "    lang: 'ch',\n" +%0A    "    ocrVersion: 'PP-OCRv5',\n" +%0A    "    textDetectionModelName: 'PP-OCRv5_mobile_det',\n" +%0A    "    textDetectionModelAsset: { url: assetUrl('models/PP-OCRv5_mobile_det_onnx_infer.tar') },\n" +%0A    "    textRecognitionModelName: 'PP-OCRv5_mobile_rec',\n" +%0A    "    textRecognitionModelAsset: { url: assetUrl('models/PP-OCRv5_mobile_rec_onnx_infer.tar') },\n" +%0A    '    worker: { createWorker: () => createModuleWorker() },\n' +%0A    '    textDetectionBatchSize: 1,\n' +%0A    '    textRecognitionBatchSize: 1,\n' +%0A    '    ortOptions: {\n' +%0A    "      backend: 'wasm',\n" +%0A    "      wasmPaths: assetUrl('ort/'),\n" +%0A    '      numThreads: 1,\n' +%0A    '      simd: true\n' +%0A    '    }\n' +%0A    '  });\n' +%0A    '}\n' +%0A    '\n' +%0A    'function disposeInstance(ocr) {\n' +%0A    '  if (!ocr?.dispose) return;\n' +%0A    '  Promise.resolve().then(() => ocr.dispose()).catch(() => {});\n' +%0A    '}\n' +%0A    '\n' +%0A    'function detachEngine() {\n' +%0A    '  const current = enginePromise;\n' +%0A    '  enginePromise = null;\n' +%0A    '  engineGeneration += 1;\n' +%0A    '  if (current) current.then(disposeInstance).catch(() => {});\n' +%0A    '}\n' +%0A    '\n' +%0A    'async function startWorkerEngine() {\n' +%0A    '  const generation = ++engineGeneration;\n' +%0A    '  const raw = createWorkerEngine();\n' +%0A    '  try {\n' +%0A    '    const ocr = await withTimeout(\n' +%0A    '      raw,\n' +%0A    '      ENGINE_INIT_TIMEOUT_MS,\n' +%0A    "      'PP-OCRv5 Worker 初始化超时，已退出本次识别；界面仍可继续操作',\n" +%0A    '      () => {\n' +%0A    '        if (generation === engineGeneration) engineGeneration += 1;\n' +%0A    '      }\n' +%0A    '    );\n' +%0A    '    if (generation !== engineGeneration) {\n' +%0A    '      disposeInstance(ocr);\n' +%0A    "      throw new Error('PP-OCRv5 Worker 初始化结果已失效，请重新识别');\n" +%0A    '    }\n' +%0A    '    return ocr;\n' +%0A    '  } catch (error) {\n' +%0A    '    raw.then(ocr => {\n' +%0A    '      if (generation !== engineGeneration) disposeInstance(ocr);\n' +%0A    '    }).catch(() => {});\n' +%0A    '    throw error;\n' +%0A    '  }\n' +%0A    '}\n' +%0A    '\n' +%0A    'async function ensureEngine() {\n' +%0A    '  globalThis.clearTimeout(disposeTimer);\n' +%0A    '  if (enginePromise) return enginePromise;\n' +%0A    "  emit('正在后台准备本地 PP-OCRv5 中文检测与识别模型', 7);\n" +%0A    '  const pending = startWorkerEngine();\n' +%0A    '  const tracked = pending.then(ocr => {\n' +%0A    "    emit('PP-OCRv5 Worker 中文模型已就绪', 18);\n" +%0A    '    return ocr;\n' +%0A    '  }).catch(error => {\n' +%0A    '    if (enginePromise === tracked) enginePromise = null;\n' +%0A    '    throw new Error(`PP-OCRv5 Worker 初始化失败：${error.message}`);\n' +%0A    '  });\n' +%0A    '  enginePromise = tracked;\n' +%0A    '  return tracked;\n' +%0A    '}\n' +%0A    '\n' +%0A    'async function dispose() {\n' +%0A    '  globalThis.clearTimeout(disposeTimer);\n' +%0A    '  const current = enginePromise;\n' +%0A    '  enginePromise = null;\n' +%0A    '  engineGeneration += 1;\n' +%0A    
+::error file=tests/foundation-contract-regression.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: The input did not match the regular expression /DEFAULT_RUNTIME_BASE\s*=\s*new URL\('\.\.\/public\/vendor\/paddleocr\//. Input:%0A%0A"const VERSION = '0.4.3';\n" +%0A  'const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;\n' +%0A  'const LOW_MEMORY = Number(navigator.deviceMemory || 4) <= 4 || /iPhone|iPad|iPod/i.test(navigator.userAgent);\n' +%0A  'const LIMIT_SIDE = LOW_MEMORY ? 736 : 960;\n' +%0A  'const ENGINE_INIT_TIMEOUT_MS = 75000;\n' +%0A  'const PREDICT_TIMEOUT_MS = 45000;\n' +%0A  '\n' +%0A  'let modulePromise = null;\n' +%0A  'let enginePromise = null;\n' +%0A  'let engineGeneration = 0;\n' +%0A  'let busy = false;\n' +%0A  'let disposeTimer = 0;\n' +%0A  '\n' +%0A  'function defaultRuntimeBase() {\n' +%0A  '  // Keep the source-module default for LuckyBean itself, but do not evaluate\n' +%0A  '  // import.meta.url at module initialization time. Downstream consumers such as\n' +%0A  '  // AromaSense bundle this file into a classic IIFE where import.meta is not\n' +%0A  '  // available. Those consumers must provide CoffeeFoundationOcrAssetBase.\n' +%0A  "  return new URL('../public/vendor/paddleocr/', import.meta.url);\n" +%0A  '}\n' +%0A  '\n' +%0A  'function runtimeBase() {\n' +%0A  "  const configured = String(globalThis.CoffeeFoundationOcrAssetBase || '').trim();\n" +%0A  '  if (configured) {\n' +%0A  '    try {\n' +%0A  "      return new URL(configured, globalThis.location?.href || 'http://localhost/');\n" +%0A  '    } catch {\n' +%0A  "      // Fall through to LuckyBean's native source-module location.\n" +%0A  '    }\n' +%0A  '  }\n' +%0A  '  return defaultRuntimeBase();\n' +%0A  '}\n' +%0A  '\n' +%0A  'function assetUrl(relativePath) {\n' +%0A  '  return new URL(relativePath, runtimeBase()).href;\n' +%0A  '}\n' +%0A  '\n' +%0A  'function emit(status, progress = 0) {\n' +%0A  "  globalThis.dispatchEvent(new CustomEvent('luckybean:ocr-progress', {\n" +%0A  '    detail: {\n' +%0A  "      status: String(status || ''),\n" +%0A  '      progress: Math.max(0, Math.min(100, Number(progress) || 0))\n' +%0A  '    }\n' +%0A  '  }));\n' +%0A  "  globalThis.dispatchEvent(new CustomEvent('coffee-foundation:ocr-progress', {\n" +%0A  '    detail: {\n' +%0A  "      status: String(status || ''),\n" +%0A  '      progress: Math.max(0, Math.min(100, Number(progress) || 0))\n' +%0A  '    }\n' +%0A  '  }));\n' +%0A  '}\n' +%0A  '\n' +%0A  'function timeoutError(message) {\n' +%0A  '  const error = new Error(message);\n' +%0A  "  error.name = 'RecognitionTimeoutError';\n" +%0A  '  return error;\n' +%0A  '}\n' +%0A  '\n' +%0A  'function withTimeout(promise, timeoutMs, message, onTimeout) {\n' +%0A  '  let timer = 0;\n' +%0A  '  const timeout = new Promise((_, reject) => {\n' +%0A  '    timer = globalThis.setTimeout(() => {\n' +%0A  '      try { onTimeout?.(); } catch { /* timeout cleanup is best-effort */ }\n' +%0A  '      reject(timeoutError(message));\n' +%0A  '    }, timeoutMs);\n' +%0A  '  });\n' +%0A  '  return Promise.race([promise, timeout]).finally(() => globalThis.clearTimeout(timer));\n' +%0A  '}\n' +%0A  '\n' +%0A  'async function loadModule() {\n' +%0A  '  if (!modulePromise) {\n' +%0A  "    emit('正在加载本地 PP-OCRv5 网页运行时', 2);\n" +%0A  "    modulePromise = import(assetUrl('sdk.mjs')).catch(error => {\n" +%0A  '      modulePromise = null;\n' +%0A  '      throw new Error(`本地 PP-OCRv5 SDK 加载失败：${error.message}`);\n' +%0A  '    });\n' +%0A  '  }\n' +%0A  '  return modulePromise;\n' +%0A  '}\n' +%0A  '\n' +%0A  'function createModuleWorker() {\n' +%0A  '  try {\n' +%0A  "    return new Worker(assetUrl('worker.js'), { type: 'module', name: 'luckybean-ppocr-v5' });\n" +%0A  '  } catch (error) {\n' +%0A  '    throw new Error(`本地 PP-OCRv5 Worker 创建失败：${error.message}`);\n' +%0A  '  }\n' +%0A  '}\n' +%0A  '\n' +%0A  'async function createWorkerEngine() {\n' +%0A  '  const module = await loadModule();\n' +%0A  "  if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');\n" +%0A  '  return module.PaddleOCR.create({\n' +%0A  "    lang: 'ch',\n" +%0A  "    ocrVersion: 'PP-OCRv5',\n" +%0A  "    textDetectionModelName: 'PP-OCRv5_mobile_det',\n" +%0A  "    textDetectionModelAsset: { url: assetUrl('models/PP-OCRv5_mobile_det_onnx_infer.tar') },\n" +%0A  "    textRecognitionModelName: 'PP-OCRv5_mobile_rec',\n" +%0A  "    textRecognitionModelAsset: { url: assetUrl('models/PP-OCRv5_mobile_rec_onnx_infer.tar') },\n" +%0A  '    worker: { createWorker: () => createModuleWorker() },\n' +%0A  '    textDetectionBatchSize: 1,\n' +%0A  '    textRecognitionBatchSize: 1,\n' +%0A  '    ortOptions: {\n' +%0A  "      backend: 'wasm',\n" +%0A  "      wasmPaths: assetUrl('ort/'),\n" +%0A  '      numThreads: 1,\n' +%0A  '      simd: true\n' +%0A  '    }\n' +%0A  '  });\n' +%0A  '}\n' +%0A  '\n' +%0A  'function disposeInstance(ocr) {\n' +%0A  '  if (!ocr?.dispose) return;\n' +%0A  '  Promise.resolve().then(() => ocr.dispose()).catch(() => {});\n' +%0A  '}\n' +%0A  '\n' +%0A  'function detachEngine() {\n' +%0A  '  const current = enginePromise;\n' +%0A  '  enginePromise = null;\n' +%0A  '  engineGeneration += 1;\n' +%0A  '  if (current) current.then(disposeInstance).catch(() => {});\n' +%0A  '}\n' +%0A  '\n' +%0A  'async function startWorkerEngine() {\n' +%0A  '  const generation = ++engineGeneration;\n' +%0A  '  const raw = createWorkerEngine();\n' +%0A  '  try {\n' +%0A  '    const ocr = await withTimeout(\n' +%0A  '      raw,\n' +%0A  '      ENGINE_INIT_TIMEOUT_MS,\n' +%0A  "      'PP-OCRv5 Worker 初始化超时，已退出本次识别；界面仍可继续操作',\n" +%0A  '      () => {\n' +%0A  '        if (generation === engineGeneration) engineGeneration += 1;\n' +%0A  '      }\n' +%0A  '    );\n' +%0A  '    if (generation !== engineGeneration) {\n' +%0A  '      disposeInstance(ocr);\n' +%0A  "      throw new Error('PP-OCRv5 Worker 初始化结果已失效，请重新识别');\n" +%0A  '    }\n' +%0A  '    return ocr;\n' +%0A  '  } catch (error) {\n' +%0A  '    raw.then(ocr => {\n' +%0A  '      if (generation !== engineGeneration) disposeInstance(ocr);\n' +%0A  '    }).catch(() => {});\n' +%0A  '    throw error;\n' +%0A  '  }\n' +%0A  '}\n' +%0A  '\n' +%0A  'async function ensureEngine() {\n' +%0A  '  globalThis.clearTimeout(disposeTimer);\n' +%0A  '  if (enginePromise) return enginePromise;\n' +%0A  "  emit('正在后台准备本地 PP-OCRv5 中文检测与识别模型', 7);\n" +%0A  '  const pending = startWorkerEngine();\n' +%0A  '  const tracked = pending.then(ocr => {\n' +%0A  "    emit('PP-OCRv5 Worker 中文模型已就绪', 18);\n" +%0A  '    return ocr;\n' +%0A  '  }).catch(error => {\n' +%0A  '    if (enginePromise === tracked) enginePromise = null;\n' +%0A  '    throw new Error(`PP-OCRv5 Worker 初始化失败：${error.message}`);\n' +%0A  '  });\n' +%0A  '  enginePromise = tracked;\n' +%0A  '  return tracked;\n' +%0A  '}\n' +%0A  '\n' +%0A  'async function dispose() {\n' +%0A  '  globalThis.clearTimeout(disposeTimer);\n' +%0A  '  const current = enginePromise;\n' +%0A  '  enginePromise
