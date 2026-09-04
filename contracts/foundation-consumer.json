@@ -1,0 +1,29 @@
+{
+  "_format": "coffee-foundation-consumer",
+  "_schemaVersion": 1,
+  "consumer": "luckybean",
+  "foundation": {
+    "provider": "brewion",
+    "contract": "coffee-foundation/1.0",
+    "manifestUrl": "https://raw.githubusercontent.com/zjcrop/BrewIon/main/foundation/foundation-manifest.json",
+    "failurePolicy": "retain-local-verified-snapshot"
+  },
+  "contracts": {
+    "recognitionDocument": "recognition-document/1.1",
+    "canonicalCoffeeRecord": "coffee-canonical-record/1.0",
+    "aiEnrichmentResult": "ai-enrichment-result/1.0",
+    "codebookProvider": "coffee-codebook/1.0",
+    "coffeeKnowledge": "coffee-knowledge/1.0"
+  },
+  "localSnapshots": {
+    "recognitionDocument": "contracts/recognition-document-v1.1.schema.json"
+  },
+  "policies": {
+    "applicationDependencyAsFoundation": false,
+    "platformOcrAdapter": "allowed",
+    "recognitionOutput": "RecognitionDocument",
+    "lowConfidence": "review-only",
+    "aiAuthority": "advisory-only",
+    "unknownValues": "preserve-null"
+  }
+}
