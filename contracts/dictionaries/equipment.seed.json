@@ -1,0 +1,13 @@
+{
+  "version":"1.0",
+  "brewers":[
+    {"id":"brewer-v60","name":{"zh":"V60","en":"V60","ja":"","ko":""},"aliases":["Hario V60","V-60","哈里欧V60"]},
+    {"id":"brewer-origami","name":{"zh":"折纸滤杯","en":"Origami Dripper","ja":"","ko":""},"aliases":["Origami","ORIGAMI","折纸"]},
+    {"id":"brewer-kalita-wave","name":{"zh":"卡丽塔蛋糕杯","en":"Kalita Wave","ja":"","ko":""},"aliases":["Kalita","Wave","蛋糕杯"]},
+    {"id":"brewer-clever","name":{"zh":"聪明杯","en":"Clever Dripper","ja":"","ko":""},"aliases":["Clever","聪明滤杯"]}
+  ],
+  "filters":[
+    {"id":"filter-paper","name":{"zh":"纸滤","en":"Paper Filter","ja":"","ko":""},"aliases":["paper","滤纸"]},
+    {"id":"filter-metal","name":{"zh":"金属滤网","en":"Metal Filter","ja":"","ko":""},"aliases":["metal","金属滤"]}
+  ]
+}
