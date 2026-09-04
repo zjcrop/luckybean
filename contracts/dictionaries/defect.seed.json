@@ -1,0 +1,9 @@
+{
+  "version":"1.0",
+  "items":[
+    {"id":"defect-ferment","name":{"zh":"过度发酵","en":"Over-fermented","ja":"","ko":""},"aliases":["发酵味","over fermented","ferment"],"ocrAliases":[]},
+    {"id":"defect-mold","name":{"zh":"霉味","en":"Moldy","ja":"","ko":""},"aliases":["霉变","mold","moldy"],"ocrAliases":[]},
+    {"id":"defect-earthy","name":{"zh":"土味","en":"Earthy","ja":"","ko":""},"aliases":["泥土味","earthy"],"ocrAliases":[]},
+    {"id":"defect-phenolic","name":{"zh":"酚类异味","en":"Phenolic","ja":"","ko":""},"aliases":["药味","phenolic"],"ocrAliases":[]}
+  ]
+}
