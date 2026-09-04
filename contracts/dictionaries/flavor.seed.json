@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "items": [
+    {"id":"flavor-floral","name":{"zh":"花香","en":"Floral","ja":"","ko":""},"aliases":["花香调","floral"],"ocrAliases":["fl0ral"]},
+    {"id":"flavor-citrus","name":{"zh":"柑橘","en":"Citrus","ja":"","ko":""},"aliases":["柑橘类","citrus"],"ocrAliases":[]},
+    {"id":"flavor-berry","name":{"zh":"莓果","en":"Berry","ja":"","ko":""},"aliases":["浆果","berry"],"ocrAliases":[]},
+    {"id":"flavor-chocolate","name":{"zh":"巧克力","en":"Chocolate","ja":"","ko":""},"aliases":["可可","cocoa","chocolate"],"ocrAliases":[]},
+    {"id":"flavor-nutty","name":{"zh":"坚果","en":"Nutty","ja":"","ko":""},"aliases":["坚果调","nutty"],"ocrAliases":[]}
+  ]
+}
