@@ -1,5 +1,4 @@
-const VERSION = '0.4.2';
-const DEFAULT_RUNTIME_BASE = new URL('../public/vendor/paddleocr/', import.meta.url);
+const VERSION = '0.4.3';
 const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;
 const LOW_MEMORY = Number(navigator.deviceMemory || 4) <= 4 || /iPhone|iPad|iPod/i.test(navigator.userAgent);
 const LIMIT_SIDE = LOW_MEMORY ? 736 : 960;
@@ -12,14 +11,24 @@ let engineGeneration = 0;
 let busy = false;
 let disposeTimer = 0;
 
+function defaultRuntimeBase() {
+  // Keep the source-module default for LuckyBean itself, but do not evaluate
+  // import.meta.url at module initialization time. Downstream consumers such as
+  // AromaSense bundle this file into a classic IIFE where import.meta is not
+  // available. Those consumers must provide CoffeeFoundationOcrAssetBase.
+  return new URL('../public/vendor/paddleocr/', import.meta.url);
+}
+
 function runtimeBase() {
   const configured = String(globalThis.CoffeeFoundationOcrAssetBase || '').trim();
-  if (!configured) return DEFAULT_RUNTIME_BASE;
-  try {
-    return new URL(configured, globalThis.location?.href || import.meta.url);
-  } catch {
-    return DEFAULT_RUNTIME_BASE;
+  if (configured) {
+    try {
+      return new URL(configured, globalThis.location?.href || 'http://localhost/');
+    } catch {
+      // Fall through to LuckyBean's native source-module location.
+    }
   }
+  return defaultRuntimeBase();
 }
 
 function assetUrl(relativePath) {
