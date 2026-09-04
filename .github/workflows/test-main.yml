@@ -43,6 +43,8 @@ jobs:
             exit 1
           fi
       - run: npm run test:static
+      - name: Verify live BrewIon Coffee Foundation contract
+        run: node tests/foundation-live-contract.mjs
       - name: Verify live BrewProfiles contract
         run: npm run test:live-brewprofiles
       - run: npx playwright install --with-deps chromium
