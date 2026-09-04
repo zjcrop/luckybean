@@ -1,0 +1,12 @@
+{
+  "version":"1.0",
+  "rules":[
+    {"field":"origin","match":["Colombia","Columbia","哥伦比亚"],"targetId":"country-colombia"},
+    {"field":"origin","match":["Ethiopia","Ethiopie","埃塞俄比亚"],"targetId":"country-ethiopia"},
+    {"field":"variety","match":["Geisha","Gesha","瑰夏"],"targetId":"variety-gesha"},
+    {"field":"variety","match":["Caturra","卡杜拉"],"targetId":"variety-caturra"},
+    {"field":"processing","match":["Washed","Wash","水洗"],"targetId":"process-washed"},
+    {"field":"processing","match":["Natural","Dry Process","日晒"],"targetId":"process-natural"},
+    {"field":"processing","match":["Honey","Honey Process","蜜处理","蜂蜜处理"],"targetId":"process-honey"}
+  ]
+}
