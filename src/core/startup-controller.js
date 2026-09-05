@@ -1,6 +1,7 @@
 import { get, put } from '../db.js';
 
 const DEVICE_RECORD_ID = 'cloud.device.id.v3';
+const DEVICE_FALLBACK_KEY = 'luckybean.local.device.fallback.v1';
 const SPLASH_READY_TIMEOUT_MS = 12000;
 const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.1';
 const APP_MODULE_REVISION = RELEASE_REVISION;
@@ -13,6 +14,54 @@ const statusNode = () => document.querySelector('#splashStatus');
 function setStatus(message) {
   const node = statusNode();
   if (node) node.textContent = message;
+}
+
+function cloneFallback(value, seen = new Map()) {
+  if (value === null || typeof value !== 'object') return value;
+  if (seen.has(value)) return seen.get(value);
+  if (value instanceof Date) return new Date(value.getTime());
+  if (value instanceof RegExp) return new RegExp(value.source, value.flags);
+  if (typeof File !== 'undefined' && value instanceof File) return new File([value], value.name, { type:value.type, lastModified:value.lastModified });
+  if (typeof Blob !== 'undefined' && value instanceof Blob) return value.slice(0, value.size, value.type);
+  if (typeof ArrayBuffer !== 'undefined' && value instanceof ArrayBuffer) return value.slice(0);
+  if (typeof ArrayBuffer !== 'undefined' && ArrayBuffer.isView?.(value)) {
+    if (typeof DataView !== 'undefined' && value instanceof DataView) {
+      const copied = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
+      return new DataView(copied);
+    }
+    return new value.constructor(value);
+  }
+  if (typeof Map !== 'undefined' && value instanceof Map) {
+    const result = new Map();
+    seen.set(value, result);
+    value.forEach((mapValue, mapKey) => result.set(cloneFallback(mapKey, seen), cloneFallback(mapValue, seen)));
+    return result;
+  }
+  if (typeof Set !== 'undefined' && value instanceof Set) {
+    const result = new Set();
+    seen.set(value, result);
+    value.forEach(setValue => result.add(cloneFallback(setValue, seen)));
+    return result;
+  }
+  if (Array.isArray(value)) {
+    const result = [];
+    seen.set(value, result);
+    for (const item of value) result.push(cloneFallback(item, seen));
+    return result;
+  }
+  const result = Object.create(Object.getPrototypeOf(value) === null ? null : Object.prototype);
+  seen.set(value, result);
+  for (const key of Object.keys(value)) result[key] = cloneFallback(value[key], seen);
+  return result;
+}
+
+function installCompatibility() {
+  if (typeof globalThis.structuredClone !== 'function') {
+    globalThis.structuredClone = cloneFallback;
+    document.documentElement.dataset.cloneCompatibility = 'fallback';
+  } else {
+    document.documentElement.dataset.cloneCompatibility = 'native';
+  }
 }
 
 function isMobileBrowser() {
@@ -35,11 +84,27 @@ function requestMobileFullscreenFromGesture() {
   } catch { /* 浏览器不支持时正常降级 */ }
 }
 
+function fallbackDeviceId() {
+  try {
+    const existing = localStorage.getItem(DEVICE_FALLBACK_KEY);
+    if (existing) return existing;
+  } catch { /* localStorage 不可用时继续生成临时 ID */ }
+  const value = globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  try { localStorage.setItem(DEVICE_FALLBACK_KEY, value); } catch { /* 临时 ID 仍可用于本次会话 */ }
+  return value;
+}
+
 async function deviceId() {
   const existing = await get('syncMetadata', DEVICE_RECORD_ID).catch(() => null);
   if (existing?.value) return existing.value;
-  const value = crypto.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-  await put('syncMetadata', { id: DEVICE_RECORD_ID, value, createdAt: new Date().toISOString() });
+  const value = fallbackDeviceId();
+  try {
+    await put('syncMetadata', { id: DEVICE_RECORD_ID, value, createdAt: new Date().toISOString() });
+    document.documentElement.dataset.localDeviceStorage = 'indexeddb';
+  } catch (error) {
+    console.warn('本机设备标识写入 IndexedDB 失败，已降级为本地兼容标识', error);
+    document.documentElement.dataset.localDeviceStorage = 'fallback';
+  }
   return value;
 }
 
@@ -113,6 +178,8 @@ function bindStatusEvents() {
     }
   });
 }
+
+installCompatibility();
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register(`./sw.js?v=${encodeURIComponent(RELEASE_REVISION)}`, { updateViaCache: 'none' }).catch(() => {});

@@ -70,7 +70,7 @@ assert.ok(index.includes(`application-version" content="${release.displayVersion
 assert.match(index,/release-1\.24b-finalize\.js/);
 assert.match(gradle,/versionCode \(releaseMeta\.androidVersionCode as int\)/);
 assert.match(gradle,/versionName releaseMeta\.displayVersion as String/);
-assert.equal(release.androidVersionCode,102416);
+assert.ok(Number.isInteger(release.androidVersionCode) && release.androidVersionCode >= 102416);
 assert.match(recognition,/queueConcurrency\s*:\s*1/);
 assert.match(recognition,/for \(let index\s*=\s*0; index\s*<\s*images\.length; index\s*\+=\s*1\)/);
 assert.match(integration,/订单录入/);

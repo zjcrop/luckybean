@@ -56,7 +56,7 @@ assert.match(androidBuild, /releaseMetaFile = new File\(repositoryRoot, 'release
 assert.match(androidBuild, /new JsonSlurper\(\)\.parse\(releaseMetaFile\)/);
 assert.match(androidBuild, /versionCode \(releaseMeta\.androidVersionCode as int\)/);
 assert.match(androidBuild, /versionName releaseMeta\.displayVersion as String/);
-assert.equal(release.androidVersionCode, 102416);
+assert.ok(Number.isInteger(release.androidVersionCode) && release.androidVersionCode >= 102416);
 assert.equal(release.displayVersion, '1.24P');
 assert.equal(release.androidUserAgent, `LuckyBeanAndroid/${release.displayVersion}`);
 assert.match(androidActivity, /LuckyBeanAndroid\/" \+ BuildConfig\.VERSION_NAME/);

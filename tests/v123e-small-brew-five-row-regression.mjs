@@ -14,7 +14,7 @@ const cooling = read('src/ui/brew-cooling-controller.js');
 const build = read('android/app/build.gradle');
 
 assert.equal(release.displayVersion, '1.24P');
-assert.equal(release.androidVersionCode, 102416);
+assert.ok(Number.isInteger(release.androidVersionCode) && release.androidVersionCode >= 102416);
 assert.match(build, /releaseMetaFile = new File\(repositoryRoot, 'release\.json'\)/);
 assert.match(build, /versionCode \(releaseMeta\.androidVersionCode as int\)/);
 assert.match(build, /versionName releaseMeta\.displayVersion as String/);

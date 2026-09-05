@@ -34,14 +34,59 @@ function accessTokenValid(active, skewSeconds = 60) { return Number(decodeJwtPay
 function emit(state, detail = {}) { document.documentElement.dataset.cloudAuth = state; document.dispatchEvent(new CustomEvent('luckybean:cloud-auth-state', { detail:{ state, ...detail } })); }
 function messageFrom(payload, fallback) { return payload?.msg || payload?.message || payload?.error_description || payload?.error || fallback; }
 
+function friendlyAuthMessage(error, mode = 'login') {
+  const code = String(error?.payload?.error_code || error?.payload?.code || error?.code || '').toLowerCase();
+  const raw = String(error?.message || '').toLowerCase();
+  if (code === 'email_not_confirmed' || raw.includes('email not confirmed')) {
+    return '邮箱尚未验证。请先打开注册确认邮件完成验证，再返回此处登录。';
+  }
+  if (code === 'invalid_credentials' || raw.includes('invalid login credentials')) {
+    return mode === 'login'
+      ? '邮箱或密码不正确；如果刚完成注册，请先确认邮箱验证已经完成。'
+      : '账号信息无效，请检查邮箱和密码后重试。';
+  }
+  if (code === 'over_email_send_rate_limit' || Number(error?.status) === 429 || raw.includes('rate limit')) {
+    return '请求过于频繁。请不要重复点击验证或注册按钮，稍后再试。';
+  }
+  if (code === 'otp_expired' || code === 'otp_disabled' || raw.includes('token not found') || raw.includes('invalid or has expired')) {
+    return '验证链接已经失效或已被使用。请使用最新一封验证邮件中的链接。';
+  }
+  if (code === 'user_already_exists' || raw.includes('already registered') || raw.includes('already exists')) {
+    return '该邮箱已经注册，请直接登录；如果尚未完成邮箱验证，请先完成验证。';
+  }
+  if (code === 'weak_password' || raw.includes('password should be') || raw.includes('weak password')) {
+    return '注册密码强度不足，请设置至少 8 位密码后重试。';
+  }
+  if (code === 'network_timeout' || raw.includes('云端连接超时')) return '云端连接超时，请检查网络后重试。';
+  if (raw.includes('failed to fetch') || raw.includes('networkerror')) return '当前无法连接云端，请检查网络后重试。';
+  return error?.message || (mode === 'register' ? '注册失败' : '登录失败');
+}
+
 async function rawRequest(path, { method = 'POST', body, token, timeoutMs = 6000, headers = {} } = {}) {
-  const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const controller = typeof AbortController === 'function' ? new AbortController() : null;
+  let timeout = null;
   try {
-    const response = await fetch(`${SUPABASE_URL}${path}`, {
+    const request = fetch(`${SUPABASE_URL}${path}`, {
       method,
       headers:{ apikey:SUPABASE_KEY, Accept:'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}), ...(body !== undefined ? { 'Content-Type':'application/json' } : {}), ...headers },
-      body:body === undefined ? undefined : JSON.stringify(body), cache:'no-store', signal:controller.signal
+      body:body === undefined ? undefined : JSON.stringify(body), cache:'no-store', ...(controller ? { signal:controller.signal } : {})
     });
+    let response;
+    if (controller) {
+      timeout = setTimeout(() => controller.abort(), timeoutMs);
+      response = await request;
+    } else {
+      response = await Promise.race([
+        request,
+        new Promise((_, reject) => {
+          timeout = setTimeout(() => {
+            const timeoutError = new Error('云端连接超时');
+            timeoutError.code = 'NETWORK_TIMEOUT';
+            reject(timeoutError);
+          }, timeoutMs);
+        })
+      ]);
+    }
     const text = await response.text(); let payload = null;
     try { payload = text ? JSON.parse(text) : null; } catch { payload = text; }
     if (!response.ok) { const error = new Error(messageFrom(payload, `云端请求失败（${response.status}）`)); error.status = response.status; error.payload = payload; throw error; }
@@ -49,7 +94,7 @@ async function rawRequest(path, { method = 'POST', body, token, timeoutMs = 6000
   } catch (error) {
     if (error?.name === 'AbortError') { const timeoutError = new Error('云端连接超时'); timeoutError.code = 'NETWORK_TIMEOUT'; throw timeoutError; }
     throw error;
-  } finally { clearTimeout(timeout); }
+  } finally { if (timeout) clearTimeout(timeout); }
 }
 
 async function refreshSession({ force = false, reason = 'background' } = {}) {
@@ -65,8 +110,8 @@ async function refreshSession({ force = false, reason = 'background' } = {}) {
       const payload = await rawRequest('/auth/v1/token?grant_type=refresh_token', { body:{ refresh_token:active.refresh_token }, timeoutMs:5000 });
       active = { ...payload, user:payload?.user || active.user || null }; writeSession(active); markServerActivity(); emit('authenticated', { user:active.user, refreshed:true }); return active;
     } catch (error) {
-      if ([400,401,403].includes(Number(error.status))) { writeSession(null); emit('reauth-required', { error:error.message }); return null; }
-      emit('offline', { error:error.message, session:active }); return accessTokenValid(active, 0) ? active : null;
+      if ([400,401,403].includes(Number(error.status))) { writeSession(null); emit('reauth-required', { error:friendlyAuthMessage(error, 'login') }); return null; }
+      emit('offline', { error:friendlyAuthMessage(error, 'login'), session:active }); return accessTokenValid(active, 0) ? active : null;
     }
   })().finally(() => { refreshPromise = null; });
   return refreshPromise;
@@ -89,7 +134,8 @@ function setDialogMessage(message) { const node = document.querySelector('[data-
 function openDialog(mode = 'login', notice = '', preset = {}) {
   const root = overlayRoot(); if (!root) return;
   const register = mode === 'register';
-  root.innerHTML = `<div class="overlay" data-overlay="cloud-auth"><div class="dialog v099d-auth-dialog"><div class="dialog-header"><div><h2>${register ? '注册云端账号' : '登录云端账号'}</h2><p>这是唯一的服务器同步账号。登录后自动同步立即启用，无需在其他位置再次登录或设置同步方式。密码不会保存在设备中。</p></div><button class="close-button" type="button" data-cloud-auth-close>×</button></div>${register ? `<label class="field"><span>昵称</span><input id="cloudAuthNickname" class="control" maxlength="24" autocomplete="nickname" value="${esc(preset.nickname || '')}"></label>` : ''}<label class="field"><span>邮箱</span><input id="cloudAuthEmail" class="control" type="email" autocomplete="email" value="${esc(preset.email || '')}" placeholder="name@example.com"></label><label class="field"><span>密码</span><input id="cloudAuthPassword" class="control" type="password" minlength="8" autocomplete="${register ? 'new-password' : 'current-password'}" placeholder="至少8位"></label>${register ? '<label class="field"><span>确认密码</span><input id="cloudAuthConfirm" class="control" type="password" minlength="8" autocomplete="new-password"></label>' : ''}<p class="muted small" data-cloud-auth-message role="status">${esc(notice)}</p><div class="v099d-auth-actions"><button class="button subtle" type="button" data-cloud-auth-switch="${register ? 'login' : 'register'}">${register ? '已有账号' : '注册账号'}</button><button class="button primary" type="button" data-cloud-auth-submit="${mode}">${register ? '注册' : '登录'}</button></div></div></div>`;
+  const passwordRules = register ? ' minlength="8" placeholder="至少8位"' : ' placeholder="输入账户密码"';
+  root.innerHTML = `<div class="overlay" data-overlay="cloud-auth"><div class="dialog v099d-auth-dialog"><div class="dialog-header"><div><h2>${register ? '注册云端账号' : '登录云端账号'}</h2><p>这是唯一的服务器同步账号。登录后自动同步立即启用，无需在其他位置再次登录或设置同步方式。密码不会保存在设备中。</p></div><button class="close-button" type="button" data-cloud-auth-close>×</button></div>${register ? `<label class="field"><span>昵称</span><input id="cloudAuthNickname" class="control" maxlength="24" autocomplete="nickname" value="${esc(preset.nickname || '')}"></label>` : ''}<label class="field"><span>邮箱</span><input id="cloudAuthEmail" class="control" type="email" autocomplete="email" value="${esc(preset.email || '')}" placeholder="name@example.com"></label><label class="field"><span>密码</span><input id="cloudAuthPassword" class="control" type="password"${passwordRules} autocomplete="${register ? 'new-password' : 'current-password'}"></label>${register ? '<label class="field"><span>确认密码</span><input id="cloudAuthConfirm" class="control" type="password" minlength="8" autocomplete="new-password"></label>' : ''}<p class="muted small" data-cloud-auth-message role="status">${esc(notice)}</p><div class="v099d-auth-actions"><button class="button subtle" type="button" data-cloud-auth-switch="${register ? 'login' : 'register'}">${register ? '已有账号' : '注册账号'}</button><button class="button primary" type="button" data-cloud-auth-submit="${mode}">${register ? '注册' : '登录'}</button></div></div></div>`;
   root.querySelector('[data-cloud-auth-close]')?.addEventListener('click', closeDialog);
   root.querySelector('[data-cloud-auth-switch]')?.addEventListener('click', event => openDialog(event.currentTarget.dataset.cloudAuthSwitch, '', values()));
   root.querySelector('[data-cloud-auth-submit]')?.addEventListener('click', () => submit(mode));
@@ -109,7 +155,8 @@ async function submit(mode) {
   if (dialogBusy) return;
   const input = values();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)) return setDialogMessage('邮箱格式无效');
-  if (input.password.length < 8) return setDialogMessage('密码至少需要8位');
+  if (!input.password) return setDialogMessage('请输入密码');
+  if (mode === 'register' && input.password.length < 8) return setDialogMessage('注册密码至少需要8位');
   if (mode === 'register' && input.password !== input.confirm) return setDialogMessage('两次输入的密码不一致');
   dialogBusy = true;
   const button = document.querySelector('[data-cloud-auth-submit]');
@@ -121,7 +168,7 @@ async function submit(mode) {
       if (!payload?.access_token) {
         rememberPendingRegistration(input.email);
         document.dispatchEvent(new CustomEvent('luckybean:cloud-registration-pending', { detail:{ email:input.email } }));
-        openDialog('login', '注册请求已提交。完成邮箱验证后使用相同账号登录。', { email:input.email });
+        openDialog('login', '验证邮件已发送。未完成邮箱验证前无法登录；请打开最新一封确认邮件完成验证后再登录。', { email:input.email });
         return;
       }
       writeSession(payload); markServerActivity(); emit('authenticated', { user:payload.user, login:true, authAction:'register' }); closeDialog();
@@ -138,7 +185,7 @@ async function submit(mode) {
     if (completedRegistration) dispatchRegisterSuccess(payload, input.email, true);
     dispatchLoginSuccess(payload, completedRegistration ? 'register-verification' : 'login');
   } catch (error) {
-    setDialogMessage(error.message || '登录失败');
+    setDialogMessage(friendlyAuthMessage(error, mode));
   } finally {
     dialogBusy = false;
     const current = document.querySelector('[data-cloud-auth-submit]');
@@ -158,8 +205,8 @@ async function warmSession() {
 }
 
 globalThis.LuckyBeanCloudAuth = {
-  revision:'cloud-auth-service-v2', getSession:readSession, warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut,
+  revision:'cloud-auth-service-v3-hotfix', getSession:readSession, warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut,
   isRemembered:() => Boolean(readSession()?.refresh_token && Date.now() <= rememberUntil()), rememberUntil,
   pendingRegistration:readPendingRegistration
 };
-queueMicrotask(() => warmSession().catch(error => emit('offline', { error:error.message })));
+queueMicrotask(() => warmSession().catch(error => emit('offline', { error:friendlyAuthMessage(error, 'login') })));
