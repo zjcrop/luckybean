@@ -1,183 +1,123 @@
 // LuckyBean 1.24P: unified BrewResult runtime, lifecycle, recognition and offline-first UI.
-const REVISION = '1.24P-main.1';
+const REVISION = '1.24P-main.2';
 const CACHE_PREFIX = 'luckybean-main-v124p-';
-const CACHE_NAME = `${CACHE_PREFIX}main-1-brewresult`;
+const CACHE_NAME = `${CACHE_PREFIX}main-2-auth-ocr-ai`;
+const NETWORK_TIMEOUT_MS = 3500;
 const LEGACY_CACHE_PREFIXES = [
   'luckybean-main-v124b-', 'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
   'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',
   'luckybean-v123-brewprofiles-integration-test-', 'luckybean-v200-foundation-'
 ];
 const versioned = path => `${path}?v=${REVISION}`;
+// Runtime cache catalog is intentionally not eagerly fetched during service-worker install.
+// On constrained/mobile networks, each asset is cached on first use instead of competing with app startup.
 const CORE = [
-  './',
-  './index.html',
-  './recognition-test.html',
-  './release.json',
-  versioned('./manifest.webmanifest'),
-  versioned('./styles.css'),
-  versioned('./src/release-1.24b.css'),
-  versioned('./src/release-1.24b.js'),
-  versioned('./src/features/release-1.24b-integration.js'),
-  versioned('./src/features/release-1.24b-finalize.js'),
-  versioned('./src/features/release-1.24b-transit-controller.js'),
-  versioned('./src/features/release-1.24b-group-navigation.js'),
-  versioned('./src/features/release-1.24b-about-controller.js'),
-  versioned('./src/features/release-1.24b-polish.js'),
-  versioned('./src/features/release-1.24b-ui-policy.js'),
-  versioned('./src/features/release-1.24b-brew-mode-controller.js'),
-  versioned('./src/features/release-1.24b-freshness-detail.js'),
-  versioned('./src/features/recognition-batch-progress-controller.js'),
-  versioned('./src/ui/sortable-controller.js'),
-  versioned('./src/features/sensory-tag-sort-controller.js'),
-  versioned('./src/data/local-brew-recipes-1.24b.js'),
-  versioned('./src/services/grind-psd-reference-service.js'),
-  versioned('./src/domain/recognition/order-recognition-1.24b.js'),
-  versioned('./src/domain/recognition/recognition-field-resolver-1.24b.js'),
-  versioned('./src/ui/app-layout.css'),
-  versioned('./src/ui/app-components.css'),
-  versioned('./src/ui/bean-card.css'),
-  versioned('./src/ui/professional-sensory.css'),
-  versioned('./src/ui/sensory-wizard-actions.css'),
-  versioned('./src/ui/brew-action-emphasis.css'),
-  versioned('./src/ui/brew-pour-guide.js'),
-  versioned('./src/ui/brew-pour-guide.css'),
-  versioned('./src/ui/brew-optimization.css'),
-  versioned('./src/app.js'),
-  versioned('./src/flavor-vector.js'),
-  versioned('./src/brew-result-schema.js'),
-  versioned('./src/contracts/brew-contract-adapter.js'),
-  versioned('./src/domain/archive/luckybean-archive-codec.js'),
-  versioned('./src/domain/archive/luckybean-archive-service.js'),
-  versioned('./src/domain/beans/bean-consumption-summary.js'),
-  versioned('./src/domain/beans/bean-lifecycle-service.js'),
-  versioned('./src/domain/recognition/recognition-document.js'),
-  versioned('./src/domain/recognition/recognition-pipeline.js'),
-  versioned('./src/domain/recognition/recognition-date-classifier.js'),
-  versioned('./src/domain/recognition/recognition-date-review.js'),
-  versioned('./src/recognition-test-page.js'),
-  './contracts/luckybean-archive-v1.schema.json',
-  './contracts/recognition-document-v1.schema.json',
-  './contracts/recognition-date-decision-v1.schema.json',
-  './contracts/brew-optimization-v1.schema.json',
-  './contracts/brew-optimization-validation-v1.schema.json',
-  versioned('./src/core/startup-controller.js'),
-  versioned('./src/core/bootstrap.js'),
-  versioned('./src/services/cloud-auth-service.js'),
-  versioned('./src/services/cloud-sync-service.js'),
-  versioned('./src/services/cloud-sync-safety.js'),
-  versioned('./src/services/bean-enrichment-service.js'),
-  versioned('./src/cloud-codec.js'),
-  versioned('./src/services/execution-text-sanitizer.js'),
-  versioned('./src/services/brew-analysis-service.js'),
-  versioned('./src/services/brew-calculation-coordinator.js'),
-  versioned('./src/services/brew-api-client.js'),
-  versioned('./src/services/brew-profile-catalog-service.js'),
-  versioned('./src/services/local-reference-analysis.js'),
-  versioned('./src/services/provider-package-service.js'),
-  versioned('./src/services/codebook-reconciliation-service.js'),
-  versioned('./src/services/provider-bootstrap-controller.js'),
-  versioned('./src/ui/provider-status-panel.js'),
-  versioned('./src/ui/codebook-reconciliation-screen.js'),
-  versioned('./src/ui/codebook-reconciliation-screen.css'),
-  versioned('./src/domain/history/history-service.js'),
-  versioned('./src/domain/history/history-sensory-service.js'),
-  versioned('./src/domain/sensory/brew-optimization-assessment.js'),
-  versioned('./src/domain/history/history-comparison.js'),
-  versioned('./src/ui/brew-trend-panel.js'),
-  versioned('./src/ui/brew-trend-panel.css'),
-  versioned('./src/domain/history/history-migration.js'),
-  versioned('./src/ui/history/history-screen.js'),
-  versioned('./src/ui/history/history-screen.css'),
-  versioned('./src/renderers/brew-spatial-view.js'),
-  versioned('./src/renderers/brew-spatial-controller.js'),
-  versioned('./src/renderers/brew-spatial-view.css'),
-  versioned('./src/ui/viewport-controller.js'),
-  versioned('./src/ui/navigation-controller.js'),
-  versioned('./src/ui/account-sync-panel.js'),
-  versioned('./src/ui/appearance-controller.js'),
-  versioned('./src/ui/voice-settings-controller.js'),
-  versioned('./src/ui/gear-controller.js'),
-  versioned('./src/ui/grinder-controller.js'),
-  versioned('./src/ui/recognition-interaction-controller.js'),
-  versioned('./src/ui/brew-cooling-controller.js'),
-  versioned('./src/ui/flavor-guide-controller.js'),
-  versioned('./src/ui/onboarding-controller.js'),
-  versioned('./src/ui/bean-card-controller.js'),
-  versioned('./src/ui/fab-controller.js'),
-  versioned('./src/features/runtime-features.js'),
-  versioned('./src/features/full-integration-controller-v3.js'),
-  versioned('./src/features/freshness-timeline-controller.js'),
-  versioned('./src/data-migrations.js'),
-  versioned('./src/recognition-bridge.js'),
-  versioned('./src/image-quality.js'),
-  versioned('./src/recognition-web-ocr.js'),
-  versioned('./src/recognition-paddle-ocr.js'),
-  versioned('./src/recognition-quality-controller.js'),
-  versioned('./src/package-capture-controller.js'),
-  versioned('./src/direct-camera-controller.js'),
-  versioned('./src/qr-ui-controller.js'),
-  versioned('./src/integrity-ui-controller.js'),
-  versioned('./src/ui-layout-controller.js'),
-  versioned('./src/selection-controller.js'),
-  versioned('./src/feature-controller.js'),
-  versioned('./src/runtime-controller.js'),
-  versioned('./src/bean-groups-controller.js'),
-  versioned('./src/group-interaction-controller.js'),
-  versioned('./src/ui-upgrade-controller.js'),
-  versioned('./src/origin-map-controller.js'),
-  versioned('./public/app-logo.webp'),
-  versioned('./public/splash-art-red.webp'),
-  versioned('./public/splash-art-light.webp'),
-  versioned('./public/Luckybean-END.webp'),
-  './public/vendor/jsqr/jsQR.js',
-  './public/vendor/jsvectormap/jsvectormap.min.css',
-  './public/vendor/jsvectormap/jsvectormap.min.js',
-  './public/vendor/jsvectormap/world.js',
-  './public/fallback-codebook.json',
-  './public/legacy-flavor-map.json'
+  './', './index.html', './recognition-test.html', './release.json',
+  versioned('./manifest.webmanifest'), versioned('./styles.css'), versioned('./src/release-1.24b.css'), versioned('./src/release-1.24b.js'),
+  versioned('./src/features/release-1.24b-integration.js'), versioned('./src/features/release-1.24b-finalize.js'), versioned('./src/features/release-1.24b-transit-controller.js'),
+  versioned('./src/features/release-1.24b-group-navigation.js'), versioned('./src/features/release-1.24b-about-controller.js'), versioned('./src/features/release-1.24b-polish.js'),
+  versioned('./src/features/release-1.24b-ui-policy.js'), versioned('./src/features/release-1.24b-brew-mode-controller.js'), versioned('./src/features/release-1.24b-freshness-detail.js'),
+  versioned('./src/features/recognition-batch-progress-controller.js'), versioned('./src/features/recognition-multi-entry-controller.js'), versioned('./src/ui/sortable-controller.js'), versioned('./src/features/sensory-tag-sort-controller.js'),
+  versioned('./src/data/local-brew-recipes-1.24b.js'), versioned('./src/services/grind-psd-reference-service.js'), versioned('./src/domain/recognition/order-recognition-1.24b.js'),
+  versioned('./src/domain/recognition/recognition-field-resolver-1.24b.js'), versioned('./src/domain/recognition/recognition-entry-splitter.js'), versioned('./src/ui/app-layout.css'), versioned('./src/ui/app-components.css'),
+  versioned('./src/ui/bean-card.css'), versioned('./src/ui/professional-sensory.css'), versioned('./src/ui/sensory-wizard-actions.css'), versioned('./src/ui/brew-action-emphasis.css'),
+  versioned('./src/ui/brew-pour-guide.js'), versioned('./src/ui/brew-pour-guide.css'), versioned('./src/ui/brew-optimization.css'), versioned('./src/app.js'),
+  versioned('./src/flavor-vector.js'), versioned('./src/brew-result-schema.js'), versioned('./src/contracts/brew-contract-adapter.js'),
+  versioned('./src/domain/archive/luckybean-archive-codec.js'), versioned('./src/domain/archive/luckybean-archive-service.js'), versioned('./src/domain/beans/bean-consumption-summary.js'),
+  versioned('./src/domain/beans/bean-lifecycle-service.js'), versioned('./src/domain/recognition/recognition-document.js'), versioned('./src/domain/recognition/recognition-pipeline.js'),
+  versioned('./src/domain/recognition/recognition-date-classifier.js'), versioned('./src/domain/recognition/recognition-date-review.js'), versioned('./src/recognition-test-page.js'),
+  './contracts/luckybean-archive-v1.schema.json', './contracts/recognition-document-v1.schema.json', './contracts/recognition-date-decision-v1.schema.json',
+  './contracts/brew-optimization-v1.schema.json', './contracts/brew-optimization-validation-v1.schema.json',
+  versioned('./src/core/startup-controller.js'), versioned('./src/core/bootstrap.js'), versioned('./src/services/cloud-auth-service.js'), versioned('./src/services/cloud-sync-service.js'),
+  versioned('./src/services/cloud-sync-safety.js'), versioned('./src/services/bean-enrichment-service.js'), versioned('./src/cloud-codec.js'), versioned('./src/services/execution-text-sanitizer.js'),
+  versioned('./src/services/brew-analysis-service.js'), versioned('./src/services/brew-calculation-coordinator.js'), versioned('./src/services/brew-api-client.js'),
+  versioned('./src/services/recognition-ai-service.js'), versioned('./src/services/brew-profile-catalog-service.js'), versioned('./src/services/local-reference-analysis.js'),
+  versioned('./src/services/provider-package-service.js'), versioned('./src/services/codebook-reconciliation-service.js'), versioned('./src/services/provider-bootstrap-controller.js'),
+  versioned('./src/ui/provider-status-panel.js'), versioned('./src/ui/codebook-reconciliation-screen.js'), versioned('./src/ui/codebook-reconciliation-screen.css'),
+  versioned('./src/domain/history/history-service.js'), versioned('./src/domain/history/history-sensory-service.js'), versioned('./src/domain/sensory/brew-optimization-assessment.js'),
+  versioned('./src/domain/history/history-comparison.js'), versioned('./src/ui/brew-trend-panel.js'), versioned('./src/ui/brew-trend-panel.css'), versioned('./src/domain/history/history-migration.js'),
+  versioned('./src/ui/history/history-screen.js'), versioned('./src/ui/history/history-screen.css'), versioned('./src/renderers/brew-spatial-view.js'), versioned('./src/renderers/brew-spatial-controller.js'),
+  versioned('./src/renderers/brew-spatial-view.css'), versioned('./src/ui/viewport-controller.js'), versioned('./src/ui/navigation-controller.js'), versioned('./src/ui/account-sync-panel.js'),
+  versioned('./src/ui/appearance-controller.js'), versioned('./src/ui/voice-settings-controller.js'), versioned('./src/ui/gear-controller.js'), versioned('./src/ui/grinder-controller.js'),
+  versioned('./src/ui/recognition-interaction-controller.js'), versioned('./src/ui/brew-cooling-controller.js'), versioned('./src/ui/flavor-guide-controller.js'), versioned('./src/ui/onboarding-controller.js'),
+  versioned('./src/ui/bean-card-controller.js'), versioned('./src/ui/fab-controller.js'), versioned('./src/features/runtime-features.js'), versioned('./src/features/full-integration-controller-v3.js'),
+  versioned('./src/features/freshness-timeline-controller.js'), versioned('./src/data-migrations.js'), versioned('./src/recognition-bridge.js'), versioned('./src/image-quality.js'),
+  versioned('./src/recognition-web-ocr.js'), versioned('./src/recognition-paddle-ocr.js'), versioned('./src/recognition-quality-controller.js'), versioned('./src/package-capture-controller.js'),
+  versioned('./src/direct-camera-controller.js'), versioned('./src/qr-ui-controller.js'), versioned('./src/integrity-ui-controller.js'), versioned('./src/ui-layout-controller.js'),
+  versioned('./src/selection-controller.js'), versioned('./src/feature-controller.js'), versioned('./src/runtime-controller.js'), versioned('./src/bean-groups-controller.js'),
+  versioned('./src/group-interaction-controller.js'), versioned('./src/ui-upgrade-controller.js'), versioned('./src/origin-map-controller.js'),
+  versioned('./public/app-logo.webp'), versioned('./public/splash-art-red.webp'), versioned('./public/splash-art-light.webp'), versioned('./public/Luckybean-END.webp'),
+  './public/vendor/jsqr/jsQR.js', './public/vendor/jsvectormap/jsvectormap.min.css', './public/vendor/jsvectormap/jsvectormap.min.js', './public/vendor/jsvectormap/world.js',
+  './public/fallback-codebook.json', './public/legacy-flavor-map.json'
+];
+const CRITICAL = [
+  './', './index.html', './release.json', versioned('./styles.css'), versioned('./src/release-1.24b.css'), versioned('./src/core/startup-controller.js'), versioned('./src/core/bootstrap.js'), versioned('./src/app.js')
 ];
 
-self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
-});
+function fetchWithTimeout(request, timeoutMs = NETWORK_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(new Request(request, { cache:'reload', signal:controller.signal })).finally(() => clearTimeout(timer));
+}
+async function putIfUsable(cache, request, response) {
+  if (response?.ok) await cache.put(request, response.clone());
+  return response;
+}
+async function networkFirst(request, fallbackRequest = null) {
+  try {
+    const response = await fetchWithTimeout(request);
+    const cache = await caches.open(CACHE_NAME);
+    await putIfUsable(cache, request, response);
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    if (fallbackRequest) {
+      const fallback = await caches.match(fallbackRequest);
+      if (fallback) return fallback;
+    }
+    throw new Error('network-and-cache-unavailable');
+  }
+}
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  const response = await fetch(request);
+  const cache = await caches.open(CACHE_NAME);
+  await putIfUsable(cache, request, response);
+  return response;
+}
 
+self.addEventListener('install', event => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(CRITICAL);
+    await self.skipWaiting();
+  })());
+});
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys
-      .filter(key => (key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
-        || LEGACY_CACHE_PREFIXES.some(prefix => key.startsWith(prefix)))
-      .map(key => caches.delete(key)));
+    await Promise.all(keys.filter(key => (key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME) || LEGACY_CACHE_PREFIXES.some(prefix => key.startsWith(prefix))).map(key => caches.delete(key)));
     await self.clients.claim();
   })());
 });
-
-self.addEventListener('message', event => {
-  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
-});
-
+self.addEventListener('message', event => { if (event.data?.type === 'SKIP_WAITING') self.skipWaiting(); });
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {
-      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
-      return response;
-    }).catch(() => caches.match(request).then(cached => cached || caches.match('./index.html'))));
+    event.respondWith(networkFirst(request, './index.html'));
     return;
   }
   if (url.origin === self.location.origin) {
-    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {
-      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
-      return response;
-    }).catch(() => caches.match(request)));
+    if (url.pathname.endsWith('/release.json') || url.pathname.endsWith('/manifest.webmanifest')) {
+      event.respondWith(networkFirst(request));
+    } else {
+      event.respondWith(cacheFirst(request));
+    }
     return;
   }
-  if (url.hostname === 'cdn.jsdelivr.net') {
-    event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {
-      caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
-      return response;
-    })));
-  }
+  if (url.hostname === 'cdn.jsdelivr.net') event.respondWith(cacheFirst(request));
 });

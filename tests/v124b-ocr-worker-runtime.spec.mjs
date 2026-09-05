@@ -13,7 +13,7 @@ test('real PP-OCR worker initializes from same-origin assets without blocking th
   });
 
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => globalThis.LuckyBeanPaddleOCR?.workerOnly === true, null, { timeout: 20_000 });
+  await page.waitForFunction(() => Boolean(globalThis.LuckyBeanPaddleOCR?.browserSafe), null, { timeout: 20_000 });
 
   const result = await page.evaluate(async () => {
     let ticks = 0;
@@ -23,7 +23,8 @@ test('real PP-OCR worker initializes from same-origin assets without blocking th
       const engine = await globalThis.LuckyBeanPaddleOCR.preload();
       return {
         ready: Boolean(engine),
-        workerOnly: globalThis.LuckyBeanPaddleOCR?.workerOnly === true,
+        browserSafe: globalThis.LuckyBeanPaddleOCR?.browserSafe === true,
+        primaryIsolation: globalThis.LuckyBeanPaddleOCR?.primaryIsolation || '',
         roiWorkerOnly: globalThis.LuckyBeanPaddleOCR?.roiWorkerOnly === true,
         regionRecognition: globalThis.LuckyBeanPaddleOCR?.regionRecognition || '',
         runtimeOrigin: globalThis.LuckyBeanPaddleOCR?.runtimeOrigin || '',
@@ -33,14 +34,16 @@ test('real PP-OCR worker initializes from same-origin assets without blocking th
       };
     } finally {
       clearInterval(heartbeat);
+      try { await globalThis.LuckyBeanPaddleOCR?.dispose?.(); } catch {}
     }
   });
 
-  expect(result.workerOnly).toBe(true);
+  expect(result.browserSafe).toBe(true);
+  expect(result.primaryIsolation).toBe('module-worker');
   expect(result.roiWorkerOnly).toBe(true);
   expect(result.regionRecognition).toBe('recognition-roi/1.0');
   expect(result.runtimeOrigin).toBe('same-origin-vendored');
-  expect(result.webOcr).toContain('self-hosted-worker-only');
+  expect(result.webOcr).toContain('self-hosted-lazy-memory-bounded');
   expect(result.ready, `PP-OCR same-origin worker/model preload failed; page errors: ${pageErrors.join(' | ')}; blocked external requests: ${blockedRequests.join(' | ')}`).toBe(true);
   if (result.elapsedMs >= 250) {
     expect(result.ticks, 'browser heartbeat stopped while PP-OCR initialized').toBeGreaterThanOrEqual(2);

@@ -1,4 +1,4 @@
-const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.1';
+const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.2';
 const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEASE_REVISION)}` });
 const BEAN_GROUP_RUNTIME_REVISION = RELEASE_REVISION;
 const pinnedFeature = (id, path, revision) => ({ id, path: `${path}?v=${encodeURIComponent(revision)}` });
@@ -8,6 +8,7 @@ const RUNTIME_FEATURES = Object.freeze([
   feature('recognition-paddle-ocr', '../recognition-paddle-ocr.js'),
   feature('recognition-quality', '../recognition-quality-controller.js'),
   feature('package-capture', '../package-capture-controller.js'),
+  feature('recognition-multi-entry', './recognition-multi-entry-controller.js'),
   feature('direct-camera', '../direct-camera-controller.js'),
   feature('qr-ui', '../qr-ui-controller.js'),
   feature('integrity-ui', '../integrity-ui-controller.js'),
@@ -43,13 +44,5 @@ for (const runtimeFeature of RUNTIME_FEATURES) {
   }
 }
 
-globalThis.LuckyBeanRuntimeFeatures = {
-  revision: RELEASE_REVISION,
-  declared: RUNTIME_FEATURES.map(runtimeFeature => runtimeFeature.id),
-  loaded,
-  failures
-};
-
-document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', {
-  detail: { revision: RELEASE_REVISION, declared: RUNTIME_FEATURES.length, loaded: loaded.length, failures }
-}));
+globalThis.LuckyBeanRuntimeFeatures = { revision: RELEASE_REVISION, declared: RUNTIME_FEATURES.map(runtimeFeature => runtimeFeature.id), loaded, failures };
+document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', { detail:{ revision: RELEASE_REVISION, declared:RUNTIME_FEATURES.length, loaded:loaded.length, failures } }));

@@ -5,8 +5,10 @@ const index = fs.readFileSync('index.html', 'utf8');
 const app = fs.readFileSync('src/app.js', 'utf8');
 const css = fs.readFileSync('src/ui/brew-action-emphasis.css', 'utf8');
 const sw = fs.readFileSync('sw.js', 'utf8');
+const release = JSON.parse(fs.readFileSync('release.json', 'utf8'));
+const escapedRevision = release.revision.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-assert.match(index, /brew-action-emphasis\.css\?v=1\.24P-main\.1/);
+assert.match(index, new RegExp(`brew-action-emphasis\\.css\\?v=${escapedRevision}`));
 assert.match(sw, /versioned\('\.\/src\/ui\/brew-action-emphasis\.css'\)/);
 
 for (const selector of ['#generatePlanBtn', '#brewProfile', '#startBrewBtn', '#confirmBrewPreparedBtn']) {
@@ -22,4 +24,4 @@ for (const id of ['generatePlanBtn', 'brewProfile', 'startBrewBtn', 'repeatPrepa
   assert.match(app, new RegExp(`id=\\"${id}\\"`));
 }
 
-console.log('1.24P brew calculation, automatic selection, timer start and preparation actions are visually emphasized');
+console.log(`LuckyBean ${release.displayVersion} brew calculation, automatic selection, timer start and preparation actions are visually emphasized`);

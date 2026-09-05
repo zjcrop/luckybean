@@ -3,7 +3,8 @@ import { get, put } from '../db.js';
 const DEVICE_RECORD_ID = 'cloud.device.id.v3';
 const DEVICE_FALLBACK_KEY = 'luckybean.local.device.fallback.v1';
 const SPLASH_READY_TIMEOUT_MS = 12000;
-const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.1';
+const LOCAL_DEVICE_TIMEOUT_MS = 2500;
+const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.2';
 const APP_MODULE_REVISION = RELEASE_REVISION;
 let enterRequested = false;
 let shellReady = false;
@@ -108,7 +109,24 @@ async function deviceId() {
   return value;
 }
 
-async function ensureLocalDevice() { return deviceId(); }
+async function ensureLocalDevice() {
+  const fallback = fallbackDeviceId();
+  let timer = 0;
+  const timeout = new Promise(resolve => {
+    timer = globalThis.setTimeout(() => {
+      document.documentElement.dataset.localDeviceStorage = 'fallback-timeout';
+      console.warn(`IndexedDB 本机标识初始化超过 ${LOCAL_DEVICE_TIMEOUT_MS}ms，启动流程已继续使用兼容标识`);
+      resolve(fallback);
+    }, LOCAL_DEVICE_TIMEOUT_MS);
+  });
+  const storageTask = deviceId().catch(error => {
+    console.warn('本机设备标识初始化失败，启动流程已继续使用兼容标识', error);
+    document.documentElement.dataset.localDeviceStorage = 'fallback';
+    return fallback;
+  });
+  try { return await Promise.race([storageTask, timeout]); }
+  finally { globalThis.clearTimeout(timer); }
+}
 
 function dismissSplash() {
   const node = splash();
