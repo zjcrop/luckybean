@@ -18,6 +18,7 @@ const captureState = {
   aiStatus: 'idle', aiDetail: ''
 };
 let recognitionQueued = false;
+let operationGeneration = 0;
 
 function esc(value) {
   return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
@@ -40,7 +41,17 @@ function statusMessage() {
   return '已具备多视角照片，可以开始识别；低质量照片仍建议重拍。';
 }
 function root() { return document.querySelector('#overlayRoot'); }
-function releasePreview(image) { const url = String(image?.previewUrl || ''); if (url.startsWith('blob:')) URL.revokeObjectURL(url); }
+function releasePreview(image) {
+  const url = String(image?.previewUrl || '');
+  if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+  if (image && !image.nativeSource) { image.previewUrl = ''; image.previewAvailable = false; image.previewReleased = true; }
+}
+function releaseWebPreviewsForRecognition() {
+  for (const image of captureState.images) if (!image.nativeSource) releasePreview(image);
+}
+function disposeBrowserOcr() {
+  try { void globalThis.LuckyBeanPaddleOCR?.dispose?.(); } catch {}
+}
 function bindAndroidImageSource(imageId, includePreview) {
   if (!globalThis.__LUCKYBEAN_ANDROID__) return '';
   const native = globalThis.LuckyBeanNative;
@@ -48,19 +59,21 @@ function bindAndroidImageSource(imageId, includePreview) {
   try { return String(native.bindImageSource(String(imageId || ''), Boolean(includePreview)) || ''); } catch { return ''; }
 }
 function clearCapture({ keepOverlay = false } = {}) {
+  operationGeneration += 1;
   for (const image of captureState.images) releasePreview(image);
   captureState.images = []; captureState.busy = false; captureState.ocrText = ''; captureState.ocrEngine = ''; captureState.blocks = [];
   captureState.recognitionDocument = null; captureState.analysis = null; captureState.aiStatus = 'idle'; captureState.aiDetail = '';
-  recognitionQueued = false;
+  recognitionQueued = false; disposeBrowserOcr();
   if (!keepOverlay && root()) root().innerHTML = '';
 }
 function previewHtml(image) {
   if (image.previewAvailable && image.previewUrl) return `<img src="${esc(image.previewUrl)}" alt="${esc(image.roleLabel)}预览">`;
+  if (image.previewReleased) return `<div class="bag-photo-native-preview" aria-label="预览已释放以降低识别内存占用" style="display:grid;place-items:center;min-height:132px;border-radius:14px;background:rgba(255,255,255,.04);color:#8f8b83;font-size:13px;letter-spacing:.06em;text-align:center;line-height:1.7">识别中已释放预览<br>原压缩图仍用于 OCR</div>`;
   return `<div class="bag-photo-native-preview" aria-label="Android 原图已绑定，缩略预览暂不可用" style="display:grid;place-items:center;min-height:132px;border-radius:14px;background:rgba(255,255,255,.04);color:#8f8b83;font-size:13px;letter-spacing:.06em;text-align:center;line-height:1.7">Android 原图<br>预览暂不可用</div>`;
 }
 function sourceInfo(image) {
   if (image.nativeSource) return image.previewAvailable ? 'Android 原图 · 原生缩略预览 · 本地 URI 识别' : 'Android 原图 · 本地 URI 识别';
-  return `${image.processedWidth}×${image.processedHeight} px · ${Math.round(image.blob.size / 1024)} KB`;
+  return `${image.processedWidth}×${image.processedHeight} px · ${Math.round(image.blob.size / 1024)} KB${image.previewReleased ? ' · 预览内存已释放' : ''}`;
 }
 function renderImageCards() {
   if (!captureState.images.length) return '<div class="bag-empty">尚未添加照片</div>';
@@ -79,7 +92,7 @@ function renderImageCards() {
     </article>`).join('');
 }
 function aiStatusCopy() {
-  if (captureState.aiStatus === 'running') return 'AI 辅助正在复核低置信度字段';
+  if (captureState.aiStatus === 'running') return '本地识别已完成；AI 正在后台复核低置信度字段，不影响继续录入';
   if (captureState.aiStatus === 'applied') return `AI 辅助已提供候选${captureState.aiDetail ? ` · ${captureState.aiDetail}` : ''}`;
   if (captureState.aiStatus === 'skipped') return captureState.aiDetail || '本地识别置信度足够，AI 未触发';
   if (captureState.aiStatus === 'unavailable') return `AI 辅助未介入${captureState.aiDetail ? ` · ${captureState.aiDetail}` : ''}`;
@@ -117,12 +130,12 @@ function render() {
     <div class="overlay full bag-capture-overlay" data-overlay="bag-capture"><div class="dialog bag-capture-dialog">
       <div class="dialog-header"><div><h2>拍袋录入</h2><p>多视角采集，分别处理曲面、倾斜、反光和碎片化信息</p></div><button class="close-button" type="button" data-bag-close aria-label="关闭">×</button></div>
       <div class="bag-capture-status"><strong>${captureState.images.length}/${MAX_IMAGES}</strong><span>${esc(statusMessage())}</span></div>
-      <div class="bag-engine-status"><span>识别通道</span><b>${capabilities.native ? 'Android 本地中英文 OCR 可用' : capabilities.webPaddle ? '网页 PP-OCR 可用（含兼容降级）' : capabilities.textDetector ? '浏览器文字检测可用' : '网页 OCR 当前不可用，可改用文字录入'}</b></div>
+      <div class="bag-engine-status"><span>识别通道</span><b>${capabilities.native ? 'Android 本地中英文 OCR 可用' : capabilities.webPaddle ? '网页 PP-OCR 可用（Safari 按需低内存模式）' : capabilities.textDetector ? '浏览器文字检测可用' : '网页 OCR 当前不可用，可改用文字录入'}</b></div>
       <div class="bag-photo-list">${renderImageCards()}</div>
       <div class="bag-capture-actions">
         <button id="bagCameraBtn" class="button primary" type="button"${captureState.images.length >= MAX_IMAGES || captureState.busy ? ' disabled' : ''}>拍摄一张</button>
         <button id="bagGalleryBtn" class="button" type="button"${captureState.images.length >= MAX_IMAGES || captureState.busy ? ' disabled' : ''}>从相册选择</button>
-        <button id="bagRecognizeBtn" class="button" type="button"${!captureState.images.length || captureState.busy ? ' disabled' : ''}>${captureState.busy ? '处理中…' : '开始识别'}</button>
+        <button id="bagRecognizeBtn" class="button" type="button"${!captureState.images.length || captureState.busy ? ' disabled' : ''}>${captureState.busy ? '本地识别中…' : '开始识别'}</button>
       </div>
       ${renderRecognitionPanel()}
       <div class="bag-manual-entry"><button id="bagManualBtn" class="button subtle" type="button">手工粘贴文字</button><span class="grow"></span><button id="bagHandoffBtn" class="button primary" type="button"${captureState.ocrText.trim() ? '' : ' disabled'}>确认并进入豆卡</button></div>
@@ -141,50 +154,70 @@ async function addFiles(fileList) {
       const nativeSource = Boolean(prepared.nativeSource); const nativePreview = bindAndroidImageSource(id, nativeSource);
       const previewUrl = nativeSource ? nativePreview : URL.createObjectURL(prepared.blob); const warnings = [...(prepared.warnings || [])];
       if (nativeSource && !nativePreview) warnings.push('Android 原图已绑定；缩略预览生成失败，但本地 OCR 仍可直接读取原图。');
-      captureState.images.push({ id, role, roleLabel:roleLabel(role), blob:prepared.blob, previewUrl, previewAvailable:Boolean(previewUrl), nativeSource,
+      captureState.images.push({ id, role, roleLabel:roleLabel(role), blob:prepared.blob, previewUrl, previewAvailable:Boolean(previewUrl), previewReleased:false, nativeSource,
         score:prepared.score, status:prepared.status, warnings, processedWidth:prepared.processedWidth, processedHeight:prepared.processedHeight, metrics:prepared.metrics });
     }
   } catch (error) { captureState.ocrText = `图片处理失败：${error.message}`; captureState.ocrEngine = '错误'; }
   finally { captureState.busy = false; render(); }
 }
-async function applyAiAdvisory(book) {
-  if (!captureState.recognitionDocument || !captureState.analysis) return;
-  captureState.aiStatus = 'running'; captureState.aiDetail = ''; render();
-  const ai = await enrichRecognitionWithAi(captureState.recognitionDocument, captureState.analysis);
+async function applyAiAdvisory(book, generation, documentRef) {
+  const analysisRef = captureState.analysis;
+  if (!documentRef || !analysisRef || generation !== operationGeneration) return;
+  const ai = await enrichRecognitionWithAi(documentRef, analysisRef, { timeoutMs:8000 });
+  if (generation !== operationGeneration || captureState.recognitionDocument !== documentRef) return;
   if (ai.ok) {
-    captureState.recognitionDocument.extensions = { ...(captureState.recognitionDocument.extensions || {}), aiEnrichment:{ ...ai.result, engine:ai.result.engine || 'zhipu', model:ai.result.model || ai.model || '' } };
-    captureState.analysis = analyzeRecognitionDocument(captureState.recognitionDocument, book);
+    documentRef.extensions = { ...(documentRef.extensions || {}), aiEnrichment:{ ...ai.result, engine:ai.result.engine || 'zhipu', model:ai.result.model || ai.model || '' } };
+    captureState.analysis = analyzeRecognitionDocument(documentRef, book);
     captureState.aiStatus = 'applied'; captureState.aiDetail = ai.model || '智谱';
-    return;
+  } else if (ai.skipped) {
+    captureState.aiStatus = 'skipped'; captureState.aiDetail = ai.reason === 'local-high-confidence' ? '本地结果已达到高置信度' : '有效 OCR 证据不足，未调用 AI';
+  } else {
+    captureState.aiStatus = 'unavailable'; captureState.aiDetail = ai.reason || '服务暂不可用';
   }
-  if (ai.skipped) { captureState.aiStatus = 'skipped'; captureState.aiDetail = ai.reason === 'local-high-confidence' ? '本地结果已达到高置信度' : '有效 OCR 证据不足，未调用 AI'; }
-  else { captureState.aiStatus = 'unavailable'; captureState.aiDetail = ai.reason || '服务暂不可用'; }
+  render();
 }
 async function runRecognition() {
-  captureState.busy = true; captureState.ocrText = ''; captureState.blocks = []; captureState.aiStatus = 'idle'; captureState.aiDetail = ''; render();
+  const generation = ++operationGeneration;
+  captureState.busy = true; captureState.ocrText = ''; captureState.blocks = []; captureState.aiStatus = 'idle'; captureState.aiDetail = '';
+  releaseWebPreviewsForRecognition(); render();
+  let localSuccess = false; let book = null; let documentRef = null;
   try {
     const result = await recognizeCoffeeBag(captureState.images, { locale:'zh-CN' });
+    if (generation !== operationGeneration) return;
     captureState.ocrText = result.fullText || ''; captureState.ocrEngine = result.engine || 'OCR'; captureState.blocks = result.blocks || [];
     if (!captureState.ocrText) throw new Error('没有检测到可用文字，请补拍更清晰的局部照片');
-    captureState.recognitionDocument = createRecognitionDocument({ images:captureState.images.map(({ id, role, roleLabel }) => ({ id, role, roleLabel })), blocks:captureState.blocks, engine:captureState.ocrEngine, fullText:captureState.ocrText });
-    const { data:book } = await loadCodebook(); captureState.analysis = analyzeRecognitionDocument(captureState.recognitionDocument, book);
-    await applyAiAdvisory(book);
+    documentRef = createRecognitionDocument({ images:captureState.images.map(({ id, role, roleLabel }) => ({ id, role, roleLabel })), blocks:captureState.blocks, engine:captureState.ocrEngine, fullText:captureState.ocrText });
+    captureState.recognitionDocument = documentRef;
+    ({ data:book } = await loadCodebook());
+    if (generation !== operationGeneration) return;
+    captureState.analysis = analyzeRecognitionDocument(documentRef, book);
+    captureState.aiStatus = 'running'; localSuccess = true;
   } catch (error) {
+    if (generation !== operationGeneration) return;
     if (error instanceof RecognitionUnavailableError) { captureState.ocrEngine = '网页 OCR 不可用'; captureState.ocrText = ''; }
     else { captureState.ocrEngine = '识别失败'; captureState.ocrText = ''; alert(error.message); }
   } finally {
-    captureState.busy = false; render(); if (!captureState.ocrText) openManualEntry(errorMessageForManual());
+    if (generation === operationGeneration) {
+      captureState.busy = false; render();
+      if (!localSuccess && !captureState.ocrText) openManualEntry(errorMessageForManual());
+    }
   }
+  if (localSuccess && generation === operationGeneration) void applyAiAdvisory(book, generation, documentRef);
 }
 async function reanalyzeEditedText() {
   const text = (document.querySelector('#bagOcrText')?.value || '').trim(); if (!text) return;
-  captureState.busy = true; captureState.aiStatus = 'idle'; captureState.aiDetail = '';
+  const generation = ++operationGeneration;
+  captureState.busy = true; captureState.aiStatus = 'idle'; captureState.aiDetail = ''; render();
+  let book = null; let documentRef = null; let localSuccess = false;
   try {
     const unchanged = captureState.recognitionDocument?.rawFullText?.trim() === text;
-    captureState.ocrText = text; captureState.recognitionDocument = unchanged ? captureState.recognitionDocument : recognitionDocumentFromText(text);
-    const { data:book } = await loadCodebook(); captureState.analysis = analyzeRecognitionDocument(captureState.recognitionDocument, book); await applyAiAdvisory(book);
-  } catch (error) { alert(`文字整理失败：${error.message}`); }
-  finally { captureState.busy = false; render(); }
+    captureState.ocrText = text; documentRef = unchanged ? captureState.recognitionDocument : recognitionDocumentFromText(text); captureState.recognitionDocument = documentRef;
+    ({ data:book } = await loadCodebook());
+    if (generation !== operationGeneration) return;
+    captureState.analysis = analyzeRecognitionDocument(documentRef, book); captureState.aiStatus = 'running'; localSuccess = true;
+  } catch (error) { if (generation === operationGeneration) alert(`文字整理失败：${error.message}`); }
+  finally { if (generation === operationGeneration) { captureState.busy = false; render(); } }
+  if (localSuccess && generation === operationGeneration) void applyAiAdvisory(book, generation, documentRef);
 }
 function errorMessageForManual() {
   const caps = getRecognitionCapabilities();
