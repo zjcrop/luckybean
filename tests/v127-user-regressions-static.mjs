@@ -8,7 +8,9 @@ assert.ok(cooling.includes('luckybean:brew-rendered'), 'cooling editor must upda
 assert.ok(!cooling.includes('MutationObserver'), 'cooling editor must not depend on repair observers');
 
 const fullIntegration = fs.readFileSync(new URL('../src/features/full-integration-controller-v3.js', import.meta.url), 'utf8');
-assert.ok(fullIntegration.includes('makeIndex(loaded?.data || loaded)'), 'full integration must unwrap loadCodebook result before indexing');
+assert.ok(!fullIntegration.includes('loadCodebook'), 'full integration startup path must not load the full codebook');
+assert.ok(fullIntegration.includes('bean-display-index.json'), 'full integration must use the compact derived display index');
+assert.ok(fullIntegration.includes("all('beanSummaries')"), 'full integration must read the lightweight bean directory instead of canonical beans');
 assert.ok(fullIntegration.includes('function beanNameParts(bean)'), 'compact bean cards must preserve readable name fallback');
 assert.ok(fullIntegration.includes('bean.countryName') && fullIntegration.includes('bean.varietyName'), 'compact bean cards must use readable bean-owned fields before showing 未定');
 assert.ok(fullIntegration.includes('beanObserver.observe(root'), 'compact bean presentation observer must be scoped to the bean container');
