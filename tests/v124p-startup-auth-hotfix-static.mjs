@@ -6,7 +6,10 @@ const index = read('index.html');
 const startup = read('src/core/startup-controller.js');
 const auth = read('src/services/cloud-auth-service.js');
 
+const authScript = index.match(/<script[^>]*src="\.\/src\/services\/cloud-auth-service\.js\?v=[^"]+"[^>]*><\/script>/)?.[0] || '';
 assert.ok(index.indexOf('src/services/cloud-auth-service.js') < index.indexOf('src/core/startup-controller.js'), 'auth callback capture must load before local app startup can advance URL/application state');
+assert.ok(authScript, 'cloud auth bootstrap script must be present');
+assert.doesNotMatch(authScript, /type="module"/, 'Safari auth callback capture must execute synchronously as a classic same-origin script, not enter the deferred module queue');
 assert.match(startup, /typeof globalThis\.structuredClone !== 'function'/, 'startup must install a structuredClone compatibility fallback');
 assert.match(startup, /globalThis\.structuredClone = cloneFallback/, 'structuredClone fallback must be installed before app import');
 assert.match(startup, /dataset\.cloneCompatibility = 'fallback'/, 'startup must expose compatibility diagnostics');
@@ -27,4 +30,4 @@ assert.match(auth, /writeSession\(provisional\);[\s\S]*clearAuthCallbackUrl\(\);
 assert.match(auth, /void warmSession\(\)\.catch/, 'callback consumption must begin immediately instead of waiting for a later microtask');
 assert.doesNotMatch(auth, /queueMicrotask\(\(\) => warmSession/, 'Safari callback acceptance must not depend on microtask scheduling');
 
-console.log('LuckyBean P0 startup/auth and immediate atomic callback compatibility contract passed');
+console.log('LuckyBean P0 synchronous Safari auth callback and startup compatibility contract passed');
