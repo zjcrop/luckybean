@@ -69,4 +69,56 @@ function replaceExact(source, before, after, label) {
   write(path, source);
 }
 
+// Derived bean summaries must retain enough human-readable legacy metadata to render old cards
+// without reopening the canonical bean store. These fields are disposable display projections only.
+{
+  const path = 'src/db-storage-core.js';
+  let source = read(path);
+  source = replaceExact(
+    source,
+    "    countryCode: bean.countryCode || '', regionCode: bean.regionCode || '', entityCode: bean.entityCode || '',\n    varietyCode: bean.varietyCode || '', processCode: bean.processCode || '', roastCode: bean.roastCode || '', roastColor: bean.roastColor || '',",
+    "    countryCode: bean.countryCode || '', regionCode: bean.regionCode || '', entityCode: bean.entityCode || '',\n    countryName: bean.countryName || bean.country || '', entityName: bean.entityName || bean.entity || bean.processingStation || '',\n    varietyCode: bean.varietyCode || '', processCode: bean.processCode || '', roastCode: bean.roastCode || '', roastColor: bean.roastColor || '',\n    varietyName: bean.varietyName || bean.variety || '', processName: bean.processName || bean.process || '', roastName: bean.roastName || bean.roast || '',",
+    'bean summary legacy display fields'
+  );
+  write(path, source);
+}
+
+// The full codebook is deliberately absent from the first paint. Any workflow that actually parses
+// coffee metadata must therefore acquire it before canonical parsing, while settings rendering must
+// tolerate the unloaded state. Restore the exact historical stock-summary wording at the same time.
+{
+  const path = 'src/app.js';
+  let source = read(path);
+  source = replaceExact(
+    source,
+    "function processRecognitionDocument(recognitionDocument, { existingDraft = null, overwrite = true } = {}) {\n  const analysis = analyzeRecognitionDocument(recognitionDocument, state.codebook);",
+    "async function processRecognitionDocument(recognitionDocument, { existingDraft = null, overwrite = true } = {}) {\n  await ensureFullCodebook();\n  const analysis = analyzeRecognitionDocument(recognitionDocument, state.codebook);",
+    'recognition codebook on demand'
+  );
+  source = replaceExact(source, "state.codebook.version||'6'", "state.codebook?.version||'6'", 'settings unloaded codebook safety');
+  source = replaceExact(source, '现有咖啡豆 ${stock}', '现有咖啡豆共计 ${stock}', 'inventory summary wording');
+  write(path, source);
+}
+
+// Keep heavyweight OCR/model allocation, the world map and recommendation selection on-demand, but
+// preload lightweight interaction controllers before exposing the runtime-ready contract. This keeps
+// legacy entry points synchronous and prevents a user click from racing a dynamic import.
+{
+  const path = 'src/features/runtime-features.js';
+  let source = read(path);
+  source = replaceExact(
+    source,
+    "const catalog = new Map([...CORE_FEATURES, ...LAZY_FEATURES].map(item => [item.id, item]));",
+    "const PREINTERACTION_FEATURE_IDS = Object.freeze([\n  'recognition-quality', 'package-capture', 'direct-camera', 'recognition-review-owner',\n  'recognition-batch-progress', 'brew-pour-guide', 'shared-sortable', 'sensory-tag-sort'\n]);\n\nconst catalog = new Map([...CORE_FEATURES, ...LAZY_FEATURES].map(item => [item.id, item]));",
+    'preinteraction feature set'
+  );
+  source = replaceExact(
+    source,
+    "for (const runtimeFeature of CORE_FEATURES) {\n  try { await loadFeature(runtimeFeature.id); }\n  catch { /* failure already recorded */ }\n}\n\ninstallLazyTriggers();",
+    "for (const runtimeFeature of CORE_FEATURES) {\n  try { await loadFeature(runtimeFeature.id); }\n  catch { /* failure already recorded */ }\n}\n\nawait loadMany(PREINTERACTION_FEATURE_IDS);\ninstallLazyTriggers();",
+    'preinteraction load gate'
+  );
+  write(path, source);
+}
+
 console.log('runtime lazy final transform applied');
