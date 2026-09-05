@@ -21,11 +21,13 @@ assert.match(auth, /email_not_confirmed/, 'email verification state must be tran
 assert.match(auth, /invalid_credentials/, 'invalid credentials state must be translated explicitly');
 assert.match(auth, /over_email_send_rate_limit/, 'email rate-limit state must be translated explicitly');
 assert.match(auth, /typeof AbortController === 'function'/, 'auth requests must degrade when AbortController is unavailable');
-assert.match(auth, /cloud-auth-service-v5-ios-callback-lock/, 'current auth revision marker must be present');
+assert.match(auth, /cloud-auth-service-v6-atomic-callback/, 'current auth revision marker must be present');
 assert.match(auth, /INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash\(location\.hash\)/, 'auth callback must be captured synchronously at module evaluation');
 assert.match(auth, /if \(authCallbackPromise\) return authCallbackPromise/, 'concurrent callback consumers must share one promise');
 assert.match(auth, /authCallbackConsumed/, 'callback state must prevent replay after URL cleanup');
+assert.match(auth, /writeSession\(provisional\);[\s\S]*clearAuthCallbackUrl\(\);[\s\S]*rawRequest\('\/auth\/v1\/user'/, 'callback tokens must be persisted and URL scrubbed before profile fetch');
+assert.match(auth, /profilePending:true/, 'auth state must expose profile enrichment without blocking session acceptance');
 assert.match(auth, /consumeAuthCallback/, 'email verification callback must be consumed before normal warm-up');
 assert.match(auth, /volatileSession/, 'storage failure must preserve a non-destructive volatile session');
 
-console.log('LuckyBean P0 startup/auth v5 callback-lock contract passed');
+console.log('LuckyBean P0 startup/auth v6 atomic callback contract passed');
