@@ -1,15 +1,17 @@
-const VERSION = '0.4.3';
+const VERSION = '0.4.4';
 const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;
 const LOW_MEMORY = Number(navigator.deviceMemory || 4) <= 4 || /iPhone|iPad|iPod/i.test(navigator.userAgent);
 const LIMIT_SIDE = LOW_MEMORY ? 736 : 960;
 const ENGINE_INIT_TIMEOUT_MS = 75000;
 const PREDICT_TIMEOUT_MS = 45000;
+const ROI_CROP_TIMEOUT_MS = 20000;
 
 let modulePromise = null;
 let enginePromise = null;
 let engineGeneration = 0;
 let busy = false;
 let disposeTimer = 0;
+let roiRequestSequence = 0;
 
 function defaultRuntimeBase() {
   // Keep the source-module default for LuckyBean itself, but do not evaluate
@@ -65,6 +67,60 @@ function withTimeout(promise, timeoutMs, message, onTimeout) {
     }, timeoutMs);
   });
   return Promise.race([promise, timeout]).finally(() => globalThis.clearTimeout(timer));
+}
+
+function clamp01(value, fallback = 0) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.max(0, Math.min(1, number));
+}
+
+function normalizeRegion(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  const left = clamp01(source.left);
+  const top = clamp01(source.top);
+  const right = clamp01(source.right, 1);
+  const bottom = clamp01(source.bottom, 1);
+  if (right - left < 0.01 || bottom - top < 0.01) throw new Error('ROI 范围过小或无效');
+  return Object.freeze({ left, top, right, bottom });
+}
+
+async function cropRegionInWorker(blob, regionInput, options = {}) {
+  if (!(blob instanceof Blob) || blob.size === 0) throw new Error('ROI 原图不可用');
+  const region = normalizeRegion(regionInput);
+  roiRequestSequence += 1;
+  const requestId = `roi-${Date.now().toString(36)}-${roiRequestSequence.toString(36)}`;
+  const worker = new Worker(assetUrl('roi-worker.js'), { type: 'classic', name: 'luckybean-roi-crop' });
+  let settled = false;
+  const cleanup = () => {
+    if (settled) return;
+    settled = true;
+    try { worker.terminate(); } catch { /* worker cleanup is best-effort */ }
+  };
+  const operation = new Promise((resolve, reject) => {
+    worker.onmessage = event => {
+      if (String(event.data?.requestId || '') !== requestId) return;
+      if (event.data?.ok !== true) {
+        cleanup();
+        reject(new Error(String(event.data?.error || 'ROI Worker 裁剪失败')));
+        return;
+      }
+      const result = event.data;
+      cleanup();
+      resolve(result);
+    };
+    worker.onerror = event => {
+      cleanup();
+      reject(new Error(`ROI Worker 运行失败：${event.message || 'unknown error'}`));
+    };
+    worker.postMessage({
+      requestId,
+      blob,
+      region,
+      maxEdge: Number(options.maxEdge || 2200)
+    });
+  });
+  return withTimeout(operation, ROI_CROP_TIMEOUT_MS, 'ROI Worker 裁剪超时，已终止本次局部识别', cleanup);
 }
 
 async function loadModule() {
@@ -239,6 +295,26 @@ async function predict(images) {
   };
 }
 
+async function predictRegion(blob, region, options = {}) {
+  emit('正在 Worker 中裁剪待复核区域', 10);
+  const crop = await cropRegionInWorker(blob, region, options);
+  const imageId = String(options.imageId || 'roi');
+  const result = await predict([{ id: imageId, blob: crop.blob }]);
+  return {
+    ...result,
+    regionProtocol: 'recognition-roi/1.0',
+    region: crop.region,
+    sourceWidth: Number(crop.sourceWidth || 0),
+    sourceHeight: Number(crop.sourceHeight || 0),
+    cropX: Number(crop.cropX || 0),
+    cropY: Number(crop.cropY || 0),
+    cropWidth: Number(crop.cropWidth || 0),
+    cropHeight: Number(crop.cropHeight || 0),
+    outputWidth: Number(crop.outputWidth || 0),
+    outputHeight: Number(crop.outputHeight || 0)
+  };
+}
+
 async function run(task) {
   if (busy) throw new Error('识别任务正在运行，请勿重复点击');
   busy = true;
@@ -282,6 +358,8 @@ const paddleOcrApi = Object.freeze({
   engine: ENGINE,
   lowMemory: LOW_MEMORY,
   workerOnly: true,
+  roiWorkerOnly: true,
+  regionRecognition: 'recognition-roi/1.0',
   runtimeOrigin: 'same-origin-vendored',
   workerBootstrap: 'same-origin-vendored-module',
   runtimeBase() {
@@ -289,6 +367,9 @@ const paddleOcrApi = Object.freeze({
   },
   recognizeCoffeeBag(images) {
     return run(() => predict(images));
+  },
+  recognizeRegion(blob, region, options = {}) {
+    return run(() => predictRegion(blob, region, options));
   },
   async recognize(blob) {
     const result = await run(() => predict([{ id: 'single', blob }]));
