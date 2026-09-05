@@ -2,35 +2,16 @@ import { parseNaturalLanguage } from '../../codebook.js';
 import { automaticEntityResolutionDecision } from '../../services/coffee-knowledge-adapter.js';
 import { bestKnowledgeOnlyVarietyCandidate } from '../../services/knowledge-only-variety-candidates.js';
 import { resolveRecognitionRelations, resolverPriorityDescription } from './recognition-field-resolver-1.24b.js';
+import { repairRecognitionSemanticText } from './recognition-semantic-repair.js';
 
-export const RECOGNITION_PIPELINE_VERSION = '1.24P-recognition-pipeline.4';
+export const RECOGNITION_PIPELINE_VERSION = '1.24P-recognition-pipeline.5';
 
 const RELATION_TO_RESULT = Object.freeze({
-  country: 'countryCode',
-  origin: 'countryCode',
-  region: 'regionCode',
-  farm: 'entityCode',
-  producer: 'entityCode',
-  station: 'entityCode',
-  cooperative: 'entityCode',
-  variety: 'varietyCode',
-  species: 'varietyCode',
-  process: 'processCode',
-  roast: 'roastCode',
-  roastDate: 'roastDate',
-  harvest: 'harvestYear',
-  altitude: 'altitude',
-  roastColor: 'roastColor',
-  weight: 'initialWeight',
-  roaster: 'roasterName',
-  flavor: 'flavorCodes',
-  aroma: 'flavorCodes',
-  productionDate: 'productionDate',
-  packDate: 'packDate',
-  bestBefore: 'bestBefore',
-  expiryDate: 'expiryDate',
-  lot: 'lot',
-  grade: 'grade'
+  country: 'countryCode', origin: 'countryCode', region: 'regionCode', farm: 'entityCode', producer: 'entityCode',
+  station: 'entityCode', cooperative: 'entityCode', variety: 'varietyCode', species: 'varietyCode', process: 'processCode',
+  roast: 'roastCode', roastDate: 'roastDate', harvest: 'harvestYear', altitude: 'altitude', roastColor: 'roastColor',
+  weight: 'initialWeight', roaster: 'roasterName', flavor: 'flavorCodes', aroma: 'flavorCodes', productionDate: 'productionDate',
+  packDate: 'packDate', bestBefore: 'bestBefore', expiryDate: 'expiryDate', lot: 'lot', grade: 'grade'
 });
 
 const AI_FIELD_TO_RESULT = Object.freeze({
@@ -41,18 +22,11 @@ const AI_FIELD_TO_RESULT = Object.freeze({
 });
 
 const FIELD_DEFINITIONS = Object.freeze([
-  ['countryCode', '国家', 'countries', 'countryCustomName'],
-  ['regionCode', '产区', 'regions', 'regionCustomName'],
-  ['entityCode', '庄园 / 处理站', 'entities', 'entityCustomName'],
-  ['varietyCode', '豆种', 'varieties', 'varietyCustomName'],
-  ['processCode', '处理法', 'processes', 'processCustomName'],
-  ['roastCode', '烘焙度', null, null],
-  ['roastDate', '烘焙日期', null, null],
-  ['harvestYear', '产季', null, null],
-  ['roastColor', '烘焙色值', null, null],
-  ['roasterName', '烘焙商', null, null],
-  ['altitude', '海拔', null, null],
-  ['initialWeight', '净重', null, null],
+  ['countryCode', '国家', 'countries', 'countryCustomName'], ['regionCode', '产区', 'regions', 'regionCustomName'],
+  ['entityCode', '庄园 / 处理站', 'entities', 'entityCustomName'], ['varietyCode', '豆种', 'varieties', 'varietyCustomName'],
+  ['processCode', '处理法', 'processes', 'processCustomName'], ['roastCode', '烘焙度', null, null],
+  ['roastDate', '烘焙日期', null, null], ['harvestYear', '产季', null, null], ['roastColor', '烘焙色值', null, null],
+  ['roasterName', '烘焙商', null, null], ['altitude', '海拔', null, null], ['initialWeight', '净重', null, null],
   ['flavorCodes', '风味', 'flavors', 'customFlavorNames']
 ]);
 
@@ -61,14 +35,8 @@ const ROAST_LABELS = Object.freeze({
   'RL-L4': '中深烘', 'RL-L5': '深烘', 'RL-L6': '极深烘'
 });
 
-function clean(value) {
-  return String(value ?? '').normalize('NFKC').replace(/\s+/g, ' ').trim();
-}
-
-function normalizedComparable(value) {
-  return clean(value).toLocaleLowerCase('zh-CN').replace(/[\s·•,，;；:：/_-]+/g, '');
-}
-
+function clean(value) { return String(value ?? '').normalize('NFKC').replace(/\s+/g, ' ').trim(); }
+function normalizedComparable(value) { return clean(value).toLocaleLowerCase('zh-CN').replace(/[\s·•,，;；:：/_-]+/g, ''); }
 function labelForCode(book, table, code) {
   const row = (book?.[table] || []).find(item => String(item?.[0]) === String(code));
   if (!row) return String(code || '');
@@ -77,7 +45,6 @@ function labelForCode(book, table, code) {
   if (table === 'flavors') return clean((row.length >= 9 ? row[4] : row[1]) || code);
   return clean(row[1] || row[2] || code);
 }
-
 function displayScalar(field, value) {
   if (value === '' || value === null || value === undefined) return '';
   if (field === 'roastCode') return ROAST_LABELS[value] || String(value);
@@ -87,40 +54,25 @@ function displayScalar(field, value) {
   if (field === 'roastColor') return `Agtron ${value}`;
   return String(value);
 }
-
 function relationEvidence(document) {
   const byResult = new Map();
   for (const relation of document?.relations || []) {
     const resultField = RELATION_TO_RESULT[relation.field];
     if (!resultField) continue;
-    const record = {
-      value: clean(relation.value),
-      label: clean(relation.label),
-      score: Number(relation.score || 0),
-      mode: String(relation.mode || ''),
-      imageId: String(relation.imageId || ''),
-      imageRole: String(relation.imageRole || '')
-    };
+    const record = { value:clean(relation.value), label:clean(relation.label), score:Number(relation.score || 0), mode:String(relation.mode || ''), imageId:String(relation.imageId || ''), imageRole:String(relation.imageRole || '') };
     if (!byResult.has(resultField)) byResult.set(resultField, []);
     byResult.get(resultField).push(record);
   }
   return byResult;
 }
-
-function resolvedRelations(relations, field) {
-  return resolveRecognitionRelations(relations.get(field) || []);
-}
-
+function resolvedRelations(relations, field) { return resolveRecognitionRelations(relations.get(field) || []); }
 function rawForField(relations, field, parsed) {
   const resolution = resolvedRelations(relations, field);
   if (resolution.winner?.value) return resolution.winner.value;
   const evidence = parsed?.evidence?.[field];
   return Array.isArray(evidence) ? evidence.join('、') : clean(evidence);
 }
-
-function relationConfidence(relations, field) {
-  return Number(resolvedRelations(relations, field).winner?.confidence || 0);
-}
+function relationConfidence(relations, field) { return Number(resolvedRelations(relations, field).winner?.confidence || 0); }
 
 function enforceKnowledgeOnlyVarietyCandidate(parsed, book) {
   if (parsed?.varietyCode) return;
@@ -128,9 +80,7 @@ function enforceKnowledgeOnlyVarietyCandidate(parsed, book) {
   if (!evidence) return;
   const candidate = bestKnowledgeOnlyVarietyCandidate(book, evidence);
   if (!candidate) return;
-  parsed.parseMetadata ||= {};
-  parsed.evidence ||= {};
-  parsed.confidence ||= {};
+  parsed.parseMetadata ||= {}; parsed.evidence ||= {}; parsed.confidence ||= {};
   parsed.parseMetadata.knowledgeOnlyVariety = structuredClone(candidate);
   if (!parsed.varietyCustomName) parsed.varietyCustomName = evidence;
   if (!parsed.evidence.varietyCode) parsed.evidence.varietyCode = evidence;
@@ -140,45 +90,32 @@ function enforceKnowledgeOnlyVarietyCandidate(parsed, book) {
 }
 
 function enforceEntityResolutionSafety(parsed, book) {
-  const coreCode = String(parsed?.entityCode || '');
-  if (!coreCode) return;
+  const coreCode = String(parsed?.entityCode || ''); if (!coreCode) return;
   const evidence = clean(parsed?.evidence?.entityCode);
   const explicitCoreCode = normalizedComparable(evidence) === normalizedComparable(coreCode);
   const decision = automaticEntityResolutionDecision(book, coreCode, { explicitCoreCode });
   if (!decision.issue) return;
   parsed.parseMetadata ||= {};
   if (!decision.blocked) {
-    parsed.parseMetadata.entityResolution = {
-      blocked:false, explicitCoreCode:true, coreCode, issueClass:decision.issueClass,
-      resolutionStatus:decision.resolutionStatus, automaticRecognitionPolicy:decision.automaticRecognitionPolicy,
-      requiredContext:decision.requiredContext, historicalCoreCompatibility:true
-    };
+    parsed.parseMetadata.entityResolution = { blocked:false, explicitCoreCode:true, coreCode, issueClass:decision.issueClass, resolutionStatus:decision.resolutionStatus, automaticRecognitionPolicy:decision.automaticRecognitionPolicy, requiredContext:decision.requiredContext, historicalCoreCompatibility:true };
     return;
   }
   const display = evidence || labelForCode(book, 'entities', coreCode);
   const originalConfidence = Number(parsed?.confidence?.entityCode || 0);
   delete parsed.entityCode;
   if (display && !parsed.entityCustomName) parsed.entityCustomName = display;
-  parsed.evidence ||= {};
-  parsed.confidence ||= {};
+  parsed.evidence ||= {}; parsed.confidence ||= {};
   if (display && !parsed.evidence.entityCustomName) parsed.evidence.entityCustomName = display;
   if (display && !parsed.evidence.entityCode) parsed.evidence.entityCode = display;
   parsed.confidence.entityCustomName = Math.max(Number(parsed.confidence.entityCustomName || 0), originalConfidence);
   parsed.confidence.entityCode = Math.min(originalConfidence || 0.45, 0.45);
-  parsed.parseMetadata.entityResolution = {
-    blocked:true, explicitCoreCode:false, candidateCoreCode:coreCode, issueClass:decision.issueClass,
-    resolutionStatus:decision.resolutionStatus, automaticRecognitionPolicy:decision.automaticRecognitionPolicy,
-    requiredContext:decision.requiredContext, manualConfirmationRequired:true, historicalCoreCompatibility:true
-  };
+  parsed.parseMetadata.entityResolution = { blocked:true, explicitCoreCode:false, candidateCoreCode:coreCode, issueClass:decision.issueClass, resolutionStatus:decision.resolutionStatus, automaticRecognitionPolicy:decision.automaticRecognitionPolicy, requiredContext:decision.requiredContext, manualConfirmationRequired:true, historicalCoreCompatibility:true };
 }
 
 function buildFieldRows(document, parsed, book) {
-  const relations = relationEvidence(document);
-  const rows = [];
+  const relations = relationEvidence(document), rows = [];
   for (const [field, label, table, customField] of FIELD_DEFINITIONS) {
-    const resolution = resolvedRelations(relations, field);
-    const rawValue = rawForField(relations, field, parsed);
-    const value = parsed?.[field];
+    const resolution = resolvedRelations(relations, field), rawValue = rawForField(relations, field, parsed), value = parsed?.[field];
     const customValue = customField ? parsed?.[customField] : null;
     const knowledgeCandidate = field === 'varietyCode' ? parsed?.parseMetadata?.knowledgeOnlyVariety || null : null;
     let standardValue = '';
@@ -196,20 +133,11 @@ function buildFieldRows(document, parsed, book) {
     const confidence = Math.max(Number(parsed?.confidence?.[field] || 0), relationConfidence(relations, field));
     const translated = resolved && rawValue && standardValue && normalizedComparable(rawValue) !== normalizedComparable(standardValue);
     const requiresReview = Boolean(resolution.conflict) || !resolved;
-    rows.push({
-      field, label, rawValue, standardValue:standardValue || rawValue, confidence,
-      resolved:resolved && !resolution.conflict, translated,
-      status:requiresReview ? 'review' : (translated ? 'translated' : 'resolved'),
-      sources:resolution.winner?.sources || relations.get(field) || [],
+    rows.push({ field, label, rawValue, standardValue:standardValue || rawValue, confidence, resolved:resolved && !resolution.conflict, translated,
+      status:requiresReview ? 'review' : (translated ? 'translated' : 'resolved'), sources:resolution.winner?.sources || relations.get(field) || [],
       ...(knowledgeCandidate ? { knowledgeCandidate:structuredClone(knowledgeCandidate) } : {}),
-      resolution:{
-        priority:resolverPriorityDescription(), conflict:Boolean(resolution.conflict), reason:resolution.reason,
-        winningImageIds:resolution.winner?.imageIds || [],
-        candidates:(resolution.candidates || []).map(item=>({
-          value:item.value, confidence:item.confidence, explicit:item.explicit, imageCount:item.imageCount,
-          score:Number(item.score.toFixed(3)), imageIds:item.imageIds
-        }))
-      }
+      resolution:{ priority:resolverPriorityDescription(), conflict:Boolean(resolution.conflict), reason:resolution.reason, winningImageIds:resolution.winner?.imageIds || [],
+        candidates:(resolution.candidates || []).map(item=>({ value:item.value, confidence:item.confidence, explicit:item.explicit, imageCount:item.imageCount, score:Number(item.score.toFixed(3)), imageIds:item.imageIds })) }
     });
   }
   return rows;
@@ -220,73 +148,41 @@ function normalizeAiEnrichment(document) {
   if (!root || root.schemaVersion !== 'ai-enrichment-result/1.0') return null;
   if (root?.policy?.authority !== 'advisory' || root?.policy?.mayOverwriteFact !== false || !Array.isArray(root.candidates)) return null;
   const candidates = root.candidates.map((candidate, index) => {
-    const resultField = AI_FIELD_TO_RESULT[String(candidate?.field || '')];
-    const value = clean(candidate?.value);
-    const confidence = Number(candidate?.confidence);
+    const resultField = AI_FIELD_TO_RESULT[String(candidate?.field || '')], value = clean(candidate?.value), confidence = Number(candidate?.confidence);
     if (!resultField || !value || !Number.isFinite(confidence) || confidence < 0 || confidence > 1) return null;
-    return {
-      id:`ai:${index + 1}`, field:String(candidate.field), resultField, value, confidence,
-      status:String(candidate.status || 'review'), reason:clean(candidate.reason),
-      evidenceRefs:Array.isArray(candidate.evidenceRefs) ? candidate.evidenceRefs.map(String) : [],
-      engine:String(root.engine || 'zhipu'), model:String(root.model || '')
-    };
+    return { id:`ai:${index + 1}`, field:String(candidate.field), resultField, value, confidence, status:String(candidate.status || 'review'), reason:clean(candidate.reason), evidenceRefs:Array.isArray(candidate.evidenceRefs) ? candidate.evidenceRefs.map(String) : [], engine:String(root.engine || 'zhipu'), model:String(root.model || '') };
   }).filter(Boolean).filter(candidate => candidate.status !== 'rejected');
   return candidates.length ? { root, candidates } : null;
 }
 
 function attachAiAdvisory(fields, parsed, document) {
-  const enrichment = normalizeAiEnrichment(document);
-  if (!enrichment) return fields;
+  const enrichment = normalizeAiEnrichment(document); if (!enrichment) return fields;
   parsed.parseMetadata ||= {};
-  parsed.parseMetadata.aiEnrichment = {
-    schemaVersion:enrichment.root.schemaVersion,
-    task:enrichment.root.task,
-    engine:enrichment.root.engine,
-    model:enrichment.root.model || '',
-    createdAt:enrichment.root.createdAt || '',
-    inputFingerprint:enrichment.root.inputFingerprint || '',
-    authority:'advisory',
-    mayOverwriteFact:false,
-    candidates:structuredClone(enrichment.candidates)
-  };
+  parsed.parseMetadata.aiEnrichment = { schemaVersion:enrichment.root.schemaVersion, task:enrichment.root.task, engine:enrichment.root.engine, model:enrichment.root.model || '', createdAt:enrichment.root.createdAt || '', inputFingerprint:enrichment.root.inputFingerprint || '', authority:'advisory', mayOverwriteFact:false, candidates:structuredClone(enrichment.candidates) };
   const byResult = new Map();
-  for (const candidate of enrichment.candidates) {
-    if (!byResult.has(candidate.resultField)) byResult.set(candidate.resultField, []);
-    byResult.get(candidate.resultField).push(candidate);
-  }
-  const decorated = fields.map(row => {
-    const candidates = byResult.get(row.field) || [];
-    if (!candidates.length) return row;
-    return { ...row, aiCandidates:structuredClone(candidates) };
-  });
-  const defined = new Map(FIELD_DEFINITIONS.map(definition => [definition[0], definition]));
-  const existing = new Set(decorated.map(row => row.field));
+  for (const candidate of enrichment.candidates) { if (!byResult.has(candidate.resultField)) byResult.set(candidate.resultField, []); byResult.get(candidate.resultField).push(candidate); }
+  const decorated = fields.map(row => { const candidates = byResult.get(row.field) || []; return candidates.length ? { ...row, aiCandidates:structuredClone(candidates) } : row; });
+  const defined = new Map(FIELD_DEFINITIONS.map(definition => [definition[0], definition])), existing = new Set(decorated.map(row => row.field));
   for (const [field, candidates] of byResult.entries()) {
     if (existing.has(field) || !defined.has(field)) continue;
-    const [, label] = defined.get(field);
-    const best = [...candidates].sort((a,b)=>b.confidence-a.confidence)[0];
-    decorated.push({
-      field, label, rawValue:'', standardValue:best.value, confidence:best.confidence,
-      resolved:false, translated:false, status:'review', sources:[], aiCandidates:structuredClone(candidates),
-      resolution:{ priority:resolverPriorityDescription(), conflict:false, reason:'ai-advisory-only', winningImageIds:[], candidates:[] }
-    });
+    const [, label] = defined.get(field), best = [...candidates].sort((a,b)=>b.confidence-a.confidence)[0];
+    decorated.push({ field, label, rawValue:'', standardValue:best.value, confidence:best.confidence, resolved:false, translated:false, status:'review', sources:[], aiCandidates:structuredClone(candidates), resolution:{ priority:resolverPriorityDescription(), conflict:false, reason:'ai-advisory-only', winningImageIds:[], candidates:[] } });
   }
   return decorated;
 }
 
 export function analyzeRecognitionDocument(document, book) {
   if (!document || typeof document !== 'object') throw new TypeError('识别文档无效');
-  const semanticText = String(document.fullText || '').replace(/\r/g, '').split(/\n+/).map(clean).filter(Boolean).join('\n');
+  const baseSemanticText = String(document.fullText || '').replace(/\r/g, '').split(/\n+/).map(clean).filter(Boolean).join('\n');
+  const semanticText = repairRecognitionSemanticText(baseSemanticText, book);
   const parsed = parseNaturalLanguage(semanticText, book);
   enforceKnowledgeOnlyVarietyCandidate(parsed, book);
   enforceEntityResolutionSafety(parsed, book);
   const fields = attachAiAdvisory(buildFieldRows(document, parsed, book), parsed, document);
   const reviewFields = fields.filter(item => item.status === 'review');
-  parsed.evidence ||= {};
-  parsed.confidence ||= {};
+  parsed.evidence ||= {}; parsed.confidence ||= {};
   for (const item of reviewFields) {
-    const reviewValue = clean(item.rawValue || item.standardValue);
-    if (!reviewValue) continue;
+    const reviewValue = clean(item.rawValue || item.standardValue); if (!reviewValue) continue;
     const currentEvidence = parsed.evidence[item.field];
     const missingEvidence = currentEvidence === undefined || currentEvidence === null || currentEvidence === '' || (Array.isArray(currentEvidence) && currentEvidence.length === 0);
     if (missingEvidence && !item.aiCandidates?.length) parsed.evidence[item.field] = reviewValue;
@@ -295,17 +191,12 @@ export function analyzeRecognitionDocument(document, book) {
   }
   parsed.parseMetadata ||= {};
   parsed.parseMetadata.recognition = {
-    pipelineVersion:RECOGNITION_PIPELINE_VERSION, documentSchemaVersion:document.schemaVersion || '', parserVersion:document.parserVersion || '',
-    engine:document.engine || '', imageCount:Array.isArray(document.images) ? document.images.length : 0,
-    blockCount:Array.isArray(document.blocks) ? document.blocks.length : 0, relationCount:Array.isArray(document.relations) ? document.relations.length : 0,
-    reviewFields:reviewFields.map(item => item.field), arbitrationPriority:resolverPriorityDescription(), rawFullText:document.rawFullText || '', semanticText
+    pipelineVersion:RECOGNITION_PIPELINE_VERSION, documentSchemaVersion:document.schemaVersion || '', parserVersion:document.parserVersion || '', engine:document.engine || '',
+    imageCount:Array.isArray(document.images) ? document.images.length : 0, blockCount:Array.isArray(document.blocks) ? document.blocks.length : 0,
+    relationCount:Array.isArray(document.relations) ? document.relations.length : 0, reviewFields:reviewFields.map(item => item.field), arbitrationPriority:resolverPriorityDescription(),
+    rawFullText:document.rawFullText || '', rawSemanticText:baseSemanticText, semanticText
   };
-  return {
-    pipelineVersion:RECOGNITION_PIPELINE_VERSION, document, semanticText, parsed, fields,
-    resolvedCount:fields.length - reviewFields.length, reviewCount:reviewFields.length
-  };
+  return { pipelineVersion:RECOGNITION_PIPELINE_VERSION, document, semanticText, parsed, fields, resolvedCount:fields.length - reviewFields.length, reviewCount:reviewFields.length };
 }
 
-export function recognitionResultField(relationField) {
-  return RELATION_TO_RESULT[String(relationField || '')] || '';
-}
+export function recognitionResultField(relationField) { return RELATION_TO_RESULT[String(relationField || '')] || ''; }
