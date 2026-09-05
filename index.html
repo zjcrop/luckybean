@@ -7,6 +7,7 @@
   <meta name="application-version" content="1.24P">
   <meta name="release-revision" content="1.24P-main.3">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://raw.githubusercontent.com https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <script src="./src/core/auth-callback-bootstrap.js?v=1.24P-main.3"></script>
   <title>富贵盒子 1.24P</title>
   <link rel="manifest" href="./manifest.webmanifest?v=1.24P-main.3">
   <link rel="icon" href="./public/app-logo.webp?v=1.24P-main.3" type="image/webp">
@@ -44,7 +45,7 @@
     <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>
   </div>
   <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept=".luckybean,application/vnd.luckybean.archive+json,application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="./src/services/cloud-auth-service.js?v=1.24P-main.3"></script>
+  <script type="module" src="./src/services/cloud-auth-service.js?v=1.24P-main.3"></script>
   <script type="module" src="./src/core/startup-controller.js?v=1.24P-main.3"></script>
   <script type="module" src="./src/services/cloud-sync-service.js?v=1.24P-main.3"></script>
   <script type="module" src="./src/core/bootstrap.js?v=1.24P-main.3"></script>
