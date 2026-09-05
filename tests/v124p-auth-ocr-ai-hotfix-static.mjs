@@ -12,11 +12,13 @@ const release=JSON.parse(fs.readFileSync('release.json','utf8'));
 
 assert.match(auth,/function consumeAuthCallback\(/);
 assert.match(auth,/new URLSearchParams\(hash\)/);
+assert.match(auth,/INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash\(location\.hash\)/);
+assert.match(auth,/if \(authCallbackPromise\) return authCallbackPromise/);
 assert.match(auth,/params\.get\('access_token'\)/);
 assert.match(auth,/params\.get\('refresh_token'\)/);
 assert.match(auth,/history\.replaceState/);
 assert.match(auth,/volatileSession/);
-assert.match(auth,/cloud-auth-service-v4-ios-callback/);
+assert.match(auth,/cloud-auth-service-v5-ios-callback-lock/);
 assert.doesNotMatch(auth,/function writeSession\(value\) \{ if \(value\?\.access_token/,'session persistence must not use the old unguarded storage writer');
 
 assert.match(ai,/recognition-ai-v1/);
@@ -48,4 +50,4 @@ assert.equal(release.androidVersionCode,102418);
 assert.equal(release.releaseTag,'v1.24P-main.2');
 assert.match(sw,/recognition-ai-service\.js/);
 
-console.log('LuckyBean P0 auth callback, Safari OCR fallback and advisory AI recognition safety contract passed');
+console.log('LuckyBean P0 auth callback lock, Safari OCR fallback and advisory AI recognition safety contract passed');
