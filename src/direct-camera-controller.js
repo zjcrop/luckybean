@@ -3,6 +3,93 @@ let facingMode = 'environment';
 let cameraRoot = null;
 let opening = false;
 
+function ensureCameraStyles() {
+  if (document.querySelector('#lb-direct-camera-runtime-style')) return;
+  const style = document.createElement('style');
+  style.id = 'lb-direct-camera-runtime-style';
+  style.textContent = `
+    .lb-direct-camera{
+      display:flex!important;
+      align-items:center!important;
+      justify-content:center!important;
+      overflow:auto!important;
+      padding:max(10px,env(safe-area-inset-top)) 12px max(10px,env(safe-area-inset-bottom))!important;
+      background:var(--bg,#050505)!important;
+      color:var(--text,#f5f3ed)!important;
+    }
+    .lb-direct-camera .lb-camera-panel{
+      width:min(560px,calc(100vw - 24px))!important;
+      height:auto!important;
+      max-height:calc(100vh - 24px)!important;
+      max-height:calc(100dvh - 24px)!important;
+      display:flex!important;
+      flex-direction:column!important;
+      gap:8px!important;
+      padding:10px!important;
+      overflow:hidden!important;
+      background:var(--bg,#050505)!important;
+      color:var(--text,#f5f3ed)!important;
+    }
+    .lb-direct-camera .lb-camera-view{
+      flex:0 1 auto!important;
+      width:100%!important;
+      height:clamp(180px,52vh,420px)!important;
+      height:clamp(180px,52dvh,420px)!important;
+      min-height:0!important;
+      max-height:420px!important;
+      aspect-ratio:auto!important;
+    }
+    .lb-direct-camera .lb-camera-head,
+    .lb-direct-camera .lb-camera-head strong,
+    .lb-direct-camera .lb-camera-head button,
+    .lb-direct-camera .lb-camera-status,
+    .lb-direct-camera .lb-camera-actions .button{
+      color:var(--text,#f5f3ed)!important;
+    }
+    .lb-direct-camera .lb-camera-actions{
+      flex:0 0 auto!important;
+      margin:0!important;
+      padding-bottom:max(2px,env(safe-area-inset-bottom))!important;
+    }
+    .lb-direct-camera .lb-camera-actions .button{
+      min-height:42px!important;
+      opacity:1;
+    }
+    .lb-direct-camera .lb-camera-actions .button:disabled{opacity:.48}
+    html[data-theme="dark"] .lb-direct-camera .lb-camera-head,
+    html[data-theme="dark"] .lb-direct-camera .lb-camera-head strong,
+    html[data-theme="dark"] .lb-direct-camera .lb-camera-head button,
+    html[data-theme="dark"] .lb-direct-camera .lb-camera-status,
+    html[data-theme="dark"] .lb-direct-camera .lb-camera-actions .button{color:#fff!important}
+    html[data-theme="light"] .lb-direct-camera .lb-camera-head,
+    html[data-theme="light"] .lb-direct-camera .lb-camera-head strong,
+    html[data-theme="light"] .lb-direct-camera .lb-camera-head button,
+    html[data-theme="light"] .lb-direct-camera .lb-camera-status,
+    html[data-theme="light"] .lb-direct-camera .lb-camera-actions .button{color:#111!important}
+    @media(max-height:620px){
+      .lb-direct-camera .lb-camera-view{
+        height:clamp(150px,43vh,280px)!important;
+        height:clamp(150px,43dvh,280px)!important;
+      }
+    }
+    @media(max-width:560px){
+      .lb-direct-camera{padding-left:8px!important;padding-right:8px!important}
+      .lb-direct-camera .lb-camera-panel{
+        width:100%!important;
+        height:auto!important;
+        max-height:calc(100vh - 20px)!important;
+        max-height:calc(100dvh - 20px)!important;
+        padding:8px!important;
+      }
+      .lb-direct-camera .lb-camera-view{
+        height:clamp(170px,50vh,390px)!important;
+        height:clamp(170px,50dvh,390px)!important;
+      }
+    }
+  `;
+  document.head.append(style);
+}
+
 function stopCamera() {
   for (const track of stream?.getTracks?.() || []) track.stop();
   stream = null;
@@ -92,6 +179,7 @@ function stopTracksOnly() {
 async function openCamera() {
   if (opening || cameraRoot) return;
   opening = true;
+  ensureCameraStyles();
   const root = document.createElement('div');
   root.className = 'lb-direct-camera';
   root.innerHTML = `
