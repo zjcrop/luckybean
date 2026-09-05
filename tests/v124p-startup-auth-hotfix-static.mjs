@@ -17,6 +17,8 @@ assert.match(auth, /email_not_confirmed/, 'email verification state must be tran
 assert.match(auth, /invalid_credentials/, 'invalid credentials state must be translated explicitly');
 assert.match(auth, /over_email_send_rate_limit/, 'email rate-limit state must be translated explicitly');
 assert.match(auth, /typeof AbortController === 'function'/, 'auth requests must degrade when AbortController is unavailable');
-assert.match(auth, /cloud-auth-service-v3-hotfix/, 'hotfix auth revision marker must be present');
+assert.match(auth, /cloud-auth-service-v4-ios-callback/, 'current auth revision marker must be present');
+assert.match(auth, /consumeAuthCallback/, 'email verification callback must be consumed before normal warm-up');
+assert.match(auth, /volatileSession/, 'storage failure must preserve a non-destructive volatile session');
 
-console.log('LuckyBean P0 startup/auth hotfix static contract passed');
+console.log('LuckyBean P0 startup/auth v4 hotfix static contract passed');
