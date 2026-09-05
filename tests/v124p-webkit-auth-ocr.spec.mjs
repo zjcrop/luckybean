@@ -40,20 +40,27 @@ test('email verification callback survives Safari-style storage failure',async({
   expect(state.email).toBe('webkit@example.com');
 });
 
-test('WebKit runtime exposes bounded PP-OCR compatibility mode',async({page})=>{
+test('WebKit runtime stays lazy and exposes bounded PP-OCR compatibility mode',async({page})=>{
   await page.route(SUPABASE_PATTERN,route=>route.fulfill({status:200,contentType:'application/json',body:'{}'}));
   await enter(page,`${BASE_URL}/?webkit-ocr=1`);
   await page.waitForFunction(()=>Boolean(globalThis.LuckyBeanPaddleOCR)&&Boolean(globalThis.LuckyBeanPackageCapture),null,{timeout:15000});
+  await page.waitForTimeout(4500);
   const state=await page.evaluate(()=>({
     browserSafe:globalThis.LuckyBeanPaddleOCR.browserSafe,
     primaryIsolation:globalThis.LuckyBeanPaddleOCR.primaryIsolation,
     compatibilityFallback:globalThis.LuckyBeanPaddleOCR.compatibilityFallback,
+    autoPreload:globalThis.LuckyBeanPaddleOCR.autoPreload,
+    disposePolicy:globalThis.LuckyBeanPaddleOCR.disposePolicy,
     roiWorkerOnly:globalThis.LuckyBeanPaddleOCR.roiWorkerOnly,
-    webPaddle:globalThis.LuckyBeanPackageCapture.capabilities().webPaddle
+    webPaddle:globalThis.LuckyBeanPackageCapture.capabilities().webPaddle,
+    heavyResources:performance.getEntriesByType('resource').map(item=>item.name).filter(name=>/paddleocr\/(?:sdk|models|ort)\//.test(name)||/paddleocr\/sdk\.mjs/.test(name))
   }));
   expect(state.browserSafe).toBe(true);
-  expect(state.primaryIsolation).toBe('module-worker');
+  expect(state.primaryIsolation).toBe('webkit-direct-wasm-no-simd');
   expect(state.compatibilityFallback).toBe('webkit-direct-wasm-no-simd');
+  expect(state.autoPreload).toBe(false);
+  expect(state.disposePolicy).toBe('after-each-task');
   expect(state.roiWorkerOnly).toBe(true);
   expect(state.webPaddle).toBe(true);
+  expect(state.heavyResources).toEqual([]);
 });
