@@ -18,6 +18,7 @@ const LAZY_RUNTIME_RESOURCES = [
   './src/services/cloud-sync-safety.js',
   './src/services/brew-analysis-service.js',
   './src/services/provider-package-service.js',
+  './src/services/execution-text-sanitizer.js',
   './src/ui/appearance-controller.js',
   './src/ui/voice-settings-controller.js',
   './src/features/runtime-features.js',
