@@ -27,7 +27,9 @@ assert.ok(recognitionBridge.includes("dataUrl: nativeSource ? '' : await blobToD
 const packageCapture = fs.readFileSync(new URL('../src/package-capture-controller.js', import.meta.url), 'utf8');
 assert.ok(packageCapture.includes('bindAndroidImageSource(id, nativeSource)'), 'every Android-selected image must bind to its content URI in file order');
 assert.ok(packageCapture.includes('原生缩略预览'), 'capture UI must expose the native JPEG preview path');
-assert.ok(packageCapture.includes('previewAvailable: Boolean(previewUrl)'), 'native-source fallback must show a preview when Android returns a thumbnail');
+assert.match(packageCapture, /nativePreview\s*=\s*bindAndroidImageSource\(id,\s*nativeSource\)/, 'native-source fallback must request an Android thumbnail');
+assert.match(packageCapture, /previewUrl\s*=\s*nativeSource\s*\?\s*nativePreview\s*:\s*URL\.createObjectURL\(prepared\.blob\)/, 'native-source fallback must select the Android thumbnail as its preview');
+assert.match(packageCapture, /previewAvailable\s*:\s*Boolean\(previewUrl\)/, 'native-source fallback must show a preview when Android returns a thumbnail');
 
 const activity = fs.readFileSync(new URL('../android/app/src/main/java/com/luckybean/app/MainActivity.java', import.meta.url), 'utf8');
 assert.ok(activity.includes('pendingRecognitionUris'), 'Android must retain selected content URIs for OCR');
@@ -46,4 +48,4 @@ assert.ok(!gear.includes('MutationObserver'), 'gear editor must be event-driven'
 assert.equal(fs.existsSync(new URL('../src/features/gear-regression-fix-controller.js', import.meta.url)), false, 'legacy gear guard must stay deleted');
 assert.equal(fs.existsSync(new URL('../src/features/experience-fixes-controller.js', import.meta.url)), false, 'experience repair controller must stay deleted');
 
-console.log('v127 canonical cooling/gear ownership and 1.24B Android image pipeline static checks passed');
+console.log('v127 canonical cooling/gear ownership and 1.24P Android image pipeline static checks passed');
