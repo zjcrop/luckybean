@@ -23,7 +23,7 @@ function timelineHtml(bean) {
   return `<div class="bean-freshness-progress" data-lb-freshness-timeline aria-label="${esc(profile.label)}，风味${esc(profile.trend)}，时间轴${progress}%"><span class="bean-freshness-solid" style="width:${progress}%;background:${profile.color}"></span><span class="bean-freshness-dashed" style="left:${progress}%"></span></div>`;
 }
 async function refreshBeanMap() {
-  const beans = await all('beans').catch(() => []);
+  const beans = await all('beanSummaries').catch(() => []);
   beanMap = new Map(beans.map(bean => [String(bean.id), bean]));
 }
 function decorateCard(card) {

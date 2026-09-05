@@ -16,6 +16,8 @@ const enc = new TextEncoder();
 let timer = null;
 let busy = false;
 let pendingRun = false;
+let localAppReady = Boolean(globalThis.__LuckyBeanLocalAppReady);
+let pendingAutomaticReason = '';
 
 const auth = () => globalThis.LuckyBeanCloudAuth;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -319,6 +321,8 @@ async function upload({ reason = 'auto', forceMigration = false, deletionPolicy 
     chunks: prepared.nextChunks,
     source_device_id: device,
     client_updated_at: now,
+    client_data_schema_version: 10,
+    client_architecture: 'local-first-v1',
   };
   const committedManifest = await commitManifest(userId, manifest, existing);
   if (!committedManifest) {
@@ -512,7 +516,12 @@ function ensureAutomatic(reason = 'authenticated') {
     emit('waiting-for-login');
     return false;
   }
-  scheduleSync(250, reason);
+  if (!localAppReady) {
+    pendingAutomaticReason = reason;
+    emit('waiting-for-local');
+    return true;
+  }
+  scheduleSync(reason === 'login' ? 1800 : 1200, reason);
   return true;
 }
 
@@ -529,7 +538,18 @@ async function resolveDeletionDecision(decision) {
   });
 }
 
-document.addEventListener('luckybean:data-changed', () => scheduleSync(DEBOUNCE_MS, 'local-change'));
+document.addEventListener('luckybean:local-app-ready', () => {
+  localAppReady = true;
+  if (pendingAutomaticReason || readDirty()) {
+    const reason = pendingAutomaticReason || 'startup-dirty';
+    pendingAutomaticReason = '';
+    scheduleSync(1600, reason);
+  }
+});
+document.addEventListener('luckybean:data-changed', () => {
+  if (localAppReady) scheduleSync(DEBOUNCE_MS, 'local-change');
+  else pendingAutomaticReason = 'local-change';
+});
 document.addEventListener('luckybean:cloud-auth-state', event => {
   if (event.detail?.state === 'authenticated') ensureAutomatic('auth-ready');
 });
@@ -557,4 +577,4 @@ globalThis.LuckyBeanCloudSync = {
 };
 
 document.dispatchEvent(new CustomEvent('luckybean:cloud-sync-service-ready'));
-if (readDirty()) scheduleSync(1200, 'startup-dirty');
+if (readDirty()) { if (localAppReady) scheduleSync(1600, 'startup-dirty'); else pendingAutomaticReason = 'startup-dirty'; }

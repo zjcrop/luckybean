@@ -105,13 +105,20 @@ assert.match(spatial, /class BrewSpatialView/);
 assert.match(spatial, /pointerdown/);
 assert.match(spatial, /pinchDistance/);
 
-assert.match(runtimeFeatures, /RUNTIME_FEATURES/);
-assert.match(runtimeFeatures, /for \(const \w+ of RUNTIME_FEATURES\)/);
-assert.match(runtimeFeatures, /try\s*\{[\s\S]*await import\(\w+\.path\)/);
+// Runtime loader contract: startup-critical features load immediately; heavyweight and contextual
+// features remain declared but are imported only when their UI is invoked.
+assert.match(runtimeFeatures, /CORE_FEATURES/);
+assert.match(runtimeFeatures, /LAZY_FEATURES/);
+assert.match(runtimeFeatures, /const catalog = new Map/);
+assert.match(runtimeFeatures, /for \(const runtimeFeature of CORE_FEATURES\)/);
+assert.match(runtimeFeatures, /const task = import\(entry\.path\)/);
 assert.match(runtimeFeatures, /LuckyBeanRuntimeFeatures/);
 assert.match(runtimeFeatures, /runtime-feature-error/);
 assert.match(runtimeFeatures, /shared-sortable/);
 assert.match(runtimeFeatures, /BEAN_GROUP_RUNTIME_REVISION = RELEASE_REVISION/);
+assert.match(runtimeFeatures, /warmRecognition/);
+assert.match(runtimeFeatures, /origin-map/);
+assert.doesNotMatch(runtimeFeatures.split('const LAZY_FEATURES')[0], /recognition-paddle-ocr|package-capture|direct-camera|origin-map/);
 assert.doesNotMatch(runtimeFeatures, /v109-history-management\.js|v099-trajectory-signal-bridge\.js|v099i-trajectory-space\.js/);
 assert.doesNotMatch(runtimeFeatures, /v095-ui\.js|theme-bridge\.js/);
 

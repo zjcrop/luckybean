@@ -108,7 +108,7 @@ test('knowledge-only WCR variety is surfaced as a sourced review candidate witho
   const variety = analysis.fields.find(item => item.field === 'varietyCode');
   const candidate = analysis.parsed.parseMetadata.knowledgeOnlyVariety;
 
-  assert.equal(analysis.pipelineVersion, '1.24P-recognition-pipeline.3');
+  assert.equal(analysis.pipelineVersion, '1.24P-recognition-pipeline.5');
   assert.equal(analysis.parsed.varietyCode, undefined);
   assert.equal(analysis.parsed.varietyCustomName, 'Anacafe 14');
   assert.equal(candidate?.knowledgeId, 'WCR-HP-ANACAFE-14');

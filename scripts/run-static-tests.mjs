@@ -12,6 +12,8 @@ const tests = [
   'tests/v125-root-state-models.mjs',
   'tests/v124p-release-contract.mjs',
   'tests/v124p-startup-auth-hotfix-static.mjs',
+  'tests/v124p-auth-ocr-ai-hotfix-static.mjs',
+  'tests/v124p-local-first-data-architecture.mjs',
   'tests/v124p-execution-copy-regression.mjs',
   'tests/v124p-brew-action-emphasis.mjs',
   'tests/v124p-pour-guide-regression.mjs',

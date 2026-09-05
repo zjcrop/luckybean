@@ -1,0 +1,90 @@
+name: LuckyBean local-first follow-up
+
+on:
+  push:
+    branches:
+      - perf/local-first-data-v2-20260906
+    paths:
+      - scripts/patch-local-first-followup.mjs
+      - scripts/patch-runtime-lazy-final.mjs
+      - scripts/patch-final-recognition-v124p.mjs
+      - src/features/runtime-features.js
+      - tests/v124p-runtime-lazy-architecture.mjs
+      - .github/workflows/local-first-codemod.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/local-first-data-v2-20260906
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Import reviewed recognition hotfix files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin hotfix/p0-auth-ocr-ai-20260905:refs/remotes/origin/hotfix/p0-auth-ocr-ai-20260905
+          for file in \
+            src/services/cloud-auth-service.js \
+            src/services/recognition-ai-service.js \
+            src/domain/recognition/recognition-entry-splitter.js \
+            src/domain/recognition/recognition-pipeline.js \
+            src/features/recognition-multi-entry-controller.js \
+            src/package-capture-controller.js \
+            test/recognition-multi-entry.test.js \
+            tests/v124p-auth-ocr-ai-hotfix-static.mjs \
+            tests/v124p-live-recognition-ai.mjs \
+            tests/v124p-webkit-auth-ocr.spec.mjs; do
+            git show "refs/remotes/origin/hotfix/p0-auth-ocr-ai-20260905:${file}" > "${file}"
+          done
+      - name: Apply final local-first and recognition invariants
+        run: |
+          node scripts/patch-local-first-followup.mjs
+          node scripts/patch-runtime-lazy-final.mjs
+          node scripts/patch-final-recognition-v124p.mjs
+      - name: Syntax and architecture checks
+        run: |
+          node --check src/app.js
+          node --check src/db-storage-core.js
+          node --check src/services/cloud-sync-service.js
+          node --check src/services/cloud-auth-service.js
+          node --check src/services/recognition-ai-service.js
+          node --check src/features/runtime-features.js
+          node --check src/features/recognition-multi-entry-controller.js
+          node --check src/domain/recognition/recognition-entry-splitter.js
+          node --check src/domain/recognition/recognition-pipeline.js
+          node --check src/package-capture-controller.js
+          node tests/v124p-local-first-data-architecture.mjs
+          node tests/v124p-runtime-lazy-architecture.mjs
+          node test/recognition-multi-entry.test.js
+          node tests/v124p-auth-ocr-ai-hotfix-static.mjs
+          node tests/v124p-release-contract.mjs
+      - name: Commit generated changes
+        run: |
+          if git diff --quiet; then
+            echo 'No generated changes'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            release.json index.html recognition-test.html sw.js package.json \
+            .github/workflows/test-main.yml scripts/run-static-tests.mjs \
+            src/app.js src/db-storage-core.js src/features/runtime-features.js \
+            src/features/full-integration-controller-v3.js src/features/freshness-timeline-controller.js \
+            src/recognition-paddle-ocr.js src/services/cloud-sync-service.js src/services/cloud-auth-service.js \
+            src/services/recognition-ai-service.js src/domain/recognition/recognition-entry-splitter.js \
+            src/domain/recognition/recognition-pipeline.js src/features/recognition-multi-entry-controller.js \
+            src/package-capture-controller.js test/recognition-multi-entry.test.js \
+            tests/v124p-auth-ocr-ai-hotfix-static.mjs tests/v124p-live-recognition-ai.mjs \
+            tests/v124p-webkit-auth-ocr.spec.mjs tests/v124p-release-contract.mjs \
+            tests/v124p-runtime-lazy-architecture.mjs
+          git commit -m 'feat: finalize local-first AI recognition and iOS auth'
+          git push origin HEAD:perf/local-first-data-v2-20260906

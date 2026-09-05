@@ -65,7 +65,7 @@ async function assertMainPagesFit(page, width) {
   }
 }
 
-test('mobile theme persists and canonical viewport has no horizontal overflow', async ({ page }) => {
+test('mobile theme persists and canonical viewport has no horizontal overflow', async ({ page, context }) => {
   await page.setViewportSize({ width:360, height:800 });
   await openApp(page, 'theme');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
@@ -80,10 +80,20 @@ test('mobile theme persists and canonical viewport has no horizontal overflow', 
   expect(viewport.cssHeight).toMatch(/px$/);
   expect(viewport.overflow).toBeLessThanOrEqual(1);
 
-  await page.reload({ waitUntil:'domcontentloaded' });
-  await page.locator('#splashScreen').click();
-  await expect(page.locator('#appShell')).toBeVisible({ timeout:15000 });
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  const reopened = await context.newPage();
+  try {
+    await reopened.setViewportSize({ width:360, height:800 });
+    await reopened.route(SUPABASE_PATTERN, route => route.abort('failed'));
+    await reopened.route('https://raw.githubusercontent.com/**', route => route.abort('failed'));
+    await reopened.goto(`${BASE_URL}/?ui-stability=theme-reopen`, { waitUntil:'domcontentloaded' });
+    await expect(reopened.locator('#splashScreen')).toBeVisible();
+    await reopened.locator('#splashScreen').click();
+    await expect(reopened.locator('#appShell')).toBeVisible({ timeout:15000 });
+    await reopened.waitForFunction(() => document.documentElement.dataset.startup === 'ready');
+    await expect(reopened.locator('html')).toHaveAttribute('data-theme', 'light');
+  } finally {
+    await reopened.close();
+  }
 });
 
 test('extreme 320px and 430px mobile widths keep all four main pages inside viewport', async ({ page }) => {
@@ -199,8 +209,6 @@ test('system back closes overlays first and then follows actual main-page histor
   await expect(page.locator('.page[data-page="beans"]')).toHaveClass(/active/);
   await expect.poll(() => page.evaluate(() => globalThis.LuckyBeanNavigation.snapshot().depth)).toBe(2);
 
-  // Long-press recognition is covered by the dedicated gesture test above.
-  // This case opens the same canonical overlay directly so it only measures back-stack behavior.
   await page.evaluate(() => globalThis.LuckyBeanBeanCards.openActions('ui-navigation-bean'));
   await expect(page.locator('[data-overlay="bean-quick-actions"]')).toBeVisible();
 
