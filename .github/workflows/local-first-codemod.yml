@@ -1,12 +1,11 @@
-name: LuckyBean local-first codemod
+name: LuckyBean local-first follow-up
 
 on:
   push:
     branches:
       - perf/local-first-data-v2-20260906
     paths:
-      - scripts/apply-local-first-v2.mjs
-      - scripts/fix-local-first-codemod-v1.mjs
+      - scripts/patch-local-first-followup.mjs
       - .github/workflows/local-first-codemod.yml
 
 permissions:
@@ -23,18 +22,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Align transform anchors
-        run: node scripts/fix-local-first-codemod-v1.mjs
-      - name: Apply deterministic transform
-        run: node scripts/apply-local-first-v2.mjs
+      - name: Apply follow-up invariants
+        run: node scripts/patch-local-first-followup.mjs
       - name: Syntax and architecture checks
         run: |
           node --check src/app.js
           node --check src/db-storage-core.js
-          node --check src/sensory-codec-v096.js
           node --check src/services/cloud-sync-service.js
           node tests/v124p-local-first-data-architecture.mjs
-      - name: Commit generated architecture
+      - name: Commit follow-up
         run: |
           if git diff --quiet; then
             echo 'No generated changes'
@@ -42,6 +38,6 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add scripts/apply-local-first-v2.mjs src public/bean-display-index.json tests/v124p-local-first-data-architecture.mjs scripts/run-static-tests.mjs
-          git commit -m 'perf: apply local-first v10 data architecture'
+          git add src/app.js
+          git commit -m 'fix: reset lazy data scopes on directory refresh'
           git push origin HEAD:perf/local-first-data-v2-20260906
