@@ -32,6 +32,11 @@ const LAZY_FEATURES = Object.freeze([
   feature('sensory-tag-sort', './sensory-tag-sort-controller.js')
 ]);
 
+const PREINTERACTION_FEATURE_IDS = Object.freeze([
+  'recognition-quality', 'package-capture', 'direct-camera', 'recognition-review-owner',
+  'recognition-batch-progress', 'brew-pour-guide', 'shared-sortable', 'sensory-tag-sort'
+]);
+
 const catalog = new Map([...CORE_FEATURES, ...LAZY_FEATURES].map(item => [item.id, item]));
 const failures = [];
 const loaded = [];
@@ -130,6 +135,7 @@ for (const runtimeFeature of CORE_FEATURES) {
   catch { /* failure already recorded */ }
 }
 
+await loadMany(PREINTERACTION_FEATURE_IDS);
 installLazyTriggers();
 
 globalThis.LuckyBeanRuntimeFeatures = {

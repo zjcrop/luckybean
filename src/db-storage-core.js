@@ -33,7 +33,9 @@ export function beanSummaryFromBean(bean = {}) {
   return {
     id: bean.id || '', displayName: name, name,
     countryCode: bean.countryCode || '', regionCode: bean.regionCode || '', entityCode: bean.entityCode || '',
+    countryName: bean.countryName || bean.country || '', entityName: bean.entityName || bean.entity || bean.processingStation || '',
     varietyCode: bean.varietyCode || '', processCode: bean.processCode || '', roastCode: bean.roastCode || '', roastColor: bean.roastColor || '',
+    varietyName: bean.varietyName || bean.variety || '', processName: bean.processName || bean.process || '', roastName: bean.roastName || bean.roast || '',
     roastDate: bean.roastDate || '', initialWeight: Number(bean.initialWeight || 0), remainingWeight: Number(bean.remainingWeight || 0),
     refrigerated: Boolean(bean.refrigerated), freezeDate: bean.freezeDate || '', price: Number(bean.price || 0),
     roasterName: bean.roasterName || bean.roaster || '', altitude: Number(bean.altitude || 0), archived: Boolean(bean.archived),
