@@ -2,50 +2,40 @@ import { test, expect } from '@playwright/test';
 
 test.setTimeout(120_000);
 
-test('real PP-OCR worker initializes from same-origin assets without blocking the browser main thread', async ({ page }) => {
+test('PP-OCR runtime stays lazy on app startup and exposes browser-safe on-demand mode', async ({ page }) => {
   const pageErrors = [];
-  const blockedRequests = [];
+  const heavyOcrRequests = [];
   page.on('pageerror', error => pageErrors.push(String(error?.message || error)));
-
-  await page.context().route(/https:\/\/(?:cdn\.jsdelivr\.net|paddle-model-ecology\.bj\.bcebos\.com)\/.*/, route => {
-    blockedRequests.push(route.request().url());
-    return route.abort('blockedbyclient');
+  page.on('request', request => {
+    const url = request.url();
+    if (/public\/vendor\/paddleocr\/(?:sdk\.mjs|worker\.js|models\/|ort\/)/i.test(url)) heavyOcrRequests.push(url);
   });
 
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => globalThis.LuckyBeanPaddleOCR?.workerOnly === true, null, { timeout: 20_000 });
+  await page.waitForFunction(() => globalThis.LuckyBeanPaddleOCR?.browserSafe === true, null, { timeout: 20_000 });
 
-  const result = await page.evaluate(async () => {
-    let ticks = 0;
-    const heartbeat = setInterval(() => { ticks += 1; }, 25);
-    const started = performance.now();
-    try {
-      const engine = await globalThis.LuckyBeanPaddleOCR.preload();
-      return {
-        ready: Boolean(engine),
-        workerOnly: globalThis.LuckyBeanPaddleOCR?.workerOnly === true,
-        roiWorkerOnly: globalThis.LuckyBeanPaddleOCR?.roiWorkerOnly === true,
-        regionRecognition: globalThis.LuckyBeanPaddleOCR?.regionRecognition || '',
-        runtimeOrigin: globalThis.LuckyBeanPaddleOCR?.runtimeOrigin || '',
-        elapsedMs: performance.now() - started,
-        ticks,
-        webOcr: document.documentElement.dataset.webOcr || ''
-      };
-    } finally {
-      clearInterval(heartbeat);
-    }
-  });
+  const initial = await page.evaluate(() => ({
+    workerOnly: globalThis.LuckyBeanPaddleOCR?.workerOnly,
+    browserSafe: globalThis.LuckyBeanPaddleOCR?.browserSafe,
+    autoPreload: globalThis.LuckyBeanPaddleOCR?.autoPreload,
+    primaryIsolation: globalThis.LuckyBeanPaddleOCR?.primaryIsolation || '',
+    roiWorkerOnly: globalThis.LuckyBeanPaddleOCR?.roiWorkerOnly === true,
+    regionRecognition: globalThis.LuckyBeanPaddleOCR?.regionRecognition || '',
+    runtimeOrigin: globalThis.LuckyBeanPaddleOCR?.runtimeOrigin || '',
+    webOcr: document.documentElement.dataset.webOcr || ''
+  }));
 
-  expect(result.workerOnly).toBe(true);
-  expect(result.roiWorkerOnly).toBe(true);
-  expect(result.regionRecognition).toBe('recognition-roi/1.0');
-  expect(result.runtimeOrigin).toBe('same-origin-vendored');
-  expect(result.webOcr).toContain('self-hosted-worker-only');
-  expect(result.ready, `PP-OCR same-origin worker/model preload failed; page errors: ${pageErrors.join(' | ')}; blocked external requests: ${blockedRequests.join(' | ')}`).toBe(true);
-  if (result.elapsedMs >= 250) {
-    expect(result.ticks, 'browser heartbeat stopped while PP-OCR initialized').toBeGreaterThanOrEqual(2);
-  }
-  expect(blockedRequests, 'OCR attempted to access an external CDN/model host at runtime').toEqual([]);
+  await page.waitForTimeout(5_000);
+
+  expect(initial.workerOnly).toBe(false);
+  expect(initial.browserSafe).toBe(true);
+  expect(initial.autoPreload).toBe(false);
+  expect(initial.primaryIsolation).toBe('module-worker');
+  expect(initial.roiWorkerOnly).toBe(true);
+  expect(initial.regionRecognition).toBe('recognition-roi/1.0');
+  expect(initial.runtimeOrigin).toBe('same-origin-vendored');
+  expect(initial.webOcr).toContain('self-hosted-lazy-memory-bounded');
+  expect(heavyOcrRequests, 'app startup must not fetch PP-OCR SDK, models, worker or ORT before the user starts recognition').toEqual([]);
   expect(pageErrors.filter(message => /worker|paddle|onnx|ocr/i.test(message))).toEqual([]);
 });
 

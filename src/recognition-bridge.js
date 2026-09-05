@@ -102,11 +102,7 @@ async function nativeRecognizeRegion(image, region, options) {
   const bridge = globalThis.LuckyBeanRecognitionBridge || globalThis.LuckyBeanNative;
   if (typeof bridge?.recognizeRegion !== 'function') return null;
   const payloadImage = await imagePayloadForNative(image);
-  const result = await bridge.recognizeRegion({
-    image: payloadImage,
-    region,
-    locale: options.locale || 'zh-CN'
-  });
+  const result = await bridge.recognizeRegion({ image: payloadImage, region, locale: options.locale || 'zh-CN' });
   return { ...result, engine: result?.engine || 'native-region-ocr' };
 }
 
@@ -126,26 +122,29 @@ async function invokeWebProvider(provider, images, options, fallbackEngine) {
   return null;
 }
 
-async function paddleWorkerRecognize(images, options) {
-  const provider = globalThis.LuckyBeanPaddleOCR;
-  if (!provider) return null;
-  if (provider.workerOnly !== true) {
-    throw new Error('网页 PP-OCR 未处于 Worker-only 安全模式，已拒绝在主线程启动识别');
-  }
-  return invokeWebProvider(provider, images, options, 'web-ppocr-worker');
+function isSafeWebPaddleProvider(provider) {
+  if (!provider || provider.browserSafe !== true) return false;
+  const isolation = String(provider.primaryIsolation || '');
+  return isolation === 'module-worker' || isolation === 'webkit-direct-wasm-no-simd';
 }
 
-async function paddleWorkerRecognizeRegion(image, region, options) {
+async function paddleSafeRecognize(images, options) {
   const provider = globalThis.LuckyBeanPaddleOCR;
   if (!provider) return null;
-  if (provider.workerOnly !== true || provider.roiWorkerOnly !== true || typeof provider.recognizeRegion !== 'function') {
-    throw new Error('网页 PP-OCR 未提供 Worker-only ROI 安全接口，已拒绝局部重识别');
+  if (!isSafeWebPaddleProvider(provider)) {
+    throw new Error('网页 PP-OCR 未处于受支持的安全运行模式，已拒绝启动识别');
   }
-  const result = await provider.recognizeRegion(image.blob, region, {
-    ...options,
-    imageId: image.id
-  });
-  return { ...result, engine: result?.engine || 'web-ppocr-worker-roi' };
+  return invokeWebProvider(provider, images, options, provider.primaryIsolation === 'module-worker' ? 'web-ppocr-worker' : 'web-ppocr-webkit');
+}
+
+async function paddleSafeRecognizeRegion(image, region, options) {
+  const provider = globalThis.LuckyBeanPaddleOCR;
+  if (!provider) return null;
+  if (!isSafeWebPaddleProvider(provider) || provider.roiWorkerOnly !== true || typeof provider.recognizeRegion !== 'function') {
+    throw new Error('网页 PP-OCR 未提供安全 ROI 接口，已拒绝局部重识别');
+  }
+  const result = await provider.recognizeRegion(image.blob, region, { ...options, imageId: image.id });
+  return { ...result, engine: result?.engine || 'web-ppocr-safe-roi' };
 }
 
 async function textDetectorRecognize(images) {
@@ -188,15 +187,12 @@ function collectBlocks(result, images) {
 
 export function getRecognitionCapabilities() {
   const nativeBridge = globalThis.LuckyBeanRecognitionBridge || globalThis.LuckyBeanNative;
+  const webProvider = globalThis.LuckyBeanPaddleOCR;
   return {
     native: typeof nativeBridge?.recognizeCoffeeBag === 'function',
-    webPaddle: Boolean(globalThis.LuckyBeanPaddleOCR?.workerOnly === true),
+    webPaddle: isSafeWebPaddleProvider(webProvider),
     nativeRegion: typeof nativeBridge?.recognizeRegion === 'function',
-    webPaddleRegion: Boolean(
-      globalThis.LuckyBeanPaddleOCR?.workerOnly === true
-      && globalThis.LuckyBeanPaddleOCR?.roiWorkerOnly === true
-      && typeof globalThis.LuckyBeanPaddleOCR?.recognizeRegion === 'function'
-    ),
+    webPaddleRegion: Boolean(isSafeWebPaddleProvider(webProvider) && webProvider?.roiWorkerOnly === true && typeof webProvider?.recognizeRegion === 'function'),
     legacyWeb: Boolean(globalThis.LuckyBeanWebOCR),
     textDetector: typeof globalThis.TextDetector === 'function'
   };
@@ -204,9 +200,9 @@ export function getRecognitionCapabilities() {
 
 async function recognizeSingleImage(image, options) {
   let result = await nativeRecognize([image], options);
-  if (!result) result = await paddleWorkerRecognize([image], options);
+  if (!result) result = await paddleSafeRecognize([image], options);
   if (!result) result = await textDetectorRecognize([image]);
-  if (!result) throw new RecognitionUnavailableError('当前设备没有可安全运行的 Worker OCR；不会自动切换主线程识别');
+  if (!result) throw new RecognitionUnavailableError('当前设备没有可安全运行的本地 OCR；不会自动切换到未知识别引擎');
   return result;
 }
 
@@ -214,10 +210,8 @@ export async function recognizeImageRegion(image, regionInput, options = {}) {
   if (!image?.blob) throw new Error('ROI 重识别缺少原始图片');
   const region = normalizeRecognitionRegion(regionInput);
   let result = await nativeRecognizeRegion(image, region, options);
-  if (!result) result = await paddleWorkerRecognizeRegion(image, region, options);
-  if (!result) {
-    throw new RecognitionUnavailableError('当前设备没有可安全运行的 Worker/Native ROI OCR；不会回退主线程裁剪');
-  }
+  if (!result) result = await paddleSafeRecognizeRegion(image, region, options);
+  if (!result) throw new RecognitionUnavailableError('当前设备没有可安全运行的 Native/网页 ROI OCR；不会回退到非 Worker 裁剪');
   const blocks = collectBlocks(result, [image]);
   return {
     ...result,
