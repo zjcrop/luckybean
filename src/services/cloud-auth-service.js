@@ -17,7 +17,13 @@ function parseAuthCallbackHash(hashValue) {
   return new URLSearchParams(params.toString());
 }
 
-const INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash(location.hash);
+const INITIAL_AUTH_CALLBACK_HASH = typeof globalThis.__LuckyBeanInitialAuthCallbackHash === 'string' && globalThis.__LuckyBeanInitialAuthCallbackHash
+  ? globalThis.__LuckyBeanInitialAuthCallbackHash
+  : location.hash;
+const INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash(INITIAL_AUTH_CALLBACK_HASH);
+try { delete globalThis.__LuckyBeanInitialAuthCallbackHash; }
+catch { globalThis.__LuckyBeanInitialAuthCallbackHash = ''; }
+if (INITIAL_AUTH_CALLBACK_PARAMS) document.documentElement.dataset.authCallbackSnapshot = 'consumed';
 let refreshPromise = null;
 let authCallbackPromise = null;
 let authCallbackConsumed = false;
