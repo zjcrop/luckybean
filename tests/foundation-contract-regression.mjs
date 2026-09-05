@@ -4,8 +4,10 @@ import assert from 'node:assert/strict';
 const readJson = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
 const consumer = readJson('contracts/foundation-consumer.json');
 const recognition = readJson(consumer.localSnapshots.recognitionDocument);
+const roiContract = readJson('contracts/recognition-roi-v1.schema.json');
 const runtime = fs.readFileSync('src/domain/recognition/recognition-document.js', 'utf8');
 const paddle = fs.readFileSync('src/recognition-paddle-ocr.js', 'utf8');
+const core = fs.readFileSync('src/recognition-core.js', 'utf8');
 
 assert.equal(consumer._format, 'coffee-foundation-consumer');
 assert.equal(consumer.consumer, 'luckybean');
@@ -25,11 +27,20 @@ assert.equal(recognition.$id, 'urn:brewion:foundation:recognition-document:1.1')
 assert.equal(recognition.properties.schemaVersion.const, consumer.contracts.recognitionDocument);
 assert.match(runtime, /RECOGNITION_DOCUMENT_SCHEMA\s*=\s*['"]recognition-document\/1\.1['"]/);
 
+assert.equal(roiContract.properties.regionProtocol.const, 'recognition-roi/1.0');
+for (const edge of ['left', 'top', 'right', 'bottom']) {
+  assert.equal(roiContract.properties.region.properties[edge].minimum, 0);
+  assert.equal(roiContract.properties.region.properties[edge].maximum, 1);
+}
+assert.match(core, /recognizeImageRegion/);
+assert.match(core, /normalizeRecognitionRegion/);
+
 assert.match(paddle, /CoffeeFoundationOcrAssetBase/);
 assert.match(paddle, /function defaultRuntimeBase\(\)[\s\S]*new URL\('\.\.\/public\/vendor\/paddleocr\/',\s*import\.meta\.url\)/);
 assert.doesNotMatch(paddle, /const\s+DEFAULT_RUNTIME_BASE\s*=\s*new URL/);
 assert.match(paddle, /assetUrl\('sdk\.mjs'\)/);
 assert.match(paddle, /assetUrl\('worker\.js'\)/);
+assert.match(paddle, /assetUrl\('roi-worker\.js'\)/);
 assert.match(paddle, /assetUrl\('models\/PP-OCRv5_mobile_det_onnx_infer\.tar'\)/);
 assert.match(paddle, /assetUrl\('models\/PP-OCRv5_mobile_rec_onnx_infer\.tar'\)/);
 assert.match(paddle, /globalThis\.CoffeeFoundationPaddleOCR\s*=\s*paddleOcrApi/);
