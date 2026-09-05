@@ -21,7 +21,7 @@ const FIELD_LABELS = Object.freeze({
 });
 
 const CANONICAL_LABEL = Object.freeze({
-  country: '国家', region: '产区', entity: '庄园 / 处理站', variety: '豆种', process: '处理法',
+  country: '国家', region: '产区', entity: '庄园', variety: '豆种', process: '处理法',
   roast: '烘焙度', roastDate: '烘焙日期', productionDate: '生产日期', packDate: '包装日期',
   bestBefore: '最佳赏味期', expiryDate: '到期日', roaster: '烘焙商', harvest: '产季', flavor: '风味',
   altitude: '海拔', roastColor: '烘焙色值', weight: '净重', lot: '批次', grade: '等级'
@@ -57,7 +57,7 @@ const TRADITIONAL_LOOKUP_FOLD = Object.freeze({
   '曬':'晒','發':'发','厭':'厌','濕':'湿','漬':'渍','風':'风','標':'标','籤':'签','鑑':'鉴','記':'记','氣':'气',
   '淨':'净','規':'规','號':'号','編':'编','級':'级','灣':'湾','倫':'伦','亞':'亚','馬':'马','達':'达','薩':'萨',
   '爾':'尔','盧':'卢','東':'东','門':'门','義':'义','羅':'罗','蘭':'兰','島':'岛','縣':'县','鎮':'镇','鄉':'乡',
-  '嶺':'岭','嶽':'岳','穀':'谷','臺':'台','烏':'乌','貝':'贝','爾':'尔','爾':'尔','獅':'狮','葉':'叶','樹':'树'
+  '嶺':'岭','嶽':'岳','穀':'谷','臺':'台','烏':'乌','貝':'贝','獅':'狮','葉':'叶','樹':'树'
 });
 
 function clean(value) {
