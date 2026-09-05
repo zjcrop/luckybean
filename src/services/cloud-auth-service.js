@@ -8,7 +8,21 @@ const REMEMBER_MS = 7 * 24 * 60 * 60 * 1000;
 const PENDING_REGISTRATION_MS = 7 * 24 * 60 * 60 * 1000;
 const CALLBACK_SESSION_GRACE_MS = 15000;
 const SOURCE_APP = 'luckybean';
+
+function parseAuthCallbackHash(hashValue) {
+  const hash = String(hashValue || '').replace(/^#/, '');
+  if (!hash) return null;
+  const params = new URLSearchParams(hash);
+  if (!params.has('access_token') && !params.has('refresh_token') && !params.has('error') && !params.has('error_code')) return null;
+  return new URLSearchParams(params.toString());
+}
+
+// Capture the callback synchronously at module evaluation. Safari can rewrite/restore URL state
+// while other deferred modules start, so later readers must not depend on the live hash alone.
+const INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash(location.hash);
 let refreshPromise = null;
+let authCallbackPromise = null;
+let authCallbackConsumed = false;
 let dialogBusy = false;
 let volatileSession = null;
 let callbackSessionAcceptedAt = 0;
@@ -114,53 +128,63 @@ async function rawRequest(path, { method = 'POST', body, token, timeoutMs = 6000
 }
 
 function callbackParams() {
-  const hash = String(location.hash || '').replace(/^#/, '');
-  if (!hash) return null;
-  const params = new URLSearchParams(hash);
-  if (!params.has('access_token') && !params.has('refresh_token') && !params.has('error') && !params.has('error_code')) return null;
-  return params;
+  if (!authCallbackConsumed && INITIAL_AUTH_CALLBACK_PARAMS) return new URLSearchParams(INITIAL_AUTH_CALLBACK_PARAMS.toString());
+  return parseAuthCallbackHash(location.hash);
 }
 function clearAuthCallbackUrl() {
   try { history.replaceState(history.state, document.title, `${location.pathname}${location.search}`); }
   catch { try { location.hash = ''; } catch {} }
 }
 async function consumeAuthCallback() {
-  const params = callbackParams();
-  if (!params) return null;
-  const callbackError = params.get('error_description') || params.get('error') || params.get('error_code');
-  if (callbackError) {
-    clearAuthCallbackUrl();
-    const error = new Error(callbackError);
-    error.code = params.get('error_code') || params.get('error') || 'auth_callback_error';
-    emit('reauth-required', { error:friendlyAuthMessage(error, 'login'), authAction:'email-callback' });
-    return null;
+  if (authCallbackPromise) return authCallbackPromise;
+  if (authCallbackConsumed) {
+    const active = readSession();
+    return callbackSessionAcceptedAt && Date.now() - callbackSessionAcceptedAt < CALLBACK_SESSION_GRACE_MS && active?.refresh_token ? active : null;
   }
-  const accessToken = params.get('access_token') || '';
-  const refreshToken = params.get('refresh_token') || '';
-  if (!accessToken || !refreshToken) return null;
-  const expiresIn = Number(params.get('expires_in') || 3600);
-  let user = null;
-  try { user = await rawRequest('/auth/v1/user', { method:'GET', token:accessToken, timeoutMs:6000 }); } catch { user = null; }
-  const payload = {
-    access_token:accessToken,
-    refresh_token:refreshToken,
-    token_type:params.get('token_type') || 'bearer',
-    expires_in:expiresIn,
-    expires_at:Math.floor(Date.now() / 1000) + Math.max(60, expiresIn),
-    user
-  };
-  writeSession(payload);
-  markServerActivity();
-  callbackSessionAcceptedAt = Date.now();
-  const pending = readPendingRegistration();
-  const email = String(user?.email || pending?.email || '').toLowerCase();
-  const completedRegistration = Boolean(pending?.email && (!email || pending.email === email));
-  clearAuthCallbackUrl();
-  emit('authenticated', { user, login:true, authAction:completedRegistration ? 'register-verification' : 'email-callback' });
-  globalThis.LuckyBeanCloudSync?.ensureAutomatic?.('email-callback-success');
-  if (completedRegistration) dispatchRegisterSuccess(payload, email || pending.email, true);
-  dispatchLoginSuccess(payload, completedRegistration ? 'register-verification' : 'email-callback');
-  return payload;
+  const params = callbackParams();
+  if (!params) { authCallbackConsumed = true; return null; }
+
+  authCallbackPromise = (async () => {
+    const callbackError = params.get('error_description') || params.get('error') || params.get('error_code');
+    if (callbackError) {
+      authCallbackConsumed = true;
+      clearAuthCallbackUrl();
+      const error = new Error(callbackError);
+      error.code = params.get('error_code') || params.get('error') || 'auth_callback_error';
+      emit('reauth-required', { error:friendlyAuthMessage(error, 'login'), authAction:'email-callback' });
+      return null;
+    }
+    const accessToken = params.get('access_token') || '';
+    const refreshToken = params.get('refresh_token') || '';
+    if (!accessToken || !refreshToken) { authCallbackConsumed = true; return null; }
+    const expiresIn = Number(params.get('expires_in') || 3600);
+    let user = null;
+    try { user = await rawRequest('/auth/v1/user', { method:'GET', token:accessToken, timeoutMs:6000 }); } catch { user = null; }
+    const payload = {
+      access_token:accessToken,
+      refresh_token:refreshToken,
+      token_type:params.get('token_type') || 'bearer',
+      expires_in:expiresIn,
+      expires_at:Math.floor(Date.now() / 1000) + Math.max(60, expiresIn),
+      user
+    };
+    writeSession(payload);
+    markServerActivity();
+    callbackSessionAcceptedAt = Date.now();
+    authCallbackConsumed = true;
+    const pending = readPendingRegistration();
+    const email = String(user?.email || pending?.email || '').toLowerCase();
+    const completedRegistration = Boolean(pending?.email && (!email || pending.email === email));
+    clearAuthCallbackUrl();
+    emit('authenticated', { user, login:true, authAction:completedRegistration ? 'register-verification' : 'email-callback' });
+    globalThis.LuckyBeanCloudSync?.ensureAutomatic?.('email-callback-success');
+    if (completedRegistration) dispatchRegisterSuccess(payload, email || pending.email, true);
+    dispatchLoginSuccess(payload, completedRegistration ? 'register-verification' : 'email-callback');
+    return payload;
+  })();
+
+  try { return await authCallbackPromise; }
+  finally { authCallbackPromise = null; }
 }
 
 async function refreshSession({ force = false, reason = 'background' } = {}) {
@@ -277,7 +301,7 @@ async function warmSession() {
 }
 
 globalThis.LuckyBeanCloudAuth = {
-  revision:'cloud-auth-service-v4-ios-callback', getSession:readSession, warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut, consumeAuthCallback,
+  revision:'cloud-auth-service-v5-ios-callback-lock', getSession:readSession, warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut, consumeAuthCallback,
   isRemembered:() => Boolean(readSession()?.refresh_token && Date.now() <= rememberUntil()), rememberUntil,
   pendingRegistration:readPendingRegistration
 };
