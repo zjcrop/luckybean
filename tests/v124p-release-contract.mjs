@@ -3,6 +3,8 @@ import fs from 'node:fs';
 
 const read = path => fs.readFileSync(path, 'utf8');
 const release = JSON.parse(read('release.json'));
+const packageMeta = JSON.parse(read('package.json'));
+const packageLock = JSON.parse(read('package-lock.json'));
 const index = read('index.html');
 const manifest = JSON.parse(read('manifest.webmanifest'));
 const sw = read('sw.js');
@@ -29,6 +31,9 @@ assert.equal(release.releaseTag, 'v1.24P-main.3');
 assert.equal(release.brewResultVersion, '1.1');
 assert.equal(release.brewPlanVersion, 'brew-plan/1.0');
 assert.equal(release.schemaVersion, 10);
+assert.equal(packageMeta.version, release.semver, 'package.json must follow release semver');
+assert.equal(packageLock.version, release.semver, 'package-lock top-level version must follow release semver');
+assert.equal(packageLock.packages?.['']?.version, release.semver, 'package-lock root package version must follow release semver');
 
 assert.match(index, /application-version" content="1\.24P"/);
 assert.match(index, /release-revision" content="1\.24P-main\.3"/);
@@ -84,4 +89,4 @@ assert.match(validator, /Android user agent must follow current release version/
 const publicIdentitySources = [index, JSON.stringify(manifest), sw, utils, gradle, activity, deploy, build, diagnose];
 for (const source of publicIdentitySources) assert.doesNotMatch(source, /versionName '1\.24B'|APP_VERSION = '1\.24B'|application-version" content="1\.24B"|REVISION = '1\.24B-main\.6'|LuckyBeanAndroid\/1\.24B|status\/1\.24B\.json/);
 
-console.log('LuckyBean 1.24P canonical release identity, BrewResult consumers and same-SHA signed deployment contract passed');
+console.log('LuckyBean 1.24P canonical release identity, npm metadata, BrewResult consumers and same-SHA signed deployment contract passed');
