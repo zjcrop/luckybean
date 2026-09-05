@@ -1,19 +1,20 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [releaseText, paddle, bridge, roiWorker, runtime, capture, vendor] = await Promise.all([
+const [releaseText, paddle, bridge, roiWorker, runtime, capture, vendor, imageQuality] = await Promise.all([
   readFile(new URL('../release.json', import.meta.url), 'utf8'),
   readFile(new URL('../src/recognition-paddle-ocr.js', import.meta.url), 'utf8'),
   readFile(new URL('../src/recognition-bridge.js', import.meta.url), 'utf8'),
   readFile(new URL('../src/recognition-roi-worker.js', import.meta.url), 'utf8'),
   readFile(new URL('../src/features/runtime-features.js', import.meta.url), 'utf8'),
   readFile(new URL('../src/package-capture-controller.js', import.meta.url), 'utf8'),
-  readFile(new URL('../scripts/prepare-paddleocr-vendor.mjs', import.meta.url), 'utf8')
+  readFile(new URL('../scripts/prepare-paddleocr-vendor.mjs', import.meta.url), 'utf8'),
+  readFile(new URL('../src/image-quality.js', import.meta.url), 'utf8')
 ]);
 const release = JSON.parse(releaseText);
 
-assert.match(paddle, /worker:\s*\{\s*createWorker:/, 'primary PP-OCR path must use an explicit dedicated Worker factory');
-assert.match(paddle, /new Worker\(assetUrl\('worker\.js'\),\s*\{\s*type:\s*'module'/, 'primary PP-OCR Worker must stay same-origin and relocatable');
+assert.match(paddle, /worker:\s*\{\s*createWorker:/, 'non-WebKit PP-OCR path must use an explicit dedicated Worker factory');
+assert.match(paddle, /new Worker\(assetUrl\('worker\.js'\),\s*\{\s*type:\s*'module'/, 'PP-OCR Worker must stay same-origin and relocatable');
 assert.match(paddle, /new Worker\(assetUrl\('roi-worker\.js'\),\s*\{\s*type:\s*'classic'/, 'ROI cropper must remain isolated in a Worker');
 assert.match(paddle, /roiWorkerOnly:\s*true/, 'ROI contract must remain Worker-only');
 assert.match(paddle, /regionRecognition:\s*'recognition-roi\/1\.0'/, 'provider must expose normalized ROI protocol');
@@ -25,18 +26,29 @@ assert.match(paddle, /wasmPaths:\s*assetUrl\('ort\/'\)/, 'ORT WASM must stay sam
 assert.doesNotMatch(paddle, /cdn\.jsdelivr\.net/, 'browser OCR source must not depend on CDN at runtime');
 assert.doesNotMatch(paddle, /paddle-model-ecology\.bj\.bcebos\.com/, 'browser OCR source must not fetch models cross-origin at runtime');
 
-assert.match(paddle, /function isWebKitFamily\(/, 'Safari fallback must be WebKit-gated');
-assert.match(paddle, /createCompatibilityEngine/, 'Safari must have a bounded compatibility engine');
+assert.match(paddle, /function isWebKitFamily\(/, 'Safari mode must be WebKit-gated');
+assert.match(paddle, /const pending = WEBKIT[\s\S]*startCompatibilityEngine\(\)[\s\S]*startWorkerEngine\(\)/, 'Safari must enter compatibility mode directly instead of waiting for a Worker timeout');
 assert.match(paddle, /simd:\s*compatibility\s*\?\s*false\s*:\s*true/, 'compatibility engine must disable SIMD');
 assert.match(paddle, /direct-wasm-no-simd/, 'compatibility engine must be explicitly identified');
-assert.match(paddle, /Math\.min\(LIMIT_SIDE,\s*640\)/, 'compatibility mode must cap OCR input size');
+assert.match(paddle, /const LIMIT_SIDE = LOW_MEMORY \? 640 : 960/, 'low-memory OCR input must be bounded to 640px detection side');
 assert.match(paddle, /browserSafe:\s*true/, 'provider must advertise the bounded browser-safe contract');
-assert.match(paddle, /compatibilityFallback:\s*'webkit-direct-wasm-no-simd'/, 'provider must disclose Safari fallback mode');
+assert.match(paddle, /compatibilityFallback:\s*'webkit-direct-wasm-no-simd'/, 'provider must disclose Safari mode');
+assert.match(paddle, /autoPreload:false/, 'browser OCR must not preload heavy models at page startup');
+assert.doesNotMatch(paddle, /schedulePreload\(\);/, 'module evaluation must not auto-start OCR model loading');
+assert.match(paddle, /LOW_MEMORY \|\| engineMode === 'direct-wasm-no-simd'\) await dispose\(\)/, 'low-memory and Safari engines must be disposed after each recognition task');
+assert.match(paddle, /document\.hidden && !busy\) void dispose\(\)/, 'backgrounding the page must release an idle OCR engine');
 assert.match(paddle, /ENGINE_INIT_TIMEOUT_MS/, 'engine initialization must remain bounded');
 assert.match(paddle, /PREDICT_TIMEOUT_MS/, 'per-image prediction must remain bounded');
 assert.match(paddle, /ROI_CROP_TIMEOUT_MS/, 'ROI preprocessing must remain bounded');
 assert.match(paddle, /不会切换到 Tesseract/, 'failure policy must explicitly prohibit Tesseract fallback');
 assert.doesNotMatch(paddle, /LuckyBeanWebOCR/, 'formal Paddle provider must never invoke legacy Tesseract');
+
+assert.match(imageQuality, /DEFAULT_MAX_EDGE = LOW_MEMORY \? 1280 : 1600/, 'Apple/low-memory input compression must cap decoded OCR images');
+assert.match(imageQuality, /releaseCanvas\(sampleCanvas\)/, 'sample canvas backing store must be released');
+assert.match(imageQuality, /releaseCanvas\(outputCanvas\)/, 'output canvas backing store must be released');
+assert.match(imageQuality, /image\?\.close/, 'ImageBitmap resources must be explicitly released');
+assert.match(capture, /releaseWebPreviewsForRecognition\(\)/, 'decoded preview surfaces must be released before web OCR');
+assert.match(capture, /void applyAiAdvisory\(book, generation, documentRef\)/, 'advisory AI must not block local OCR completion');
 
 assert.match(roiWorker, /createImageBitmap\(blob,\s*\{\s*imageOrientation:\s*'from-image'/, 'ROI Worker must decode orientation-aware source pixels');
 assert.match(roiWorker, /new\s+OffscreenCanvas\(/, 'ROI Worker must keep crop canvas off the UI thread');
@@ -50,8 +62,8 @@ assert.match(vendor, /ort-wasm-simd-threaded\.wasm/, 'build must vendor ORT WASM
 assert.match(vendor, /roi-worker\.js/, 'build must ship ROI worker');
 
 assert.doesNotMatch(runtime, /feature\(['"]recognition-web-ocr['"]/, 'legacy Tesseract runtime must stay disabled');
-assert.match(runtime, /feature\(['"]recognition-paddle-ocr['"]/, 'runtime must load PP-OCR before package capture');
-assert.ok(runtime.indexOf("feature('recognition-paddle-ocr'") < runtime.indexOf("feature('package-capture'"), 'PP-OCR must install before capture UI');
+assert.match(runtime, /feature\(['"]recognition-paddle-ocr['"]/, 'runtime must register PP-OCR before package capture');
+assert.ok(runtime.indexOf("feature('recognition-paddle-ocr'") < runtime.indexOf("feature('package-capture'"), 'PP-OCR provider must install before capture UI');
 
 assert.match(bridge, /paddleBrowserRecognize/, 'bridge must accept the controlled browser-safe provider');
 assert.match(bridge, /provider\.workerOnly!==true\s*&&\s*provider\.browserSafe!==true/, 'bridge must reject undeclared unsafe providers');
@@ -63,4 +75,4 @@ assert.match(bridge, /webPaddle:Boolean\(globalThis\.LuckyBeanPaddleOCR\?\.worke
 assert.match(capture, /captureState\.busy\s*=\s*false/, 'package recognition must restore interactive state');
 assert.match(capture, /recognitionQueued\s*=\s*false/, 'recognition click queue must be releasable');
 
-console.log(`LuckyBean ${release.displayVersion} browser OCR keeps Worker-first isolation, adds bounded WebKit direct-WASM fallback, preserves Worker-only ROI, and never falls back to Tesseract`);
+console.log(`LuckyBean ${release.displayVersion} browser OCR is lazy, memory-bounded on Apple, Worker-isolated off WebKit, Worker-only for ROI, and non-blocking on advisory AI`);
