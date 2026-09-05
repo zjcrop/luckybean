@@ -17,6 +17,22 @@ async function isolateSupabase(page){
   await page.route(SUPABASE_PATTERN,route=>route.fulfill({status:200,contentType:'application/json',body:'{}'}));
 }
 
+async function loadLazyWebOcr(page){
+  await page.waitForFunction(()=>Boolean(globalThis.LuckyBeanRuntimeFeatures)&&Boolean(globalThis.LuckyBeanPackageCapture),null,{timeout:15000});
+  const before=await page.evaluate(()=>({
+    paddle:Boolean(globalThis.LuckyBeanPaddleOCR),
+    declared:globalThis.LuckyBeanRuntimeFeatures?.declared?.includes('recognition-paddle-ocr')===true,
+    loaded:globalThis.LuckyBeanRuntimeFeatures?.isLoaded?.('recognition-paddle-ocr')===true,
+    heavyResources:performance.getEntriesByType('resource').map(item=>item.name).filter(name=>/paddleocr\/(?:sdk|models|ort)\//.test(name)||/paddleocr\/sdk\.mjs/.test(name))
+  }));
+  expect(before.declared).toBe(true);
+  expect(before.paddle).toBe(false);
+  expect(before.loaded).toBe(false);
+  expect(before.heavyResources).toEqual([]);
+  await page.evaluate(()=>globalThis.LuckyBeanRuntimeFeatures.load('recognition-paddle-ocr'));
+  await page.waitForFunction(()=>Boolean(globalThis.LuckyBeanPaddleOCR),null,{timeout:15000});
+}
+
 test('email verification callback survives Safari-style storage failure',async({page})=>{
   await page.addInitScript(()=>{
     const set=Storage.prototype.setItem, remove=Storage.prototype.removeItem;
@@ -38,7 +54,8 @@ test('email verification callback survives Safari-style storage failure',async({
     await route.fulfill({status:200,contentType:'application/json',body:'{}'});
   });
   await enter(page,`${BASE_URL}/?webkit-callback=1#access_token=a.b.c&refresh_token=webkit-refresh&expires_in=3600&token_type=bearer`);
-  await expect.poll(()=>page.evaluate(()=>globalThis.LuckyBeanCloudAuth?.getSession?.()?.refresh_token||'')).toBe('webkit-refresh');
+  await expect.poll(()=>page.evaluate(()=>globalThis.LuckyBeanCloudAuth?.getSession?.()?.refresh_token||''),{timeout:15000}).toBe('webkit-refresh');
+  await expect.poll(()=>page.evaluate(()=>globalThis.LuckyBeanCloudAuth?.getSession?.()?.user?.email||''),{timeout:15000}).toBe('webkit@example.com');
   const state=await page.evaluate(()=>({hash:location.hash,auth:document.documentElement.dataset.cloudAuth,storage:document.documentElement.dataset.cloudStorage,email:globalThis.LuckyBeanCloudAuth.getSession()?.user?.email}));
   expect(state.hash).toBe('');
   expect(state.auth).toBe('authenticated');
@@ -49,8 +66,7 @@ test('email verification callback survives Safari-style storage failure',async({
 test('WebKit runtime stays lazy and exposes bounded PP-OCR compatibility mode',async({page})=>{
   await isolateSupabase(page);
   await enter(page,`${BASE_URL}/?webkit-ocr=1`);
-  await page.waitForFunction(()=>Boolean(globalThis.LuckyBeanPaddleOCR)&&Boolean(globalThis.LuckyBeanPackageCapture),null,{timeout:15000});
-  await page.waitForTimeout(4500);
+  await loadLazyWebOcr(page);
   const state=await page.evaluate(()=>({
     browserSafe:globalThis.LuckyBeanPaddleOCR.browserSafe,
     primaryIsolation:globalThis.LuckyBeanPaddleOCR.primaryIsolation,
@@ -74,7 +90,7 @@ test('WebKit runtime stays lazy and exposes bounded PP-OCR compatibility mode',a
 test('WebKit PP-OCR performs a real bounded local inference and releases the engine',async({page})=>{
   await isolateSupabase(page);
   await enter(page,`${BASE_URL}/?webkit-real-ocr=1`);
-  await page.waitForFunction(()=>Boolean(globalThis.LuckyBeanPaddleOCR),null,{timeout:15000});
+  await loadLazyWebOcr(page);
 
   const result=await page.evaluate(async()=>{
     const canvas=document.createElement('canvas');
