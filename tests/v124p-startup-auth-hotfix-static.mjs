@@ -10,6 +10,7 @@ assert.match(startup, /globalThis\.structuredClone = cloneFallback/, 'structured
 assert.match(startup, /dataset\.cloneCompatibility = 'fallback'/, 'startup must expose compatibility diagnostics');
 assert.match(startup, /dataset\.localDeviceStorage = 'fallback'/, 'device-id persistence failure must degrade instead of aborting startup');
 assert.match(startup, /await import\(`\.\.\/app\.js\?v=/, 'app import must remain behind startup compatibility setup');
+assert.match(startup, /1\.24P-main\.3/, 'startup fallback revision must match the current release');
 
 assert.match(auth, /mode === 'register' && input\.password\.length < 8/, 'eight-character minimum must apply only to registration');
 assert.doesNotMatch(auth, /if \(input\.password\.length < 8\)/, 'legacy account login must not be blocked by the registration password rule');
@@ -17,9 +18,11 @@ assert.match(auth, /email_not_confirmed/, 'email verification state must be tran
 assert.match(auth, /invalid_credentials/, 'invalid credentials state must be translated explicitly');
 assert.match(auth, /over_email_send_rate_limit/, 'email rate-limit state must be translated explicitly');
 assert.match(auth, /typeof AbortController === 'function'/, 'auth requests must degrade when AbortController is unavailable');
-assert.match(auth, /cloud-auth-service-v6-atomic-callback/, 'current atomic callback auth revision marker must be present');
+assert.match(auth, /cloud-auth-service-v7-immediate-atomic-callback/, 'current immediate atomic callback auth revision marker must be present');
 assert.match(auth, /INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash\(location\.hash\)/, 'email verification callback must be captured before normal session warm-up');
 assert.match(auth, /volatileStorage/, 'Safari/localStorage failure must retain a non-destructive volatile auth fallback');
 assert.match(auth, /writeSession\(provisional\);[\s\S]*clearAuthCallbackUrl\(\);/, 'callback session must be accepted before profile/network enrichment');
+assert.match(auth, /void warmSession\(\)\.catch/, 'callback consumption must begin immediately instead of waiting for a later microtask');
+assert.doesNotMatch(auth, /queueMicrotask\(\(\) => warmSession/, 'Safari callback acceptance must not depend on microtask scheduling');
 
-console.log('LuckyBean P0 startup/auth and atomic callback compatibility contract passed');
+console.log('LuckyBean P0 startup/auth and immediate atomic callback compatibility contract passed');
