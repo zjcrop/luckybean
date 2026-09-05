@@ -2,7 +2,7 @@ import { recognitionDocumentFromText } from './recognition-document.js';
 
 export const MULTI_ENTRY_SCHEMA = 'recognition-multi-entry/1.0';
 
-const COFFEE_FIELD_SIGNAL = /(?:国家|产国|原产国|产地|产区|地区|庄园|农场|处理法|处理方式|品种|豆种|烘焙日期|烘焙度|海拔|风味|净重|批次|等级|烘焙商|country|origin|region|farm|estate|process(?:ing)?|variety|varietal|roast(?:ed)?|altitude|elevation|tasting notes?|flavo(?:u)?r|net weight|lot|grade|roaster)\b/giu;
+const COFFEE_FIELD_SIGNAL = /(?:国家|产国|原产国|产地|产区|地区|庄园|农场|处理法|处理方式|品种|豆种|烘焙日期|烘焙度|海拔|风味|净重|批次|等级|烘焙商|(?:country|origin|region|farm|estate|process(?:ing)?|variety|varietal|roast(?:ed)?|altitude|elevation|tasting notes?|flavo(?:u)?r|net weight|lot|grade|roaster)\b)/giu;
 const ENTRY_HEADING = /^\s*(?:(?:样品|豆|咖啡|coffee|bean|sample)\s*[#№]?\s*(?:\d+|[A-Z]|[一二三四五六七八九十]+)|(?:\d{1,2}|[A-Z])\s*[.)、])\s*[:：\-–—]?\s*/iu;
 const STRONG_START = /^\s*(?:国家|产国|原产国|country|country of origin)\s*[:：=|｜]/iu;
 
