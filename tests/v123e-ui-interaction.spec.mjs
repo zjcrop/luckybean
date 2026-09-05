@@ -80,8 +80,6 @@ test('mobile theme persists and canonical viewport has no horizontal overflow', 
   expect(viewport.cssHeight).toMatch(/px$/);
   expect(viewport.overflow).toBeLessThanOrEqual(1);
 
-  // Use a fresh page in the same BrowserContext to verify persisted storage. This exercises a real
-  // document restart without racing Chromium's reload against late module/service-worker activity.
   const reopened = await context.newPage();
   try {
     await reopened.setViewportSize({ width:360, height:800 });
@@ -125,73 +123,123 @@ test('500ms bean long press opens quick actions and delete uses seven-day recycl
   await expect(page.locator('[data-overlay="bean-detail"]')).toHaveCount(0);
 
   page.once('dialog', dialog => dialog.accept());
-  await page.locator('[data-quick-delete]').click();
-  await expect(card).toHaveCount(0);
+  await page.locator('[data-bean-quick-delete]').click();
+  await expect(page.locator('[data-overlay="bean-quick-actions"]')).toHaveCount(0);
 
-  const recycled = await page.evaluate(async beanId => {
+  const state = await page.evaluate(async () => {
     const db = await import('/src/db.js');
-    return db.get('recycleBin', `bean:${beanId}`);
-  }, 'ui-longpress-bean');
-  expect(recycled?.kind).toBe('bean');
-  expect(recycled?.expiresAt).toBeTruthy();
+    const bean = await db.get('beans', 'ui-longpress-bean');
+    const recycle = await db.get('recycleBin', 'bean:ui-longpress-bean');
+    return { bean, recycle, retentionMs:recycle ? Date.parse(recycle.expiresAt) - Date.parse(recycle.recycledAt) : 0 };
+  });
+  expect(state.bean).toBeUndefined();
+  expect(state.recycle?.entity).toBe('beans');
+  expect(state.recycle?.entityId).toBe('ui-longpress-bean');
+  expect(state.recycle?.payload?.name).toBe('UI稳定性测试豆');
+  expect(state.retentionMs).toBe(7 * 24 * 60 * 60 * 1000);
 });
 
 test('professional cupping keeps page scrolling separate from shared tag sorting and radar gestures', async ({ page }) => {
-  await page.setViewportSize({ width:390, height:844 });
-  await openApp(page, 'sensory-gesture');
-  await seedBean(page, 'ui-sensory-bean');
+  await page.setViewportSize({ width:360, height:740 });
+  await openApp(page, 'professional-touch');
+  await seedBean(page, 'ui-cupping-bean');
   await page.locator('[data-page-target="sensory"]').click();
-  await expect(page.locator('#pageSensory')).toHaveClass(/active/);
+  await expect(page.locator('#sensoryBeanSelect')).toBeVisible();
+  await page.locator('#sensoryBeanSelect').selectOption('ui-cupping-bean');
+  await expect(page.locator('[data-v095-mode="professional"]')).toBeVisible();
+  await page.locator('[data-v095-mode="professional"]').click();
+  await expect(page.locator('#v095ProfessionalOverlay')).toBeVisible();
 
-  await page.waitForFunction(() => Boolean(globalThis.LuckyBeanProfessionalSensory));
-  await page.evaluate(() => globalThis.LuckyBeanProfessionalSensory.start({ beanId:'ui-sensory-bean', mode:'cupping' }));
-  await page.waitForTimeout(100);
-  const body = page.locator('body');
-  const html = page.locator('html');
-  await expect(body).not.toHaveCSS('overflow', 'hidden');
-  await expect(html).not.toHaveCSS('overflow', 'hidden');
-
-  const scrollState = await page.evaluate(() => ({
-    pageOverflow:document.documentElement.scrollHeight - document.documentElement.clientHeight,
-    touchAction:getComputedStyle(document.querySelector('#pageSensory')).touchAction,
-    sortable:Boolean(globalThis.LuckyBeanSharedSortable)
+  await page.locator('[data-v095-tag="花香"]').click();
+  await page.locator('[data-v095-tag="茉莉"]').click();
+  const selected = page.locator('[data-v120-selected-tag]');
+  await expect(selected).toHaveCount(2);
+  await expect(page.locator('.v095-sort-hint')).toContainText('长按任一已选标签');
+  const touch = await page.evaluate(() => ({
+    chip:getComputedStyle(document.querySelector('[data-v120-selected-tag]')).touchAction,
+    handlePointer:getComputedStyle(document.querySelector('[data-v120-drag-handle]')).pointerEvents
   }));
-  expect(scrollState.pageOverflow).toBeGreaterThanOrEqual(0);
-  expect(scrollState.touchAction).not.toBe('none');
-  expect(scrollState.sortable).toBe(true);
+  expect(touch.chip).toBe('pan-y');
+  expect(touch.handlePointer).toBe('none');
 
-  await page.evaluate(() => globalThis.LuckyBeanProfessionalSensory.stop?.());
+  const chip = selected.first();
+  const box = await chip.boundingBox();
+  expect(box).toBeTruthy();
+  await page.mouse.move(box.x + box.width * .35, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(410);
+  await expect(page.locator('.lb-sort-ghost')).toHaveCount(1);
+  await expect(page.locator('.lb-sort-placeholder')).toHaveCount(1);
+  await expect(chip).toHaveCSS('visibility', 'hidden');
+  await page.mouse.up();
+  await expect(page.locator('.lb-sort-ghost')).toHaveCount(0);
+  await expect(page.locator('.lb-sort-placeholder')).toHaveCount(0);
+  await expect(chip).toHaveCSS('visibility', 'visible');
+
+  for (let i = 0; i < 8; i += 1) await page.locator('[data-v095-next]').click();
+  await expect(page.locator('.v095-radar-stage')).toBeVisible();
+  const radarTouch = await page.evaluate(() => ({
+    svg:getComputedStyle(document.querySelector('.v095-radar-stage svg')).touchAction,
+    node:getComputedStyle(document.querySelector('.v120-radar-node')).touchAction,
+    overflow:getComputedStyle(document.querySelector('.v095-professional-dialog')).overflowY,
+    overlayOverflow:getComputedStyle(document.querySelector('.v095-professional-overlay')).overflowY
+  }));
+  expect(radarTouch.svg).toBe('pan-y');
+  expect(radarTouch.node).toBe('none');
+  expect(['auto','scroll']).toContain(radarTouch.overflow);
+  expect(radarTouch.overlayOverflow).toBe('hidden');
+
+  const scrolled = await page.locator('.v095-professional-dialog').evaluate(dialog => {
+    dialog.scrollTop = dialog.scrollHeight;
+    return { top:dialog.scrollTop, max:dialog.scrollHeight - dialog.clientHeight };
+  });
+  expect(scrolled.top).toBeGreaterThanOrEqual(Math.max(0, scrolled.max - 2));
+  await expect(page.locator('[data-v095-next]')).toBeVisible();
 });
 
 test('system back closes overlays first and then follows actual main-page history', async ({ page }) => {
   await page.setViewportSize({ width:390, height:844 });
   await openApp(page, 'navigation-back');
-  await seedBean(page, 'ui-back-bean');
+  await seedBean(page, 'ui-navigation-bean');
 
-  await page.locator('.bean-card[data-bean-id="ui-back-bean"]').click();
-  await expect(page.locator('[data-overlay="bean-detail"]')).toBeVisible();
-  await page.goBack();
-  await expect(page.locator('[data-overlay="bean-detail"]')).toHaveCount(0);
-  await expect(page.locator('#pageBeans')).toHaveClass(/active/);
+  await expect.poll(() => page.evaluate(() => globalThis.LuckyBeanNavigation?.snapshot?.().depth ?? -1)).toBe(0);
+  await page.locator('[data-page-target="settings"]').click();
+  await expect(page.locator('.page[data-page="settings"]')).toHaveClass(/active/);
+  await page.locator('[data-page-target="beans"]').click();
+  await expect(page.locator('.page[data-page="beans"]')).toHaveClass(/active/);
+  await expect.poll(() => page.evaluate(() => globalThis.LuckyBeanNavigation.snapshot().depth)).toBe(2);
 
-  await page.locator('[data-page-target="brew"]').click();
-  await expect(page.locator('#pageBrew')).toHaveClass(/active/);
-  await page.goBack();
-  await expect(page.locator('#pageBeans')).toHaveClass(/active/);
+  await page.evaluate(() => globalThis.LuckyBeanBeanCards.openActions('ui-navigation-bean'));
+  await expect(page.locator('[data-overlay="bean-quick-actions"]')).toBeVisible();
+
+  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.back())).toBe(true);
+  await expect(page.locator('[data-overlay="bean-quick-actions"]')).toHaveCount(0);
+  await expect(page.locator('.page[data-page="beans"]')).toHaveClass(/active/);
+
+  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.back())).toBe(true);
+  await expect(page.locator('.page[data-page="settings"]')).toHaveClass(/active/);
+  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.back())).toBe(true);
+  await expect(page.locator('.page[data-page="beans"]')).toHaveClass(/active/);
+  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.canGoBack())).toBe(false);
 });
 
 test('bean metadata groups use one-character gap instead of growing into a wide blank band', async ({ page }) => {
   await page.setViewportSize({ width:390, height:844 });
-  await openApp(page, 'metadata-gap');
+  await openApp(page, 'bean-metadata-gap');
   await seedBean(page, 'ui-gap-bean');
-  const card = page.locator('.bean-card[data-bean-id="ui-gap-bean"]');
-  const metrics = await card.evaluate(element => {
-    const rows = [...element.querySelectorAll('.bean-meta-row')];
-    return rows.map(row => ({ gap:getComputedStyle(row).columnGap, width:row.getBoundingClientRect().width }));
+  const metrics = await page.locator('.bean-card[data-bean-id="ui-gap-bean"] .lb-bean-line').evaluate(line => {
+    const style = getComputedStyle(line);
+    const primary = getComputedStyle(line.querySelector('.lb-bean-primary'));
+    const secondary = getComputedStyle(line.querySelector('.lb-bean-secondary'));
+    return {
+      gap:parseFloat(style.columnGap || style.gap),
+      fontSize:parseFloat(style.fontSize),
+      primaryGrow:Number(primary.flexGrow),
+      secondaryGrow:Number(secondary.flexGrow)
+    };
   });
-  expect(metrics.length).toBeGreaterThan(0);
-  for (const item of metrics) {
-    expect(parseFloat(item.gap || '0')).toBeLessThanOrEqual(16);
-    expect(item.width).toBeLessThanOrEqual(390);
-  }
+  expect(metrics.gap).toBeGreaterThan(9);
+  expect(metrics.gap).toBeLessThan(20);
+  expect(metrics.primaryGrow).toBe(0);
+  expect(metrics.secondaryGrow).toBe(0);
 });
