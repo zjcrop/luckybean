@@ -96,7 +96,7 @@ function replaceExact(source, before, after, label) {
     'recognition codebook on demand'
   );
   source = replaceExact(source, "state.codebook.version||'6'", "state.codebook?.version||'6'", 'settings unloaded codebook safety');
-  source = replaceExact(source, '现有咖啡豆 ${stock}', '现有咖啡豆共计 ${stock}', 'inventory summary wording');
+  source = source.replaceAll('现有咖啡豆 ${stock}', '现有咖啡豆共计 ${stock}');
   write(path, source);
 }
 
