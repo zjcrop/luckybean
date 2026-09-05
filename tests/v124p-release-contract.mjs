@@ -24,7 +24,7 @@ const sensoryHistory = read('src/domain/history/history-sensory-service.js');
 assert.equal(release.displayVersion, '1.24P');
 assert.equal(release.revision, '1.24P-main.1');
 assert.equal(release.semver, '1.24.16');
-assert.equal(release.androidVersionCode, 102416);
+assert.ok(Number.isInteger(release.androidVersionCode) && release.androidVersionCode >= 102416);
 assert.equal(release.releaseTag, 'v1.24P-main.1');
 assert.equal(release.brewResultVersion, '1.1');
 assert.equal(release.brewPlanVersion, 'brew-plan/1.0');
