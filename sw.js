@@ -9,6 +9,32 @@ const LEGACY_CACHE_PREFIXES = [
 ];
 const versioned = path => `${path}?v=${REVISION}`;
 
+// Runtime/offline contract inventory. These resources are intentionally NOT fetched
+// during service-worker installation; same-origin network-first requests cache them
+// after actual use. Keeping the inventory explicit preserves auditability without
+// making first load depend on a large all-or-nothing precache transaction.
+const LAZY_RUNTIME_RESOURCES = [
+  './src/app.js',
+  './src/services/cloud-sync-safety.js',
+  './src/ui/appearance-controller.js',
+  './src/features/runtime-features.js',
+  './src/features/release-1.24b-transit-controller.js',
+  './src/features/release-1.24b-group-navigation.js',
+  './src/features/release-1.24b-about-controller.js',
+  './src/features/release-1.24b-freshness-detail.js',
+  './src/features/recognition-batch-progress-controller.js',
+  './src/ui/sortable-controller.js',
+  './src/features/sensory-tag-sort-controller.js',
+  './src/domain/recognition/recognition-field-resolver-1.24b.js',
+  './src/ui/gear-controller.js',
+  './src/renderers/brew-spatial-view.js',
+  './src/domain/history/history-service.js',
+  './src/recognition-bridge.js',
+  './public/Luckybean-END.webp',
+  './public/vendor/jsvectormap/world.js'
+];
+void LAZY_RUNTIME_RESOURCES;
+
 // Keep first-install traffic deliberately small. Everything else is cached by the
 // same-origin fetch handler after it is actually used. This avoids turning one
 // intermittent GitHub Pages request into a complete service-worker install failure.
