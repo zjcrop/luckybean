@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import zipfile
@@ -35,6 +36,12 @@ def require_entry(archive: zipfile.ZipFile, entry: str, needle: str) -> None:
     text = read_entry(archive, entry).decode("utf-8")
     if needle not in text:
         fail(f"APK contract marker missing: {entry} :: {needle}")
+
+
+def require_entry_regex(archive: zipfile.ZipFile, entry: str, pattern: str, label: str) -> None:
+    text = read_entry(archive, entry).decode("utf-8")
+    if re.search(pattern, text, flags=re.MULTILINE) is None:
+        fail(f"APK semantic contract missing: {entry} :: {label}")
 
 
 def forbid_entry(archive: zipfile.ZipFile, entry: str, needle: str) -> None:
@@ -97,7 +104,6 @@ required = [
     ("assets/web-cache/src/features/sensory-tag-sort-controller.js", "professional-sensory-complete"),
     ("assets/web-cache/src/features/release-1.24b-ui-policy.js", f"|| '{revision}'"),
     ("assets/web-cache/src/release-1.24b.css", "main.7 professional score responsive layout"),
-    ("assets/web-cache/src/recognition-bridge.js", "dataUrl: nativeSource ? '' : await blobToDataUrl(image.blob)"),
     ("assets/web-cache/src/package-capture-controller.js", "bindAndroidImageSource(id, nativeSource)"),
     ("assets/web-cache/src/services/brew-analysis-service.js", "BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.1'"),
     ("assets/web-cache/src/services/brew-analysis-service.js", "BREW_SPATIAL_CONTRACT = 'brew-spatial/1.3'"),
@@ -110,6 +116,12 @@ forbidden = [
 with zipfile.ZipFile(APK) as archive:
     for entry, needle in required:
         require_entry(archive, entry, needle)
+    require_entry_regex(
+        archive,
+        "assets/web-cache/src/recognition-bridge.js",
+        r"dataUrl\s*:\s*nativeSource\s*\?\s*''\s*:\s*await\s+blobToDataUrl\(image\.blob\)",
+        "Android native-backed photos skip WebView FileReader/base64 encoding",
+    )
     for entry, needle in forbidden:
         forbid_entry(archive, entry, needle)
 
@@ -150,6 +162,7 @@ if identity not in badging:
     "canonical-state-api\n"
     "shared-live-preview-ghost-placeholder\n"
     "single-activate-double-remove-longpress-preview\n"
+    "android-native-uri-no-webview-base64\n"
     "brew_ui=text-interactions\n",
     encoding="utf-8",
 )
