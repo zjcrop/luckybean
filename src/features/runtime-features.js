@@ -83,16 +83,20 @@ function isLoaded(id) { return loaded.includes(id); }
 function installLazyTriggers() {
   document.addEventListener('click', async event => {
     const photo = event.target.closest?.('[data-add-mode="photo"]');
-    if (photo && !isLoaded('package-capture')) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      const ready = await loadMany([
-        'recognition-paddle-ocr', 'recognition-quality', 'package-capture',
-        'direct-camera', 'recognition-review-owner', 'recognition-batch-progress'
-      ]);
+    if (photo) {
+      // Pointer input prewarms on pointerdown. Keyboard/programmatic click has no pointerdown,
+      // so always start the same lightweight runtime warm-up here as a compatibility fallback.
       void warmRecognition();
-      if (ready && globalThis.LuckyBeanPackageCapture?.open) globalThis.LuckyBeanPackageCapture.open();
-      return;
+      if (!isLoaded('package-capture')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const ready = await loadMany([
+          'recognition-paddle-ocr', 'recognition-quality', 'package-capture',
+          'direct-camera', 'recognition-review-owner', 'recognition-batch-progress'
+        ]);
+        if (ready && globalThis.LuckyBeanPackageCapture?.open) globalThis.LuckyBeanPackageCapture.open();
+        return;
+      }
     }
 
     const world = event.target.closest?.('[data-v099f-world]');
