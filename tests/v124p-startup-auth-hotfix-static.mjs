@@ -9,7 +9,11 @@ assert.match(startup, /typeof globalThis\.structuredClone !== 'function'/, 'star
 assert.match(startup, /globalThis\.structuredClone = cloneFallback/, 'structuredClone fallback must be installed before app import');
 assert.match(startup, /dataset\.cloneCompatibility = 'fallback'/, 'startup must expose compatibility diagnostics');
 assert.match(startup, /dataset\.localDeviceStorage = 'fallback'/, 'device-id persistence failure must degrade instead of aborting startup');
-assert.match(startup, /await import\(`\.\.\/app\.js\?v=/, 'app import must remain behind startup compatibility setup');
+assert.match(startup, /LOCAL_DEVICE_TIMEOUT_MS = 2500/, 'IndexedDB bootstrap must have a short hard deadline');
+assert.match(startup, /Promise\.race\(\[storageTask, timeout\]\)/, 'startup must continue when IndexedDB stalls');
+assert.match(startup, /dataset\.localDeviceStorage = 'fallback-timeout'/, 'storage timeout degradation must be observable');
+assert.match(startup, /await ensureLocalDevice\(\);[\s\S]*await import\(`\.\.\/app\.js\?v=/, 'app import must follow a bounded device bootstrap rather than an unbounded IndexedDB wait');
+assert.match(startup, /\|\| '1\.24P-main\.2'/, 'startup fallback revision must match the current release');
 
 assert.match(auth, /mode === 'register' && input\.password\.length < 8/, 'eight-character minimum must apply only to registration');
 assert.doesNotMatch(auth, /if \(input\.password\.length < 8\)/, 'legacy account login must not be blocked by the registration password rule');
