@@ -6,15 +6,18 @@ const LAST_SERVER_ACTIVITY_KEY = 'luckybean.cloud.last.server.activity.v1';
 const PENDING_REGISTRATION_KEY = 'luckybean.cloud.pending-registration.v1';
 const REMEMBER_MS = 7 * 24 * 60 * 60 * 1000;
 const PENDING_REGISTRATION_MS = 7 * 24 * 60 * 60 * 1000;
+const CALLBACK_SESSION_GRACE_MS = 15000;
 const SOURCE_APP = 'luckybean';
 let refreshPromise = null;
 let dialogBusy = false;
 let volatileSession = null;
+let callbackSessionAcceptedAt = 0;
 const volatileStorage = new Map();
 
 function storageGet(key) {
+  if (volatileStorage.has(key)) return volatileStorage.get(key);
   try { return localStorage.getItem(key); }
-  catch { return volatileStorage.has(key) ? volatileStorage.get(key) : null; }
+  catch { return null; }
 }
 function storageSet(key, value) {
   volatileStorage.set(key, String(value));
@@ -148,6 +151,7 @@ async function consumeAuthCallback() {
   };
   writeSession(payload);
   markServerActivity();
+  callbackSessionAcceptedAt = Date.now();
   const pending = readPendingRegistration();
   const email = String(user?.email || pending?.email || '').toLowerCase();
   const completedRegistration = Boolean(pending?.email && (!email || pending.email === email));
@@ -170,10 +174,12 @@ async function refreshSession({ force = false, reason = 'background' } = {}) {
     emit('connecting', { reason });
     try {
       const payload = await rawRequest('/auth/v1/token?grant_type=refresh_token', { body:{ refresh_token:active.refresh_token }, timeoutMs:5000 });
+      if (!payload?.access_token || !payload?.refresh_token) throw Object.assign(new Error('云端刷新会话返回无效'), { code:'invalid_refresh_payload' });
       active = { ...payload, user:payload?.user || active.user || null }; writeSession(active); markServerActivity(); emit('authenticated', { user:active.user, refreshed:true }); return active;
     } catch (error) {
       if ([400,401,403].includes(Number(error.status))) { writeSession(null); emit('reauth-required', { error:friendlyAuthMessage(error, 'login') }); return null; }
-      emit('offline', { error:friendlyAuthMessage(error, 'login'), session:active }); return accessTokenValid(active, 0) ? active : null;
+      emit('offline', { error:friendlyAuthMessage(error, 'login'), session:active });
+      return active?.refresh_token ? active : null;
     }
   })().finally(() => { refreshPromise = null; });
   return refreshPromise;
@@ -255,6 +261,7 @@ async function submit(mode) {
 async function signOut() {
   const active = readSession();
   if (active?.access_token) await rawRequest('/auth/v1/logout', { token:active.access_token, timeoutMs:3500 }).catch(() => {});
+  callbackSessionAcceptedAt = 0;
   writeSession(null); storageRemove(REMEMBER_UNTIL_KEY); emit('signed-out');
 }
 async function warmSession() {
@@ -262,6 +269,10 @@ async function warmSession() {
   if (callback?.refresh_token) return callback;
   const active = readSession();
   if (!active?.refresh_token) { emit('signed-out'); return null; }
+  if (callbackSessionAcceptedAt && Date.now() - callbackSessionAcceptedAt < CALLBACK_SESSION_GRACE_MS) {
+    emit('authenticated', { user:active.user, cached:true, authAction:'email-callback' });
+    return active;
+  }
   return refreshSession({ force:true, reason:'startup' });
 }
 
