@@ -253,9 +253,24 @@ async function ensureFullCodebook() {
 }
 
 async function refreshData() {
+  performance?.mark?.('luckybean:bean-directory-start');
   state.beans = await all('beanSummaries');
   state.beans.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
-  state.data.beansReady = true; state.data.beansMode = 'summary'; updateLowStockIndicator();
+  // refreshData is the boundary back to the lightweight directory state. Never leave stale
+  // bean-detail/history payloads resident or let a prior detailBeanId bypass a fresh indexed read.
+  state.brewSessions = [];
+  state.sensoryRecords = [];
+  state.inventoryEvents = [];
+  state.preferenceModel = null;
+  state.recommendedIds = new Set();
+  state.data.beansReady = true;
+  state.data.beansMode = 'summary';
+  state.data.detailBeanId = '';
+  state.data.sensoryScope = 'none';
+  state.data.sensoryBeanId = '';
+  state.data.inventoryReady = false;
+  performance?.mark?.('luckybean:bean-directory-ready');
+  updateLowStockIndicator();
 }
 
 async function ensureBeanDetailData(beanId, { force = false } = {}) {
