@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const read = path => fs.readFileSync(path, 'utf8');
+const index = read('index.html');
 const startup = read('src/core/startup-controller.js');
 const auth = read('src/services/cloud-auth-service.js');
 
+assert.ok(index.indexOf('src/services/cloud-auth-service.js') < index.indexOf('src/core/startup-controller.js'), 'auth callback capture must load before local app startup can advance URL/application state');
 assert.match(startup, /typeof globalThis\.structuredClone !== 'function'/, 'startup must install a structuredClone compatibility fallback');
 assert.match(startup, /globalThis\.structuredClone = cloneFallback/, 'structuredClone fallback must be installed before app import');
 assert.match(startup, /dataset\.cloneCompatibility = 'fallback'/, 'startup must expose compatibility diagnostics');
