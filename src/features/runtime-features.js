@@ -20,6 +20,7 @@ const LAZY_FEATURES = Object.freeze([
   feature('recognition-paddle-ocr', '../recognition-paddle-ocr.js'),
   feature('recognition-quality', '../recognition-quality-controller.js'),
   feature('package-capture', '../package-capture-controller.js'),
+  feature('recognition-multi-entry', './recognition-multi-entry-controller.js'),
   feature('direct-camera', '../direct-camera-controller.js'),
   feature('recognition-review-owner', '../ui/recognition-review-owner-controller.js'),
   feature('selection', '../selection-controller.js'),
@@ -33,7 +34,7 @@ const LAZY_FEATURES = Object.freeze([
 ]);
 
 const PREINTERACTION_FEATURE_IDS = Object.freeze([
-  'recognition-quality', 'package-capture', 'direct-camera', 'recognition-review-owner',
+  'recognition-quality', 'package-capture', 'recognition-multi-entry', 'direct-camera', 'recognition-review-owner',
   'recognition-batch-progress', 'brew-pour-guide', 'shared-sortable', 'sensory-tag-sort'
 ]);
 
