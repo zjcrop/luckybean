@@ -19,6 +19,7 @@ const LAZY_RUNTIME_RESOURCES = [
   './src/services/brew-analysis-service.js',
   './src/services/provider-package-service.js',
   './src/ui/appearance-controller.js',
+  './src/ui/voice-settings-controller.js',
   './src/features/runtime-features.js',
   './src/features/release-1.24b-transit-controller.js',
   './src/features/release-1.24b-group-navigation.js',
@@ -37,9 +38,6 @@ const LAZY_RUNTIME_RESOURCES = [
 ];
 void LAZY_RUNTIME_RESOURCES;
 
-// Keep first-install traffic deliberately small. Everything else is cached by the
-// same-origin fetch handler after it is actually used. This avoids turning one
-// intermittent GitHub Pages request into a complete service-worker install failure.
 const BOOTSTRAP_CORE = [
   './',
   './index.html',
@@ -57,8 +55,6 @@ const BOOTSTRAP_CORE = [
 
 async function cacheBootstrapBestEffort() {
   const cache = await caches.open(CACHE_NAME);
-  // Do not use cache.addAll(): on lossy/filtered networks a single failed request
-  // must not invalidate the whole offline shell installation.
   await Promise.allSettled(BOOTSTRAP_CORE.map(async path => {
     try {
       const request = new Request(path, { cache: 'reload' });
