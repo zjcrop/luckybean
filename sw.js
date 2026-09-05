@@ -9,6 +9,8 @@ const LEGACY_CACHE_PREFIXES = [
   'luckybean-v123-brewprofiles-integration-test-', 'luckybean-v200-foundation-'
 ];
 const versioned = path => `${path}?v=${REVISION}`;
+// Runtime cache catalog is intentionally not eagerly fetched during service-worker install.
+// On constrained/mobile networks, each asset is cached on first use instead of competing with app startup.
 const CORE = [
   './', './index.html', './recognition-test.html', './release.json',
   versioned('./manifest.webmanifest'), versioned('./styles.css'), versioned('./src/release-1.24b.css'), versioned('./src/release-1.24b.js'),
@@ -49,7 +51,7 @@ const CORE = [
   './public/fallback-codebook.json', './public/legacy-flavor-map.json'
 ];
 const CRITICAL = [
-  './', './index.html', './release.json', versioned('./styles.css'), versioned('./src/release-1.24b.css'), versioned('./src/core/bootstrap.js'), versioned('./src/app.js')
+  './', './index.html', './release.json', versioned('./styles.css'), versioned('./src/release-1.24b.css'), versioned('./src/core/startup-controller.js'), versioned('./src/core/bootstrap.js'), versioned('./src/app.js')
 ];
 
 function fetchWithTimeout(request, timeoutMs = NETWORK_TIMEOUT_MS) {
@@ -90,8 +92,6 @@ self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
     await cache.addAll(CRITICAL);
-    const optional = CORE.filter(item => !CRITICAL.includes(item));
-    await Promise.allSettled(optional.map(item => cache.add(item)));
     await self.skipWaiting();
   })());
 });
