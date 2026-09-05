@@ -2,6 +2,7 @@
 const REVISION = '1.24P-main.2';
 const CACHE_PREFIX = 'luckybean-main-v124p-';
 const CACHE_NAME = `${CACHE_PREFIX}main-2-auth-ocr-ai`;
+const NETWORK_TIMEOUT_MS = 3500;
 const LEGACY_CACHE_PREFIXES = [
   'luckybean-main-v124b-', 'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
   'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',
@@ -47,9 +48,52 @@ const CORE = [
   './public/vendor/jsqr/jsQR.js', './public/vendor/jsvectormap/jsvectormap.min.css', './public/vendor/jsvectormap/jsvectormap.min.js', './public/vendor/jsvectormap/world.js',
   './public/fallback-codebook.json', './public/legacy-flavor-map.json'
 ];
+const CRITICAL = [
+  './', './index.html', './release.json', versioned('./styles.css'), versioned('./src/release-1.24b.css'), versioned('./src/core/bootstrap.js'), versioned('./src/app.js')
+];
+
+function fetchWithTimeout(request, timeoutMs = NETWORK_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(new Request(request, { cache:'reload', signal:controller.signal })).finally(() => clearTimeout(timer));
+}
+async function putIfUsable(cache, request, response) {
+  if (response?.ok) await cache.put(request, response.clone());
+  return response;
+}
+async function networkFirst(request, fallbackRequest = null) {
+  try {
+    const response = await fetchWithTimeout(request);
+    const cache = await caches.open(CACHE_NAME);
+    await putIfUsable(cache, request, response);
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    if (fallbackRequest) {
+      const fallback = await caches.match(fallbackRequest);
+      if (fallback) return fallback;
+    }
+    throw new Error('network-and-cache-unavailable');
+  }
+}
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  const response = await fetch(request);
+  const cache = await caches.open(CACHE_NAME);
+  await putIfUsable(cache, request, response);
+  return response;
+}
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(CRITICAL);
+    const optional = CORE.filter(item => !CRITICAL.includes(item));
+    await Promise.allSettled(optional.map(item => cache.add(item)));
+    await self.skipWaiting();
+  })());
 });
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
@@ -64,23 +108,16 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(new Request(request, { cache:'reload' })).then(response => {
-      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
-      return response;
-    }).catch(() => caches.match(request).then(cached => cached || caches.match('./index.html'))));
+    event.respondWith(networkFirst(request, './index.html'));
     return;
   }
   if (url.origin === self.location.origin) {
-    event.respondWith(fetch(new Request(request, { cache:'reload' })).then(response => {
-      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
-      return response;
-    }).catch(() => caches.match(request)));
+    if (url.pathname.endsWith('/release.json') || url.pathname.endsWith('/manifest.webmanifest')) {
+      event.respondWith(networkFirst(request));
+    } else {
+      event.respondWith(cacheFirst(request));
+    }
     return;
   }
-  if (url.hostname === 'cdn.jsdelivr.net') {
-    event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {
-      caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
-      return response;
-    })));
-  }
+  if (url.hostname === 'cdn.jsdelivr.net') event.respondWith(cacheFirst(request));
 });
