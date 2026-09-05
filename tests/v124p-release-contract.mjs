@@ -22,21 +22,21 @@ const history = read('src/domain/history/history-comparison.js');
 const sensoryHistory = read('src/domain/history/history-sensory-service.js');
 
 assert.equal(release.displayVersion, '1.24P');
-assert.equal(release.revision, '1.24P-main.1');
+assert.equal(release.revision, '1.24P-main.2');
 assert.equal(release.semver, '1.24.16');
 assert.ok(Number.isInteger(release.androidVersionCode) && release.androidVersionCode >= 102416);
-assert.equal(release.releaseTag, 'v1.24P-main.1');
+assert.equal(release.releaseTag, 'v1.24P-main.2');
 assert.equal(release.brewResultVersion, '1.1');
 assert.equal(release.brewPlanVersion, 'brew-plan/1.0');
 
 assert.match(index, /application-version" content="1\.24P"/);
-assert.match(index, /release-revision" content="1\.24P-main\.1"/);
+assert.match(index, /release-revision" content="1\.24P-main\.2"/);
 assert.match(index, /data-release="1\.24P"/);
 assert.equal(manifest.version, '1.24P');
 assert.match(utils, /APP_VERSION = '1\.24P'/);
-assert.match(sw, /REVISION = '1\.24P-main\.1'/);
+assert.match(sw, /REVISION = '1\.24P-main\.2'/);
 assert.match(sw, /CACHE_PREFIX = 'luckybean-main-v124p-'/);
-assert.match(sw, /main-1-brewresult/);
+assert.match(sw, /main-2-web-startup/);
 assert.match(sw, /'\.\/release\.json'/);
 assert.match(startup, /APP_MODULE_REVISION = RELEASE_REVISION/);
 assert.match(runtime, /BEAN_GROUP_RUNTIME_REVISION = RELEASE_REVISION/);
