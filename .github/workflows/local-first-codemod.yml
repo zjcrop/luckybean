@@ -48,6 +48,6 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/app.js src/features/full-integration-controller-v3.js src/features/freshness-timeline-controller.js src/recognition-paddle-ocr.js
+          git add src/app.js src/db-storage-core.js src/features/runtime-features.js src/features/full-integration-controller-v3.js src/features/freshness-timeline-controller.js src/recognition-paddle-ocr.js tests/v124p-runtime-lazy-architecture.mjs
           git commit -m 'perf: finish lazy runtime and summary fast path'
           git push origin HEAD:perf/local-first-data-v2-20260906
