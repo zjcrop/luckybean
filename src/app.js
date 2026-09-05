@@ -751,7 +751,7 @@ function beanConsumptionSummaryHtml() {
     summary.exceeded ? '<strong>已经超量喽，可能影响身体健康</strong>' : '',
     summary.late ? '<strong>可能妨碍入睡，要不明天再喝？</strong>' : ''
   ].filter(Boolean).join('<span aria-hidden="true"> · </span>');
-  return `<section class="bean-consumption-summary" aria-label="豆藏库存和今日咖啡摄入估算"><p>现有咖啡豆 ${stock}<span>/</span>今日已饮用 ${summary.consumedTodayG.toFixed(1)}g豆<span>/</span>${allowance}</p>${warnings ? `<div class="bean-health-warning">${warnings}</div>` : ''}<small>咖啡因按阿拉比卡约12mg/g豆保守估算；当前每日参考值${summary.dailyLimitMg.toFixed(0)}mg，其他来源咖啡因未计入。</small></section>`;
+  return `<section class="bean-consumption-summary" aria-label="豆藏库存和今日咖啡摄入估算"><p>现有咖啡豆共计 ${stock}<span>/</span>今日已饮用 ${summary.consumedTodayG.toFixed(1)}g豆<span>/</span>${allowance}</p>${warnings ? `<div class="bean-health-warning">${warnings}</div>` : ''}<small>咖啡因按阿拉比卡约12mg/g豆保守估算；当前每日参考值${summary.dailyLimitMg.toFixed(0)}mg，其他来源咖啡因未计入。</small></section>`;
 }
 
 function beanSummaryBlockHtml() {
