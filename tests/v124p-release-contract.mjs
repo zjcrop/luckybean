@@ -44,8 +44,10 @@ assert.match(sw, /NETWORK_TIMEOUT_MS = 3500/);
 assert.match(sw, /async function cacheFirst\(request\)/);
 assert.match(sw, /request\.mode === 'navigate'[\s\S]*networkFirst\(request, '\.\/index\.html'\)/);
 assert.match(sw, /url\.origin === self\.location\.origin[\s\S]*cacheFirst\(request\)/);
-assert.match(sw, /Promise\.allSettled\(optional\.map\(item => cache\.add\(item\)\)\)/);
+assert.match(sw, /await cache\.addAll\(CRITICAL\)/, 'service-worker install must cache only the minimal startup surface');
+assert.doesNotMatch(sw, /optional\.map\(item => cache\.add\(item\)\)/, 'service-worker install must not flood a constrained network with optional asset requests');
 assert.doesNotMatch(sw, /url\.origin === self\.location\.origin[\s\S]{0,500}fetch\(new Request\(request, \{ cache:'reload' \}\)/, 'cached static assets must not synchronously wait on a slow origin before cache fallback');
+assert.match(startup, /LOCAL_DEVICE_TIMEOUT_MS = 2500/);
 assert.match(startup, /APP_MODULE_REVISION = RELEASE_REVISION/);
 assert.match(runtime, /BEAN_GROUP_RUNTIME_REVISION = RELEASE_REVISION/);
 
@@ -91,4 +93,4 @@ assert.match(validator, /Android user agent must follow current release version/
 const publicIdentitySources = [index, JSON.stringify(manifest), sw, utils, gradle, activity, deploy, build, diagnose];
 for (const source of publicIdentitySources) assert.doesNotMatch(source, /versionName '1\.24B'|APP_VERSION = '1\.24B'|application-version" content="1\.24B"|REVISION = '1\.24B-main\.6'|LuckyBeanAndroid\/1\.24B|status\/1\.24B\.json/);
 
-console.log('LuckyBean 1.24P main.2 canonical release identity, resilient PWA loading, BrewResult consumers and same-SHA signed deployment contract passed');
+console.log('LuckyBean 1.24P main.2 canonical release identity, bounded startup, minimal-install PWA loading, BrewResult consumers and same-SHA signed deployment contract passed');
