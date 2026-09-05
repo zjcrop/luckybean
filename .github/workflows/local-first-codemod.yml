@@ -13,7 +13,6 @@ permissions:
 
 jobs:
   apply:
-    if: ${{ !startsWith(github.event.head_commit.message, 'perf: apply local-first v10 data architecture') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
