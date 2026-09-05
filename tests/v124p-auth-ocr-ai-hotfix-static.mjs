@@ -12,7 +12,8 @@ const release=JSON.parse(fs.readFileSync('release.json','utf8'));
 
 assert.match(auth,/function consumeAuthCallback\(/);
 assert.match(auth,/new URLSearchParams\(hash\)/);
-assert.match(auth,/INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash\(location\.hash\)/);
+assert.match(auth,/INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash\(INITIAL_AUTH_CALLBACK_HASH\)/);
+assert.match(auth,/__LuckyBeanInitialAuthCallbackHash/);
 assert.match(auth,/if \(authCallbackPromise\) return authCallbackPromise/);
 assert.match(auth,/params\.get\('access_token'\)/);
 assert.match(auth,/params\.get\('refresh_token'\)/);
@@ -55,4 +56,4 @@ assert.equal(release.androidVersionCode,102419);
 assert.equal(release.releaseTag,'v1.24P-main.3');
 assert.match(sw,/recognition-ai-service\.js/);
 
-console.log('LuckyBean P0 immediate atomic auth callback, Safari OCR fallback and advisory AI recognition safety contract passed');
+console.log('LuckyBean P0 deterministic auth callback, Safari OCR fallback and advisory AI recognition safety contract passed');
