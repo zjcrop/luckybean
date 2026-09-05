@@ -67,7 +67,7 @@ test('Traditional inline field labels are canonicalized without changing unknown
   assert.equal(analysis.parsed.countryCode, 'CO-CO');
   assert.equal(analysis.parsed.entityCode, undefined);
   assert.equal(analysis.parsed.entityCustomName, '山嵐莊園');
-  assert.match(analysis.semanticText, /庄园 \/ 处理站: 山嵐莊園/);
+  assert.match(analysis.semanticText, /庄园: 山嵐莊園/);
   assert.match(analysis.semanticText, /处理法:/);
   assert.match(analysis.semanticText, /风味:/);
 });
