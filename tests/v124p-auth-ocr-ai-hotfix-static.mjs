@@ -19,7 +19,8 @@ assert.match(auth,/params\.get\('refresh_token'\)/);
 assert.match(auth,/writeSession\(provisional\);[\s\S]*markServerActivity\(\);[\s\S]*clearAuthCallbackUrl\(\);[\s\S]*rawRequest\('\/auth\/v1\/user'/);
 assert.match(auth,/history\.replaceState/);
 assert.match(auth,/volatileSession/);
-assert.match(auth,/cloud-auth-service-v6-atomic-callback/);
+assert.match(auth,/cloud-auth-service-v7-immediate-atomic-callback/);
+assert.match(auth,/void warmSession\(\)\.catch/);
 assert.doesNotMatch(auth,/function writeSession\(value\) \{ if \(value\?\.access_token/,'session persistence must not use the old unguarded storage writer');
 
 assert.match(ai,/recognition-ai-v1/);
@@ -54,4 +55,4 @@ assert.equal(release.androidVersionCode,102419);
 assert.equal(release.releaseTag,'v1.24P-main.3');
 assert.match(sw,/recognition-ai-service\.js/);
 
-console.log('LuckyBean P0 atomic auth callback, Safari OCR fallback and advisory AI recognition safety contract passed');
+console.log('LuckyBean P0 immediate atomic auth callback, Safari OCR fallback and advisory AI recognition safety contract passed');
