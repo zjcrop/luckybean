@@ -20,9 +20,7 @@ assert.ok(snapshotScript, 'head auth callback snapshot script must be present');
 assert.doesNotMatch(snapshotScript, /type="module"/, 'callback snapshot must execute synchronously before deferred module scripts');
 assert.match(authScript, /type="module"/, 'full cloud auth service must remain module-scheduled so Safari startup does not block later runtime modules');
 assert.match(bootstrap, /__LuckyBeanInitialAuthCallbackHash/, 'head bootstrap must snapshot a relevant callback hash');
-assert.match(bootstrap, /if \(!location\.hash\)/, 'head bootstrap must restore a callback hash if Safari drops it before auth initialization');
-assert.match(bootstrap, /globalThis\.LuckyBeanCloudAuth/, 'head guard must release as soon as the auth service is initialized');
-assert.match(bootstrap, /delete globalThis\.__LuckyBeanInitialAuthCallbackHash/, 'callback snapshot must be removed after auth initialization');
+assert.doesNotMatch(bootstrap, /history\.replaceState|setTimeout/, 'head snapshotter must not monkeypatch navigation or introduce polling races');
 
 assert.match(startup, /typeof globalThis\.structuredClone !== 'function'/, 'startup must install a structuredClone compatibility fallback');
 assert.match(startup, /globalThis\.structuredClone = cloneFallback/, 'structuredClone fallback must be installed before app import');
@@ -31,6 +29,11 @@ assert.match(startup, /dataset\.localDeviceStorage = 'fallback'/, 'device-id per
 assert.match(startup, /await import\(`\.\.\/app\.js\?v=/, 'app import must remain behind startup compatibility setup');
 assert.match(startup, /1\.24P-main\.3/, 'startup fallback revision must match the current release');
 
+assert.match(auth, /INITIAL_AUTH_CALLBACK_HASH = typeof globalThis\.__LuckyBeanInitialAuthCallbackHash === 'string'/, 'auth service must consume the synchronous head snapshot instead of depending on the later URL state');
+assert.match(auth, /:\s*location\.hash;/, 'auth service must preserve a direct location.hash fallback when no snapshot exists');
+assert.match(auth, /INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash\(INITIAL_AUTH_CALLBACK_HASH\)/, 'snapshot must be parsed before normal session warm-up');
+assert.match(auth, /delete globalThis\.__LuckyBeanInitialAuthCallbackHash/, 'raw callback snapshot must be deleted immediately after parsing');
+assert.match(auth, /dataset\.authCallbackSnapshot = 'consumed'/, 'callback snapshot consumption must be observable for regression diagnostics');
 assert.match(auth, /mode === 'register' && input\.password\.length < 8/, 'eight-character minimum must apply only to registration');
 assert.doesNotMatch(auth, /if \(input\.password\.length < 8\)/, 'legacy account login must not be blocked by the registration password rule');
 assert.match(auth, /email_not_confirmed/, 'email verification state must be translated explicitly');
@@ -38,10 +41,9 @@ assert.match(auth, /invalid_credentials/, 'invalid credentials state must be tra
 assert.match(auth, /over_email_send_rate_limit/, 'email rate-limit state must be translated explicitly');
 assert.match(auth, /typeof AbortController === 'function'/, 'auth requests must degrade when AbortController is unavailable');
 assert.match(auth, /cloud-auth-service-v7-immediate-atomic-callback/, 'current immediate atomic callback auth revision marker must be present');
-assert.match(auth, /INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash\(location\.hash\)/, 'auth service must still capture the guarded callback before normal session warm-up');
 assert.match(auth, /volatileStorage/, 'Safari/localStorage failure must retain a non-destructive volatile auth fallback');
 assert.match(auth, /writeSession\(provisional\);[\s\S]*clearAuthCallbackUrl\(\);/, 'callback session must be accepted before profile/network enrichment');
 assert.match(auth, /void warmSession\(\)\.catch/, 'callback consumption must begin immediately instead of waiting for a later microtask');
 assert.doesNotMatch(auth, /queueMicrotask\(\(\) => warmSession/, 'Safari callback acceptance must not depend on microtask scheduling');
 
-console.log('LuckyBean P0 head callback snapshot, module auth and startup compatibility contract passed');
+console.log('LuckyBean P0 deterministic head snapshot consumption, module auth and startup compatibility contract passed');
