@@ -3,7 +3,7 @@ import { get, put } from '../db.js';
 const DEVICE_RECORD_ID = 'cloud.device.id.v3';
 const DEVICE_FALLBACK_KEY = 'luckybean.local.device.fallback.v1';
 const SPLASH_READY_TIMEOUT_MS = 12000;
-const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.2';
+const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.1';
 const APP_MODULE_REVISION = RELEASE_REVISION;
 let enterRequested = false;
 let shellReady = false;
@@ -21,6 +21,7 @@ function cloneFallback(value, seen = new Map()) {
   if (seen.has(value)) return seen.get(value);
   if (value instanceof Date) return new Date(value.getTime());
   if (value instanceof RegExp) return new RegExp(value.source, value.flags);
+  if (typeof File !== 'undefined' && value instanceof File) return new File([value], value.name, { type:value.type, lastModified:value.lastModified });
   if (typeof Blob !== 'undefined' && value instanceof Blob) return value.slice(0, value.size, value.type);
   if (typeof ArrayBuffer !== 'undefined' && value instanceof ArrayBuffer) return value.slice(0);
   if (typeof ArrayBuffer !== 'undefined' && ArrayBuffer.isView?.(value)) {
