@@ -1,6 +1,6 @@
 import { sanitizeExecutionText, sanitizeExecutionPlanText } from './services/execution-text-sanitizer.js';
 import { APP_VERSION, SCHEMA_VERSION, $, $$, uid, esc, clamp, todayISO, formatDate, freshness, freshnessProfile, downloadBlob, safeJsonParse, assertPlainObject, assertSafeJson, browserTitle, parseNumber } from './utils.js';
-import { openDb, all, get, put, remove, bulkPut, getSetting, setSetting, clearAll, migrateLegacy } from './db.js';
+import { openDb, all, allByIndex, get, put, remove, bulkPut, getSetting, setSetting, clearAll, migrateLegacy } from './db.js';
 import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, parseHarvestSeasonValue, REMOTE_CODEBOOK_URL } from './codebook.js';
 import { CameraScanner, scanQrFile, decodeJsQrResult } from './qr.js';
 import { computeFallbackPlan, requestPrivatePlan, validatePlan, FALLBACK_ENGINE_VERSION, buildCorrectedPlan, listBrewProfiles, recommendProfile } from './brew-engine.js';
@@ -92,8 +92,9 @@ const SENSORY_NODES = [
 ];
 
 const state = {
-  db: null, codebook: null, codebookIndex: null, codebookMeta: null,
+  db: null, codebook: null, codebookIndex: null, codebookMeta: null, beanDisplayIndex: null,
   beans: [], brewSessions: [], sensoryRecords: [], inventoryEvents: [], preferenceModel: null, recommendedIds: new Set(),
+  data: { beansReady: false, beansMode: 'summary', detailBeanId: '', sensoryScope: 'none', sensoryBeanId: '', inventoryReady: false },
   settings: structuredClone(DEFAULT_SETTINGS), page: 'beans', selectedBeanId: null,
   filter: { search: '', country: '', variety: '', process: '', flavors: [], sort: 'freshness', dir: 'asc' },
   recommendedBeanId: null, currentPlan: null, currentBrewInput: null,
@@ -196,8 +197,6 @@ async function loadSettings() {
 
 async function saveSettings() { await setSetting('app.settings', state.settings); }
 
-migrateLegacyBrewHistory().catch(error => console.error('冲煮历史迁移失败', error));
-
 document.addEventListener('luckybean:codebook-provider-activated', event => {
   const data = event.detail?.data;
   if (!data) return;
@@ -215,6 +214,7 @@ document.addEventListener('luckybean:brew-profile-catalog-updated', () => {
 document.addEventListener('luckybean:request-app-refresh', async event => {
   await loadSettings();
   await refreshData();
+  if (state.page !== 'beans') await ensurePageData(state.page, { force: true });
   if (state.page === 'beans') renderBeans();
   else if (state.page === 'brew') renderBrew();
   else if (state.page === 'sensory') renderSensory();
@@ -222,22 +222,79 @@ document.addEventListener('luckybean:request-app-refresh', async event => {
   document.dispatchEvent(new CustomEvent('luckybean:app-refreshed', { detail: event.detail || {} }));
 });
 
+let fullCodebookPromise = null;
+let beanDisplayIndexPromise = null;
+
+function scheduleIdleWork(task, timeout = 1800) {
+  if (globalThis.requestIdleCallback) return requestIdleCallback(() => Promise.resolve(task()).catch(error => console.warn('后台维护任务失败', error)), { timeout });
+  return setTimeout(() => Promise.resolve(task()).catch(error => console.warn('后台维护任务失败', error)), 350);
+}
+
+async function loadBeanDisplayIndex() {
+  if (state.beanDisplayIndex) return state.beanDisplayIndex;
+  if (!beanDisplayIndexPromise) beanDisplayIndexPromise = fetch('./public/bean-display-index.json', { cache: 'force-cache' })
+    .then(response => { if (!response.ok) throw new Error(`显示索引 HTTP ${response.status}`); return response.json(); })
+    .then(data => {
+      if (data?.format !== 'luckybean-bean-display-index-v1') throw new Error('显示索引格式不兼容');
+      state.beanDisplayIndex = data;
+      if (state.page === 'beans') renderBeans();
+      return data;
+    })
+    .catch(error => { console.warn('轻量显示索引加载失败，将使用豆卡缓存名称', error); return null; });
+  return beanDisplayIndexPromise;
+}
+
+async function ensureFullCodebook() {
+  if (state.codebook && state.codebookIndex) return state.codebook;
+  if (!fullCodebookPromise) fullCodebookPromise = loadCodebook().then(loaded => {
+    state.codebook = loaded.data; state.codebookMeta = loaded.meta; state.codebookIndex = makeIndex(loaded.data); return loaded.data;
+  }).catch(error => { fullCodebookPromise = null; throw error; });
+  return fullCodebookPromise;
+}
+
 async function refreshData() {
-  [state.beans, state.brewSessions, state.sensoryRecords, state.inventoryEvents] = await Promise.all([
-    all('beans'), all('brewSessions'), all('sensoryRecords'), all('inventoryEvents')
-  ]);
-  const repaired = [];
-  state.beans = state.beans.map(bean => {
-    const normalized = normalizeBeanDisplayData(bean);
-    if (normalized.changed) repaired.push(normalized.bean);
-    return normalized.bean;
-  });
-  if (repaired.length) await bulkPut('beans', repaired).catch(() => {});
+  state.beans = await all('beanSummaries');
   state.beans.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+  state.data.beansReady = true; state.data.beansMode = 'summary'; updateLowStockIndicator();
+}
+
+async function ensureBeanDetailData(beanId, { force = false } = {}) {
+  const id = String(beanId || '');
+  if (!id) return null;
+  if (!force && state.data.detailBeanId === id) return state.beans.find(bean => bean.id === id) || null;
+  const [bean, brews, sensory, inventory] = await Promise.all([
+    get('beans', id), allByIndex('brewSessions', 'beanId', id), allByIndex('sensoryRecords', 'beanId', id), allByIndex('inventoryEvents', 'beanId', id)
+  ]);
+  if (bean) {
+    const index = state.beans.findIndex(item => item.id === id);
+    const merged = { ...(index >= 0 ? state.beans[index] : {}), ...bean, displayName: bean.name || state.beans[index]?.displayName || '' };
+    if (index >= 0) state.beans.splice(index, 1, merged); else state.beans.push(merged);
+  }
+  state.brewSessions = brews; state.sensoryRecords = sensory; state.inventoryEvents = inventory;
+  state.data.detailBeanId = id; state.data.sensoryScope = 'bean'; state.data.sensoryBeanId = id; state.data.inventoryReady = true;
+  const activeBeans = state.beans.filter(item => !item.archived && Number(item.remainingWeight) > 0);
+  state.preferenceModel = buildPreferenceModel(activeBeans, sensory); state.recommendedIds = new Set();
+  return bean;
+}
+
+async function ensurePageData(page, { force = false } = {}) {
+  if ((page === 'brew' || page === 'sensory') && state.selectedBeanId) return ensureBeanDetailData(state.selectedBeanId, { force });
+  return null;
+}
+
+async function ensureRecommendationData() {
+  if (state.data.sensoryScope === 'all') return state.sensoryRecords;
+  state.sensoryRecords = await all('sensoryRecords'); state.data.sensoryScope = 'all'; state.data.sensoryBeanId = '';
   const activeBeans = state.beans.filter(bean => !bean.archived && Number(bean.remainingWeight) > 0);
-  state.preferenceModel = buildPreferenceModel(activeBeans, state.sensoryRecords);
-  state.recommendedIds = recommendedBeanIds(activeBeans, state.sensoryRecords);
-  updateLowStockIndicator();
+  state.preferenceModel = buildPreferenceModel(activeBeans, state.sensoryRecords); state.recommendedIds = recommendedBeanIds(activeBeans, state.sensoryRecords);
+  if (state.page === 'beans') renderBeans();
+  return state.sensoryRecords;
+}
+
+async function ensureSearchBeanData() {
+  if (state.data.beansMode === 'full') return state.beans;
+  const canonical = await all('beans');
+  state.beans = canonical.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))); state.data.beansMode = 'full'; return state.beans;
 }
 
 async function migrateLegacyFlavorCodes() {
@@ -250,7 +307,8 @@ async function migrateLegacyFlavorCodes() {
   } catch { /* 保留原代码，稍后可再次迁移 */ }
   if (!Object.keys(mapping).length) return { migrated: 0, unmapped: 0 };
   let migrated = 0, unmapped = 0;
-  for (const bean of state.beans) {
+  const canonicalBeans = await all('beans');
+  for (const bean of canonicalBeans) {
     const original = Array.isArray(bean.flavorCodes) ? bean.flavorCodes : [];
     const legacy = original.filter(code => String(code).startsWith('FL-'));
     if (!legacy.length) continue;
@@ -292,6 +350,11 @@ function switchPage(page, { preserveOverlay = false, entryMode = 'normal' } = {}
   });
   $('#fabWrap').classList.toggle('hidden', page !== 'beans');
   browserTitle(PAGE_META[page].browser);
+  void ensurePageData(page).then(() => {
+    if (state.page !== page) return;
+    if (page === 'brew') renderBrew();
+    if (page === 'sensory') renderSensory();
+  }).catch(error => toast(error.message || '页面数据读取失败', 'status-bad'));
   if (page === 'beans') renderBeans();
   if (page === 'brew') renderBrew();
   if (page === 'sensory') renderSensory();
@@ -304,6 +367,8 @@ function enterApp() {
   $('#appShell').classList.remove('hidden');
   switchPage('beans');
   bindControlStates(document);
+  globalThis.__LuckyBeanLocalAppReady = true;
+  document.dispatchEvent(new CustomEvent('luckybean:local-app-ready'));
 }
 
 function showInfoDialog(title, message) {
@@ -335,9 +400,13 @@ async function seedDemo() {
   await refreshData();
 }
 
-function codeName(table, code, fallback = '—') { return displayName(state.codebookIndex, table, code, fallback); }
+function codeName(table, code, fallback = '—') {
+  if (state.codebookIndex) return displayName(state.codebookIndex, table, code, fallback);
+  return state.beanDisplayIndex?.[table]?.[code] || fallback;
+}
 function beanDisplayName(bean) {
-  return `${codeName('countries', bean.countryCode, '未定国家')} · ${codeName('varieties', bean.varietyCode, '未定豆种')}`;
+  const cached = String(bean?.displayName || bean?.name || '').trim();
+  return cached || `${codeName('countries', bean.countryCode, '未定国家')} · ${codeName('varieties', bean.varietyCode, '未定豆种')}`;
 }
 
 function normalizeGearSettings(gear = {}) {
@@ -557,6 +626,7 @@ function beanNameSummary(bean) {
 }
 
 function scoreForBean(beanId) {
+  if (state.data.sensoryScope !== 'all' && state.data.sensoryBeanId !== beanId) return Number.NaN;
   const records = state.sensoryRecords.filter(record => record.beanId === beanId && Number.isFinite(Number(record.subjectiveScore ?? record.score)));
   if (!records.length) return 0;
   return records.reduce((sum, record) => sum + Number(record.subjectiveScore ?? record.score), 0) / records.length;
@@ -618,7 +688,7 @@ function beanCardHtml(bean) {
   const fresh = freshnessProfile(bean);
   const progress = Math.round(fresh.progress * 100);
   return `<article class="bean-card compact${bean.id === state.recommendedBeanId ? ' recommended' : ''}${bean.archived ? ' archived' : ''}" data-bean-id="${esc(bean.id)}" tabindex="0">
-    <div class="compact-bean-copy"><h3>${esc(beanDisplayName(bean))}</h3><small>${esc(process)}</small><div class="compact-bean-row"><strong class="${bean.refrigerated ? 'frozen-weight' : ''}">${Number(bean.remainingWeight || 0).toFixed(1)}g${bean.refrigerated ? '<small class="frozen-mark" aria-label="冷藏">❄️</small>' : ''}</strong><span class="compact-score">${score ? `${score.toFixed(1)}分` : '未评分'}${recommended ? '<em>荐</em>' : ''}</span></div></div>
+    <div class="compact-bean-copy"><h3>${esc(beanDisplayName(bean))}</h3><small>${esc(process)}</small><div class="compact-bean-row"><strong class="${bean.refrigerated ? 'frozen-weight' : ''}">${Number(bean.remainingWeight || 0).toFixed(1)}g${bean.refrigerated ? '<small class="frozen-mark" aria-label="冷藏">❄️</small>' : ''}</strong><span class="compact-score">${Number.isFinite(score) ? (score ? `${score.toFixed(1)}分` : '未评分') : '—'}${recommended ? '<em>荐</em>' : ''}</span></div></div>
     <button class="cup-action compact-pick" type="button" data-brew-bean="${esc(bean.id)}" aria-label="用这只豆小酌">酌</button>
     <div class="bean-freshness-progress" aria-label="${esc(fresh.label)}，风味${esc(fresh.trend)}，进度${progress}%"><span class="bean-freshness-solid" style="width:${progress}%;background:${fresh.color}"></span><span class="bean-freshness-dashed" style="left:${progress}%"></span></div>
   </article>`;
@@ -639,12 +709,18 @@ function recommendationLeaderboardRows(limit = 3) {
 
 const LEADERBOARD_RANKS = ['魁首', '榜眼', '探花'];
 function recommendationLeaderboardHtml() {
+  if (state.data.sensoryScope !== 'all') return '';
   const rows = recommendationLeaderboardRows(3);
   if (!state.sensoryRecords.length || !rows.length) return '';
   return `<div class="preference-board-strip"><button class="preference-board-title" type="button" data-open-recommend-board>榜</button><div class="preference-board-top3">${rows.map((row, index) => `<button type="button" data-board-bean="${esc(row.bean.id)}"><small>${LEADERBOARD_RANKS[index]}</small><span title="${esc(beanDisplayName(row.bean))}">${esc(beanDisplayName(row.bean))}</span></button>`).join('')}</div></div>`;
 }
 
 function beanConsumptionSummaryHtml() {
+  if (!state.data.inventoryReady) {
+    const total = state.beans.reduce((sum, bean) => sum + (bean.archived ? 0 : Number(bean.remainingWeight || 0)), 0);
+    const stock = total >= 1000 ? `${(total / 1000).toFixed(2)}kg` : `${total.toFixed(1)}g`;
+    return `<section class="bean-consumption-summary" aria-label="豆藏库存"><p>现有咖啡豆 ${stock}</p></section>`;
+  }
   const summary = buildBeanConsumptionSummary({
     beans: state.beans,
     inventoryEvents: state.inventoryEvents,
@@ -667,7 +743,8 @@ function beanSummaryBlockHtml() {
   return `<div class="bean-summary-block">${beanConsumptionSummaryHtml()}${recommendationLeaderboardHtml()}</div>`;
 }
 
-function openRecommendationLeaderboard() {
+async function openRecommendationLeaderboard() {
+  await ensureRecommendationData();
   const rows = recommendationLeaderboardRows(3);
   const content = `${dialogHeader('榜', '仅列个人荐榜前三名', { closable: false })}<div class="recommendation-board top-three">${rows.length ? rows.map((row, index) => `<button type="button" data-board-bean="${esc(row.bean.id)}"><span>${LEADERBOARD_RANKS[index]}</span><strong>${esc(beanDisplayName(row.bean))}</strong><small>${row.score.toFixed(1)} · 品鉴${row.sensory ? row.sensory.toFixed(1) : '—'}</small></button>`).join('') : '<p class="muted">完成品鉴后生成个人榜。</p>'}</div><button class="bottom-return" type="button" data-close-overlay>退</button>`;
   const overlay = showOverlay(content, { id: 'recommendation-board', backdropClose: true, dialogClass: 'bottom-sheet' });
@@ -762,7 +839,7 @@ async function cleanupExpiredBeanRecycle() {
 
 async function moveBeansToRecycle(ids) {
   const selectedIds = new Set(ids || []);
-  const selected = state.beans.filter(bean => selectedIds.has(bean.id));
+  const selected = (await Promise.all([...selectedIds].map(id => get('beans', id)))).filter(Boolean);
   if (!selected.length) return 0;
   const snapshot = [...state.beans];
   const at = new Date().toISOString();
@@ -821,7 +898,9 @@ async function openBatchBeanManager({ recycle = false } = {}) {
   });
 }
 
-function openSearchDialog() {
+async function openSearchDialog() {
+  await ensureFullCodebook();
+  await ensureSearchBeanData();
   closePopups();
   const activeBeans = state.beans.filter(bean => !bean.archived && Number(bean.remainingWeight) > 0);
   const countryRows = uniqueRowsFromBeans('countries', 'countryCode', activeBeans);
@@ -909,6 +988,7 @@ function openRecommendMenu() {
 
 async function recommendBean(mode) {
   mode = normalizeRecommendationMode(mode);
+  if (mode === 'leaderboard') await ensureRecommendationData();
   closePopups();
   const beans = filteredBeans();
   if (!beans.length) return toast('没有可推荐的豆卡');
@@ -1064,7 +1144,8 @@ function openAddBeanOptionDialog(table, capturedDraft = null) {
   });
 }
 
-function openBeanForm(bean = {}, source = { type: 'manual' }) {
+async function openBeanForm(bean = {}, source = { type: 'manual' }) {
+  await ensureFullCodebook();
   state.beanFormSource = source;
   state.beanFormDraft = structuredClone(bean);
   const overlay = showOverlay(beanFormHtml(bean, source), { full: true, id: 'bean-form' }); bindClose(overlay);
@@ -1161,7 +1242,8 @@ function flavorGroupLabel(name = '') {
   return '其他';
 }
 
-function openFlavorEditor(selected, bean, source) {
+async function openFlavorEditor(selected, bean, source) {
+  await ensureFullCodebook();
   const draft = captureBeanFormDraft();
   const set = new Set((selected || []).filter(code => state.codebookIndex?.flavors?.has(code)));
   const rows = (state.codebook.flavors || []).filter(row => row?.[0] && String(row.length >= 9 ? row[4] : row[1] || '').trim());
@@ -1390,7 +1472,8 @@ function freshnessCurveSvg(bean) {
   return `<svg class="freshness-curve" viewBox="0 0 ${width} ${height}" role="img" aria-label="赏味曲线，当前处于${esc(profile.label)}，风味${esc(profile.trend)}"><path class="freshness-curve-line" d="${path}"></path>${marks}<line class="freshness-today-line" x1="${currentX}" y1="${top}" x2="${currentX}" y2="${height-bottom}"></line><circle class="freshness-current-point" cx="${currentX}" cy="${currentY}" r="7"></circle><text class="freshness-current-label" x="${Math.min(width-right-80,currentX+10)}" y="${Math.max(top+14,currentY-10)}">今天 · ${esc(profile.label)} · 风味${esc(profile.trend)}</text></svg>`;
 }
 
-function detailBean(beanId) {
+async function detailBean(beanId) {
+  await ensureBeanDetailData(beanId);
   const bean = state.beans.find(item => item.id === beanId); if (!bean) return;
   state.selectedBeanId = bean.id;
   const fresh = freshnessProfile(bean);
@@ -2788,11 +2871,17 @@ async function init() {
   state.db = await openDb();
   await migrateLegacy().catch(error=>({error:error.message}));
   await loadSettings();
-  const loaded = await loadCodebook(); state.codebook=loaded.data;state.codebookMeta=loaded.meta;state.codebookIndex=makeIndex(loaded.data);
+  if (location.hash) await ensureFullCodebook();
   if (await handleSharedHash()) return;
-  await refreshData(); await migrateLegacyFlavorCodes(); bindGlobalEvents();
-  await cleanupExpiredBeanRecycle().catch(error => console.warn('回收站过期清理失败', error));
+  await refreshData();
+  bindGlobalEvents();
   enterApp();
+  void loadBeanDisplayIndex();
+  scheduleIdleWork(async () => {
+    await migrateLegacyFlavorCodes().catch(error => console.warn('旧风味编码后台迁移失败', error));
+    await migrateLegacyBrewHistory().catch(error => console.warn('冲煮历史后台迁移失败', error));
+    await cleanupExpiredBeanRecycle().catch(error => console.warn('回收站后台清理失败', error));
+  });
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
 

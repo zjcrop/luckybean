@@ -1,5 +1,5 @@
 export const APP_VERSION = '1.24P';
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 
 export const $ = (selector, root = document) => root.querySelector(selector);
 export const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];

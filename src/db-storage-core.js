@@ -3,7 +3,13 @@ import { SENSORY_STORAGE_FORMAT, sealSensoryRecord, openSensoryRecord } from './
 
 const DB_NAME = 'luckybean';
 const LEGACY_DB_NAME = 'coffee_cellar_local_mvp_v1';
-const STORES = ['beans', 'brewSessions', 'sensoryRecords', 'inventoryEvents', 'settings', 'customCodes', 'codebookCache', 'syncMetadata', 'shareDrafts', 'historyRevisions', 'recycleBin', 'syncOutbox'];
+const STORES = ['beans', 'beanSummaries', 'brewSessions', 'sensoryRecords', 'inventoryEvents', 'settings', 'customCodes', 'codebookCache', 'syncMetadata', 'shareDrafts', 'historyRevisions', 'recycleBin', 'syncOutbox'];
+const INDEX_DEFS = Object.freeze({
+  beanSummaries: [['updatedAt', 'updatedAt', { unique: false }]],
+  brewSessions: [['beanId', 'beanId', { unique: false }], ['beanCreatedAt', ['beanId', 'createdAt'], { unique: false }]],
+  sensoryRecords: [['beanId', 'beanId', { unique: false }], ['beanCreatedAt', ['beanId', 'createdAt'], { unique: false }]],
+  inventoryEvents: [['beanId', 'beanId', { unique: false }], ['beanCreatedAt', ['beanId', 'createdAt'], { unique: false }]]
+});
 const SENSORY_KEY_ID = 'local.sensory.key.v1';
 let dbPromise;
 let sensorySecretPromise;
@@ -21,9 +27,44 @@ function keyPathForStore(name) {
   return 'id';
 }
 
-function createMissingStores(db) {
+export function beanSummaryFromBean(bean = {}) {
+  const name = String(bean.name || '').trim();
+  const parts = name.split('·').map(value => value.trim()).filter(Boolean);
+  return {
+    id: bean.id || '', displayName: name, name,
+    countryCode: bean.countryCode || '', regionCode: bean.regionCode || '', entityCode: bean.entityCode || '',
+    varietyCode: bean.varietyCode || '', processCode: bean.processCode || '', roastCode: bean.roastCode || '', roastColor: bean.roastColor || '',
+    roastDate: bean.roastDate || '', initialWeight: Number(bean.initialWeight || 0), remainingWeight: Number(bean.remainingWeight || 0),
+    refrigerated: Boolean(bean.refrigerated), freezeDate: bean.freezeDate || '', price: Number(bean.price || 0),
+    roasterName: bean.roasterName || bean.roaster || '', altitude: Number(bean.altitude || 0), archived: Boolean(bean.archived),
+    flavorCodes: Array.isArray(bean.flavorCodes) ? [...bean.flavorCodes] : [],
+    countryLabel: parts[0] || '', varietyLabel: parts[1] || '',
+    createdAt: bean.createdAt || '', updatedAt: bean.updatedAt || bean.createdAt || ''
+  };
+}
+
+function createMissingStores(db, transaction) {
   for (const name of STORES) {
-    if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: keyPathForStore(name) });
+    const objectStore = db.objectStoreNames.contains(name)
+      ? transaction?.objectStore(name)
+      : db.createObjectStore(name, { keyPath: keyPathForStore(name) });
+    if (!objectStore) continue;
+    for (const [indexName, keyPath, options] of INDEX_DEFS[name] || []) {
+      if (!objectStore.indexNames.contains(indexName)) objectStore.createIndex(indexName, keyPath, options);
+    }
+  }
+  // v9 -> v10 backfill happens inside the versionchange transaction. Canonical beans are read
+  // by cursor and never rewritten; beanSummaries is a disposable derived projection.
+  if (transaction && db.objectStoreNames.contains('beans') && db.objectStoreNames.contains('beanSummaries')) {
+    const beans = transaction.objectStore('beans');
+    const summaries = transaction.objectStore('beanSummaries');
+    const request = beans.openCursor();
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) return;
+      summaries.put(beanSummaryFromBean(cursor.value));
+      cursor.continue();
+    };
   }
 }
 
@@ -39,7 +80,7 @@ function attachVersionChangeHandler(db) {
 function openDatabase(version) {
   return new Promise((resolve, reject) => {
     const request = version == null ? indexedDB.open(DB_NAME) : indexedDB.open(DB_NAME, version);
-    request.onupgradeneeded = () => createMissingStores(request.result);
+    request.onupgradeneeded = () => createMissingStores(request.result, request.transaction);
     request.onsuccess = () => resolve(attachVersionChangeHandler(request.result));
     request.onerror = () => reject(request.error || new Error('数据库打开失败'));
     request.onblocked = () => reject(new Error('数据库升级被其他页面占用，请关闭其他富贵盒子页面后重试'));
@@ -143,23 +184,80 @@ export async function get(name, key) {
   return transformForRead(name, await requestToPromise((await store(name)).get(key)));
 }
 
+export async function allByIndex(name, indexName, key, { raw = false } = {}) {
+  if (!STORES.includes(name)) throw new Error(`未知数据表：${name}`);
+  const objectStore = await store(name);
+  if (!objectStore.indexNames.contains(indexName)) throw new Error(`${name} 缺少索引 ${indexName}`);
+  const values = await requestToPromise(objectStore.index(indexName).getAll(key));
+  if (raw || name !== 'sensoryRecords') return values;
+  return Promise.all(values.map(value => transformForRead(name, value)));
+}
+
+export async function sensoryHeadersByBean(beanId) {
+  const rows = await allByIndex('sensoryRecords', 'beanId', beanId, { raw: true });
+  return rows.map(value => ({
+    id: value.id, beanId: value.beanId, brewSessionId: value.brewSessionId || '',
+    createdAt: value.createdAt || '', updatedAt: value.updatedAt || value.createdAt || '',
+    storageFormat: value.storageFormat || ''
+  }));
+}
+
 export async function put(name, value) {
   assertPlainObject(value, name);
   const prepared = await transformForWrite(name, value);
-  return requestToPromise((await store(name, 'readwrite')).put(prepared));
+  const db = await openDb();
+  const names = name === 'beans' ? ['beans', 'beanSummaries'] : [name];
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(names, 'readwrite');
+    let resultKey;
+    const request = tx.objectStore(name).put(prepared);
+    request.onsuccess = () => { resultKey = request.result; };
+    if (name === 'beans') tx.objectStore('beanSummaries').put(beanSummaryFromBean(value));
+    tx.oncomplete = () => resolve(resultKey);
+    tx.onerror = () => reject(tx.error || new Error('写入失败'));
+    tx.onabort = () => reject(tx.error || new Error('写入中止'));
+  });
 }
 
-export async function remove(name, key) { return requestToPromise((await store(name, 'readwrite')).delete(key)); }
-export async function clear(name) { return requestToPromise((await store(name, 'readwrite')).clear()); }
+export async function remove(name, key) {
+  const db = await openDb();
+  const names = name === 'beans' ? ['beans', 'beanSummaries'] : [name];
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(names, 'readwrite');
+    tx.objectStore(name).delete(key);
+    if (name === 'beans') tx.objectStore('beanSummaries').delete(key);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error || new Error('删除失败'));
+    tx.onabort = () => reject(tx.error || new Error('删除中止'));
+  });
+}
+
+export async function clear(name) {
+  const db = await openDb();
+  const names = name === 'beans' ? ['beans', 'beanSummaries'] : [name];
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(names, 'readwrite');
+    tx.objectStore(name).clear();
+    if (name === 'beans') tx.objectStore('beanSummaries').clear();
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error || new Error('清空失败'));
+    tx.onabort = () => reject(tx.error || new Error('清空中止'));
+  });
+}
 
 export async function bulkPut(name, values) {
   if (!Array.isArray(values)) throw new Error('批量写入数据必须是数组');
   const prepared = await Promise.all(values.map(value => transformForWrite(name, value)));
   const db = await openDb();
   await new Promise((resolve, reject) => {
-    const tx = db.transaction(name, 'readwrite');
+    const names = name === 'beans' ? ['beans', 'beanSummaries'] : [name];
+    const tx = db.transaction(names, 'readwrite');
     const objectStore = tx.objectStore(name);
     prepared.forEach(value => objectStore.put(structuredClone(value)));
+    if (name === 'beans') {
+      const summaries = tx.objectStore('beanSummaries');
+      values.forEach(value => summaries.put(beanSummaryFromBean(value)));
+    }
     tx.oncomplete = resolve;
     tx.onerror = () => reject(tx.error || new Error('批量写入失败'));
     tx.onabort = () => reject(tx.error || new Error('批量写入中止'));
@@ -180,11 +278,17 @@ export async function replaceStores(storeRows) {
   ])));
   const db = await openDb();
   await new Promise((resolve, reject) => {
-    const tx = db.transaction(names, 'readwrite');
+    const txNames = names.includes('beans') ? [...new Set([...names, 'beanSummaries'])] : names;
+    const tx = db.transaction(txNames, 'readwrite');
     for (const name of names) {
       const objectStore = tx.objectStore(name);
       objectStore.clear();
       prepared[name].forEach(value => objectStore.put(structuredClone(value)));
+    }
+    if (names.includes('beans')) {
+      const summaries = tx.objectStore('beanSummaries');
+      summaries.clear();
+      storeRows.beans.forEach(value => summaries.put(beanSummaryFromBean(value)));
     }
     tx.oncomplete = resolve;
     tx.onerror = () => reject(tx.error || new Error('完整恢复失败'));
