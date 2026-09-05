@@ -1,14 +1,26 @@
-const VERSION = '0.4.5';
+const VERSION = '0.4.6';
 const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;
-const LOW_MEMORY = Number(navigator.deviceMemory || 4) <= 4 || /iPhone|iPad|iPod/i.test(navigator.userAgent);
-const LIMIT_SIDE = LOW_MEMORY ? 736 : 960;
-const ENGINE_INIT_TIMEOUT_MS = 75000;
-const PREDICT_TIMEOUT_MS = 45000;
+
+function isAppleMobileLike() {
+  const ua = String(navigator.userAgent || '');
+  return /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && Number(navigator.maxTouchPoints || 0) > 1);
+}
+function isWebKitFamily() {
+  const ua = String(navigator.userAgent || '');
+  return /AppleWebKit/i.test(ua) && !/(Chrome|Chromium|CriOS|Edg|OPR|SamsungBrowser)/i.test(ua);
+}
+
+const APPLE_MOBILE = isAppleMobileLike();
+const WEBKIT = isWebKitFamily();
+const LOW_MEMORY = APPLE_MOBILE || Number(navigator.deviceMemory || 4) <= 4;
+const LIMIT_SIDE = LOW_MEMORY ? 640 : 960;
+const ENGINE_INIT_TIMEOUT_MS = WEBKIT ? 30000 : 75000;
+const PREDICT_TIMEOUT_MS = WEBKIT ? 30000 : 45000;
 const ROI_CROP_TIMEOUT_MS = 20000;
 
 let modulePromise = null;
 let enginePromise = null;
-let engineMode = 'worker';
+let engineMode = WEBKIT ? 'direct-wasm-no-simd' : 'worker';
 let engineGeneration = 0;
 let busy = false;
 let disposeTimer = 0;
@@ -22,7 +34,7 @@ function runtimeBase() {
 }
 function assetUrl(relativePath) { return new URL(relativePath, runtimeBase()).href; }
 function emit(status, progress = 0) {
-  const detail={ status:String(status || ''), progress:Math.max(0, Math.min(100, Number(progress) || 0)) };
+  const detail = { status:String(status || ''), progress:Math.max(0, Math.min(100, Number(progress) || 0)) };
   globalThis.dispatchEvent(new CustomEvent('luckybean:ocr-progress', { detail }));
   globalThis.dispatchEvent(new CustomEvent('coffee-foundation:ocr-progress', { detail }));
 }
@@ -53,13 +65,13 @@ async function cropRegionInWorker(blob, regionInput, options = {}) {
       const result = event.data; cleanup(); resolve(result);
     };
     worker.onerror = event => { cleanup(); reject(new Error(`ROI Worker 运行失败：${event.message || 'unknown error'}`)); };
-    worker.postMessage({ requestId, blob, region, maxEdge:Number(options.maxEdge || 2200) });
+    worker.postMessage({ requestId, blob, region, maxEdge:Number(options.maxEdge || (LOW_MEMORY ? 1280 : 2200)) });
   });
   return withTimeout(operation, ROI_CROP_TIMEOUT_MS, 'ROI Worker 裁剪超时，已终止本次局部识别', cleanup);
 }
 async function loadModule() {
   if (!modulePromise) {
-    emit('正在加载本地 PP-OCRv5 网页运行时', 2);
+    emit('正在按需加载本地 PP-OCRv5 网页运行时', 2);
     modulePromise = import(assetUrl('sdk.mjs')).catch(error => { modulePromise = null; throw new Error(`本地 PP-OCRv5 SDK 加载失败：${error.message}`); });
   }
   return modulePromise;
@@ -96,21 +108,16 @@ async function startWorkerEngine() {
     return ocr;
   } catch (error) { raw.then(ocr => { if (generation !== engineGeneration) disposeInstance(ocr); }).catch(() => {}); throw error; }
 }
-function isWebKitFamily() {
-  const ua = String(navigator.userAgent || '');
-  return /AppleWebKit/i.test(ua) && !/(Chrome|Chromium|CriOS|Edg|OPR|SamsungBrowser)/i.test(ua);
-}
 async function startCompatibilityEngine() {
-  emit('Worker 初始化未完成，正在启用 Safari 兼容识别模式', 9);
-  return withTimeout(createCompatibilityEngine(), ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 兼容模式初始化超时', () => {});
+  emit('Safari 正在启用低内存兼容识别模式', 9);
+  return withTimeout(createCompatibilityEngine(), ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 Safari 兼容模式初始化超时', () => {});
 }
 async function ensureEngine() {
   globalThis.clearTimeout(disposeTimer); if (enginePromise) return enginePromise;
-  emit('正在后台准备本地 PP-OCRv5 中文检测与识别模型', 7);
-  const pending = startWorkerEngine().then(ocr => { engineMode='worker'; emit('PP-OCRv5 Worker 中文模型已就绪', 18); return ocr; }).catch(async workerError => {
-    if (!isWebKitFamily()) throw workerError;
-    const ocr = await startCompatibilityEngine(); engineMode='direct-wasm-no-simd'; emit('PP-OCRv5 Safari 兼容模式已就绪', 18); return ocr;
-  });
+  emit(WEBKIT ? '正在按需准备 Safari 本地 OCR' : '正在后台准备本地 PP-OCRv5 中文检测与识别模型', 7);
+  const pending = WEBKIT
+    ? startCompatibilityEngine().then(ocr => { engineMode='direct-wasm-no-simd'; emit('PP-OCRv5 Safari 兼容模式已就绪', 18); return ocr; })
+    : startWorkerEngine().then(ocr => { engineMode='worker'; emit('PP-OCRv5 Worker 中文模型已就绪', 18); return ocr; });
   const tracked = pending.catch(error => { if (enginePromise === tracked) enginePromise = null; throw new Error(`PP-OCRv5 初始化失败：${error.message}`); });
   enginePromise = tracked; return tracked;
 }
@@ -118,7 +125,11 @@ async function dispose() {
   globalThis.clearTimeout(disposeTimer); const current = enginePromise; enginePromise = null; engineGeneration += 1; if (!current) return;
   try { const ocr = await current; await ocr?.dispose?.(); } catch {}
 }
-function scheduleDispose() { globalThis.clearTimeout(disposeTimer); disposeTimer = globalThis.setTimeout(() => { void dispose(); }, LOW_MEMORY ? 30000 : 120000); }
+function scheduleDispose() {
+  globalThis.clearTimeout(disposeTimer);
+  if (LOW_MEMORY || engineMode === 'direct-wasm-no-simd') { void dispose(); return; }
+  disposeTimer = globalThis.setTimeout(() => { void dispose(); }, 90000);
+}
 function meaningful(text) {
   const chars = [...String(text || '')]; if (!chars.length) return 0;
   return chars.filter(char => /[\p{Script=Han}A-Za-z0-9年月日海拔处理烘焙庄园产区豆种%°./:+-]/u.test(char)).length / chars.length;
@@ -132,13 +143,13 @@ async function predict(images) {
   const ocr = await ensureEngine(); const blocks = [], groups = [];
   for (let index = 0; index < images.length; index += 1) {
     const image = images[index]; emit(`PP-OCRv5 正在识别第 ${index + 1}/${images.length} 张图片`, 20 + Math.round(index / Math.max(1, images.length) * 70));
-    const prediction = ocr.predict(image.blob, { textDetLimitSideLen:engineMode === 'direct-wasm-no-simd' ? Math.min(LIMIT_SIDE, 640) : LIMIT_SIDE, textDetLimitType:'min', textDetMaxSideLimit:2200, textDetThresh:0.22, textDetBoxThresh:0.35, textDetUnclipRatio:1.55, textRecScoreThresh:0.28 });
+    const prediction = ocr.predict(image.blob, { textDetLimitSideLen:LIMIT_SIDE, textDetLimitType:'min', textDetMaxSideLimit:LOW_MEMORY ? 1280 : 2200, textDetThresh:0.22, textDetBoxThresh:0.35, textDetUnclipRatio:1.55, textRecScoreThresh:0.28 });
     const results = await withTimeout(prediction, PREDICT_TIMEOUT_MS, `PP-OCRv5 第 ${index + 1} 张图片识别超时，已退出本次任务`, detachEngine);
     const current = normalizeItems(results?.[0], image.id); blocks.push(...current); if (current.length) groups.push(current.map(item => item.text).join('\n'));
     await new Promise(resolve => globalThis.setTimeout(resolve, 0));
   }
   if (!blocks.length) throw new Error('PP-OCRv5 没有得到可信文字。请靠近文字区域拍摄，避免整只包装占画面过小。');
-  emit('PP-OCRv5 中英文识别完成', 100); scheduleDispose();
+  emit('PP-OCRv5 中英文识别完成', 100);
   return { engine:`${ENGINE}-${engineMode}${LOW_MEMORY ? '-low-memory' : ''}`, blocks, fullText:groups.join('\n\n') };
 }
 async function predictRegion(blob, region, options = {}) {
@@ -150,22 +161,22 @@ async function predictRegion(blob, region, options = {}) {
 async function run(task) {
   if (busy) throw new Error('识别任务正在运行，请勿重复点击'); busy = true;
   try { return await task(); }
-  catch (error) { detachEngine(); emit(`识别失败：${error.message}`, 0); throw new Error(`${error.message}；已停止当前任务。Safari 仅允许受控 direct-WASM 兼容模式，不会切换到 Tesseract 或其他未知 OCR。`); }
-  finally { busy = false; if (enginePromise) scheduleDispose(); }
+  catch (error) { detachEngine(); emit(`识别失败：${error.message}`, 0); throw new Error(`${error.message}；已停止当前任务。不会切换到 Tesseract 或其他未知 OCR。`); }
+  finally {
+    busy = false;
+    if (LOW_MEMORY || engineMode === 'direct-wasm-no-simd') await dispose();
+    else if (enginePromise) scheduleDispose();
+  }
 }
 async function preload() {
-  if (globalThis.__LUCKYBEAN_ANDROID__) return null;
+  if (globalThis.__LUCKYBEAN_ANDROID__ || LOW_MEMORY || WEBKIT) return null;
   try { const ocr = await ensureEngine(); emit('PP-OCRv5 已在后台预热', 18); scheduleDispose(); return ocr; }
   catch (error) { emit(`PP-OCRv5 后台预热未完成：${error.message}`, 0); return null; }
 }
-function schedulePreload() {
-  if (globalThis.__LUCKYBEAN_ANDROID__) return; const start = () => { void preload(); };
-  if (typeof globalThis.requestIdleCallback === 'function') globalThis.requestIdleCallback(start, { timeout:4000 });
-  else globalThis.setTimeout(start, 1200);
-}
 const paddleOcrApi = Object.freeze({
-  version:VERSION, engine:ENGINE, lowMemory:LOW_MEMORY,
-  workerOnly:false, browserSafe:true, primaryIsolation:'module-worker', compatibilityFallback:'webkit-direct-wasm-no-simd',
+  version:VERSION, engine:ENGINE, lowMemory:LOW_MEMORY, appleMobile:APPLE_MOBILE,
+  workerOnly:false, browserSafe:true, primaryIsolation:WEBKIT ? 'webkit-direct-wasm-no-simd' : 'module-worker', compatibilityFallback:'webkit-direct-wasm-no-simd',
+  autoPreload:false, disposePolicy:LOW_MEMORY || WEBKIT ? 'after-each-task' : 'idle-90s',
   roiWorkerOnly:true, regionRecognition:'recognition-roi/1.0', runtimeOrigin:'same-origin-vendored', workerBootstrap:'same-origin-vendored-module',
   runtimeBase() { return runtimeBase().href; },
   recognizeCoffeeBag(images) { return run(() => predict(images)); },
@@ -174,7 +185,6 @@ const paddleOcrApi = Object.freeze({
 });
 globalThis.LuckyBeanPaddleOCR = paddleOcrApi;
 globalThis.CoffeeFoundationPaddleOCR = paddleOcrApi;
-document.addEventListener('visibilitychange', () => { if (document.hidden && LOW_MEMORY && !busy) void dispose(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && !busy) void dispose(); });
 globalThis.addEventListener('pagehide', () => { if (!busy) void dispose(); });
-document.documentElement.dataset.webOcr = `ppocr-v5-${VERSION}-self-hosted-worker-with-webkit-fallback`;
-schedulePreload();
+document.documentElement.dataset.webOcr = `ppocr-v5-${VERSION}-self-hosted-lazy-memory-bounded`;
