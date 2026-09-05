@@ -16,7 +16,7 @@ assert.ok(!fullIntegration.includes('observe(document.body'), 'full integration 
 
 const imageQuality = fs.readFileSync(new URL('../src/image-quality.js', import.meta.url), 'utf8');
 assert.ok(imageQuality.includes('androidNativeFallback'), 'Android must bypass WebView image decode failure');
-assert.ok(imageQuality.includes('nativeSource: true'), 'Android fallback must mark the image as URI/native backed');
+assert.match(imageQuality, /nativeSource\s*:\s*true/, 'Android fallback must mark the image as URI/native backed');
 assert.ok(imageQuality.includes('Android 直接读取原始照片'), 'fallback must state that native Android reads the original image');
 
 const recognitionBridge = fs.readFileSync(new URL('../src/recognition-bridge.js', import.meta.url), 'utf8');
