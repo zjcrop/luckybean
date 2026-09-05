@@ -3,6 +3,7 @@ import fs from 'node:fs';
 function read(path) { return fs.readFileSync(path, 'utf8'); }
 function write(path, value) { fs.writeFileSync(path, value); }
 function replaceExact(source, before, after, label) {
+  if (source.includes(after)) return source;
   if (!source.includes(before)) throw new Error(`missing transform anchor: ${label}`);
   return source.replace(before, after);
 }
