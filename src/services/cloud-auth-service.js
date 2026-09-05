@@ -308,8 +308,10 @@ async function warmSession() {
 }
 
 globalThis.LuckyBeanCloudAuth = {
-  revision:'cloud-auth-service-v6-atomic-callback', getSession:readSession, warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut, consumeAuthCallback,
+  revision:'cloud-auth-service-v7-immediate-atomic-callback', getSession:readSession, warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut, consumeAuthCallback,
   isRemembered:() => Boolean(readSession()?.refresh_token && Date.now() <= rememberUntil()), rememberUntil,
   pendingRegistration:readPendingRegistration
 };
-queueMicrotask(() => warmSession().catch(error => emit('offline', { error:friendlyAuthMessage(error, 'login') })));
+// Start callback consumption immediately. The async function accepts and stores callback tokens
+// synchronously before its first network await, which avoids WebKit/Safari microtask timing races.
+void warmSession().catch(error => emit('offline', { error:friendlyAuthMessage(error, 'login') }));
