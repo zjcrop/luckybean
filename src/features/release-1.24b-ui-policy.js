@@ -1,5 +1,5 @@
-// LuckyBean 1.24B main.4 — canonical UI policy shared by Web and Android WebView.
-const UI_POLICY_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.2';
+// LuckyBean 1.24P main.3 — canonical UI policy shared by Web and Android WebView.
+const UI_POLICY_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.3';
 
 if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
   globalThis.__LuckyBean124BUiPolicyLoaded = true;
@@ -78,186 +78,64 @@ if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
         text-underline-offset: .24em;
       }
 
-      /* Small Brew row values are one visual level: centered like the dripper/filter/water values. */
-      #brewContent [data-brew-row="actions"] > .brew-menu-button,
-      #brewContent [data-brew-row="cooling"] > .brew-menu-button,
-      #brewContent .brew-generate-row > .button {
-        min-width: 0 !important;
-        min-height: 34px !important;
-        padding: 5px 0 !important;
-        font-size: 13px !important;
-        font-weight: 450 !important;
-        line-height: 1.45 !important;
-        text-align: center !important;
-        text-align-last: center !important;
-        text-decoration: none !important;
-      }
-      #brewContent .brew-generate-row > .button {
-        flex: 1 1 0 !important;
-        width: auto !important;
-        color: var(--clickable, var(--text)) !important;
-      }
-      #brewContent .brew-generate-row > .button.primary {
-        color: var(--clickable, var(--text)) !important;
-        font-weight: 450 !important;
-        text-decoration: none !important;
-      }
-
-      #brewContent .lb-other-brew-panel {
-        border: 0 !important;
-        border-radius: 0 !important;
-        background: transparent !important;
-        padding-inline: 0 !important;
-      }
-      #brewContent .lb-other-actions {
-        border-top: 1px solid color-mix(in srgb, var(--border, currentColor) 45%, transparent);
-        padding-top: 10px;
-      }
-      #brewContent .lb-other-actions [data-lb-other-back] { text-align: left !important; }
-      #brewContent .lb-other-actions [data-lb-other-complete] { text-align: right !important; }
-
-      /* Professional cupping score: the adjustment axis is a full-row horizontal control below the score values. */
-      .v095-score-stage .score-value-row {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        align-items: start !important;
-      }
-      .v095-score-stage .subjective-delta-control {
-        display: contents !important;
-        width: auto !important;
-        max-width: none !important;
-      }
-      .v095-score-stage .subjective-delta-control > strong {
-        grid-column: 2 !important;
-        grid-row: 1 !important;
-        align-self: start !important;
-        justify-self: stretch !important;
-        text-align: center !important;
-      }
-      .v095-score-stage [data-v095-score-delta-input] {
-        grid-column: 1 / -1 !important;
-        grid-row: 2 !important;
-        width: 100% !important;
-        max-width: none !important;
-        height: 32px !important;
-        margin: 8px 0 0 !important;
-        writing-mode: horizontal-tb !important;
-        direction: ltr !important;
-        cursor: ew-resize !important;
-      }
-
-      /* Settings: remove obsolete top spacer under Interface and Data Archive headings. */
-      #settingsContent .settings-category[data-settings-key="appearance"] > .settings-category-body,
-      #settingsContent .settings-category.data-category > .settings-category-body {
-        padding-top: 0 !important;
-      }
-      #settingsContent .settings-category[data-settings-key="appearance"] .v095-setting-line {
-        margin-top: 0 !important;
-      }
-      #settingsContent .settings-category.data-category [data-v099p-data-analysis] {
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-        border-top: 0 !important;
+      .lb-other-brew-panel {
+        display: grid;
+        gap: .35rem;
       }
 
       @media (max-width: 720px) {
-        .bean-consumption-summary > p {
-          display: grid !important;
-          gap: .28rem !important;
-          margin: 0 !important;
-        }
-        .bean-consumption-summary .lb-stock-total {
-          display: block !important;
-          font-size: .94rem !important;
-          line-height: 1.38 !important;
-          font-weight: 600 !important;
-          letter-spacing: .01em !important;
-        }
-        .bean-consumption-summary .lb-today-consumption {
-          display: block !important;
-          font-size: .9rem !important;
-          line-height: 1.45 !important;
-        }
+        .bean-consumption-summary .lb-stock-total { font-size: .94rem !important; }
       }
     `;
-    document.head.append(style);
+    document.head.appendChild(style);
   }
 
-  function simplifyAccountSync(root = document) {
-    root.querySelectorAll('[data-cloud-pull]').forEach(button => {
-      if (button.textContent !== '合并云端') button.textContent = '合并云端';
-      button.setAttribute('aria-label', '合并云端数据到本地');
-    });
+  function rewriteCloudAction(root = document) {
+    for (const button of root.querySelectorAll?.('button') || []) {
+      if (button.textContent?.trim() === '下载云端合并本地') button.textContent = '合并云端';
+    }
   }
 
-  function simplifyCollectionSettings(root = document) {
-    root.querySelectorAll('[data-v099p-data-analysis]').forEach(section => {
-      const heading = section.querySelector(':scope > h3');
-      if (heading && heading.textContent.trim() === '数藏分析') heading.remove();
-      const intro = [...section.querySelectorAll(':scope > p')].find(node =>
-        node.textContent.includes('从豆卡、冲煮与品鉴记录生成个人咖啡图谱')
-      );
-      intro?.remove();
-    });
+  function rewriteDataCopy(root = document) {
+    for (const node of root.querySelectorAll?.('[data-settings-key="data"], [data-v099f-data]') || []) {
+      if (!node.textContent?.includes('数藏分析')) continue;
+      for (const paragraph of node.querySelectorAll('p')) {
+        if (/豆卡|冲煮|品鉴/.test(paragraph.textContent || '')) paragraph.textContent = '从豆卡、冲煮与品鉴记录生成个人咖啡图谱';
+      }
+    }
   }
 
-  function formatMobileBeanSummary(root = document) {
-    root.querySelectorAll('.bean-consumption-summary > p').forEach(node => {
-      if (node.dataset.lbSummaryLayout === '2') return;
-      const text = node.textContent.replace(/\s+/g, ' ').trim();
-      const stockMatch = text.match(/现有咖啡豆\s*([\d.]+)\s*(kg|g)/i);
-      const consumedMatch = text.match(/今日已饮用\s*([\d.]+)g豆/);
-      if (!stockMatch || !consumedMatch) return;
-
-      const stockValue = Number(stockMatch[1]);
-      const stockKg = stockMatch[2].toLowerCase() === 'kg' ? stockValue : stockValue / 1000;
-      const stockText = `${stockKg.toFixed(stockKg >= 10 ? 1 : 2)}kg`;
-      const consumedText = `${Number(consumedMatch[1]).toFixed(1)}g豆`;
-      const allowanceMatch = text.match(/参考上限还可使用约\s*([\d.]+)g豆/);
-      const exceededMatch = text.match(/参考上限已超过约\s*([\d.]+)mg咖啡因/);
-
-      let secondLine = `今日已饮用 ${consumedText}`;
-      if (allowanceMatch) secondLine += `，还可饮用 ${Number(allowanceMatch[1]).toFixed(1)}g豆（非罗布斯塔）`;
-      else if (exceededMatch) secondLine += `，参考上限已超过约${Number(exceededMatch[1]).toFixed(0)}mg咖啡因`;
-
-      node.innerHTML = `<span class="lb-stock-total">现有咖啡豆共计 ${stockText}</span><span class="lb-today-consumption">${secondLine}</span>`;
-      node.dataset.lbSummaryLayout = '2';
-    });
+  function rewriteConsumptionCopy(root = document) {
+    for (const node of root.querySelectorAll?.('.bean-consumption-summary') || []) {
+      const text = node.textContent || '';
+      if (!text.includes('现有咖啡豆共计')) continue;
+      const stock = node.querySelector('.lb-stock-total');
+      const today = node.querySelector('.lb-today-consumption');
+      if (stock && !/还可饮用/.test(stock.textContent || '')) stock.textContent = `${stock.textContent || ''} · 还可饮用`;
+      if (today && !/非罗布斯塔/.test(today.textContent || '')) today.textContent = `${today.textContent || ''} · 非罗布斯塔`;
+    }
   }
 
-  function simplifyBeanSummary(root = document) {
-    root.querySelectorAll('.bean-consumption-summary > small').forEach(node => {
-      if (node.textContent.includes('咖啡因按阿拉比卡约12mg/g豆保守估算')) node.remove();
-    });
-    formatMobileBeanSummary(root);
-  }
-
-  function applyPolicy(root = document) {
+  function apply(root = document) {
     ensurePolicyStyle();
-    simplifyAccountSync(root);
-    simplifyCollectionSettings(root);
-    simplifyBeanSummary(root);
-    document.documentElement.dataset.uiPolicyRevision = UI_POLICY_REVISION;
+    rewriteCloudAction(root);
+    rewriteDataCopy(root);
+    rewriteConsumptionCopy(root);
   }
 
   function observe(id) {
-    const node = document.getElementById(id);
-    if (!node || node[OBSERVED]) return;
-    node[OBSERVED] = true;
-    new MutationObserver(() => applyPolicy(node)).observe(node, { childList: true, subtree: true });
+    const target = document.getElementById(id);
+    if (!target || target[OBSERVED]) return;
+    target[OBSERVED] = true;
+    const observer = new MutationObserver(() => apply(target));
+    observer.observe(target, { childList:true, subtree:true, characterData:true });
   }
 
-  function boot() {
-    applyPolicy();
-    observe('settingsContent');
-    observe('beanGroups');
-    observe('brewContent');
-  }
-
-  ['luckybean:settings-rendered', 'luckybean:account-panel-rendered', 'luckybean:app-refreshed', 'luckybean:local-app-ready']
-    .forEach(type => document.addEventListener(type, () => queueMicrotask(boot)));
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
-  else boot();
-
-  globalThis.LuckyBeanUiPolicy124B = { revision: UI_POLICY_REVISION, apply: applyPolicy };
+  apply();
+  observe('settingsContent');
+  observe('beanGroups');
+  observe('brewContent');
+  document.addEventListener('luckybean:render-complete', () => apply());
+  document.addEventListener('luckybean:settings-rendered', () => apply());
+  globalThis.LuckyBeanUiPolicy = { revision:UI_POLICY_REVISION, apply };
 }
