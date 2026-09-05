@@ -16,6 +16,8 @@ const versioned = path => `${path}?v=${REVISION}`;
 const LAZY_RUNTIME_RESOURCES = [
   './src/app.js',
   './src/services/cloud-sync-safety.js',
+  './src/services/brew-analysis-service.js',
+  './src/services/provider-package-service.js',
   './src/ui/appearance-controller.js',
   './src/features/runtime-features.js',
   './src/features/release-1.24b-transit-controller.js',
