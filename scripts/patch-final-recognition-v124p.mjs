@@ -64,13 +64,30 @@ const replaceExact = (source, before, after, label) => {
   write(path, source);
 }
 
+// The #85 bridge assertion described an older workerOnly predicate. The current Foundation bridge is
+// stricter and explicitly accepts only browserSafe providers whose isolation is module-worker or
+// WebKit direct-WASM/no-SIMD, while ROI still requires roiWorkerOnly. Lock the current safety model.
+{
+  const path = 'tests/v124p-auth-ocr-ai-hotfix-static.mjs';
+  let source = read(path);
+  source = source.replace(
+    "assert.match(bridge,/provider\\.workerOnly!==true && provider\\.browserSafe!==true/);\nassert.match(bridge,/roiWorkerOnly!==true/);",
+    "assert.match(bridge,/provider\\.browserSafe !== true/);\nassert.match(bridge,/isSafeWebPaddleProvider\\(provider\\)/);\nassert.match(bridge,/module-worker/);\nassert.match(bridge,/webkit-direct-wasm-no-simd/);\nassert.match(bridge,/provider\\.roiWorkerOnly !== true/);"
+  );
+  source = source
+    .replace("assert.equal(release.revision,'1.24P-main.2');", "assert.equal(release.revision,'1.24P-main.3');")
+    .replace("assert.equal(release.androidVersionCode,102418);", "assert.equal(release.androidVersionCode,102419);")
+    .replace("assert.equal(release.releaseTag,'v1.24P-main.2');", "assert.equal(release.releaseTag,'v1.24P-main.3');");
+  write(path, source);
+}
+
 // Final release identity: local-first schema v10 + AI/multi-entry + iOS auth compatibility.
 {
   const path = 'release.json';
   const release = JSON.parse(read(path));
   release.semver = '1.24.17';
   release.revision = '1.24P-main.3';
-  release.androidVersionCode = Math.max(102419, Number(release.androidVersionCode || 0) + 1);
+  release.androidVersionCode = 102419;
   release.releaseTag = 'v1.24P-main.3';
   release.cacheRevision = 'main-3-local-first-ai';
   release.schemaVersion = 10;
@@ -85,8 +102,8 @@ for (const path of ['index.html', 'recognition-test.html']) {
 }
 {
   const path = 'sw.js';
-  let source = read(path).replaceAll("1.24P-main.2", "1.24P-main.3");
-  source = source.replace("main-2-web-startup", "main-3-local-first-ai");
+  let source = read(path).replaceAll('1.24P-main.2', '1.24P-main.3');
+  source = source.replace('main-2-web-startup', 'main-3-local-first-ai');
   if (!source.includes("'./src/services/recognition-ai-service.js'")) {
     source = replaceExact(
       source,
@@ -113,9 +130,9 @@ for (const path of ['index.html', 'recognition-test.html']) {
     .replace("assert.equal(release.revision, '1.24P-main.2');", "assert.equal(release.revision, '1.24P-main.3');")
     .replace("assert.equal(release.semver, '1.24.16');", "assert.equal(release.semver, '1.24.17');")
     .replace("assert.equal(release.releaseTag, 'v1.24P-main.2');", "assert.equal(release.releaseTag, 'v1.24P-main.3');")
-    .replace(/release-revision\" content=\"1\\\.24P-main\\\.2\"/, 'release-revision\\" content=\\"1\\.24P-main\\.3\\"')
-    .replace(/REVISION = '1\\\.24P-main\\\.2'/, "REVISION = '1\\.24P-main\\.3'")
-    .replace(/main-2-web-startup/, 'main-3-local-first-ai');
+    .replace('/release-revision\" content=\"1\\.24P-main\\.2\"/', '/release-revision\" content=\"1\\.24P-main\\.3\"/')
+    .replace("/REVISION = '1\\.24P-main\\.2'/", "/REVISION = '1\\.24P-main\\.3'/")
+    .replace('/main-2-web-startup/', '/main-3-local-first-ai/');
   if (!source.includes("assert.equal(release.schemaVersion, 10);")) {
     source = source.replace("assert.equal(release.brewPlanVersion, 'brew-plan/1.0');", "assert.equal(release.brewPlanVersion, 'brew-plan/1.0');\nassert.equal(release.schemaVersion, 10);");
   }
