@@ -21,6 +21,7 @@ const LAZY_RUNTIME_RESOURCES = [
   './src/services/execution-text-sanitizer.js',
   './src/ui/appearance-controller.js',
   './src/ui/voice-settings-controller.js',
+  './src/ui/brew-action-emphasis.css',
   './src/features/runtime-features.js',
   './src/features/release-1.24b-transit-controller.js',
   './src/features/release-1.24b-group-navigation.js',
