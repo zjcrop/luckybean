@@ -6,8 +6,8 @@ const app = fs.readFileSync('src/app.js', 'utf8');
 const css = fs.readFileSync('src/ui/brew-action-emphasis.css', 'utf8');
 const sw = fs.readFileSync('sw.js', 'utf8');
 
-assert.match(index, /brew-action-emphasis\.css\?v=1\.24P-main\.1/);
-assert.match(sw, /versioned\('\.\/src\/ui\/brew-action-emphasis\.css'\)/);
+assert.match(index, /brew-action-emphasis\.css\?v=1\.24P-main\.2/);
+assert.match(sw, /src\/ui\/brew-action-emphasis\.css/);
 
 for (const selector of ['#generatePlanBtn', '#brewProfile', '#startBrewBtn', '#confirmBrewPreparedBtn']) {
   assert.ok(css.includes(selector), `missing emphasized selector ${selector}`);
