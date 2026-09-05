@@ -51,7 +51,7 @@ test('PP-OCR runtime stays lazy on app startup and exposes browser-safe on-deman
   expect(pageErrors.filter(message => /worker|paddle|onnx|ocr/i.test(message))).toEqual([]);
 });
 
-test('real ROI worker crops a source image off-main-thread using normalized coordinates', async ({ page }) => {
+test('real ROI worker crops a camera-like JPEG off-main-thread using normalized coordinates', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(String(error?.message || error)));
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
@@ -59,10 +59,24 @@ test('real ROI worker crops a source image off-main-thread using normalized coor
   await page.waitForFunction(() => globalThis.LuckyBeanPaddleOCR?.roiWorkerOnly === true, null, { timeout: 20_000 });
 
   const result = await page.evaluate(async () => {
-    const source = await fetch('./public/app-logo.webp').then(response => {
-      if (!response.ok) throw new Error(`fixture HTTP ${response.status}`);
-      return response.blob();
-    });
+    // Direct-camera-controller emits image/jpeg. Build the regression fixture in the same format so
+    // the Worker test reflects the production capture path rather than relying on WebP decoder
+    // behavior that varies across headless Chromium revisions.
+    const canvas = document.createElement('canvas');
+    canvas.width = 960;
+    canvas.height = 640;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#f4f0e8';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = '#181818';
+    context.font = '48px sans-serif';
+    context.fillText('ETHIOPIA GESHA 2026', 120, 210);
+    context.fillText('WASHED 1950M', 170, 330);
+    const source = await new Promise((resolve, reject) => canvas.toBlob(
+      blob => blob ? resolve(blob) : reject(new Error('JPEG fixture creation failed')),
+      'image/jpeg', 0.92
+    ));
+
     const workerUrl = new URL('roi-worker.js', globalThis.LuckyBeanPaddleOCR.runtimeBase()).href;
     const worker = new Worker(workerUrl, { type: 'classic', name: 'roi-runtime-test' });
     let ticks = 0;
@@ -108,12 +122,12 @@ test('real ROI worker crops a source image off-main-thread using normalized coor
   expect(result.ok).toBe(true);
   expect(result.blobBytes).toBeGreaterThan(100);
   expect(result.region).toEqual({ left: 0.2, top: 0.2, right: 0.8, bottom: 0.8 });
-  expect(result.sourceWidth).toBeGreaterThan(0);
-  expect(result.sourceHeight).toBeGreaterThan(0);
+  expect(result.sourceWidth).toBe(960);
+  expect(result.sourceHeight).toBe(640);
   expect(result.cropWidth).toBeGreaterThan(0);
   expect(result.cropHeight).toBeGreaterThan(0);
   expect(result.outputWidth).toBeGreaterThan(0);
   expect(result.outputHeight).toBeGreaterThan(0);
-  expect(result.ticks, 'browser heartbeat stopped while ROI worker decoded/cropped the image').toBeGreaterThan(0);
+  expect(result.ticks, 'browser heartbeat stopped while ROI worker decoded/cropped the JPEG').toBeGreaterThan(0);
   expect(pageErrors.filter(message => /roi|worker|canvas|bitmap/i.test(message))).toEqual([]);
 });
