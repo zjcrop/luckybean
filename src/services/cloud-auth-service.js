@@ -17,8 +17,6 @@ function parseAuthCallbackHash(hashValue) {
   return new URLSearchParams(params.toString());
 }
 
-// Capture the callback synchronously at module evaluation. Safari can rewrite/restore URL state
-// while other deferred modules start, so later readers must not depend on the live hash alone.
 const INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash(location.hash);
 let refreshPromise = null;
 let authCallbackPromise = null;
@@ -158,25 +156,34 @@ async function consumeAuthCallback() {
     const refreshToken = params.get('refresh_token') || '';
     if (!accessToken || !refreshToken) { authCallbackConsumed = true; return null; }
     const expiresIn = Number(params.get('expires_in') || 3600);
-    let user = null;
-    try { user = await rawRequest('/auth/v1/user', { method:'GET', token:accessToken, timeoutMs:6000 }); } catch { user = null; }
-    const payload = {
+    const provisional = {
       access_token:accessToken,
       refresh_token:refreshToken,
       token_type:params.get('token_type') || 'bearer',
       expires_in:expiresIn,
       expires_at:Math.floor(Date.now() / 1000) + Math.max(60, expiresIn),
-      user
+      user:null
     };
-    writeSession(payload);
+
+    // Accept the callback atomically before any profile/network work. On Safari and weak
+    // networks, /auth/v1/user must never decide whether the freshly-issued session exists.
+    writeSession(provisional);
     markServerActivity();
     callbackSessionAcceptedAt = Date.now();
     authCallbackConsumed = true;
+    clearAuthCallbackUrl();
+    emit('authenticated', { user:null, login:true, authAction:'email-callback', profilePending:true });
+
+    let user = null;
+    try { user = await rawRequest('/auth/v1/user', { method:'GET', token:accessToken, timeoutMs:3000 }); } catch { user = null; }
+    const payload = { ...provisional, user };
+    writeSession(payload);
+    markServerActivity();
+
     const pending = readPendingRegistration();
     const email = String(user?.email || pending?.email || '').toLowerCase();
     const completedRegistration = Boolean(pending?.email && (!email || pending.email === email));
-    clearAuthCallbackUrl();
-    emit('authenticated', { user, login:true, authAction:completedRegistration ? 'register-verification' : 'email-callback' });
+    emit('authenticated', { user, login:true, authAction:completedRegistration ? 'register-verification' : 'email-callback', profilePending:false });
     globalThis.LuckyBeanCloudSync?.ensureAutomatic?.('email-callback-success');
     if (completedRegistration) dispatchRegisterSuccess(payload, email || pending.email, true);
     dispatchLoginSuccess(payload, completedRegistration ? 'register-verification' : 'email-callback');
@@ -301,7 +308,7 @@ async function warmSession() {
 }
 
 globalThis.LuckyBeanCloudAuth = {
-  revision:'cloud-auth-service-v5-ios-callback-lock', getSession:readSession, warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut, consumeAuthCallback,
+  revision:'cloud-auth-service-v6-atomic-callback', getSession:readSession, warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut, consumeAuthCallback,
   isRemembered:() => Boolean(readSession()?.refresh_token && Date.now() <= rememberUntil()), rememberUntil,
   pendingRegistration:readPendingRegistration
 };
