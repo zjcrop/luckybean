@@ -2,8 +2,9 @@ import { parseNaturalLanguage } from '../../codebook.js';
 import { automaticEntityResolutionDecision } from '../../services/coffee-knowledge-adapter.js';
 import { bestKnowledgeOnlyVarietyCandidate } from '../../services/knowledge-only-variety-candidates.js';
 import { resolveRecognitionRelations, resolverPriorityDescription } from './recognition-field-resolver-1.24b.js';
+import { repairRecognitionSemanticText } from './recognition-semantic-repair.js';
 
-export const RECOGNITION_PIPELINE_VERSION = '1.24P-recognition-pipeline.3';
+export const RECOGNITION_PIPELINE_VERSION = '1.24P-recognition-pipeline.4';
 
 const RELATION_TO_RESULT = Object.freeze({
   country: 'countryCode',
@@ -137,8 +138,6 @@ function enforceKnowledgeOnlyVarietyCandidate(parsed, book) {
     Number(parsed.confidence.varietyCustomName || 0),
     Math.min(0.86, Number(candidate.score || 0))
   );
-  // Keep the categorical varietyCode unresolved. Candidate confidence is metadata,
-  // not permission to assign a QR/core code that does not exist in v6.
   parsed.confidence.varietyCode = Math.min(Number(parsed.confidence.varietyCode || 0.45), 0.49);
 }
 
@@ -254,24 +253,19 @@ function buildFieldRows(document, parsed, book) {
 
 export function analyzeRecognitionDocument(document, book) {
   if (!document || typeof document !== 'object') throw new TypeError('识别文档无效');
-  const semanticText = String(document.fullText || '')
+  const baseSemanticText = String(document.fullText || '')
     .replace(/\r/g, '')
     .split(/\n+/)
     .map(clean)
     .filter(Boolean)
     .join('\n');
+  const semanticText = repairRecognitionSemanticText(baseSemanticText, book);
   const parsed = parseNaturalLanguage(semanticText, book);
   enforceKnowledgeOnlyVarietyCandidate(parsed, book);
   enforceEntityResolutionSafety(parsed, book);
   const fields = buildFieldRows(document, parsed, book);
   const reviewFields = fields.filter(item => item.status === 'review');
 
-  // A field can be semantically identified while remaining unresolved by the
-  // codebook (for example: COUNTRY ATLANTIS). Preserve the value that the review
-  // UI actually shows. Prefer raw evidence, but if the parser only retained a
-  // custom/unmapped display value, keep that value so the bean-form confirmation
-  // step cannot lose the field at the package-to-form boundary. Confidence remains
-  // measured parser/relation confidence; manual confirmation never fabricates 1.0.
   parsed.evidence ||= {};
   parsed.confidence ||= {};
   for (const item of reviewFields) {
@@ -301,6 +295,7 @@ export function analyzeRecognitionDocument(document, book) {
     reviewFields: reviewFields.map(item => item.field),
     arbitrationPriority:resolverPriorityDescription(),
     rawFullText: document.rawFullText || '',
+    rawSemanticText: baseSemanticText,
     semanticText
   };
   return {
