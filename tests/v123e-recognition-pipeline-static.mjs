@@ -6,7 +6,9 @@ const app = readFileSync(new URL('../src/app.js', import.meta.url), 'utf8');
 const layout = readFileSync(new URL('../src/ui-layout-controller.js', import.meta.url), 'utf8');
 const pipeline = readFileSync(new URL('../src/domain/recognition/recognition-pipeline.js', import.meta.url), 'utf8');
 
-assert.match(capture, /analyzeRecognitionDocument\(captureState\.recognitionDocument, book\)/);
+assert.match(capture, /createRecognitionDocument\(/, 'package capture must produce a canonical RecognitionDocument');
+assert.match(capture, /captureState\.recognitionDocument\s*=\s*documentRef/, 'canonical RecognitionDocument must remain the handoff source');
+assert.match(capture, /analyzeRecognitionDocument\(documentRef,\s*book\)/, 'local RecognitionDocument must be analyzed by the canonical pipeline');
 assert.match(capture, /翻译与字段整理/);
 assert.match(capture, /已翻译归一/);
 assert.match(capture, /LuckyBeanRecognitionFlow/);
