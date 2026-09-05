@@ -26,6 +26,22 @@ export function clearRecognitionBatchSnapshot() {
   try { localStorage.removeItem(BATCH_STATE_KEY); } catch {}
 }
 
+function clamp01(value, fallback = 0) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.max(0, Math.min(1, number));
+}
+
+export function normalizeRecognitionRegion(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  const left = clamp01(source.left);
+  const top = clamp01(source.top);
+  const right = clamp01(source.right, 1);
+  const bottom = clamp01(source.bottom, 1);
+  if (right - left < 0.01 || bottom - top < 0.01) throw new Error('ROI 范围过小或无效');
+  return Object.freeze({ left, top, right, bottom });
+}
+
 function normalizeBlock(block, imageId, engine, imageRole = '') {
   const text = cleanText(block?.text ?? block?.rawValue ?? block?.value);
   if (!text) return null;
@@ -82,6 +98,18 @@ async function nativeRecognize(images, options) {
   return { ...result, engine: result?.engine || 'native-ppocr' };
 }
 
+async function nativeRecognizeRegion(image, region, options) {
+  const bridge = globalThis.LuckyBeanRecognitionBridge || globalThis.LuckyBeanNative;
+  if (typeof bridge?.recognizeRegion !== 'function') return null;
+  const payloadImage = await imagePayloadForNative(image);
+  const result = await bridge.recognizeRegion({
+    image: payloadImage,
+    region,
+    locale: options.locale || 'zh-CN'
+  });
+  return { ...result, engine: result?.engine || 'native-region-ocr' };
+}
+
 async function invokeWebProvider(provider, images, options, fallbackEngine) {
   if (typeof provider?.recognizeCoffeeBag === 'function') {
     const result = await provider.recognizeCoffeeBag(images, options);
@@ -105,6 +133,19 @@ async function paddleWorkerRecognize(images, options) {
     throw new Error('网页 PP-OCR 未处于 Worker-only 安全模式，已拒绝在主线程启动识别');
   }
   return invokeWebProvider(provider, images, options, 'web-ppocr-worker');
+}
+
+async function paddleWorkerRecognizeRegion(image, region, options) {
+  const provider = globalThis.LuckyBeanPaddleOCR;
+  if (!provider) return null;
+  if (provider.workerOnly !== true || provider.roiWorkerOnly !== true || typeof provider.recognizeRegion !== 'function') {
+    throw new Error('网页 PP-OCR 未提供 Worker-only ROI 安全接口，已拒绝局部重识别');
+  }
+  const result = await provider.recognizeRegion(image.blob, region, {
+    ...options,
+    imageId: image.id
+  });
+  return { ...result, engine: result?.engine || 'web-ppocr-worker-roi' };
 }
 
 async function textDetectorRecognize(images) {
@@ -150,6 +191,12 @@ export function getRecognitionCapabilities() {
   return {
     native: typeof nativeBridge?.recognizeCoffeeBag === 'function',
     webPaddle: Boolean(globalThis.LuckyBeanPaddleOCR?.workerOnly === true),
+    nativeRegion: typeof nativeBridge?.recognizeRegion === 'function',
+    webPaddleRegion: Boolean(
+      globalThis.LuckyBeanPaddleOCR?.workerOnly === true
+      && globalThis.LuckyBeanPaddleOCR?.roiWorkerOnly === true
+      && typeof globalThis.LuckyBeanPaddleOCR?.recognizeRegion === 'function'
+    ),
     legacyWeb: Boolean(globalThis.LuckyBeanWebOCR),
     textDetector: typeof globalThis.TextDetector === 'function'
   };
@@ -161,6 +208,24 @@ async function recognizeSingleImage(image, options) {
   if (!result) result = await textDetectorRecognize([image]);
   if (!result) throw new RecognitionUnavailableError('当前设备没有可安全运行的 Worker OCR；不会自动切换主线程识别');
   return result;
+}
+
+export async function recognizeImageRegion(image, regionInput, options = {}) {
+  if (!image?.blob) throw new Error('ROI 重识别缺少原始图片');
+  const region = normalizeRecognitionRegion(regionInput);
+  let result = await nativeRecognizeRegion(image, region, options);
+  if (!result) result = await paddleWorkerRecognizeRegion(image, region, options);
+  if (!result) {
+    throw new RecognitionUnavailableError('当前设备没有可安全运行的 Worker/Native ROI OCR；不会回退主线程裁剪');
+  }
+  const blocks = collectBlocks(result, [image]);
+  return {
+    ...result,
+    regionProtocol: result.regionProtocol || 'recognition-roi/1.0',
+    region,
+    blocks,
+    fullText: blocks.map(block => block.text).join('\n') || cleanText(result?.fullText)
+  };
 }
 
 function newBatch(images) {

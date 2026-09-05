@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zjcrop.github.io/luckybean/contracts/recognition-roi-v1.schema.json",
+  "title": "Coffee Foundation Recognition ROI 1.0",
+  "type": "object",
+  "required": ["regionProtocol", "region", "engine", "blocks", "fullText"],
+  "properties": {
+    "regionProtocol": { "const": "recognition-roi/1.0" },
+    "region": {
+      "type": "object",
+      "required": ["left", "top", "right", "bottom"],
+      "properties": {
+        "left": { "type": "number", "minimum": 0, "maximum": 1 },
+        "top": { "type": "number", "minimum": 0, "maximum": 1 },
+        "right": { "type": "number", "minimum": 0, "maximum": 1 },
+        "bottom": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "engine": { "type": "string", "minLength": 1 },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["text", "confidence"],
+        "properties": {
+          "text": { "type": "string", "minLength": 1 },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "polygon": {},
+          "imageId": { "type": "string" },
+          "imageRole": { "type": "string" },
+          "engine": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "fullText": { "type": "string" },
+    "sourceWidth": { "type": "integer", "minimum": 0 },
+    "sourceHeight": { "type": "integer", "minimum": 0 },
+    "cropX": { "type": "integer", "minimum": 0 },
+    "cropY": { "type": "integer", "minimum": 0 },
+    "cropWidth": { "type": "integer", "minimum": 0 },
+    "cropHeight": { "type": "integer", "minimum": 0 },
+    "outputWidth": { "type": "integer", "minimum": 0 },
+    "outputHeight": { "type": "integer", "minimum": 0 }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "region": { "required": ["left", "right"] } } },
+      "then": {}
+    }
+  ],
+  "additionalProperties": true
+}

@@ -7,6 +7,7 @@ const targetRoot = path.join(root, 'public', 'vendor', 'paddleocr');
 const depsRoot = path.join(targetRoot, 'deps');
 const ortRoot = path.join(targetRoot, 'ort');
 const modelsRoot = path.join(targetRoot, 'models');
+const roiWorkerSource = path.join(root, 'src', 'recognition-roi-worker.js');
 
 const PADDLE_VERSION = '0.4.2';
 const ORT_VERSION = '1.22.0';
@@ -126,7 +127,7 @@ async function mirrorEsmModule(remoteUrl, relativePath) {
   return relativePath;
 }
 
-async function prepareSdkAndWorker() {
+async function prepareSdkAndWorkers() {
   await mirrorEsmModule(SDK_ESM_URL, 'sdk.mjs');
 
   const rawDist = await fetchText(SDK_DIST_URL);
@@ -136,6 +137,12 @@ async function prepareSdkAndWorker() {
   const workerSource = await fetchText(workerUrl);
   if (workerSource.length < 100000) throw new Error(`PaddleOCR worker bundle is unexpectedly small (${workerSource.length} chars)`);
   await fs.writeFile(path.join(targetRoot, 'worker.js'), workerSource, 'utf8');
+
+  const roiSource = await fs.readFile(roiWorkerSource, 'utf8');
+  if (!/OffscreenCanvas/.test(roiSource) || !/createImageBitmap/.test(roiSource)) {
+    throw new Error('ROI preprocessing worker must keep image decode/crop off the UI thread');
+  }
+  await fs.writeFile(path.join(targetRoot, 'roi-worker.js'), roiSource, 'utf8');
 }
 
 async function prepareOrt() {
@@ -162,7 +169,7 @@ await Promise.all([
   fs.mkdir(modelsRoot, { recursive: true })
 ]);
 
-await prepareSdkAndWorker();
+await prepareSdkAndWorkers();
 await Promise.all([prepareOrt(), prepareModels()]);
 
 const manifest = {
@@ -171,6 +178,7 @@ const manifest = {
   ortVersion: ORT_VERSION,
   sdk: 'sdk.mjs',
   worker: 'worker.js',
+  roiWorker: 'roi-worker.js',
   ort: ORT_FILES,
   models: MODEL_FILES,
   mirroredEsmModules: moduleMap.size,

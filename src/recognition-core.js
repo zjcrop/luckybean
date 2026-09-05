@@ -5,6 +5,8 @@
 export { preparePackageImage } from './image-quality.js';
 export {
   recognizeCoffeeBag,
+  recognizeImageRegion,
+  normalizeRecognitionRegion,
   getRecognitionCapabilities,
   getRecognitionBatchSnapshot,
   clearRecognitionBatchSnapshot,
