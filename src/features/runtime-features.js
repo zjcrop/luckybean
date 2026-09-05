@@ -8,6 +8,7 @@ const RUNTIME_FEATURES = Object.freeze([
   feature('recognition-paddle-ocr', '../recognition-paddle-ocr.js'),
   feature('recognition-quality', '../recognition-quality-controller.js'),
   feature('package-capture', '../package-capture-controller.js'),
+  feature('recognition-multi-entry', './recognition-multi-entry-controller.js'),
   feature('direct-camera', '../direct-camera-controller.js'),
   feature('qr-ui', '../qr-ui-controller.js'),
   feature('integrity-ui', '../integrity-ui-controller.js'),
