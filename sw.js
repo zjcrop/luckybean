@@ -23,6 +23,7 @@ const LAZY_RUNTIME_RESOURCES = [
   './src/ui/voice-settings-controller.js',
   './src/ui/brew-action-emphasis.css',
   './src/features/runtime-features.js',
+  './src/features/freshness-timeline-controller.js',
   './src/features/release-1.24b-transit-controller.js',
   './src/features/release-1.24b-group-navigation.js',
   './src/features/release-1.24b-about-controller.js',
