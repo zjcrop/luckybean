@@ -4,7 +4,7 @@ import { bestKnowledgeOnlyVarietyCandidate } from '../../services/knowledge-only
 import { resolveRecognitionRelations, resolverPriorityDescription } from './recognition-field-resolver-1.24b.js';
 import { repairRecognitionSemanticText } from './recognition-semantic-repair.js';
 
-export const RECOGNITION_PIPELINE_VERSION = '1.24P-recognition-pipeline.4';
+export const RECOGNITION_PIPELINE_VERSION = '1.24P-recognition-pipeline.3';
 
 const RELATION_TO_RESULT = Object.freeze({
   country: 'countryCode',
