@@ -44,8 +44,9 @@
     <nav id="bottomNav" class="bottom-nav" aria-label="主页面"><button class="nav-button active" type="button" data-page-target="beans" aria-label="豆藏：咖啡豆管理" aria-current="page"><span>藏</span></button><button class="nav-button" type="button" data-page-target="brew" aria-label="小酌：冲煮制作"><span>酌</span></button><button class="nav-button" type="button" data-page-target="sensory" aria-label="品鉴：感官评价"><span>鉴</span></button><button class="nav-button" type="button" data-page-target="settings" aria-label="器设：设备与系统设置"><span>器</span></button></nav>
   </div>
   <input id="qrImageInput" type="file" accept="image/*" capture="environment" class="hidden"><input id="importInput" type="file" accept=".luckybean,application/vnd.luckybean.archive+json,application/json" class="hidden"><div id="overlayRoot"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="./src/core/startup-controller.js?v=1.24P-main.2"></script>
+  <!-- Authentication callback must be consumed before any startup/router module can observe or rewrite the URL. -->
   <script type="module" src="./src/services/cloud-auth-service.js?v=1.24P-main.2"></script>
+  <script type="module" src="./src/core/startup-controller.js?v=1.24P-main.2"></script>
   <script type="module" src="./src/services/cloud-sync-service.js?v=1.24P-main.2"></script>
   <script type="module" src="./src/core/bootstrap.js?v=1.24P-main.2"></script>
   <script type="module" src="./src/services/bean-enrichment-service.js?v=1.24P-main.2"></script>
