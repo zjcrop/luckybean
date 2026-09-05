@@ -19,7 +19,8 @@ const [releaseText, policy, app, beanGroupState, beanGroups, groupNavigation, sh
 const release = JSON.parse(releaseText);
 
 assert.match(policy, /UI_POLICY_REVISION/);
-assert.ok(policy.includes(release.revision), 'UI policy revision must match canonical release metadata');
+assert.match(policy, /document\.body\?\.dataset\.releaseRevision/, 'UI policy must take its revision from canonical document metadata at runtime');
+assert.match(policy, /meta\[name="release-revision"\]/, 'UI policy must retain meta revision fallback');
 assert.match(policy, /button\.textContent = '合并云端'/);
 assert.match(policy, /aspect-ratio:\s*2\s*\/\s*1/);
 assert.match(app, /preference-board-strip/);
