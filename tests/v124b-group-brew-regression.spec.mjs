@@ -66,14 +66,16 @@ async function openFirstNativeGroup(page){
 }
 
 async function setSpecialMode(page,mode){
+  const source=`group-regression-special-mode-${mode}`;
   await page.evaluate(async mode=>{
     const db=await import('/src/db.js');
     await db.setSetting('v099i.group.mode',mode);
     await db.setSetting('v099f.group.mode','native');
-    document.dispatchEvent(new CustomEvent('luckybean:data-changed',{detail:{source:'group-regression-special-mode'}}));
   },mode);
-  await page.reload({waitUntil:'domcontentloaded'});
-  await waitForStartup(page);
+  // Use the application's canonical refresh contract. Dispatching data-changed and
+  // immediately reloading creates two competing async refresh/navigation paths and
+  // can abort Playwright's reload even though the application state is valid.
+  await refreshFrom(page,source);
   await expect(page.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible({timeout:10000});
 }
 
