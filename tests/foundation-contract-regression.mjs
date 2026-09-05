@@ -26,7 +26,8 @@ assert.equal(recognition.properties.schemaVersion.const, consumer.contracts.reco
 assert.match(runtime, /RECOGNITION_DOCUMENT_SCHEMA\s*=\s*['"]recognition-document\/1\.1['"]/);
 
 assert.match(paddle, /CoffeeFoundationOcrAssetBase/);
-assert.match(paddle, /DEFAULT_RUNTIME_BASE\s*=\s*new URL\('\.\.\/public\/vendor\/paddleocr\//);
+assert.match(paddle, /function defaultRuntimeBase\(\)[\s\S]*new URL\('\.\.\/public\/vendor\/paddleocr\/',\s*import\.meta\.url\)/);
+assert.doesNotMatch(paddle, /const\s+DEFAULT_RUNTIME_BASE\s*=\s*new URL/);
 assert.match(paddle, /assetUrl\('sdk\.mjs'\)/);
 assert.match(paddle, /assetUrl\('worker\.js'\)/);
 assert.match(paddle, /assetUrl\('models\/PP-OCRv5_mobile_det_onnx_infer\.tar'\)/);
