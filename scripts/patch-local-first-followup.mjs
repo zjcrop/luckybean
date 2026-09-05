@@ -27,6 +27,10 @@ const after = `async function refreshData() {
   performance?.mark?.('luckybean:bean-directory-ready');
   updateLowStockIndicator();
 }`;
+if (source.includes(after)) {
+  console.log('Local-first follow-up invariants already applied');
+  process.exit(0);
+}
 if (!source.includes(before)) throw new Error('refreshData follow-up anchor not found');
 source = source.replace(before, after);
 fs.writeFileSync(file, source);
