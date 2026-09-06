@@ -1,6 +1,7 @@
-import { recognitionDocumentFromText } from './recognition-document.js';
+import { createRecognitionDocument, recognitionDocumentFromText } from './recognition-document.js';
+import { groupRecognitionRecordCandidates, RECOGNITION_RECORD_CANDIDATE_SCHEMA } from './recognition-record-segmenter.js';
 
-export const MULTI_ENTRY_SCHEMA = 'recognition-multi-entry/1.0';
+export const MULTI_ENTRY_SCHEMA = 'recognition-multi-entry/1.1';
 
 const COFFEE_FIELD_SIGNAL = /(?:国家|产国|原产国|产地|产区|地区|庄园|农场|处理法|处理方式|品种|豆种|烘焙日期|烘焙度|海拔|风味|净重|批次|等级|烘焙商|(?:country|origin|region|farm|estate|process(?:ing)?|variety|varietal|roast(?:ed)?|altitude|elevation|tasting notes?|flavo(?:u)?r|net weight|lot|grade|roaster)\b)/giu;
 const ENTRY_HEADING = /^\s*(?:(?:样品|豆|咖啡|coffee|bean|sample)\s*[#№]?\s*(?:\d+|[A-Z]|[一二三四五六七八九十]+)|(?:\d{1,2}|[A-Z])\s*[.)、])\s*[:：\-–—]?\s*/iu;
@@ -50,37 +51,94 @@ function explicitEntries(document) {
   if (!Array.isArray(values) || values.length < 2) return [];
   return values.map(item => clean(typeof item === 'string' ? item : item?.text || item?.fullText)).filter(viable);
 }
-function buildEntryDocument(text, parent, index, total, method) {
+function multiEntryMetadata(parent, index, total, method, extra = {}) {
+  return {
+    schemaVersion:MULTI_ENTRY_SCHEMA,
+    parentSchemaVersion:String(parent?.schemaVersion || ''),
+    parentCreatedAt:String(parent?.createdAt || ''),
+    index:index + 1,
+    total,
+    method,
+    authority:'segmentation-only',
+    requiresUserConfirmation:true,
+    ...extra
+  };
+}
+function buildTextEntryDocument(text, parent, index, total, method) {
   const child = recognitionDocumentFromText(text);
   child.engine = String(parent?.engine || child.engine || 'unknown');
   child.extensions = {
     ...(child.extensions || {}),
-    multiEntry: {
-      schemaVersion:MULTI_ENTRY_SCHEMA,
-      parentSchemaVersion:String(parent?.schemaVersion || ''),
-      parentCreatedAt:String(parent?.createdAt || ''),
-      index:index + 1,
-      total,
-      method,
-      authority:'segmentation-only',
-      requiresUserConfirmation:true
-    }
+    multiEntry:multiEntryMetadata(parent, index, total, method, { evidencePreserved:false })
   };
   return child;
+}
+function buildGeometryEntryDocument(candidate, parent, index, total, method) {
+  const blockIds = new Set(candidate.blockIds || []);
+  const imageIds = new Set(candidate.imageIds || []);
+  const blocks = (parent?.blocks || []).filter(block => blockIds.has(String(block?.id)));
+  const images = (parent?.images || []).filter(image => imageIds.has(String(image?.id)));
+  if (!blocks.length || !images.length) return null;
+  const child = createRecognitionDocument({
+    images,
+    blocks,
+    engine:String(parent?.engine || 'unknown'),
+    fullText:String(candidate.text || blocks.map(block => block.text).join('\n')),
+    createdAt:String(parent?.createdAt || new Date().toISOString())
+  });
+  child.extensions = {
+    ...(child.extensions || {}),
+    multiEntry:multiEntryMetadata(parent, index, total, method, {
+      evidencePreserved:true,
+      recordCandidate:{
+        schemaVersion:RECOGNITION_RECORD_CANDIDATE_SCHEMA,
+        id:String(candidate.id || ''),
+        method:String(candidate.method || method),
+        confidence:Number(candidate.confidence || 0),
+        blockIds:[...blockIds],
+        imageIds:[...imageIds],
+        box:candidate.box ? structuredClone(candidate.box) : null,
+        evidence:candidate.evidence ? structuredClone(candidate.evidence) : null
+      }
+    })
+  };
+  return child;
+}
+function splitGeometryRecords(document) {
+  const grouped = groupRecognitionRecordCandidates(document);
+  if (!grouped.grouped || grouped.candidates.length < 2) return null;
+  const method = grouped.method;
+  const documents = grouped.candidates
+    .map((candidate, index) => buildGeometryEntryDocument(candidate, document, index, grouped.candidates.length, method))
+    .filter(Boolean);
+  if (documents.length !== grouped.candidates.length || documents.length < 2) return null;
+  return { split:true, method, documents, count:documents.length, schemaVersion:MULTI_ENTRY_SCHEMA, recordCandidateSchemaVersion:RECOGNITION_RECORD_CANDIDATE_SCHEMA };
 }
 
 export function splitRecognitionEntries(document) {
   const text = clean(document?.rawFullText || document?.fullText);
-  if (!text) return { split:false, method:'none', documents:[document].filter(Boolean) };
+  if (!text) return { split:false, method:'none', documents:[document].filter(Boolean), schemaVersion:MULTI_ENTRY_SCHEMA };
+
+  // Explicit producer-supplied grouping retains highest authority. Geometry is
+  // preferred over all inferred text heuristics because it preserves original
+  // OCR blocks, image identity, polygons and relation evidence per child record.
+  const explicit = explicitEntries(document);
+  if (explicit.length >= 2) {
+    const documents = explicit.map((entry, index) => buildTextEntryDocument(entry, document, index, explicit.length, 'explicit-extension'));
+    return { split:true, method:'explicit-extension', documents, count:documents.length, schemaVersion:MULTI_ENTRY_SCHEMA };
+  }
+
+  const geometry = splitGeometryRecords(document);
+  if (geometry) return geometry;
+
   const candidates = [
-    ['explicit-extension', explicitEntries(document)],
     ['entry-headings', splitByHeadings(text)],
     ['repeated-country-anchor', splitByRepeatedStrongStart(text)],
     ['single-image-paragraphs', splitSingleImageParagraphs(text, document?.images?.length)],
     ['single-image-table-rows', splitTableRows(text, document?.images?.length)]
   ];
   const [method, entries] = candidates.find(([, values]) => values.length >= 2) || ['none', []];
-  if (entries.length < 2) return { split:false, method:'none', documents:[document] };
-  const documents = entries.map((entry, index) => buildEntryDocument(entry, document, index, entries.length, method));
-  return { split:true, method, documents, count:documents.length };
+  if (entries.length < 2) return { split:false, method:'none', documents:[document], schemaVersion:MULTI_ENTRY_SCHEMA };
+  const documents = entries.map((entry, index) => buildTextEntryDocument(entry, document, index, entries.length, method));
+  return { split:true, method, documents, count:documents.length, schemaVersion:MULTI_ENTRY_SCHEMA };
 }
