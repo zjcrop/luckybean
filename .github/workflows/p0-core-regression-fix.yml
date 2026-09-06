@@ -12,16 +12,16 @@ permissions:
 
 jobs:
   apply:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v4
         with:
           ref: perf/local-first-data-v2-20260906
           fetch-depth: 0
-      - uses: actions/setup-node@v7.0.0
+      - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '22'
       - name: Apply minimal Core regression fixes
         shell: bash
         run: |
@@ -32,59 +32,65 @@ jobs:
           s = app.read_text(encoding='utf-8')
 
           marker = """async function ensurePageData(page, { force = false } = {}) {
-  if ((page === 'brew' || page === 'sensory') && state.selectedBeanId) return ensureBeanDetailData(state.selectedBeanId, { force });
-  return null;
-}"""
+            if ((page === 'brew' || page === 'sensory') && state.selectedBeanId) return ensureBeanDetailData(state.selectedBeanId, { force });
+            return null;
+          }"""
+          marker = '\n'.join(line[10:] if line.startswith('          ') else line for line in marker.splitlines())
           replacement = """async function ensureBeanConsumptionData({ force = false } = {}) {
-  if (state.data.inventoryReady && !force) return state.inventoryEvents;
-  state.inventoryEvents = await all('inventoryEvents');
-  state.data.inventoryReady = true;
-  return state.inventoryEvents;
-}
+            if (state.data.inventoryReady && !force) return state.inventoryEvents;
+            state.inventoryEvents = await all('inventoryEvents');
+            state.data.inventoryReady = true;
+            return state.inventoryEvents;
+          }
 
-async function ensurePageData(page, { force = false } = {}) {
-  if ((page === 'brew' || page === 'sensory') && state.selectedBeanId) return ensureBeanDetailData(state.selectedBeanId, { force });
-  return null;
-}"""
+          async function ensurePageData(page, { force = false } = {}) {
+            if ((page === 'brew' || page === 'sensory') && state.selectedBeanId) return ensureBeanDetailData(state.selectedBeanId, { force });
+            return null;
+          }"""
+          replacement = '\n'.join(line[10:] if line.startswith('          ') else line for line in replacement.splitlines())
           assert marker in s, 'ensurePageData marker missing'
           s = s.replace(marker, replacement, 1)
 
           old_refresh = """document.addEventListener('luckybean:request-app-refresh', async event => {
-  await loadSettings();
-  await refreshData();
-  if (state.page !== 'beans') await ensurePageData(state.page, { force: true });
-  if (state.page === 'beans') renderBeans();
-  else if (state.page === 'brew') renderBrew();
-  else if (state.page === 'sensory') renderSensory();
-  else if (state.page === 'settings') renderSettings();
-  document.dispatchEvent(new CustomEvent('luckybean:app-refreshed', { detail: event.detail || {} }));
-});"""
+            await loadSettings();
+            await refreshData();
+            if (state.page !== 'beans') await ensurePageData(state.page, { force: true });
+            if (state.page === 'beans') renderBeans();
+            else if (state.page === 'brew') renderBrew();
+            else if (state.page === 'sensory') renderSensory();
+            else if (state.page === 'settings') renderSettings();
+            document.dispatchEvent(new CustomEvent('luckybean:app-refreshed', { detail: event.detail || {} }));
+          });"""
+          old_refresh = '\n'.join(line[10:] if line.startswith('          ') else line for line in old_refresh.splitlines())
           new_refresh = """document.addEventListener('luckybean:request-app-refresh', async event => {
-  await loadSettings();
-  await refreshData();
-  if (state.page === 'beans') await ensureBeanConsumptionData({ force: true });
-  else await ensurePageData(state.page, { force: true });
-  if (state.page === 'beans') renderBeans();
-  else if (state.page === 'brew') renderBrew();
-  else if (state.page === 'sensory') renderSensory();
-  else if (state.page === 'settings') renderSettings();
-  document.dispatchEvent(new CustomEvent('luckybean:app-refreshed', { detail: event.detail || {} }));
-});"""
+            await loadSettings();
+            await refreshData();
+            if (state.page === 'beans') await ensureBeanConsumptionData({ force: true });
+            else await ensurePageData(state.page, { force: true });
+            if (state.page === 'beans') renderBeans();
+            else if (state.page === 'brew') renderBrew();
+            else if (state.page === 'sensory') renderSensory();
+            else if (state.page === 'settings') renderSettings();
+            document.dispatchEvent(new CustomEvent('luckybean:app-refreshed', { detail: event.detail || {} }));
+          });"""
+          new_refresh = '\n'.join(line[10:] if line.startswith('          ') else line for line in new_refresh.splitlines())
           assert old_refresh in s, 'request-app-refresh marker missing'
           s = s.replace(old_refresh, new_refresh, 1)
 
           old_idle = """  scheduleIdleWork(async () => {
-    await migrateLegacyFlavorCodes().catch(error => console.warn('旧风味编码后台迁移失败', error));
-    await migrateLegacyBrewHistory().catch(error => console.warn('冲煮历史后台迁移失败', error));
-    await cleanupExpiredBeanRecycle().catch(error => console.warn('回收站后台清理失败', error));
-  });"""
+            await migrateLegacyFlavorCodes().catch(error => console.warn('旧风味编码后台迁移失败', error));
+            await migrateLegacyBrewHistory().catch(error => console.warn('冲煮历史后台迁移失败', error));
+            await cleanupExpiredBeanRecycle().catch(error => console.warn('回收站后台清理失败', error));
+          });"""
+          old_idle = '\n'.join(line[10:] if line.startswith('          ') else line for line in old_idle.splitlines())
           new_idle = """  scheduleIdleWork(async () => {
-    await migrateLegacyFlavorCodes().catch(error => console.warn('旧风味编码后台迁移失败', error));
-    await migrateLegacyBrewHistory().catch(error => console.warn('冲煮历史后台迁移失败', error));
-    await cleanupExpiredBeanRecycle().catch(error => console.warn('回收站后台清理失败', error));
-    await ensureBeanConsumptionData().catch(error => console.warn('今日咖啡摄入摘要后台加载失败', error));
-    if (state.page === 'beans' && state.data.inventoryReady) renderBeans();
-  });"""
+            await migrateLegacyFlavorCodes().catch(error => console.warn('旧风味编码后台迁移失败', error));
+            await migrateLegacyBrewHistory().catch(error => console.warn('冲煮历史后台迁移失败', error));
+            await cleanupExpiredBeanRecycle().catch(error => console.warn('回收站后台清理失败', error));
+            await ensureBeanConsumptionData().catch(error => console.warn('今日咖啡摄入摘要后台加载失败', error));
+            if (state.page === 'beans' && state.data.inventoryReady) renderBeans();
+          });"""
+          new_idle = '\n'.join(line[10:] if line.startswith('          ') else line for line in new_idle.splitlines())
           assert old_idle in s, 'idle startup marker missing'
           s = s.replace(old_idle, new_idle, 1)
           app.write_text(s, encoding='utf-8')
@@ -92,10 +98,12 @@ async function ensurePageData(page, { force = false } = {}) {
           test = Path('tests/v124p-recognition-preflight-regression.spec.mjs')
           t = test.read_text(encoding='utf-8')
           old_test = """  await openApp(page, 'v124p-preflight-pending=1');
-  await page.evaluate(() => globalThis.LuckyBeanPackageCapture.open());"""
+            await page.evaluate(() => globalThis.LuckyBeanPackageCapture.open());"""
+          old_test = '\n'.join(line[10:] if line.startswith('          ') else line for line in old_test.splitlines())
           new_test = """  await openApp(page, 'v124p-preflight-pending=1');
-  await page.waitForFunction(() => typeof globalThis.LuckyBeanPackageCapture?.open === 'function', null, { timeout:15000 });
-  await page.evaluate(() => globalThis.LuckyBeanPackageCapture.open());"""
+            await page.waitForFunction(() => typeof globalThis.LuckyBeanPackageCapture?.open === 'function', null, { timeout:15000 });
+            await page.evaluate(() => globalThis.LuckyBeanPackageCapture.open());"""
+          new_test = '\n'.join(line[10:] if line.startswith('          ') else line for line in new_test.splitlines())
           assert old_test in t, 'preflight package marker missing'
           test.write_text(t.replace(old_test, new_test, 1), encoding='utf-8')
           PY
@@ -103,10 +111,11 @@ async function ensurePageData(page, { force = false } = {}) {
         run: |
           node --check src/app.js
           node --check tests/v124p-recognition-preflight-regression.spec.mjs
-      - name: Commit clean P0 fix and remove one-shot workflow
+      - name: Commit clean P0 fix and remove branch-only workflows
         shell: bash
         run: |
           git rm .github/workflows/p0-core-regression-fix.yml
+          git rm -f .github/workflows/local-first-codemod.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add src/app.js tests/v124p-recognition-preflight-regression.spec.mjs
