@@ -22,6 +22,16 @@ export {
 } from './domain/recognition/recognition-document.js';
 
 export {
+  RECOGNITION_RECORD_CANDIDATE_SCHEMA,
+  groupRecognitionRecordCandidates
+} from './domain/recognition/recognition-record-segmenter.js';
+
+export {
+  MULTI_ENTRY_SCHEMA,
+  splitRecognitionEntries
+} from './domain/recognition/recognition-entry-splitter.js';
+
+export {
   RECOGNITION_PIPELINE_VERSION,
   analyzeRecognitionDocument,
   recognitionResultField
