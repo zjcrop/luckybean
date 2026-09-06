@@ -1,18 +1,18 @@
 {
   "version": "1.24P",
   "revision": "1.24P-main.3",
-  "source_sha": "2869606dfa5778d202b88e6f71e5589eecda50e2",
+  "source_sha": "115e5d7f509ee777166a296eefee203451121458",
   "release_tag": "v1.24P-main.3",
-  "release_target_sha": "2869606dfa5778d202b88e6f71e5589eecda50e2",
+  "release_target_sha": "115e5d7f509ee777166a296eefee203451121458",
   "release_target_verified": true,
   "apk": "LuckyBean-1.24P-release.apk",
-  "apk_sha256": "78f8cf946ae2e1a3db9f44b7815934d1d77538d032d52dcb95e32c24da861bfd",
-  "web_sha256": "cc8dfebed9569abeeb5436fb69dd0e3db9e15a9396a52f93999cdcbba5f32773",
+  "apk_sha256": "c70896b7e2514bdf9f5fc3bebe37cc02a7711428bf6abe0482231006196d1079",
+  "web_sha256": "89593d6a0e83105d71f97593307b16d83731f9e766619e5c072b63bdab6f5644",
   "certificate_sha256": "B66B3E33F4DB34A4A9A14FCA4A571A426B8DEE31C720AF86983A7B5402D05AFB",
   "certificate_verified": true,
   "published": true,
   "web_gate_verified": true,
   "main_test_verified": true,
   "release_metadata_verified": true,
-  "generated_at": "2026-09-06T07:38:19Z"
+  "generated_at": "2026-09-06T08:03:21Z"
 }
