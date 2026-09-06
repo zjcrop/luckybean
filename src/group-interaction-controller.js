@@ -52,6 +52,7 @@ if (!globalThis.__LuckyBeanV099mGroupControllerLoaded) {
         <button type="button" data-v099f-group-freshness="1" data-v099i-group-freshness="1">按赏味期阶段${state.freshness ? ' ✓' : ''}</button>
         <button type="button" data-v098-group-method="remaining-50">按余量（每50g）${state.remaining ? ' ✓' : ''}</button>`;
       document.body.append(popup);
+      globalThis.OverlayManager?.manage?.(popup, 'picker');
       position(anchor, popup);
 
       popup.addEventListener('click', event => {

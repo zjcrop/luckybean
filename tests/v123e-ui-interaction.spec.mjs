@@ -122,8 +122,9 @@ test('500ms bean long press opens quick actions and delete uses seven-day recycl
   await page.mouse.up();
   await expect(page.locator('[data-overlay="bean-detail"]')).toHaveCount(0);
 
-  page.once('dialog', dialog => dialog.accept());
   await page.locator('[data-bean-quick-delete]').click();
+  await expect(page.locator('[data-overlay^="confirmation-"]')).toBeVisible();
+  await page.locator('[data-interaction-confirm]').click();
   await expect(page.locator('[data-overlay="bean-quick-actions"]')).toHaveCount(0);
 
   const state = await page.evaluate(async () => {
@@ -197,51 +198,88 @@ test('professional cupping keeps page scrolling separate from shared tag sorting
   await expect(page.locator('[data-v095-next]')).toBeVisible();
 });
 
-test('Stage 1 back semantics keep top-level tabs parallel, use one scrim, and protect native root exit', async ({ page }) => {
+test('global back priority closes layers without treating sibling tabs as history', async ({ page }) => {
   await page.setViewportSize({ width:390, height:844 });
-  await openApp(page, 'navigation-back-stage1');
+  await openApp(page, 'navigation-back');
   await seedBean(page, 'ui-navigation-bean');
 
-  const initialHistoryLength = await page.evaluate(() => history.length);
+  await expect.poll(() => page.evaluate(() => globalThis.LuckyBeanNavigation?.snapshot?.().topLevelHistoryDepth ?? -1)).toBe(0);
   await page.locator('[data-page-target="settings"]').click();
   await expect(page.locator('.page[data-page="settings"]')).toHaveClass(/active/);
-  await page.locator('[data-page-target="beans"]').click();
+  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.back())).toBe(true);
   await expect(page.locator('.page[data-page="beans"]')).toHaveClass(/active/);
-  expect(await page.evaluate(() => history.length)).toBe(initialHistoryLength);
-  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.snapshot().page)).toBe('beans');
+  expect(await page.evaluate(() => globalThis.RootExitGuard.snapshot().armed)).toBe(false);
+  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.snapshot().topLevelHistoryDepth)).toBe(0);
 
   await page.evaluate(() => globalThis.LuckyBeanBeanCards.openActions('ui-navigation-bean'));
   await expect(page.locator('[data-overlay="bean-quick-actions"]')).toBeVisible();
-  await expect(page.locator('#interactionScrim')).toHaveCount(1);
-  await expect(page.locator('#interactionScrim')).toBeVisible();
+
   expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.back())).toBe(true);
   await expect(page.locator('[data-overlay="bean-quick-actions"]')).toHaveCount(0);
-  await expect(page.locator('#interactionScrim')).toBeHidden();
   await expect(page.locator('.page[data-page="beans"]')).toHaveClass(/active/);
 
-  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.back())).toBe(false);
-  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.canGoBack())).toBe(false);
+  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.back())).toBe(true);
   await expect(page.locator('.page[data-page="beans"]')).toHaveClass(/active/);
+  await expect(page.locator('[data-overlay="root-exit-confirmation"]')).toHaveCount(0);
+  expect(await page.evaluate(() => globalThis.RootExitGuard.snapshot().armed)).toBe(true);
+
+  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.back())).toBe(true);
+  await expect(page.locator('[data-overlay="root-exit-confirmation"]')).toBeVisible();
+  await expect(page.locator('#appInteractionScrim')).toBeVisible();
+
+  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.back())).toBe(true);
+  await expect(page.locator('[data-overlay="root-exit-confirmation"]')).toHaveCount(0);
+  await expect(page.locator('#appInteractionScrim')).toBeHidden();
 
   await page.evaluate(() => {
-    globalThis.__stage1ExitCount = 0;
-    globalThis.LuckyBeanNative = { exitApp: () => { globalThis.__stage1ExitCount += 1; } };
+    globalThis.__explicitExitRequested = false;
+    globalThis.LuckyBeanNative = { exitApp: () => { globalThis.__explicitExitRequested = true; } };
   });
-  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.systemBack())).toBe(true);
-  await expect(page.locator('#toast')).toContainText('再按一次返回');
-  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.systemBack())).toBe(true);
-  await expect(page.locator('#interaction-root-exit-confirm')).toBeVisible();
-  await expect(page.locator('#interactionScrim')).toBeVisible();
+  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.back())).toBe(true);
+  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.back())).toBe(true);
+  await page.locator('[data-root-exit-confirm]').click();
+  expect(await page.evaluate(() => globalThis.__explicitExitRequested)).toBe(true);
+});
 
-  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.systemBack())).toBe(true);
-  await expect(page.locator('#interaction-root-exit-confirm')).toHaveCount(0);
-  expect(await page.evaluate(() => globalThis.__stage1ExitCount)).toBe(0);
+test('one scrim serves a layer stack and back follows keyboard, picker, dialog, modal', async ({ page }) => {
+  await page.setViewportSize({ width:390, height:844 });
+  await openApp(page, 'interaction-layer-stack');
 
-  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.systemBack())).toBe(true);
-  expect(await page.evaluate(() => globalThis.LuckyBeanNavigation.systemBack())).toBe(true);
-  await expect(page.locator('#interaction-root-exit-confirm')).toBeVisible();
-  await page.locator('#interaction-root-exit-confirm button').filter({ hasText:'退出' }).click();
-  expect(await page.evaluate(() => globalThis.__stage1ExitCount)).toBe(1);
+  await page.evaluate(() => {
+    globalThis.OverlayManager.open({
+      id: 'test-modal', kind: 'modal',
+      content: '<div class="dialog"><button type="button" data-overlay-dismiss>关闭</button></div>'
+    });
+    globalThis.OverlayManager.open({
+      id: 'test-dialog', kind: 'dialog',
+      content: '<div class="dialog"><input id="testKeyboardInput"><button type="button" data-overlay-dismiss>关闭</button></div>'
+    });
+    const picker = document.createElement('div');
+    picker.className = 'popup-menu';
+    picker.innerHTML = '<button type="button">选项</button>';
+    document.body.append(picker);
+    document.querySelector('#testKeyboardInput').focus();
+  });
+
+  await expect(page.locator('#appInteractionScrim')).toHaveCount(1);
+  await expect(page.locator('#appInteractionScrim')).toBeVisible();
+  expect(await page.locator('#appInteractionScrim').evaluate(node => getComputedStyle(node).backgroundColor)).toBe('rgba(0, 0, 0, 0.68)');
+
+  expect(await page.evaluate(() => globalThis.BackGestureAdapter.handle({ source:'programmatic' }))).toBe(true);
+  expect(await page.evaluate(() => document.activeElement?.id)).not.toBe('testKeyboardInput');
+  await expect(page.locator('.popup-menu')).toHaveCount(1);
+
+  expect(await page.evaluate(() => globalThis.BackGestureAdapter.handle({ source:'programmatic' }))).toBe(true);
+  await expect(page.locator('.popup-menu')).toHaveCount(0);
+  await expect(page.locator('[data-overlay="test-dialog"]')).toHaveCount(1);
+
+  expect(await page.evaluate(() => globalThis.BackGestureAdapter.handle({ source:'programmatic' }))).toBe(true);
+  await expect(page.locator('[data-overlay="test-dialog"]')).toHaveCount(0);
+  await expect(page.locator('[data-overlay="test-modal"]')).toHaveCount(1);
+
+  expect(await page.evaluate(() => globalThis.BackGestureAdapter.handle({ source:'programmatic' }))).toBe(true);
+  await expect(page.locator('[data-overlay="test-modal"]')).toHaveCount(0);
+  await expect(page.locator('#appInteractionScrim')).toBeHidden();
 });
 
 test('bean metadata groups use one-character gap instead of growing into a wide blank band', async ({ page }) => {

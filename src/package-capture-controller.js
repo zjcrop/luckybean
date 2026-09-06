@@ -195,7 +195,7 @@ async function runRecognition() {
   } catch (error) {
     if (generation !== operationGeneration) return;
     if (error instanceof RecognitionUnavailableError) { captureState.ocrEngine = '网页 OCR 不可用'; captureState.ocrText = ''; }
-    else { captureState.ocrEngine = '识别失败'; captureState.ocrText = ''; alert(error.message); }
+    else { captureState.ocrEngine = '识别失败'; captureState.ocrText = ''; await globalThis.OverlayManager.alert(error.message); }
   } finally {
     if (generation === operationGeneration) {
       captureState.busy = false; render();
@@ -215,7 +215,7 @@ async function reanalyzeEditedText() {
     ({ data:book } = await loadCodebook());
     if (generation !== operationGeneration) return;
     captureState.analysis = analyzeRecognitionDocument(documentRef, book); captureState.aiStatus = 'running'; localSuccess = true;
-  } catch (error) { if (generation === operationGeneration) alert(`文字整理失败：${error.message}`); }
+  } catch (error) { if (generation === operationGeneration) await globalThis.OverlayManager.alert(`文字整理失败：${error.message}`); }
   finally { if (generation === operationGeneration) { captureState.busy = false; render(); } }
   if (localSuccess && generation === operationGeneration) void applyAiAdvisory(book, generation, documentRef);
 }
@@ -238,7 +238,7 @@ async function handoffToExistingParser() {
   const unchanged = captureState.recognitionDocument?.rawFullText?.trim() === text;
   const recognitionDocument = unchanged ? captureState.recognitionDocument : recognitionDocumentFromText(text); if (!recognitionDocument) return;
   const flow = globalThis.LuckyBeanRecognitionFlow;
-  if (typeof flow?.acceptDocument !== 'function') { globalThis.LuckyBeanPendingRecognitionDocument = recognitionDocument; alert('豆卡识别流程尚未就绪，请稍后重试'); return; }
+  if (typeof flow?.acceptDocument !== 'function') { globalThis.LuckyBeanPendingRecognitionDocument = recognitionDocument; await globalThis.OverlayManager.alert('豆卡识别流程尚未就绪，请稍后重试'); return; }
   clearCapture(); await flow.acceptDocument(recognitionDocument, { overwrite:true });
   document.dispatchEvent(new CustomEvent('luckybean:recognition-handoff-complete', { detail:{ source:'package-capture' } }));
 }

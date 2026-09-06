@@ -334,6 +334,7 @@ function openProfessionalRadarReturn() {
   root.className = 'overlay full v098-radar-return';
   root.innerHTML = `<div class="dialog v098-radar-dialog"><div class="dialog-header centered"><div><h2>专业品鉴 · 雷达质量得分</h2><p>保持在同一专业流程中调整，0–10分。</p></div></div><div class="v098-radar-grid">${customRadarCard('aroma', '香气倾向', ['花香','果香','茶感','坚果','酵感'], snapshot.aroma)}${customRadarCard('style', '整体质量', ['风味','余韵','酸质','甜感','醇厚','干净度','一致性','平衡度'], snapshot.style)}</div><div class="v098-radar-actions"><button class="button" type="button" data-v098-radar-cancel>返回札记</button><button class="button primary" type="button" data-v098-radar-save>确认并返回札记</button></div></div>`;
   document.body.append(root);
+  globalThis.OverlayManager?.manage?.(root, 'modal');
   root.addEventListener('input', event => {
     const input = event.target.closest('[data-v098-radar]');
     if (!input) return;
@@ -354,6 +355,7 @@ function modal(content) {
   root.className = 'overlay v098-local-overlay';
   root.innerHTML = `<div class="dialog">${content}</div>`;
   document.body.append(root);
+  globalThis.OverlayManager?.manage?.(root, 'dialog');
   return root;
 }
 

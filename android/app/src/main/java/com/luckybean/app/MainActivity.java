@@ -627,15 +627,12 @@ public final class MainActivity extends Activity {
     }
 
     private void handleSystemBack() {
-        if (webView == null) {
-            finish();
-            return;
-        }
-        String script = "(function(){try{return Boolean(globalThis.LuckyBeanNavigation&&globalThis.LuckyBeanNavigation.back&&globalThis.LuckyBeanNavigation.back());}catch(error){return false;}})()";
+        if (webView == null) return;
+        String script = "(function(){try{return Boolean(globalThis.BackGestureAdapter&&globalThis.BackGestureAdapter.handleAndroidBack&&globalThis.BackGestureAdapter.handleAndroidBack());}catch(error){return false;}})()";
         webView.evaluateJavascript(script, result -> {
             if ("true".equals(result)) return;
             if (webView.canGoBack()) webView.goBack();
-            else finish();
+            else Toast.makeText(MainActivity.this, "界面正在准备，请稍后再试", Toast.LENGTH_SHORT).show();
         });
     }
 

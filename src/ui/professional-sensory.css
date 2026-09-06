@@ -154,8 +154,7 @@ body.lb-sort-body-active { overscroll-behavior:contain; }
   gap: 8px;
   margin-top: 22px;
   padding: 12px 0 calc(8px + var(--safe-bottom));
-  background: color-mix(in srgb, var(--surface-raised, #111313) 94%, transparent);
-  backdrop-filter: blur(8px);
+  background: var(--surface-raised, #111313);
 }
 .v095-wizard-actions .button { width: 100%; min-width: 0; }
 

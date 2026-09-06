@@ -15,6 +15,7 @@ function openCenteredHelp(title, body){
   layer.dataset.lbCenteredHelp='1';
   layer.innerHTML=`<div class="lb-centered-help-card" role="dialog" aria-modal="true" aria-label="${esc(title)}"><button type="button" class="lb-help-close" aria-label="关闭">×</button><h3>${esc(title)}</h3><p>${esc(body)}</p></div>`;
   document.body.append(layer);
+  globalThis.OverlayManager?.manage?.(layer,'dialog');
   layer.addEventListener('click',e=>{if(e.target===layer||e.target.closest('.lb-help-close'))closeHelp();});
 }
 

@@ -307,6 +307,7 @@ function renderWizard() {
         : `<section class="v095-summary-stage"><h3>${esc(wizard.bean?.name || '未命名咖啡')}</h3><pre>${esc(professionalSummary())}</pre><p>自动得分：${affectiveMappedScore().toFixed(1)} · 主观总分：${subjectiveScore().toFixed(1)}</p><div class="v095-professional-note-preview"><strong>札记</strong><p>${wizard.naturalNote ? esc(wizard.naturalNote) : '未填写札记'}</p></div></section>`;
   overlay.innerHTML = `<div class="dialog v095-professional-dialog"><div class="dialog-header"><div><h2>杯测品鉴</h2><p>${progressTitle}</p></div><button class="close-button" type="button" data-v095-close>×</button></div>${body}<div class="v095-wizard-actions"><button type="button" class="button subtle" data-v095-cancel>取消品鉴</button><button type="button" class="button" data-v095-prev ${wizard.step <= 0 ? 'disabled' : ''}>上一步</button><button type="button" class="button primary" data-v095-next>${summaryStep ? (wizard.editRecordId ? '保存修改' : '写入品鉴') : '下一步'}</button></div></div>`;
   document.body.append(overlay);
+  globalThis.OverlayManager?.manage?.(overlay, 'modal');
   $('[data-v095-close]', overlay)?.addEventListener('click', closeWizard); $('[data-v095-cancel]', overlay)?.addEventListener('click', closeWizard);
   $$('[data-v095-tag]', overlay).forEach(button => button.addEventListener('click', () => toggleTag(step.id, button.dataset.v095Tag)));
   $$('[data-v095-intensity]', overlay).forEach(input => input.addEventListener('input', () => setIntensity(input.dataset.v095Intensity, input.value)));

@@ -193,6 +193,7 @@ async function openCamera() {
       </div>
     </div>`;
   document.body.append(root);
+  globalThis.OverlayManager?.manage?.(root, 'modal');
   cameraRoot = root;
   const video = root.querySelector('video');
   const status = root.querySelector('.lb-camera-status');

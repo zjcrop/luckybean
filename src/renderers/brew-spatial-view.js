@@ -180,7 +180,8 @@ export class BrewSpatialView {
     viewport.append(canvas, legend, badge, info);
     const footer = createElement('div', 'spatial-fullscreen-footer');
     const close = createElement('button', 'spatial-close-btn', '退出全屏'); close.type = 'button'; close.addEventListener('click', () => this.close());
-    footer.append(close); overlay.append(header, viewport, footer); document.body.append(overlay);
+    footer.append(close); overlay.append(header, viewport, footer); document.body.append(overlay); globalThis.OverlayManager?.manage?.(overlay,'modal');
+    overlay.addEventListener('luckybean:request-overlay-dismiss', event => { event.preventDefault(); this.close(); });
     this.overlay = overlay; this.canvas = canvas; this.ctx = canvas.getContext('2d', { alpha: false }); this.pointInfo = info;
     this.bindCanvas();
     new ResizeObserver(() => { if (this.opened) this.resize(); }).observe(viewport);

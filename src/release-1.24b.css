@@ -40,7 +40,7 @@
 .lb-local-recipe ol{padding-left:1.2rem;margin:.35rem 0}
 .lb-local-recipe li{margin:.22rem 0}
 .lb-disabled-for-method{opacity:.35!important;pointer-events:none!important;filter:grayscale(1)}
-.lb-centered-help-layer,.lb-freshness-detail-layer{position:fixed;inset:0;z-index:10040;display:grid;place-items:center;padding:24px;background:rgba(0,0,0,.62);backdrop-filter:blur(3px)}
+.lb-centered-help-layer,.lb-freshness-detail-layer{position:fixed;inset:0;z-index:10040;display:grid;place-items:center;padding:24px;background:transparent}
 .lb-centered-help-card,.lb-freshness-detail-card{position:relative;width:min(88vw,520px);max-height:min(78dvh,680px);overflow:auto;border:1px solid rgba(198,161,91,.55);border-radius:18px;padding:24px 22px 21px;background:#101111;color:#f0eadf;box-shadow:0 18px 70px rgba(0,0,0,.48)}
 .lb-centered-help-card h3,.lb-freshness-detail-card h3{margin:0 36px 12px 0;font-size:1.05rem;line-height:1.35}
 .lb-centered-help-card p,.lb-freshness-detail-card p{white-space:pre-wrap;line-height:1.7;font-size:.88rem;color:#d8d2c7}
@@ -163,7 +163,6 @@ html[data-theme="light"] .v095-radar-stage svg text { fill: #111 !important; }
   padding: 8px 18px calc(8px + var(--safe-bottom, 0px)) !important;
   background: var(--bg) !important;
   border-top: 1px solid color-mix(in srgb, var(--active) 24%, transparent) !important;
-  backdrop-filter: blur(8px);
 }
 .v095-wizard-actions [data-v095-cancel] {
   grid-column: auto !important;

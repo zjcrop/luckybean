@@ -833,7 +833,7 @@ function openGroupMenu() {
   const popup = document.createElement('div');
   popup.className = 'popup-menu';
   popup.innerHTML = [['country', '按国家'], ['variety', '按豆种'], ['roast', '按烘焙度'], ['process', '按处理法']].map(([value, label]) => `<button type="button" data-group-method="${value}">${label}${state.settings.groupMethod === value ? ' ✓' : ''}</button>`).join('');
-  document.body.append(popup); positionPopup($('#groupBtn'), popup);
+  document.body.append(popup); globalThis.OverlayManager?.manage?.(popup, 'picker'); positionPopup($('#groupBtn'), popup);
   popup.addEventListener('click', async event => {
     const button = event.target.closest('[data-group-method]'); if (!button) return;
     state.settings.groupMethod = button.dataset.groupMethod; state.activeGroupKey = null;
@@ -845,7 +845,7 @@ function openManageMenu() {
   closePopups();
   const popup = document.createElement('div'); popup.className = 'popup-menu';
   popup.innerHTML = `<button type="button" data-manage-action="batch">批量管理</button><button type="button" data-manage-action="export">导出数据</button><button type="button" data-manage-action="import">导入数据</button>`;
-  document.body.append(popup); positionPopup($('#manageBtn'), popup);
+  document.body.append(popup); globalThis.OverlayManager?.manage?.(popup, 'picker'); positionPopup($('#manageBtn'), popup);
 }
 
 async function beanRecycleRows() {
@@ -903,7 +903,12 @@ async function openBatchBeanManager({ recycle = false } = {}) {
     const ids = selectedIds(); if (!ids.length) return;
     const names = state.beans.filter(bean => ids.includes(bean.id)).slice(0, 3).map(beanDisplayName);
     const suffix = ids.length > names.length ? ` 等${ids.length}张豆卡` : '';
-    if (!globalThis.confirm(`确认删除：${names.join('、')}${suffix}？\n记录将移入回收站并保留7天。`)) return;
+    if (!await globalThis.OverlayManager.confirm({
+      title: '删除所选豆卡？',
+      message: `${names.join('、')}${suffix}将移入回收站并保留7天。`,
+      confirmLabel: '删除',
+      danger: true
+    })) return;
     closeOverlay();
     moveBeansToRecycle(ids)
       .then(count => toast(`已删除 ${count} 张豆卡，回收站保留7天，云端将在后台同步删除`, 'status-good'))
@@ -1006,7 +1011,7 @@ function openRecommendMenu() {
     event.stopPropagation();
     void recommendBean(button.dataset.recommendMode);
   });
-  document.body.append(popup); positionPopup($('#fabRecommendBtn'), popup, { above: true });
+  document.body.append(popup); globalThis.OverlayManager?.manage?.(popup, 'picker'); positionPopup($('#fabRecommendBtn'), popup, { above: true });
 }
 
 async function recommendBean(mode) {
@@ -1066,7 +1071,7 @@ function openAddMenu() {
   closePopups();
   const popup = document.createElement('div'); popup.className = 'popup-menu';
   popup.innerHTML = `<button type="button" data-add-mode="photo">拍袋录入</button><button type="button" data-add-mode="qr">二维码识别</button><button type="button" data-add-mode="text">文字识别</button>`;
-  document.body.append(popup); positionPopup($('#fabAddBtn'), popup, { above: true });
+  document.body.append(popup); globalThis.OverlayManager?.manage?.(popup, 'picker'); positionPopup($('#fabAddBtn'), popup, { above: true });
 }
 
 function selectOptions(rows, selected, labelIndex = 1, blank = '请选择') { return optionsHtml(rows, selected, labelIndex, blank); }
@@ -1520,7 +1525,12 @@ async function detailBean(beanId) {
   $('#toggleColdBtn').addEventListener('click', async () => { bean.refrigerated = !bean.refrigerated; bean.freezeDate = bean.refrigerated ? todayISO() : ''; bean.updatedAt = new Date().toISOString(); await put('beans', bean); await refreshData(); detailBean(bean.id); });
   $('#archiveBeanBtn').addEventListener('click', async () => { bean.archived = !bean.archived; bean.updatedAt = new Date().toISOString(); await put('beans', bean); await refreshData(); closeOverlay(); renderBeans(); toast(bean.archived?'已移至溯旧':'已恢复到豆藏'); });
   $('#deleteBeanBtn').addEventListener('click', async event => {
-    if (!globalThis.confirm(`确认删除“${beanDisplayName(bean)}”？\n豆卡将进入回收站保留7天，并同步删除云端记录。`)) return;
+    if (!await globalThis.OverlayManager.confirm({
+      title: `删除“${beanDisplayName(bean)}”？`,
+      message: '豆卡将进入回收站保留7天，并同步删除云端记录。',
+      confirmLabel: '删除',
+      danger: true
+    })) return;
     event.currentTarget.disabled = true;
     try {
       closeOverlay();

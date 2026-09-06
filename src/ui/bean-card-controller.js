@@ -38,7 +38,12 @@ async function openActions(beanId) {
       return;
     }
     if (event.target.closest('[data-bean-quick-delete]')) {
-      const confirmed = globalThis.confirm(`确认删除“${beanName(bean)}”？\n豆卡将进入回收站保留7天，并同步删除云端记录。`);
+      const confirmed = await globalThis.OverlayManager.confirm({
+        title: `删除“${beanName(bean)}”？`,
+        message: '豆卡将进入回收站保留7天，并同步删除云端记录。',
+        confirmLabel: '删除',
+        danger: true
+      });
       if (!confirmed) return;
       const button = event.target.closest('[data-bean-quick-delete]'); button.disabled = true;
       try {

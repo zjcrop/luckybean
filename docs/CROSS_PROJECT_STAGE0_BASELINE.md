@@ -2,11 +2,10 @@
 
 Date: 2026-09-06
 Base branch: `main`
-Original audited source SHA: `115e5d7f509ee777166a296eefee203451121458`
-Stage 0 validated branch head before this record update: `157948b9a9d8c80200087921f9da9e9e018316f4`
+Validated source SHA for this audit: `115e5d7f509ee777166a296eefee203451121458`
 Product baseline: LuckyBean `1.24P-main.3` / semver `1.24.17` / schema `10`
 
-This document is the Stage 0 control point for cross-project integration. Stage 0 changes no LuckyBean production/runtime business behavior. The only executable additions are test/CI instrumentation used to make the baseline repeatable.
+This document is a pre-integration control point. It changes no runtime behavior and must not be treated as a release by itself.
 
 ## 1. Freeze boundary
 
@@ -16,19 +15,19 @@ The following areas are already materially improved on the current baseline and 
 - login/auth compatibility and first-login recovery;
 - Safari/WebKit auth callback handling;
 - lazy loading of heavy recognition/runtime modules;
-- Android Native OCR priority and Native fast path that bypasses WebView decode/pixel scan/JPEG re-encode;
+- Android Native OCR priority and the Native fast path that bypasses WebView decode/pixel scan/JPEG re-encode;
 - current PP-OCR capture-flow warmup and reuse behavior;
 - RecognitionDocument / Coffee Foundation authority boundary;
 - AI recognition results remaining advisory rather than authoritative;
 - BrewPlan/BrewResult contracts and existing production calculation core.
 
-These remain regression targets, not Stage 1 feature work.
+These items remain regression targets, but are not new feature work.
 
 ## 2. Recognition scope retained for later stages
 
-Do not re-introduce startup-time full OCR-model loading. Do not add a new permanent-resident OCR architecture unless measurement demonstrates the current reuse policy is a bottleneck.
+Do not re-introduce startup-time full OCR-model loading. Do not add a new permanent-resident OCR architecture until measurements show the current reuse policy is a bottleneck.
 
-Remaining recognition work is intentionally deferred from Stage 1:
+The remaining high-value recognition work is:
 
 1. multi-item grouping / record-boundary robustness;
 2. Chinese and other date-form normalization;
@@ -39,123 +38,139 @@ Remaining recognition work is intentionally deferred from Stage 1:
 7. visible progress only for work expected to exceed about 5 seconds;
 8. cross-project reuse of stable recognition contracts by AromaSense/Yingxiang.
 
-Automatic full-image ROI cropping is not a mandatory normal-path step. Capture-quality feedback should first warn when text occupies too little of the frame. ROI remains a targeted recovery mechanism.
+Automatic full-image ROI cropping is **not** a mandatory pipeline step. Capture-quality feedback should first warn when text occupies too little of the frame. ROI remains a targeted recovery mechanism for low-confidence areas.
 
-## 3. Cross-project integration mismatch recorded
+## 3. Cross-project integration mismatch discovered in Stage 0
 
-AromaSense currently pins LuckyBean to:
+AromaSense currently pins its LuckyBean dependency to commit:
 
 `ff2db954a27aba1adc882e0f0c5392af0cd082f3`
 
-That is older than the LuckyBean Stage 0 baseline. AromaSense therefore does not automatically inherit later LuckyBean startup, WebKit, OCR reuse and Android Native preprocessing changes.
+That is older than the LuckyBean baseline audited here. AromaSense therefore does not automatically inherit later LuckyBean improvements in startup, WebKit handling, OCR reuse, and Android Native preprocessing.
 
-The AromaSense hardening pipeline also reflects an older recognition-provider contract. The dependency must not be blindly bumped during Stage 1 navigation work. Reconciliation belongs to the later Recognition integration stage with explicit adapter tests.
+The AromaSense build hardening script also contains runtime assertions that match the older provider contract (for example `workerOnly === true`), while the current LuckyBean provider exposes WebKit compatibility behavior that is not worker-only. The dependency cannot be blindly bumped to current `main`; the contract adapter/hardening tests must be reconciled first.
 
-## 4. Cross-project interfaces to stabilize before code sharing
+## 4. Cross-project contracts to stabilize before code sharing
 
-Stage 1 should converge on interfaces, not implementation-file copying:
+The next stages should converge on interfaces, not on copying implementation files between repositories:
 
-- Overlay / Navigation / Back / Exit semantics;
+- Navigation / Overlay / Back / Exit semantics;
 - RecognitionDocument / RecognitionSession / RecognitionIssue;
 - record grouping for multi-item input;
 - BatchInput source-to-record contract;
 - SortableList behavior;
-- long-task status contract;
-- AI advisory and sensory-summary contracts.
+- long-task status contract (visible progress only for expected >5 s tasks);
+- AI advisory contract and sensory-summary contract.
 
-A shared package extraction remains deferred until interfaces pass acceptance in both repositories.
+A shared npm/package extraction is intentionally deferred until the interfaces have passed both LuckyBean and AromaSense acceptance.
 
 ## 5. Performance guardrails
 
-For later stages compare against this baseline on at least:
+Before merging any later stage, compare against this baseline on at least:
 
-- startup: Chromium, Android and Safari/WebKit;
-- login: logged-out, logged-in and callback/re-entry;
+- startup: Chromium, Android, Safari/WebKit;
+- login: logged-out, logged-in, callback/re-entry;
 - OCR: single image and representative multi-image batch;
-- memory/stability: repeated recognition entry and Safari background/foreground;
+- memory/stability: repeated recognition entry, Safari background/foreground;
 - UI: modal opening/closing and back-navigation.
 
-Recommended regression thresholds:
+No new optimization is accepted only because it is theoretically faster. It must preserve recognition accuracy and not create a new Safari/Android regression.
+
+Recommended regression thresholds after measurement is captured:
 
 - startup p50: no >10% regression;
 - startup p95: no >15% regression;
 - single-image OCR: no meaningful slowdown without accuracy gain;
 - multi-image throughput: must not degrade;
-- Safari/WebKit: no new refresh, blank-screen or crash behavior.
+- Safari: no new refresh, blank-screen, or crash behavior.
 
-## 6. Final Stage 0 execution record
+## 6. Stage 0 execution record
 
-The final Stage 0 CI ran on GitHub Actions Ubuntu 24.04 using Node 22 for the LuckyBean main workflow. A first attempt encountered a transient failure in the existing live BrewProfiles remote check. Re-running the same SHA without source changes passed the BrewProfiles contract, indicating a remote availability fluctuation rather than a protocol regression.
+Execution time: `2026-09-06T09:31:02Z`
 
-Final passing coverage on the Stage 0 branch included:
+Environment: Linux, Node `v24.19.0`, npm `11.9.0`. Tests were executed from
+`stage0-cross-project-baseline-20260906` at the pre-record commit
+`4a26a769221057c1694520eb3d51efdd79806f29`, whose only change from the audited
+source SHA is this control document.
 
-- dependency install and vendor preparation;
-- `npm audit --audit-level=high`: 0 vulnerabilities;
-- JavaScript syntax validation;
-- private-key/server-secret source scan;
-- static and recognition regression suites: 126/126 recognition tests passed;
-- live BrewIon Coffee Foundation contract;
-- live BrewProfiles contract: 42 workbook profiles;
-- live Recognition AI inference using the configured free GLM chain;
-- Chromium startup/UI smoke: 13/13;
-- Stage 0 PP-OCR performance benchmark;
-- WebKit auth/OCR compatibility: 4/4;
-- core Playwright suite: 54/54;
-- visual baseline: 3/3;
-- Android debug build;
-- separate LuckyBean Android integration workflow.
+The repository must be prepared with `npm ci` before the static gate. An initial
+static run made before that preparation failed at the jsQR vendor assertion.
+Running the same CI installation step generated the expected jsQR and PP-OCR
+vendor assets; the unchanged static gate then passed. This was an environment
+setup failure, not an application-source repair.
 
-Both `LuckyBean main tests` and `LuckyBean integration Android` completed successfully for branch head `157948b9a9d8c80200087921f9da9e9e018316f4` before this documentation-only update.
+| Command | Observed result | Wall time |
+| --- | --- | ---: |
+| `npm ci` | pass; 4 packages installed and vendor preparation completed | 35.39 s |
+| `npm audit --audit-level=high` | pass; 0 vulnerabilities | 13.83 s |
+| JavaScript syntax check from `test-main.yml` | pass | 6.88 s |
+| private-key/server-secret pattern scan from `test-main.yml` | pass; no forbidden pattern | 0.07 s |
+| `npm run test:recognition` | pass; 126/126 | 0.72 s |
+| `npm run test:static` | pass after `npm ci`; all static suites and nested 126/126 recognition tests | 20.99 s |
 
-## 7. Repeatable OCR performance baseline
+Data-integrity coverage observed in the passing suite includes archive hash
+tamper rejection, legacy backup migration, future-schema rejection, local-first
+storage, date-field ownership, Recognition canonical review boundaries and
+BrewPlan/BrewResult contract validation.
 
-The benchmark exercises the production stable Recognition Core entry and current self-hosted PP-OCR provider with deterministic camera-like JPEG fixtures. It is a **performance/regression fixture**, not a claim of real coffee-bag accuracy validation.
+## 7. Browser, Android and OCR measurement status
 
-Observed GitHub Actions Chromium result:
+The requested local browser commands were invoked, but this container did not
+contain the Playwright browser binaries:
 
-| Case | Prepare | OCR | Total | Blocks |
-| --- | ---: | ---: | ---: | ---: |
-| first single image / cold runtime | 18.8 ms | 3071.0 ms | **3089.8 ms** | 4 |
-| immediate repeat / same runtime | 11.6 ms | 827.6 ms | **839.2 ms** | 4 |
-| four-image warm batch | 38.9 ms | 3392.0 ms | **3430.9 ms** | 16 |
+| Command | Observed result |
+| --- | --- |
+| `npm run test:smoke` | blocked before application assertions; Chromium executable missing (13 tests) |
+| `npm run test:core` | blocked before application assertions; Chromium executable missing (54 tests) |
+| `npm run test:visual` | blocked before application assertions; Chromium executable missing (3 tests) |
+| `npm run test:webkit` | blocked before application assertions; WebKit executable missing (4 tests) |
 
-Additional observations:
+`npx playwright install chromium webkit` was attempted. Five Chromium download
+attempts timed out after 30 seconds each, and a direct endpoint check returned
+HTTP 502 from the environment proxy. No system Chromium, WebKit, Gradle or
+Android SDK installation was available. Therefore local Chromium/WebKit and
+Android startup are **not** claimed as passed.
 
-- engine: `PP-OCRv5-browser-0.4.8-self-hosted-worker`;
-- Runtime-ready events: **1** across cold single, repeat single and four-image batch;
-- progress events recorded: 15;
-- immediate repeat is about 72.8% faster than the cold single total, demonstrating actual runtime/model reuse rather than reinitialization on every recognition call.
+The public Pages artifact tied to the audited `main` SHA was opened separately
+in a cloud Chromium smoke session. The logged-out application reached the
+`豆藏` page without a visible error. The first navigation-to-DOM wall reading
+was 12.111 s and a same-tab reload-to-visible-`豆藏` reading was 1.848 s. These
+include remote browser/network control overhead and are observational only;
+they are not a standards-compliant performance baseline and must not be used
+for the 10%/15% regression thresholds.
 
-This baseline shows that OCR inference dominates image preparation. Stage 1 must not touch this path.
+GitHub reported eight completed-success checks for
+`115e5d7f509ee777166a296eefee203451121458` on 2026-09-06, including `verify`,
+`android_debug`, Pages build/deploy/verify and release build. This confirms the
+CI jobs completed on the exact audited source, but it does not substitute for a
+physical Android launch or local Safari/WebKit measurement.
 
-## 8. Browser and Android runtime status
+No representative bean-label photos are stored in this checkout. Because the
+browser runtimes could not be installed, single-image OCR, four-image OCR,
+runtime-initialization count and repeated-recognition latency remain
+**unmeasured**. Static tests confirm only the intended lazy/reusable runtime
+contracts; they are not reported as OCR performance results.
 
-The earlier local container lacked Playwright browsers and Android SDK, so its blocked runs remain useful only as an environment note. That limitation has now been superseded by the GitHub Actions validation on the same Stage 0 branch:
+## 8. Current Stage 0 risks
 
-- Chromium smoke passed;
-- WebKit auth/OCR compatibility passed;
-- Android debug build and Android integration workflow passed;
-- core and visual Playwright suites passed.
+- Red: no repeatable single-image/four-image OCR timing exists yet.
+- Red: Safari/WebKit and Android launch were not exercised in this container.
+- Yellow: the cloud-browser cold reading is dominated by an uncontrolled remote
+  network path and cannot serve as a regression threshold.
+- Green: source-level dependency, syntax, secret, canonical, migration and core
+  data-contract gates passed without business-code changes.
 
-A physical-device coffee-bag photo accuracy set is still desirable for later Recognition-stage acceptance. Its absence is not treated as a Stage 1 navigation blocker because Stage 1 is explicitly prohibited from changing recognition semantics or recognition runtime behavior.
+Stage 0 is therefore recorded accurately but is **not fully validated**. Stage 1
+must not begin until the missing runtime/OCR measurements are captured in an
+environment with the pinned Playwright Chromium/WebKit binaries and, for
+Android, an SDK/emulator or physical device.
 
-## 9. Stage 0 risk disposition
+## 9. Stage 1 entry condition
 
-- Green: repeatable single/repeat/four-image OCR timing now exists.
-- Green: runtime reuse is measured and confirms one initialization across consecutive calls.
-- Green: Chromium, WebKit and Android CI paths are executable and passing.
-- Green: source dependency, syntax, secret, canonical, migration and BrewPlan/BrewResult gates pass.
-- Yellow: live BrewProfiles and other remote contract checks can still exhibit transient network/service failures; retries must not conceal deterministic protocol failures.
-- Yellow: real coffee-bag accuracy remains a later Recognition-stage/manual-device acceptance item.
+Proceed to Global Interaction Foundation only after:
 
-Stage 0 is therefore **validated for entry to Stage 1**.
+- this freeze boundary is accepted;
+- current startup/login/OCR behavior is manually confirmed as a usable baseline;
+- benchmark commands are recorded for repeatable comparison.
 
-## 10. Stage 1 entry condition
-
-The Global Interaction Foundation may proceed under these constraints:
-
-- do not modify Recognition semantics, PP-OCR runtime, RecognitionDocument contracts or Coffee Foundation authority;
-- do not modify business data schemas or Brew calculation logic;
-- preserve local-first, login and current startup behavior;
-- implement navigation/overlay/back/exit as a shared interaction boundary with regression tests;
-- any regression against the Stage 0 browser/Android gates blocks Stage 1 merge.
+Stage 1 must not modify Recognition semantics or business data schemas.

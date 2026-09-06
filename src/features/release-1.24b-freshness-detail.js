@@ -42,6 +42,7 @@ function open(bean){
   const layer=document.createElement('div');layer.className='lb-freshness-detail-layer';layer.dataset.lbFreshnessDetailOverlay='1';
   layer.innerHTML=`<div class="lb-freshness-detail-card" role="dialog" aria-modal="true" aria-label="完整赏味期"><button type="button" class="lb-help-close" data-lb-freshness-close aria-label="关闭">×</button><h3>赏味期</h3>${curveSvg(bean)}<div class="lb-freshness-metrics"><div><small>实际豆龄</small><strong>${actual==null?'待确定':`${Math.round(actual)} 天`}</strong></div><div><small>有效豆龄</small><strong>${effective==null?'待确定':`${Math.round(effective)} 天`}</strong></div><div><small>当前储存</small><strong>${esc(modeName(n.storage.currentMode))}</strong></div></div><div class="lb-storage-history">${rows.map(row=>`<div><span>${esc(modeName(row.mode))}</span><span>${row.days.toFixed(1)} 天 × ${row.factor.toFixed(2)}</span><strong>${row.effective.toFixed(1)} 有效天</strong></div>`).join('')||'<p class="muted small">暂无可计算的储存历史。</p>'}</div><p class="muted small">有效豆龄按储存历史折算；冷藏/冷冻表示老化速率降低而非完全暂停。系数为可校准模型参数。</p></div>`;
   document.body.append(layer);
+  globalThis.OverlayManager?.manage?.(layer,'dialog');
   layer.addEventListener('click',e=>{if(e.target===layer||e.target.closest('[data-lb-freshness-close]'))close();});
 }
 

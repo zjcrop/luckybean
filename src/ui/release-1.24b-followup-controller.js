@@ -80,7 +80,6 @@ function ensureStyles() {
       padding: 8px 18px calc(8px + var(--safe-bottom, 0px)) !important;
       grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
       background: var(--bg, #050505) !important;
-      backdrop-filter: blur(8px);
     }
     .v095-wizard-actions [data-v095-cancel] { grid-column: 1 !important; grid-row: 1 !important; }
     .v095-wizard-actions [data-v095-prev] { grid-column: 2 !important; grid-row: 1 !important; }
