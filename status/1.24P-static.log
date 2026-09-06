@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 5.881177
+  duration_ms: 4.025986
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 1.962406
+  duration_ms: 1.646899
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 2.637948
+  duration_ms: 2.136227
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 1.990258
+  duration_ms: 1.602933
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.89745
+  duration_ms: 0.649717
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.940087
+  duration_ms: 2.226601
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.973744
+  duration_ms: 0.676426
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 23.420151
+# duration_ms 17.391161
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 6.389965
+  duration_ms: 4.384209
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 4.102537
+  duration_ms: 3.002415
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 4.200922
+  duration_ms: 2.930588
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 3.249551
+  duration_ms: 2.308192
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 2.796106
+  duration_ms: 1.89656
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 1.342289
+  duration_ms: 0.827421
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 28.594126
+# duration_ms 19.895245
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -196,779 +196,178 @@ Recognition document is the single translated and structured bean-entry source w
 LuckyBean 1.24P lifecycle, serial OCR, transit/frozen storage, order parsing and local brew regression checks passed
 
 [static] tests/v124b-ocr-worker-freeze-regression.mjs
-LuckyBean 1.24P browser OCR is same-origin, lazy, memory-bounded, ROI-capable, timeout-bounded, and has no automatic Tesseract fallback
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
 
-[static] tests/v124b-ui-policy-regression.mjs
-LuckyBean 1.24P single-owner bean group state, hidden preference leaderboard policy, shared live-preview sorting, text brew UI and Web/Android parity contracts passed
+AssertionError [ERR_ASSERTION]: low-memory and WebKit engines must be disposed after recognition
+    at file:///home/runner/work/luckybean/luckybean/tests/v124b-ocr-worker-freeze-regression.mjs:37:8 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: "const VERSION = '0.4.8';\n" +
+    'const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;\n' +
+    '\n' +
+    'function isAppleMobileLike() {\n' +
+    "  const ua = String(navigator.userAgent || '');\n" +
+    "  return /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && Number(navigator.maxTouchPoints || 0) > 1);\n" +
+    '}\n' +
+    '\n' +
+    'function isWebKitFamily() {\n' +
+    "  const ua = String(navigator.userAgent || '');\n" +
+    '  return /AppleWebKit/i.test(ua) && !/(Chrome|Chromium|CriOS|Edg|OPR|SamsungBrowser)/i.test(ua);\n' +
+    '}\n' +
+    '\n' +
+    'const APPLE_MOBILE = isAppleMobileLike();\n' +
+    'const WEBKIT = isWebKitFamily();\n' +
+    'const LOW_MEMORY = APPLE_MOBILE || Number(navigator.deviceMemory || 4) <= 4;\n' +
+    'const LIMIT_SIDE = LOW_MEMORY ? 640 : 960;\n' +
+    'const ENGINE_INIT_TIMEOUT_MS = WEBKIT ? 30000 : 75000;\n' +
+    'const PREDICT_TIMEOUT_MS = WEBKIT ? 30000 : 45000;\n' +
+    'const ROI_CROP_TIMEOUT_MS = 20000;\n' +
+    'const ENGINE_IDLE_MS = WEBKIT ? 30000 : LOW_MEMORY ? 45000 : 90000;\n' +
+    '\n' +
+    'let modulePromise = null;\n' +
+    'let enginePromise = null;\n' +
+    "let engineMode = WEBKIT ? 'direct-wasm-no-simd' : 'worker';\n" +
+    'let engineGeneration = 0;\n' +
+    'let busy = false;\n' +
+    'let disposeTimer = 0;\n' +
+    'let roiRequestSequence = 0;\n' +
+    '\n' +
+    "function defaultRuntimeBase() { return new URL('../public/vendor/paddleocr/', import.meta.url); }\n" +
+    'function runtimeBase() {\n' +
+    "  const configured = String(globalThis.CoffeeFoundationOcrAssetBase || '').trim();\n" +
+    "  if (configured) { try { return new URL(configured, globalThis.location?.href || 'http://localhost/'); } catch {} }\n" +
+    '  return defaultRuntimeBase();\n' +
+    '}\n' +
+    'function assetUrl(relativePath) { return new URL(relativePath, runtimeBase()).href; }\n' +
+    'function emit(status, progress = 0) {\n' +
+    "  const detail = { status:String(status || ''), progress:Math.max(0, Math.min(100, Number(progress) || 0)) };\n" +
+    "  globalThis.dispatchEvent(new CustomEvent('luckybean:ocr-progress', { detail }));\n" +
+    "  globalThis.dispatchEvent(new CustomEvent('coffee-foundation:ocr-progress', { detail }));\n" +
+    '}\n' +
+    "function timeoutError(message) { const error = new Error(message); error.name = 'RecognitionTimeoutError'; return error; }\n" +
+    'function withTimeout(promise, timeoutMs, message, onTimeout) {\n' +
+    '  let timer = 0;\n' +
+    '  const timeout = new Promise((_, reject) => { timer = globalThis.setTimeout(() => { try { onTimeout?.(); } catch {} reject(timeoutError(message)); }, timeoutMs); });\n' +
+    '  return Promise.race([promise, timeout]).finally(() => globalThis.clearTimeout(timer));\n' +
+    '}\n' +
+    'function clamp01(value, fallback = 0) { const number = Number(value); return Number.isFinite(number) ? Math.max(0, Math.min(1, number)) : fallback; }\n' +
+    'function normalizeRegion(input) {\n' +
+    "  const source = input && typeof input === 'object' ? input : {};\n" +
+    '  const left = clamp01(source.left), top = clamp01(source.top), right = clamp01(source.right, 1), bottom = clamp01(source.bottom, 1);\n' +
+    "  if (right - left < 0.01 || bottom - top < 0.01) throw new Error('ROI 范围过小或无效');\n" +
+    '  return Object.freeze({ left, top, right, bottom });\n' +
+    '}\n' +
+    'async function cropRegionInWorker(blob, regionInput, options = {}) {\n' +
+    "  if (!(blob instanceof Blob) || blob.size === 0) throw new Error('ROI 原图不可用');\n" +
+    '  const region = normalizeRegion(regionInput); roiRequestSequence += 1;\n' +
+    '  const requestId = `roi-${Date.now().toString(36)}-${roiRequestSequence.toString(36)}`;\n' +
+    "  const worker = new Worker(assetUrl('roi-worker.js'), { type:'classic', name:'luckybean-roi-crop' });\n" +
+    '  let settled = false;\n' +
+    '  const cleanup = () => { if (settled) return; settled = true; try { worker.terminate(); } catch {} };\n' +
+    '  const operation = new Promise((resolve, reject) => {\n' +
+    '    worker.onmessage = event => {\n' +
+    "      if (String(event.data?.requestId || '') !== requestId) return;\n" +
+    "      if (event.data?.ok !== true) { cleanup(); reject(new Error(String(event.data?.error || 'ROI Worker 裁剪失败'))); return; }\n" +
+    '      const result = event.data; cleanup(); resolve(result);\n' +
+    '    };\n' +
+    "    worker.onerror = event => { cleanup(); reject(new Error(`ROI Worker 运行失败：${event.message || 'unknown error'}`)); };\n" +
+    '    worker.postMessage({ requestId, blob, region, maxEdge:Number(options.maxEdge || (LOW_MEMORY ? 1280 : 2200)) });\n' +
+    '  });\n' +
+    "  return withTimeout(operation, ROI_CROP_TIMEOUT_MS, 'ROI Worker 裁剪超时，已终止本次局部识别', cleanup);\n" +
+    '}\n' +
+    'async function loadModule() {\n' +
+    '  if (!modulePromise) {\n' +
+    "    emit('正在按需加载本地 PP-OCRv5 网页运行时', 2);\n" +
+    "    modulePromise = import(assetUrl('sdk.mjs')).catch(error => { modulePromise = null; throw new Error(`本地 PP-OCRv5 SDK 加载失败：${error.message}`); });\n" +
+    '  }\n' +
+    '  return modulePromise;\n' +
+    '}\n' +
+    'function createModuleWorker() {\n' +
+    "  try { return new Worker(assetUrl('worker.js'), { type:'module', name:'luckybean-ppocr-v5' }); }\n" +
+    '  catch (error) { throw new Error(`本地 PP-OCRv5 Worker 创建失败：${error.message}`); }\n' +
+    '}\n' +
+    'function ocrCreateOptions({ compatibility = false } = {}) {\n' +
+    '  return {\n' +
+    "    lang:'ch', ocrVersion:'PP-OCRv5',\n" +
+    "    textDetectionModelName:'PP-OCRv5_mobile_det', textDetectionModelAsset:{ url:assetUrl('models/PP-OCRv5_mobile_det_onnx_infer.tar') },\n" +
+    "    textRecognitionModelName:'PP-OCRv5_mobile_rec', textRecognitionModelAsset:{ url:assetUrl('models/PP-OCRv5_mobile_rec_onnx_infer.tar') },\n" +
+    '    ...(compatibility ? {} : { worker:{ createWorker:() => createModuleWorker() } }),\n' +
+    '    textDetectionBatchSize:1, textRecognitionBatchSize:1,\n' +
+    "    ortOptions:{ backend:'wasm', wasmPaths:assetUrl('ort/'), numThreads:1, simd:compatibility ? false : true }\n" +
+    '  };\n' +
+    '}\n' +
+    'async function createWorkerEngine() {\n' +
+    "  const module = await loadModule(); if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');\n" +
+    '  return module.PaddleOCR.create(ocrCreateOptions({ compatibility:false }));\n' +
+    '}\n' +
+    'async function createCompatibilityEngine() {\n' +
+    "  const module = await loadModule(); if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');\n" +
+    '  return module.PaddleOCR.create(ocrCreateOptions({ compatibility:true }));\n' +
+    '}\n' +
+    'function disposeInstance(ocr) { if (!ocr?.dispose) return; Promise.resolve().then(() => ocr.dispose()).catch(() => {}); }\n' +
+    'function detachEngine() { const current = enginePromise; enginePromise = null; engineGeneration += 1; if (current) current.then(disposeInstance).catch(() => {}); }\n' +
+    'async function startWorkerEngine() {\n' +
+    '  const generation = ++engineGeneration; const raw = createWorkerEngine();\n' +
+    '  try {\n' +
+    "    const ocr = await withTimeout(raw, ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 Worker 初始化超时，已退出本次识别；界面仍可继续操作', () => { if (generation === engineGeneration) engineGeneration += 1; });\n" +
+    "    if (generation !== engineGeneration) { disposeInstance(ocr); throw new Error('PP-OCRv5 Worker 初始化结果已失效，请重新识别'); }\n" +
+    '    return ocr;\n' +
+    '  } catch (error) { raw.then(ocr => { if (generation !== engineGeneration) disposeInstance(ocr); }).catch(() => {}); throw error; }\n' +
+    '}\n' +
+    'async function startCompatibilityEngine() {\n' +
+    "  emit('Safari 正在启用低内存兼容识别模式', 9);\n" +
+    "  return withTimeout(createCompatibilityEngine(), ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 Safari 兼容模式初始化超时', () => {});\n" +
+    '}\n' +
+    'async function ensureEngine() {\n' +
+    '  globalThis.clearTimeout(disposeTimer); if (enginePromise) return enginePromise;\n' +
+    "  emit(WEBKIT ? '正在按需准备 Safari 本地 OCR' : '正在后台准备本地 PP-OCRv5 中文检测与识别模型', 7);\n" +
+    '  const pending = WEBKIT\n' +
+    "    ? startCompatibilityEngine().then(ocr => { engineMode='direct-wasm-no-simd'; emit('PP-OCRv5 Safari 兼容模式已就绪', 18); return ocr; })\n" +
+    "    : startWorkerEngine().then(ocr => { engineMode='worker'; emit('PP-OCRv5 Worker 中文模型已就绪', 18); return ocr; });\n" +
+    '  const tracked = pending.catch(error => { if (enginePromise === tracked) enginePromise = null; throw new Error(`PP-OCRv5 初始化失败：${error.message}`); });\n' +
+    '  enginePromise = tracked; return tracked;\n' +
+    '}\n' +
+    'async function dispose() {\n' +
+    '  globalThis.clearTimeout(disposeTimer); const current = enginePromise; enginePromise = null; engineGeneration += 1; if (!current) return;\n' +
+    '  try { const ocr = await current; await ocr?.dispose?.(); } catch {}\n' +
+    '}\n' +
+    'function scheduleDispose() {\n' +
+    '  globalThis.clearTimeout(disposeTimer);\n' +
+    '  disposeTimer = globalThis.setTimeout(() => { void dispose(); }, ENGINE_IDLE_MS);\n' +
+    '}\n' +
+    'function meaningful(text) {\n' +
+    "  const chars = [...String(text || '')]; if (!chars.length) return 0;\n" +
+    '  return chars.filter(char => /[\\p{Script=Han}A-Za-z0-9年月日海拔处理烘焙庄园产区豆种%°./:+-]/u.test(char)).length / chars.length;\n' +
+    '}\n' +
+    'function normalizeItems(result, imageId) {\n' +
+    "  return (result?.items || []).map(item => ({ text:String(item?.text || '').trim(), confidence:Number(item?.score ?? 0), polygon:item?.poly || null, imageId, engine:ENGINE }))\n" +
+    '    .filter(item => item.text && item.confidence >= 0.28 && meaningful(item.text) >= 0.55)\n' +
+    '    .sort((a,b) => Number(a.polygon?.[0]?.[1] || 0) - Number(b.polygon?.[0]?.[1] || 0) || Number(a.polygon?.[0]?.[0] || 0) - Number(b.polygon?.[0]?.[0] || 0));\n' +
+    '}\n' +
+    'async function predict(images) {\n' +
+    '  const ocr = await ensureEngine(); const blocks = [], groups = [];\n' +
+    '  for (let index = 0; index < images.length; index += 1) {\n' +
+    '    const image = images[index]; emit(`PP-OCRv5 正在识别第 ${index + 1}/${images.length} 张图片`, 20 + Math.round(index / Math.max(1, images.length) * 70));\n' +
+    "    const prediction = ocr.predict(image.blob, { textDetLimitSideLen:LIMIT_SIDE, textDetLimitType:'min', textDetMaxSideLimit:LOW_MEMORY ? 1280 : 2200, textDetThresh:0.22, textDetBoxThresh:0.35, textDetUnclipRatio:1.55, textRecScoreThresh:0.28 });\n" +
+    '    const results = await withTimeout(prediction, PREDICT_TIMEOUT_MS, `PP-OCRv5 第 ${index + 1} 张图片识别超时，已退出本次任务`, detachEngine);\n' +
+    "    const current = normalizeItems(results?.[0], image.id); blocks.push(...current); if (current.length) groups.push(current.map(item => item.text).join('\\n'));\n" +
+    '    await new Promise(resolve => globalThis.setTimeout(resolve, 0));\n' +
+    '  }\n' +
+    "  if (!blocks.length) throw new Error('PP-OCRv5 没有得到可信文字。请靠近文字区域拍摄，避免整只包装占画面过小。');\n" +
+    "  emit('PP-OCRv5 中英文识别完成', 100);\n" +
+    "  return { engine:`${ENGINE}-${engineMode}${LOW_MEMORY ? '-low-memory' : ''}`, blocks, fullText:groups.join('\\n\\n') };\n" +
+    '}\n' +
+    'async function predictRegion(blob, region, options = {}) {\n' +
+    "  emit('正在 Worker 中裁剪待复核区域', 10);\n" +
+    "  const crop = await cropRegionInWorker(blob, region, options), imageId = String(options.imageId || 'roi');\n" +
+    '  const result = await predict([{ id:imageId, blob:crop.blob }]);\n' +
+    "  return { ...result, regionProtocol:'recognition-roi/1.0', region:crop.region, sourceWidth:Number(crop.sourceWidth || 0), sourceHeight:Number(crop.s"... 2484 more characters,
+  expected: /LOW_MEMORY\s*\|\|\s*engineMode\s*===\s*'direct-wasm-no-simd'/,
+  operator: 'match',
+  diff: 'simple'
+}
 
-[static] tests/v124b-recommendation-prompt-regression.mjs
-LuckyBean 1.24P fun recommendation prompt contract passed: original fun library retained, five-mode selection mechanics unchanged, duplicate result toast removed, and runtime cache follows canonical release metadata
-
-[static] npm run test:recognition
-
-> luckybean-static-app@1.24.17 test:recognition
-> node --test test/*.test.js
-
-TAP version 13
-# Subtest: sums every bean remaining weight and counts authoritative consumption events once
-ok 1 - sums every bean remaining weight and counts authoritative consumption events once
-  ---
-  duration_ms: 2.701739
-  type: 'test'
-  ...
-# Subtest: restored mistaken brew is removed from today total
-ok 2 - restored mistaken brew is removed from today total
-  ---
-  duration_ms: 0.417246
-  type: 'test'
-  ...
-# Subtest: warns when latest completed consumption is within the configured sleep buffer
-ok 3 - warns when latest completed consumption is within the configured sleep buffer
-  ---
-  duration_ms: 0.510351
-  type: 'test'
-  ...
-# Subtest: uses a higher caffeine estimate for robusta beans
-ok 4 - uses a higher caffeine estimate for robusta beans
-  ---
-  duration_ms: 2.014818
-  type: 'test'
-  ...
-# Subtest: brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
-ok 5 - brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
-  ---
-  duration_ms: 1.489305
-  type: 'test'
-  ...
-# Subtest: production analysis envelope adapts into a plan accepted by the page validator
-ok 6 - production analysis envelope adapts into a plan accepted by the page validator
-  ---
-  duration_ms: 2.063607
-  type: 'test'
-  ...
-# Subtest: unknown analysis contracts and unversioned legacy plans remain rejected
-ok 7 - unknown analysis contracts and unversioned legacy plans remain rejected
-  ---
-  duration_ms: 0.729745
-  type: 'test'
-  ...
-# Subtest: cold brew validates stage water against brew water and recipe total independently
-ok 8 - cold brew validates stage water against brew water and recipe total independently
-  ---
-  duration_ms: 0.533635
-  type: 'test'
-  ...
-# Subtest: 参数重算保留同一豆卡已经实际采用的方案
-ok 9 - 参数重算保留同一豆卡已经实际采用的方案
-  ---
-  duration_ms: 3.836723
-  type: 'test'
-  ...
-# Subtest: 不同豆卡或手动选择方案时不会沿用旧方案
-ok 10 - 不同豆卡或手动选择方案时不会沿用旧方案
-  ---
-  duration_ms: 1.023117
-  type: 'test'
-  ...
-# Subtest: 并发计算采用 latest-wins，旧结果不能覆盖新结果
-ok 11 - 并发计算采用 latest-wins，旧结果不能覆盖新结果
-  ---
-  duration_ms: 0.506133
-  type: 'test'
-  ...
-# Subtest: 总分低于预测分不会单独触发冲煮优化
-ok 12 - 总分低于预测分不会单独触发冲煮优化
-  ---
-  duration_ms: 3.791451
-  type: 'test'
-  ...
-# Subtest: 品鉴后的具体负面维度触发可解释优化
-ok 13 - 品鉴后的具体负面维度触发可解释优化
-  ---
-  duration_ms: 1.037905
-  type: 'test'
-  ...
-# Subtest: 雷达轴只比较同组平均且无完成冲煮时不提示优化
-ok 14 - 雷达轴只比较同组平均且无完成冲煮时不提示优化
-  ---
-  duration_ms: 1.496579
-  type: 'test'
-  ...
-# Subtest: 实际执行明显偏离方案时不把负面结果归因于方案
-ok 15 - 实际执行明显偏离方案时不把负面结果归因于方案
-  ---
-  duration_ms: 0.517275
-  type: 'test'
-  ...
-# Subtest: 个人靶区至少三次证据后才改变，标准靶区保持不变
-ok 16 - 个人靶区至少三次证据后才改变，标准靶区保持不变
-  ---
-  duration_ms: 1.356284
-  type: 'test'
-  ...
-# Subtest: accepts a catalog with balanced hot and cold auto-recommend profiles
-ok 17 - accepts a catalog with balanced hot and cold auto-recommend profiles
-  ---
-  duration_ms: 1.201723
-  type: 'test'
-  ...
-# Subtest: rejects a catalog whose declared profile count differs from the payload
-ok 18 - rejects a catalog whose declared profile count differs from the payload
-  ---
-  duration_ms: 0.195989
-  type: 'test'
-  ...
-# Subtest: rejects a cold profile whose recipe water does not equal brew water + ice + bypass
-ok 19 - rejects a cold profile whose recipe water does not equal brew water + ice + bypass
-  ---
-  duration_ms: 1.014772
-  type: 'test'
-  ...
-# Subtest: rejects catalogs that cannot auto-recommend in both hot and cold modes
-ok 20 - rejects catalogs that cannot auto-recommend in both hot and cold modes
-  ---
-  duration_ms: 0.211919
-  type: 'test'
-  ...
-# Subtest: Knowledge resolution issue is exposed as an automatic-resolution decision
-ok 21 - Knowledge resolution issue is exposed as an automatic-resolution decision
-  ---
-  duration_ms: 8.582926
-  type: 'test'
-  ...
-# Subtest: name-only OCR cannot silently resolve a researched ambiguous farm
-ok 22 - name-only OCR cannot silently resolve a researched ambiguous farm
-  ---
-  duration_ms: 39.190935
-  type: 'test'
-  ...
-# Subtest: explicit stable core code remains usable for historical/explicit-code compatibility
-ok 23 - explicit stable core code remains usable for historical/explicit-code compatibility
-  ---
-  duration_ms: 31.132528
-  type: 'test'
-  ...
-# Subtest: Coffee Knowledge provider is optional and preserves QR-core ownership
-ok 24 - Coffee Knowledge provider is optional and preserves QR-core ownership
-  ---
-  duration_ms: 0.958124
-  type: 'test'
-  ...
-# Subtest: knowledge aliases augment matching without changing QR indexes or visible columns
-ok 25 - knowledge aliases augment matching without changing QR indexes or visible columns
-  ---
-  duration_ms: 1.504754
-  type: 'test'
-  ...
-# Subtest: Japanese/Korean OCR text resolves to existing v6 codes through hidden knowledge aliases
-ok 26 - Japanese/Korean OCR text resolves to existing v6 codes through hidden knowledge aliases
-  ---
-  duration_ms: 7.323003
-  type: 'test'
-  ...
-# Subtest: knowledge-only WCR varieties can match OCR evidence without receiving a QR core code
-ok 27 - knowledge-only WCR varieties can match OCR evidence without receiving a QR core code
-  ---
-  duration_ms: 2.4318
-  type: 'test'
-  ...
-# Subtest: existing v6 variety ownership remains higher priority than knowledge-only candidates
-ok 28 - existing v6 variety ownership remains higher priority than knowledge-only candidates
-  ---
-  duration_ms: 2.028341
-  type: 'test'
-  ...
-# Subtest: canonical knowledge identity is available without rewriting decoded core codes
-ok 29 - canonical knowledge identity is available without rewriting decoded core codes
-  ---
-  duration_ms: 0.431222
-  type: 'test'
-  ...
-# Subtest: harvest aliases cover five languages
-ok 30 - harvest aliases cover five languages
-  ---
-  duration_ms: 2.446768
-  type: 'test'
-  ...
-# Subtest: harvest parser normalizes multilingual seasons
-ok 31 - harvest parser normalizes multilingual seasons
-  ---
-  duration_ms: 1.780073
-  type: 'test'
-  ...
-# Subtest: labelled harvest data cannot leak into roast altitude or weight
-ok 32 - labelled harvest data cannot leak into roast altitude or weight
-  ---
-  duration_ms: 5.596141
-  type: 'test'
-  ...
-# Subtest: layout parser recognizes reversed Japanese and Korean harvest labels
-ok 33 - layout parser recognizes reversed Japanese and Korean harvest labels
-  ---
-  duration_ms: 2.136053
-  type: 'test'
-  ...
-# Subtest: archive round-trip preserves every portable store
-ok 34 - archive round-trip preserves every portable store
-  ---
-  duration_ms: 15.235185
-  type: 'test'
-  ...
-# Subtest: archive rejects tampered store data
-ok 35 - archive rejects tampered store data
-  ---
-  duration_ms: 5.394139
-  type: 'test'
-  ...
-# Subtest: legacy 1.2.x JSON backup migrates without inventing records
-ok 36 - legacy 1.2.x JSON backup migrates without inventing records
-  ---
-  duration_ms: 0.49392
-  type: 'test'
-  ...
-# Subtest: future schema cannot be imported
-ok 37 - future schema cannot be imported
-  ---
-  duration_ms: 3.572479
-  type: 'test'
-  ...
-# Subtest: production date never falls back to roast date
-ok 38 - production date never falls back to roast date
-  ---
-  duration_ms: 7.283829
-  type: 'test'
-  ...
-# Subtest: best before and expiry dates are excluded from roast date
-ok 39 - best before and expiry dates are excluded from roast date
-  ---
-  duration_ms: 7.972045
-  type: 'test'
-  ...
-# Subtest: explicit roast date is auto-filled while other dates remain excluded
-ok 40 - explicit roast date is auto-filled while other dates remain excluded
-  ---
-  duration_ms: 2.677082
-  type: 'test'
-  ...
-# Subtest: unlabelled date requires confirmation and is never silently filled
-ok 41 - unlabelled date requires confirmation and is never silently filled
-  ---
-  duration_ms: 0.760593
-  type: 'test'
-  ...
-# Subtest: date photo role increases provenance but does not bypass confirmation
-ok 42 - date photo role increases provenance but does not bypass confirmation
-  ---
-  duration_ms: 1.042484
-  type: 'test'
-  ...
-# Subtest: invalid calendar dates are rejected
-ok 43 - invalid calendar dates are rejected
-  ---
-  duration_ms: 1.50803
-  type: 'test'
-  ...
-# Subtest: 30-case date ownership golden set has zero silent non-roast assignments
-    # Subtest: 烘焙日期：2026-07-28
-    ok 1 - 烘焙日期：2026-07-28
-      ---
-      duration_ms: 8.585841
-      type: 'test'
-      ...
-    # Subtest: ROAST DATE 2026/07/28
-    ok 2 - ROAST DATE 2026/07/28
-      ---
-      duration_ms: 1.917943
-      type: 'test'
-      ...
-    # Subtest: ROASTED ON 2026.7.8
-    ok 3 - ROASTED ON 2026.7.8
-      ---
-      duration_ms: 0.578118
-      type: 'test'
-      ...
-    # Subtest: 焙炒日期 2026年7月28日
-    ok 4 - 焙炒日期 2026年7月28日
-      ---
-      duration_ms: 1.069795
-      type: 'test'
-      ...
-    # Subtest: RST DATE 20260728
-    ok 5 - RST DATE 20260728
-      ---
-      duration_ms: 0.703064
-      type: 'test'
-      ...
-    # Subtest: ROAST ON 28 JUL 2026
-    ok 6 - ROAST ON 28 JUL 2026
-      ---
-      duration_ms: 0.896228
-      type: 'test'
-      ...
-    # Subtest: ROAST DATE JUL 28 2026
-    ok 7 - ROAST DATE JUL 28 2026
-      ---
-      duration_ms: 1.24752
-      type: 'test'
-      ...
-    # Subtest: 出炉日期 26年7月28日
-    ok 8 - 出炉日期 26年7月28日
-      ---
-      duration_ms: 1.661008
-      type: 'test'
-      ...
-    # Subtest: 烘焙日 26-07-28
-    ok 9 - 烘焙日 26-07-28
-      ---
-      duration_ms: 1.555089
-      type: 'test'
-      ...
-    # Subtest: 烘烤日期 26.0728
-    ok 10 - 烘烤日期 26.0728
-      ---
-      duration_ms: 0.8282
-      type: 'test'
-      ...
-    # Subtest: 生产日期：2026-07-21
-    ok 11 - 生产日期：2026-07-21
-      ---
-      duration_ms: 0.715348
-      type: 'test'
-      ...
-    # Subtest: MFG DATE 2026/07/21
-    ok 12 - MFG DATE 2026/07/21
-      ---
-      duration_ms: 0.437514
-      type: 'test'
-      ...
-    # Subtest: MFD 20260721
-    ok 13 - MFD 20260721
-      ---
-      duration_ms: 0.743851
-      type: 'test'
-      ...
-    # Subtest: 包装日期 2026.07.22
-    ok 14 - 包装日期 2026.07.22
-      ---
-      duration_ms: 1.55655
-      type: 'test'
-      ...
-    # Subtest: PACKED ON 2026-07-22
-    ok 15 - PACKED ON 2026-07-22
-      ---
-      duration_ms: 0.420321
-      type: 'test'
-      ...
-    # Subtest: PKD 20260722
-    ok 16 - PKD 20260722
-      ---
-      duration_ms: 0.423938
-      type: 'test'
-      ...
-    # Subtest: 最佳赏味期 2026-10-28
-    ok 17 - 最佳赏味期 2026-10-28
-      ---
-      duration_ms: 0.424259
-      type: 'test'
-      ...
-    # Subtest: BEST BEFORE 2026/10/28
-    ok 18 - BEST BEFORE 2026/10/28
-      ---
-      duration_ms: 0.365098
-      type: 'test'
-      ...
-    # Subtest: BBE 28 OCT 2026
-    ok 19 - BBE 28 OCT 2026
-      ---
-      duration_ms: 0.516362
-      type: 'test'
-      ...
-    # Subtest: 有效期至 2027年1月5日
-    ok 20 - 有效期至 2027年1月5日
-      ---
-      duration_ms: 0.5045
-      type: 'test'
-      ...
-    # Subtest: EXP 2027-01-05
-    ok 21 - EXP 2027-01-05
-      ---
-      duration_ms: 1.129778
-      type: 'test'
-      ...
-    # Subtest: USE BY JAN 5 2027
-    ok 22 - USE BY JAN 5 2027
-      ---
-      duration_ms: 0.350761
-      type: 'test'
-      ...
-    # Subtest: 埃塞俄比亚 / 2026-07-28
-    ok 23 - 埃塞俄比亚 / 2026-07-28
-      ---
-      duration_ms: 0.647981
-      type: 'test'
-      ...
-    # Subtest: DATE 2026/07/28
-    ok 24 - DATE 2026/07/28
-      ---
-      duration_ms: 0.336083
-      type: 'test'
-      ...
-    # Subtest: LOT 20260728
-    ok 25 - LOT 20260728
-      ---
-      duration_ms: 0.390986
-      type: 'test'
-      ...
-    # Subtest: 2026年7月28日
-    ok 26 - 2026年7月28日
-      ---
-      duration_ms: 0.35595
-      type: 'test'
-      ...
-    # Subtest: 28/07/2026
-    ok 27 - 28/07/2026
-      ---
-      duration_ms: 0.831717
-      type: 'test'
-      ...
-    # Subtest: 07/08/2026
-    ok 28 - 07/08/2026
-      ---
-      duration_ms: 0.618044
-      type: 'test'
-      ...
-    # Subtest: ROAST DATE 07/08/2026
-    ok 29 - ROAST DATE 07/08/2026
-      ---
-      duration_ms: 0.632531
-      type: 'test'
-      ...
-    # Subtest: ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
-    ok 30 - ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
-      ---
-      duration_ms: 0.761815
-      type: 'test'
-      ...
-    1..30
-ok 44 - 30-case date ownership golden set has zero silent non-roast assignments
-  ---
-  duration_ms: 37.939676
-  type: 'test'
-  ...
-# Subtest: review model exposes automatic, excluded and unresolved candidates together
-ok 45 - review model exposes automatic, excluded and unresolved candidates together
-  ---
-  duration_ms: 10.499295
-  type: 'test'
-  ...
-# Subtest: unresolved candidate requires an explicit date assignment before confirmation
-ok 46 - unresolved candidate requires an explicit date assignment before confirmation
-  ---
-  duration_ms: 1.136761
-  type: 'test'
-  ...
-# Subtest: user confirmation retains source provenance instead of inventing confidence 1
-ok 47 - user confirmation retains source provenance instead of inventing confidence 1
-  ---
-  duration_ms: 0.982791
-  type: 'test'
-  ...
-# Subtest: two roast date selections are rejected
-ok 48 - two roast date selections are rejected
-  ---
-  duration_ms: 2.157715
-  type: 'test'
-  ...
-# Subtest: candidate value cannot be replaced with an unrecognized date
-ok 49 - candidate value cannot be replaced with an unrecognized date
-  ---
-  duration_ms: 0.609759
-  type: 'test'
-  ...
-# Subtest: stale or fabricated candidate id is rejected
-ok 50 - stale or fabricated candidate id is rejected
-  ---
-  duration_ms: 0.716439
-  type: 'test'
-  ...
-# Subtest: all candidates may be ignored without silently restoring automatic roast date
-ok 51 - all candidates may be ignored without silently restoring automatic roast date
-  ---
-  duration_ms: 1.164122
-  type: 'test'
-  ...
-# Subtest: ambiguous day-month candidate can only resolve to one offered value
-ok 52 - ambiguous day-month candidate can only resolve to one offered value
-  ---
-  duration_ms: 1.54992
-  type: 'test'
-  ...
-# Subtest: duplicate submission of the same candidate is rejected
-ok 53 - duplicate submission of the same candidate is rejected
-  ---
-  duration_ms: 0.933258
-  type: 'test'
-  ...
-# Subtest: numeric Ethiopian variety codes are split into independent exact candidates
-ok 54 - numeric Ethiopian variety codes are split into independent exact candidates
-  ---
-  duration_ms: 23.415122
-  type: 'test'
-  ...
-# Subtest: multiple labeled varieties stay unresolved instead of silently choosing the first code
-ok 55 - multiple labeled varieties stay unresolved instead of silently choosing the first code
-  ---
-  duration_ms: 13.462917
-  type: 'test'
-  ...
-# Subtest: spaced alphanumeric variety codes survive OCR tokenization
-ok 56 - spaced alphanumeric variety codes survive OCR tokenization
-  ---
-  duration_ms: 4.829978
-  type: 'test'
-  ...
-# Subtest: explicit numeric roast levels map only within the labeled 0-6 scale
-ok 57 - explicit numeric roast levels map only within the labeled 0-6 scale
-  ---
-  duration_ms: 1.111403
-  type: 'test'
-  ...
-# Subtest: mixed label layouts preserve separate variety and roast evidence
-ok 58 - mixed label layouts preserve separate variety and roast evidence
-  ---
-  duration_ms: 2.448592
-  type: 'test'
-  ...
-# Subtest: equally exact codebook candidates remain a manual choice
-ok 59 - equally exact codebook candidates remain a manual choice
-  ---
-  duration_ms: 4.789681
-  type: 'test'
-  ...
-# Subtest: unsupported region evidence has no reliable candidates
-ok 60 - unsupported region evidence has no reliable candidates
-  ---
-  duration_ms: 3.09503
-  type: 'test'
-  ...
-# Subtest: recognition review UI contains only unresolved fields and disappears when none remain
-ok 61 - recognition review UI contains only unresolved fields and disappears when none remain
-  ---
-  duration_ms: 1.547384
-  type: 'test'
-  ...
-# Subtest: recognition provenance remains persisted for audit without becoming confirmed-field UI
-ok 62 - recognition provenance remains persisted for audit without becoming confirmed-field UI
-  ---
-  duration_ms: 0.282662
-  type: 'test'
-  ...
-# Subtest: confirmed roast date is still saved from the final form value
-ok 63 - confirmed roast date is still saved from the final form value
-  ---
-  duration_ms: 0.298622
-  type: 'test'
-  ...
-# Subtest: custom dropdown opens its editor after select change dispatch completes
-ok 64 - custom dropdown opens its editor after select change dispatch completes
-  ---
-  duration_ms: 0.261562
-  type: 'test'
-  ...
-# Subtest: reversed inline key-value keeps the semantic field association
-ok 65 - reversed inline key-value keeps the semantic field association
-  ---
-  duration_ms: 3.693577
-  type: 'test'
-  ...
-# Subtest: same-row value before label is paired by geometry and field semantics
-ok 66 - same-row value before label is paired by geometry and field semantics
-  ---
-  duration_ms: 1.183519
-  type: 'test'
-  ...
-# Subtest: vertical title and value are paired in either reading direction
-ok 67 - vertical title and value are paired in either reading direction
-  ---
-  duration_ms: 0.613104
-  type: 'test'
-  ...
-# Subtest: standalone unordered coffee entities remain available instead of being forced into unrelated fields
-ok 68 - standalone unordered coffee entities remain available instead of being forced into unrelated fields
-  ---
-  duration_ms: 1.613459
-  type: 'test'
-  ...
-# Subtest: range hyphen is preserved as value content rather than treated as a field separator
-ok 69 - range hyphen is preserved as value content rather than treated as a field separator
-  ---
-  duration_ms: 0.585844
-  type: 'test'
-  ...
-# Subtest: explicit bean headings split into independent recognition documents
-ok 70 - explicit bean headings split into independent recognition documents
-  ---
-  duration_ms: 15.16906
-  type: 'test'
-  ...
-# Subtest: repeated strong country anchors split when each segment contains multiple coffee fields
-ok 71 - repeated strong country anchors split when each segment contains multiple coffee fields
-  ---
-  duration_ms: 3.67963
-  type: 'test'
-  ...
-# Subtest: multi-view photos of one bean are never split merely because images produce paragraphs
-ok 72 - multi-view photos of one bean are never split merely because images produce paragraphs
-  ---
-  duration_ms: 1.085615
-  type: 'test'
-  ...
-# Subtest: weak prose is kept as one recognition document to prevent false bean creation
-ok 73 - weak prose is kept as one recognition document to prevent false bean creation
-  ---
-  duration_ms: 0.465978
-  type: 'test'
-  ...
-# Subtest: English labels and coffee values become Chinese canonical bean fields
-ok 74 - English labels and coffee values become Chinese canonical bean fields
-  ---
-  duration_ms: 35.878715
-  type: 'test'
-  ...
-# Subtest: unknown proper names are preserved and explicitly marked for review
-ok 75 - unknown proper names are preserved and explicitly marked for review
-  ---
-  duration_ms: 26.21735
-  type: 'test'
-  ...
-# Subtest: knowledge-only WCR variety is surfaced as a sourced review candidate without fabricating a core code
-ok 76 - knowledge-only WCR variety is surfaced as a sourced review candidate without fabricating a core code
-  ---
-  duration_ms: 22.690297
-  type: 'test'
-  ...
-# Subtest: knowledge-only source alias normalizes to canonical display but stays unresolved
-ok 77 - knowledge-only source alias normalizes to canonical display but stays unresolved
-  ---
-  duration_ms: 14.816116
-  type: 'test'
-  ...
-# Subtest: explicit numeric fields are parsed while unrelated numbers stay isolated
-ok 78 - explicit numeric fields are parsed while unrelated numbers stay isolated
-  ---
-  duration_ms: 14.647228
-  type: 'test'
-  ...
-# Subtest: Chinese, reverse-labelled and vertical fields share one canonical pipeline
-ok 79 - Chinese, reverse-labelled and vertical fields share one canonical pipeline
-  ---
-  duration_ms: 23.04255
-  type: 'test'
-  ...
-# Subtest: isolated unresolved country review is preserved without stealing mixed candidate panels
-ok 80 - isolated unresolved country review is preserved without stealing mixed candidate panels
-  ---
-  duration_ms: 1.161828
-  type: 'test'
-  ...
-# Subtest: label-only Traditional Chinese lines pair with the following OCR value
-ok 81 - label-only Traditional Chinese lines pair with the following OCR value
-  ---
-  duration_ms: 12.435091
-  type: 'test'
-  ...
-# Subtest: Traditional multiline coffee metadata resolves through the normal canonical pipeline
-ok 82 - Traditional multiline coffee metadata resolves through the normal canonical pipeline
-  ---
-  duration_ms: 34.289994
-  type: 'test'
-  ...
-# Subtest: Traditional inline field labels are canonicalized without changing unknown proper names
-ok 83 - Traditional inline field labels are canonicalized without changing unknown proper names
-  ---
-  duration_ms: 30.516624
-  type: 'test'
-  ...
-# Subtest: a following field label is never consumed as the previous label-only value
-ok 84 - a following field label is never consumed as the previous label-only value
-  ---
-  duration_ms: 0.686342
-  type: 'test'
-  ...
-# Subtest: main.6 bean detail does not expose roast code and pairs process with roast date
-ok 85 - main.6 bean detail does not expose roast code and pairs process with roast date
-  ---
-  duration_ms: 1.81032
-  type: 'test'
-  ...
-# Subtest: main.6 floating quadrant, radar labels and sensory footer obey theme/layout contract
-ok 86 - main.6 floating quadrant, radar labels and sensory footer obey theme/layout contract
-  ---
-  duration_ms: 0.783636
-  type: 'test'
-  ...
-# Subtest: main.6 preserves FAB visibility ownership and opens manual OCR editor explicitly
-ok 87 - main.6 preserves FAB visibility ownership and opens manual OCR editor explicitly
-  ---
-  duration_ms: 0.682766
-  type: 'test'
-  ...
-# Subtest: main.6 package review waits for recognition handoff completion instead of racing the form renderer
-ok 88 - main.6 package review waits for recognition handoff completion instead of racing the form renderer
-  ---
-  duration_ms: 0.740595
-  type: 'test'
-  ...
-# Subtest: main.6 unresolved semantic fields preserve review evidence for explicit bean-form confirmation
-ok 89 - main.6 unresolved semantic fields preserve review evidence for explicit bean-form confirmation
-  ---
-  duration_ms: 0.403449
-  type: 'test'
-  ...
-# Subtest: canonical brew plan preserves immersion semantics without replacing legacy plan
-ok 90 - canonical brew plan preserves immersion semantics without replacing legacy plan
-  ---
-  duration_ms: 2.15583
-  type: 'test'
-  ...
-# Subtest: BrewResult 1.1 carries spatial evidence and a superset flavor vector
-ok 91 - BrewResult 1.1 carries spatial evidence and a superset flavor vector
-  ---
-  duration_ms: 1.822583
-  type: 'test'
-  ...
-# Subtest: calculation coordinator attaches contracts on the authoritative runtime path
-ok 92 - calculation coordinator attaches contracts on the authoritative runtime path
-  ---
-  duration_ms: 2.120143
-  type: 'test'
-  ...
-# Subtest: history comparison prefers persisted BrewResult flavor over legacy trajectory summaries
-ok 93 - history comparison prefers persisted BrewResult flavor over legacy trajectory summaries
-  ---
-  duration_ms: 1.391401
-  type: 'test'
-  ...
-# Subtest: local reference uses the same contracts but cannot masquerade as professional spatial output
-ok 94 - local reference uses the same contracts but cannot masquerade as professional spatial output
-  ---
-  duration_ms: 9.614619
-  type: 'test'
-  ...
-# Subtest: history and optimization consumers are wired to BrewResult without treating model flavor as sensory truth
-ok 95 - history and optimization consumers are wired to BrewResult without treating model flavor as sensory truth
-  ---
-  duration_ms: 0.746957
-  type: 'test'
-  ...
-1..95
-# tests 125
-# suites 0
-# pass 125
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 801.43342
-
-All LuckyBean static and recognition regression checks passed
+Node.js v22.23.2
+::error file=tests/v124b-ocr-worker-freeze-regression.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: low-memory and WebKit engines must be disposed after recognition%0A    at file:///home/runner/work/luckybean/luckybean/tests/v124b-ocr-worker-freeze-regression.mjs:37:8 {%0A  generatedMessage: false,%0A  code: 'ERR_ASSERTION',%0A  actual: "const VERSION = '0.4.8';\n" +%0A    'const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;\n' +%0A    '\n' +%0A    'function isAppleMobileLike() {\n' +%0A    "  const ua = String(navigator.userAgent || '');\n" +%0A    "  return /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && Number(navigator.maxTouchPoints || 0) > 1);\n" +%0A    '}\n' +%0A    '\n' +%0A    'function isWebKitFamily() {\n' +%0A    "  const ua = String(navigator.userAgent || '');\n" +%0A    '  return /AppleWebKit/i.test(ua) && !/(Chrome|Chromium|CriOS|Edg|OPR|SamsungBrowser)/i.test(ua);\n' +%0A    '}\n' +%0A    '\n' +%0A    'const APPLE_MOBILE = isAppleMobileLike();\n' +%0A    'const WEBKIT = isWebKitFamily();\n' +%0A    'const LOW_MEMORY = APPLE_MOBILE || Number(navigator.deviceMemory || 4) <= 4;\n' +%0A    'const LIMIT_SIDE = LOW_MEMORY ? 640 : 960;\n' +%0A    'const ENGINE_INIT_TIMEOUT_MS = WEBKIT ? 30000 : 75000;\n' +%0A    'const PREDICT_TIMEOUT_MS = WEBKIT ? 30000 : 45000;\n' +%0A    'const ROI_CROP_TIMEOUT_MS = 20000;\n' +%0A    'const ENGINE_IDLE_MS = WEBKIT ? 30000 : LOW_MEMORY ? 45000 : 90000;\n' +%0A    '\n' +%0A    'let modulePromise = null;\n' +%0A    'let enginePromise = null;\n' +%0A    "let engineMode = WEBKIT ? 'direct-wasm-no-simd' : 'worker';\n" +%0A    'let engineGeneration = 0;\n' +%0A    'let busy = false;\n' +%0A    'let disposeTimer = 0;\n' +%0A    'let roiRequestSequence = 0;\n' +%0A    '\n' +%0A    "function defaultRuntimeBase() { return new URL('../public/vendor/paddleocr/', import.meta.url); }\n" +%0A    'function runtimeBase() {\n' +%0A    "  const configured = String(globalThis.CoffeeFoundationOcrAssetBase || '').trim();\n" +%0A    "  if (configured) { try { return new URL(configured, globalThis.location?.href || 'http://localhost/'); } catch {} }\n" +%0A    '  return defaultRuntimeBase();\n' +%0A    '}\n' +%0A    'function assetUrl(relativePath) { return new URL(relativePath, runtimeBase()).href; }\n' +%0A    'function emit(status, progress = 0) {\n' +%0A    "  const detail = { status:String(status || ''), progress:Math.max(0, Math.min(100, Number(progress) || 0)) };\n" +%0A    "  globalThis.dispatchEvent(new CustomEvent('luckybean:ocr-progress', { detail }));\n" +%0A    "  globalThis.dispatchEvent(new CustomEvent('coffee-foundation:ocr-progress', { detail }));\n" +%0A    '}\n' +%0A    "function timeoutError(message) { const error = new Error(message); error.name = 'RecognitionTimeoutError'; return error; }\n" +%0A    'function withTimeout(promise, timeoutMs, message, onTimeout) {\n' +%0A    '  let timer = 0;\n' +%0A    '  const timeout = new Promise((_, reject) => { timer = globalThis.setTimeout(() => { try { onTimeout?.(); } catch {} reject(timeoutError(message)); }, timeoutMs); });\n' +%0A    '  return Promise.race([promise, timeout]).finally(() => globalThis.clearTimeout(timer));\n' +%0A    '}\n' +%0A    'function clamp01(value, fallback = 0) { const number = Number(value); return Number.isFinite(number) ? Math.max(0, Math.min(1, number)) : fallback; }\n' +%0A    'function normalizeRegion(input) {\n' +%0A    "  const source = input && typeof input === 'object' ? input : {};\n" +%0A    '  const left = clamp01(source.left), top = clamp01(source.top), right = clamp01(source.right, 1), bottom = clamp01(source.bottom, 1);\n' +%0A    "  if (right - left < 0.01 || bottom - top < 0.01) throw new Error('ROI 范围过小或无效');\n" +%0A    '  return Object.freeze({ left, top, right, bottom });\n' +%0A    '}\n' +%0A    'async function cropRegionInWorker(blob, regionInput, options = {}) {\n' +%0A    "  if (!(blob instanceof Blob) || blob.size === 0) throw new Error('ROI 原图不可用');\n" +%0A    '  const region = normalizeRegion(regionInput); roiRequestSequence += 1;\n' +%0A    '  const requestId = `roi-${Date.now().toString(36)}-${roiRequestSequence.toString(36)}`;\n' +%0A    "  const worker = new Worker(assetUrl('roi-worker.js'), { type:'classic', name:'luckybean-roi-crop' });\n" +%0A    '  let settled = false;\n' +%0A    '  const cleanup = () => { if (settled) return; settled = true; try { worker.terminate(); } catch {} };\n' +%0A    '  const operation = new Promise((resolve, reject) => {\n' +%0A    '    worker.onmessage = event => {\n' +%0A    "      if (String(event.data?.requestId || '') !== requestId) return;\n" +%0A    "      if (event.data?.ok !== true) { cleanup(); reject(new Error(String(event.data?.error || 'ROI Worker 裁剪失败'))); return; }\n" +%0A    '      const result = event.data; cleanup(); resolve(result);\n' +%0A    '    };\n' +%0A    "    worker.onerror = event => { cleanup(); reject(new Error(`ROI Worker 运行失败：${event.message || 'unknown error'}`)); };\n" +%0A    '    worker.postMessage({ requestId, blob, region, maxEdge:Number(options.maxEdge || (LOW_MEMORY ? 1280 : 2200)) });\n' +%0A    '  });\n' +%0A    "  return withTimeout(operation, ROI_CROP_TIMEOUT_MS, 'ROI Worker 裁剪超时，已终止本次局部识别', cleanup);\n" +%0A    '}\n' +%0A    'async function loadModule() {\n' +%0A    '  if (!modulePromise) {\n' +%0A    "    emit('正在按需加载本地 PP-OCRv5 网页运行时', 2);\n" +%0A    "    modulePromise = import(assetUrl('sdk.mjs')).catch(error => { modulePromise = null; throw new Error(`本地 PP-OCRv5 SDK 加载失败：${error.message}`); });\n" +%0A    '  }\n' +%0A    '  return modulePromise;\n' +%0A    '}\n' +%0A    'function createModuleWorker() {\n' +%0A    "  try { return new Worker(assetUrl('worker.js'), { type:'module', name:'luckybean-ppocr-v5' }); }\n" +%0A    '  catch (error) { throw new Error(`本地 PP-OCRv5 Worker 创建失败：${error.message}`); }\n' +%0A    '}\n' +%0A    'function ocrCreateOptions({ compatibility = false } = {}) {\n' +%0A    '  return {\n' +%0A    "    lang:'ch', ocrVersion:'PP-OCRv5',\n" +%0A    "    textDetectionModelName:'PP-OCRv5_mobile_det', textDetectionModelAsset:{ url:assetUrl('models/PP-OCRv5_mobile_det_onnx_infer.tar') },\n" +%0A    "    textRecognitionModelName:'PP-OCRv5_mobile_rec', textRecognitionModelAsset:{ url:assetUrl('models/PP-OCRv5_mobile_rec_onnx_infer.tar') },\n" +%0A    '    ...(compatibility ? {} : { worker:{ createWorker:() => createModuleWorker() } }),\n' +%0A    '    textDetectionBatchSize:1, textRecognitionBatchSize:1,\n' +%0A    "    ortOptions:{ backend:'wasm', wasmPaths:assetUrl('ort/'), numThreads:1, simd:compatibility ? false : true }\n" +%0A    '  };\n' +%0A    '}\n' +%0A    'async function createWorkerEngine() {\n' +%0A    "  const module = await loadModule(); if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');\n" +%0A    '  return module.PaddleOCR.create(ocrCreateOptions({ compatibility:false }));\n' +%0A    '}\n' +%0A    'async function createCompatibilityEngine() {\n' +%0A    "  c
