@@ -1,5 +1,4 @@
 import { all } from '../db.js';
-import { loadCodebook, makeIndex, displayName } from '../codebook.js';
 
 const VERSION = 'full-integration/1.4';
 const COUNTRY = new Map([
@@ -22,7 +21,7 @@ const $ = (selector, root = document) => root?.querySelector?.(selector) || null
 const $$ = (selector, root = document) => root?.querySelectorAll ? [...root.querySelectorAll(selector)] : [];
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
 
-let index = null;
+let displayIndex = null;
 let beanMap = new Map();
 let latestPlan = null;
 let wakeLock = null;
@@ -30,7 +29,7 @@ let nativeExecutionActive = false;
 let renderQueued = false;
 let beanObserver = null;
 
-const code = (table, id, fallback = '') => index ? displayName(index, table, id, fallback) : fallback;
+const code = (table, id, fallback = '') => displayIndex?.[table]?.[id] || fallback;
 const notify = (message, kind = 'status-good') => document.dispatchEvent(new CustomEvent('luckybean:user-notice', { detail: { message, kind } }));
 
 function shortCountry(value) {
@@ -100,7 +99,7 @@ function queueCardRender() {
   requestAnimationFrame(transformCards);
 }
 async function refreshBeans() {
-  beanMap = new Map((await all('beans').catch(() => [])).map(bean => [String(bean.id), bean]));
+  beanMap = new Map((await all('beanSummaries').catch(() => [])).map(bean => [String(bean.id), bean]));
   queueCardRender();
 }
 
@@ -267,10 +266,14 @@ function bindBeanContainerObserver() {
 
 async function init() {
   try {
-    const loaded = await loadCodebook();
-    index = makeIndex(loaded?.data || loaded);
+    const response = await fetch(new URL('../../public/bean-display-index.json', import.meta.url), { cache: 'force-cache' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const candidate = await response.json();
+    if (candidate?.format !== 'luckybean-bean-display-index-v1') throw new Error('轻量显示索引格式不兼容');
+    displayIndex = candidate;
   } catch (error) {
-    console.warn('简称库加载失败', error);
+    console.warn('轻量简称索引加载失败', error);
+    displayIndex = {};
   }
   await refreshBeans();
   bindBeanContainerObserver();

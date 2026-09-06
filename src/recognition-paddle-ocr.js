@@ -170,8 +170,13 @@ async function run(task) {
   }
 }
 async function preload() {
-  if (globalThis.__LUCKYBEAN_ANDROID__ || LOW_MEMORY || WEBKIT) return null;
-  try { const ocr = await ensureEngine(); emit('PP-OCRv5 已在后台预热', 18); scheduleDispose(); return ocr; }
+  if (globalThis.__LUCKYBEAN_ANDROID__) return null;
+  if (LOW_MEMORY || WEBKIT) {
+    try { await loadModule(); emit('PP-OCRv5 运行时已在拍摄阶段预热，模型将在识别时按需加载', 6); }
+    catch (error) { emit(`PP-OCRv5 运行时预热未完成：${error.message}`, 0); }
+    return null;
+  }
+  try { const ocr = await ensureEngine(); emit('PP-OCRv5 已在拍摄阶段后台预热', 18); scheduleDispose(); return ocr; }
   catch (error) { emit(`PP-OCRv5 后台预热未完成：${error.message}`, 0); return null; }
 }
 const paddleOcrApi = Object.freeze({

@@ -18,7 +18,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-node@v7.0.0
@@ -47,7 +47,9 @@ jobs:
         run: node tests/foundation-live-contract.mjs
       - name: Verify live BrewProfiles contract
         run: npm run test:live-brewprofiles
-      - run: npx playwright install --with-deps chromium
+      - name: Verify live recognition AI contract
+        run: node tests/v124p-live-recognition-ai.mjs
+      - run: npx playwright install --with-deps chromium webkit
       - name: Start web server and wait until ready
         shell: bash
         run: |
@@ -70,6 +72,7 @@ jobs:
           cat /tmp/luckybean-http.log
           exit 1
       - run: npm run test:smoke
+      - run: npm run test:webkit
       - run: npm run test:core
       - run: npm run test:visual
       - name: Record validated source

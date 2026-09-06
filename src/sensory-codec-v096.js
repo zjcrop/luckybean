@@ -199,8 +199,13 @@ async function decompress(bytes, format) {
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
+const importedKeyCache = new WeakMap();
 async function importKey(secret) {
-  return crypto.subtle.importKey('raw', secret, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+  if (importedKeyCache.has(secret)) return importedKeyCache.get(secret);
+  const promise = crypto.subtle.importKey('raw', secret, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+  importedKeyCache.set(secret, promise);
+  try { return await promise; }
+  catch (error) { importedKeyCache.delete(secret); throw error; }
 }
 
 export async function sealSensoryRecord(record, secret) {

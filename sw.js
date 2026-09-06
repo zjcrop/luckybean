@@ -1,7 +1,7 @@
 // LuckyBean 1.24P: resilient offline shell with lazy feature/runtime caching.
-const REVISION = '1.24P-main.2';
+const REVISION = '1.24P-main.3';
 const CACHE_PREFIX = 'luckybean-main-v124p-';
-const CACHE_NAME = `${CACHE_PREFIX}main-2-web-startup`;
+const CACHE_NAME = `${CACHE_PREFIX}main-3-local-first-ai`;
 const LEGACY_CACHE_PREFIXES = [
   'luckybean-main-v124b-', 'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
   'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',
@@ -19,6 +19,7 @@ const LAZY_RUNTIME_RESOURCES = [
   './src/services/brew-analysis-service.js',
   './src/services/provider-package-service.js',
   './src/services/execution-text-sanitizer.js',
+  './src/services/recognition-ai-service.js',
   './src/services/grind-psd-reference-service.js',
   './src/ui/appearance-controller.js',
   './src/ui/voice-settings-controller.js',
@@ -36,6 +37,8 @@ const LAZY_RUNTIME_RESOURCES = [
   './src/features/release-1.24b-ui-policy.js',
   './src/features/release-1.24b-freshness-detail.js',
   './src/features/recognition-batch-progress-controller.js',
+  './src/features/recognition-multi-entry-controller.js',
+  './src/domain/recognition/recognition-entry-splitter.js',
   './src/features/sensory-tag-sort-controller.js',
   './src/domain/recognition/recognition-field-resolver-1.24b.js',
   './src/domain/recognition/order-recognition-1.24b.js',

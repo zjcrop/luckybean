@@ -36,7 +36,7 @@ test('main.6 preserves FAB visibility ownership and opens manual OCR editor expl
 test('main.6 package review waits for recognition handoff completion instead of racing the form renderer', () => {
   const capture = read('src/package-capture-controller.js');
   const followup = read('src/ui/release-1.24b-followup-controller.js');
-  assert.match(capture, /await flow\.acceptDocument\(recognitionDocument, \{ overwrite: true \}\);[\s\S]*luckybean:recognition-handoff-complete/);
+  assert.match(capture, /await flow\.acceptDocument\(recognitionDocument, \{\s*overwrite\s*:\s*true\s*\}\);[\s\S]*luckybean:recognition-handoff-complete/);
   assert.match(followup, /addEventListener\('luckybean:recognition-handoff-complete', onHandoffComplete\)/);
   assert.match(followup, /attempts >= 100/);
   assert.equal(followup.includes('form && attempts >= 10'), false);
@@ -46,7 +46,7 @@ test('main.6 unresolved semantic fields preserve review evidence for explicit be
   const pipeline = read('src/domain/recognition/recognition-pipeline.js');
   assert.match(pipeline, /for \(const item of reviewFields\)/);
   assert.match(pipeline, /const reviewValue = clean\(item\.rawValue \|\| item\.standardValue\)/);
-  assert.match(pipeline, /if \(missingEvidence\) parsed\.evidence\[item\.field\] = reviewValue/);
-  assert.match(pipeline, /parsed\.confidence\[item\.field\] = Number\(item\.confidence \|\| 0\)/);
+  assert.match(pipeline, /if \(missingEvidence && !item\.aiCandidates\?\.length\) parsed\.evidence\[item\.field\] = reviewValue/);
+  assert.match(pipeline, /if \(\(!Number\.isFinite\(currentConfidence\) \|\| currentConfidence <= 0\) && !item\.aiCandidates\?\.length\) parsed\.confidence\[item\.field\] = Number\(item\.confidence \|\| 0\)/);
   assert.equal(pipeline.includes('parsed.confidence[item.field] = 1'), false);
 });

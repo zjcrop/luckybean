@@ -1,5 +1,5 @@
-// LuckyBean 1.24B main.4 — canonical UI policy shared by Web and Android WebView.
-const UI_POLICY_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.2';
+// LuckyBean 1.24P main.3 — canonical UI policy shared by Web and Android WebView.
+const UI_POLICY_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.3';
 
 if (!globalThis.__LuckyBean124BUiPolicyLoaded) {
   globalThis.__LuckyBean124BUiPolicyLoaded = true;

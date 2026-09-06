@@ -6,7 +6,9 @@ const app = readFileSync(new URL('../src/app.js', import.meta.url), 'utf8');
 const layout = readFileSync(new URL('../src/ui-layout-controller.js', import.meta.url), 'utf8');
 const pipeline = readFileSync(new URL('../src/domain/recognition/recognition-pipeline.js', import.meta.url), 'utf8');
 
-assert.match(capture, /analyzeRecognitionDocument\(captureState\.recognitionDocument, book\)/);
+assert.match(capture, /captureState\.analysis = analyzeRecognitionDocument\(documentRef, book\)/);
+assert.match(capture, /captureState\.recognitionDocument = documentRef/);
+assert.match(capture, /generation !== operationGeneration \|\| captureState\.recognitionDocument !== documentRef/);
 assert.match(capture, /翻译与字段整理/);
 assert.match(capture, /已翻译归一/);
 assert.match(capture, /LuckyBeanRecognitionFlow/);
@@ -18,4 +20,4 @@ assert.match(pipeline, /rawFullText/);
 assert.match(pipeline, /semanticText/);
 assert.match(pipeline, /reviewFields/);
 
-console.log('Recognition document is the single translated and structured bean-entry source');
+console.log('Recognition document is the single translated and structured bean-entry source with isolated async document ownership');
