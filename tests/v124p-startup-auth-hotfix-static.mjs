@@ -40,13 +40,17 @@ assert.match(auth, /email_not_confirmed/, 'email verification state must be tran
 assert.match(auth, /invalid_credentials/, 'invalid credentials state must be translated explicitly');
 assert.match(auth, /over_email_send_rate_limit/, 'email rate-limit state must be translated explicitly');
 assert.match(auth, /typeof AbortController === 'function'/, 'auth requests must degrade when AbortController is unavailable');
-assert.match(auth, /cloud-auth-service-v9-callback-authoritative-startup/, 'current immediate atomic callback auth revision marker must be present');
+assert.match(auth, /cloud-auth-service-v10-parity-refresh-semantics/, 'current immediate atomic callback auth revision marker must be present');
 assert.match(auth, /volatileStorage/, 'Safari/localStorage failure must retain a non-destructive volatile auth fallback');
 assert.match(auth, /writeSession\(provisional\);[\s\S]*clearAuthCallbackUrl\(\);/, 'callback session must be accepted before profile/network enrichment');
 assert.match(auth, /void warmSession\(\)\.catch/, 'callback consumption must begin immediately instead of waiting for a later microtask');
 assert.match(auth, /function callbackSessionAuthoritative\(/, 'fresh callback sessions must have an explicit startup authority guard');
 assert.match(auth, /sessionExpiresAt = Number\(active\?\.expires_at \|\| 0\)/, 'session expires_at must backstop local JWT decoding on Safari');
 assert.match(auth, /Math\.max\(jwtExpiresAt, sessionExpiresAt\)/, 'JWT exp and session expires_at must share one token-validity contract');
+assert.match(auth, /forcedByApi401 = force && reason === 'api-401'/, 'only a confirmed API 401 may bypass a still-valid session');
+assert.match(auth, /accessTokenValid\(active\) && !forcedByApi401/, 'startup/background refresh must preserve a valid session');
+assert.match(auth, /refreshSession\(\{ force:false, reason:'startup' \}\)/, 'startup must not force-refresh an otherwise valid Android or Safari session');
+assert.match(auth, /reason:forceRefresh \? 'api-401' : 'token-expired'/, 'forced token refresh must be attributable to an API 401');
 assert.match(auth, /!forceRefresh && \(callbackSessionAuthoritative\(active\) \|\| accessTokenValid\(active\)\)/, 'fresh callback access tokens must be used before any proactive refresh');
 assert.doesNotMatch(auth, /queueMicrotask\(\(\) => warmSession/, 'Safari callback acceptance must not depend on microtask scheduling');
 

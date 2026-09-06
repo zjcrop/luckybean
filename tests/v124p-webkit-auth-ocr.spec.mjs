@@ -63,11 +63,11 @@ test('email verification callback survives Safari-style storage failure',async({
   await expect.poll(()=>page.evaluate(()=>globalThis.LuckyBeanCloudAuth?.getSession?.()?.refresh_token||''),{timeout:15000}).toBe('webkit-refresh');
   await expect.poll(()=>page.evaluate(()=>globalThis.LuckyBeanCloudAuth?.getSession?.()?.user?.email||''),{timeout:15000}).toBe('webkit@example.com');
   const state=await page.evaluate(()=>({hash:location.hash,auth:document.documentElement.dataset.cloudAuth,storage:document.documentElement.dataset.cloudStorage,email:globalThis.LuckyBeanCloudAuth.getSession()?.user?.email}));
+  expect(refreshCalls).toBe(0);
   expect(state.hash).toBe('');
   expect(state.auth).toBe('authenticated');
   expect(state.storage).toBe('volatile');
   expect(state.email).toBe('webkit@example.com');
-  expect(refreshCalls).toBe(0);
 });
 
 test('WebKit runtime stays lazy and exposes bounded PP-OCR compatibility mode',async({page})=>{

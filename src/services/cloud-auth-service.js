@@ -232,7 +232,11 @@ async function refreshSession({ force = false, reason = 'background' } = {}) {
     if (!active?.refresh_token) { emit('signed-out'); return null; }
     if (rememberUntil() && Date.now() > rememberUntil()) { writeSession(null); emit('expired', { reason:'seven-day-inactivity' }); return null; }
     if (!navigator.onLine) { emit('offline', { session:active }); return accessTokenValid(active, 0) ? active : null; }
-    if (!force && accessTokenValid(active)) { emit('authenticated', { user:active.user, cached:true }); return active; }
+    const forcedByApi401 = force && reason === 'api-401';
+    if (accessTokenValid(active) && !forcedByApi401) {
+      emit('authenticated', { user:active.user, cached:true, authAction:callbackSessionAuthoritative(active) ? 'email-callback' : 'session-resume' });
+      return active;
+    }
     emit('connecting', { reason });
     try {
       const payload = await rawRequest('/auth/v1/token?grant_type=refresh_token', { body:{ refresh_token:active.refresh_token }, timeoutMs:5000 });
@@ -252,7 +256,7 @@ async function getAccessToken({ forceRefresh = false } = {}) {
   // A freshly issued callback token is authoritative for this startup even when Safari
   // cannot persist storage or decode the JWT locally. Only a real API 401 may force refresh.
   if (!forceRefresh && (callbackSessionAuthoritative(active) || accessTokenValid(active))) return active.access_token;
-  const refreshed = await refreshSession({ force:true, reason:'api-request' }); return refreshed?.access_token || '';
+  const refreshed = await refreshSession({ force:true, reason:forceRefresh ? 'api-401' : 'token-expired' }); return refreshed?.access_token || '';
 }
 async function apiRequest(path, options = {}) {
   const run = async forceRefresh => { const token = await getAccessToken({ forceRefresh }); if (!token) throw new Error('请先登录云端账号'); return rawRequest(path, { ...options, token }); };
@@ -338,11 +342,11 @@ async function warmSession() {
     emit('authenticated', { user:active.user, cached:true, authAction:'email-callback' });
     return active;
   }
-  return refreshSession({ force:true, reason:'startup' });
+  return refreshSession({ force:false, reason:'startup' });
 }
 
 globalThis.LuckyBeanCloudAuth = {
-  revision:'cloud-auth-service-v9-callback-authoritative-startup', getSession:readSession, warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut, consumeAuthCallback,
+  revision:'cloud-auth-service-v10-parity-refresh-semantics', getSession:readSession, warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut, consumeAuthCallback,
   isRemembered:() => Boolean(readSession()?.refresh_token && Date.now() <= rememberUntil()), rememberUntil,
   pendingRegistration:readPendingRegistration
 };

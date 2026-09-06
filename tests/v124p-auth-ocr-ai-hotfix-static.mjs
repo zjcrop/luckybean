@@ -20,10 +20,12 @@ assert.match(auth,/params\.get\('refresh_token'\)/);
 assert.match(auth,/writeSession\(provisional\);[\s\S]*markServerActivity\(\);[\s\S]*clearAuthCallbackUrl\(\);[\s\S]*rawRequest\('\/auth\/v1\/user'/);
 assert.match(auth,/history\.replaceState/);
 assert.match(auth,/volatileSession/);
-assert.match(auth,/cloud-auth-service-v9-callback-authoritative-startup/);
+assert.match(auth,/cloud-auth-service-v10-parity-refresh-semantics/);
 assert.match(auth,/void warmSession\(\)\.catch/);
 assert.match(auth,/callbackSessionAuthoritative\(active\)/);
 assert.match(auth,/!forceRefresh && \(callbackSessionAuthoritative\(active\) \|\| accessTokenValid\(active\)\)/);
+assert.match(auth,/forcedByApi401 = force && reason === 'api-401'/);
+assert.match(auth,/refreshSession\(\{ force:false, reason:'startup' \}\)/);
 assert.doesNotMatch(auth,/function writeSession\(value\) \{ if \(value\?\.access_token/,'session persistence must not use the old unguarded storage writer');
 
 assert.match(ai,/recognition-ai-v1/);
