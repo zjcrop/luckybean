@@ -1,4 +1,4 @@
-const VERSION = '0.4.7';
+const VERSION = '0.4.8';
 const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;
 
 function isAppleMobileLike() {
@@ -18,6 +18,7 @@ const LIMIT_SIDE = LOW_MEMORY ? 640 : 960;
 const ENGINE_INIT_TIMEOUT_MS = WEBKIT ? 30000 : 75000;
 const PREDICT_TIMEOUT_MS = WEBKIT ? 30000 : 45000;
 const ROI_CROP_TIMEOUT_MS = 20000;
+const ENGINE_IDLE_MS = WEBKIT ? 20000 : LOW_MEMORY ? 30000 : 90000;
 
 let modulePromise = null;
 let enginePromise = null;
@@ -128,8 +129,7 @@ async function dispose() {
 }
 function scheduleDispose() {
   globalThis.clearTimeout(disposeTimer);
-  if (LOW_MEMORY || engineMode === 'direct-wasm-no-simd') { void dispose(); return; }
-  disposeTimer = globalThis.setTimeout(() => { void dispose(); }, 90000);
+  disposeTimer = globalThis.setTimeout(() => { void dispose(); }, ENGINE_IDLE_MS);
 }
 function meaningful(text) {
   const chars = [...String(text || '')]; if (!chars.length) return 0;
@@ -165,32 +165,43 @@ async function run(task) {
   catch (error) { detachEngine(); emit(`识别失败：${error.message}`, 0); throw new Error(`${error.message}；已停止当前任务。不会切换到 Tesseract 或其他未知 OCR。`); }
   finally {
     busy = false;
-    if (LOW_MEMORY || engineMode === 'direct-wasm-no-simd') await dispose();
-    else if (enginePromise) scheduleDispose();
+    if (enginePromise) scheduleDispose();
   }
 }
 async function preload() {
   if (globalThis.__LUCKYBEAN_ANDROID__) return null;
   if (LOW_MEMORY || WEBKIT) {
-    try { await loadModule(); emit('PP-OCRv5 运行时已在拍摄阶段预热，模型将在识别时按需加载', 6); }
+    try { await loadModule(); emit('PP-OCRv5 运行时已在拍摄阶段预热，模型将在选图后按需加载', 6); }
     catch (error) { emit(`PP-OCRv5 运行时预热未完成：${error.message}`, 0); }
     return null;
   }
   try { const ocr = await ensureEngine(); emit('PP-OCRv5 已在拍摄阶段后台预热', 18); scheduleDispose(); return ocr; }
   catch (error) { emit(`PP-OCRv5 后台预热未完成：${error.message}`, 0); return null; }
 }
+async function warmForRecognition() {
+  if (globalThis.__LUCKYBEAN_ANDROID__) return null;
+  try {
+    const ocr = await ensureEngine();
+    emit(WEBKIT ? 'Safari 本地 OCR 已在选图后预热' : 'PP-OCRv5 模型已在选图后预热', 18);
+    scheduleDispose();
+    return ocr;
+  } catch (error) {
+    emit(`PP-OCRv5 选图后预热未完成：${error.message}`, 0);
+    return null;
+  }
+}
 const paddleOcrApi = Object.freeze({
   version:VERSION, engine:ENGINE, lowMemory:LOW_MEMORY, appleMobile:APPLE_MOBILE,
   workerOnly:false, browserSafe:true, primaryIsolation:WEBKIT ? 'webkit-direct-wasm-no-simd' : 'module-worker', compatibilityFallback:'webkit-direct-wasm-no-simd',
-  autoPreload:false, disposePolicy:LOW_MEMORY || WEBKIT ? 'after-each-task' : 'idle-90s',
+  autoPreload:false, disposePolicy:`idle-${Math.round(ENGINE_IDLE_MS / 1000)}s`,
   roiWorkerOnly:true, regionRecognition:'recognition-roi/1.0', runtimeOrigin:'same-origin-vendored', workerBootstrap:'same-origin-vendored-module',
   runtimeBase() { return runtimeBase().href; },
   recognizeCoffeeBag(images) { return run(() => predict(images)); },
   recognizeRegion(blob, region, options = {}) { return run(() => predictRegion(blob, region, options)); },
-  async recognize(blob) { const result = await run(() => predict([{ id:'single', blob }])); return { blocks:result.blocks }; }, preload, dispose
+  async recognize(blob) { const result = await run(() => predict([{ id:'single', blob }])); return { blocks:result.blocks }; }, preload, warmForRecognition, dispose
 });
 globalThis.LuckyBeanPaddleOCR = paddleOcrApi;
 globalThis.CoffeeFoundationPaddleOCR = paddleOcrApi;
 document.addEventListener('visibilitychange', () => { if (document.hidden && !busy) void dispose(); });
 globalThis.addEventListener('pagehide', () => { if (!busy) void dispose(); });
-document.documentElement.dataset.webOcr = `ppocr-v5-${VERSION}-self-hosted-lazy-memory-bounded`;
+document.documentElement.dataset.webOcr = `ppocr-v5-${VERSION}-self-hosted-lazy-memory-bounded-reuse`;
