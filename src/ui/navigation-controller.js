@@ -1,134 +1,138 @@
-const PAGE_SELECTOR = '.page[data-page]';
-const NAV_STATE_KEY = '__luckybeanNavigation';
-const BACK_LABEL = /^(?:上一步|返回|返回文字|返回列表|返回小酌|不记录则返回小酌|取消)$/;
+import {
+  BackGestureAdapter,
+  DraftGuard,
+  FlowNavigation,
+  NavigationManager,
+  OverlayManager,
+  RootExitGuard
+} from './interaction-foundation.js';
 
-let currentPage = '';
-let currentDepth = 0;
-let suppressPageCapture = false;
-let initialized = false;
+const PAGE_SELECTOR = '.page[data-page]';
+const BACK_LABEL = /^(?:上一步|返回|取消|关闭|暂存退出|退出)$/u;
+
+function pageName(node) {
+  return String(node?.dataset?.page || '').trim();
+}
 
 function activePage() {
-  return document.querySelector(`${PAGE_SELECTOR}.active`)?.dataset.page || '';
+  return pageName(document.querySelector(`${PAGE_SELECTOR}.active`)) || 'beans';
 }
 
-function visible(element) {
-  if (!element || element.disabled) return false;
-  const style = getComputedStyle(element);
-  return style.display !== 'none' && style.visibility !== 'hidden';
-}
-
-function clickBackControl(root) {
-  if (!root) return false;
-  const controls = [...root.querySelectorAll('button,[role="button"]')].filter(visible);
-  const explicit = controls.find(control => control.hasAttribute('data-navigation-back')
-    || /BackBtn$/i.test(control.id || '')
-    || /(?:^|-)prev$/i.test([...control.attributes].map(attribute => attribute.name).find(name => name.startsWith('data-')) || '')
-    || BACK_LABEL.test(String(control.textContent || '').replace(/\s+/g, ' ').trim()));
-  if (explicit) {
-    explicit.click();
-    return true;
-  }
-  const close = root.querySelector('[data-close-overlay],[data-v095-close],[data-v098-close],[data-v099-close],.close-button');
-  if (visible(close)) {
-    close.click();
-    return true;
-  }
-  return false;
+function clickBackControl(scope = document) {
+  const controls = [...scope.querySelectorAll('button:not([disabled]), [role="button"]')];
+  const target = controls.find(node => {
+    if (!(node instanceof HTMLElement) || node.offsetParent === null) return false;
+    if (node.matches('[data-navigation-back], [id$="BackBtn"], [data-v095-prev], [data-cupping-prev]')) return true;
+    if ([...node.attributes].some(attribute => /^data-.*(?:prev|back)$/i.test(attribute.name))) return true;
+    return BACK_LABEL.test(String(node.textContent || '').trim());
+  });
+  if (!target) return false;
+  target.click();
+  return true;
 }
 
 function externalWorkflowOverlay() {
-  return [...document.body.children].find(node => {
-    if (!(node instanceof HTMLElement) || node.id === 'overlayRoot' || node.id === 'splashScreen') return false;
-    if (!/(?:overlay|dialog)/i.test(`${node.id} ${node.className}`)) return false;
-    return visible(node);
+  return [...document.body.children].reverse().find(node => {
+    if (!(node instanceof HTMLElement) || node.offsetParent === null) return false;
+    if (node.id === 'interactionScrim' || node.id === 'overlayRoot') return false;
+    const signature = `${node.id || ''} ${node.className || ''}`.toLowerCase();
+    return /(^|\s|[-_])overlay($|\s|[-_])/.test(signature) || /professional-overlay/.test(signature);
   }) || null;
 }
 
-function backOverlay() {
+function legacyBack() {
   const external = externalWorkflowOverlay();
   if (external && clickBackControl(external)) return true;
+  return clickBackControl(document.querySelector(`${PAGE_SELECTOR}.active`) || document);
+}
 
-  const root = document.querySelector('#overlayRoot');
-  const overlay = root?.firstElementChild;
-  if (!overlay) return false;
-  if (clickBackControl(overlay)) return true;
+function isNativeShell() {
+  return typeof globalThis.LuckyBeanNative?.exitApp === 'function';
+}
 
-  // Canonical fallback for overlays without an explicit close control. App overlays are
-  // single-root surfaces, so removing the surface is safer than allowing Android to exit.
-  root.replaceChildren();
-  document.dispatchEvent(new CustomEvent('luckybean:navigation-overlay-dismissed', {
-    detail: { source: 'system-back' }
-  }));
+function notify(message) {
+  document.dispatchEvent(new CustomEvent('luckybean:user-notice', { detail: { message, kind: 'status-good' } }));
+}
+
+const overlayManager = new OverlayManager({ documentTarget: document }).start();
+const draftGuard = new DraftGuard({ windowTarget: globalThis });
+const flowNavigation = new FlowNavigation();
+
+function openDraftConfirmation({ scope, onConfirm }) {
+  const label = scope ? `“${scope}”` : '当前编辑';
+  overlayManager.openSystemDialog({
+    id: 'interaction-draft-confirm',
+    title: '存在未保存修改',
+    message: `${label}尚未保存。继续返回会离开当前编辑内容。`,
+    confirmLabel: '继续返回',
+    cancelLabel: '留在这里',
+    danger: true,
+    onConfirm
+  });
   return true;
 }
 
-function goToPage(page) {
-  if (!page || page === activePage()) return true;
-  const button = document.querySelector(`[data-page-target="${CSS.escape(page)}"]`);
-  if (!button) return false;
-  suppressPageCapture = true;
-  button.click();
-  queueMicrotask(() => { suppressPageCapture = false; currentPage = activePage() || page; });
-  return true;
-}
+const rootExitGuard = new RootExitGuard({
+  draftGuard,
+  isNative: isNativeShell,
+  notify,
+  openConfirmation: ({ dirty, onConfirm, onCancel }) => overlayManager.openSystemDialog({
+    id: 'interaction-root-exit-confirm',
+    title: '退出富贵盒子？',
+    message: dirty ? '当前仍有未保存修改。退出应用可能丢失这些编辑内容。' : '确认退出应用。',
+    confirmLabel: '退出',
+    cancelLabel: '取消',
+    danger: true,
+    onConfirm,
+    onCancel
+  }),
+  exit: () => globalThis.LuckyBeanNative?.exitApp?.()
+});
 
-function recordPageChange() {
-  if (!initialized || suppressPageCapture) return;
-  const nextPage = activePage();
-  if (!nextPage || nextPage === currentPage) return;
-  currentPage = nextPage;
-  currentDepth += 1;
-  history.pushState({ [NAV_STATE_KEY]: true, page: currentPage, depth: currentDepth }, '', location.href);
+const manager = new NavigationManager({
+  overlayManager,
+  flowNavigation,
+  draftGuard,
+  rootExitGuard,
+  legacyBack,
+  confirmDraftLeave: openDraftConfirmation,
+  documentTarget: document
+});
+manager.setActivePage(activePage());
+const backGesture = new BackGestureAdapter(manager);
+
+function updateActivePage() {
+  manager.setActivePage(activePage());
 }
 
 function initialize() {
-  currentPage = activePage() || 'beans';
-  currentDepth = 0;
-  history.replaceState({ [NAV_STATE_KEY]: true, page: currentPage, depth: 0 }, '', location.href);
-
-  const main = document.querySelector('#mainContent');
-  if (main) {
-    const observer = new MutationObserver(recordPageChange);
-    observer.observe(main, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  const mainContent = document.querySelector('#mainContent');
+  if (mainContent && typeof MutationObserver === 'function') {
+    const observer = new MutationObserver(records => {
+      if (records.some(record => record.type === 'attributes' && record.attributeName === 'class')) updateActivePage();
+    });
+    observer.observe(mainContent, { subtree: true, attributes: true, attributeFilter: ['class'] });
   }
-
-  window.addEventListener('popstate', event => {
-    if (backOverlay()) {
-      history.pushState({ [NAV_STATE_KEY]: true, page: currentPage, depth: currentDepth }, '', location.href);
-      return;
-    }
-    const navigation = event.state;
-    if (!navigation?.[NAV_STATE_KEY]) {
-      currentDepth = 0;
-      return;
-    }
-    currentDepth = Math.max(0, Number(navigation.depth) || 0);
-    currentPage = String(navigation.page || currentPage || 'beans');
-    goToPage(currentPage);
-  });
-
-  initialized = true;
-  document.dispatchEvent(new CustomEvent('luckybean:navigation-ready', {
-    detail: { page: currentPage, depth: currentDepth }
-  }));
+  document.addEventListener('click', event => {
+    const target = event.target instanceof Element ? event.target.closest('[data-page-target]') : null;
+    if (target) queueMicrotask(updateActivePage);
+  }, true);
 }
 
-function canGoBack() {
-  return Boolean(externalWorkflowOverlay() || document.querySelector('#overlayRoot')?.firstElementChild || currentDepth > 0);
-}
+initialize();
 
-function back() {
-  if (backOverlay()) return true;
-  if (currentDepth <= 0) return false;
-  history.back();
-  return true;
-}
-
-globalThis.LuckyBeanNavigation = Object.freeze({
-  canGoBack,
-  back,
-  snapshot: () => ({ page: activePage() || currentPage, depth: currentDepth, overlay: Boolean(document.querySelector('#overlayRoot')?.firstElementChild || externalWorkflowOverlay()) })
+const api = Object.freeze({
+  back: options => manager.back(typeof options === 'object' && options ? options : {}),
+  canGoBack: () => manager.canGoBack(),
+  snapshot: () => manager.snapshot(),
+  registerOverlay: options => overlayManager.register(options),
+  registerFlowBack: options => flowNavigation.register(options),
+  registerChildBack: options => manager.registerChildBack(options),
+  setDraftDirty: (scope, dirty = true) => draftGuard.setDirty(scope, dirty),
+  clearDraft: scope => draftGuard.clear(scope),
+  isDraftDirty: scope => draftGuard.isDirty(scope),
+  systemBack: () => backGesture.back('android-system'),
+  managers: Object.freeze({ overlay: overlayManager, flow: flowNavigation, draft: draftGuard, rootExit: rootExitGuard })
 });
 
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize, { once: true });
-else initialize();
+globalThis.LuckyBeanNavigation = api;
