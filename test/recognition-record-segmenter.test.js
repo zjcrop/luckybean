@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRecognitionDocument } from '../src/domain/recognition/recognition-document.js';
 import { splitRecognitionEntries } from '../src/domain/recognition/recognition-entry-splitter.js';
+import { groupRecognitionRecordCandidates } from '../src/domain/recognition/recognition-record-segmenter.js';
 
 function box(left, top, right, bottom) {
   return [[left, top], [right, top], [right, bottom], [left, bottom]];
@@ -49,4 +50,26 @@ test('geometry split re-infers field relations inside each child without cross-r
   assert.ok(right.relations.every(item => item.imageId === 'photo'));
   assert.doesNotMatch(left.fullText, /COLOMBIA|PINK BOURBON|HONEY PROCESS/u);
   assert.doesNotMatch(right.fullText, /ETHIOPIA|GESHA|WASHED/u);
+});
+
+test('explicit source dimensions prevent the text envelope from exaggerating a modest column gap', () => {
+  const document = createRecognitionDocument({
+    images:[{ id:'photo', role:'front' }],
+    blocks:[
+      block('l-origin', 'Ethiopia Guji', 500, 100, 700, 140),
+      block('r-origin', 'Colombia Huila', 900, 100, 1100, 140),
+      block('l-variety', 'Gesha', 500, 200, 700, 240),
+      block('r-variety', 'Pink Bourbon', 900, 200, 1100, 240),
+      block('l-process', 'Washed', 500, 300, 700, 340),
+      block('r-process', 'Honey Process', 900, 300, 1100, 340)
+    ]
+  });
+
+  const textEnvelope = groupRecognitionRecordCandidates(document);
+  assert.equal(textEnvelope.grouped, true);
+  assert.equal(textEnvelope.method, 'geometry-side-by-side-v1');
+
+  const sourceFrame = groupRecognitionRecordCandidates(document, { sourceWidth:2000, sourceHeight:1000 });
+  assert.equal(sourceFrame.grouped, false);
+  assert.equal(sourceFrame.candidates.length, 0);
 });
