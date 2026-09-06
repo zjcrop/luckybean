@@ -186,7 +186,9 @@ test('local changes are saved first and batch-synced after debounce', async ({ p
 
   await page.waitForFunction(() => !localStorage.getItem('luckybean.cloud.dirty.v3') && document.documentElement.dataset.cloudSync === 'synced', null, { timeout: 25000 });
 
-  expect(requests.refresh).toBeGreaterThanOrEqual(1);
+  // Safari and Android share the same auth contract: a still-valid session is reused.
+  // Refresh is reserved for an actually expired token or a confirmed API 401.
+  expect(requests.refresh).toBe(0);
   expect(requests.manifestReads).toBeGreaterThanOrEqual(1);
   expect(requests.chunkWrites).toHaveLength(1);
   expect(Array.isArray(requests.chunkWrites[0])).toBe(true);
