@@ -63,6 +63,10 @@ async function runStage0Baseline(page) {
 
     const core = globalThis.LuckyBeanStage0RecognitionCore;
     const statuses = [];
+    const diagnostics = [];
+    globalThis.__LUCKYBEAN_RECOGNITION_DIAGNOSTICS__ = {
+      record(entry) { diagnostics.push({ ...entry, durationMs:Number(Number(entry?.durationMs || 0).toFixed(3)) }); }
+    };
     const progressHandler = event => statuses.push(String(event.detail?.status || ''));
     globalThis.addEventListener('luckybean:ocr-progress', progressHandler);
 
@@ -88,9 +92,39 @@ async function runStage0Baseline(page) {
       return { result, ms: performance.now() - start };
     }
 
+    function aggregateDiagnostics(entries) {
+      const summary = {};
+      for (const entry of entries) {
+        const key = `${entry.scope}:${entry.phase}`;
+        summary[key] ||= { count:0, totalMs:0, maxMs:0 };
+        summary[key].count += 1;
+        summary[key].totalMs += Number(entry.durationMs || 0);
+        summary[key].maxMs = Math.max(summary[key].maxMs, Number(entry.durationMs || 0));
+      }
+      for (const value of Object.values(summary)) {
+        value.totalMs = Number(value.totalMs.toFixed(3));
+        value.maxMs = Number(value.maxMs.toFixed(3));
+      }
+      return summary;
+    }
+
     try {
       const firstPrep = await prepare(files[0], 'single-cold');
       const firstOcr = await recognize([firstPrep.image]);
+
+      // Stage 2 uses the same immutable RecognitionDocument -> analysis contract as production.
+      // This adds timing visibility only; it does not change parser/canonical results.
+      const book = await fetch('./public/fallback-codebook.json', { cache:'no-store' }).then(response => {
+        if (!response.ok) throw new Error(`Fallback codebook HTTP ${response.status}`);
+        return response.json();
+      });
+      const firstDocument = core.createRecognitionDocument({
+        images:[{ id:firstPrep.image.id, role:'front', roleLabel:'Stage 2 semantic timing' }],
+        blocks:firstOcr.result?.blocks || [],
+        engine:firstOcr.result?.engine || '',
+        fullText:firstOcr.result?.fullText || ''
+      });
+      core.analyzeRecognitionDocument(firstDocument, book);
 
       const repeatPrep = await prepare(files[0], 'single-repeat');
       const repeatOcr = await recognize([repeatPrep.image]);
@@ -108,6 +142,13 @@ async function runStage0Baseline(page) {
       return {
         fixtureKind: 'deterministic-camera-like-jpeg',
         engine: String(batchOcr.result?.engine || firstOcr.result?.engine || ''),
+        provider: {
+          version:String(globalThis.LuckyBeanPaddleOCR?.version || ''),
+          workerOnly:Boolean(globalThis.LuckyBeanPaddleOCR?.workerOnly),
+          browserSafe:Boolean(globalThis.LuckyBeanPaddleOCR?.browserSafe),
+          primaryIsolation:String(globalThis.LuckyBeanPaddleOCR?.primaryIsolation || ''),
+          autoPreload:Boolean(globalThis.LuckyBeanPaddleOCR?.autoPreload)
+        },
         singleCold: {
           prepareMs: firstPrep.ms,
           ocrMs: firstOcr.ms,
@@ -127,11 +168,14 @@ async function runStage0Baseline(page) {
           blocks: Number(batchOcr.result?.blocks?.length || 0)
         },
         runtimeReadyEvents,
-        progressEventCount: statuses.length
+        progressEventCount: statuses.length,
+        stage2Diagnostics: diagnostics,
+        stage2DiagnosticSummary: aggregateDiagnostics(diagnostics)
       };
     } finally {
       globalThis.removeEventListener('luckybean:ocr-progress', progressHandler);
       await globalThis.LuckyBeanPaddleOCR?.dispose?.();
+      delete globalThis.__LUCKYBEAN_RECOGNITION_DIAGNOSTICS__;
       delete globalThis.LuckyBeanStage0RecognitionCore;
     }
   });
@@ -144,6 +188,7 @@ test('Stage 0 records repeatable PP-OCR single/repeat/four-image performance bas
 
   const baselineJson = `${JSON.stringify(baseline, null, 2)}\n`;
   console.log(`STAGE0_OCR_BASELINE ${JSON.stringify(baseline)}`);
+  console.log(`STAGE2_LUCKYBEAN_RECOGNITION_DIAGNOSTICS ${JSON.stringify(baseline.stage2DiagnosticSummary)}`);
   await testInfo.attach('stage0-ocr-baseline.json', { body: Buffer.from(baselineJson), contentType: 'application/json' });
 
   expect(baseline.fixtureKind).toBe('deterministic-camera-like-jpeg');
@@ -154,4 +199,12 @@ test('Stage 0 records repeatable PP-OCR single/repeat/four-image performance bas
   expect(baseline.singleCold.totalMs).toBeGreaterThan(0);
   expect(baseline.singleRepeat.totalMs).toBeGreaterThan(0);
   expect(baseline.fourImageWarmBatch.totalMs).toBeGreaterThan(0);
+  expect(baseline.provider.workerOnly).toBe(false);
+  expect(baseline.provider.browserSafe).toBe(true);
+  expect(baseline.provider.autoPreload).toBe(false);
+  expect(baseline.stage2DiagnosticSummary['ocr:runtime-init']?.count).toBe(1);
+  expect(baseline.stage2DiagnosticSummary['ocr:ocr-predict']?.count).toBeGreaterThanOrEqual(6);
+  expect(baseline.stage2DiagnosticSummary['semantic:semantic-parse']?.count).toBe(1);
+  expect(baseline.stage2DiagnosticSummary['semantic:canonical-field-arbitration']?.count).toBe(1);
+  expect(baseline.stage2DiagnosticSummary['semantic:ai-advisory']?.count).toBe(1);
 });

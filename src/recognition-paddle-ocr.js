@@ -28,6 +28,15 @@ let busy = false;
 let disposeTimer = 0;
 let roiRequestSequence = 0;
 
+function diagnosticNow() { return Number(globalThis.performance?.now?.() ?? Date.now()); }
+function recordDiagnostic(phase, startedAt, detail = {}) {
+  const sink = globalThis.__LUCKYBEAN_RECOGNITION_DIAGNOSTICS__;
+  if (typeof sink?.record !== 'function') return;
+  try {
+    sink.record({ scope:'ocr', phase:String(phase), durationMs:Math.max(0, diagnosticNow() - Number(startedAt || 0)), ...detail });
+  } catch {}
+}
+
 function defaultRuntimeBase() { return new URL('../public/vendor/paddleocr/', import.meta.url); }
 function runtimeBase() {
   const configured = String(globalThis.CoffeeFoundationOcrAssetBase || '').trim();
@@ -55,6 +64,7 @@ function normalizeRegion(input) {
 }
 async function cropRegionInWorker(blob, regionInput, options = {}) {
   if (!(blob instanceof Blob) || blob.size === 0) throw new Error('ROI 原图不可用');
+  const diagnosticStarted = diagnosticNow();
   const region = normalizeRegion(regionInput); roiRequestSequence += 1;
   const requestId = `roi-${Date.now().toString(36)}-${roiRequestSequence.toString(36)}`;
   const worker = new Worker(assetUrl('roi-worker.js'), { type:'classic', name:'luckybean-roi-crop' });
@@ -69,7 +79,8 @@ async function cropRegionInWorker(blob, regionInput, options = {}) {
     worker.onerror = event => { cleanup(); reject(new Error(`ROI Worker 运行失败：${event.message || 'unknown error'}`)); };
     worker.postMessage({ requestId, blob, region, maxEdge:Number(options.maxEdge || (LOW_MEMORY ? 1280 : 2200)) });
   });
-  return withTimeout(operation, ROI_CROP_TIMEOUT_MS, 'ROI Worker 裁剪超时，已终止本次局部识别', cleanup);
+  try { return await withTimeout(operation, ROI_CROP_TIMEOUT_MS, 'ROI Worker 裁剪超时，已终止本次局部识别', cleanup); }
+  finally { recordDiagnostic('roi-crop', diagnosticStarted); }
 }
 async function loadModule() {
   if (!modulePromise) {
@@ -116,11 +127,15 @@ async function startCompatibilityEngine() {
 }
 async function ensureEngine() {
   globalThis.clearTimeout(disposeTimer); if (enginePromise) return enginePromise;
+  const diagnosticStarted = diagnosticNow();
   emit(WEBKIT ? '正在按需准备 Safari 本地 OCR' : '正在后台准备本地 PP-OCRv5 中文检测与识别模型', 7);
   const pending = WEBKIT
     ? startCompatibilityEngine().then(ocr => { engineMode='direct-wasm-no-simd'; emit('PP-OCRv5 Safari 兼容模式已就绪', 18); return ocr; })
     : startWorkerEngine().then(ocr => { engineMode='worker'; emit('PP-OCRv5 Worker 中文模型已就绪', 18); return ocr; });
-  const tracked = pending.catch(error => { if (enginePromise === tracked) enginePromise = null; throw new Error(`PP-OCRv5 初始化失败：${error.message}`); });
+  const tracked = pending.then(ocr => {
+    recordDiagnostic('runtime-init', diagnosticStarted, { mode:engineMode, webkit:WEBKIT, lowMemory:LOW_MEMORY });
+    return ocr;
+  }).catch(error => { if (enginePromise === tracked) enginePromise = null; throw new Error(`PP-OCRv5 初始化失败：${error.message}`); });
   enginePromise = tracked; return tracked;
 }
 async function dispose() {
@@ -144,8 +159,10 @@ async function predict(images) {
   const ocr = await ensureEngine(); const blocks = [], groups = [];
   for (let index = 0; index < images.length; index += 1) {
     const image = images[index]; emit(`PP-OCRv5 正在识别第 ${index + 1}/${images.length} 张图片`, 20 + Math.round(index / Math.max(1, images.length) * 70));
+    const diagnosticStarted = diagnosticNow();
     const prediction = ocr.predict(image.blob, { textDetLimitSideLen:LIMIT_SIDE, textDetLimitType:'min', textDetMaxSideLimit:LOW_MEMORY ? 1280 : 2200, textDetThresh:0.22, textDetBoxThresh:0.35, textDetUnclipRatio:1.55, textRecScoreThresh:0.28 });
     const results = await withTimeout(prediction, PREDICT_TIMEOUT_MS, `PP-OCRv5 第 ${index + 1} 张图片识别超时，已退出本次任务`, detachEngine);
+    recordDiagnostic('ocr-predict', diagnosticStarted, { imageIndex:index, imageCount:images.length, mode:engineMode });
     const current = normalizeItems(results?.[0], image.id); blocks.push(...current); if (current.length) groups.push(current.map(item => item.text).join('\n'));
     await new Promise(resolve => globalThis.setTimeout(resolve, 0));
   }

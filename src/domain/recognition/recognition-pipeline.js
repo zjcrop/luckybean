@@ -35,6 +35,15 @@ const ROAST_LABELS = Object.freeze({
   'RL-L4': '中深烘', 'RL-L5': '深烘', 'RL-L6': '极深烘'
 });
 
+function diagnosticNow() { return Number(globalThis.performance?.now?.() ?? Date.now()); }
+function recordDiagnostic(phase, startedAt, detail = {}) {
+  const sink = globalThis.__LUCKYBEAN_RECOGNITION_DIAGNOSTICS__;
+  if (typeof sink?.record !== 'function') return;
+  try {
+    sink.record({ scope:'semantic', phase:String(phase), durationMs:Math.max(0, diagnosticNow() - Number(startedAt || 0)), ...detail });
+  } catch {}
+}
+
 function clean(value) { return String(value ?? '').normalize('NFKC').replace(/\s+/g, ' ').trim(); }
 function normalizedComparable(value) { return clean(value).toLocaleLowerCase('zh-CN').replace(/[\s·•,，;；:：/_-]+/g, ''); }
 function labelForCode(book, table, code) {
@@ -173,12 +182,35 @@ function attachAiAdvisory(fields, parsed, document) {
 
 export function analyzeRecognitionDocument(document, book) {
   if (!document || typeof document !== 'object') throw new TypeError('识别文档无效');
+  let started = diagnosticNow();
   const baseSemanticText = String(document.fullText || '').replace(/\r/g, '').split(/\n+/).map(clean).filter(Boolean).join('\n');
+  recordDiagnostic('semantic-normalization', started);
+
+  started = diagnosticNow();
   const semanticText = repairRecognitionSemanticText(baseSemanticText, book);
+  recordDiagnostic('semantic-repair', started);
+
+  started = diagnosticNow();
   const parsed = parseNaturalLanguage(semanticText, book);
+  recordDiagnostic('semantic-parse', started);
+
+  started = diagnosticNow();
   enforceKnowledgeOnlyVarietyCandidate(parsed, book);
+  recordDiagnostic('canonical-variety-safety', started);
+
+  started = diagnosticNow();
   enforceEntityResolutionSafety(parsed, book);
-  const fields = attachAiAdvisory(buildFieldRows(document, parsed, book), parsed, document);
+  recordDiagnostic('canonical-entity-safety', started);
+
+  started = diagnosticNow();
+  const baseFields = buildFieldRows(document, parsed, book);
+  recordDiagnostic('canonical-field-arbitration', started, { fieldCount:baseFields.length });
+
+  started = diagnosticNow();
+  const fields = attachAiAdvisory(baseFields, parsed, document);
+  recordDiagnostic('ai-advisory', started, { engaged:fields.some(item => Array.isArray(item.aiCandidates) && item.aiCandidates.length > 0) });
+
+  started = diagnosticNow();
   const reviewFields = fields.filter(item => item.status === 'review');
   parsed.evidence ||= {}; parsed.confidence ||= {};
   for (const item of reviewFields) {
@@ -196,6 +228,7 @@ export function analyzeRecognitionDocument(document, book) {
     relationCount:Array.isArray(document.relations) ? document.relations.length : 0, reviewFields:reviewFields.map(item => item.field), arbitrationPriority:resolverPriorityDescription(),
     rawFullText:document.rawFullText || '', rawSemanticText:baseSemanticText, semanticText
   };
+  recordDiagnostic('semantic-finalization', started, { reviewCount:reviewFields.length });
   return { pipelineVersion:RECOGNITION_PIPELINE_VERSION, document, semanticText, parsed, fields, resolvedCount:fields.length - reviewFields.length, reviewCount:reviewFields.length };
 }
 
