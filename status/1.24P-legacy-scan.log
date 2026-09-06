@@ -5,7 +5,6 @@ tests/v124b-complete-plan-contract.mjs:47:assert.match(gradle,/versionCode 10240
 tests/v124b-complete-plan-contract.mjs:200:console.log('LuckyBean 1.24B main.4 complete modification-plan contract with canonical bean groups, test+gated Pages, exact native prompt runtime, shared sorting and text brew UI passed');
 tests/v124b-final-release-contract.mjs:197:assert.match(gradle, /versionCode 102402/);
 tests/v124b-final-release-contract.mjs:200:console.log('LuckyBean 1.24B main.4 final release contract with test+gated web deployment, exact native prompt runtime, canonical bean group state, shared sorting and text brew UI passed');
-tests/v127-user-regressions-static.mjs:47:console.log('v127 canonical cooling/gear ownership and 1.24B Android image pipeline static checks passed');
 tests/v123d-deployment-contracts.mjs:43:assert.equal(releaseRevision, '1.24B-main.6');
 tests/v123d-deployment-contracts.mjs:48:assert.equal(Number(versionCodeMatch[1]), 102402);
 tests/v123d-deployment-contracts.mjs:52:assert.equal(manifest.version, '1.24B');
@@ -21,9 +20,9 @@ tests/v120-requirements-static.mjs:53:  'luckybean-main-v123d-',
 tests/v122-cloud-sync-safety.mjs:61:console.log('v1.23D cloud union baseline and deletion propagation checks passed');
 tests/v123e-cloud-gear-sync.mjs:15:assert.deepEqual(normalizeGearRows('[object Object],[object Object]', 'grinder'), [], 'corrupted 1.23D/early-1.23E grinder placeholders must be ignored safely');
 tests/v123e-cloud-gear-sync.mjs:25:console.log('LuckyBean 1.23E gear cloud-sync compatibility checks passed');
-tests/v110-local-first-sync-static.mjs:122:assert.match(sw, /'luckybean-main-v124b-'/);
-tests/v110-local-first-sync-static.mjs:123:assert.match(sw, /'luckybean-main-v123e-'/);
-tests/v110-local-first-sync-static.mjs:124:assert.match(sw, /'luckybean-main-v123d-'/);
+tests/v110-local-first-sync-static.mjs:129:assert.match(sw, /'luckybean-main-v124b-'/);
+tests/v110-local-first-sync-static.mjs:130:assert.match(sw, /'luckybean-main-v123e-'/);
+tests/v110-local-first-sync-static.mjs:131:assert.match(sw, /'luckybean-main-v123d-'/);
 tests/v124b-current-identity-scan.mjs:19:  if(text.includes('1.24B-main.2')||text.includes('${CACHE_PREFIX}main-2'))stale.push(file);
 tests/v124b-current-identity-scan.mjs:27:console.log('LuckyBean 1.24B current identity scan passed: main.3 is the sole active release revision');
 scripts/align-fun-prompt-deploy.py:7:    '  STYLES_RUNTIME_REVISION: 1.24B-main.13-local-menu-prompt\n',
@@ -84,7 +83,6 @@ src/release-1.24b.js:1:// Lucky Bean 1.24B release feature module
 src/release-1.24b.js:4:export const LB_VERSION = '1.24B';
 src/features/release-1.24b-polish.js:68:console.info('[LuckyBean] 1.24B help, Grind-PSD, brew-mode and UI policy active');
 src/features/release-1.24b-group-navigation.js:48:console.info('[LuckyBean] 1.24B canonical bean-group state active; group UI adapter loaded');
-src/features/release-1.24b-ui-policy.js:1:// LuckyBean 1.24B main.4 — canonical UI policy shared by Web and Android WebView.
 src/features/release-1.24b-freshness-detail.js:59:console.info('[LuckyBean] 1.24B full freshness detail active');
 src/features/release-1.24b-transit-controller.js:98:console.info('[LuckyBean] 1.24B transit lifecycle controller active');
 src/features/release-1.24b-finalize.js:137:console.info('[LuckyBean] 1.24B final integration active');
@@ -93,7 +91,7 @@ src/features/release-1.24b-about-controller.js:25:console.info('[LuckyBean] 1.24
 src/release-1.24b.css:1:/* Lucky Bean 1.24B compact UI states */
 src/release-1.24b.css:63:/* LuckyBean 1.24B main.6 detail/fab/sensory corrections */
 src/release-1.24b.css:173:/* LuckyBean 1.24B main.7 professional score responsive layout.
-src/app.js:2676:  <details class="settings-category"><summary><span>本物</span><small>关于本工具和开发小哥的一切</small></summary><div class="settings-category-body about-content"><figure class="about-illustration"><img src="./public/Luckybean-END.webp?v=1.24B-main.2" alt="富贵盒子猫咪插图" loading="lazy" decoding="async"><figcaption>富贵盒子</figcaption></figure><h2>富贵盒子</h2><p>咖啡豆管理、冲煮辅助、品鉴记录与本地数据归档工具。</p><dl><dt>版本</dt><dd>${APP_VERSION}</dd><dt>数据结构</dt><dd>${SCHEMA_VERSION}</dd><dt>离线引擎</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>数据源</dt><dd>公开编码数据 ${esc(meta.version||state.codebook.version||'6')}</dd><dt>开发与维护</dt><dd>zjcrop</dd></dl></div></details>
+src/app.js:2783:  <details class="settings-category"><summary><span>本物</span><small>关于本工具和开发小哥的一切</small></summary><div class="settings-category-body about-content"><figure class="about-illustration"><img src="./public/Luckybean-END.webp?v=1.24B-main.2" alt="富贵盒子猫咪插图" loading="lazy" decoding="async"><figcaption>富贵盒子</figcaption></figure><h2>富贵盒子</h2><p>咖啡豆管理、冲煮辅助、品鉴记录与本地数据归档工具。</p><dl><dt>版本</dt><dd>${APP_VERSION}</dd><dt>数据结构</dt><dd>${SCHEMA_VERSION}</dd><dt>离线引擎</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>数据源</dt><dd>公开编码数据 ${esc(meta.version||state.codebook?.version||'6')}</dd><dt>开发与维护</dt><dd>zjcrop</dd></dl></div></details>
 src/cloud-codec.js:236:  // 1.23D/early 1.23E accidentally serialized an object array with String(array).
 .github/workflows/verified-release-main.yml:23:      RELEASE_TAG: v1.24B-main.6
 .github/workflows/verified-release-main.yml:83:          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"
@@ -117,26 +115,4 @@ src/cloud-codec.js:236:  // 1.23D/early 1.23E accidentally serialized an object 
 .github/workflows/fix-fun-prompt-toast-owner.yml:99:          grep -Fq 'runtime-features.js?v=1.24B-main.17-single-toast-owner' index.html
 .github/workflows/verify-fun-prompts-live.yml:48:          const revision='1.24B-main.17-single-toast-owner';
 sw.js:6:  'luckybean-main-v124b-', 'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
-DEVELOPMENT_STATUS.md:1:# LuckyBean 1.24B — 当前开发状态
-DEVELOPMENT_STATUS.md:3:当前版本：`1.24B`  
-DEVELOPMENT_STATUS.md:4:发布修订：`1.24B-main.2`  
-DEVELOPMENT_STATUS.md:5:Android：`versionCode 102402` / `versionName 1.24B`
-DEVELOPMENT_STATUS.md:7:当前 main 以 1.24B 为唯一发布基线；下方 1.23D/1.23E 内容仅作为历史检查点保留，不再代表当前部署版本。
-DEVELOPMENT_STATUS.md:11:# LuckyBean 1.23E — 开发状态
-DEVELOPMENT_STATUS.md:14:发布修订：`1.23E-main-sync.11`
-DEVELOPMENT_STATUS.md:15:Android：`versionCode 102322` / `versionName 1.23E`
-DEVELOPMENT_STATUS.md:24:- Android `versionCode` 提升为 `102322`，产品版本仍为 `1.23E`；缓存修订提升为 `1.23E-main-sync.11`。
-DEVELOPMENT_STATUS.md:32:- Android `versionCode` 提升为 `102321`，产品版本仍为 `1.23E`；缓存修订提升为 `1.23E-main-sync.10`。
-DEVELOPMENT_STATUS.md:42:- Android `versionCode` 提升为 `102320`，产品版本仍为 `1.23E`；正式 APK 仅使用 GitHub Actions 中的既有发布私钥签名，私钥不得进入源码、构建资源或 APK。
-DEVELOPMENT_STATUS.md:59:> 后续完整开发顺序、未关闭问题和验收门禁统一见 `docs/LuckyBean-1.23D-DEVELOPMENT-HANDBOOK.md`。本文件记录当前检查点，不代表历史业务问题已经全部关闭。
-DEVELOPMENT_STATUS.md:64:当前部署：LuckyBean `1.23D`，唯一来源为 GitHub `main` 的最新成功部署提交。
-DEVELOPMENT_STATUS.md:66:内部资源修订：`1.23D-main-sync.5`（仅用于清除旧 PWA/WebView 缓存，不是第二条版本线）
-DEVELOPMENT_STATUS.md:71:- 暂不推进 2.0、Compose、Room 或 KMP，先在 1.2.3 行为基线上完成 1.23D 的问题修复与验收。
-DEVELOPMENT_STATUS.md:72:- Web/PWA 继续使用 IndexedDB；既有 Android 测试壳随 1.23D Web 版本验证。
-DEVELOPMENT_STATUS.md:80:2. 数据 Schema 从 7 升至 8，应用显示版本回正为 `1.23D`。
-DEVELOPMENT_STATUS.md:87:6. PWA 离线资源表已纳入归档与结构化识别模块，版本缓存已切换到 1.23D。
-DEVELOPMENT_STATUS.md:94:13. 将 1.23D 改动移植到远端最新 main，保留独立品鉴状态机、器具模型、分享地址和既有主线回归测试。
-DEVELOPMENT_STATUS.md:96:15. 将 Web、PWA、Android、Actions 和构建产物版本统一为 `1.23D`；Android `versionCode` 为 `102304`。
-README.md:7:当前主线版本：1.24B
-README.md:25:## 1.24B
-README.md:27:1.24B 包含豆卡生命周期、在途/冷冻状态、订单识别、多图串行 OCR、完整豆卡详情、高密度小酌界面、研磨建议和 BrewSession 计时/语音同步重构。
+DEVELOPMENT_STATUS.md:38:1.23D、1.23E、1.24B 和 1.24P-main.1/main.2 均为历史检查点。旧版本的详细修改记录保留在 Git 历史、Release 和 `docs/` 中，不再作为当前开发状态的权威入口。
