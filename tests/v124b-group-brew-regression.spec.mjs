@@ -65,6 +65,11 @@ async function openFirstNativeGroup(page){
   await expect(page.locator('#beanGroups [data-close-bean-group]')).toHaveCount(1);
 }
 
+function isTransientNavigationError(error){
+  const message=String(error?.message||error||'');
+  return message.includes('net::ERR_ABORTED')||message.includes('frame was detached')||message.includes('Target page, context or browser has been closed');
+}
+
 async function openSpecialModePage(controlPage,mode){
   await controlPage.evaluate(async mode=>{
     const db=await import('/src/db.js');
@@ -72,25 +77,29 @@ async function openSpecialModePage(controlPage,mode){
     await db.setSetting('v099f.group.mode','native');
   },mode);
 
-  // v099i.group.mode is a startup-only setting. Do not navigate the already-running
-  // application page to test another startup mode: outstanding async work from that
-  // page can race a second page.goto(). A fresh page in the same browser context
-  // shares the seeded IndexedDB/localStorage but has an independent navigation
-  // lifecycle, which matches a real cold page start deterministically.
-  const page=await controlPage.context().newPage();
-  await page.addInitScript(()=>{
-    localStorage.setItem('luckybean.onboarding.v2',JSON.stringify({stage:'existing-user',updatedAt:new Date().toISOString(),reason:'group-regression-special'}));
-  });
-  await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/,route=>route.abort('failed'));
-  try{
-    await page.goto(`${BASE_URL}/?group-regression=1&special-mode=${encodeURIComponent(mode)}`,{waitUntil:'domcontentloaded'});
-    await waitForStartup(page);
-    await expect(page.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible({timeout:10000});
-    return page;
-  }catch(error){
-    await page.close().catch(()=>{});
-    throw error;
+  // v099i.group.mode is a startup-only setting. Use a fresh page in the same
+  // context for each cold start. Hosted Chromium can occasionally detach a new
+  // frame during page.goto; retry only that transport-level failure with another
+  // fresh page so product assertions remain unchanged.
+  let lastError=null;
+  for(let attempt=1;attempt<=3;attempt+=1){
+    const page=await controlPage.context().newPage();
+    await page.addInitScript(()=>{
+      localStorage.setItem('luckybean.onboarding.v2',JSON.stringify({stage:'existing-user',updatedAt:new Date().toISOString(),reason:'group-regression-special'}));
+    });
+    await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/,route=>route.abort('failed'));
+    try{
+      await page.goto(`${BASE_URL}/?group-regression=1&special-mode=${encodeURIComponent(mode)}`,{waitUntil:'domcontentloaded',timeout:15000});
+      await waitForStartup(page);
+      await expect(page.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible({timeout:10000});
+      return page;
+    }catch(error){
+      lastError=error;
+      await page.close().catch(()=>{});
+      if(!isTransientNavigationError(error)||attempt===3) throw error;
+    }
   }
+  throw lastError||new Error(`Unable to open special group mode: ${mode}`);
 }
 
 async function openFirstSpecialGroup(page){
