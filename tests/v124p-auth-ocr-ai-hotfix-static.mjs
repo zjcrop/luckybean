@@ -20,8 +20,10 @@ assert.match(auth,/params\.get\('refresh_token'\)/);
 assert.match(auth,/writeSession\(provisional\);[\s\S]*markServerActivity\(\);[\s\S]*clearAuthCallbackUrl\(\);[\s\S]*rawRequest\('\/auth\/v1\/user'/);
 assert.match(auth,/history\.replaceState/);
 assert.match(auth,/volatileSession/);
-assert.match(auth,/cloud-auth-service-v8-callback-session-seed/);
+assert.match(auth,/cloud-auth-service-v9-callback-authoritative-startup/);
 assert.match(auth,/void warmSession\(\)\.catch/);
+assert.match(auth,/callbackSessionAuthoritative\(active\)/);
+assert.match(auth,/!forceRefresh && \(callbackSessionAuthoritative\(active\) \|\| accessTokenValid\(active\)\)/);
 assert.doesNotMatch(auth,/function writeSession\(value\) \{ if \(value\?\.access_token/,'session persistence must not use the old unguarded storage writer');
 
 assert.match(ai,/recognition-ai-v1/);

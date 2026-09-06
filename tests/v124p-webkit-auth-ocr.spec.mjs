@@ -34,20 +34,8 @@ async function loadLazyWebOcr(page){
 }
 
 test('email verification callback survives Safari-style storage failure',async({page})=>{
+  let refreshCalls=0;
   await page.addInitScript(()=>{
-    globalThis.__LuckyBeanAuthTestTrace=[];
-    document.addEventListener('luckybean:cloud-auth-state',event=>{
-      const active=globalThis.LuckyBeanCloudAuth?.getSession?.();
-      globalThis.__LuckyBeanAuthTestTrace.push({
-        state:event.detail?.state||'',
-        authAction:event.detail?.authAction||'',
-        hasRefresh:Boolean(active?.refresh_token),
-        hasUser:Boolean(active?.user?.id),
-        snapshot:document.documentElement.dataset.authCallbackSnapshot||'',
-        storage:document.documentElement.dataset.cloudStorage||'',
-        hashPresent:Boolean(location.hash)
-      });
-    });
     const set=Storage.prototype.setItem, remove=Storage.prototype.removeItem;
     Storage.prototype.setItem=function(key,value){
       if(String(key).startsWith('luckybean.supabase.')||String(key).startsWith('luckybean.cloud.')) throw new DOMException('blocked','QuotaExceededError');
@@ -64,21 +52,14 @@ test('email verification callback survives Safari-style storage failure',async({
       await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({id:'webkit-user',email:'webkit@example.com'})});
       return;
     }
+    if(url.pathname==='/auth/v1/token'){
+      refreshCalls+=1;
+      await route.fulfill({status:200,contentType:'application/json',body:'{}'});
+      return;
+    }
     await route.fulfill({status:200,contentType:'application/json',body:'{}'});
   });
   await enter(page,`${BASE_URL}/?webkit-callback=1#access_token=a.b.c&refresh_token=webkit-refresh&expires_in=3600&token_type=bearer`);
-  const diagnostics=await page.evaluate(()=>({
-    snapshot:document.documentElement.dataset.authCallbackSnapshot||'',
-    auth:document.documentElement.dataset.cloudAuth||'',
-    storage:document.documentElement.dataset.cloudStorage||'',
-    hashPresent:Boolean(location.hash),
-    revision:globalThis.LuckyBeanCloudAuth?.revision||'',
-    hasRefresh:Boolean(globalThis.LuckyBeanCloudAuth?.getSession?.()?.refresh_token),
-    hasUser:Boolean(globalThis.LuckyBeanCloudAuth?.getSession?.()?.user?.id),
-    authResources:performance.getEntriesByType('resource').filter(item=>item.name.includes('cloud-auth-service.js')).map(item=>item.name),
-    trace:globalThis.__LuckyBeanAuthTestTrace||[]
-  }));
-  console.log('WEBKIT_AUTH_DIAGNOSTICS',JSON.stringify(diagnostics));
   await expect.poll(()=>page.evaluate(()=>globalThis.LuckyBeanCloudAuth?.getSession?.()?.refresh_token||''),{timeout:15000}).toBe('webkit-refresh');
   await expect.poll(()=>page.evaluate(()=>globalThis.LuckyBeanCloudAuth?.getSession?.()?.user?.email||''),{timeout:15000}).toBe('webkit@example.com');
   const state=await page.evaluate(()=>({hash:location.hash,auth:document.documentElement.dataset.cloudAuth,storage:document.documentElement.dataset.cloudStorage,email:globalThis.LuckyBeanCloudAuth.getSession()?.user?.email}));
@@ -86,6 +67,7 @@ test('email verification callback survives Safari-style storage failure',async({
   expect(state.auth).toBe('authenticated');
   expect(state.storage).toBe('volatile');
   expect(state.email).toBe('webkit@example.com');
+  expect(refreshCalls).toBe(0);
 });
 
 test('WebKit runtime stays lazy and exposes bounded PP-OCR compatibility mode',async({page})=>{

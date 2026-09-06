@@ -102,6 +102,9 @@ function decodeJwtPayload(token) {
   } catch { return null; }
 }
 function accessTokenValid(active, skewSeconds = 60) { return Number(decodeJwtPayload(active?.access_token)?.exp || 0) > Math.floor(Date.now() / 1000) + skewSeconds; }
+function callbackSessionAuthoritative(active = readSession()) {
+  return Boolean(callbackSessionAcceptedAt && Date.now() - callbackSessionAcceptedAt < CALLBACK_SESSION_GRACE_MS && active?.access_token && active?.refresh_token);
+}
 function emit(state, detail = {}) { document.documentElement.dataset.cloudAuth = state; document.dispatchEvent(new CustomEvent('luckybean:cloud-auth-state', { detail:{ state, ...detail } })); }
 function messageFrom(payload, fallback) { return payload?.msg || payload?.message || payload?.error_description || payload?.error || fallback; }
 
@@ -241,7 +244,10 @@ async function refreshSession({ force = false, reason = 'background' } = {}) {
 }
 
 async function getAccessToken({ forceRefresh = false } = {}) {
-  const active = readSession(); if (!forceRefresh && accessTokenValid(active)) return active.access_token;
+  const active = readSession();
+  // A freshly issued callback token is authoritative for this startup even when Safari
+  // cannot persist storage or decode the JWT locally. Only a real API 401 may force refresh.
+  if (!forceRefresh && (callbackSessionAuthoritative(active) || accessTokenValid(active))) return active.access_token;
   const refreshed = await refreshSession({ force:true, reason:'api-request' }); return refreshed?.access_token || '';
 }
 async function apiRequest(path, options = {}) {
@@ -332,7 +338,7 @@ async function warmSession() {
 }
 
 globalThis.LuckyBeanCloudAuth = {
-  revision:'cloud-auth-service-v8-callback-session-seed', getSession:readSession, warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut, consumeAuthCallback,
+  revision:'cloud-auth-service-v9-callback-authoritative-startup', getSession:readSession, warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut, consumeAuthCallback,
   isRemembered:() => Boolean(readSession()?.refresh_token && Date.now() <= rememberUntil()), rememberUntil,
   pendingRegistration:readPendingRegistration
 };
