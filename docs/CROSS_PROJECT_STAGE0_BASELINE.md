@@ -84,11 +84,88 @@ Recommended regression thresholds after measurement is captured:
 - multi-image throughput: must not degrade;
 - Safari: no new refresh, blank-screen, or crash behavior.
 
-## 6. Stage 0 execution note
+## 6. Stage 0 execution record
 
-Repository inspection and dependency/contract audit are complete for this control point. The GitHub connector exposes no completed status checks for the current merge SHA, and this chat runtime cannot clone GitHub directly for local benchmark execution. Therefore **runtime benchmark numbers are not claimed here**. They must be captured in the execution environment before Stage 1 is accepted.
+Execution time: `2026-09-06T09:31:02Z`
 
-## 7. Stage 1 entry condition
+Environment: Linux, Node `v24.19.0`, npm `11.9.0`. Tests were executed from
+`stage0-cross-project-baseline-20260906` at the pre-record commit
+`4a26a769221057c1694520eb3d51efdd79806f29`, whose only change from the audited
+source SHA is this control document.
+
+The repository must be prepared with `npm ci` before the static gate. An initial
+static run made before that preparation failed at the jsQR vendor assertion.
+Running the same CI installation step generated the expected jsQR and PP-OCR
+vendor assets; the unchanged static gate then passed. This was an environment
+setup failure, not an application-source repair.
+
+| Command | Observed result | Wall time |
+| --- | --- | ---: |
+| `npm ci` | pass; 4 packages installed and vendor preparation completed | 35.39 s |
+| `npm audit --audit-level=high` | pass; 0 vulnerabilities | 13.83 s |
+| JavaScript syntax check from `test-main.yml` | pass | 6.88 s |
+| private-key/server-secret pattern scan from `test-main.yml` | pass; no forbidden pattern | 0.07 s |
+| `npm run test:recognition` | pass; 126/126 | 0.72 s |
+| `npm run test:static` | pass after `npm ci`; all static suites and nested 126/126 recognition tests | 20.99 s |
+
+Data-integrity coverage observed in the passing suite includes archive hash
+tamper rejection, legacy backup migration, future-schema rejection, local-first
+storage, date-field ownership, Recognition canonical review boundaries and
+BrewPlan/BrewResult contract validation.
+
+## 7. Browser, Android and OCR measurement status
+
+The requested local browser commands were invoked, but this container did not
+contain the Playwright browser binaries:
+
+| Command | Observed result |
+| --- | --- |
+| `npm run test:smoke` | blocked before application assertions; Chromium executable missing (13 tests) |
+| `npm run test:core` | blocked before application assertions; Chromium executable missing (54 tests) |
+| `npm run test:visual` | blocked before application assertions; Chromium executable missing (3 tests) |
+| `npm run test:webkit` | blocked before application assertions; WebKit executable missing (4 tests) |
+
+`npx playwright install chromium webkit` was attempted. Five Chromium download
+attempts timed out after 30 seconds each, and a direct endpoint check returned
+HTTP 502 from the environment proxy. No system Chromium, WebKit, Gradle or
+Android SDK installation was available. Therefore local Chromium/WebKit and
+Android startup are **not** claimed as passed.
+
+The public Pages artifact tied to the audited `main` SHA was opened separately
+in a cloud Chromium smoke session. The logged-out application reached the
+`豆藏` page without a visible error. The first navigation-to-DOM wall reading
+was 12.111 s and a same-tab reload-to-visible-`豆藏` reading was 1.848 s. These
+include remote browser/network control overhead and are observational only;
+they are not a standards-compliant performance baseline and must not be used
+for the 10%/15% regression thresholds.
+
+GitHub reported eight completed-success checks for
+`115e5d7f509ee777166a296eefee203451121458` on 2026-09-06, including `verify`,
+`android_debug`, Pages build/deploy/verify and release build. This confirms the
+CI jobs completed on the exact audited source, but it does not substitute for a
+physical Android launch or local Safari/WebKit measurement.
+
+No representative bean-label photos are stored in this checkout. Because the
+browser runtimes could not be installed, single-image OCR, four-image OCR,
+runtime-initialization count and repeated-recognition latency remain
+**unmeasured**. Static tests confirm only the intended lazy/reusable runtime
+contracts; they are not reported as OCR performance results.
+
+## 8. Current Stage 0 risks
+
+- Red: no repeatable single-image/four-image OCR timing exists yet.
+- Red: Safari/WebKit and Android launch were not exercised in this container.
+- Yellow: the cloud-browser cold reading is dominated by an uncontrolled remote
+  network path and cannot serve as a regression threshold.
+- Green: source-level dependency, syntax, secret, canonical, migration and core
+  data-contract gates passed without business-code changes.
+
+Stage 0 is therefore recorded accurately but is **not fully validated**. Stage 1
+must not begin until the missing runtime/OCR measurements are captured in an
+environment with the pinned Playwright Chromium/WebKit binaries and, for
+Android, an SDK/emulator or physical device.
+
+## 9. Stage 1 entry condition
 
 Proceed to Global Interaction Foundation only after:
 
