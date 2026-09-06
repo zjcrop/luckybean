@@ -13,7 +13,7 @@ for (const id of ['recognition-paddle-ocr','recognition-quality','package-captur
 }
 
 assert.match(runtime, /\[data-add-mode="photo"\]/, 'photo entry must install a lazy loader');
-assert.match(runtime, /warmRecognition\(\)/, 'photo entry must prewarm OCR');
+assert.match(runtime, /warmRecognition\(\)/, 'photo entry must prewarm OCR only after intentional capture entry');
 assert.match(runtime, /LuckyBeanPackageCapture\?\.open/, 'photo entry must open capture after lazy imports');
 assert.match(runtime, /\[data-v099f-world\]/, 'world map must have a lazy trigger');
 assert.match(runtime, /loadFeature\('origin-map'\)/, 'world map must load only on demand');
@@ -26,9 +26,11 @@ assert.match(full, /bean-display-index\.json/, 'full integration must use the co
 assert.equal(freshness.includes("all('beans')"), false, 'freshness decoration must not read canonical beans');
 assert.match(freshness, /all\('beanSummaries'\)/, 'freshness decoration must consume beanSummaries');
 
-assert.match(ocr, /LOW_MEMORY \|\| WEBKIT/, 'constrained-device preload policy must remain explicit');
-assert.match(ocr, /await loadModule\(\)/, 'constrained devices must prewarm the vendored OCR runtime module');
-assert.match(ocr, /拍摄阶段/, 'OCR prewarm must be tied to the capture/composition phase');
+assert.match(ocr, /autoPreload:false/, 'OCR models must never preload during generic app startup');
+assert.match(ocr, /async function warmForRecognition\(/, 'capture flow must expose explicit full-model warmup');
+assert.match(ocr, /ENGINE_IDLE_MS/, 'warmed OCR engine must have a bounded idle lifetime');
+assert.match(ocr, /if \(enginePromise\) scheduleDispose\(\)/, 'serial multi-image tasks must reuse one engine instead of disposing after each image');
+assert.match(ocr, /document\.querySelector\('\[data-overlay="bag-capture"\]'\)/, 'returning from camera/gallery must rewarm OCR only while capture UI is active');
 assert.match(ocr, /globalThis\.__LUCKYBEAN_ANDROID__/, 'Android native OCR path must remain separate');
 
-console.log('v124p runtime lazy architecture: OK');
+console.log('v124p runtime lazy architecture: capture-scoped OCR warm reuse OK');
