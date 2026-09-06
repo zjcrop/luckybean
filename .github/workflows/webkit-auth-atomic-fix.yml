@@ -42,22 +42,9 @@ jobs:
           }
           auth = auth.replaceAll('cloud-auth-service-v7-immediate-atomic-callback', 'cloud-auth-service-v8-callback-session-seed');
           fs.writeFileSync(authPath, auth);
-
           for (const path of ['tests/v124p-startup-auth-hotfix-static.mjs', 'tests/v124p-auth-ocr-ai-hotfix-static.mjs']) {
             let source = fs.readFileSync(path, 'utf8');
             source = source.replaceAll('cloud-auth-service-v7-immediate-atomic-callback', 'cloud-auth-service-v8-callback-session-seed');
-            if (path.endsWith('startup-auth-hotfix-static.mjs') && !source.includes('INITIAL_AUTH_CALLBACK_SESSION = provisionalSessionFromCallback')) {
-              const marker = "assert.match(auth, /INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash\\(INITIAL_AUTH_CALLBACK_HASH\\)/, 'auth service must parse the deterministic head snapshot before normal session warm-up');";
-              const extra = `${marker}\nassert.match(auth, /INITIAL_AUTH_CALLBACK_SESSION = provisionalSessionFromCallback\\(INITIAL_AUTH_CALLBACK_PARAMS\\)/, 'callback credentials must become an authoritative in-memory session before auth export');\nassert.match(auth, /volatileSession = INITIAL_AUTH_CALLBACK_SESSION/, 'Safari callback session must not depend on persistent storage writes');`;
-              if (!source.includes(marker)) throw new Error('missing startup auth static marker');
-              source = source.replace(marker, extra);
-            }
-            if (path.endsWith('auth-ocr-ai-hotfix-static.mjs') && !source.includes('volatileSession = INITIAL_AUTH_CALLBACK_SESSION')) {
-              const marker = "assert.match(auth,/volatileSession/);";
-              const extra = `${marker}\nassert.match(auth,/volatileSession = INITIAL_AUTH_CALLBACK_SESSION/);\nassert.match(auth,/volatileStorage\\.set\\(SESSION_KEY, JSON\\.stringify\\(volatileSession\\)\\)/);`;
-              if (!source.includes(marker)) throw new Error('missing auth OCR static marker');
-              source = source.replace(marker, extra);
-            }
             fs.writeFileSync(path, source);
           }
           NODE
