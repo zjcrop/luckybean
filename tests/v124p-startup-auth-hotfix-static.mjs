@@ -20,6 +20,7 @@ assert.ok(snapshotScript, 'head auth callback snapshot script must be present');
 assert.doesNotMatch(snapshotScript, /type="module"/, 'callback snapshot must execute synchronously before deferred module scripts');
 assert.match(authScript, /type="module"/, 'full cloud auth service must remain module-scheduled so Safari startup does not block later runtime modules');
 assert.match(bootstrap, /__LuckyBeanInitialAuthCallbackHash/, 'head bootstrap must snapshot a relevant callback hash');
+assert.match(bootstrap, /__LuckyBeanInitialAuthCallbackSession/, 'head bootstrap must synchronously capture a provisional callback session for Safari');
 assert.doesNotMatch(bootstrap, /history\.replaceState|setTimeout/, 'head snapshotter must not monkeypatch navigation or introduce polling races');
 
 assert.match(startup, /typeof globalThis\.structuredClone !== 'function'/, 'startup must install a structuredClone compatibility fallback');
@@ -32,7 +33,9 @@ assert.match(startup, /1\.24P-main\.3/, 'startup fallback revision must match th
 assert.match(auth, /INITIAL_AUTH_CALLBACK_HASH = typeof globalThis\.__LuckyBeanInitialAuthCallbackHash === 'string'/, 'auth service must consume the synchronous head snapshot instead of depending on the later URL state');
 assert.match(auth, /:\s*location\.hash;/, 'auth service must preserve a direct location.hash fallback when no snapshot exists');
 assert.match(auth, /INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash\(INITIAL_AUTH_CALLBACK_HASH\)/, 'snapshot must be parsed before normal session warm-up');
+assert.match(auth, /HEAD_AUTH_CALLBACK_SESSION = globalThis\.__LuckyBeanInitialAuthCallbackSession/, 'auth service must consume the synchronous head session snapshot');
 assert.match(auth, /delete globalThis\.__LuckyBeanInitialAuthCallbackHash/, 'raw callback snapshot must be deleted immediately after parsing');
+assert.match(auth, /delete globalThis\.__LuckyBeanInitialAuthCallbackSession/, 'raw callback session snapshot must be deleted after local adoption');
 assert.match(auth, /dataset\.authCallbackSnapshot = 'consumed'/, 'callback snapshot consumption must be observable for regression diagnostics');
 assert.match(auth, /mode === 'register' && input\.password\.length < 8/, 'eight-character minimum must apply only to registration');
 assert.doesNotMatch(auth, /if \(input\.password\.length < 8\)/, 'legacy account login must not be blocked by the registration password rule');
@@ -40,7 +43,7 @@ assert.match(auth, /email_not_confirmed/, 'email verification state must be tran
 assert.match(auth, /invalid_credentials/, 'invalid credentials state must be translated explicitly');
 assert.match(auth, /over_email_send_rate_limit/, 'email rate-limit state must be translated explicitly');
 assert.match(auth, /typeof AbortController === 'function'/, 'auth requests must degrade when AbortController is unavailable');
-assert.match(auth, /cloud-auth-service-v10-parity-refresh-semantics/, 'current immediate atomic callback auth revision marker must be present');
+assert.match(auth, /cloud-auth-service-v11-head-session-parity/, 'current immediate atomic callback auth revision marker must be present');
 assert.match(auth, /volatileStorage/, 'Safari/localStorage failure must retain a non-destructive volatile auth fallback');
 assert.match(auth, /writeSession\(provisional\);[\s\S]*clearAuthCallbackUrl\(\);/, 'callback session must be accepted before profile/network enrichment');
 assert.match(auth, /void warmSession\(\)\.catch/, 'callback consumption must begin immediately instead of waiting for a later microtask');

@@ -18,7 +18,13 @@ async function isolateSupabase(page){
 }
 
 async function loadLazyWebOcr(page){
-  await page.waitForFunction(()=>Boolean(globalThis.LuckyBeanRuntimeFeatures)&&Boolean(globalThis.LuckyBeanPackageCapture),null,{timeout:15000});
+  await expect.poll(()=>page.evaluate(()=>({
+    runtime:Boolean(globalThis.LuckyBeanRuntimeFeatures),
+    packageCapture:Boolean(globalThis.LuckyBeanPackageCapture),
+    runtimeState:document.documentElement.dataset.runtimeFeatures||'',
+    startup:document.documentElement.dataset.startup||'',
+    failures:globalThis.LuckyBeanRuntimeFeatures?.failures||[]
+  })),{timeout:15000}).toMatchObject({runtime:true,packageCapture:true});
   const before=await page.evaluate(()=>({
     paddle:Boolean(globalThis.LuckyBeanPaddleOCR),
     declared:globalThis.LuckyBeanRuntimeFeatures?.declared?.includes('recognition-paddle-ocr')===true,
@@ -60,7 +66,14 @@ test('email verification callback survives Safari-style storage failure',async({
     await route.fulfill({status:200,contentType:'application/json',body:'{}'});
   });
   await enter(page,`${BASE_URL}/?webkit-callback=1#access_token=a.b.c&refresh_token=webkit-refresh&expires_in=3600&token_type=bearer`);
-  await expect.poll(()=>page.evaluate(()=>globalThis.LuckyBeanCloudAuth?.getSession?.()?.refresh_token||''),{timeout:15000}).toBe('webkit-refresh');
+  await expect.poll(()=>page.evaluate(()=>({
+    refreshToken:globalThis.LuckyBeanCloudAuth?.getSession?.()?.refresh_token||'',
+    revision:globalThis.LuckyBeanCloudAuth?.revision||'',
+    snapshot:document.documentElement.dataset.authCallbackSnapshot||'',
+    auth:document.documentElement.dataset.cloudAuth||'',
+    storage:document.documentElement.dataset.cloudStorage||'',
+    hash:location.hash
+  })),{timeout:15000}).toMatchObject({refreshToken:'webkit-refresh',revision:'cloud-auth-service-v11-head-session-parity',snapshot:'consumed'});
   await expect.poll(()=>page.evaluate(()=>globalThis.LuckyBeanCloudAuth?.getSession?.()?.user?.email||''),{timeout:15000}).toBe('webkit@example.com');
   const state=await page.evaluate(()=>({hash:location.hash,auth:document.documentElement.dataset.cloudAuth,storage:document.documentElement.dataset.cloudStorage,email:globalThis.LuckyBeanCloudAuth.getSession()?.user?.email}));
   expect(refreshCalls).toBe(0);

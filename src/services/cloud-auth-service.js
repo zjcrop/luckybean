@@ -37,10 +37,15 @@ const INITIAL_AUTH_CALLBACK_HASH = typeof globalThis.__LuckyBeanInitialAuthCallb
   ? globalThis.__LuckyBeanInitialAuthCallbackHash
   : location.hash;
 const INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash(INITIAL_AUTH_CALLBACK_HASH);
-const INITIAL_AUTH_CALLBACK_SESSION = provisionalSessionFromCallback(INITIAL_AUTH_CALLBACK_PARAMS);
+const HEAD_AUTH_CALLBACK_SESSION = globalThis.__LuckyBeanInitialAuthCallbackSession;
+const INITIAL_AUTH_CALLBACK_SESSION = HEAD_AUTH_CALLBACK_SESSION?.access_token && HEAD_AUTH_CALLBACK_SESSION?.refresh_token
+  ? { ...HEAD_AUTH_CALLBACK_SESSION }
+  : provisionalSessionFromCallback(INITIAL_AUTH_CALLBACK_PARAMS);
 try { delete globalThis.__LuckyBeanInitialAuthCallbackHash; }
 catch { globalThis.__LuckyBeanInitialAuthCallbackHash = ''; }
-if (INITIAL_AUTH_CALLBACK_PARAMS) document.documentElement.dataset.authCallbackSnapshot = 'consumed';
+try { delete globalThis.__LuckyBeanInitialAuthCallbackSession; }
+catch { globalThis.__LuckyBeanInitialAuthCallbackSession = null; }
+if (INITIAL_AUTH_CALLBACK_PARAMS || INITIAL_AUTH_CALLBACK_SESSION) document.documentElement.dataset.authCallbackSnapshot = 'consumed';
 let refreshPromise = null;
 let authCallbackPromise = null;
 let authCallbackConsumed = false;
@@ -171,30 +176,24 @@ async function consumeAuthCallback() {
     return callbackSessionAcceptedAt && Date.now() - callbackSessionAcceptedAt < CALLBACK_SESSION_GRACE_MS && active?.refresh_token ? active : null;
   }
   const params = callbackParams();
-  if (!params) { authCallbackConsumed = true; return null; }
+  const headSession = !authCallbackConsumed ? INITIAL_AUTH_CALLBACK_SESSION : null;
+  if (!params && !headSession) { authCallbackConsumed = true; return null; }
 
   authCallbackPromise = (async () => {
-    const callbackError = params.get('error_description') || params.get('error') || params.get('error_code');
+    const callbackError = params?.get('error_description') || params?.get('error') || params?.get('error_code');
     if (callbackError) {
       authCallbackConsumed = true;
       clearAuthCallbackUrl();
       const error = new Error(callbackError);
-      error.code = params.get('error_code') || params.get('error') || 'auth_callback_error';
+      error.code = params?.get('error_code') || params?.get('error') || 'auth_callback_error';
       emit('reauth-required', { error:friendlyAuthMessage(error, 'login'), authAction:'email-callback' });
       return null;
     }
-    const accessToken = params.get('access_token') || '';
-    const refreshToken = params.get('refresh_token') || '';
+    const parsed = provisionalSessionFromCallback(params);
+    const provisional = headSession?.access_token && headSession?.refresh_token ? { ...headSession } : parsed;
+    const accessToken = provisional?.access_token || '';
+    const refreshToken = provisional?.refresh_token || '';
     if (!accessToken || !refreshToken) { authCallbackConsumed = true; return null; }
-    const expiresIn = Number(params.get('expires_in') || 3600);
-    const provisional = {
-      access_token:accessToken,
-      refresh_token:refreshToken,
-      token_type:params.get('token_type') || 'bearer',
-      expires_in:expiresIn,
-      expires_at:Math.floor(Date.now() / 1000) + Math.max(60, expiresIn),
-      user:null
-    };
 
     // Accept the callback atomically before any profile/network work. On Safari and weak
     // networks, /auth/v1/user must never decide whether the freshly-issued session exists.
@@ -346,7 +345,7 @@ async function warmSession() {
 }
 
 globalThis.LuckyBeanCloudAuth = {
-  revision:'cloud-auth-service-v10-parity-refresh-semantics', getSession:readSession, warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut, consumeAuthCallback,
+  revision:'cloud-auth-service-v11-head-session-parity', getSession:readSession, warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut, consumeAuthCallback,
   isRemembered:() => Boolean(readSession()?.refresh_token && Date.now() <= rememberUntil()), rememberUntil,
   pendingRegistration:readPendingRegistration
 };

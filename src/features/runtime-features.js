@@ -135,14 +135,6 @@ function installLazyTriggers() {
   }, { capture: true, passive: true });
 }
 
-for (const runtimeFeature of CORE_FEATURES) {
-  try { await loadFeature(runtimeFeature.id); }
-  catch { /* failure already recorded */ }
-}
-
-await loadMany(PREINTERACTION_FEATURE_IDS);
-installLazyTriggers();
-
 globalThis.LuckyBeanRuntimeFeatures = {
   revision: RELEASE_REVISION,
   declared: [...catalog.keys()],
@@ -155,6 +147,15 @@ globalThis.LuckyBeanRuntimeFeatures = {
   warmRecognition,
   isLoaded
 };
+document.documentElement.dataset.runtimeFeatures = 'declared';
+
+for (const runtimeFeature of CORE_FEATURES) {
+  try { await loadFeature(runtimeFeature.id); }
+  catch { /* failure already recorded */ }
+}
+
+await loadMany(PREINTERACTION_FEATURE_IDS);
+installLazyTriggers();
 
 document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', {
   detail: {
