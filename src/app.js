@@ -2906,7 +2906,10 @@ async function init() {
     await migrateLegacyBrewHistory().catch(error => console.warn('冲煮历史后台迁移失败', error));
     await cleanupExpiredBeanRecycle().catch(error => console.warn('回收站后台清理失败', error));
     await ensureBeanConsumptionData().catch(error => console.warn('今日咖啡摄入摘要后台加载失败', error));
-    if (state.page === 'beans' && state.data.inventoryReady) renderBeans();
+    const consumptionSummary = document.querySelector('.bean-consumption-summary');
+    if (state.page === 'beans' && state.data.inventoryReady && consumptionSummary) {
+      consumptionSummary.outerHTML = beanConsumptionSummaryHtml();
+    }
   });
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
