@@ -1,0 +1,80 @@
+name: LuckyBean WebKit auth atomic fix
+
+on:
+  push:
+    branches:
+      - perf/local-first-data-v2-20260906
+    paths:
+      - .github/workflows/webkit-auth-atomic-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/local-first-data-v2-20260906
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Seed callback session before auth export
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const authPath = 'src/services/cloud-auth-service.js';
+          let auth = fs.readFileSync(authPath, 'utf8');
+          const anchor = "const INITIAL_AUTH_CALLBACK_HASH = typeof globalThis.__LuckyBeanInitialAuthCallbackHash === 'string' && globalThis.__LuckyBeanInitialAuthCallbackHash";
+          const helper = `function provisionalSessionFromCallback(params) {\n  if (!params) return null;\n  const accessToken = params.get('access_token') || '';\n  const refreshToken = params.get('refresh_token') || '';\n  if (!accessToken || !refreshToken) return null;\n  const expiresIn = Number(params.get('expires_in') || 3600);\n  return {\n    access_token:accessToken,\n    refresh_token:refreshToken,\n    token_type:params.get('token_type') || 'bearer',\n    expires_in:expiresIn,\n    expires_at:Math.floor(Date.now() / 1000) + Math.max(60, expiresIn),\n    user:null\n  };\n}\n\n`;
+          if (!auth.includes('function provisionalSessionFromCallback(params)')) {
+            if (!auth.includes(anchor)) throw new Error('missing auth callback anchor');
+            auth = auth.replace(anchor, helper + anchor);
+          }
+          const beforeSeed = `const INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash(INITIAL_AUTH_CALLBACK_HASH);\ntry { delete globalThis.__LuckyBeanInitialAuthCallbackHash; }\ncatch { globalThis.__LuckyBeanInitialAuthCallbackHash = ''; }\nif (INITIAL_AUTH_CALLBACK_PARAMS) document.documentElement.dataset.authCallbackSnapshot = 'consumed';\nlet refreshPromise = null;\nlet authCallbackPromise = null;\nlet authCallbackConsumed = false;\nlet dialogBusy = false;\nlet volatileSession = null;\nlet callbackSessionAcceptedAt = 0;\nconst volatileStorage = new Map();`;
+          const afterSeed = `const INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash(INITIAL_AUTH_CALLBACK_HASH);\nconst INITIAL_AUTH_CALLBACK_SESSION = provisionalSessionFromCallback(INITIAL_AUTH_CALLBACK_PARAMS);\ntry { delete globalThis.__LuckyBeanInitialAuthCallbackHash; }\ncatch { globalThis.__LuckyBeanInitialAuthCallbackHash = ''; }\nif (INITIAL_AUTH_CALLBACK_PARAMS) document.documentElement.dataset.authCallbackSnapshot = 'consumed';\nlet refreshPromise = null;\nlet authCallbackPromise = null;\nlet authCallbackConsumed = false;\nlet dialogBusy = false;\nlet volatileSession = INITIAL_AUTH_CALLBACK_SESSION;\nlet callbackSessionAcceptedAt = volatileSession ? Date.now() : 0;\nconst volatileStorage = new Map();\nif (volatileSession) volatileStorage.set(SESSION_KEY, JSON.stringify(volatileSession));`;
+          if (!auth.includes(afterSeed)) {
+            if (!auth.includes(beforeSeed)) throw new Error('missing volatile-session seed anchor');
+            auth = auth.replace(beforeSeed, afterSeed);
+          }
+          auth = auth.replaceAll('cloud-auth-service-v7-immediate-atomic-callback', 'cloud-auth-service-v8-callback-session-seed');
+          fs.writeFileSync(authPath, auth);
+
+          for (const path of ['tests/v124p-startup-auth-hotfix-static.mjs', 'tests/v124p-auth-ocr-ai-hotfix-static.mjs']) {
+            let source = fs.readFileSync(path, 'utf8');
+            source = source.replaceAll('cloud-auth-service-v7-immediate-atomic-callback', 'cloud-auth-service-v8-callback-session-seed');
+            if (path.endsWith('startup-auth-hotfix-static.mjs') && !source.includes('INITIAL_AUTH_CALLBACK_SESSION = provisionalSessionFromCallback')) {
+              const marker = "assert.match(auth, /INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash\\(INITIAL_AUTH_CALLBACK_HASH\\)/, 'auth service must parse the deterministic head snapshot before normal session warm-up');";
+              const extra = `${marker}\nassert.match(auth, /INITIAL_AUTH_CALLBACK_SESSION = provisionalSessionFromCallback\\(INITIAL_AUTH_CALLBACK_PARAMS\\)/, 'callback credentials must become an authoritative in-memory session before auth export');\nassert.match(auth, /volatileSession = INITIAL_AUTH_CALLBACK_SESSION/, 'Safari callback session must not depend on persistent storage writes');`;
+              if (!source.includes(marker)) throw new Error('missing startup auth static marker');
+              source = source.replace(marker, extra);
+            }
+            if (path.endsWith('auth-ocr-ai-hotfix-static.mjs') && !source.includes('volatileSession = INITIAL_AUTH_CALLBACK_SESSION')) {
+              const marker = "assert.match(auth,/volatileSession/);";
+              const extra = `${marker}\nassert.match(auth,/volatileSession = INITIAL_AUTH_CALLBACK_SESSION/);\nassert.match(auth,/volatileStorage\\.set\\(SESSION_KEY, JSON\\.stringify\\(volatileSession\\)\\)/);`;
+              if (!source.includes(marker)) throw new Error('missing auth OCR static marker');
+              source = source.replace(marker, extra);
+            }
+            fs.writeFileSync(path, source);
+          }
+          NODE
+      - name: Verify auth contract
+        run: |
+          node --check src/services/cloud-auth-service.js
+          node tests/v124p-startup-auth-hotfix-static.mjs
+          node tests/v124p-auth-ocr-ai-hotfix-static.mjs
+      - name: Commit generated fix
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No generated changes'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/services/cloud-auth-service.js tests/v124p-startup-auth-hotfix-static.mjs tests/v124p-auth-ocr-ai-hotfix-static.mjs
+          git commit -m 'fix: seed Safari callback session before auth export'
+          git push origin HEAD:perf/local-first-data-v2-20260906
