@@ -20,7 +20,7 @@ assert.match(auth,/params\.get\('refresh_token'\)/);
 assert.match(auth,/writeSession\(provisional\);[\s\S]*markServerActivity\(\);[\s\S]*clearAuthCallbackUrl\(\);[\s\S]*rawRequest\('\/auth\/v1\/user'/);
 assert.match(auth,/history\.replaceState/);
 assert.match(auth,/volatileSession/);
-assert.match(auth,/cloud-auth-service-v7-immediate-atomic-callback/);
+assert.match(auth,/cloud-auth-service-v8-callback-session-seed/);
 assert.match(auth,/void warmSession\(\)\.catch/);
 assert.doesNotMatch(auth,/function writeSession\(value\) \{ if \(value\?\.access_token/,'session persistence must not use the old unguarded storage writer');
 

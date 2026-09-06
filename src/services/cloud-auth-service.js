@@ -17,10 +17,27 @@ function parseAuthCallbackHash(hashValue) {
   return new URLSearchParams(params.toString());
 }
 
+function provisionalSessionFromCallback(params) {
+  if (!params) return null;
+  const accessToken = params.get('access_token') || '';
+  const refreshToken = params.get('refresh_token') || '';
+  if (!accessToken || !refreshToken) return null;
+  const expiresIn = Number(params.get('expires_in') || 3600);
+  return {
+    access_token:accessToken,
+    refresh_token:refreshToken,
+    token_type:params.get('token_type') || 'bearer',
+    expires_in:expiresIn,
+    expires_at:Math.floor(Date.now() / 1000) + Math.max(60, expiresIn),
+    user:null
+  };
+}
+
 const INITIAL_AUTH_CALLBACK_HASH = typeof globalThis.__LuckyBeanInitialAuthCallbackHash === 'string' && globalThis.__LuckyBeanInitialAuthCallbackHash
   ? globalThis.__LuckyBeanInitialAuthCallbackHash
   : location.hash;
 const INITIAL_AUTH_CALLBACK_PARAMS = parseAuthCallbackHash(INITIAL_AUTH_CALLBACK_HASH);
+const INITIAL_AUTH_CALLBACK_SESSION = provisionalSessionFromCallback(INITIAL_AUTH_CALLBACK_PARAMS);
 try { delete globalThis.__LuckyBeanInitialAuthCallbackHash; }
 catch { globalThis.__LuckyBeanInitialAuthCallbackHash = ''; }
 if (INITIAL_AUTH_CALLBACK_PARAMS) document.documentElement.dataset.authCallbackSnapshot = 'consumed';
@@ -28,9 +45,10 @@ let refreshPromise = null;
 let authCallbackPromise = null;
 let authCallbackConsumed = false;
 let dialogBusy = false;
-let volatileSession = null;
-let callbackSessionAcceptedAt = 0;
+let volatileSession = INITIAL_AUTH_CALLBACK_SESSION;
+let callbackSessionAcceptedAt = volatileSession ? Date.now() : 0;
 const volatileStorage = new Map();
+if (volatileSession) volatileStorage.set(SESSION_KEY, JSON.stringify(volatileSession));
 
 function storageGet(key) {
   if (volatileStorage.has(key)) return volatileStorage.get(key);
@@ -314,7 +332,7 @@ async function warmSession() {
 }
 
 globalThis.LuckyBeanCloudAuth = {
-  revision:'cloud-auth-service-v7-immediate-atomic-callback', getSession:readSession, warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut, consumeAuthCallback,
+  revision:'cloud-auth-service-v8-callback-session-seed', getSession:readSession, warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut, consumeAuthCallback,
   isRemembered:() => Boolean(readSession()?.refresh_token && Date.now() <= rememberUntil()), rememberUntil,
   pendingRegistration:readPendingRegistration
 };
