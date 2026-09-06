@@ -45,6 +45,8 @@ assert.match(auth, /volatileStorage/, 'Safari/localStorage failure must retain a
 assert.match(auth, /writeSession\(provisional\);[\s\S]*clearAuthCallbackUrl\(\);/, 'callback session must be accepted before profile/network enrichment');
 assert.match(auth, /void warmSession\(\)\.catch/, 'callback consumption must begin immediately instead of waiting for a later microtask');
 assert.match(auth, /function callbackSessionAuthoritative\(/, 'fresh callback sessions must have an explicit startup authority guard');
+assert.match(auth, /sessionExpiresAt = Number\(active\?\.expires_at \|\| 0\)/, 'session expires_at must backstop local JWT decoding on Safari');
+assert.match(auth, /Math\.max\(jwtExpiresAt, sessionExpiresAt\)/, 'JWT exp and session expires_at must share one token-validity contract');
 assert.match(auth, /!forceRefresh && \(callbackSessionAuthoritative\(active\) \|\| accessTokenValid\(active\)\)/, 'fresh callback access tokens must be used before any proactive refresh');
 assert.doesNotMatch(auth, /queueMicrotask\(\(\) => warmSession/, 'Safari callback acceptance must not depend on microtask scheduling');
 

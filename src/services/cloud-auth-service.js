@@ -101,7 +101,11 @@ function decodeJwtPayload(token) {
     return JSON.parse(decodeURIComponent([...atob(normalized)].map(char => `%${char.charCodeAt(0).toString(16).padStart(2, '0')}`).join('')));
   } catch { return null; }
 }
-function accessTokenValid(active, skewSeconds = 60) { return Number(decodeJwtPayload(active?.access_token)?.exp || 0) > Math.floor(Date.now() / 1000) + skewSeconds; }
+function accessTokenValid(active, skewSeconds = 60) {
+  const jwtExpiresAt = Number(decodeJwtPayload(active?.access_token)?.exp || 0);
+  const sessionExpiresAt = Number(active?.expires_at || 0);
+  return Math.max(jwtExpiresAt, sessionExpiresAt) > Math.floor(Date.now() / 1000) + skewSeconds;
+}
 function callbackSessionAuthoritative(active = readSession()) {
   return Boolean(callbackSessionAcceptedAt && Date.now() - callbackSessionAcceptedAt < CALLBACK_SESSION_GRACE_MS && active?.access_token && active?.refresh_token);
 }
