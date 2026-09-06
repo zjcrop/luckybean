@@ -8,6 +8,7 @@ test('native OCR payload is translated, structured, confirmed and handed to the 
   await page.goto(`${BASE_URL}/?recognition-pipeline=2`, { waitUntil: 'domcontentloaded' });
   await page.locator('#splashScreen').click();
   await expect(page.locator('#appShell')).toBeVisible({ timeout: 15000 });
+  await page.waitForFunction(() => typeof globalThis.LuckyBeanPackageCapture?.open === 'function', null, { timeout: 15000 });
 
   await page.evaluate(() => {
     const box = (left, top, right, bottom) => [[left, top], [right, top], [right, bottom], [left, bottom]];
