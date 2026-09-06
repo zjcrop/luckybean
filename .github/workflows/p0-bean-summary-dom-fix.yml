@@ -1,0 +1,38 @@
+name: P0 bean summary DOM fix
+
+on:
+  push:
+    branches: [perf/local-first-data-v2-20260906]
+    paths:
+      - scripts/p0-bean-summary-dom-fix.mjs
+      - .github/workflows/p0-bean-summary-dom-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/local-first-data-v2-20260906
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply targeted summary DOM fix
+        run: node scripts/p0-bean-summary-dom-fix.mjs
+      - name: Syntax check
+        run: node --check src/app.js
+      - name: Commit fix and remove one-shot tooling
+        shell: bash
+        run: |
+          git rm -f .github/workflows/p0-bean-summary-dom-fix.yml
+          git rm -f scripts/p0-bean-summary-dom-fix.mjs
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/app.js
+          git commit -m 'fix: keep bean cards stable during idle digest refresh'
+          git push origin HEAD:perf/local-first-data-v2-20260906
