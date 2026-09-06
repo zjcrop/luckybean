@@ -1,0 +1,57 @@
+name: P0 WebKit auth trace
+
+on:
+  push:
+    branches:
+      - perf/local-first-data-v2-20260906
+    paths:
+      - .github/workflows/p0-webkit-auth-trace.yml
+
+permissions:
+  contents: read
+
+jobs:
+  trace:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: perf/local-first-data-v2-20260906
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Inject non-secret session provenance diagnostics in CI workspace only
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/services/cloud-auth-service.js')
+          s = p.read_text(encoding='utf-8')
+          old = """function writeSession(value) {\n  volatileSession = value?.access_token || value?.refresh_token ? value : null;\n  if (volatileSession) storageSet(SESSION_KEY, JSON.stringify(volatileSession));\n  else storageRemove(SESSION_KEY);\n}"""
+          new = """function writeSession(value) {\n  const entry = {\n    at: Date.now(),\n    hasAccess: Boolean(value?.access_token),\n    hasRefresh: Boolean(value?.refresh_token),\n    userId: value?.user?.id || '',\n    stack: String(new Error().stack || '').split('\\n').slice(1, 6).map(line => line.trim())\n  };\n  globalThis.__LuckyBeanAuthTrace ||= [];\n  globalThis.__LuckyBeanAuthTrace.push(entry);\n  if (globalThis.__LuckyBeanAuthTrace.length > 20) globalThis.__LuckyBeanAuthTrace.shift();\n  volatileSession = value?.access_token || value?.refresh_token ? value : null;\n  if (volatileSession) storageSet(SESSION_KEY, JSON.stringify(volatileSession));\n  else storageRemove(SESSION_KEY);\n}"""
+          assert old in s
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+
+          t = Path('tests/v124p-webkit-auth-ocr.spec.mjs')
+          s = t.read_text(encoding='utf-8')
+          old = """  await expect.poll(()=>page.evaluate(()=>({\n    refreshToken:globalThis.LuckyBeanCloudAuth?.getSession?.()?.refresh_token||'',\n    revision:globalThis.LuckyBeanCloudAuth?.revision||'',\n    snapshot:document.documentElement.dataset.authCallbackSnapshot||'',\n    auth:document.documentElement.dataset.cloudAuth||'',\n    storage:document.documentElement.dataset.cloudStorage||'',\n    hash:location.hash\n  })),{timeout:15000}).toMatchObject({refreshToken:'webkit-refresh',revision:'cloud-auth-service-v11-head-session-parity',snapshot:'consumed'});"""
+          new = """  try {\n    await expect.poll(()=>page.evaluate(()=>({\n      refreshToken:globalThis.LuckyBeanCloudAuth?.getSession?.()?.refresh_token||'',\n      revision:globalThis.LuckyBeanCloudAuth?.revision||'',\n      snapshot:document.documentElement.dataset.authCallbackSnapshot||'',\n      auth:document.documentElement.dataset.cloudAuth||'',\n      storage:document.documentElement.dataset.cloudStorage||'',\n      hash:location.hash\n    })),{timeout:8000}).toMatchObject({refreshToken:'webkit-refresh',revision:'cloud-auth-service-v11-head-session-parity',snapshot:'consumed'});\n  } catch (error) {\n    const diagnostic = await page.evaluate(()=>({\n      session: {\n        hasAccess:Boolean(globalThis.LuckyBeanCloudAuth?.getSession?.()?.access_token),\n        hasRefresh:Boolean(globalThis.LuckyBeanCloudAuth?.getSession?.()?.refresh_token),\n        userId:globalThis.LuckyBeanCloudAuth?.getSession?.()?.user?.id||''\n      },\n      revision:globalThis.LuckyBeanCloudAuth?.revision||'',\n      snapshot:document.documentElement.dataset.authCallbackSnapshot||'',\n      auth:document.documentElement.dataset.cloudAuth||'',\n      storage:document.documentElement.dataset.cloudStorage||'',\n      hash:location.hash,\n      trace:globalThis.__LuckyBeanAuthTrace||[]\n    }));\n    console.log('P0_AUTH_DIAGNOSTIC='+JSON.stringify(diagnostic));\n    throw error;\n  }"""
+          assert old in s
+          t.write_text(s.replace(old, new, 1), encoding='utf-8')
+          PY
+      - run: npx playwright install --with-deps webkit
+      - name: Start local server
+        shell: bash
+        run: |
+          python -m http.server 4173 > /tmp/luckybean-http.log 2>&1 &
+          for attempt in {1..30}; do
+            curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/luckybean-http.log
+          exit 1
+      - name: Run Safari callback P0 diagnostic only
+        run: npx playwright test tests/v124p-webkit-auth-ocr.spec.mjs --browser=webkit --reporter=line --workers=1 --grep "email verification callback"
