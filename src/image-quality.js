@@ -117,8 +117,13 @@ function scoreQuality(metrics, width, height) {
   };
 }
 
-function androidNativeFallback(file, error) {
-  if (!globalThis.__LUCKYBEAN_ANDROID__) throw error;
+function nativeRecognitionAvailable() {
+  if (globalThis.__LUCKYBEAN_ANDROID__ !== true) return false;
+  const bridge = globalThis.LuckyBeanRecognitionBridge || globalThis.LuckyBeanNative;
+  return typeof bridge?.recognizeCoffeeBag === 'function' || typeof globalThis.LuckyBeanNative?.recognizeImage === 'function';
+}
+
+function nativeSource(file, warning = 'Android 原生 OCR 直接读取原始照片；跳过 WebView 解码、像素扫描与 JPEG 重编码') {
   return {
     blob: file,
     originalName: file.name || 'coffee-bag-image',
@@ -128,15 +133,28 @@ function androidNativeFallback(file, error) {
     processedWidth: 0,
     processedHeight: 0,
     metrics: null,
-    score: 65,
+    score: 75,
     status: 'usable',
     nativeSource: true,
-    warnings: ['WebView预览不可用；识别时由 Android 直接读取原始照片，不再依赖空 Blob']
+    warnings: [warning]
   };
+}
+
+function androidNativeFallback(file, error) {
+  if (!globalThis.__LUCKYBEAN_ANDROID__) throw error;
+  return nativeSource(file, 'WebView图片预处理不可用；识别时由 Android 直接读取原始照片');
 }
 
 export async function preparePackageImage(file, { maxEdge = DEFAULT_MAX_EDGE } = {}) {
   if (!(file instanceof Blob)) throw new TypeError('需要有效的图片文件');
+
+  // Native Android recognition owns decoding and orientation. Re-decoding a
+  // 12–50 MP camera image in WebView, scanning a 420 px quality canvas and then
+  // encoding another 1600 px JPEG adds latency and memory pressure without
+  // improving the bytes consumed by the native recognizer. Preserve the source
+  // Blob/URI contract and let the native bridge read the original image once.
+  if (nativeRecognitionAvailable()) return nativeSource(file);
+
   let image;
   try {
     image = await decodeImage(file);
