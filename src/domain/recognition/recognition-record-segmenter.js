@@ -28,6 +28,24 @@ function unionBox(blocks) {
   };
 }
 
+function sourceFrame(options, fallback) {
+  const width = Number(options?.sourceWidth);
+  const height = Number(options?.sourceHeight);
+  if (Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0) {
+    return {
+      left:0,
+      top:0,
+      right:width,
+      bottom:height,
+      width,
+      height,
+      centerX:width / 2,
+      centerY:height / 2
+    };
+  }
+  return fallback;
+}
+
 function normalizedBox(box, frame) {
   const width = Math.max(1, frame.width);
   const height = Math.max(1, frame.height);
@@ -44,10 +62,11 @@ function normalizedBox(box, frame) {
   };
 }
 
-function preparedBlocks(document) {
+function preparedBlocks(document, options) {
   const blocks = (document?.blocks || []).filter(block => clean(block?.text) && validBox(block?.box));
-  const frame = unionBox(blocks);
-  if (!frame) return [];
+  const fallbackFrame = unionBox(blocks);
+  if (!fallbackFrame) return [];
+  const frame = sourceFrame(options, fallbackFrame);
   return blocks.map(block => ({ ...block, normalizedBox:normalizedBox(block.box, frame) }));
 }
 
@@ -190,11 +209,16 @@ function verticalGapCandidates(document, blocks) {
  * Geometry-first, segmentation-only grouping of independent coffee records.
  * It never performs semantic/canonical mutation. Every geometry candidate remains
  * review-required and preserves source block/image identity for downstream parsing.
+ *
+ * Consumers that know the OCR source dimensions should supply sourceWidth and
+ * sourceHeight. This keeps thresholds relative to the actual image instead of
+ * expanding the text-only bounding frame. When dimensions are unavailable the
+ * text envelope remains a deterministic compatibility fallback.
  */
-export function groupRecognitionRecordCandidates(document) {
+export function groupRecognitionRecordCandidates(document, options = {}) {
   if (!document || typeof document !== 'object') return { grouped:false, method:'none', candidates:[], schemaVersion:RECOGNITION_RECORD_CANDIDATE_SCHEMA };
   if ((document.images || []).length !== 1) return { grouped:false, method:'none', candidates:[], schemaVersion:RECOGNITION_RECORD_CANDIDATE_SCHEMA };
-  const blocks = preparedBlocks(document);
+  const blocks = preparedBlocks(document, options);
   if (blocks.length < 2) return { grouped:false, method:'none', candidates:[], schemaVersion:RECOGNITION_RECORD_CANDIDATE_SCHEMA };
   for (const detector of [sideBySideCandidates, rowCandidates, verticalGapCandidates]) {
     const candidates = detector(document, blocks);
