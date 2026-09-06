@@ -18,7 +18,7 @@ const LIMIT_SIDE = LOW_MEMORY ? 640 : 960;
 const ENGINE_INIT_TIMEOUT_MS = WEBKIT ? 30000 : 75000;
 const PREDICT_TIMEOUT_MS = WEBKIT ? 30000 : 45000;
 const ROI_CROP_TIMEOUT_MS = 20000;
-const ENGINE_IDLE_MS = WEBKIT ? 20000 : LOW_MEMORY ? 30000 : 90000;
+const ENGINE_IDLE_MS = WEBKIT ? 30000 : LOW_MEMORY ? 45000 : 90000;
 
 let modulePromise = null;
 let enginePromise = null;
@@ -168,27 +168,21 @@ async function run(task) {
     if (enginePromise) scheduleDispose();
   }
 }
-async function preload() {
-  if (globalThis.__LUCKYBEAN_ANDROID__) return null;
-  if (LOW_MEMORY || WEBKIT) {
-    try { await loadModule(); emit('PP-OCRv5 运行时已在拍摄阶段预热，模型将在选图后按需加载', 6); }
-    catch (error) { emit(`PP-OCRv5 运行时预热未完成：${error.message}`, 0); }
-    return null;
-  }
-  try { const ocr = await ensureEngine(); emit('PP-OCRv5 已在拍摄阶段后台预热', 18); scheduleDispose(); return ocr; }
-  catch (error) { emit(`PP-OCRv5 后台预热未完成：${error.message}`, 0); return null; }
-}
 async function warmForRecognition() {
   if (globalThis.__LUCKYBEAN_ANDROID__) return null;
   try {
     const ocr = await ensureEngine();
-    emit(WEBKIT ? 'Safari 本地 OCR 已在选图后预热' : 'PP-OCRv5 模型已在选图后预热', 18);
+    emit(WEBKIT ? 'Safari 本地 OCR 已在录入阶段预热' : 'PP-OCRv5 模型已在录入阶段预热', 18);
     scheduleDispose();
     return ocr;
   } catch (error) {
-    emit(`PP-OCRv5 选图后预热未完成：${error.message}`, 0);
+    emit(`PP-OCRv5 录入阶段预热未完成：${error.message}`, 0);
     return null;
   }
+}
+async function preload() {
+  if (globalThis.__LUCKYBEAN_ANDROID__) return null;
+  return warmForRecognition();
 }
 const paddleOcrApi = Object.freeze({
   version:VERSION, engine:ENGINE, lowMemory:LOW_MEMORY, appleMobile:APPLE_MOBILE,
@@ -202,6 +196,13 @@ const paddleOcrApi = Object.freeze({
 });
 globalThis.LuckyBeanPaddleOCR = paddleOcrApi;
 globalThis.CoffeeFoundationPaddleOCR = paddleOcrApi;
-document.addEventListener('visibilitychange', () => { if (document.hidden && !busy) void dispose(); });
+document.addEventListener('visibilitychange', () => {
+  if (busy) return;
+  if (document.hidden) {
+    if (enginePromise) scheduleDispose();
+    return;
+  }
+  if (document.querySelector('[data-overlay="bag-capture"]')) void warmForRecognition();
+});
 globalThis.addEventListener('pagehide', () => { if (!busy) void dispose(); });
 document.documentElement.dataset.webOcr = `ppocr-v5-${VERSION}-self-hosted-lazy-memory-bounded-reuse`;
