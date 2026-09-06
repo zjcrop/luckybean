@@ -4,10 +4,15 @@ test.setTimeout(360_000);
 
 async function waitForRecognitionCore(page) {
   await page.waitForFunction(() => Boolean(globalThis.LuckyBeanRuntimeFeatures?.load), null, { timeout: 20_000 });
-  await page.evaluate(() => globalThis.LuckyBeanRuntimeFeatures.load('recognition-paddle-ocr'));
+  // Follow production lazy loading exactly: the provider is a runtime feature, while
+  // recognition-core.js is the stable downstream entry module (also used by AromaSense).
+  await page.evaluate(async () => {
+    await globalThis.LuckyBeanRuntimeFeatures.load('recognition-paddle-ocr');
+    globalThis.LuckyBeanStage0RecognitionCore = await import('./src/recognition-core.js');
+  });
   await page.waitForFunction(
-    () => Boolean(globalThis.LuckyBeanRecognitionCore?.preparePackageImage)
-      && Boolean(globalThis.LuckyBeanRecognitionCore?.recognizeCoffeeBag)
+    () => Boolean(globalThis.LuckyBeanStage0RecognitionCore?.preparePackageImage)
+      && Boolean(globalThis.LuckyBeanStage0RecognitionCore?.recognizeCoffeeBag)
       && Boolean(globalThis.LuckyBeanPaddleOCR?.recognizeCoffeeBag),
     null,
     { timeout: 20_000 }
@@ -56,7 +61,7 @@ async function runStage0Baseline(page) {
     const files = [];
     for (let i = 0; i < labels.length; i += 1) files.push(await cameraLikeFile(labels[i], i));
 
-    const core = globalThis.LuckyBeanRecognitionCore;
+    const core = globalThis.LuckyBeanStage0RecognitionCore;
     const statuses = [];
     const progressHandler = event => statuses.push(String(event.detail?.status || ''));
     globalThis.addEventListener('luckybean:ocr-progress', progressHandler);
@@ -127,16 +132,19 @@ async function runStage0Baseline(page) {
     } finally {
       globalThis.removeEventListener('luckybean:ocr-progress', progressHandler);
       await globalThis.LuckyBeanPaddleOCR?.dispose?.();
+      delete globalThis.LuckyBeanStage0RecognitionCore;
     }
   });
 }
 
-test('Stage 0 records repeatable PP-OCR single/repeat/four-image performance baseline', async ({ page }) => {
+test('Stage 0 records repeatable PP-OCR single/repeat/four-image performance baseline', async ({ page }, testInfo) => {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await waitForRecognitionCore(page);
   const baseline = await runStage0Baseline(page);
 
+  const baselineJson = `${JSON.stringify(baseline, null, 2)}\n`;
   console.log(`STAGE0_OCR_BASELINE ${JSON.stringify(baseline)}`);
+  await testInfo.attach('stage0-ocr-baseline.json', { body: Buffer.from(baselineJson), contentType: 'application/json' });
 
   expect(baseline.fixtureKind).toBe('deterministic-camera-like-jpeg');
   expect(baseline.singleCold.blocks).toBeGreaterThan(0);
