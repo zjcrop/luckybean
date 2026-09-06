@@ -17,6 +17,20 @@ async function isolateSupabase(page){
   await page.route(SUPABASE_PATTERN,route=>route.fulfill({status:200,contentType:'application/json',body:'{}'}));
 }
 
+async function installSafariStorageFailure(page){
+  await page.addInitScript(()=>{
+    const set=Storage.prototype.setItem, remove=Storage.prototype.removeItem;
+    Storage.prototype.setItem=function(key,value){
+      if(String(key).startsWith('luckybean.supabase.')||String(key).startsWith('luckybean.cloud.')) throw new DOMException('blocked','QuotaExceededError');
+      return set.call(this,key,value);
+    };
+    Storage.prototype.removeItem=function(key){
+      if(String(key).startsWith('luckybean.supabase.')||String(key).startsWith('luckybean.cloud.')) throw new DOMException('blocked','QuotaExceededError');
+      return remove.call(this,key);
+    };
+  });
+}
+
 async function loadLazyWebOcr(page){
   await expect.poll(()=>page.evaluate(()=>({
     runtime:Boolean(globalThis.LuckyBeanRuntimeFeatures),
@@ -39,48 +53,98 @@ async function loadLazyWebOcr(page){
   await page.waitForFunction(()=>Boolean(globalThis.LuckyBeanPaddleOCR),null,{timeout:15000});
 }
 
-test('email verification callback survives Safari-style storage failure',async({page})=>{
-  let refreshCalls=0;
-  await page.addInitScript(()=>{
-    const set=Storage.prototype.setItem, remove=Storage.prototype.removeItem;
-    Storage.prototype.setItem=function(key,value){
-      if(String(key).startsWith('luckybean.supabase.')||String(key).startsWith('luckybean.cloud.')) throw new DOMException('blocked','QuotaExceededError');
-      return set.call(this,key,value);
-    };
-    Storage.prototype.removeItem=function(key){
-      if(String(key).startsWith('luckybean.supabase.')||String(key).startsWith('luckybean.cloud.')) throw new DOMException('blocked','QuotaExceededError');
-      return remove.call(this,key);
-    };
-  });
-  await page.route(SUPABASE_PATTERN,async route=>{
-    const url=new URL(route.request().url());
-    if(url.pathname==='/auth/v1/user'){
-      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({id:'webkit-user',email:'webkit@example.com'})});
-      return;
-    }
-    if(url.pathname==='/auth/v1/token'){
-      refreshCalls+=1;
+test.describe('Safari callback auth parity',()=>{
+  // Auth tests use synthetic Supabase tokens. Blocking Service Worker only in this
+  // describe keeps Playwright routing authoritative; otherwise a newly claimed SW can
+  // let the synthetic bearer reach the real Supabase REST endpoint and create a false 401.
+  // WebKit OCR tests below keep Service Worker enabled and exercise normal app startup.
+  test.use({serviceWorkers:'block'});
+
+  test('email verification callback survives Safari-style storage failure without redundant refresh',async({page})=>{
+    let refreshCalls=0;
+    await installSafariStorageFailure(page);
+    await page.route(SUPABASE_PATTERN,async route=>{
+      const url=new URL(route.request().url());
+      if(url.pathname==='/auth/v1/user'){
+        await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({id:'webkit-user',email:'webkit@example.com'})});
+        return;
+      }
+      if(url.pathname==='/auth/v1/token'){
+        refreshCalls+=1;
+        await route.fulfill({status:200,contentType:'application/json',body:'{}'});
+        return;
+      }
+      if(url.pathname==='/rest/v1/luckybean_sync_manifests'){
+        await route.fulfill({status:200,contentType:'application/json',body:'[]'});
+        return;
+      }
       await route.fulfill({status:200,contentType:'application/json',body:'{}'});
-      return;
-    }
-    await route.fulfill({status:200,contentType:'application/json',body:'{}'});
+    });
+    await enter(page,`${BASE_URL}/?webkit-callback=1#access_token=a.b.c&refresh_token=webkit-refresh&expires_in=3600&token_type=bearer`);
+    await expect.poll(()=>page.evaluate(()=>({
+      refreshToken:globalThis.LuckyBeanCloudAuth?.getSession?.()?.refresh_token||'',
+      revision:globalThis.LuckyBeanCloudAuth?.revision||'',
+      snapshot:document.documentElement.dataset.authCallbackSnapshot||'',
+      auth:document.documentElement.dataset.cloudAuth||'',
+      storage:document.documentElement.dataset.cloudStorage||'',
+      hash:location.hash
+    })),{timeout:15000}).toMatchObject({refreshToken:'webkit-refresh',revision:'cloud-auth-service-v11-head-session-parity',snapshot:'consumed'});
+    await expect.poll(()=>page.evaluate(()=>globalThis.LuckyBeanCloudAuth?.getSession?.()?.user?.email||''),{timeout:15000}).toBe('webkit@example.com');
+    await expect.poll(()=>page.evaluate(()=>document.documentElement.dataset.cloudAuth||''),{timeout:15000}).toBe('authenticated');
+    const state=await page.evaluate(()=>({hash:location.hash,auth:document.documentElement.dataset.cloudAuth,storage:document.documentElement.dataset.cloudStorage,email:globalThis.LuckyBeanCloudAuth.getSession()?.user?.email}));
+    expect(refreshCalls).toBe(0);
+    expect(state.hash).toBe('');
+    expect(state.auth).toBe('authenticated');
+    expect(state.storage).toBe('volatile');
+    expect(state.email).toBe('webkit@example.com');
   });
-  await enter(page,`${BASE_URL}/?webkit-callback=1#access_token=a.b.c&refresh_token=webkit-refresh&expires_in=3600&token_type=bearer`);
-  await expect.poll(()=>page.evaluate(()=>({
-    refreshToken:globalThis.LuckyBeanCloudAuth?.getSession?.()?.refresh_token||'',
-    revision:globalThis.LuckyBeanCloudAuth?.revision||'',
-    snapshot:document.documentElement.dataset.authCallbackSnapshot||'',
-    auth:document.documentElement.dataset.cloudAuth||'',
-    storage:document.documentElement.dataset.cloudStorage||'',
-    hash:location.hash
-  })),{timeout:15000}).toMatchObject({refreshToken:'webkit-refresh',revision:'cloud-auth-service-v11-head-session-parity',snapshot:'consumed'});
-  await expect.poll(()=>page.evaluate(()=>globalThis.LuckyBeanCloudAuth?.getSession?.()?.user?.email||''),{timeout:15000}).toBe('webkit@example.com');
-  const state=await page.evaluate(()=>({hash:location.hash,auth:document.documentElement.dataset.cloudAuth,storage:document.documentElement.dataset.cloudStorage,email:globalThis.LuckyBeanCloudAuth.getSession()?.user?.email}));
-  expect(refreshCalls).toBe(0);
-  expect(state.hash).toBe('');
-  expect(state.auth).toBe('authenticated');
-  expect(state.storage).toBe('volatile');
-  expect(state.email).toBe('webkit@example.com');
+
+  test('Safari callback performs exactly one refresh after a real REST 401',async({page})=>{
+    let refreshCalls=0;
+    let manifestCalls=0;
+    await installSafariStorageFailure(page);
+    await page.route(SUPABASE_PATTERN,async route=>{
+      const url=new URL(route.request().url());
+      if(url.pathname==='/auth/v1/user'){
+        await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({id:'webkit-user',email:'webkit@example.com'})});
+        return;
+      }
+      if(url.pathname==='/auth/v1/token'&&url.searchParams.get('grant_type')==='refresh_token'){
+        refreshCalls+=1;
+        await route.fulfill({
+          status:200,
+          contentType:'application/json',
+          body:JSON.stringify({
+            access_token:'refreshed.webkit.token',
+            refresh_token:'webkit-refresh-2',
+            expires_in:3600,
+            token_type:'bearer',
+            user:{id:'webkit-user',email:'webkit@example.com'}
+          })
+        });
+        return;
+      }
+      if(url.pathname==='/rest/v1/luckybean_sync_manifests'){
+        manifestCalls+=1;
+        if(manifestCalls===1){
+          await route.fulfill({status:401,contentType:'application/json',body:JSON.stringify({message:'JWT expired'})});
+          return;
+        }
+        await route.fulfill({status:200,contentType:'application/json',body:'[]'});
+        return;
+      }
+      await route.fulfill({status:200,contentType:'application/json',body:'{}'});
+    });
+    await enter(page,`${BASE_URL}/?webkit-callback-401=1#access_token=a.b.c&refresh_token=webkit-refresh&expires_in=3600&token_type=bearer`);
+    await expect.poll(()=>refreshCalls,{timeout:15000}).toBe(1);
+    await expect.poll(()=>manifestCalls,{timeout:15000}).toBeGreaterThanOrEqual(2);
+    await expect.poll(()=>page.evaluate(()=>globalThis.LuckyBeanCloudAuth?.getSession?.()?.refresh_token||''),{timeout:15000}).toBe('webkit-refresh-2');
+    await expect.poll(()=>page.evaluate(()=>document.documentElement.dataset.cloudAuth||''),{timeout:15000}).toBe('authenticated');
+    const state=await page.evaluate(()=>({hash:location.hash,storage:document.documentElement.dataset.cloudStorage,email:globalThis.LuckyBeanCloudAuth?.getSession?.()?.user?.email||''}));
+    expect(state.hash).toBe('');
+    expect(state.storage).toBe('volatile');
+    expect(state.email).toBe('webkit@example.com');
+  });
 });
 
 test('WebKit runtime stays lazy and exposes bounded PP-OCR compatibility mode',async({page})=>{
