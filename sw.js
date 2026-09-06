@@ -24,6 +24,8 @@ const LAZY_RUNTIME_RESOURCES = [
   './src/ui/appearance-controller.js',
   './src/ui/voice-settings-controller.js',
   './src/ui/navigation-controller.js',
+  './src/ui/interaction-foundation.js',
+  './src/ui/interaction-foundation.css',
   './src/ui/brew-action-emphasis.css',
   './src/ui/gear-controller.js',
   './src/ui/sortable-controller.js',

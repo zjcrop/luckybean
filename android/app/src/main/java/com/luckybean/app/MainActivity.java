@@ -383,6 +383,11 @@ public final class MainActivity extends Activity {
                 else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             });
         }
+
+        @JavascriptInterface
+        public void exitApp() {
+            runOnUiThread(MainActivity.this::finish);
+        }
     }
 
     private static void appendRecognizedLines(Map<String, JSONObject> target, Text result,
