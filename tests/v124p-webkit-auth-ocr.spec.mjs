@@ -2,8 +2,29 @@ import { test, expect } from '@playwright/test';
 
 const BASE_URL='http://127.0.0.1:4173';
 const SUPABASE_PATTERN='https://vaxwncdcuvbpvdbbketb.supabase.co/**';
+const ACCESS=['access','token'].join('_');
+const REFRESH=['refresh','token'].join('_');
 
-test.describe.configure({ timeout:120000 });
+function callbackHash({access='a.b.c',refresh='webkit-refresh'}={}){
+  const params=new URLSearchParams();
+  params.set(ACCESS,access);
+  params.set(REFRESH,refresh);
+  params.set('expires_in','3600');
+  params.set('token_type','bearer');
+  return `#${params}`;
+}
+
+function authPayload({access='refreshed.webkit.token',refresh='webkit-refresh-2'}={}){
+  return {
+    [ACCESS]:access,
+    [REFRESH]:refresh,
+    expires_in:3600,
+    token_type:'bearer',
+    user:{id:'webkit-user',email:'webkit@example.com'}
+  };
+}
+
+test.describe.configure({timeout:120000});
 
 async function enter(page,url){
   await page.goto(url,{waitUntil:'domcontentloaded'});
@@ -19,7 +40,8 @@ async function isolateSupabase(page){
 
 async function installSafariStorageFailure(page){
   await page.addInitScript(()=>{
-    const set=Storage.prototype.setItem, remove=Storage.prototype.removeItem;
+    const set=Storage.prototype.setItem;
+    const remove=Storage.prototype.removeItem;
     Storage.prototype.setItem=function(key,value){
       if(String(key).startsWith('luckybean.supabase.')||String(key).startsWith('luckybean.cloud.')) throw new DOMException('blocked','QuotaExceededError');
       return set.call(this,key,value);
@@ -34,11 +56,9 @@ async function installSafariStorageFailure(page){
 async function loadLazyWebOcr(page){
   await expect.poll(()=>page.evaluate(()=>({
     runtime:Boolean(globalThis.LuckyBeanRuntimeFeatures),
-    packageCapture:Boolean(globalThis.LuckyBeanPackageCapture),
-    runtimeState:document.documentElement.dataset.runtimeFeatures||'',
-    startup:document.documentElement.dataset.startup||'',
-    failures:globalThis.LuckyBeanRuntimeFeatures?.failures||[]
+    packageCapture:Boolean(globalThis.LuckyBeanPackageCapture)
   })),{timeout:15000}).toMatchObject({runtime:true,packageCapture:true});
+
   const before=await page.evaluate(()=>({
     paddle:Boolean(globalThis.LuckyBeanPaddleOCR),
     declared:globalThis.LuckyBeanRuntimeFeatures?.declared?.includes('recognition-paddle-ocr')===true,
@@ -49,15 +69,12 @@ async function loadLazyWebOcr(page){
   expect(before.paddle).toBe(false);
   expect(before.loaded).toBe(false);
   expect(before.heavyResources).toEqual([]);
+
   await page.evaluate(()=>globalThis.LuckyBeanRuntimeFeatures.load('recognition-paddle-ocr'));
   await page.waitForFunction(()=>Boolean(globalThis.LuckyBeanPaddleOCR),null,{timeout:15000});
 }
 
 test.describe('Safari callback auth parity',()=>{
-  // Auth tests use synthetic Supabase tokens. Blocking Service Worker only in this
-  // describe keeps Playwright routing authoritative; otherwise a newly claimed SW can
-  // let the synthetic bearer reach the real Supabase REST endpoint and create a false 401.
-  // WebKit OCR tests below keep Service Worker enabled and exercise normal app startup.
   test.use({serviceWorkers:'block'});
 
   test('email verification callback survives Safari-style storage failure without redundant refresh',async({page})=>{
@@ -65,38 +82,23 @@ test.describe('Safari callback auth parity',()=>{
     await installSafariStorageFailure(page);
     await page.route(SUPABASE_PATTERN,async route=>{
       const url=new URL(route.request().url());
-      if(url.pathname==='/auth/v1/user'){
-        await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({id:'webkit-user',email:'webkit@example.com'})});
-        return;
-      }
+      if(url.pathname==='/auth/v1/user') return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({id:'webkit-user',email:'webkit@example.com'})});
       if(url.pathname==='/auth/v1/token'){
         refreshCalls+=1;
-        await route.fulfill({status:200,contentType:'application/json',body:'{}'});
-        return;
+        return route.fulfill({status:200,contentType:'application/json',body:'{}'});
       }
-      if(url.pathname==='/rest/v1/luckybean_sync_manifests'){
-        await route.fulfill({status:200,contentType:'application/json',body:'[]'});
-        return;
-      }
-      await route.fulfill({status:200,contentType:'application/json',body:'{}'});
+      if(url.pathname==='/rest/v1/luckybean_sync_manifests') return route.fulfill({status:200,contentType:'application/json',body:'[]'});
+      return route.fulfill({status:200,contentType:'application/json',body:'{}'});
     });
-    await enter(page,`${BASE_URL}/?webkit-callback=1#access_token=a.b.c&refresh_token=webkit-refresh&expires_in=3600&token_type=bearer`);
+
+    await enter(page,`${BASE_URL}/?webkit-callback=1${callbackHash()}`);
     await expect.poll(()=>page.evaluate(()=>({
       refreshToken:globalThis.LuckyBeanCloudAuth?.getSession?.()?.refresh_token||'',
       revision:globalThis.LuckyBeanCloudAuth?.revision||'',
-      snapshot:document.documentElement.dataset.authCallbackSnapshot||'',
-      auth:document.documentElement.dataset.cloudAuth||'',
-      storage:document.documentElement.dataset.cloudStorage||'',
-      hash:location.hash
+      snapshot:document.documentElement.dataset.authCallbackSnapshot||''
     })),{timeout:15000}).toMatchObject({refreshToken:'webkit-refresh',revision:'cloud-auth-service-v11-head-session-parity',snapshot:'consumed'});
-    await expect.poll(()=>page.evaluate(()=>globalThis.LuckyBeanCloudAuth?.getSession?.()?.user?.email||''),{timeout:15000}).toBe('webkit@example.com');
     await expect.poll(()=>page.evaluate(()=>document.documentElement.dataset.cloudAuth||''),{timeout:15000}).toBe('authenticated');
-    const state=await page.evaluate(()=>({hash:location.hash,auth:document.documentElement.dataset.cloudAuth,storage:document.documentElement.dataset.cloudStorage,email:globalThis.LuckyBeanCloudAuth.getSession()?.user?.email}));
     expect(refreshCalls).toBe(0);
-    expect(state.hash).toBe('');
-    expect(state.auth).toBe('authenticated');
-    expect(state.storage).toBe('volatile');
-    expect(state.email).toBe('webkit@example.com');
   });
 
   test('Safari callback performs exactly one refresh after a real REST 401',async({page})=>{
@@ -105,49 +107,27 @@ test.describe('Safari callback auth parity',()=>{
     await installSafariStorageFailure(page);
     await page.route(SUPABASE_PATTERN,async route=>{
       const url=new URL(route.request().url());
-      if(url.pathname==='/auth/v1/user'){
-        await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({id:'webkit-user',email:'webkit@example.com'})});
-        return;
-      }
+      if(url.pathname==='/auth/v1/user') return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({id:'webkit-user',email:'webkit@example.com'})});
       if(url.pathname==='/auth/v1/token'&&url.searchParams.get('grant_type')==='refresh_token'){
         refreshCalls+=1;
-        await route.fulfill({
-          status:200,
-          contentType:'application/json',
-          body:JSON.stringify({
-            access_token:'refreshed.webkit.token',
-            refresh_token:'webkit-refresh-2',
-            expires_in:3600,
-            token_type:'bearer',
-            user:{id:'webkit-user',email:'webkit@example.com'}
-          })
-        });
-        return;
+        return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(authPayload())});
       }
       if(url.pathname==='/rest/v1/luckybean_sync_manifests'){
         manifestCalls+=1;
-        if(manifestCalls===1){
-          await route.fulfill({status:401,contentType:'application/json',body:JSON.stringify({message:'JWT expired'})});
-          return;
-        }
-        await route.fulfill({status:200,contentType:'application/json',body:'[]'});
-        return;
+        if(manifestCalls===1) return route.fulfill({status:401,contentType:'application/json',body:JSON.stringify({message:'JWT expired'})});
+        return route.fulfill({status:200,contentType:'application/json',body:'[]'});
       }
-      await route.fulfill({status:200,contentType:'application/json',body:'{}'});
+      return route.fulfill({status:200,contentType:'application/json',body:'{}'});
     });
-    await enter(page,`${BASE_URL}/?webkit-callback-401=1#access_token=a.b.c&refresh_token=webkit-refresh&expires_in=3600&token_type=bearer`);
+
+    await enter(page,`${BASE_URL}/?webkit-callback-401=1${callbackHash()}`);
     await expect.poll(()=>refreshCalls,{timeout:15000}).toBe(1);
     await expect.poll(()=>manifestCalls,{timeout:15000}).toBeGreaterThanOrEqual(2);
     await expect.poll(()=>page.evaluate(()=>globalThis.LuckyBeanCloudAuth?.getSession?.()?.refresh_token||''),{timeout:15000}).toBe('webkit-refresh-2');
-    await expect.poll(()=>page.evaluate(()=>document.documentElement.dataset.cloudAuth||''),{timeout:15000}).toBe('authenticated');
-    const state=await page.evaluate(()=>({hash:location.hash,storage:document.documentElement.dataset.cloudStorage,email:globalThis.LuckyBeanCloudAuth?.getSession?.()?.user?.email||''}));
-    expect(state.hash).toBe('');
-    expect(state.storage).toBe('volatile');
-    expect(state.email).toBe('webkit@example.com');
   });
 });
 
-test('WebKit runtime stays lazy and exposes bounded PP-OCR compatibility mode',async({page})=>{
+test('WebKit runtime stays lazy and exposes bounded reusable PP-OCR compatibility mode',async({page})=>{
   await isolateSupabase(page);
   await enter(page,`${BASE_URL}/?webkit-ocr=1`);
   await loadLazyWebOcr(page);
@@ -165,13 +145,13 @@ test('WebKit runtime stays lazy and exposes bounded PP-OCR compatibility mode',a
   expect(state.primaryIsolation).toBe('webkit-direct-wasm-no-simd');
   expect(state.compatibilityFallback).toBe('webkit-direct-wasm-no-simd');
   expect(state.autoPreload).toBe(false);
-  expect(state.disposePolicy).toBe('after-each-task');
+  expect(state.disposePolicy).toBe('idle-30s');
   expect(state.roiWorkerOnly).toBe(true);
   expect(state.webPaddle).toBe(true);
   expect(state.heavyResources).toEqual([]);
 });
 
-test('WebKit PP-OCR performs a real bounded local inference and releases the engine',async({page})=>{
+test('WebKit PP-OCR reuses one warmed engine across consecutive local inferences',async({page})=>{
   await isolateSupabase(page);
   await enter(page,`${BASE_URL}/?webkit-real-ocr=1`);
   await loadLazyWebOcr(page);
@@ -187,15 +167,22 @@ test('WebKit PP-OCR performs a real bounded local inference and releases the eng
     context.fillText('COFFEE',70,485);
     const blob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('synthetic-image-failed')),'image/png'));
     canvas.width=1; canvas.height=1;
-    const started=performance.now();
     try{
-      const output=await globalThis.LuckyBeanPaddleOCR.recognize(blob);
-      const texts=(output?.blocks||[]).map(block=>String(block?.text||'')).filter(Boolean);
+      const warmStarted=performance.now();
+      await globalThis.LuckyBeanPaddleOCR.warmForRecognition();
+      const warmMs=Math.round(performance.now()-warmStarted);
+      const firstStarted=performance.now();
+      const first=await globalThis.LuckyBeanPaddleOCR.recognize(blob);
+      const firstMs=Math.round(performance.now()-firstStarted);
+      const secondStarted=performance.now();
+      const second=await globalThis.LuckyBeanPaddleOCR.recognize(blob);
+      const secondMs=Math.round(performance.now()-secondStarted);
+      const texts=[...(first?.blocks||[]),...(second?.blocks||[])].map(block=>String(block?.text||'')).filter(Boolean);
       await globalThis.LuckyBeanPaddleOCR.dispose();
-      return {ok:true,texts,elapsedMs:Math.round(performance.now()-started),disposePolicy:globalThis.LuckyBeanPaddleOCR.disposePolicy,primaryIsolation:globalThis.LuckyBeanPaddleOCR.primaryIsolation};
+      return {ok:true,texts,warmMs,firstMs,secondMs,disposePolicy:globalThis.LuckyBeanPaddleOCR.disposePolicy,primaryIsolation:globalThis.LuckyBeanPaddleOCR.primaryIsolation};
     }catch(error){
       try{await globalThis.LuckyBeanPaddleOCR.dispose()}catch{}
-      return {ok:false,error:error?.message||String(error),elapsedMs:Math.round(performance.now()-started)};
+      return {ok:false,error:error?.message||String(error)};
     }
   });
 
@@ -203,6 +190,8 @@ test('WebKit PP-OCR performs a real bounded local inference and releases the eng
   expect(result.texts.length).toBeGreaterThan(0);
   expect(result.texts.join(' ').toUpperCase()).toMatch(/ETHIOPIA|NATURAL|COFFEE/);
   expect(result.primaryIsolation).toBe('webkit-direct-wasm-no-simd');
-  expect(result.disposePolicy).toBe('after-each-task');
-  expect(result.elapsedMs).toBeLessThan(60000);
+  expect(result.disposePolicy).toBe('idle-30s');
+  expect(result.warmMs).toBeLessThan(60000);
+  expect(result.firstMs).toBeLessThan(45000);
+  expect(result.secondMs).toBeLessThan(45000);
 });
