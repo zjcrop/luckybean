@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 5.307254
+  duration_ms: 5.107314
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 1.805446
+  duration_ms: 2.092661
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 2.603483
+  duration_ms: 2.645438
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 1.857935
+  duration_ms: 2.01096
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.790362
+  duration_ms: 0.82567
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.719962
+  duration_ms: 2.788859
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.840286
+  duration_ms: 0.856776
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 21.662058
+# duration_ms 22.049138
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 5.722633
+  duration_ms: 5.559462
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 3.633655
+  duration_ms: 3.876085
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 3.677457
+  duration_ms: 3.774936
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 2.833906
+  duration_ms: 2.900995
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 2.296818
+  duration_ms: 2.463809
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 1.099412
+  duration_ms: 1.075379
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 25.219481
+# duration_ms 25.302404
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -213,752 +213,752 @@ TAP version 13
 # Subtest: sums every bean remaining weight and counts authoritative consumption events once
 ok 1 - sums every bean remaining weight and counts authoritative consumption events once
   ---
-  duration_ms: 1.751285
+  duration_ms: 2.371749
   type: 'test'
   ...
 # Subtest: restored mistaken brew is removed from today total
 ok 2 - restored mistaken brew is removed from today total
   ---
-  duration_ms: 0.294973
+  duration_ms: 0.355336
   type: 'test'
   ...
 # Subtest: warns when latest completed consumption is within the configured sleep buffer
 ok 3 - warns when latest completed consumption is within the configured sleep buffer
   ---
-  duration_ms: 0.325661
+  duration_ms: 0.437828
   type: 'test'
   ...
 # Subtest: uses a higher caffeine estimate for robusta beans
 ok 4 - uses a higher caffeine estimate for robusta beans
   ---
-  duration_ms: 1.052804
+  duration_ms: 1.601129
   type: 'test'
   ...
 # Subtest: brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
 ok 5 - brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
   ---
-  duration_ms: 1.630398
+  duration_ms: 1.053789
   type: 'test'
   ...
 # Subtest: production analysis envelope adapts into a plan accepted by the page validator
 ok 6 - production analysis envelope adapts into a plan accepted by the page validator
   ---
-  duration_ms: 1.990503
+  duration_ms: 1.861404
   type: 'test'
   ...
 # Subtest: unknown analysis contracts and unversioned legacy plans remain rejected
 ok 7 - unknown analysis contracts and unversioned legacy plans remain rejected
   ---
-  duration_ms: 0.689804
+  duration_ms: 0.575982
   type: 'test'
   ...
 # Subtest: cold brew validates stage water against brew water and recipe total independently
 ok 8 - cold brew validates stage water against brew water and recipe total independently
   ---
-  duration_ms: 0.551985
+  duration_ms: 0.52013
   type: 'test'
   ...
 # Subtest: 参数重算保留同一豆卡已经实际采用的方案
 ok 9 - 参数重算保留同一豆卡已经实际采用的方案
   ---
-  duration_ms: 4.748216
+  duration_ms: 5.051013
   type: 'test'
   ...
 # Subtest: 不同豆卡或手动选择方案时不会沿用旧方案
 ok 10 - 不同豆卡或手动选择方案时不会沿用旧方案
   ---
-  duration_ms: 1.38077
+  duration_ms: 1.245513
   type: 'test'
   ...
 # Subtest: 并发计算采用 latest-wins，旧结果不能覆盖新结果
 ok 11 - 并发计算采用 latest-wins，旧结果不能覆盖新结果
   ---
-  duration_ms: 0.714961
+  duration_ms: 0.651735
   type: 'test'
   ...
 # Subtest: 总分低于预测分不会单独触发冲煮优化
 ok 12 - 总分低于预测分不会单独触发冲煮优化
   ---
-  duration_ms: 2.723568
+  duration_ms: 2.627437
   type: 'test'
   ...
 # Subtest: 品鉴后的具体负面维度触发可解释优化
 ok 13 - 品鉴后的具体负面维度触发可解释优化
   ---
-  duration_ms: 0.922179
+  duration_ms: 0.832532
   type: 'test'
   ...
 # Subtest: 雷达轴只比较同组平均且无完成冲煮时不提示优化
 ok 14 - 雷达轴只比较同组平均且无完成冲煮时不提示优化
   ---
-  duration_ms: 1.409905
+  duration_ms: 1.319382
   type: 'test'
   ...
 # Subtest: 实际执行明显偏离方案时不把负面结果归因于方案
 ok 15 - 实际执行明显偏离方案时不把负面结果归因于方案
   ---
-  duration_ms: 0.481524
+  duration_ms: 0.418809
   type: 'test'
   ...
 # Subtest: 个人靶区至少三次证据后才改变，标准靶区保持不变
 ok 16 - 个人靶区至少三次证据后才改变，标准靶区保持不变
   ---
-  duration_ms: 1.28529
+  duration_ms: 1.169961
   type: 'test'
   ...
 # Subtest: accepts a catalog with balanced hot and cold auto-recommend profiles
 ok 17 - accepts a catalog with balanced hot and cold auto-recommend profiles
   ---
-  duration_ms: 1.593378
+  duration_ms: 1.43962
   type: 'test'
   ...
 # Subtest: rejects a catalog whose declared profile count differs from the payload
 ok 18 - rejects a catalog whose declared profile count differs from the payload
   ---
-  duration_ms: 0.227276
+  duration_ms: 0.232625
   type: 'test'
   ...
 # Subtest: rejects a cold profile whose recipe water does not equal brew water + ice + bypass
 ok 19 - rejects a cold profile whose recipe water does not equal brew water + ice + bypass
   ---
-  duration_ms: 1.152221
+  duration_ms: 1.255036
   type: 'test'
   ...
 # Subtest: rejects catalogs that cannot auto-recommend in both hot and cold modes
 ok 20 - rejects catalogs that cannot auto-recommend in both hot and cold modes
   ---
-  duration_ms: 0.207619
+  duration_ms: 0.312653
   type: 'test'
   ...
 # Subtest: Knowledge resolution issue is exposed as an automatic-resolution decision
 ok 21 - Knowledge resolution issue is exposed as an automatic-resolution decision
   ---
-  duration_ms: 6.703763
+  duration_ms: 6.644605
   type: 'test'
   ...
 # Subtest: name-only OCR cannot silently resolve a researched ambiguous farm
 ok 22 - name-only OCR cannot silently resolve a researched ambiguous farm
   ---
-  duration_ms: 31.464714
+  duration_ms: 29.998851
   type: 'test'
   ...
 # Subtest: explicit stable core code remains usable for historical/explicit-code compatibility
 ok 23 - explicit stable core code remains usable for historical/explicit-code compatibility
   ---
-  duration_ms: 29.075332
+  duration_ms: 20.86016
   type: 'test'
   ...
 # Subtest: Coffee Knowledge provider is optional and preserves QR-core ownership
 ok 24 - Coffee Knowledge provider is optional and preserves QR-core ownership
   ---
-  duration_ms: 1.378957
+  duration_ms: 0.944307
   type: 'test'
   ...
 # Subtest: knowledge aliases augment matching without changing QR indexes or visible columns
 ok 25 - knowledge aliases augment matching without changing QR indexes or visible columns
   ---
-  duration_ms: 3.707233
+  duration_ms: 1.595901
   type: 'test'
   ...
 # Subtest: Japanese/Korean OCR text resolves to existing v6 codes through hidden knowledge aliases
 ok 26 - Japanese/Korean OCR text resolves to existing v6 codes through hidden knowledge aliases
   ---
-  duration_ms: 9.622157
+  duration_ms: 9.9565
   type: 'test'
   ...
 # Subtest: knowledge-only WCR varieties can match OCR evidence without receiving a QR core code
 ok 27 - knowledge-only WCR varieties can match OCR evidence without receiving a QR core code
   ---
-  duration_ms: 3.378256
+  duration_ms: 2.721366
   type: 'test'
   ...
 # Subtest: existing v6 variety ownership remains higher priority than knowledge-only candidates
 ok 28 - existing v6 variety ownership remains higher priority than knowledge-only candidates
   ---
-  duration_ms: 3.372305
+  duration_ms: 2.720204
   type: 'test'
   ...
 # Subtest: canonical knowledge identity is available without rewriting decoded core codes
 ok 29 - canonical knowledge identity is available without rewriting decoded core codes
   ---
-  duration_ms: 0.637045
+  duration_ms: 0.554961
   type: 'test'
   ...
 # Subtest: harvest aliases cover five languages
 ok 30 - harvest aliases cover five languages
   ---
-  duration_ms: 2.141907
+  duration_ms: 1.673636
   type: 'test'
   ...
 # Subtest: harvest parser normalizes multilingual seasons
 ok 31 - harvest parser normalizes multilingual seasons
   ---
-  duration_ms: 1.311119
+  duration_ms: 1.268056
   type: 'test'
   ...
 # Subtest: labelled harvest data cannot leak into roast altitude or weight
 ok 32 - labelled harvest data cannot leak into roast altitude or weight
   ---
-  duration_ms: 5.891811
+  duration_ms: 5.669037
   type: 'test'
   ...
 # Subtest: layout parser recognizes reversed Japanese and Korean harvest labels
 ok 33 - layout parser recognizes reversed Japanese and Korean harvest labels
   ---
-  duration_ms: 2.227247
+  duration_ms: 1.75102
   type: 'test'
   ...
 # Subtest: archive round-trip preserves every portable store
 ok 34 - archive round-trip preserves every portable store
   ---
-  duration_ms: 21.813813
+  duration_ms: 20.089925
   type: 'test'
   ...
 # Subtest: archive rejects tampered store data
 ok 35 - archive rejects tampered store data
   ---
-  duration_ms: 4.171714
+  duration_ms: 3.331328
   type: 'test'
   ...
 # Subtest: legacy 1.2.x JSON backup migrates without inventing records
 ok 36 - legacy 1.2.x JSON backup migrates without inventing records
   ---
-  duration_ms: 0.646343
+  duration_ms: 0.564655
   type: 'test'
   ...
 # Subtest: future schema cannot be imported
 ok 37 - future schema cannot be imported
   ---
-  duration_ms: 5.478084
+  duration_ms: 3.833642
   type: 'test'
   ...
 # Subtest: production date never falls back to roast date
 ok 38 - production date never falls back to roast date
   ---
-  duration_ms: 4.952759
+  duration_ms: 6.678782
   type: 'test'
   ...
 # Subtest: best before and expiry dates are excluded from roast date
 ok 39 - best before and expiry dates are excluded from roast date
   ---
-  duration_ms: 7.439792
+  duration_ms: 7.368262
   type: 'test'
   ...
 # Subtest: explicit roast date is auto-filled while other dates remain excluded
 ok 40 - explicit roast date is auto-filled while other dates remain excluded
   ---
-  duration_ms: 1.718596
+  duration_ms: 2.083914
   type: 'test'
   ...
 # Subtest: unlabelled date requires confirmation and is never silently filled
 ok 41 - unlabelled date requires confirmation and is never silently filled
   ---
-  duration_ms: 0.537848
+  duration_ms: 0.656351
   type: 'test'
   ...
 # Subtest: date photo role increases provenance but does not bypass confirmation
 ok 42 - date photo role increases provenance but does not bypass confirmation
   ---
-  duration_ms: 0.635803
+  duration_ms: 0.931929
   type: 'test'
   ...
 # Subtest: invalid calendar dates are rejected
 ok 43 - invalid calendar dates are rejected
   ---
-  duration_ms: 0.951926
+  duration_ms: 1.431688
   type: 'test'
   ...
 # Subtest: 30-case date ownership golden set has zero silent non-roast assignments
     # Subtest: 烘焙日期：2026-07-28
     ok 1 - 烘焙日期：2026-07-28
       ---
-      duration_ms: 9.21895
+      duration_ms: 7.605433
       type: 'test'
       ...
     # Subtest: ROAST DATE 2026/07/28
     ok 2 - ROAST DATE 2026/07/28
       ---
-      duration_ms: 1.291312
+      duration_ms: 1.754596
       type: 'test'
       ...
     # Subtest: ROASTED ON 2026.7.8
     ok 3 - ROASTED ON 2026.7.8
       ---
-      duration_ms: 0.381395
+      duration_ms: 0.478628
       type: 'test'
       ...
     # Subtest: 焙炒日期 2026年7月28日
     ok 4 - 焙炒日期 2026年7月28日
       ---
-      duration_ms: 0.760406
+      duration_ms: 1.057064
       type: 'test'
       ...
     # Subtest: RST DATE 20260728
     ok 5 - RST DATE 20260728
       ---
-      duration_ms: 0.432121
+      duration_ms: 0.611184
       type: 'test'
       ...
     # Subtest: ROAST ON 28 JUL 2026
     ok 6 - ROAST ON 28 JUL 2026
       ---
-      duration_ms: 1.112616
+      duration_ms: 1.75691
       type: 'test'
       ...
     # Subtest: ROAST DATE JUL 28 2026
     ok 7 - ROAST DATE JUL 28 2026
       ---
-      duration_ms: 1.134047
+      duration_ms: 1.235568
       type: 'test'
       ...
     # Subtest: 出炉日期 26年7月28日
     ok 8 - 出炉日期 26年7月28日
       ---
-      duration_ms: 1.422368
+      duration_ms: 1.475073
       type: 'test'
       ...
     # Subtest: 烘焙日 26-07-28
     ok 9 - 烘焙日 26-07-28
       ---
-      duration_ms: 1.403763
+      duration_ms: 1.447031
       type: 'test'
       ...
     # Subtest: 烘烤日期 26.0728
     ok 10 - 烘烤日期 26.0728
       ---
-      duration_ms: 0.726462
+      duration_ms: 0.667878
       type: 'test'
       ...
     # Subtest: 生产日期：2026-07-21
     ok 11 - 生产日期：2026-07-21
       ---
-      duration_ms: 0.817593
+      duration_ms: 0.548742
       type: 'test'
       ...
     # Subtest: MFG DATE 2026/07/21
     ok 12 - MFG DATE 2026/07/21
       ---
-      duration_ms: 0.33589
+      duration_ms: 0.312312
       type: 'test'
       ...
     # Subtest: MFD 20260721
     ok 13 - MFD 20260721
       ---
-      duration_ms: 0.569307
+      duration_ms: 0.588121
       type: 'test'
       ...
     # Subtest: 包装日期 2026.07.22
     ok 14 - 包装日期 2026.07.22
       ---
-      duration_ms: 0.430878
+      duration_ms: 0.369116
       type: 'test'
       ...
     # Subtest: PACKED ON 2026-07-22
     ok 15 - PACKED ON 2026-07-22
       ---
-      duration_ms: 0.357671
+      duration_ms: 0.381845
       type: 'test'
       ...
     # Subtest: PKD 20260722
     ok 16 - PKD 20260722
       ---
-      duration_ms: 0.385763
+      duration_ms: 0.327925
       type: 'test'
       ...
     # Subtest: 最佳赏味期 2026-10-28
     ok 17 - 最佳赏味期 2026-10-28
       ---
-      duration_ms: 0.390011
+      duration_ms: 0.397498
       type: 'test'
       ...
     # Subtest: BEST BEFORE 2026/10/28
     ok 18 - BEST BEFORE 2026/10/28
       ---
-      duration_ms: 0.393388
+      duration_ms: 0.356959
       type: 'test'
       ...
     # Subtest: BBE 28 OCT 2026
     ok 19 - BBE 28 OCT 2026
       ---
-      duration_ms: 0.366176
+      duration_ms: 0.39871
       type: 'test'
       ...
     # Subtest: 有效期至 2027年1月5日
     ok 20 - 有效期至 2027年1月5日
       ---
-      duration_ms: 0.376847
+      duration_ms: 0.398971
       type: 'test'
       ...
     # Subtest: EXP 2027-01-05
     ok 21 - EXP 2027-01-05
       ---
-      duration_ms: 0.971542
+      duration_ms: 1.043383
       type: 'test'
       ...
     # Subtest: USE BY JAN 5 2027
     ok 22 - USE BY JAN 5 2027
       ---
-      duration_ms: 0.314309
+      duration_ms: 0.316729
       type: 'test'
       ...
     # Subtest: 埃塞俄比亚 / 2026-07-28
     ok 23 - 埃塞俄比亚 / 2026-07-28
       ---
-      duration_ms: 0.62373
+      duration_ms: 0.56063
       type: 'test'
       ...
     # Subtest: DATE 2026/07/28
     ok 24 - DATE 2026/07/28
       ---
-      duration_ms: 0.29863
+      duration_ms: 0.289829
       type: 'test'
       ...
     # Subtest: LOT 20260728
     ok 25 - LOT 20260728
       ---
-      duration_ms: 0.306074
+      duration_ms: 0.301055
       type: 'test'
       ...
     # Subtest: 2026年7月28日
     ok 26 - 2026年7月28日
       ---
-      duration_ms: 0.353583
+      duration_ms: 0.295037
       type: 'test'
       ...
     # Subtest: 28/07/2026
     ok 27 - 28/07/2026
       ---
-      duration_ms: 0.708068
+      duration_ms: 0.684623
       type: 'test'
       ...
     # Subtest: 07/08/2026
     ok 28 - 07/08/2026
       ---
-      duration_ms: 0.523482
+      duration_ms: 0.531987
       type: 'test'
       ...
     # Subtest: ROAST DATE 07/08/2026
     ok 29 - ROAST DATE 07/08/2026
       ---
-      duration_ms: 0.60806
+      duration_ms: 0.576283
       type: 'test'
       ...
     # Subtest: ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
     ok 30 - ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
       ---
-      duration_ms: 0.665288
+      duration_ms: 0.627919
       type: 'test'
       ...
     1..30
 ok 44 - 30-case date ownership golden set has zero silent non-roast assignments
   ---
-  duration_ms: 33.29132
+  duration_ms: 32.143649
   type: 'test'
   ...
 # Subtest: review model exposes automatic, excluded and unresolved candidates together
 ok 45 - review model exposes automatic, excluded and unresolved candidates together
   ---
-  duration_ms: 7.703969
+  duration_ms: 8.169648
   type: 'test'
   ...
 # Subtest: unresolved candidate requires an explicit date assignment before confirmation
 ok 46 - unresolved candidate requires an explicit date assignment before confirmation
   ---
-  duration_ms: 1.013391
+  duration_ms: 0.726625
   type: 'test'
   ...
 # Subtest: user confirmation retains source provenance instead of inventing confidence 1
 ok 47 - user confirmation retains source provenance instead of inventing confidence 1
   ---
-  duration_ms: 0.856987
+  duration_ms: 0.64196
   type: 'test'
   ...
 # Subtest: two roast date selections are rejected
 ok 48 - two roast date selections are rejected
   ---
-  duration_ms: 1.807661
+  duration_ms: 1.217361
   type: 'test'
   ...
 # Subtest: candidate value cannot be replaced with an unrecognized date
 ok 49 - candidate value cannot be replaced with an unrecognized date
   ---
-  duration_ms: 0.540624
+  duration_ms: 0.341685
   type: 'test'
   ...
 # Subtest: stale or fabricated candidate id is rejected
 ok 50 - stale or fabricated candidate id is rejected
   ---
-  duration_ms: 0.734207
+  duration_ms: 0.462324
   type: 'test'
   ...
 # Subtest: all candidates may be ignored without silently restoring automatic roast date
 ok 51 - all candidates may be ignored without silently restoring automatic roast date
   ---
-  duration_ms: 1.084884
+  duration_ms: 0.735408
   type: 'test'
   ...
 # Subtest: ambiguous day-month candidate can only resolve to one offered value
 ok 52 - ambiguous day-month candidate can only resolve to one offered value
   ---
-  duration_ms: 1.585614
+  duration_ms: 1.174418
   type: 'test'
   ...
 # Subtest: duplicate submission of the same candidate is rejected
 ok 53 - duplicate submission of the same candidate is rejected
   ---
-  duration_ms: 0.823986
+  duration_ms: 0.813734
   type: 'test'
   ...
 # Subtest: numeric Ethiopian variety codes are split into independent exact candidates
 ok 54 - numeric Ethiopian variety codes are split into independent exact candidates
   ---
-  duration_ms: 40.055675
+  duration_ms: 22.249319
   type: 'test'
   ...
 # Subtest: multiple labeled varieties stay unresolved instead of silently choosing the first code
 ok 55 - multiple labeled varieties stay unresolved instead of silently choosing the first code
   ---
-  duration_ms: 22.29215
+  duration_ms: 12.331486
   type: 'test'
   ...
 # Subtest: spaced alphanumeric variety codes survive OCR tokenization
 ok 56 - spaced alphanumeric variety codes survive OCR tokenization
   ---
-  duration_ms: 13.417118
+  duration_ms: 6.228476
   type: 'test'
   ...
 # Subtest: explicit numeric roast levels map only within the labeled 0-6 scale
 ok 57 - explicit numeric roast levels map only within the labeled 0-6 scale
   ---
-  duration_ms: 1.221481
+  duration_ms: 1.368225
   type: 'test'
   ...
 # Subtest: mixed label layouts preserve separate variety and roast evidence
 ok 58 - mixed label layouts preserve separate variety and roast evidence
   ---
-  duration_ms: 2.461036
+  duration_ms: 3.104032
   type: 'test'
   ...
 # Subtest: equally exact codebook candidates remain a manual choice
 ok 59 - equally exact codebook candidates remain a manual choice
   ---
-  duration_ms: 4.322638
+  duration_ms: 7.111432
   type: 'test'
   ...
 # Subtest: unsupported region evidence has no reliable candidates
 ok 60 - unsupported region evidence has no reliable candidates
   ---
-  duration_ms: 3.014403
+  duration_ms: 5.073647
   type: 'test'
   ...
 # Subtest: recognition review UI contains only unresolved fields and disappears when none remain
 ok 61 - recognition review UI contains only unresolved fields and disappears when none remain
   ---
-  duration_ms: 1.618004
+  duration_ms: 1.029583
   type: 'test'
   ...
 # Subtest: recognition provenance remains persisted for audit without becoming confirmed-field UI
 ok 62 - recognition provenance remains persisted for audit without becoming confirmed-field UI
   ---
-  duration_ms: 0.28762
+  duration_ms: 0.20949
   type: 'test'
   ...
 # Subtest: confirmed roast date is still saved from the final form value
 ok 63 - confirmed roast date is still saved from the final form value
   ---
-  duration_ms: 0.307177
+  duration_ms: 0.237121
   type: 'test'
   ...
 # Subtest: custom dropdown opens its editor after select change dispatch completes
 ok 64 - custom dropdown opens its editor after select change dispatch completes
   ---
-  duration_ms: 0.211938
+  duration_ms: 0.132436
   type: 'test'
   ...
 # Subtest: reversed inline key-value keeps the semantic field association
 ok 65 - reversed inline key-value keeps the semantic field association
   ---
-  duration_ms: 3.451734
+  duration_ms: 3.224921
   type: 'test'
   ...
 # Subtest: same-row value before label is paired by geometry and field semantics
 ok 66 - same-row value before label is paired by geometry and field semantics
   ---
-  duration_ms: 1.169724
+  duration_ms: 1.156401
   type: 'test'
   ...
 # Subtest: vertical title and value are paired in either reading direction
 ok 67 - vertical title and value are paired in either reading direction
   ---
-  duration_ms: 1.592357
+  duration_ms: 1.571815
   type: 'test'
   ...
 # Subtest: standalone unordered coffee entities remain available instead of being forced into unrelated fields
 ok 68 - standalone unordered coffee entities remain available instead of being forced into unrelated fields
   ---
-  duration_ms: 1.111204
+  duration_ms: 1.06775
   type: 'test'
   ...
 # Subtest: range hyphen is preserved as value content rather than treated as a field separator
 ok 69 - range hyphen is preserved as value content rather than treated as a field separator
   ---
-  duration_ms: 0.828524
+  duration_ms: 0.809358
   type: 'test'
   ...
 # Subtest: explicit bean headings split into independent recognition documents
 ok 70 - explicit bean headings split into independent recognition documents
   ---
-  duration_ms: 14.215993
+  duration_ms: 11.12476
   type: 'test'
   ...
 # Subtest: repeated strong country anchors split when each segment contains multiple coffee fields
 ok 71 - repeated strong country anchors split when each segment contains multiple coffee fields
   ---
-  duration_ms: 3.782154
+  duration_ms: 3.902604
   type: 'test'
   ...
 # Subtest: multi-view photos of one bean are never split merely because images produce paragraphs
 ok 72 - multi-view photos of one bean are never split merely because images produce paragraphs
   ---
-  duration_ms: 1.118708
+  duration_ms: 0.496825
   type: 'test'
   ...
 # Subtest: weak prose is kept as one recognition document to prevent false bean creation
 ok 73 - weak prose is kept as one recognition document to prevent false bean creation
   ---
-  duration_ms: 0.483046
+  duration_ms: 0.305101
   type: 'test'
   ...
 # Subtest: English labels and coffee values become Chinese canonical bean fields
 ok 74 - English labels and coffee values become Chinese canonical bean fields
   ---
-  duration_ms: 35.175943
+  duration_ms: 28.320533
   type: 'test'
   ...
 # Subtest: unknown proper names are preserved and explicitly marked for review
 ok 75 - unknown proper names are preserved and explicitly marked for review
   ---
-  duration_ms: 22.719259
+  duration_ms: 23.187248
   type: 'test'
   ...
 # Subtest: knowledge-only WCR variety is surfaced as a sourced review candidate without fabricating a core code
 ok 76 - knowledge-only WCR variety is surfaced as a sourced review candidate without fabricating a core code
   ---
-  duration_ms: 19.831109
+  duration_ms: 21.013901
   type: 'test'
   ...
 # Subtest: knowledge-only source alias normalizes to canonical display but stays unresolved
 ok 77 - knowledge-only source alias normalizes to canonical display but stays unresolved
   ---
-  duration_ms: 16.120035
+  duration_ms: 12.632321
   type: 'test'
   ...
 # Subtest: explicit numeric fields are parsed while unrelated numbers stay isolated
 ok 78 - explicit numeric fields are parsed while unrelated numbers stay isolated
   ---
-  duration_ms: 9.34645
+  duration_ms: 7.859649
   type: 'test'
   ...
 # Subtest: Chinese, reverse-labelled and vertical fields share one canonical pipeline
 ok 79 - Chinese, reverse-labelled and vertical fields share one canonical pipeline
   ---
-  duration_ms: 17.138101
+  duration_ms: 13.601875
   type: 'test'
   ...
 # Subtest: isolated unresolved country review is preserved without stealing mixed candidate panels
 ok 80 - isolated unresolved country review is preserved without stealing mixed candidate panels
   ---
-  duration_ms: 1.675503
+  duration_ms: 1.48012
   type: 'test'
   ...
 # Subtest: label-only Traditional Chinese lines pair with the following OCR value
 ok 81 - label-only Traditional Chinese lines pair with the following OCR value
   ---
-  duration_ms: 12.808613
+  duration_ms: 9.43481
   type: 'test'
   ...
 # Subtest: Traditional multiline coffee metadata resolves through the normal canonical pipeline
 ok 82 - Traditional multiline coffee metadata resolves through the normal canonical pipeline
   ---
-  duration_ms: 39.16128
+  duration_ms: 30.154105
   type: 'test'
   ...
 # Subtest: Traditional inline field labels are canonicalized without changing unknown proper names
 ok 83 - Traditional inline field labels are canonicalized without changing unknown proper names
   ---
-  duration_ms: 29.833665
+  duration_ms: 43.435106
   type: 'test'
   ...
 # Subtest: a following field label is never consumed as the previous label-only value
 ok 84 - a following field label is never consumed as the previous label-only value
   ---
-  duration_ms: 1.163333
+  duration_ms: 1.346062
   type: 'test'
   ...
 # Subtest: main.6 bean detail does not expose roast code and pairs process with roast date
 ok 85 - main.6 bean detail does not expose roast code and pairs process with roast date
   ---
-  duration_ms: 1.526113
+  duration_ms: 1.43296
   type: 'test'
   ...
 # Subtest: main.6 floating quadrant, radar labels and sensory footer obey theme/layout contract
 ok 86 - main.6 floating quadrant, radar labels and sensory footer obey theme/layout contract
   ---
-  duration_ms: 0.772008
+  duration_ms: 0.642481
   type: 'test'
   ...
 # Subtest: main.6 preserves FAB visibility ownership and opens manual OCR editor explicitly
 ok 87 - main.6 preserves FAB visibility ownership and opens manual OCR editor explicitly
   ---
-  duration_ms: 0.553067
+  duration_ms: 0.550144
   type: 'test'
   ...
 # Subtest: main.6 package review waits for recognition handoff completion instead of racing the form renderer
 ok 88 - main.6 package review waits for recognition handoff completion instead of racing the form renderer
   ---
-  duration_ms: 0.631204
+  duration_ms: 0.643092
   type: 'test'
   ...
 # Subtest: main.6 unresolved semantic fields preserve review evidence for explicit bean-form confirmation
 ok 89 - main.6 unresolved semantic fields preserve review evidence for explicit bean-form confirmation
   ---
-  duration_ms: 0.378359
+  duration_ms: 0.357439
   type: 'test'
   ...
 # Subtest: canonical brew plan preserves immersion semantics without replacing legacy plan
 ok 90 - canonical brew plan preserves immersion semantics without replacing legacy plan
   ---
-  duration_ms: 1.719745
+  duration_ms: 2.214877
   type: 'test'
   ...
 # Subtest: BrewResult 1.1 carries spatial evidence and a superset flavor vector
 ok 91 - BrewResult 1.1 carries spatial evidence and a superset flavor vector
   ---
-  duration_ms: 1.377493
+  duration_ms: 1.634028
   type: 'test'
   ...
 # Subtest: calculation coordinator attaches contracts on the authoritative runtime path
 ok 92 - calculation coordinator attaches contracts on the authoritative runtime path
   ---
-  duration_ms: 1.358036
+  duration_ms: 1.838811
   type: 'test'
   ...
 # Subtest: history comparison prefers persisted BrewResult flavor over legacy trajectory summaries
 ok 93 - history comparison prefers persisted BrewResult flavor over legacy trajectory summaries
   ---
-  duration_ms: 1.661776
+  duration_ms: 1.722278
   type: 'test'
   ...
 # Subtest: local reference uses the same contracts but cannot masquerade as professional spatial output
 ok 94 - local reference uses the same contracts but cannot masquerade as professional spatial output
   ---
-  duration_ms: 9.426209
+  duration_ms: 11.921158
   type: 'test'
   ...
 # Subtest: history and optimization consumers are wired to BrewResult without treating model flavor as sensory truth
 ok 95 - history and optimization consumers are wired to BrewResult without treating model flavor as sensory truth
   ---
-  duration_ms: 0.689504
+  duration_ms: 0.900102
   type: 'test'
   ...
 1..95
@@ -969,6 +969,6 @@ ok 95 - history and optimization consumers are wired to BrewResult without treat
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 751.81919
+# duration_ms 712.396447
 
 All LuckyBean static and recognition regression checks passed
