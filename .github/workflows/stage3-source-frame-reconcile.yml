@@ -1,0 +1,165 @@
+name: Stage 3 source-frame reconcile
+
+on:
+  push:
+    branches:
+      - stage3-recognition-record-foundation-20260906
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Stage 3 branch
+        uses: actions/checkout@v7
+        with:
+          ref: stage3-recognition-record-foundation-20260906
+          fetch-depth: 0
+      - name: Patch schema-safe source-frame propagation
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if new in text:
+                  return False
+              if old not in text:
+                  raise SystemExit(f"expected patch anchor missing: {path}: {old[:80]!r}")
+              text = text.replace(old, new, 1)
+              p.write_text(text)
+              return True
+
+          changed = False
+
+          changed |= replace_once(
+              'src/domain/recognition/recognition-document.js',
+              "export function createRecognitionDocument({ images = [], blocks = [], engine = 'unknown', fullText = '', createdAt = new Date().toISOString() } = {}) {",
+              "export function createRecognitionDocument({ images = [], blocks = [], engine = 'unknown', fullText = '', createdAt = new Date().toISOString(), extensions = {} } = {}) {"
+          )
+          changed |= replace_once(
+              'src/domain/recognition/recognition-document.js',
+              "    relations,\n    rawFullText,\n    fullText: structuredFullText\n  };",
+              "    relations,\n    rawFullText,\n    fullText: structuredFullText,\n    ...(extensions && typeof extensions === 'object' && !Array.isArray(extensions) && Object.keys(extensions).length\n      ? { extensions:structuredClone(extensions) }\n      : {})\n  };"
+          )
+
+          splitter = Path('src/domain/recognition/recognition-entry-splitter.js')
+          text = splitter.read_text()
+          anchor = "function buildGeometryEntryDocument(candidate, parent, index, total, method) {"
+          helper = """const SOURCE_FRAMES_SCHEMA = 'recognition-source-frames/1.0';\nfunction sourceFramesRoot(document) {\n  const root = document?.extensions?.sourceFrames;\n  if (!root || root.schemaVersion !== SOURCE_FRAMES_SCHEMA || !Array.isArray(root.images)) return null;\n  return root;\n}\nfunction sourceFrameOptions(document) {\n  if ((document?.images || []).length !== 1) return {};\n  const root = sourceFramesRoot(document);\n  if (!root) return {};\n  const imageId = String(document.images[0]?.id || '');\n  const frame = root.images.find(item => String(item?.imageId || '') === imageId);\n  const sourceWidth = Number(frame?.sourceWidth), sourceHeight = Number(frame?.sourceHeight);\n  if (!(sourceWidth > 0) || !(sourceHeight > 0)) return {};\n  return { sourceWidth, sourceHeight };\n}\nfunction sourceFrameExtensions(parent, imageIds) {\n  const root = sourceFramesRoot(parent);\n  if (!root) return {};\n  const allowed = new Set([...imageIds].map(String));\n  const images = root.images\n    .filter(item => allowed.has(String(item?.imageId || '')))\n    .map(item => ({ imageId:String(item.imageId), sourceWidth:Number(item.sourceWidth), sourceHeight:Number(item.sourceHeight) }))\n    .filter(item => item.sourceWidth > 0 && item.sourceHeight > 0);\n  return images.length ? { sourceFrames:{ schemaVersion:SOURCE_FRAMES_SCHEMA, images } } : {};\n}\n"""
+          if helper not in text:
+              if anchor not in text:
+                  raise SystemExit('splitter helper anchor missing')
+              text = text.replace(anchor, helper + anchor, 1)
+              changed = True
+          old = """    fullText:String(candidate.text || blocks.map(block => block.text).join('\\n')),\n    createdAt:String(parent?.createdAt || new Date().toISOString())\n  });"""
+          new = """    fullText:String(candidate.text || blocks.map(block => block.text).join('\\n')),\n    createdAt:String(parent?.createdAt || new Date().toISOString()),\n    extensions:sourceFrameExtensions(parent, imageIds)\n  });"""
+          if new not in text:
+              if old not in text:
+                  raise SystemExit('splitter child document anchor missing')
+              text = text.replace(old, new, 1)
+              changed = True
+          old = "  const grouped = groupRecognitionRecordCandidates(document);"
+          new = "  const grouped = groupRecognitionRecordCandidates(document, sourceFrameOptions(document));"
+          if new not in text:
+              if old not in text:
+                  raise SystemExit('splitter group call anchor missing')
+              text = text.replace(old, new, 1)
+              changed = True
+          splitter.write_text(text)
+
+          capture = Path('src/package-capture-controller.js')
+          text = capture.read_text()
+          anchor = "async function runRecognition() {"
+          helper = """function recognitionSourceFrameExtensions() {\n  const images = captureState.images.map(image => ({\n    imageId:String(image?.id || ''),\n    sourceWidth:Number(image?.processedWidth || 0),\n    sourceHeight:Number(image?.processedHeight || 0)\n  })).filter(image => image.imageId && image.sourceWidth > 0 && image.sourceHeight > 0);\n  return images.length ? { sourceFrames:{ schemaVersion:'recognition-source-frames/1.0', images } } : {};\n}\n"""
+          if helper not in text:
+              if anchor not in text:
+                  raise SystemExit('capture helper anchor missing')
+              text = text.replace(anchor, helper + anchor, 1)
+              changed = True
+          old = "documentRef = createRecognitionDocument({ images:captureState.images.map(({ id, role, roleLabel }) => ({ id, role, roleLabel })), blocks:captureState.blocks, engine:captureState.ocrEngine, fullText:captureState.ocrText });"
+          new = "documentRef = createRecognitionDocument({ images:captureState.images.map(({ id, role, roleLabel }) => ({ id, role, roleLabel })), blocks:captureState.blocks, engine:captureState.ocrEngine, fullText:captureState.ocrText, extensions:recognitionSourceFrameExtensions() });"
+          if new not in text:
+              if old not in text:
+                  raise SystemExit('capture document anchor missing')
+              text = text.replace(old, new, 1)
+              changed = True
+          capture.write_text(text)
+
+          test_path = Path('test/recognition-record-segmenter.test.js')
+          test = test_path.read_text()
+          marker = "test('RecognitionDocument extensions preserve schema-safe source frames and splitter consumes them'"
+          if marker not in test:
+              test += r'''
+
+test('RecognitionDocument extensions preserve schema-safe source frames and splitter consumes them', () => {
+  const document = createRecognitionDocument({
+    images:[{ id:'photo', role:'front' }],
+    blocks:[
+      block('l-origin', 'Ethiopia Guji', 500, 100, 700, 140),
+      block('r-origin', 'Colombia Huila', 900, 100, 1100, 140),
+      block('l-variety', 'Gesha', 500, 200, 700, 240),
+      block('r-variety', 'Pink Bourbon', 900, 200, 1100, 240),
+      block('l-process', 'Washed', 500, 300, 700, 340),
+      block('r-process', 'Honey Process', 900, 300, 1100, 340)
+    ],
+    extensions:{ sourceFrames:{ schemaVersion:'recognition-source-frames/1.0', images:[{ imageId:'photo', sourceWidth:2000, sourceHeight:1000 }] } }
+  });
+  assert.deepEqual(document.extensions?.sourceFrames?.images, [{ imageId:'photo', sourceWidth:2000, sourceHeight:1000 }]);
+  assert.equal(Object.hasOwn(document.images[0], 'sourceWidth'), false);
+  assert.equal(Object.hasOwn(document.images[0], 'sourceHeight'), false);
+  const result = splitRecognitionEntries(document);
+  assert.equal(result.split, false);
+  assert.equal(result.documents.length, 1);
+});
+
+test('geometry child inherits only its valid source-frame extension', () => {
+  const document = createRecognitionDocument({
+    images:[{ id:'photo', role:'front' }],
+    blocks:[
+      block('l-origin', 'Ethiopia Guji', 60, 90, 470, 135),
+      block('r-origin', 'Colombia Huila', 680, 90, 1110, 135),
+      block('l-variety', 'Gesha', 60, 185, 330, 230),
+      block('r-variety', 'Pink Bourbon', 680, 185, 1080, 230),
+      block('l-process', 'Washed', 60, 280, 330, 325),
+      block('r-process', 'Honey Process', 680, 280, 1000, 325),
+      block('l-flavor', 'Jasmine Citrus', 60, 375, 470, 420),
+      block('r-flavor', 'Peach Cacao', 680, 375, 1050, 420)
+    ],
+    extensions:{
+      sourceFrames:{ schemaVersion:'recognition-source-frames/1.0', images:[{ imageId:'photo', sourceWidth:1200, sourceHeight:500 }] },
+      aiEnrichment:{ schemaVersion:'ai-enrichment-result/1.0', candidates:[{ field:'country', value:'SHOULD-NOT-INHERIT' }] }
+    }
+  });
+  const result = splitRecognitionEntries(document);
+  assert.equal(result.split, true);
+  assert.equal(result.documents.length, 2);
+  for (const child of result.documents) {
+    assert.deepEqual(child.extensions?.sourceFrames?.images, [{ imageId:'photo', sourceWidth:1200, sourceHeight:500 }]);
+    assert.equal(child.extensions?.aiEnrichment, undefined);
+    assert.equal(child.extensions?.multiEntry?.evidencePreserved, true);
+  }
+});
+'''
+              test_path.write_text(test)
+              changed = True
+
+          if not changed:
+              print('source-frame patches already reconciled')
+      - name: Run Recognition/static tests
+        run: npm ci && npm run test:static
+      - name: Commit reconciled source-frame chain
+        shell: bash
+        run: |
+          if git diff --quiet -- src/domain/recognition/recognition-document.js src/domain/recognition/recognition-entry-splitter.js src/package-capture-controller.js test/recognition-record-segmenter.test.js; then
+            echo "no source-frame changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/domain/recognition/recognition-document.js src/domain/recognition/recognition-entry-splitter.js src/package-capture-controller.js test/recognition-record-segmenter.test.js
+          git commit -m "feat: propagate schema-safe Recognition source frames"
+          git push origin HEAD:stage3-recognition-record-foundation-20260906
