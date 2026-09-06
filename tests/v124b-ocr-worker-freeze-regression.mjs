@@ -33,8 +33,10 @@ assert.doesNotMatch(paddle, /paddle-model-ecology\.bj\.bcebos\.com/, 'browser OC
 assert.match(paddle, /browserSafe:\s*true/, 'provider must explicitly advertise the audited browser-safe modes');
 assert.match(paddle, /primaryIsolation:\s*WEBKIT\s*\?\s*'webkit-direct-wasm-no-simd'\s*:\s*'module-worker'/, 'WebKit and non-WebKit must use explicit bounded runtime modes');
 assert.match(paddle, /autoPreload:\s*false/, 'page startup must never automatically preload PP-OCR models');
-assert.doesNotMatch(paddle, /schedulePreload\s*\(/, 'legacy idle-time OCR model preload must stay removed');
-assert.match(paddle, /LOW_MEMORY\s*\|\|\s*engineMode\s*===\s*'direct-wasm-no-simd'/, 'low-memory and WebKit engines must be disposed after recognition');
+assert.doesNotMatch(paddle, /schedulePreload\s*\(/, 'legacy page-idle OCR preload must stay removed');
+assert.match(paddle, /const ENGINE_IDLE_MS\s*=\s*WEBKIT\s*\?\s*30000\s*:\s*LOW_MEMORY\s*\?\s*45000\s*:\s*90000/, 'OCR engine lifetime must remain explicitly bounded by device class');
+assert.match(paddle, /disposeTimer\s*=\s*globalThis\.setTimeout\(\(\)\s*=>\s*\{\s*void dispose\(\);\s*\},\s*ENGINE_IDLE_MS\)/, 'bounded OCR cleanup must happen after an idle window rather than after every image');
+assert.match(paddle, /if \(enginePromise\) scheduleDispose\(\)/, 'consecutive capture tasks must reuse the warmed engine before bounded cleanup');
 assert.match(paddle, /ENGINE_INIT_TIMEOUT_MS/, 'engine initialization must have a bounded watchdog');
 assert.match(paddle, /PREDICT_TIMEOUT_MS/, 'per-image prediction must have a bounded watchdog');
 assert.match(paddle, /ROI_CROP_TIMEOUT_MS/, 'ROI preprocessing must have a bounded watchdog');
@@ -69,4 +71,4 @@ assert.match(bridge, /webPaddleRegion:\s*Boolean\(/, 'capability contract must r
 assert.match(capture, /finally\s*\{[\s\S]*captureState\.busy\s*=\s*false;[\s\S]*render\(\)/, 'package recognition must always restore interactive UI state');
 assert.match(capture, /recognitionQueued\s*=\s*false/, 'recognition click queue must always be releasable');
 
-console.log(`LuckyBean ${release.displayVersion} browser OCR is same-origin, lazy, memory-bounded, ROI-capable, timeout-bounded, and has no automatic Tesseract fallback`);
+console.log(`LuckyBean ${release.displayVersion} browser OCR is same-origin, lazy, capture-reusable, memory-bounded, ROI-capable, timeout-bounded, and has no automatic Tesseract fallback`);
