@@ -108,6 +108,7 @@ test('date ownership confirmation is followed by preflight before roast date ent
 
 test('package pending entity enters preflight before explicit bean-form confirmation', async ({ page }) => {
   await openApp(page, 'v124p-preflight-pending=1');
+  await page.waitForFunction(() => typeof globalThis.LuckyBeanPackageCapture?.open === 'function', null, { timeout:15000 });
   await page.evaluate(() => globalThis.LuckyBeanPackageCapture.open());
   await expect(page.locator('[data-overlay="bag-capture"]')).toBeVisible();
   await page.locator('#bagManualBtn').click();

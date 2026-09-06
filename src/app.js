@@ -214,7 +214,8 @@ document.addEventListener('luckybean:brew-profile-catalog-updated', () => {
 document.addEventListener('luckybean:request-app-refresh', async event => {
   await loadSettings();
   await refreshData();
-  if (state.page !== 'beans') await ensurePageData(state.page, { force: true });
+  if (state.page === 'beans') await ensureBeanConsumptionData({ force: true });
+  else await ensurePageData(state.page, { force: true });
   if (state.page === 'beans') renderBeans();
   else if (state.page === 'brew') renderBrew();
   else if (state.page === 'sensory') renderSensory();
@@ -290,6 +291,13 @@ async function ensureBeanDetailData(beanId, { force = false } = {}) {
   const activeBeans = state.beans.filter(item => !item.archived && Number(item.remainingWeight) > 0);
   state.preferenceModel = buildPreferenceModel(activeBeans, sensory); state.recommendedIds = new Set();
   return bean;
+}
+
+async function ensureBeanConsumptionData({ force = false } = {}) {
+  if (state.data.inventoryReady && !force) return state.inventoryEvents;
+  state.inventoryEvents = await all('inventoryEvents');
+  state.data.inventoryReady = true;
+  return state.inventoryEvents;
 }
 
 async function ensurePageData(page, { force = false } = {}) {
@@ -2897,6 +2905,8 @@ async function init() {
     await migrateLegacyFlavorCodes().catch(error => console.warn('旧风味编码后台迁移失败', error));
     await migrateLegacyBrewHistory().catch(error => console.warn('冲煮历史后台迁移失败', error));
     await cleanupExpiredBeanRecycle().catch(error => console.warn('回收站后台清理失败', error));
+    await ensureBeanConsumptionData().catch(error => console.warn('今日咖啡摄入摘要后台加载失败', error));
+    if (state.page === 'beans' && state.data.inventoryReady) renderBeans();
   });
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
