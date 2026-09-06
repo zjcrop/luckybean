@@ -11,6 +11,10 @@ async function openApp(page, suffix) {
   await page.waitForFunction(() => Boolean(globalThis.LuckyBeanRuntimeFeatures), null, { timeout: 15000 });
 }
 
+async function waitForPackageCapture(page) {
+  await page.waitForFunction(() => typeof globalThis.LuckyBeanPackageCapture?.open === 'function', null, { timeout: 15000 });
+}
+
 async function confirmRecognitionPreflight(page) {
   const preflight = page.locator('[data-overlay="recognition-preflight"]');
   await expect(preflight).toBeVisible({ timeout: 10000 });
@@ -48,6 +52,7 @@ test('text recognition preserves ambiguous variety evidence through the canonica
 
 test('native OCR handoff requires preflight confirmation before populating the bean form', async ({ page }) => {
   await openApp(page, 'v124p-preflight-native=1');
+  await waitForPackageCapture(page);
   await page.evaluate(() => {
     const box = (left, top, right, bottom) => [[left, top], [right, top], [right, bottom], [left, bottom]];
     globalThis.LuckyBeanRecognitionBridge = {
@@ -108,7 +113,7 @@ test('date ownership confirmation is followed by preflight before roast date ent
 
 test('package pending entity enters preflight before explicit bean-form confirmation', async ({ page }) => {
   await openApp(page, 'v124p-preflight-pending=1');
-  await page.waitForFunction(() => typeof globalThis.LuckyBeanPackageCapture?.open === 'function', null, { timeout:15000 });
+  await waitForPackageCapture(page);
   await page.evaluate(() => globalThis.LuckyBeanPackageCapture.open());
   await expect(page.locator('[data-overlay="bag-capture"]')).toBeVisible();
   await page.locator('#bagManualBtn').click();
