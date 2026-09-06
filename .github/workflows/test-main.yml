@@ -72,6 +72,8 @@ jobs:
           cat /tmp/luckybean-http.log
           exit 1
       - run: npm run test:smoke
+      - name: Record Stage 0 OCR performance baseline
+        run: npx playwright test tests/stage0-ocr-baseline.spec.mjs --browser=chromium --reporter=line --workers=1
       - run: npm run test:webkit
       - run: npm run test:core
       - run: npm run test:visual
