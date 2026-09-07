@@ -3,4 +3,11 @@
 .bean-quick-action-list { display: grid; grid-template-columns: 1fr; gap: 6px; }
 .bean-quick-action-list .button { width: 100%; min-height: 48px; border-bottom: 1px dashed var(--border); }
 .bean-quick-action-list .button:last-child { border-bottom: 0; }
-.bean-card.long-press-pending { transform: scale(.995); opacity: .92; }
+.bean-card.long-press-pending,.group-card.long-press-pending { transform: scale(.995); opacity: .92; }
+.p2-bean-card-meta { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:baseline; gap:12px; width:100%; font-size:14px; line-height:1.35; }
+.p2-bean-card-meta span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.p2-bean-card-meta span:last-child { text-align:right; font-size:12px; font-weight:600; opacity:.78; }
+.p2-bean-fact-sheet { display:grid; gap:7px; margin:4px 0 12px; padding:0 2px; }
+.p2-bean-detail-values { display:flex; flex-wrap:wrap; gap:7px 14px; align-items:baseline; }
+.p2-bean-detail-values span { font-size:14px; font-weight:600; }
+.p2-bean-detail-note { margin:2px 0 0; font-size:13px; line-height:1.55; opacity:.82; }

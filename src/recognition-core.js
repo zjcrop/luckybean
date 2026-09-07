@@ -27,9 +27,22 @@ export {
 } from './domain/recognition/recognition-record-segmenter.js';
 
 export {
+  RECOGNITION_RECORD_HYPOTHESIS_SCHEMA,
+  buildRecognitionRecordHypothesis
+} from './domain/recognition/recognition-record-hypothesis.js';
+
+export {
   MULTI_ENTRY_SCHEMA,
   splitRecognitionEntries
 } from './domain/recognition/recognition-entry-splitter.js';
+
+export {
+  RECOGNITION_STRUCTURE_RECOVERY_SCHEMA,
+  AI_STRUCTURE_RESULT_SCHEMA,
+  normalizeAiStructureProposal,
+  recoverRecognitionStructureLocal,
+  recoverRecognitionStructure
+} from './domain/recognition/recognition-structure-recovery.js';
 
 export {
   RECOGNITION_PIPELINE_VERSION,

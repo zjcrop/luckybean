@@ -115,8 +115,8 @@ function buildGeometryEntryDocument(candidate, parent, index, total, method) {
   };
   return child;
 }
-function splitGeometryRecords(document) {
-  const grouped = groupRecognitionRecordCandidates(document);
+function splitGeometryRecords(document, geometryOptions = {}) {
+  const grouped = groupRecognitionRecordCandidates(document, geometryOptions);
   if (!grouped.grouped || grouped.candidates.length < 2) return null;
   const method = grouped.method;
   const documents = grouped.candidates
@@ -126,23 +126,24 @@ function splitGeometryRecords(document) {
   return { split:true, method, documents, count:documents.length, schemaVersion:MULTI_ENTRY_SCHEMA, recordCandidateSchemaVersion:RECOGNITION_RECORD_CANDIDATE_SCHEMA };
 }
 
-export function splitRecognitionEntries(document) {
+/**
+ * Compatibility splitter. Geometry remains enabled by default for consumers pinned to
+ * recognition-multi-entry/1.1. New Foundation structure recovery MUST pass
+ * { allowGeometry:false } so geometry is evidence rather than final authority.
+ */
+export function splitRecognitionEntries(document, options = {}) {
   const text = clean(document?.rawFullText || document?.fullText);
 
-  // Producer-supplied grouping remains the highest-authority segmentation hint.
-  // It is evaluated independently of the flattened full-text envelope because
-  // upstream producers may preserve structured evidence without emitting one.
   const explicit = explicitEntries(document);
   if (explicit.length >= 2) {
     const documents = explicit.map((entry, index) => buildTextEntryDocument(entry, document, index, explicit.length, 'explicit-extension'));
     return { split:true, method:'explicit-extension', documents, count:documents.length, schemaVersion:MULTI_ENTRY_SCHEMA };
   }
 
-  // Geometry is evidence-first: OCR blocks and image identity are sufficient to
-  // propose independent records even when rawFullText/fullText is unavailable.
-  // This keeps Record Boundary independent from a lossy text-envelope producer.
-  const geometry = splitGeometryRecords(document);
-  if (geometry) return geometry;
+  if (options.allowGeometry !== false) {
+    const geometry = splitGeometryRecords(document, options.geometry || {});
+    if (geometry) return geometry;
+  }
 
   if (!text) return { split:false, method:'none', documents:[document].filter(Boolean), schemaVersion:MULTI_ENTRY_SCHEMA };
 
