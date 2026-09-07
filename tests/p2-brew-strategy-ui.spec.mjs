@@ -43,6 +43,12 @@ test('hot recommended plan is projected into three distinct LuckyBean strategy c
   expect(result.labels.join('|')).toContain('甜感平衡');
   expect(result.labels.join('|')).toContain('醇厚高萃');
   expect(result.strategies.map(item=>item.strategyId)).toEqual(['clarity-aroma','sweet-balance','body-extraction']);
+  for(const strategy of result.strategies){
+    expect(strategy.rankingDrivers).not.toContain('bitterness');
+    expect(strategy.rankingDrivers).not.toContain('astringency');
+    expect(strategy.downstreamTargets).toContain('bitterness');
+    expect(strategy.downstreamTargets).toContain('astringency');
+  }
 });
 
 test('strategy options are surfaced above professional details without cloning action nodes',async({page})=>{
