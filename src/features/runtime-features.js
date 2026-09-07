@@ -3,6 +3,9 @@ const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEA
 const BEAN_GROUP_RUNTIME_REVISION = RELEASE_REVISION;
 const pinnedFeature = (id, path, revision) => ({ id, path: `${path}?v=${encodeURIComponent(revision)}` });
 
+// Keep the long-validated startup spine unchanged. Safari/WebKit relies on the
+// existing preinteraction set (especially package-capture) becoming ready before
+// product-level P2 controllers are allowed to extend the runtime.
 const CORE_FEATURES = Object.freeze([
   feature('data-migrations', '../data-migrations.js'),
   feature('qr-ui', '../qr-ui-controller.js'),
@@ -12,12 +15,15 @@ const CORE_FEATURES = Object.freeze([
   feature('runtime-controller', '../runtime-controller.js'),
   pinnedFeature('bean-groups', '../bean-groups-controller.js', BEAN_GROUP_RUNTIME_REVISION),
   feature('group-interaction', '../group-interaction-controller.js'),
+  feature('ui-upgrade', '../ui-upgrade-controller.js'),
+  feature('release-1.24b-ui-policy', './release-1.24b-ui-policy.js')
+]);
+
+const P2_CORE_FEATURES = Object.freeze([
   feature('bean-batch-manager', '../ui/bean-batch-manager-controller.js'),
   feature('bean-group-actions', '../ui/bean-group-actions-controller.js'),
   feature('bean-card-presentation', '../ui/bean-card-presentation-controller.js'),
-  feature('bean-detail-presentation', '../ui/bean-detail-presentation-controller.js'),
-  feature('ui-upgrade', '../ui-upgrade-controller.js'),
-  feature('release-1.24b-ui-policy', './release-1.24b-ui-policy.js')
+  feature('bean-detail-presentation', '../ui/bean-detail-presentation-controller.js')
 ]);
 
 const LAZY_FEATURES = Object.freeze([
@@ -42,7 +48,7 @@ const PREINTERACTION_FEATURE_IDS = Object.freeze([
   'recognition-batch-progress', 'brew-pour-guide', 'shared-sortable', 'sensory-tag-sort'
 ]);
 
-const catalog = new Map([...CORE_FEATURES, ...LAZY_FEATURES].map(item => [item.id, item]));
+const catalog = new Map([...CORE_FEATURES, ...P2_CORE_FEATURES, ...LAZY_FEATURES].map(item => [item.id, item]));
 const failures = [];
 const loaded = [];
 const pending = new Map();
@@ -91,9 +97,15 @@ function installLazyTriggers() {
     if (event.target.closest?.('[data-v099f-world]')) void loadFeature('origin-map').catch(() => false);
   }, { capture:true, passive:true });
 }
-globalThis.LuckyBeanRuntimeFeatures = { revision:RELEASE_REVISION, declared:[...catalog.keys()], core:CORE_FEATURES.map(item=>item.id), lazy:LAZY_FEATURES.map(item=>item.id), loaded, failures, load:loadFeature, loadMany, warmRecognition, isLoaded };
+
+const ALL_CORE_FEATURES = Object.freeze([...CORE_FEATURES, ...P2_CORE_FEATURES]);
+globalThis.LuckyBeanRuntimeFeatures = { revision:RELEASE_REVISION, declared:[...catalog.keys()], core:ALL_CORE_FEATURES.map(item=>item.id), lazy:LAZY_FEATURES.map(item=>item.id), loaded, failures, load:loadFeature, loadMany, warmRecognition, isLoaded };
 document.documentElement.dataset.runtimeFeatures = 'declared';
+
+// Preserve the validated startup ordering: existing core -> preinteraction -> P2.
 for (const runtimeFeature of CORE_FEATURES) { try { await loadFeature(runtimeFeature.id); } catch { /* failure already recorded */ } }
 await loadMany(PREINTERACTION_FEATURE_IDS);
+await loadMany(P2_CORE_FEATURES.map(item => item.id));
+
 installLazyTriggers();
-document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', { detail:{ revision:RELEASE_REVISION, declared:catalog.size, coreLoaded:CORE_FEATURES.filter(item=>isLoaded(item.id)).length, lazyDeclared:LAZY_FEATURES.length, loaded:loaded.length, failures } }));
+document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', { detail:{ revision:RELEASE_REVISION, declared:catalog.size, coreLoaded:ALL_CORE_FEATURES.filter(item=>isLoaded(item.id)).length, lazyDeclared:LAZY_FEATURES.length, loaded:loaded.length, failures } }));
