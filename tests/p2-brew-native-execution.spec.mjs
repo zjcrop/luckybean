@@ -54,7 +54,8 @@ test('preparation and timer transition wire the authoritative plan into Android 
   const payload=JSON.parse(started.args[0]);
   expect(payload.contract).toBe('luckybean-native-brew-execution/1.0');
   expect(payload.speech.totalMs).toBe(120000);
-  expect(payload.speech.events.some(event=>event.text.includes('加入50克冰块')&&event.atMs===70000)).toBe(true);
+  expect(payload.speech.events.some(event=>event.id==='action-ice-mid-prepare'&&event.text==='准备：加入50克冰块'&&event.atMs===62000)).toBe(true);
+  expect(payload.speech.events.some(event=>event.id==='action-ice-mid'&&event.text==='加入50克冰块'&&event.atMs===70000)).toBe(true);
   expect(payload.speech.events.filter(event=>event.id.startsWith('stage-'))).toHaveLength(3);
 });
 
@@ -63,7 +64,9 @@ test('rebasing from a manually selected stage removes elapsed cues and shifts re
   expect(payload.stages).toHaveLength(2);
   expect(payload.stages[0].startMs).toBe(0);
   expect(payload.speech.totalMs).toBe(85000);
+  const icePrepare=payload.speech.events.find(event=>event.id==='action-ice-mid-prepare');
   const ice=payload.speech.events.find(event=>event.id==='action-ice-mid');
+  expect(icePrepare.atMs).toBe(27000);
   expect(ice.atMs).toBe(35000);
   expect(payload.speech.events.some(event=>event.id==='stage-0')).toBe(false);
   expect(payload.speech.events.some(event=>event.id==='stage-1'&&event.atMs===0)).toBe(true);
