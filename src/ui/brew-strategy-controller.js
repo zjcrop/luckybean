@@ -19,19 +19,11 @@ function strategyMetadata(choices) {
       strategyId: choice.strategy?.id || '',
       strategyLabel: choice.strategy?.label || '',
       profileId: choice.id,
-      objective: choice.strategy?.objective || ''
+      objective: choice.strategy?.objective || '',
+      rankingDrivers: [...(choice.strategy?.rankingDrivers || [])],
+      downstreamTargets: [...(choice.strategy?.downstreamTargets || [])]
     }))
   };
-}
-
-let surfaceQueued = false;
-function scheduleSurface() {
-  if (surfaceQueued) return;
-  surfaceQueued = true;
-  requestAnimationFrame(() => {
-    surfaceQueued = false;
-    surfaceStrategyOptions(document);
-  });
 }
 
 function applyStrategies(event) {
@@ -39,8 +31,6 @@ function applyStrategies(event) {
   const input = event.detail?.input;
   if (!plan || !input || plan.correction || hasStrategyMetadata(plan)) return;
 
-  // Cold recipes already carry dedicated ice/bypass semantics from BrewProfiles.
-  // Do not force hot-filter structural profiles into that path in this iteration.
   if (String(input?.brew?.serveMode || 'hot') === 'cold') return;
 
   const authoritativeCandidates = Array.isArray(plan.recommendation?.candidates)
@@ -59,11 +49,6 @@ function applyStrategies(event) {
   };
   plan.professional ||= {};
   plan.professional.luckyBeanStrategies = strategyMetadata(choices);
-
-  // plan-ready is emitted before the normal renderer has necessarily committed
-  // its DOM. Queue a post-render pass; the stable-root observer below covers
-  // subsequent #planResult replacement as well.
-  scheduleSurface();
 }
 
 function surfaceStrategyOptions(root = document) {
@@ -74,28 +59,57 @@ function surfaceStrategyOptions(root = document) {
   const text = section.textContent || '';
   if (!/清晰香气|甜感平衡|醇厚高萃/.test(text)) return;
 
-  heading.textContent = '三种冲煮倾向';
-  section.classList.add('brew-strategy-options');
-  section.dataset.strategyContract = BREW_STRATEGY_ORCHESTRATOR_CONTRACT;
+  if (heading.textContent !== '三种冲煮倾向') heading.textContent = '三种冲煮倾向';
+  if (!section.classList.contains('brew-strategy-options')) section.classList.add('brew-strategy-options');
+  if (section.dataset.strategyContract !== BREW_STRATEGY_ORCHESTRATOR_CONTRACT) {
+    section.dataset.strategyContract = BREW_STRATEGY_ORCHESTRATOR_CONTRACT;
+  }
 
-  // The original plan renderer places candidate buttons inside the professional
-  // details block. Move the same live nodes above that block so existing click
-  // listeners remain attached and the choices are visible before deep details.
   const details = section.closest('details.professional-result');
-  if (!details) return;
-  if (details.parentNode) details.parentNode.insertBefore(section, details);
+  if (details?.parentNode) details.parentNode.insertBefore(section, details);
 }
 
 document.addEventListener('luckybean:plan-ready', applyStrategies);
 
-// #planResult may be replaced by page rendering. Observe a stable ancestor
-// instead of retaining a reference to a stale result node.
-const observerRoot = document.querySelector('#appShell') || document.body || document.documentElement;
-const observer = new MutationObserver(records => {
-  if (records.some(record => record.type === 'childList')) scheduleSurface();
+let currentPlanHost = null;
+let surfaceFrame = 0;
+const planObserver = new MutationObserver(() => scheduleSurface());
+
+function scheduleSurface() {
+  if (surfaceFrame) return;
+  surfaceFrame = requestAnimationFrame(() => {
+    surfaceFrame = 0;
+    surfaceStrategyOptions(currentPlanHost || document);
+  });
+}
+
+function bindPlanHost() {
+  const next = document.querySelector('#planResult');
+  if (next === currentPlanHost) return;
+  planObserver.disconnect();
+  currentPlanHost = next;
+  if (!currentPlanHost) return;
+  planObserver.observe(currentPlanHost, { childList: true, subtree: true });
+  scheduleSurface();
+}
+
+function recordTouchesPlanHost(record) {
+  if (!currentPlanHost?.isConnected) return true;
+  const nodes = [...record.addedNodes, ...record.removedNodes];
+  return nodes.some(node => {
+    if (node === currentPlanHost) return true;
+    if (node?.nodeType !== 1) return false;
+    return node.id === 'planResult' || Boolean(node.querySelector?.('#planResult')) || Boolean(node.contains?.(currentPlanHost));
+  });
+}
+
+const shellRoot = document.querySelector('#appShell') || document.body;
+const shellObserver = new MutationObserver(records => {
+  if (!records.some(recordTouchesPlanHost)) return;
+  bindPlanHost();
 });
-if (observerRoot) observer.observe(observerRoot, { childList: true, subtree: true });
-scheduleSurface();
+if (shellRoot) shellObserver.observe(shellRoot, { childList: true, subtree: true });
+bindPlanHost();
 
 globalThis.LuckyBeanBrewStrategies = Object.freeze({
   revision: BREW_STRATEGY_CONTROLLER_REVISION,
