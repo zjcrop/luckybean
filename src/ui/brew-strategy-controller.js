@@ -4,7 +4,7 @@ import {
   buildDifferentiatedBrewStrategies
 } from '../services/brew-strategy-orchestrator.js';
 
-export const BREW_STRATEGY_CONTROLLER_REVISION = 'p2-brew-strategy-controller/1.2';
+export const BREW_STRATEGY_CONTROLLER_REVISION = 'p2-brew-strategy-controller/1.3';
 
 function hasStrategyMetadata(plan) {
   return plan?.professional?.luckyBeanStrategies?.contract === BREW_STRATEGY_ORCHESTRATOR_CONTRACT;
@@ -30,7 +30,6 @@ function applyStrategies(event) {
   const plan = event.detail?.plan;
   const input = event.detail?.input;
   if (!plan || !input || plan.correction || hasStrategyMetadata(plan)) return;
-
   if (String(input?.brew?.serveMode || 'hot') === 'cold') return;
 
   const authoritativeCandidates = Array.isArray(plan.recommendation?.candidates)
@@ -52,12 +51,18 @@ function applyStrategies(event) {
 }
 
 function surfaceStrategyOptions(root = document) {
-  const planHost = root.querySelector?.('#planResult') || document.querySelector('#planResult');
+  const planHost = root.querySelector?.('#planResult') || (root.id === 'planResult' ? root : document.querySelector('#planResult'));
   const section = planHost?.querySelector?.('.recommended-profile-options');
   const heading = section?.querySelector?.('h3');
   if (!section || !heading) return;
   const text = section.textContent || '';
   if (!/清晰香气|甜感平衡|醇厚高萃/.test(text)) return;
+
+  const alreadySurfaced = section.classList.contains('brew-strategy-options')
+    && !section.closest('details.professional-result')
+    && heading.textContent === '三种冲煮倾向'
+    && section.dataset.strategyContract === BREW_STRATEGY_ORCHESTRATOR_CONTRACT;
+  if (alreadySurfaced) return;
 
   if (heading.textContent !== '三种冲煮倾向') heading.textContent = '三种冲煮倾向';
   if (!section.classList.contains('brew-strategy-options')) section.classList.add('brew-strategy-options');
