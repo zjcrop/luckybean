@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const targetRoot = path.join(root, 'public', 'vendor', 'paddleocr');
@@ -136,6 +137,8 @@ async function prepareSdkAndWorkers() {
   const workerUrl = new URL(workerMatch[1], SDK_DIST_URL).href;
   const workerSource = await fetchText(workerUrl);
   if (workerSource.length < 100000) throw new Error(`PaddleOCR worker bundle is unexpectedly small (${workerSource.length} chars)`);
+  const workerBytes = Buffer.byteLength(workerSource, 'utf8');
+  const workerSha256 = createHash('sha256').update(workerSource, 'utf8').digest('hex');
   await fs.writeFile(path.join(targetRoot, 'worker.js'), workerSource, 'utf8');
 
   const roiSource = await fs.readFile(roiWorkerSource, 'utf8');
@@ -143,6 +146,7 @@ async function prepareSdkAndWorkers() {
     throw new Error('ROI preprocessing worker must keep image decode/crop off the UI thread');
   }
   await fs.writeFile(path.join(targetRoot, 'roi-worker.js'), roiSource, 'utf8');
+  return Object.freeze({ workerBytes, workerSha256 });
 }
 
 async function prepareOrt() {
@@ -169,7 +173,7 @@ await Promise.all([
   fs.mkdir(modelsRoot, { recursive: true })
 ]);
 
-await prepareSdkAndWorkers();
+const workerIntegrity = await prepareSdkAndWorkers();
 await Promise.all([prepareOrt(), prepareModels()]);
 
 const manifest = {
@@ -178,6 +182,8 @@ const manifest = {
   ortVersion: ORT_VERSION,
   sdk: 'sdk.mjs',
   worker: 'worker.js',
+  workerBytes: workerIntegrity.workerBytes,
+  workerSha256: workerIntegrity.workerSha256,
   roiWorker: 'roi-worker.js',
   ort: ORT_FILES,
   models: MODEL_FILES,

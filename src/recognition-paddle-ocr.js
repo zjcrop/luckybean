@@ -1,4 +1,4 @@
-const VERSION = '0.4.8';
+const VERSION = '0.4.9';
 const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;
 
 function isAppleMobileLike() {
@@ -23,6 +23,7 @@ const WORKER_BUNDLE_MIN_BYTES = 100000;
 const WORKER_BUNDLE_FETCH_ATTEMPTS = 2;
 
 let modulePromise = null;
+let runtimeManifestPromise = null;
 let workerBundlePromise = null;
 let workerBundleBlobUrl = '';
 let workerBootstrapMode = WEBKIT ? 'direct-wasm-no-simd' : 'preloaded-blob-module';
@@ -101,6 +102,28 @@ function supportsPreloadedBlobWorker() {
     && typeof globalThis.URL?.createObjectURL === 'function'
     && typeof globalThis.URL?.revokeObjectURL === 'function';
 }
+async function loadRuntimeManifest() {
+  if (!runtimeManifestPromise) {
+    runtimeManifestPromise = fetch(assetUrl('manifest.json'), { cache:'no-store' })
+      .then(async response => {
+        if (!response.ok) throw new Error(`PP-OCRv5 runtime manifest HTTP ${response.status}`);
+        const manifest = await response.json();
+        const workerBytes = Number(manifest?.workerBytes || 0);
+        const workerSha256 = String(manifest?.workerSha256 || '').trim().toLowerCase();
+        if (!Number.isSafeInteger(workerBytes) || workerBytes < WORKER_BUNDLE_MIN_BYTES || !/^[a-f0-9]{64}$/.test(workerSha256)) {
+          throw new Error('PP-OCRv5 runtime manifest 缺少有效 Worker 完整性元数据');
+        }
+        return Object.freeze({ workerBytes, workerSha256 });
+      })
+      .catch(error => { runtimeManifestPromise = null; throw error; });
+  }
+  return runtimeManifestPromise;
+}
+async function sha256Hex(bytes) {
+  if (!globalThis.crypto?.subtle) throw new Error('当前浏览器缺少 Web Crypto，无法校验 PP-OCRv5 Worker 完整性');
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map(value => value.toString(16).padStart(2, '0')).join('');
+}
 async function fetchCompleteWorkerBundle() {
   const url = assetUrl('worker.js');
   let lastError = null;
@@ -109,15 +132,20 @@ async function fetchCompleteWorkerBundle() {
     try {
       const response = await fetch(url, { cache:'no-store' });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const expectedBytes = Number(response.headers.get('content-length') || 0);
-      const bytes = await response.arrayBuffer();
+      const transferBytes = Number(response.headers.get('content-length') || 0);
+      const contentEncoding = String(response.headers.get('content-encoding') || '').trim().toLowerCase() || 'identity';
+      const [bytes, integrity] = await Promise.all([response.arrayBuffer(), loadRuntimeManifest()]);
       if (bytes.byteLength < WORKER_BUNDLE_MIN_BYTES) {
         throw new Error(`Worker bundle 不完整：${bytes.byteLength} bytes`);
       }
-      if (expectedBytes > 0 && expectedBytes !== bytes.byteLength) {
-        throw new Error(`Worker bundle 长度不完整：expected ${expectedBytes}, received ${bytes.byteLength}`);
+      if (bytes.byteLength !== integrity.workerBytes) {
+        throw new Error(`Worker bundle 解压后长度不匹配：manifest ${integrity.workerBytes}, received ${bytes.byteLength}`);
       }
-      recordDiagnostic('worker-bundle-fetch', diagnosticStarted, { attempt, bytes:bytes.byteLength, expectedBytes });
+      const workerSha256 = await sha256Hex(bytes);
+      if (workerSha256 !== integrity.workerSha256) {
+        throw new Error(`Worker bundle SHA-256 不匹配：manifest ${integrity.workerSha256}, received ${workerSha256}`);
+      }
+      recordDiagnostic('worker-bundle-fetch', diagnosticStarted, { attempt, bytes:bytes.byteLength, transferBytes, contentEncoding, workerSha256 });
       return bytes;
     } catch (error) {
       lastError = error;

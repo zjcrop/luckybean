@@ -11,8 +11,8 @@ const splitter = fs.readFileSync('src/domain/recognition/recognition-entry-split
 const display = JSON.parse(fs.readFileSync('public/bean-display-index.json', 'utf8'));
 assert.match(utils, /SCHEMA_VERSION = 10/);
 assert.equal(release.schemaVersion, 10);
-assert.equal(release.revision, '1.24P-main.3');
-assert.equal(release.androidVersionCode, 102419);
+assert.equal(release.revision, '1.24P-main.4');
+assert.equal(release.androidVersionCode, 102420);
 assert.match(db, /'beanSummaries'/);
 assert.match(db, /createIndex\(indexName/);
 assert.match(db, /allByIndex/);

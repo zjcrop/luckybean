@@ -28,7 +28,7 @@ assert.match(startup, /globalThis\.structuredClone = cloneFallback/, 'structured
 assert.match(startup, /dataset\.cloneCompatibility = 'fallback'/, 'startup must expose compatibility diagnostics');
 assert.match(startup, /dataset\.localDeviceStorage = 'fallback'/, 'device-id persistence failure must degrade instead of aborting startup');
 assert.match(startup, /await import\(`\.\.\/app\.js\?v=/, 'app import must remain behind startup compatibility setup');
-assert.match(startup, /1\.24P-main\.3/, 'startup fallback revision must match the current release');
+assert.match(startup, /1\.24P-main\.4/, 'startup fallback revision must match the current release');
 
 assert.match(auth, /INITIAL_AUTH_CALLBACK_HASH = typeof globalThis\.__LuckyBeanInitialAuthCallbackHash === 'string'/, 'auth service must consume the synchronous head snapshot instead of depending on the later URL state');
 assert.match(auth, /:\s*location\.hash;/, 'auth service must preserve a direct location.hash fallback when no snapshot exists');

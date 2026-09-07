@@ -1,15 +1,15 @@
 {
   "product": "LuckyBean",
   "displayVersion": "1.24P",
-  "semver": "1.24.17",
-  "revision": "1.24P-main.3",
-  "androidVersionCode": 102419,
+  "semver": "1.24.18",
+  "revision": "1.24P-main.4",
+  "androidVersionCode": 102420,
   "androidUserAgent": "LuckyBeanAndroid/1.24P",
-  "releaseTag": "v1.24P-main.3",
+  "releaseTag": "v1.24P-main.4",
   "cachePrefix": "luckybean-main-v124p-",
-  "cacheRevision": "main-3-local-first-ai",
+  "cacheRevision": "main-4-ocr-compression-integrity",
   "schemaVersion": 10,
   "brewResultVersion": "1.1",
   "brewPlanVersion": "brew-plan/1.0",
-  "hotfix": "local-first-ai-multibean-ios-auth-20260906"
+  "hotfix": "ppocr-worker-compression-integrity-20260907"
 }

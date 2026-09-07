@@ -56,9 +56,9 @@ assert.match(bridge,/webkit-direct-wasm-no-simd/);
 assert.match(bridge,/provider\.roiWorkerOnly !== true/);
 assert.doesNotMatch(bridge,/invokeWebProvider\(globalThis\.LuckyBeanWebOCR|result\s*=\s*await[^\n]*LuckyBeanWebOCR/,'automatic Tesseract fallback must remain disabled');
 
-assert.equal(release.revision,'1.24P-main.3');
-assert.equal(release.androidVersionCode,102419);
-assert.equal(release.releaseTag,'v1.24P-main.3');
+assert.equal(release.revision,'1.24P-main.4');
+assert.equal(release.androidVersionCode,102420);
+assert.equal(release.releaseTag,'v1.24P-main.4');
 assert.match(sw,/recognition-ai-service\.js/);
 
 console.log('LuckyBean P0 deterministic auth callback, Safari OCR fallback and advisory AI recognition safety contract passed');
