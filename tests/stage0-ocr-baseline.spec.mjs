@@ -147,6 +147,7 @@ async function runStage0Baseline(page) {
           workerOnly:Boolean(globalThis.LuckyBeanPaddleOCR?.workerOnly),
           browserSafe:Boolean(globalThis.LuckyBeanPaddleOCR?.browserSafe),
           primaryIsolation:String(globalThis.LuckyBeanPaddleOCR?.primaryIsolation || ''),
+          workerBootstrap:String(globalThis.LuckyBeanPaddleOCR?.workerBootstrap || ''),
           autoPreload:Boolean(globalThis.LuckyBeanPaddleOCR?.autoPreload)
         },
         singleCold: {
@@ -201,7 +202,12 @@ test('Stage 0 records repeatable PP-OCR single/repeat/four-image performance bas
   expect(baseline.fourImageWarmBatch.totalMs).toBeGreaterThan(0);
   expect(baseline.provider.workerOnly).toBe(false);
   expect(baseline.provider.browserSafe).toBe(true);
+  expect(baseline.provider.primaryIsolation).toBe('module-worker');
+  expect(baseline.provider.workerBootstrap).toBe('preloaded-blob-module');
   expect(baseline.provider.autoPreload).toBe(false);
+  expect(baseline.stage2DiagnosticSummary['ocr:worker-bundle-fetch']?.count).toBe(1);
+  expect(baseline.stage2DiagnosticSummary['ocr:worker-bootstrap']?.count).toBe(1);
+  expect(baseline.stage2DiagnosticSummary['ocr:worker-bundle-fetch-failed']?.count || 0).toBeLessThanOrEqual(1);
   expect(baseline.stage2DiagnosticSummary['ocr:runtime-init']?.count).toBe(1);
   expect(baseline.stage2DiagnosticSummary['ocr:ocr-predict']?.count).toBeGreaterThanOrEqual(6);
   expect(baseline.stage2DiagnosticSummary['semantic:semantic-parse']?.count).toBe(1);
