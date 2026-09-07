@@ -4,7 +4,7 @@ import {
   buildDifferentiatedBrewStrategies
 } from '../services/brew-strategy-orchestrator.js';
 
-export const BREW_STRATEGY_CONTROLLER_REVISION = 'p2-brew-strategy-controller/1.1';
+export const BREW_STRATEGY_CONTROLLER_REVISION = 'p2-brew-strategy-controller/1.2';
 
 function hasStrategyMetadata(plan) {
   return plan?.professional?.luckyBeanStrategies?.contract === BREW_STRATEGY_ORCHESTRATOR_CONTRACT;
@@ -22,6 +22,16 @@ function strategyMetadata(choices) {
       objective: choice.strategy?.objective || ''
     }))
   };
+}
+
+let surfaceQueued = false;
+function scheduleSurface() {
+  if (surfaceQueued) return;
+  surfaceQueued = true;
+  requestAnimationFrame(() => {
+    surfaceQueued = false;
+    surfaceStrategyOptions(document);
+  });
 }
 
 function applyStrategies(event) {
@@ -49,6 +59,11 @@ function applyStrategies(event) {
   };
   plan.professional ||= {};
   plan.professional.luckyBeanStrategies = strategyMetadata(choices);
+
+  // plan-ready is emitted before the normal renderer has necessarily committed
+  // its DOM. Queue a post-render pass; the stable-root observer below covers
+  // subsequent #planResult replacement as well.
+  scheduleSurface();
 }
 
 function surfaceStrategyOptions(root = document) {
@@ -67,21 +82,20 @@ function surfaceStrategyOptions(root = document) {
   // details block. Move the same live nodes above that block so existing click
   // listeners remain attached and the choices are visible before deep details.
   const details = section.closest('details.professional-result');
-  if (details?.parentNode) details.parentNode.insertBefore(section, details);
+  if (!details) return;
+  if (details.parentNode) details.parentNode.insertBefore(section, details);
 }
 
 document.addEventListener('luckybean:plan-ready', applyStrategies);
 
-const planHost = document.querySelector('#planResult');
+// #planResult may be replaced by page rendering. Observe a stable ancestor
+// instead of retaining a reference to a stale result node.
+const observerRoot = document.querySelector('#appShell') || document.body || document.documentElement;
 const observer = new MutationObserver(records => {
-  for (const record of records) {
-    if (record.type !== 'childList') continue;
-    surfaceStrategyOptions(document);
-    break;
-  }
+  if (records.some(record => record.type === 'childList')) scheduleSurface();
 });
-if (planHost) observer.observe(planHost, { childList: true, subtree: true });
-surfaceStrategyOptions(document);
+if (observerRoot) observer.observe(observerRoot, { childList: true, subtree: true });
+scheduleSurface();
 
 globalThis.LuckyBeanBrewStrategies = Object.freeze({
   revision: BREW_STRATEGY_CONTROLLER_REVISION,
