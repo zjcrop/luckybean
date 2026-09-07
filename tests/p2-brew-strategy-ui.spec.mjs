@@ -64,6 +64,16 @@ test('strategy options are surfaced above professional details without cloning a
   expect(await section.evaluate(node=>Boolean(node.closest('details.professional-result')))).toBe(false);
 });
 
+test('strategy observer rebinds when planResult is replaced without scanning unrelated app mutations',async({page})=>{
+  await page.evaluate(()=>{
+    const old=document.querySelector('#planResult');
+    const replacement=old.cloneNode(false);
+    replacement.innerHTML=`<details class="professional-result"><summary>专业内容</summary><section class="recommended-profile-options"><h3>推荐冲煮方案（按匹配度）</h3><button data-recommended-profile="three-pulse">清晰香气 · 三段式</button><button data-recommended-profile="four-six-v17">甜感平衡 · 四六法</button><button data-recommended-profile="one-pour">醇厚高萃 · 一刀流</button></section></details>`;
+    old.replaceWith(replacement);
+  });
+  await expect(page.locator('#planResult > .brew-strategy-options')).toHaveCount(1,{timeout:5000});
+});
+
 test('cold plan keeps BrewProfiles dedicated candidates untouched',async({page})=>{
   const result=await page.evaluate(()=>{
     const candidates=[
