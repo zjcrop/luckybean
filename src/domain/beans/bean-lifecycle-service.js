@@ -1,4 +1,5 @@
 import { all, bulkPut, put, remove } from '../../db.js';
+import { recordBeanDeletions, recordBeanRestores } from './bean-mutation-ledger.js';
 
 const RECYCLE_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -27,9 +28,12 @@ export async function moveBeansToRecycle(ids) {
   const recycledAt = new Date();
   const recycledAtIso = recycledAt.toISOString();
   const expiresAt = new Date(recycledAt.getTime() + RECYCLE_RETENTION_MS).toISOString();
+  const recycleIds = [];
   for (const bean of items) {
+    const recycleId = `bean:${bean.id}`;
+    recycleIds.push(recycleId);
     await put('recycleBin', {
-      id: `bean:${bean.id}`,
+      id: recycleId,
       entity: 'beans',
       entityId: bean.id,
       payload: structuredClone(bean),
@@ -37,12 +41,41 @@ export async function moveBeansToRecycle(ids) {
       expiresAt
     });
   }
+  try {
+    await recordBeanDeletions(items.map(bean => bean.id), { mutatedAt: recycledAtIso });
+  } catch (error) {
+    for (const recycleId of recycleIds) await remove('recycleBin', recycleId).catch(() => {});
+    throw error;
+  }
   for (const bean of items) await remove('beans', bean.id);
   try {
     await globalThis.LuckyBeanCloudSync?.syncIntentionalDeletion?.({ entity: 'beans', ids: items.map(bean => bean.id) });
   } catch (error) {
     console.warn('豆卡云端删除同步将在后续同步重试', error);
   }
+  return items.length;
+}
+
+export async function restoreBeansFromRecycle(ids) {
+  const wanted = new Set((ids || []).map(value => String(value || '')).filter(Boolean));
+  if (!wanted.size) return 0;
+  const rows = await all('recycleBin').catch(() => []);
+  const items = rows.filter(item => item.entity === 'beans' && (wanted.has(String(item.entityId)) || wanted.has(String(item.id))));
+  if (!items.length) return 0;
+  const restoredAt = new Date().toISOString();
+  const beanIds = items.map(item => String(item.entityId));
+  await recordBeanRestores(beanIds, { mutatedAt: restoredAt });
+  try {
+    await bulkPut('beans', items.map(item => ({
+      ...structuredClone(item.payload || {}),
+      id: item.entityId,
+      updatedAt: restoredAt
+    })));
+  } catch (error) {
+    await recordBeanDeletions(beanIds, { mutatedAt: new Date().toISOString() }).catch(() => {});
+    throw error;
+  }
+  for (const item of items) await remove('recycleBin', item.id);
   return items.length;
 }
 
