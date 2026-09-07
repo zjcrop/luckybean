@@ -44,7 +44,8 @@ try{
     {evidenceRef:'block:a3',text:'PROCESS WASHED'},
     {evidenceRef:'block:b1',text:'SAMPLE B / COLOMBIA HUILA'},
     {evidenceRef:'block:b2',text:'VARIETY PINK BOURBON'},
-    {evidenceRef:'block:b3',text:'PROCESS HONEY'}
+    {evidenceRef:'block:b3',text:'PROCESS HONEY'},
+    {evidenceRef:'block:note',text:'ROASTER CATALOG PAGE 2026'}
   ];
   const structure=await fetch(endpoint,{
     method:'POST', cache:'no-store', signal:controller.signal,
@@ -73,19 +74,28 @@ try{
   assert.ok(Number.isFinite(Number(result?.confidence)) && Number(result.confidence)>=0 && Number(result.confidence)<=1);
   assert.ok(String(result?.inputFingerprint||'').startsWith('sha256:'));
   assert.ok(Array.isArray(result?.groups));
+  assert.ok(Array.isArray(result?.unassignedEvidenceRefs),'structure contract must expose explicit unassigned evidence');
+
   const allowedRefs=new Set(structureSamples.map(item=>item.evidenceRef));
+  assert.equal(new Set(result.unassignedEvidenceRefs).size,result.unassignedEvidenceRefs.length,'unassigned evidence must be unique');
+  assert.ok(result.unassignedEvidenceRefs.every(ref=>allowedRefs.has(ref)),`structure result invented unassigned evidence: ${JSON.stringify(result.unassignedEvidenceRefs)}`);
+
   if(Number(result.recordCount)===1){
     assert.equal(result.groups.length,0,'single-record structure result must not fabricate groups');
   }else{
     assert.equal(result.groups.length,2);
-    const used=[];
+    const assigned=[];
     for(const group of result.groups){
       assert.ok(Array.isArray(group.evidenceRefs) && group.evidenceRefs.length>=2);
       assert.ok(group.evidenceRefs.every(ref=>allowedRefs.has(ref)),`structure result invented evidenceRef: ${JSON.stringify(group.evidenceRefs)}`);
-      used.push(...group.evidenceRefs);
+      assigned.push(...group.evidenceRefs);
     }
-    assert.equal(new Set(used).size,used.length,'structure result reused one evidenceRef across records');
-    assert.ok(used.length/structureSamples.length>=0.6,'structure evidence coverage fell below the server contract');
+    assert.equal(new Set(assigned).size,assigned.length,'structure result reused one evidenceRef across records');
+    assert.ok(assigned.length/structureSamples.length>=0.6,'structure evidence coverage fell below the server contract');
+    assert.ok(result.unassignedEvidenceRefs.every(ref=>!assigned.includes(ref)),'assigned and unassigned evidence must not overlap');
+    const partition=new Set([...assigned,...result.unassignedEvidenceRefs]);
+    assert.equal(partition.size,structureSamples.length,'assigned + unassigned evidence must cover the whole submitted page');
+    assert.ok(structureSamples.every(item=>partition.has(item.evidenceRef)),'structure evidence partition omitted an input reference');
   }
-  console.log(`Recognition AI live contracts passed with ${structurePayload.model || payload.model || healthPayload.model}; reviewCandidates=${payload.result.candidates.length}; structureCount=${result.recordCount}`);
+  console.log(`Recognition AI live contracts passed with ${structurePayload.model || payload.model || healthPayload.model}; reviewCandidates=${payload.result.candidates.length}; structureCount=${result.recordCount}; unassigned=${result.unassignedEvidenceRefs.length}`);
 } finally { clearTimeout(timer); }
