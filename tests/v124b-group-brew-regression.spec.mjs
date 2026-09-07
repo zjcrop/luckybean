@@ -65,40 +65,24 @@ async function openFirstNativeGroup(page){
   await expect(page.locator('#beanGroups [data-close-bean-group]')).toHaveCount(1);
 }
 
-function isTransientNavigationError(error){
-  const message=String(error?.message||error||'');
-  return message.includes('net::ERR_ABORTED')||message.includes('frame was detached')||message.includes('Target page, context or browser has been closed');
-}
-
-async function openSpecialModePage(controlPage,mode){
-  await controlPage.evaluate(async mode=>{
+async function openSpecialModePage(page,mode){
+  await page.evaluate(async mode=>{
     const db=await import('/src/db.js');
     await db.setSetting('v099i.group.mode',mode);
     await db.setSetting('v099f.group.mode','native');
+    const next=new URL(location.href);
+    next.searchParams.set('group-regression','1');
+    next.searchParams.set('special-mode',mode);
+    history.replaceState(null,'',`${next.pathname}${next.search}${next.hash}`);
   },mode);
 
-  // The cold-start product assertion is waitForStartup() below. Navigation itself
-  // only needs to commit; tying transport to DOMContentLoaded caused false failures
-  // late in a long single-worker suite while leaving all product assertions unrun.
-  let lastError=null;
-  for(let attempt=1;attempt<=3;attempt+=1){
-    const page=await controlPage.context().newPage();
-    await page.addInitScript(()=>{
-      localStorage.setItem('luckybean.onboarding.v2',JSON.stringify({stage:'existing-user',updatedAt:new Date().toISOString(),reason:'group-regression-special'}));
-    });
-    await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/,route=>route.abort('failed'));
-    try{
-      await page.goto(`${BASE_URL}/?group-regression=1&special-mode=${encodeURIComponent(mode)}`,{waitUntil:'commit',timeout:15000});
-      await waitForStartup(page);
-      await expect(page.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible({timeout:10000});
-      return page;
-    }catch(error){
-      lastError=error;
-      await page.close().catch(()=>{});
-      if(!isTransientNavigationError(error)||attempt===3) throw error;
-    }
-  }
-  throw lastError||new Error(`Unable to open special group mode: ${mode}`);
+  // v099i.group.mode is read during startup. Reuse the Playwright fixture page and
+  // perform a full reload so the product still exercises the real cold-start path
+  // without accumulating nested pages/frames late in the single-worker core suite.
+  await page.reload({waitUntil:'domcontentloaded',timeout:30000});
+  await waitForStartup(page);
+  await expect(page.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible({timeout:10000});
+  return page;
 }
 
 async function openFirstSpecialGroup(page){
@@ -190,41 +174,33 @@ test('native recommendation opens only the target group and never expands all gr
 test('freshness and remaining groups keep their renderer while sharing canonical state',async({page})=>{
   for(const mode of ['freshness-ratio','remaining-50']){
     const specialPage=await openSpecialModePage(page,mode);
-    try{
-      await openFirstSpecialGroup(specialPage);
-      await specialPage.locator('#beanGroups [data-close-bean-group]').click({position:{x:10,y:10}});
-      await expect(specialPage.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible();
-      await expect(specialPage.locator('#beanGroups [data-open-group]')).toHaveCount(0);
-      await openFirstSpecialGroup(specialPage);
-      await specialPage.locator('[data-page-target="beans"]').last().click();
-      await expect(specialPage.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible();
-      await expect(specialPage.locator('#beanGroups [data-open-group]')).toHaveCount(0);
-      await openFirstSpecialGroup(specialPage);
-      expect(await dispatchBack(specialPage)).toBe(true);
-      await expect(specialPage.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible();
-      await expect(specialPage.locator('#beanGroups [data-open-group]')).toHaveCount(0);
-      await expect(specialPage.locator('#pageBeans')).toHaveClass(/active/);
-    }finally{
-      await specialPage.close();
-    }
+    await openFirstSpecialGroup(specialPage);
+    await specialPage.locator('#beanGroups [data-close-bean-group]').click({position:{x:10,y:10}});
+    await expect(specialPage.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible();
+    await expect(specialPage.locator('#beanGroups [data-open-group]')).toHaveCount(0);
+    await openFirstSpecialGroup(specialPage);
+    await specialPage.locator('[data-page-target="beans"]').last().click();
+    await expect(specialPage.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible();
+    await expect(specialPage.locator('#beanGroups [data-open-group]')).toHaveCount(0);
+    await openFirstSpecialGroup(specialPage);
+    expect(await dispatchBack(specialPage)).toBe(true);
+    await expect(specialPage.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible();
+    await expect(specialPage.locator('#beanGroups [data-open-group]')).toHaveCount(0);
+    await expect(specialPage.locator('#pageBeans')).toHaveClass(/active/);
   }
 });
 
 test('special group recommendations also keep exactly one target group open',async({page})=>{
   for(const mode of ['freshness-ratio','remaining-50']){
     const specialPage=await openSpecialModePage(page,mode);
-    try{
-      await chooseRecommendation(specialPage,'remaining');
-      await expect(specialPage.locator('#beanGroups [data-all-groups]')).toHaveCount(0);
-      await expect(specialPage.locator('#beanGroups .recommendation-all-groups')).toHaveCount(0);
-      await expect(specialPage.locator('#beanGroups [data-v099t-group-root].active-group-panel')).toHaveCount(1,{timeout:10000});
-      await expect(specialPage.locator('#beanGroups [data-close-bean-group]')).toHaveCount(1);
-      await expectSelectedBeanVisible(specialPage);
-      await specialPage.locator('#beanGroups [data-close-bean-group]').click({position:{x:10,y:10}});
-      await expect(specialPage.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible();
-    }finally{
-      await specialPage.close();
-    }
+    await chooseRecommendation(specialPage,'remaining');
+    await expect(specialPage.locator('#beanGroups [data-all-groups]')).toHaveCount(0);
+    await expect(specialPage.locator('#beanGroups .recommendation-all-groups')).toHaveCount(0);
+    await expect(specialPage.locator('#beanGroups [data-v099t-group-root].active-group-panel')).toHaveCount(1,{timeout:10000});
+    await expect(specialPage.locator('#beanGroups [data-close-bean-group]')).toHaveCount(1);
+    await expectSelectedBeanVisible(specialPage);
+    await specialPage.locator('#beanGroups [data-close-bean-group]').click({position:{x:10,y:10}});
+    await expect(specialPage.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible();
   }
 });
 
