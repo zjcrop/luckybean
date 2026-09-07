@@ -3,14 +3,16 @@ import assert from 'node:assert/strict';
 const endpoint='https://vaxwncdcuvbpvdbbketb.supabase.co/functions/v1/recognition-ai-v1';
 const publicKey='sb_publishable_MsB0RFoxxf5zJbbT9PPBjQ_WP7GBMMn';
 const controller=new AbortController();
-const timer=setTimeout(()=>controller.abort(),25000);
+const timer=setTimeout(()=>controller.abort(),45000);
 try{
   const health=await fetch(endpoint,{headers:{accept:'application/json'},cache:'no-store',signal:controller.signal});
   const healthText=await health.text();
   let healthPayload=null; try{healthPayload=JSON.parse(healthText)}catch{}
   assert.equal(health.status,200,`recognition AI health HTTP ${health.status}: ${healthText.slice(0,300)}`);
   assert.equal(healthPayload?.service,'recognition-ai-v1');
-  assert.equal(healthPayload?.contract,'ai-enrichment-result/1.0');
+  assert.equal(healthPayload?.contract,'ai-enrichment-result/1.0','legacy review contract must remain the default health contract');
+  assert.equal(healthPayload?.contracts?.review,'ai-enrichment-result/1.0');
+  assert.equal(healthPayload?.contracts?.structure,'ai-structure-result/1.0');
   assert.equal(healthPayload?.configured,true,'Zhipu provider secret is not configured for recognition-ai-v1');
   assert.ok(String(healthPayload?.model||'').length>0);
 
@@ -35,5 +37,55 @@ try{
   assert.ok(Array.isArray(payload?.result?.candidates));
   assert.ok(String(payload?.result?.inputFingerprint||'').startsWith('sha256:'));
   assert.ok(payload.result.candidates.every(candidate=>Array.isArray(candidate.evidenceRefs) && candidate.evidenceRefs.every(ref=>['ci:1','ci:2'].includes(ref))));
-  console.log(`Recognition AI live inference passed with ${payload.model || healthPayload.model}; candidates=${payload.result.candidates.length}`);
+
+  const structureSamples=[
+    {evidenceRef:'block:a1',text:'SAMPLE A / ETHIOPIA GUJI'},
+    {evidenceRef:'block:a2',text:'VARIETY GESHA'},
+    {evidenceRef:'block:a3',text:'PROCESS WASHED'},
+    {evidenceRef:'block:b1',text:'SAMPLE B / COLOMBIA HUILA'},
+    {evidenceRef:'block:b2',text:'VARIETY PINK BOURBON'},
+    {evidenceRef:'block:b3',text:'PROCESS HONEY'}
+  ];
+  const structure=await fetch(endpoint,{
+    method:'POST', cache:'no-store', signal:controller.signal,
+    headers:{accept:'application/json','content-type':'application/json',apikey:publicKey,'x-client-info':'luckybean-ci-recognition-ai/1.1','x-installation-id':'luckybean-ci-live-recognition-structure'},
+    body:JSON.stringify({
+      contract:'luckybean-recognition-ai/1.1', task:'structure', locale:'zh-CN', samples:structureSamples,
+      hypothesis:{
+        schemaVersion:'recognition-record-hypothesis/1.0', recommendedRecordCount:2, confidence:0.86, ambiguous:true,
+        hypotheses:[{recordCount:2,probability:0.86},{recordCount:1,probability:0.14}],
+        evidence:[{source:'entry-headings',recordCount:2,authority:'text-structure'}],
+        geometry:{method:'none',candidates:[]}
+      }
+    })
+  });
+  const structureText=await structure.text();
+  let structurePayload=null; try{structurePayload=JSON.parse(structureText)}catch{}
+  assert.equal(structure.status,200,`recognition AI structure HTTP ${structure.status}: ${structureText.slice(0,500)}`);
+  assert.equal(structurePayload?.ok,true,`recognition AI structure failed: ${structureText.slice(0,500)}`);
+  const result=structurePayload?.result;
+  assert.equal(result?.schemaVersion,'ai-structure-result/1.0');
+  assert.equal(result?.task,'structure');
+  assert.equal(result?.policy?.authority,'advisory');
+  assert.equal(result?.policy?.mayOverwriteFact,false);
+  assert.equal(result?.policy?.mayCreateFacts,false);
+  assert.ok([1,2].includes(Number(result?.recordCount)),`unexpected structure recordCount: ${result?.recordCount}`);
+  assert.ok(Number.isFinite(Number(result?.confidence)) && Number(result.confidence)>=0 && Number(result.confidence)<=1);
+  assert.ok(String(result?.inputFingerprint||'').startsWith('sha256:'));
+  assert.ok(Array.isArray(result?.groups));
+  const allowedRefs=new Set(structureSamples.map(item=>item.evidenceRef));
+  if(Number(result.recordCount)===1){
+    assert.equal(result.groups.length,0,'single-record structure result must not fabricate groups');
+  }else{
+    assert.equal(result.groups.length,2);
+    const used=[];
+    for(const group of result.groups){
+      assert.ok(Array.isArray(group.evidenceRefs) && group.evidenceRefs.length>=2);
+      assert.ok(group.evidenceRefs.every(ref=>allowedRefs.has(ref)),`structure result invented evidenceRef: ${JSON.stringify(group.evidenceRefs)}`);
+      used.push(...group.evidenceRefs);
+    }
+    assert.equal(new Set(used).size,used.length,'structure result reused one evidenceRef across records');
+    assert.ok(used.length/structureSamples.length>=0.6,'structure evidence coverage fell below the server contract');
+  }
+  console.log(`Recognition AI live contracts passed with ${structurePayload.model || payload.model || healthPayload.model}; reviewCandidates=${payload.result.candidates.length}; structureCount=${result.recordCount}`);
 } finally { clearTimeout(timer); }
