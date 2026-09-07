@@ -1,4 +1,4 @@
-export const BREW_NATIVE_EXECUTION_REVISION = 'p2-native-brew-execution/1.0';
+export const BREW_NATIVE_EXECUTION_REVISION = 'p2-native-brew-execution/1.1';
 
 let latestPlan = null;
 let latestPreparationSpeech = '';
@@ -55,8 +55,17 @@ export function buildNativeBrewExecutionPayload(plan = {}, { stageIndex = 0 } = 
     if (rebasedSec < 0) continue;
     const text = String(action.speech || '').trim();
     if (!text) continue;
+    const actionId = String(action.id || action.type || events.length);
+    if (rebasedSec >= 8) {
+      events.push({
+        id: `action-${actionId}-prepare`,
+        atMs: Math.round((rebasedSec - 8) * 1000),
+        validWindowMs: 4000,
+        text: `准备：${text}`
+      });
+    }
     events.push({
-      id: `action-${String(action.id || action.type || events.length)}`,
+      id: `action-${actionId}`,
       atMs: Math.round(rebasedSec * 1000),
       validWindowMs: 5000,
       text
@@ -110,15 +119,10 @@ function timerActive() {
   return Boolean(document.querySelector('#overlayRoot [data-overlay="timer"]'));
 }
 
-function preparationActive() {
-  return Boolean(document.querySelector('#overlayRoot [data-overlay="brew-prepare"]'));
-}
-
 function syncOverlayState() {
   const active = timerActive();
   if (active && !timerWasActive) startNativeFromStage(currentTimerStageIndex());
   if (!active && timerWasActive) callNative('cancelBrewExecution');
-  if (!active && !preparationActive() && timerWasActive === false && latestPlan && !latestPayload) callNative('cancelBrewExecution');
   timerWasActive = active;
 }
 
