@@ -6,6 +6,7 @@
   "scripts": {
     "postinstall": "node scripts/prepare-vendor.mjs",
     "test:recognition": "node --test test/*.test.js",
+    "test:ocr-integrity": "node --test test/ocr-worker-compression-integrity.test.js",
     "test:static": "node scripts/run-static-tests.mjs",
     "test:smoke": "playwright test tests/v110-startup-smoke.spec.mjs tests/v124p-startup-auth-hotfix.spec.mjs tests/v123e-ui-interaction.spec.mjs tests/v124b-ocr-worker-runtime.spec.mjs --browser=chromium --reporter=line --workers=1 --retries=1",
     "test:core": "node scripts/run-core-tests.mjs",
