@@ -30,8 +30,6 @@ function sceneFromPlan(plan) {
 
 function adaptForView(scene) {
   if (!scene || scene.schemaVersion !== 'brew-spatial/1.3') return scene;
-  // Spatial 1.3 keeps the same t/T/W path and target point geometry used by the renderer.
-  // Flavor State is carried through untouched; only the renderer's version gate is adapted.
   return {
     ...scene,
     sourceSchemaVersion: scene.schemaVersion,
@@ -43,6 +41,7 @@ function host() { return document.querySelector('#brewSpatialMount'); }
 
 let lastRender = null;
 let sensitivityProfilePromise = null;
+let renderGeneration = 0;
 
 function renderError(target, error) {
   target.hidden = false;
@@ -66,28 +65,40 @@ async function personalizedScene(scene) {
   return applyPersonalSensitivityToScene(scene,await sensitivityProfilePromise);
 }
 
-async function renderScene(target, scene, plan) {
+async function renderScene(target, scene, plan, expectedGeneration = renderGeneration) {
+  if (expectedGeneration !== renderGeneration) return false;
   target.hidden = false;
   target.replaceChildren();
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  if (expectedGeneration !== renderGeneration) return false;
   const mounted = brewSpatialView.mountPreview(target, adaptForView(scene));
   if (!mounted) throw new Error('3D预览组件未能挂载');
+  if (expectedGeneration !== renderGeneration) {
+    target.replaceChildren();
+    return false;
+  }
   lastRender = { target, scene:structuredClone(scene), planFingerprint:String(scene.planFingerprint || plan?.contracts?.brewResult?.metadata?.analysisFingerprint || plan?.analysisFingerprint || '') };
   return true;
 }
 
 async function retryLastRender() {
   if (!lastRender?.target || !lastRender?.scene) return false;
-  try { return await renderScene(lastRender.target, structuredClone(lastRender.scene), null); }
-  catch (error) { renderError(lastRender.target,error); return false; }
+  const generation = renderGeneration;
+  try { return await renderScene(lastRender.target, structuredClone(lastRender.scene), null, generation); }
+  catch (error) {
+    if (generation === renderGeneration) renderError(lastRender.target,error);
+    return false;
+  }
 }
 
 async function mount(plan) {
+  const generation = ++renderGeneration;
   const target = host();
   if (!target) return false;
   target.replaceChildren();
   const baseScene = sceneFromPlan(plan);
   const scene = baseScene ? await personalizedScene(baseScene) : null;
+  if (generation !== renderGeneration) return false;
   if (!scene) {
     target.hidden = false;
     const note = document.createElement('p');
@@ -99,11 +110,17 @@ async function mount(plan) {
     brewSpatialView.close();
     return false;
   }
-  try { return await renderScene(target,scene,plan); }
-  catch (error) { lastRender = { target, scene:structuredClone(scene), planFingerprint:String(scene.planFingerprint || plan?.contracts?.brewResult?.metadata?.analysisFingerprint || plan?.analysisFingerprint || '') }; renderError(target,error); return false; }
+  try { return await renderScene(target,scene,plan,generation); }
+  catch (error) {
+    if (generation !== renderGeneration) return false;
+    lastRender = { target, scene:structuredClone(scene), planFingerprint:String(scene.planFingerprint || plan?.contracts?.brewResult?.metadata?.analysisFingerprint || plan?.analysisFingerprint || '') };
+    renderError(target,error);
+    return false;
+  }
 }
 
 function clear() {
+  renderGeneration += 1;
   const target = host();
   if (!target) return;
   target.replaceChildren();
@@ -119,8 +136,9 @@ document.addEventListener('luckybean:data-changed',event=>{
 });
 document.addEventListener('luckybean:spatial-render-error', event => {
   const target = host(); if (!target) return;
+  const generation = ++renderGeneration;
   if (event.detail?.scene) lastRender = { target, scene:structuredClone(event.detail.scene), planFingerprint:String(event.detail.scene.planFingerprint || '') };
-  renderError(target,event.detail?.error || new Error('3D渲染失败'));
+  if (generation === renderGeneration) renderError(target,event.detail?.error || new Error('3D渲染失败'));
 });
 document.addEventListener('luckybean:open-spatial-scene', event => {
   const scene = event.detail?.scene;
@@ -128,12 +146,13 @@ document.addEventListener('luckybean:open-spatial-scene', event => {
 });
 
 globalThis.LuckyBeanSpatial = {
-  revision: 'brew-spatial-view/1.5.0-brew-result',
+  revision: 'brew-spatial-view/1.6.0-latest-plan-only',
   mount,
   retry: retryLastRender,
   clear,
   open(scene) { if (isProfessionalScene(scene) && brewSpatialView.setScene(adaptForView(scene))) brewSpatialView.open(); },
   close() { brewSpatialView.close(); },
   validate: isProfessionalScene,
-  getLastRenderFingerprint() { return lastRender?.planFingerprint || ''; }
+  getLastRenderFingerprint() { return lastRender?.planFingerprint || ''; },
+  getRenderGeneration() { return renderGeneration; }
 };
