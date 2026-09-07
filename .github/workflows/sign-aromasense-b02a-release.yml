@@ -104,12 +104,13 @@ jobs:
           set -euo pipefail
           apk=aromasense/mobile/android/app/build/outputs/apk/release/app-release.apk
           test -f "$apk"
-          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.zjcrop.aromasense' versionCode='${AROMASENSE_VERSION_CODE}' versionName='${AROMASENSE_VERSION}'"
+          badging=$("$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk")
+          printf '%s\n' "$badging" | grep -q "package: name='com.zjcrop.aromasense' versionCode='${AROMASENSE_VERSION_CODE}' versionName='${AROMASENSE_VERSION}'"
           unzip -p "$apk" assets/www/index.html > /tmp/aromasense-index.html
           unzip -p "$apk" assets/www/luckybean-recognition-core.js > /tmp/aromasense-recognition.js
           grep -Fq "data-cloud-base-url=\"${AROMASENSE_CLOUD_URL}\"" /tmp/aromasense-index.html
-          grep -Fq "data-build-id=\"${AROMASENSE_SOURCE_SHA:0:16}\"" /tmp/aromasense-index.html
-          grep -Fq 'application-version" content="B0.2.a"' /tmp/aromasense-index.html
+          grep -Fq "name=\"build-revision\" content=\"${AROMASENSE_SOURCE_SHA:0:16}\"" /tmp/aromasense-index.html
+          grep -Fq 'name="application-version" content="B0.2.a"' /tmp/aromasense-index.html
           grep -Fq '1.24P-recognition-pipeline.5' /tmp/aromasense-recognition.js
           grep -Fq 'knowledgeOnlyVariety' /tmp/aromasense-recognition.js
           expected_cert=$(tr -d '[:space:]:' < aromasense/mobile/android/signing/CERT_SHA256.txt | tr '[:lower:]' '[:upper:]')
