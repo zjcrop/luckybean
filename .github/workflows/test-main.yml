@@ -25,15 +25,12 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-python@v7.0.0
-        with:
-          python-version: '3.x'
       - run: npm ci
       - name: Audit full dependency boundary
         run: npm audit --audit-level=high
       - name: Check JavaScript syntax
         shell: bash
-        run: find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+        run: find src scripts -type f \( -name '*.js' -o -name '*.mjs' \) -print0 | xargs -0 -n1 node --check
       - name: Reject private keys and release secrets in source
         shell: bash
         run: |
@@ -50,43 +47,30 @@ jobs:
       - name: Verify live recognition AI contract
         run: node tests/v124p-live-recognition-ai.mjs
       - run: npx playwright install --with-deps chromium webkit
-      - name: Start web server and wait until ready
+      - name: Start deterministic CI web server and wait until ready
         shell: bash
         run: |
-          python -m http.server 4173 > /tmp/luckybean-http.log 2>&1 &
+          node scripts/ci-static-server.mjs 4173 > /tmp/luckybean-http.log 2>&1 &
           server_pid=$!
           echo "$server_pid" > /tmp/luckybean-http.pid
           for attempt in {1..30}; do
             if curl --fail --silent --show-error http://127.0.0.1:4173/ > /dev/null; then
-              echo "Local web server ready on attempt $attempt"
+              echo "CI web server ready on attempt $attempt"
               exit 0
             fi
             if ! kill -0 "$server_pid" 2>/dev/null; then
-              echo "Local web server exited before becoming ready"
+              echo "CI web server exited before becoming ready"
               cat /tmp/luckybean-http.log
               exit 1
             fi
             sleep 1
           done
-          echo "Local web server readiness timed out"
+          echo "CI web server readiness timed out"
           cat /tmp/luckybean-http.log
           exit 1
       - run: npm run test:smoke
-      - name: Record Stage 0 OCR performance baseline
-        run: npx playwright test tests/stage0-ocr-baseline.spec.mjs --browser=chromium --reporter=line --workers=1
       - run: npm run test:webkit
-      - run: npm run test:core
       - run: npm run test:visual
-      - name: Record validated source
-        shell: bash
-        run: |
-          mkdir -p validated-main
-          printf 'source_sha=%s\nvalidated_at=%s\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" > validated-main/VALIDATED_SOURCE.txt
-      - uses: actions/upload-artifact@v7.0.1
-        with:
-          name: luckybean-main-validated-${{ github.sha }}
-          path: validated-main/
-          if-no-files-found: error
       - name: Upload browser test output
         if: always()
         uses: actions/upload-artifact@v7.0.1
@@ -96,6 +80,133 @@ jobs:
             test-results/
             playwright-report/
             /tmp/luckybean-http.log
+          if-no-files-found: ignore
+
+  core_browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Start isolated core CI web server and wait until ready
+        shell: bash
+        run: |
+          node scripts/ci-static-server.mjs 4173 > /tmp/luckybean-core-http.log 2>&1 &
+          server_pid=$!
+          echo "$server_pid" > /tmp/luckybean-core-http.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:4173/ > /dev/null; then
+              echo "Isolated core CI web server ready on attempt $attempt"
+              exit 0
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              echo "Isolated core CI web server exited before becoming ready"
+              cat /tmp/luckybean-core-http.log
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "Isolated core CI web server readiness timed out"
+          cat /tmp/luckybean-core-http.log
+          exit 1
+      - name: Run core browser gate
+        run: npm run test:core
+      - name: Upload isolated core browser output
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: luckybean-core-browser-results-${{ github.sha }}
+          path: |
+            test-results/
+            playwright-report/
+            /tmp/luckybean-core-http.log
+          if-no-files-found: ignore
+
+  ocr_baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Record vendored PP-OCR runtime fingerprint
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ocr-runtime-fingerprint
+          printf 'source_sha=%s\nrecorded_at=%s\nnode=%s\n' \
+            "$GITHUB_SHA" "$(date -u +%FT%TZ)" "$(node --version)" \
+            > ocr-runtime-fingerprint/METADATA.txt
+          if [ -f public/vendor/paddleocr/manifest.json ]; then
+            cp public/vendor/paddleocr/manifest.json ocr-runtime-fingerprint/manifest.json
+            node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const manifest = JSON.parse(fs.readFileSync('public/vendor/paddleocr/manifest.json', 'utf8'));
+          delete manifest.generatedAt;
+          fs.writeFileSync('ocr-runtime-fingerprint/manifest.canonical.json', `${JSON.stringify(manifest, null, 2)}\n`);
+          NODE
+          fi
+          find public/vendor/paddleocr -type f ! -path '*/manifest.json' -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            > ocr-runtime-fingerprint/ASSET_SHA256SUMS.txt
+          if [ -f ocr-runtime-fingerprint/manifest.canonical.json ]; then
+            sha256sum ocr-runtime-fingerprint/manifest.canonical.json \
+              >> ocr-runtime-fingerprint/ASSET_SHA256SUMS.txt
+          fi
+          sha256sum ocr-runtime-fingerprint/ASSET_SHA256SUMS.txt \
+            > ocr-runtime-fingerprint/RUNTIME_FINGERPRINT.sha256
+          cat ocr-runtime-fingerprint/METADATA.txt
+          cat ocr-runtime-fingerprint/ASSET_SHA256SUMS.txt
+          cat ocr-runtime-fingerprint/RUNTIME_FINGERPRINT.sha256
+      - name: Start isolated OCR CI web server and wait until ready
+        shell: bash
+        run: |
+          node scripts/ci-static-server.mjs 4173 > /tmp/luckybean-ocr-http.log 2>&1 &
+          server_pid=$!
+          echo "$server_pid" > /tmp/luckybean-ocr-http.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:4173/ > /dev/null; then
+              echo "Isolated OCR CI web server ready on attempt $attempt"
+              exit 0
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              echo "Isolated OCR CI web server exited before becoming ready"
+              cat /tmp/luckybean-ocr-http.log
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "Isolated OCR CI web server readiness timed out"
+          cat /tmp/luckybean-ocr-http.log
+          exit 1
+      - name: Record Stage 0 OCR performance baseline
+        run: npx playwright test tests/stage0-ocr-baseline.spec.mjs --browser=chromium --reporter=line --workers=1
+      - name: Upload OCR runtime fingerprint
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: luckybean-ocr-runtime-fingerprint-${{ github.sha }}
+          path: ocr-runtime-fingerprint/
+          if-no-files-found: error
+      - name: Upload isolated OCR browser output
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: luckybean-ocr-browser-results-${{ github.sha }}
+          path: |
+            test-results/
+            playwright-report/
+            /tmp/luckybean-ocr-http.log
           if-no-files-found: ignore
 
   android_debug:
@@ -122,4 +233,20 @@ jobs:
         with:
           name: luckybean-main-debug-apk-${{ github.sha }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+  validated:
+    needs: [verify, core_browser, ocr_baseline, android_debug]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Record fully validated source
+        shell: bash
+        run: |
+          mkdir -p validated-main
+          printf 'source_sha=%s\nvalidated_at=%s\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" > validated-main/VALIDATED_SOURCE.txt
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: luckybean-main-validated-${{ github.sha }}
+          path: validated-main/
           if-no-files-found: error
