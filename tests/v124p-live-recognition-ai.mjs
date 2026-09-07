@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 
 const endpoint='https://vaxwncdcuvbpvdbbketb.supabase.co/functions/v1/recognition-ai-v1';
 const publicKey='sb_publishable_MsB0RFoxxf5zJbbT9PPBjQ_WP7GBMMn';
+const transientAttempts=3;
 
 async function fetchWithTimeout(url,options={},timeoutMs=20000){
   const controller=new AbortController();
@@ -10,8 +11,39 @@ async function fetchWithTimeout(url,options={},timeoutMs=20000){
   finally{clearTimeout(timer);}
 }
 
+function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+
+function isTransientRequestError(error){
+  return error?.name==='AbortError'||error instanceof TypeError;
+}
+
+function isTransientAiTimeout(attempt){
+  return attempt?.response?.status===502&&attempt?.payload?.error==='AI_TIMEOUT';
+}
+
+async function requestJson(options,timeoutMs){
+  const response=await fetchWithTimeout(endpoint,options,timeoutMs);
+  const text=await response.text();
+  let payload=null;try{payload=JSON.parse(text)}catch{}
+  return{response,text,payload};
+}
+
+async function reviewRequest(attempt){
+  return requestJson({
+    method:'POST',cache:'no-store',
+    headers:{accept:'application/json','content-type':'application/json',apikey:publicKey,'x-client-info':'luckybean-ci-recognition-ai/1.0','x-installation-id':`luckybean-ci-live-recognition-ai-${attempt}`},
+    body:JSON.stringify({
+      contract:'luckybean-recognition-ai/1.0',locale:'zh-CN',unresolvedFields:['country','process'],
+      samples:[
+        {evidenceRef:'ci:1',text:'ORIGIN ETHIOPIA SIDAMA'},
+        {evidenceRef:'ci:2',text:'PROCESS NATURAL / 74110'}
+      ]
+    })
+  },22000);
+}
+
 async function structureRequest(structureSamples,attempt){
-  const response=await fetchWithTimeout(endpoint,{
+  return requestJson({
     method:'POST',cache:'no-store',
     headers:{accept:'application/json','content-type':'application/json',apikey:publicKey,'x-client-info':'luckybean-ci-recognition-ai/1.1','x-installation-id':`luckybean-ci-live-recognition-structure-${attempt}`},
     body:JSON.stringify({
@@ -24,9 +56,28 @@ async function structureRequest(structureSamples,attempt){
       }
     })
   },22000);
-  const text=await response.text();
-  let payload=null;try{payload=JSON.parse(text)}catch{}
-  return{response,text,payload};
+}
+
+async function requestWithTransientRetry(request,label){
+  let lastAttempt;
+  let lastError;
+  for(let attempt=1;attempt<=transientAttempts;attempt+=1){
+    try{
+      lastAttempt=await request(attempt);
+      lastError=null;
+    }catch(error){
+      lastError=error;
+      if(!isTransientRequestError(error)||attempt===transientAttempts)throw error;
+      console.warn(`${label} transient request error on attempt ${attempt}/${transientAttempts}: ${error.name}`);
+      await sleep(1000*attempt);
+      continue;
+    }
+    if(!isTransientAiTimeout(lastAttempt)||attempt===transientAttempts)break;
+    console.warn(`${label} transient AI_TIMEOUT on attempt ${attempt}/${transientAttempts}`);
+    await sleep(1000*attempt);
+  }
+  if(!lastAttempt&&lastError)throw lastError;
+  return lastAttempt;
 }
 
 const health=await fetchWithTimeout(endpoint,{headers:{accept:'application/json'},cache:'no-store'},10000);
@@ -40,19 +91,11 @@ assert.equal(healthPayload?.contracts?.structure,'ai-structure-result/1.0');
 assert.equal(healthPayload?.configured,true,'Zhipu provider secret is not configured for recognition-ai-v1');
 assert.ok(String(healthPayload?.model||'').length>0);
 
-const inference=await fetchWithTimeout(endpoint,{
-  method:'POST',cache:'no-store',
-  headers:{accept:'application/json','content-type':'application/json',apikey:publicKey,'x-client-info':'luckybean-ci-recognition-ai/1.0','x-installation-id':'luckybean-ci-live-recognition-ai'},
-  body:JSON.stringify({
-    contract:'luckybean-recognition-ai/1.0',locale:'zh-CN',unresolvedFields:['country','process'],
-    samples:[
-      {evidenceRef:'ci:1',text:'ORIGIN ETHIOPIA SIDAMA'},
-      {evidenceRef:'ci:2',text:'PROCESS NATURAL / 74110'}
-    ]
-  })
-},22000);
-const inferenceText=await inference.text();
-let payload=null;try{payload=JSON.parse(inferenceText)}catch{}
+const reviewAttempt=await requestWithTransientRetry(attempt=>reviewRequest(attempt),'review inference');
+const inference=reviewAttempt?.response;
+const inferenceText=reviewAttempt?.text||'';
+const payload=reviewAttempt?.payload;
+assert.ok(inference,'recognition AI review request produced no response');
 assert.equal(inference.status,200,`recognition AI inference HTTP ${inference.status}: ${inferenceText.slice(0,500)}`);
 assert.equal(payload?.ok,true,`recognition AI inference failed: ${inferenceText.slice(0,500)}`);
 assert.equal(payload?.result?.schemaVersion,'ai-enrichment-result/1.0');
@@ -72,18 +115,7 @@ const structureSamples=[
   {evidenceRef:'block:note',text:'ROASTER CATALOG PAGE 2026'}
 ];
 
-let structureAttempt;
-for(let attempt=1;attempt<=2;attempt+=1){
-  try{
-    structureAttempt=await structureRequest(structureSamples,attempt);
-  }catch(error){
-    if(attempt===1&&(error?.name==='AbortError'||error instanceof TypeError))continue;
-    throw error;
-  }
-  const transientTimeout=structureAttempt.response.status===502&&structureAttempt.payload?.error==='AI_TIMEOUT';
-  if(transientTimeout&&attempt===1)continue;
-  break;
-}
+const structureAttempt=await requestWithTransientRetry(attempt=>structureRequest(structureSamples,attempt),'structure inference');
 const structure=structureAttempt?.response;
 const structureText=structureAttempt?.text||'';
 const structurePayload=structureAttempt?.payload;
