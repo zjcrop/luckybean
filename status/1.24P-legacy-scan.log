@@ -18,8 +18,8 @@ tests/v120-requirements-static.mjs:51:  'luckybean-main-v124b-',
 tests/v120-requirements-static.mjs:52:  'luckybean-main-v123e-',
 tests/v120-requirements-static.mjs:53:  'luckybean-main-v123d-',
 tests/v122-cloud-sync-safety.mjs:61:console.log('v1.23D cloud union baseline and deletion propagation checks passed');
-tests/v123e-cloud-gear-sync.mjs:15:assert.deepEqual(normalizeGearRows('[object Object],[object Object]', 'grinder'), [], 'corrupted 1.23D/early-1.23E grinder placeholders must be ignored safely');
-tests/v123e-cloud-gear-sync.mjs:25:console.log('LuckyBean 1.23E gear cloud-sync compatibility checks passed');
+tests/v123e-cloud-gear-sync.mjs:16:assert.deepEqual(normalizeGearRows('[object Object],[object Object]', 'grinder'), [], 'corrupted 1.23D/early-1.23E grinder placeholders must be ignored safely');
+tests/v123e-cloud-gear-sync.mjs:30:console.log('LuckyBean 1.23E gear cloud-sync compatibility checks passed through the P2 codec facade');
 tests/v110-local-first-sync-static.mjs:129:assert.match(sw, /'luckybean-main-v124b-'/);
 tests/v110-local-first-sync-static.mjs:130:assert.match(sw, /'luckybean-main-v123e-'/);
 tests/v110-local-first-sync-static.mjs:131:assert.match(sw, /'luckybean-main-v123d-'/);
@@ -79,6 +79,7 @@ src/domain/recognition/recognition-date-classifier.js:4:export const DATE_CLASSI
 src/ui/release-1.24b-followup-controller.js:395:export const followupUiRevision = '1.24B-followup.3';
 src/ui/appearance-controller.js:3:const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.3';
 src/ui/recognition-review-owner-controller.js:1:const REVIEW_OWNER_REVISION = '1.24B-review-owner.1';
+src/cloud-codec-base.js:236:  // 1.23D/early 1.23E accidentally serialized an object array with String(array).
 src/release-1.24b.js:1:// Lucky Bean 1.24B release feature module
 src/release-1.24b.js:4:export const LB_VERSION = '1.24B';
 src/features/release-1.24b-polish.js:68:console.info('[LuckyBean] 1.24B help, Grind-PSD, brew-mode and UI policy active');
@@ -92,7 +93,6 @@ src/release-1.24b.css:1:/* Lucky Bean 1.24B compact UI states */
 src/release-1.24b.css:63:/* LuckyBean 1.24B main.6 detail/fab/sensory corrections */
 src/release-1.24b.css:173:/* LuckyBean 1.24B main.7 professional score responsive layout.
 src/app.js:2783:  <details class="settings-category"><summary><span>本物</span><small>关于本工具和开发小哥的一切</small></summary><div class="settings-category-body about-content"><figure class="about-illustration"><img src="./public/Luckybean-END.webp?v=1.24B-main.2" alt="富贵盒子猫咪插图" loading="lazy" decoding="async"><figcaption>富贵盒子</figcaption></figure><h2>富贵盒子</h2><p>咖啡豆管理、冲煮辅助、品鉴记录与本地数据归档工具。</p><dl><dt>版本</dt><dd>${APP_VERSION}</dd><dt>数据结构</dt><dd>${SCHEMA_VERSION}</dd><dt>离线引擎</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>数据源</dt><dd>公开编码数据 ${esc(meta.version||state.codebook?.version||'6')}</dd><dt>开发与维护</dt><dd>zjcrop</dd></dl></div></details>
-src/cloud-codec.js:236:  // 1.23D/early 1.23E accidentally serialized an object array with String(array).
 .github/workflows/verified-release-main.yml:23:      RELEASE_TAG: v1.24B-main.6
 .github/workflows/verified-release-main.yml:83:          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"
 .github/workflows/verified-release-main.yml:105:          cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.24B-release.apk
