@@ -96,7 +96,7 @@ jobs:
       - name: Start isolated core CI web server and wait until ready
         shell: bash
         run: |
-          node scripts/ci-static-server.mjs 4173 > /tmp/luckybean-core-http.log 2>&1 &
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/luckybean-core-http.log 2>&1 &
           server_pid=$!
           echo "$server_pid" > /tmp/luckybean-core-http.pid
           for attempt in {1..30}; do
