@@ -3,6 +3,8 @@ const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEA
 const BEAN_GROUP_RUNTIME_REVISION = RELEASE_REVISION;
 const pinnedFeature = (id, path, revision) => ({ id, path: `${path}?v=${encodeURIComponent(revision)}` });
 
+// Keep the long-validated startup spine unchanged. The existing preinteraction
+// set must become ready before product-level P2 controllers extend the runtime.
 const CORE_FEATURES = Object.freeze([
   feature('data-migrations', '../data-migrations.js'),
   feature('qr-ui', '../qr-ui-controller.js'),
@@ -14,6 +16,16 @@ const CORE_FEATURES = Object.freeze([
   feature('group-interaction', '../group-interaction-controller.js'),
   feature('ui-upgrade', '../ui-upgrade-controller.js'),
   feature('release-1.24b-ui-policy', './release-1.24b-ui-policy.js')
+]);
+
+const P2_CORE_FEATURES = Object.freeze([
+  feature('bean-batch-manager', '../ui/bean-batch-manager-controller.js'),
+  feature('bean-group-actions', '../ui/bean-group-actions-controller.js'),
+  feature('bean-card-presentation', '../ui/bean-card-presentation-controller.js'),
+  feature('bean-detail-presentation', '../ui/bean-detail-presentation-controller.js'),
+  feature('brew-strategy', '../ui/brew-strategy-controller.js'),
+  feature('brew-screen-awake', '../ui/brew-screen-awake-controller.js'),
+  feature('brew-native-execution', '../ui/brew-native-execution-controller.js')
 ]);
 
 const LAZY_FEATURES = Object.freeze([
@@ -38,15 +50,12 @@ const PREINTERACTION_FEATURE_IDS = Object.freeze([
   'recognition-batch-progress', 'brew-pour-guide', 'shared-sortable', 'sensory-tag-sort'
 ]);
 
-const catalog = new Map([...CORE_FEATURES, ...LAZY_FEATURES].map(item => [item.id, item]));
+const catalog = new Map([...CORE_FEATURES, ...P2_CORE_FEATURES, ...LAZY_FEATURES].map(item => [item.id, item]));
 const failures = [];
 const loaded = [];
 const pending = new Map();
 
-function recordLoaded(id) {
-  if (!loaded.includes(id)) loaded.push(id);
-}
-
+function recordLoaded(id) { if (!loaded.includes(id)) loaded.push(id); }
 function recordFailure(featureEntry, error) {
   const failure = { id: featureEntry.id, path: featureEntry.path, message: error?.message || String(error) };
   failures.push(failure);
@@ -54,116 +63,51 @@ function recordFailure(featureEntry, error) {
   document.dispatchEvent(new CustomEvent('luckybean:runtime-feature-error', { detail: failure }));
   return failure;
 }
-
 async function loadFeature(id) {
   const entry = catalog.get(String(id || ''));
   if (!entry) throw new Error(`未知运行功能：${id}`);
   if (loaded.includes(entry.id)) return true;
   if (pending.has(entry.id)) return pending.get(entry.id);
-  const task = import(entry.path)
-    .then(() => { recordLoaded(entry.id); return true; })
-    .catch(error => { recordFailure(entry, error); throw error; })
-    .finally(() => pending.delete(entry.id));
-  pending.set(entry.id, task);
-  return task;
+  const task = import(entry.path).then(() => { recordLoaded(entry.id); return true; }).catch(error => { recordFailure(entry, error); throw error; }).finally(() => pending.delete(entry.id));
+  pending.set(entry.id, task); return task;
 }
-
-async function loadMany(ids) {
-  const results = await Promise.allSettled(ids.map(loadFeature));
-  return results.every(result => result.status === 'fulfilled');
-}
-
-async function warmRecognition() {
-  await loadFeature('recognition-paddle-ocr').catch(() => false);
-  return globalThis.LuckyBeanPaddleOCR?.preload?.().catch?.(() => null) ?? null;
-}
-
+async function loadMany(ids) { const results = await Promise.allSettled(ids.map(loadFeature)); return results.every(result => result.status === 'fulfilled'); }
+async function warmRecognition() { await loadFeature('recognition-paddle-ocr').catch(() => false); return globalThis.LuckyBeanPaddleOCR?.preload?.().catch?.(() => null) ?? null; }
 function isLoaded(id) { return loaded.includes(id); }
-
 function installLazyTriggers() {
   document.addEventListener('click', async event => {
     const photo = event.target.closest?.('[data-add-mode="photo"]');
     if (photo) {
-      // Pointer input prewarms on pointerdown. Keyboard/programmatic click has no pointerdown,
-      // so always start the same lightweight runtime warm-up here as a compatibility fallback.
       void warmRecognition();
       if (!isLoaded('package-capture')) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        const ready = await loadMany([
-          'recognition-paddle-ocr', 'recognition-quality', 'package-capture',
-          'direct-camera', 'recognition-review-owner', 'recognition-batch-progress'
-        ]);
-        if (ready && globalThis.LuckyBeanPackageCapture?.open) globalThis.LuckyBeanPackageCapture.open();
-        return;
+        event.preventDefault(); event.stopImmediatePropagation();
+        const ready = await loadMany(['recognition-paddle-ocr','recognition-quality','package-capture','direct-camera','recognition-review-owner','recognition-batch-progress']);
+        if (ready && globalThis.LuckyBeanPackageCapture?.open) globalThis.LuckyBeanPackageCapture.open(); return;
       }
     }
-
     const world = event.target.closest?.('[data-v099f-world]');
-    if (world && !isLoaded('origin-map')) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      if (await loadFeature('origin-map').catch(() => false)) globalThis.LuckyBeanWorldMapV099g?.open?.();
-      return;
-    }
-
+    if (world && !isLoaded('origin-map')) { event.preventDefault(); event.stopImmediatePropagation(); if (await loadFeature('origin-map').catch(() => false)) globalThis.LuckyBeanWorldMapV099g?.open?.(); return; }
     const recommend = event.target.closest?.('#fabRecommendBtn');
-    if (recommend && !isLoaded('selection')) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      if (await loadFeature('selection').catch(() => false)) recommend.click();
-      return;
-    }
-
-    if (event.target.closest?.('[data-page-target="brew"]')) {
-      void loadMany(['brew-pour-guide', 'release-1.24b-brew-mode']);
-      return;
-    }
-    if (event.target.closest?.('[data-page-target="sensory"]')) {
-      void loadMany(['shared-sortable', 'sensory-tag-sort']);
-      return;
-    }
-    if (event.target.closest?.('.bean-card[data-bean-id],[data-bean-id]')) {
-      void loadFeature('release-1.24b-freshness-detail').catch(() => false);
-    }
+    if (recommend && !isLoaded('selection')) { event.preventDefault(); event.stopImmediatePropagation(); if (await loadFeature('selection').catch(() => false)) recommend.click(); return; }
+    if (event.target.closest?.('[data-page-target="brew"]')) { void loadMany(['brew-pour-guide','release-1.24b-brew-mode']); return; }
+    if (event.target.closest?.('[data-page-target="sensory"]')) { void loadMany(['shared-sortable','sensory-tag-sort']); return; }
+    if (event.target.closest?.('.bean-card[data-bean-id],[data-bean-id]')) void loadFeature('release-1.24b-freshness-detail').catch(() => false);
   }, true);
-
   document.addEventListener('pointerdown', event => {
     if (event.target.closest?.('[data-add-mode="photo"]')) void warmRecognition();
     if (event.target.closest?.('#fabRecommendBtn')) void loadFeature('selection').catch(() => false);
     if (event.target.closest?.('[data-v099f-world]')) void loadFeature('origin-map').catch(() => false);
-  }, { capture: true, passive: true });
+  }, { capture:true, passive:true });
 }
 
-globalThis.LuckyBeanRuntimeFeatures = {
-  revision: RELEASE_REVISION,
-  declared: [...catalog.keys()],
-  core: CORE_FEATURES.map(item => item.id),
-  lazy: LAZY_FEATURES.map(item => item.id),
-  loaded,
-  failures,
-  load: loadFeature,
-  loadMany,
-  warmRecognition,
-  isLoaded
-};
+const ALL_CORE_FEATURES = Object.freeze([...CORE_FEATURES, ...P2_CORE_FEATURES]);
+globalThis.LuckyBeanRuntimeFeatures = { revision:RELEASE_REVISION, declared:[...catalog.keys()], core:ALL_CORE_FEATURES.map(item=>item.id), lazy:LAZY_FEATURES.map(item=>item.id), loaded, failures, load:loadFeature, loadMany, warmRecognition, isLoaded };
 document.documentElement.dataset.runtimeFeatures = 'declared';
 
-for (const runtimeFeature of CORE_FEATURES) {
-  try { await loadFeature(runtimeFeature.id); }
-  catch { /* failure already recorded */ }
-}
-
+// Preserve the validated startup ordering: existing core -> preinteraction -> P2.
+for (const runtimeFeature of CORE_FEATURES) { try { await loadFeature(runtimeFeature.id); } catch { /* failure already recorded */ } }
 await loadMany(PREINTERACTION_FEATURE_IDS);
-installLazyTriggers();
+await loadMany(P2_CORE_FEATURES.map(item => item.id));
 
-document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', {
-  detail: {
-    revision: RELEASE_REVISION,
-    declared: catalog.size,
-    coreLoaded: CORE_FEATURES.filter(item => isLoaded(item.id)).length,
-    lazyDeclared: LAZY_FEATURES.length,
-    loaded: loaded.length,
-    failures
-  }
-}));
+installLazyTriggers();
+document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', { detail:{ revision:RELEASE_REVISION, declared:catalog.size, coreLoaded:ALL_CORE_FEATURES.filter(item=>isLoaded(item.id)).length, lazyDeclared:LAZY_FEATURES.length, loaded:loaded.length, failures } }));
