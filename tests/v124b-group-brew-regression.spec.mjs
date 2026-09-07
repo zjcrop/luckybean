@@ -77,10 +77,9 @@ async function openSpecialModePage(controlPage,mode){
     await db.setSetting('v099f.group.mode','native');
   },mode);
 
-  // v099i.group.mode is a startup-only setting. Use a fresh page in the same
-  // context for each cold start. Hosted Chromium can occasionally detach a new
-  // frame during page.goto; retry only that transport-level failure with another
-  // fresh page so product assertions remain unchanged.
+  // The cold-start product assertion is waitForStartup() below. Navigation itself
+  // only needs to commit; tying transport to DOMContentLoaded caused false failures
+  // late in a long single-worker suite while leaving all product assertions unrun.
   let lastError=null;
   for(let attempt=1;attempt<=3;attempt+=1){
     const page=await controlPage.context().newPage();
@@ -89,7 +88,7 @@ async function openSpecialModePage(controlPage,mode){
     });
     await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/,route=>route.abort('failed'));
     try{
-      await page.goto(`${BASE_URL}/?group-regression=1&special-mode=${encodeURIComponent(mode)}`,{waitUntil:'domcontentloaded',timeout:15000});
+      await page.goto(`${BASE_URL}/?group-regression=1&special-mode=${encodeURIComponent(mode)}`,{waitUntil:'commit',timeout:15000});
       await waitForStartup(page);
       await expect(page.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible({timeout:10000});
       return page;
@@ -151,18 +150,12 @@ test('country variety roast and process folders use one canonical close action',
   for(const method of ['country','variety','roast','process']){
     await chooseGroupMethod(page,method);
     await openFirstNativeGroup(page);
-
-    // 底部“藏”是长分组时的备用关闭入口。
     await page.locator('[data-page-target="beans"]').last().click();
     await expect(page.locator('#beanGroups [data-active-group-panel]')).toHaveCount(0);
     await expect(page.locator('#beanGroups [data-open-group]').first()).toBeVisible();
-
-    // 分组内容末尾的专用自然留白是主关闭入口。
     await openFirstNativeGroup(page);
     await page.locator('#beanGroups [data-close-bean-group]').click({position:{x:10,y:10}});
     await expect(page.locator('#beanGroups [data-active-group-panel]')).toHaveCount(0);
-
-    // 系统 Back 同样只关闭当前分组，页面仍停留在豆藏。
     await openFirstNativeGroup(page);
     expect(await dispatchBack(page)).toBe(true);
     await expect(page.locator('#beanGroups [data-active-group-panel]')).toHaveCount(0);
@@ -172,7 +165,6 @@ test('country variety roast and process folders use one canonical close action',
 });
 
 test('native recommendation opens only the target group and never expands all groups',async({page})=>{
-  // 价冠需要随主题保持对比度：黑色模式白点，白色模式黑点；拾余固定灰点。
   await page.locator('#fabRecommendBtn').click();
   await expect(page.locator('[data-recommend-mode="price"] .recommend-dot')).toHaveCSS('background-color','rgb(255, 255, 255)');
   await expect(page.locator('[data-recommend-mode="remaining"] .recommend-dot')).toHaveCSS('background-color','rgb(128, 128, 128)');
@@ -184,17 +176,11 @@ test('native recommendation opens only the target group and never expands all gr
   for(const method of ['country','variety','roast','process']){
     await chooseGroupMethod(page,method);
     await chooseRecommendation(page,'remaining');
-
-    // 旧功能遗留的“全组同时展开”必须彻底不存在。
     await expect(page.locator('#beanGroups [data-all-groups]')).toHaveCount(0);
     await expect(page.locator('#beanGroups .recommendation-all-groups')).toHaveCount(0);
-
-    // 与赏味期/余量一致：选择结果只打开目标豆所在的一个分组，且当前实际选中的豆必须位于该组。
     await expect(page.locator('#beanGroups [data-active-group-panel]')).toHaveCount(1,{timeout:10000});
     await expect(page.locator('#beanGroups [data-close-bean-group]')).toHaveCount(1);
     await expectSelectedBeanVisible(page);
-
-    // 推荐后的分组仍然使用同一个正式关闭动作。
     await page.locator('#beanGroups [data-close-bean-group]').click({position:{x:10,y:10}});
     await expect(page.locator('#beanGroups [data-active-group-panel]')).toHaveCount(0);
     await expect(page.locator('#beanGroups [data-open-group]').first()).toBeVisible();
@@ -209,12 +195,10 @@ test('freshness and remaining groups keep their renderer while sharing canonical
       await specialPage.locator('#beanGroups [data-close-bean-group]').click({position:{x:10,y:10}});
       await expect(specialPage.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible();
       await expect(specialPage.locator('#beanGroups [data-open-group]')).toHaveCount(0);
-
       await openFirstSpecialGroup(specialPage);
       await specialPage.locator('[data-page-target="beans"]').last().click();
       await expect(specialPage.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible();
       await expect(specialPage.locator('#beanGroups [data-open-group]')).toHaveCount(0);
-
       await openFirstSpecialGroup(specialPage);
       expect(await dispatchBack(specialPage)).toBe(true);
       await expect(specialPage.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible();
@@ -231,13 +215,11 @@ test('special group recommendations also keep exactly one target group open',asy
     const specialPage=await openSpecialModePage(page,mode);
     try{
       await chooseRecommendation(specialPage,'remaining');
-
       await expect(specialPage.locator('#beanGroups [data-all-groups]')).toHaveCount(0);
       await expect(specialPage.locator('#beanGroups .recommendation-all-groups')).toHaveCount(0);
       await expect(specialPage.locator('#beanGroups [data-v099t-group-root].active-group-panel')).toHaveCount(1,{timeout:10000});
       await expect(specialPage.locator('#beanGroups [data-close-bean-group]')).toHaveCount(1);
       await expectSelectedBeanVisible(specialPage);
-
       await specialPage.locator('#beanGroups [data-close-bean-group]').click({position:{x:10,y:10}});
       await expect(specialPage.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible();
     }finally{
@@ -252,23 +234,17 @@ test('small brew has normalized auto text centered rows and underline-only autom
     const stockSize=parseFloat(await stock.evaluate(node=>getComputedStyle(node).fontSize));
     expect(stockSize).toBeLessThan(17);
   }
-
   await page.locator('[data-page-target="brew"]').click();
   await expect(page.locator('#brewDose')).toBeVisible();
   await expect(page.locator('#brewRatio')).toBeVisible();
-
   await expect(page.locator('#brewDose')).not.toContainText('自动 ·');
   await expect(page.locator('#brewDripper option[value="recommended"]')).not.toContainText('方案推荐');
-
-  for(const selector of ['#brewDose','#brewRatio']){
-    await expect(page.locator(selector)).toHaveCSS('font-size','14px');
-  }
+  for(const selector of ['#brewDose','#brewRatio']) await expect(page.locator(selector)).toHaveCSS('font-size','14px');
   for(const selector of ['#brewDripper','#brewFilterPaper','#brewWaterProfile']){
     await expect(page.locator(selector)).toHaveCSS('font-size','13px');
     await expect(page.locator(selector)).toHaveCSS('text-align','center');
   }
   await expect(page.locator('#brewProfile')).toHaveCSS('font-size','13px');
-
   const autoRatio=page.locator('#brewRatio');
   await expect(autoRatio).toHaveClass(/lb-auto-field/);
   await expect(autoRatio).toHaveCSS('border-bottom-width','1px');
