@@ -22,7 +22,8 @@ const P2_CORE_FEATURES = Object.freeze([
   feature('bean-batch-manager', '../ui/bean-batch-manager-controller.js'),
   feature('bean-group-actions', '../ui/bean-group-actions-controller.js'),
   feature('bean-card-presentation', '../ui/bean-card-presentation-controller.js'),
-  feature('bean-detail-presentation', '../ui/bean-detail-presentation-controller.js')
+  feature('bean-detail-presentation', '../ui/bean-detail-presentation-controller.js'),
+  feature('brew-strategy', '../ui/brew-strategy-controller.js')
 ]);
 
 const LAZY_FEATURES = Object.freeze([
@@ -55,7 +56,7 @@ const pending = new Map();
 function recordLoaded(id) { if (!loaded.includes(id)) loaded.push(id); }
 function recordFailure(featureEntry, error) {
   const failure = { id: featureEntry.id, path: featureEntry.path, message: error?.message || String(error) };
-  failures.push(failure);
+  failures.push(failure;
   console.error('正式运行功能加载失败', failure, error);
   document.dispatchEvent(new CustomEvent('luckybean:runtime-feature-error', { detail: failure }));
   return failure;
