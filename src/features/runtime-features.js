@@ -3,9 +3,8 @@ const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEA
 const BEAN_GROUP_RUNTIME_REVISION = RELEASE_REVISION;
 const pinnedFeature = (id, path, revision) => ({ id, path: `${path}?v=${encodeURIComponent(revision)}` });
 
-// Keep the long-validated startup spine unchanged. Safari/WebKit relies on the
-// existing preinteraction set (especially package-capture) becoming ready before
-// product-level P2 controllers are allowed to extend the runtime.
+// Keep the long-validated startup spine unchanged. The existing preinteraction
+// set must become ready before product-level P2 controllers extend the runtime.
 const CORE_FEATURES = Object.freeze([
   feature('data-migrations', '../data-migrations.js'),
   feature('qr-ui', '../qr-ui-controller.js'),
