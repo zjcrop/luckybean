@@ -34,9 +34,9 @@ function validateStructureResult(result) {
     || result?.policy?.mayCreateFacts !== false) return false;
   const count = Number(result.recordCount), confidence = Number(result.confidence);
   if (!Number.isInteger(count) || count < 1 || count > 12 || !Number.isFinite(confidence) || confidence < 0 || confidence > 1) return false;
-  if (!Array.isArray(result.groups)) return false;
+  if (!Array.isArray(result.groups) || !Array.isArray(result.unassignedEvidenceRefs)) return false;
   if (count > 1 && result.groups.length !== count) return false;
-  if (count === 1 && result.groups.length > 1) return false;
+  if (count === 1 && result.groups.length !== 0) return false;
   return result.groups.every(group => group && Array.isArray(group.evidenceRefs));
 }
 
@@ -109,8 +109,9 @@ function compactStructureHypothesis(hypothesis) {
 
 /**
  * Optional transport adapter for Foundation Structure Recovery. It only asks the
- * server to group existing OCR evidence references; the Foundation module remains
- * responsible for strict validation and materialization.
+ * server to partition existing OCR evidence references into assigned record groups
+ * plus explicit unassigned evidence. The Foundation module remains responsible for
+ * strict partition validation and materialization.
  */
 export async function recoverRecognitionStructureWithAi(document, hypothesis, { timeoutMs = 7000 } = {}) {
   if (!hypothesis?.shouldInvokeAi) return { ok:false, skipped:true, reason:'local-structure-sufficient' };
