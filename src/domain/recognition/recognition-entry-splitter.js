@@ -64,6 +64,17 @@ function multiEntryMetadata(parent, index, total, method, extra = {}) {
     ...extra
   };
 }
+function cloneRecordCandidateBox(box) {
+  if (!box || typeof box !== 'object') return null;
+  return { ...box };
+}
+function cloneRecordCandidateEvidence(evidence) {
+  if (!evidence || typeof evidence !== 'object') return null;
+  return {
+    ...evidence,
+    anchors:Array.isArray(evidence.anchors) ? [...evidence.anchors] : []
+  };
+}
 function buildTextEntryDocument(text, parent, index, total, method) {
   const child = recognitionDocumentFromText(text);
   child.engine = String(parent?.engine || child.engine || 'unknown');
@@ -97,8 +108,8 @@ function buildGeometryEntryDocument(candidate, parent, index, total, method) {
         confidence:Number(candidate.confidence || 0),
         blockIds:[...blockIds],
         imageIds:[...imageIds],
-        box:candidate.box ? structuredClone(candidate.box) : null,
-        evidence:candidate.evidence ? structuredClone(candidate.evidence) : null
+        box:cloneRecordCandidateBox(candidate.box),
+        evidence:cloneRecordCandidateEvidence(candidate.evidence)
       }
     })
   };
@@ -117,19 +128,23 @@ function splitGeometryRecords(document) {
 
 export function splitRecognitionEntries(document) {
   const text = clean(document?.rawFullText || document?.fullText);
-  if (!text) return { split:false, method:'none', documents:[document].filter(Boolean), schemaVersion:MULTI_ENTRY_SCHEMA };
 
-  // Explicit producer-supplied grouping retains highest authority. Geometry is
-  // preferred over all inferred text heuristics because it preserves original
-  // OCR blocks, image identity, polygons and relation evidence per child record.
+  // Producer-supplied grouping remains the highest-authority segmentation hint.
+  // It is evaluated independently of the flattened full-text envelope because
+  // upstream producers may preserve structured evidence without emitting one.
   const explicit = explicitEntries(document);
   if (explicit.length >= 2) {
     const documents = explicit.map((entry, index) => buildTextEntryDocument(entry, document, index, explicit.length, 'explicit-extension'));
     return { split:true, method:'explicit-extension', documents, count:documents.length, schemaVersion:MULTI_ENTRY_SCHEMA };
   }
 
+  // Geometry is evidence-first: OCR blocks and image identity are sufficient to
+  // propose independent records even when rawFullText/fullText is unavailable.
+  // This keeps Record Boundary independent from a lossy text-envelope producer.
   const geometry = splitGeometryRecords(document);
   if (geometry) return geometry;
+
+  if (!text) return { split:false, method:'none', documents:[document].filter(Boolean), schemaVersion:MULTI_ENTRY_SCHEMA };
 
   const candidates = [
     ['entry-headings', splitByHeadings(text)],
