@@ -1,0 +1,106 @@
+name: LuckyBean OCR compression integrity hotfix retry
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ocr-compression-integrity-hotfix-retry.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 3
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Reapply reviewed hotfix transform and normalize escaped assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          workflow = Path('.github/workflows/ocr-compression-integrity-hotfix.yml').read_text()
+          start = "          python3 - <<'PY'\n"
+          end = "\n          PY"
+          block = workflow.split(start, 1)[1].split(end, 1)[0]
+          code = '\n'.join(line[10:] if line.startswith('          ') else line for line in block.splitlines())
+          exec(compile(code, 'reviewed-hotfix-transform', 'exec'), {'__name__': '__main__'})
+          for name in ['tests/v124p-release-contract.mjs', 'tests/v124p-auth-ocr-ai-hotfix-static.mjs']:
+              p = Path(name)
+              s = p.read_text()
+              s = s.replace(r'1\.24P-main\.3', r'1\.24P-main\.4')
+              p.write_text(s)
+          PY
+
+          cat > test/ocr-worker-compression-integrity.test.js <<'EOF'
+          import test from 'node:test';
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+
+          const runtime = fs.readFileSync('src/recognition-paddle-ocr.js', 'utf8');
+          const vendor = fs.readFileSync('scripts/prepare-paddleocr-vendor.mjs', 'utf8');
+
+          test('PP-OCR Worker integrity is based on decoded manifest identity, not transfer Content-Length', () => {
+            assert.match(runtime, /loadRuntimeManifest/);
+            assert.match(runtime, /workerBytes/);
+            assert.match(runtime, /workerSha256/);
+            assert.match(runtime, /content-encoding/);
+            assert.match(runtime, /transferBytes/);
+            assert.match(runtime, /crypto\?\.subtle/);
+            assert.doesNotMatch(runtime, /expectedBytes > 0 && expectedBytes !== bytes\.byteLength/);
+          });
+
+          test('vendoring records decoded Worker byte length and SHA-256 in manifest', () => {
+            assert.match(vendor, /createHash/);
+            assert.match(vendor, /Buffer\.byteLength\(workerSource, 'utf8'\)/);
+            assert.match(vendor, /workerSha256/);
+            assert.match(vendor, /workerBytes: workerIntegrity\.workerBytes/);
+            assert.match(vendor, /workerSha256: workerIntegrity\.workerSha256/);
+          });
+
+          test('compressed transfer length is not a decoded-body truncation signal', () => {
+            const compressedTransferBytes = 3_622_327;
+            const decodedWorkerBytes = 11_341_486;
+            assert.notEqual(compressedTransferBytes, decodedWorkerBytes);
+            const manifest = { workerBytes: decodedWorkerBytes };
+            assert.equal(decodedWorkerBytes, manifest.workerBytes);
+          });
+          EOF
+
+      - name: Regenerate vendor and verify hotfix
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          node scripts/validate-release-meta.mjs
+          node --check src/recognition-paddle-ocr.js
+          node --check scripts/prepare-paddleocr-vendor.mjs
+          npm run test:static
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const manifest = JSON.parse(fs.readFileSync('public/vendor/paddleocr/manifest.json', 'utf8'));
+          const worker = fs.readFileSync('public/vendor/paddleocr/worker.js');
+          if (worker.length !== manifest.workerBytes) throw new Error(`worker byte mismatch: ${worker.length} != ${manifest.workerBytes}`);
+          const digest = crypto.createHash('sha256').update(worker).digest('hex');
+          if (digest !== manifest.workerSha256) throw new Error(`worker digest mismatch: ${digest} != ${manifest.workerSha256}`);
+          console.log(`PP-OCR Worker integrity verified: ${worker.length} decoded bytes ${digest}`);
+          NODE
+      - name: Commit product hotfix only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/recognition-paddle-ocr.js scripts/prepare-paddleocr-vendor.mjs test/ocr-worker-compression-integrity.test.js release.json package.json package-lock.json index.html sw.js tests/v124p-release-contract.mjs tests/v124p-auth-ocr-ai-hotfix-static.mjs
+          git diff --cached --check
+          git commit -m 'fix: make PP-OCR Worker integrity compression-safe for 1.24P-main.4'
+          git push origin HEAD:main
