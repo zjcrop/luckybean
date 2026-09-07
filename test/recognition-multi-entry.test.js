@@ -12,6 +12,23 @@ function block(id, text, left, top, right, bottom) {
   return { id, imageId:'photo', text, polygon:box(left, top, right, bottom), confidence:0.98 };
 }
 
+function sideBySideDocument() {
+  return createRecognitionDocument({
+    images:[{ id:'photo', role:'front', roleLabel:'菜单照片' }],
+    engine:'stage3-fixture',
+    blocks:[
+      block('left-origin', 'Ethiopia Guji', 60, 90, 470, 135),
+      block('right-origin', 'Colombia Huila', 680, 90, 1110, 135),
+      block('left-variety', 'Gesha', 60, 185, 330, 230),
+      block('right-variety', 'Pink Bourbon', 680, 185, 1080, 230),
+      block('left-process', 'Washed', 60, 280, 330, 325),
+      block('right-process', 'Honey Process', 680, 280, 1000, 325),
+      block('left-flavor', 'Jasmine Citrus', 60, 375, 470, 420),
+      block('right-flavor', 'Peach Cacao', 680, 375, 1050, 420)
+    ]
+  });
+}
+
 test('explicit bean headings split into independent recognition documents', () => {
   const document = recognitionDocumentFromText(`样品1：\n国家: ETHIOPIA\n产区: GUJI\n处理法: NATURAL\n豆种: 74110\n\n样品2：\n国家: KENYA\n产区: NYERI\n处理法: WASHED\n豆种: SL28`);
   const result = splitRecognitionEntries(document);
@@ -36,20 +53,7 @@ test('repeated strong country anchors split when each segment contains multiple 
 });
 
 test('geometry-first side-by-side cards become evidence-preserving record candidates', () => {
-  const document = createRecognitionDocument({
-    images:[{ id:'photo', role:'front', roleLabel:'菜单照片' }],
-    engine:'stage3-fixture',
-    blocks:[
-      block('left-origin', 'Ethiopia Guji', 60, 90, 470, 135),
-      block('right-origin', 'Colombia Huila', 680, 90, 1110, 135),
-      block('left-variety', 'Gesha', 60, 185, 330, 230),
-      block('right-variety', 'Pink Bourbon', 680, 185, 1080, 230),
-      block('left-process', 'Washed', 60, 280, 330, 325),
-      block('right-process', 'Honey Process', 680, 280, 1000, 325),
-      block('left-flavor', 'Jasmine Citrus', 60, 375, 470, 420),
-      block('right-flavor', 'Peach Cacao', 680, 375, 1050, 420)
-    ]
-  });
+  const document = sideBySideDocument();
 
   const grouped = groupRecognitionRecordCandidates(document);
   assert.equal(grouped.grouped, true);
@@ -149,4 +153,32 @@ test('weak prose is kept as one recognition document to prevent false bean creat
   const result = splitRecognitionEntries(document);
   assert.equal(result.split, false);
   assert.equal(result.documents.length, 1);
+});
+
+test('geometry evidence can split records even when the flattened full-text envelope is unavailable', () => {
+  const document = sideBySideDocument();
+  document.fullText = '';
+  document.rawFullText = '';
+
+  const result = splitRecognitionEntries(document);
+  assert.equal(result.split, true);
+  assert.equal(result.method, 'geometry-side-by-side-v1');
+  assert.equal(result.documents.length, 2);
+  assert.equal(result.documents[0].extensions.multiEntry.evidencePreserved, true);
+  assert.deepEqual(result.documents[0].blocks.map(item => item.id), ['left-origin','left-variety','left-process','left-flavor']);
+  assert.deepEqual(result.documents[1].blocks.map(item => item.id), ['right-origin','right-variety','right-process','right-flavor']);
+});
+
+test('geometry entry construction does not depend on native structuredClone support', () => {
+  const originalStructuredClone = globalThis.structuredClone;
+  globalThis.structuredClone = undefined;
+  try {
+    const result = splitRecognitionEntries(sideBySideDocument());
+    assert.equal(result.split, true);
+    assert.equal(result.documents.length, 2);
+    assert.equal(result.documents[0].extensions.multiEntry.recordCandidate.evidence.identity, true);
+    assert.ok(Array.isArray(result.documents[0].extensions.multiEntry.recordCandidate.evidence.anchors));
+  } finally {
+    globalThis.structuredClone = originalStructuredClone;
+  }
 });
