@@ -4,7 +4,7 @@ import {
   buildDifferentiatedBrewStrategies
 } from '../services/brew-strategy-orchestrator.js';
 
-export const BREW_STRATEGY_CONTROLLER_REVISION = 'p2-brew-strategy-controller/1.0';
+export const BREW_STRATEGY_CONTROLLER_REVISION = 'p2-brew-strategy-controller/1.1';
 
 function hasStrategyMetadata(plan) {
   return plan?.professional?.luckyBeanStrategies?.contract === BREW_STRATEGY_ORCHESTRATOR_CONTRACT;
@@ -51,28 +51,37 @@ function applyStrategies(event) {
   plan.professional.luckyBeanStrategies = strategyMetadata(choices);
 }
 
-function decorateStrategyHeading(root = document) {
-  const section = root.querySelector?.('.recommended-profile-options');
+function surfaceStrategyOptions(root = document) {
+  const planHost = root.querySelector?.('#planResult') || document.querySelector('#planResult');
+  const section = planHost?.querySelector?.('.recommended-profile-options');
   const heading = section?.querySelector?.('h3');
-  if (!heading) return;
+  if (!section || !heading) return;
   const text = section.textContent || '';
   if (!/清晰香气|甜感平衡|醇厚高萃/.test(text)) return;
+
   heading.textContent = '三种冲煮倾向';
+  section.classList.add('brew-strategy-options');
+  section.dataset.strategyContract = BREW_STRATEGY_ORCHESTRATOR_CONTRACT;
+
+  // The original plan renderer places candidate buttons inside the professional
+  // details block. Move the same live nodes above that block so existing click
+  // listeners remain attached and the choices are visible before deep details.
+  const details = section.closest('details.professional-result');
+  if (details?.parentNode) details.parentNode.insertBefore(section, details);
 }
 
 document.addEventListener('luckybean:plan-ready', applyStrategies);
 
+const planHost = document.querySelector('#planResult');
 const observer = new MutationObserver(records => {
   for (const record of records) {
     if (record.type !== 'childList') continue;
-    decorateStrategyHeading(document);
+    surfaceStrategyOptions(document);
     break;
   }
 });
-
-const planHost = document.querySelector('#planResult');
 if (planHost) observer.observe(planHost, { childList: true, subtree: true });
-decorateStrategyHeading(document);
+surfaceStrategyOptions(document);
 
 globalThis.LuckyBeanBrewStrategies = Object.freeze({
   revision: BREW_STRATEGY_CONTROLLER_REVISION,
