@@ -72,8 +72,6 @@ jobs:
           cat /tmp/luckybean-http.log
           exit 1
       - run: npm run test:smoke
-      - name: Record Stage 0 OCR performance baseline
-        run: npx playwright test tests/stage0-ocr-baseline.spec.mjs --browser=chromium --reporter=line --workers=1
       - run: npm run test:webkit
       - run: npm run test:core
       - run: npm run test:visual
@@ -96,6 +94,79 @@ jobs:
             test-results/
             playwright-report/
             /tmp/luckybean-http.log
+          if-no-files-found: ignore
+
+  ocr_baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.x'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Record vendored PP-OCR runtime fingerprint
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ocr-runtime-fingerprint
+          {
+            printf 'source_sha=%s\n' "$GITHUB_SHA"
+            printf 'recorded_at=%s\n' "$(date -u +%FT%TZ)"
+            printf 'node=%s\n' "$(node --version)"
+            printf 'python=%s\n' "$(python --version 2>&1)"
+            find public/vendor/paddleocr -type f -print0 \
+              | sort -z \
+              | xargs -0 sha256sum
+          } > ocr-runtime-fingerprint/SHA256SUMS.txt
+          cat ocr-runtime-fingerprint/SHA256SUMS.txt
+          if [ -f public/vendor/paddleocr/manifest.json ]; then
+            cp public/vendor/paddleocr/manifest.json ocr-runtime-fingerprint/manifest.json
+          fi
+      - name: Start isolated OCR web server and wait until ready
+        shell: bash
+        run: |
+          python -m http.server 4173 > /tmp/luckybean-ocr-http.log 2>&1 &
+          server_pid=$!
+          echo "$server_pid" > /tmp/luckybean-ocr-http.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:4173/ > /dev/null; then
+              echo "Isolated OCR web server ready on attempt $attempt"
+              exit 0
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              echo "Isolated OCR web server exited before becoming ready"
+              cat /tmp/luckybean-ocr-http.log
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "Isolated OCR web server readiness timed out"
+          cat /tmp/luckybean-ocr-http.log
+          exit 1
+      - name: Record Stage 0 OCR performance baseline
+        run: npx playwright test tests/stage0-ocr-baseline.spec.mjs --browser=chromium --reporter=line --workers=1
+      - name: Upload OCR runtime fingerprint
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: luckybean-ocr-runtime-fingerprint-${{ github.sha }}
+          path: ocr-runtime-fingerprint/
+          if-no-files-found: error
+      - name: Upload isolated OCR browser output
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: luckybean-ocr-browser-results-${{ github.sha }}
+          path: |
+            test-results/
+            playwright-report/
+            /tmp/luckybean-ocr-http.log
           if-no-files-found: ignore
 
   android_debug:
