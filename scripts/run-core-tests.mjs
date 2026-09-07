@@ -16,6 +16,7 @@ const specs = [
   'tests/v124b-brew-mode-freshness-ui.spec.mjs',
   'tests/p2-brew-strategy-ui.spec.mjs',
   'tests/p2-brew-screen-awake.spec.mjs',
+  'tests/p2-brew-spatial-latest.spec.mjs',
   'tests/v124b-group-brew-regression.spec.mjs',
   'tests/v124b-selection-mode-single-group.spec.mjs',
   'tests/v124b-fab-regression.spec.mjs',
