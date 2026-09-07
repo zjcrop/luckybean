@@ -12,6 +12,8 @@ const CORE_FEATURES = Object.freeze([
   feature('runtime-controller', '../runtime-controller.js'),
   pinnedFeature('bean-groups', '../bean-groups-controller.js', BEAN_GROUP_RUNTIME_REVISION),
   feature('group-interaction', '../group-interaction-controller.js'),
+  feature('bean-batch-manager', '../ui/bean-batch-manager-controller.js'),
+  feature('bean-group-actions', '../ui/bean-group-actions-controller.js'),
   feature('ui-upgrade', '../ui-upgrade-controller.js'),
   feature('release-1.24b-ui-policy', './release-1.24b-ui-policy.js')
 ]);
@@ -84,8 +86,6 @@ function installLazyTriggers() {
   document.addEventListener('click', async event => {
     const photo = event.target.closest?.('[data-add-mode="photo"]');
     if (photo) {
-      // Pointer input prewarms on pointerdown. Keyboard/programmatic click has no pointerdown,
-      // so always start the same lightweight runtime warm-up here as a compatibility fallback.
       void warmRecognition();
       if (!isLoaded('package-capture')) {
         event.preventDefault();
