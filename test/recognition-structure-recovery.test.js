@@ -36,10 +36,21 @@ function sideBySideDocument() {
     ]
   });
 }
-function structureResult(recordCount, groups, confidence = 0.91) {
+function spatialHeadingDocument() {
+  const lines = [
+    'Sample 1','Country: Ethiopia','Variety: Gesha','Process: Washed',
+    'Sample 2','Country: Colombia','Variety: Pink Bourbon','Process: Honey Process'
+  ];
+  return createRecognitionDocument({
+    images:[{ id:'photo', role:'front' }], engine:'p0-spatial-heading-test',
+    blocks:lines.map((text, index) => block(`line-${index + 1}`, text, 80, 40 + index * 52, 620, 72 + index * 52))
+  });
+}
+function structureResult(recordCount, groups, confidence = 0.91, unassignedEvidenceRefs = []) {
   return {
     schemaVersion:AI_STRUCTURE_RESULT_SCHEMA,
-    task:'structure', recordCount, confidence, reason:'OCR evidence grouping', groups,
+    task:'structure', recordCount, confidence, reason:'OCR evidence grouping', groups, unassignedEvidenceRefs,
+    inputFingerprint:'sha256:test-fixture',
     engine:'zhipu', model:'test-model', createdAt:'2026-09-07T00:00:00Z',
     policy:{ authority:'advisory', mayOverwriteFact:false, mayCreateFacts:false }
   };
@@ -65,6 +76,10 @@ test('record hypothesis treats geometry as evidence and does not make it final a
 
   const local = recoverRecognitionStructureLocal(document);
   assert.equal(local.schemaVersion, RECOGNITION_STRUCTURE_RECOVERY_SCHEMA);
+  assert.equal(local.producer.name, 'luckybean-recognition-core');
+  assert.equal(local.producer.exactSourceIdentity, 'external-git-pin');
+  assert.deepEqual(local.inputIdentity.blockIds, document.blocks.map(item => item.id));
+  assert.deepEqual(local.inputIdentity.imageIds, ['photo']);
   assert.equal(local.split, false);
   assert.equal(local.source, 'geometry-evidence-only');
   assert.equal(local.requiresUserConfirmation, true);
@@ -98,6 +113,10 @@ test('valid AI evidence groups materialize independent review-required records w
   assert.equal(recovery.requiresUserConfirmation, true);
   assert.equal(recovery.documents.length, 2);
   assert.equal(recovery.ai.accepted, true);
+  assert.equal(recovery.ai.materialized, true);
+  assert.deepEqual(recovery.unassignedEvidenceRefs, []);
+  assert.deepEqual(recovery.ai.proposal.assignedEvidenceRefs, [...leftRefs, ...rightRefs]);
+  assert.deepEqual(recovery.ai.proposal.unassignedEvidenceRefs, []);
 
   const [left, right] = recovery.documents;
   assert.deepEqual(left.relations.map(item => [item.field, item.value]), [
@@ -110,6 +129,7 @@ test('valid AI evidence groups materialize independent review-required records w
   assert.doesNotMatch(right.fullText, /ETHIOPIA|GESHA|WASHED/u);
   assert.deepEqual(left.extensions.multiEntry.structureRecovery.evidenceRefs, leftRefs);
   assert.deepEqual(right.extensions.multiEntry.structureRecovery.evidenceRefs, rightRefs);
+  assert.deepEqual(left.extensions.multiEntry.structureRecovery.unassignedEvidenceRefs, []);
 });
 
 test('AI can resolve a geometry ambiguity as one record without geometry overriding it', async () => {
@@ -122,10 +142,45 @@ test('AI can resolve a geometry ambiguity as one record without geometry overrid
   assert.equal(recovery.method, 'ai-structure-single-v1');
   assert.equal(recovery.ai.accepted, true);
   assert.equal(recovery.documents[0], document);
+  assert.deepEqual(recovery.unassignedEvidenceRefs, []);
 });
 
-test('fabricated or duplicated AI evidence is rejected and safely falls back without creating records', async () => {
+test('unassigned AI evidence is explicit and blocks silent multi-record materialization', async () => {
   const document = sideBySideDocument();
+  const omitted = 'block:l-variety-label';
+  const assignedLeft = leftRefs.filter(ref => ref !== omitted);
+  const recovery = await recoverRecognitionStructure(document, {
+    aiRecoverStructure:async () => ({
+      ok:true,
+      result:structureResult(2, [
+        { id:'record:left', evidenceRefs:assignedLeft },
+        { id:'record:right', evidenceRefs:rightRefs }
+      ], 0.9, [omitted])
+    })
+  });
+  assert.equal(recovery.split, false);
+  assert.equal(recovery.source, 'ai-advisory');
+  assert.equal(recovery.method, 'ai-structure-unassigned-evidence-v1');
+  assert.equal(recovery.requiresUserConfirmation, true);
+  assert.equal(recovery.documents[0], document);
+  assert.equal(recovery.ai.accepted, true);
+  assert.equal(recovery.ai.materialized, false);
+  assert.equal(recovery.ai.reason, 'unassigned-evidence');
+  assert.deepEqual(recovery.unassignedEvidenceRefs, [omitted]);
+  assert.equal(recovery.ai.proposal.inputEvidenceRefs.length, document.blocks.length);
+  assert.equal(recovery.ai.proposal.assignedEvidenceRefs.length + recovery.ai.proposal.unassignedEvidenceRefs.length, document.blocks.length);
+});
+
+test('missing, fabricated, duplicated, overlapping or incomplete evidence partitions are rejected', async () => {
+  const document = sideBySideDocument();
+  const missingUnassigned = structureResult(2, [
+    { id:'record:1', evidenceRefs:leftRefs }, { id:'record:2', evidenceRefs:rightRefs }
+  ]);
+  delete missingUnassigned.unassignedEvidenceRefs;
+  const missing = await recoverRecognitionStructure(document, { aiRecoverStructure:async () => ({ ok:true, result:missingUnassigned }) });
+  assert.equal(missing.split, false);
+  assert.equal(missing.ai.reason, 'invalid-structure-contract');
+
   const fabricated = await recoverRecognitionStructure(document, {
     aiRecoverStructure:async () => ({
       ok:true,
@@ -151,6 +206,28 @@ test('fabricated or duplicated AI evidence is rejected and safely falls back wit
   assert.equal(duplicated.split, false);
   assert.equal(duplicated.ai.accepted, false);
   assert.equal(duplicated.ai.reason, 'invalid-structure-contract');
+
+  const overlapping = await recoverRecognitionStructure(document, {
+    aiRecoverStructure:async () => ({
+      ok:true,
+      result:structureResult(2, [
+        { id:'record:1', evidenceRefs:leftRefs }, { id:'record:2', evidenceRefs:rightRefs }
+      ], 0.9, ['block:l-country-label'])
+    })
+  });
+  assert.equal(overlapping.split, false);
+  assert.equal(overlapping.ai.reason, 'invalid-structure-contract');
+
+  const incomplete = await recoverRecognitionStructure(document, {
+    aiRecoverStructure:async () => ({
+      ok:true,
+      result:structureResult(2, [
+        { id:'record:1', evidenceRefs:leftRefs.slice(0, 5) }, { id:'record:2', evidenceRefs:rightRefs }
+      ], 0.9, [])
+    })
+  });
+  assert.equal(incomplete.split, false);
+  assert.equal(incomplete.ai.reason, 'invalid-structure-contract');
 });
 
 test('low-confidence AI grouping remains advisory and cannot create multiple records', async () => {
@@ -181,7 +258,7 @@ test('AI adapter failure is never a single point of failure', async () => {
   assert.equal(recovery.ai.reason, 'adapter-error');
 });
 
-test('strong text structure splits deterministically and does not invoke AI', async () => {
+test('strong manual-text structure splits deterministically and does not invoke AI', async () => {
   const document = recognitionDocumentFromText([
     'Sample 1',
     'Country: Ethiopia',
@@ -201,4 +278,20 @@ test('strong text structure splits deterministically and does not invoke AI', as
   assert.equal(recovery.source, 'deterministic-text-structure');
   assert.equal(recovery.documents.length, 2);
   assert.equal(aiCalls, 0);
+});
+
+test('flattened text structure cannot discard spatial OCR block identity', () => {
+  const document = spatialHeadingDocument();
+  const compatibility = splitRecognitionEntries(document, { allowGeometry:false });
+  assert.equal(compatibility.split, true);
+  assert.equal(compatibility.method, 'entry-headings');
+  assert.ok(document.blocks.every(item => item.box));
+
+  const recovery = recoverRecognitionStructureLocal(document);
+  assert.equal(recovery.split, false);
+  assert.equal(recovery.source, 'identity-preserving-recovery-required');
+  assert.equal(recovery.localProposal.accepted, false);
+  assert.equal(recovery.localProposal.reason, 'flattened-text-split-would-drop-spatial-evidence');
+  assert.deepEqual(recovery.inputIdentity.blockIds, document.blocks.map(item => item.id));
+  assert.equal(recovery.documents[0], document);
 });
