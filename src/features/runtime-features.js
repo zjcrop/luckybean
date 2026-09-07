@@ -23,7 +23,8 @@ const P2_CORE_FEATURES = Object.freeze([
   feature('bean-group-actions', '../ui/bean-group-actions-controller.js'),
   feature('bean-card-presentation', '../ui/bean-card-presentation-controller.js'),
   feature('bean-detail-presentation', '../ui/bean-detail-presentation-controller.js'),
-  feature('brew-strategy', '../ui/brew-strategy-controller.js')
+  feature('brew-strategy', '../ui/brew-strategy-controller.js'),
+  feature('brew-screen-awake', '../ui/brew-screen-awake-controller.js')
 ]);
 
 const LAZY_FEATURES = Object.freeze([
