@@ -25,15 +25,12 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-python@v7.0.0
-        with:
-          python-version: '3.x'
       - run: npm ci
       - name: Audit full dependency boundary
         run: npm audit --audit-level=high
       - name: Check JavaScript syntax
         shell: bash
-        run: find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+        run: find src scripts -type f \( -name '*.js' -o -name '*.mjs' \) -print0 | xargs -0 -n1 node --check
       - name: Reject private keys and release secrets in source
         shell: bash
         run: |
@@ -50,25 +47,25 @@ jobs:
       - name: Verify live recognition AI contract
         run: node tests/v124p-live-recognition-ai.mjs
       - run: npx playwright install --with-deps chromium webkit
-      - name: Start web server and wait until ready
+      - name: Start deterministic CI web server and wait until ready
         shell: bash
         run: |
-          python -m http.server 4173 > /tmp/luckybean-http.log 2>&1 &
+          node scripts/ci-static-server.mjs 4173 > /tmp/luckybean-http.log 2>&1 &
           server_pid=$!
           echo "$server_pid" > /tmp/luckybean-http.pid
           for attempt in {1..30}; do
             if curl --fail --silent --show-error http://127.0.0.1:4173/ > /dev/null; then
-              echo "Local web server ready on attempt $attempt"
+              echo "CI web server ready on attempt $attempt"
               exit 0
             fi
             if ! kill -0 "$server_pid" 2>/dev/null; then
-              echo "Local web server exited before becoming ready"
+              echo "CI web server exited before becoming ready"
               cat /tmp/luckybean-http.log
               exit 1
             fi
             sleep 1
           done
-          echo "Local web server readiness timed out"
+          echo "CI web server readiness timed out"
           cat /tmp/luckybean-http.log
           exit 1
       - run: npm run test:smoke
@@ -94,30 +91,27 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-python@v7.0.0
-        with:
-          python-version: '3.x'
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: Start isolated core web server and wait until ready
+      - name: Start isolated core CI web server and wait until ready
         shell: bash
         run: |
-          python -m http.server 4173 > /tmp/luckybean-core-http.log 2>&1 &
+          node scripts/ci-static-server.mjs 4173 > /tmp/luckybean-core-http.log 2>&1 &
           server_pid=$!
           echo "$server_pid" > /tmp/luckybean-core-http.pid
           for attempt in {1..30}; do
             if curl --fail --silent --show-error http://127.0.0.1:4173/ > /dev/null; then
-              echo "Isolated core web server ready on attempt $attempt"
+              echo "Isolated core CI web server ready on attempt $attempt"
               exit 0
             fi
             if ! kill -0 "$server_pid" 2>/dev/null; then
-              echo "Isolated core web server exited before becoming ready"
+              echo "Isolated core CI web server exited before becoming ready"
               cat /tmp/luckybean-core-http.log
               exit 1
             fi
             sleep 1
           done
-          echo "Isolated core web server readiness timed out"
+          echo "Isolated core CI web server readiness timed out"
           cat /tmp/luckybean-core-http.log
           exit 1
       - name: Run core browser gate
@@ -142,9 +136,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-python@v7.0.0
-        with:
-          python-version: '3.x'
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Record vendored PP-OCR runtime fingerprint
@@ -152,8 +143,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p ocr-runtime-fingerprint
-          printf 'source_sha=%s\nrecorded_at=%s\nnode=%s\npython=%s\n' \
-            "$GITHUB_SHA" "$(date -u +%FT%TZ)" "$(node --version)" "$(python --version 2>&1)" \
+          printf 'source_sha=%s\nrecorded_at=%s\nnode=%s\n' \
+            "$GITHUB_SHA" "$(date -u +%FT%TZ)" "$(node --version)" \
             > ocr-runtime-fingerprint/METADATA.txt
           if [ -f public/vendor/paddleocr/manifest.json ]; then
             cp public/vendor/paddleocr/manifest.json ocr-runtime-fingerprint/manifest.json
@@ -177,25 +168,25 @@ jobs:
           cat ocr-runtime-fingerprint/METADATA.txt
           cat ocr-runtime-fingerprint/ASSET_SHA256SUMS.txt
           cat ocr-runtime-fingerprint/RUNTIME_FINGERPRINT.sha256
-      - name: Start isolated OCR web server and wait until ready
+      - name: Start isolated OCR CI web server and wait until ready
         shell: bash
         run: |
-          python -m http.server 4173 > /tmp/luckybean-ocr-http.log 2>&1 &
+          node scripts/ci-static-server.mjs 4173 > /tmp/luckybean-ocr-http.log 2>&1 &
           server_pid=$!
           echo "$server_pid" > /tmp/luckybean-ocr-http.pid
           for attempt in {1..30}; do
             if curl --fail --silent --show-error http://127.0.0.1:4173/ > /dev/null; then
-              echo "Isolated OCR web server ready on attempt $attempt"
+              echo "Isolated OCR CI web server ready on attempt $attempt"
               exit 0
             fi
             if ! kill -0 "$server_pid" 2>/dev/null; then
-              echo "Isolated OCR web server exited before becoming ready"
+              echo "Isolated OCR CI web server exited before becoming ready"
               cat /tmp/luckybean-ocr-http.log
               exit 1
             fi
             sleep 1
           done
-          echo "Isolated OCR web server readiness timed out"
+          echo "Isolated OCR CI web server readiness timed out"
           cat /tmp/luckybean-ocr-http.log
           exit 1
       - name: Record Stage 0 OCR performance baseline
