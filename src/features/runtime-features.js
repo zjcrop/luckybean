@@ -14,6 +14,8 @@ const CORE_FEATURES = Object.freeze([
   feature('group-interaction', '../group-interaction-controller.js'),
   feature('bean-batch-manager', '../ui/bean-batch-manager-controller.js'),
   feature('bean-group-actions', '../ui/bean-group-actions-controller.js'),
+  feature('bean-card-presentation', '../ui/bean-card-presentation-controller.js'),
+  feature('bean-detail-presentation', '../ui/bean-detail-presentation-controller.js'),
   feature('ui-upgrade', '../ui-upgrade-controller.js'),
   feature('release-1.24b-ui-policy', './release-1.24b-ui-policy.js')
 ]);
@@ -45,10 +47,7 @@ const failures = [];
 const loaded = [];
 const pending = new Map();
 
-function recordLoaded(id) {
-  if (!loaded.includes(id)) loaded.push(id);
-}
-
+function recordLoaded(id) { if (!loaded.includes(id)) loaded.push(id); }
 function recordFailure(featureEntry, error) {
   const failure = { id: featureEntry.id, path: featureEntry.path, message: error?.message || String(error) };
   failures.push(failure);
@@ -56,114 +55,45 @@ function recordFailure(featureEntry, error) {
   document.dispatchEvent(new CustomEvent('luckybean:runtime-feature-error', { detail: failure }));
   return failure;
 }
-
 async function loadFeature(id) {
   const entry = catalog.get(String(id || ''));
   if (!entry) throw new Error(`未知运行功能：${id}`);
   if (loaded.includes(entry.id)) return true;
   if (pending.has(entry.id)) return pending.get(entry.id);
-  const task = import(entry.path)
-    .then(() => { recordLoaded(entry.id); return true; })
-    .catch(error => { recordFailure(entry, error); throw error; })
-    .finally(() => pending.delete(entry.id));
-  pending.set(entry.id, task);
-  return task;
+  const task = import(entry.path).then(() => { recordLoaded(entry.id); return true; }).catch(error => { recordFailure(entry, error); throw error; }).finally(() => pending.delete(entry.id));
+  pending.set(entry.id, task); return task;
 }
-
-async function loadMany(ids) {
-  const results = await Promise.allSettled(ids.map(loadFeature));
-  return results.every(result => result.status === 'fulfilled');
-}
-
-async function warmRecognition() {
-  await loadFeature('recognition-paddle-ocr').catch(() => false);
-  return globalThis.LuckyBeanPaddleOCR?.preload?.().catch?.(() => null) ?? null;
-}
-
+async function loadMany(ids) { const results = await Promise.allSettled(ids.map(loadFeature)); return results.every(result => result.status === 'fulfilled'); }
+async function warmRecognition() { await loadFeature('recognition-paddle-ocr').catch(() => false); return globalThis.LuckyBeanPaddleOCR?.preload?.().catch?.(() => null) ?? null; }
 function isLoaded(id) { return loaded.includes(id); }
-
 function installLazyTriggers() {
   document.addEventListener('click', async event => {
     const photo = event.target.closest?.('[data-add-mode="photo"]');
     if (photo) {
       void warmRecognition();
       if (!isLoaded('package-capture')) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        const ready = await loadMany([
-          'recognition-paddle-ocr', 'recognition-quality', 'package-capture',
-          'direct-camera', 'recognition-review-owner', 'recognition-batch-progress'
-        ]);
-        if (ready && globalThis.LuckyBeanPackageCapture?.open) globalThis.LuckyBeanPackageCapture.open();
-        return;
+        event.preventDefault(); event.stopImmediatePropagation();
+        const ready = await loadMany(['recognition-paddle-ocr','recognition-quality','package-capture','direct-camera','recognition-review-owner','recognition-batch-progress']);
+        if (ready && globalThis.LuckyBeanPackageCapture?.open) globalThis.LuckyBeanPackageCapture.open(); return;
       }
     }
-
     const world = event.target.closest?.('[data-v099f-world]');
-    if (world && !isLoaded('origin-map')) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      if (await loadFeature('origin-map').catch(() => false)) globalThis.LuckyBeanWorldMapV099g?.open?.();
-      return;
-    }
-
+    if (world && !isLoaded('origin-map')) { event.preventDefault(); event.stopImmediatePropagation(); if (await loadFeature('origin-map').catch(() => false)) globalThis.LuckyBeanWorldMapV099g?.open?.(); return; }
     const recommend = event.target.closest?.('#fabRecommendBtn');
-    if (recommend && !isLoaded('selection')) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      if (await loadFeature('selection').catch(() => false)) recommend.click();
-      return;
-    }
-
-    if (event.target.closest?.('[data-page-target="brew"]')) {
-      void loadMany(['brew-pour-guide', 'release-1.24b-brew-mode']);
-      return;
-    }
-    if (event.target.closest?.('[data-page-target="sensory"]')) {
-      void loadMany(['shared-sortable', 'sensory-tag-sort']);
-      return;
-    }
-    if (event.target.closest?.('.bean-card[data-bean-id],[data-bean-id]')) {
-      void loadFeature('release-1.24b-freshness-detail').catch(() => false);
-    }
+    if (recommend && !isLoaded('selection')) { event.preventDefault(); event.stopImmediatePropagation(); if (await loadFeature('selection').catch(() => false)) recommend.click(); return; }
+    if (event.target.closest?.('[data-page-target="brew"]')) { void loadMany(['brew-pour-guide','release-1.24b-brew-mode']); return; }
+    if (event.target.closest?.('[data-page-target="sensory"]')) { void loadMany(['shared-sortable','sensory-tag-sort']); return; }
+    if (event.target.closest?.('.bean-card[data-bean-id],[data-bean-id]')) void loadFeature('release-1.24b-freshness-detail').catch(() => false);
   }, true);
-
   document.addEventListener('pointerdown', event => {
     if (event.target.closest?.('[data-add-mode="photo"]')) void warmRecognition();
     if (event.target.closest?.('#fabRecommendBtn')) void loadFeature('selection').catch(() => false);
     if (event.target.closest?.('[data-v099f-world]')) void loadFeature('origin-map').catch(() => false);
-  }, { capture: true, passive: true });
+  }, { capture:true, passive:true });
 }
-
-globalThis.LuckyBeanRuntimeFeatures = {
-  revision: RELEASE_REVISION,
-  declared: [...catalog.keys()],
-  core: CORE_FEATURES.map(item => item.id),
-  lazy: LAZY_FEATURES.map(item => item.id),
-  loaded,
-  failures,
-  load: loadFeature,
-  loadMany,
-  warmRecognition,
-  isLoaded
-};
+globalThis.LuckyBeanRuntimeFeatures = { revision:RELEASE_REVISION, declared:[...catalog.keys()], core:CORE_FEATURES.map(item=>item.id), lazy:LAZY_FEATURES.map(item=>item.id), loaded, failures, load:loadFeature, loadMany, warmRecognition, isLoaded };
 document.documentElement.dataset.runtimeFeatures = 'declared';
-
-for (const runtimeFeature of CORE_FEATURES) {
-  try { await loadFeature(runtimeFeature.id); }
-  catch { /* failure already recorded */ }
-}
-
+for (const runtimeFeature of CORE_FEATURES) { try { await loadFeature(runtimeFeature.id); } catch { /* failure already recorded */ } }
 await loadMany(PREINTERACTION_FEATURE_IDS);
 installLazyTriggers();
-
-document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', {
-  detail: {
-    revision: RELEASE_REVISION,
-    declared: catalog.size,
-    coreLoaded: CORE_FEATURES.filter(item => isLoaded(item.id)).length,
-    lazyDeclared: LAZY_FEATURES.length,
-    loaded: loaded.length,
-    failures
-  }
-}));
+document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', { detail:{ revision:RELEASE_REVISION, declared:catalog.size, coreLoaded:CORE_FEATURES.filter(item=>isLoaded(item.id)).length, lazyDeclared:LAZY_FEATURES.length, loaded:loaded.length, failures } }));
