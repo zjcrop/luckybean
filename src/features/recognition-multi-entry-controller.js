@@ -1,4 +1,6 @@
 import { splitRecognitionEntries, MULTI_ENTRY_SCHEMA } from '../domain/recognition/recognition-entry-splitter.js';
+import { recoverRecognitionStructure, RECOGNITION_STRUCTURE_RECOVERY_SCHEMA } from '../domain/recognition/recognition-structure-recovery.js';
+import { recoverRecognitionStructureWithAi } from '../services/recognition-ai-service.js';
 
 const queue = {
   active:false, documents:[], index:0, method:'none', options:{}, originalAccept:null,
@@ -62,13 +64,22 @@ function installFlowWrapper() {
   const originalAccept = flow.acceptDocument.bind(flow);
   flow.acceptDocument = async (recognitionDocument, options = {}) => {
     if (queue.active) return originalAccept(recognitionDocument, options);
-    const split = splitRecognitionEntries(recognitionDocument);
-    if (!split.split || split.documents.length < 2) return originalAccept(recognitionDocument, options);
-    queue.active=true; queue.documents=split.documents; queue.index=0; queue.method=split.method; queue.options={ ...options };
+    const recovery = await recoverRecognitionStructure(recognitionDocument, {
+      aiRecoverStructure:(document, hypothesis) => recoverRecognitionStructureWithAi(document, hypothesis, { timeoutMs:7000 })
+    });
+    if (!recovery.split || recovery.documents.length < 2) return originalAccept(recognitionDocument, options);
+    queue.active=true; queue.documents=recovery.documents; queue.index=0; queue.method=recovery.method; queue.options={ ...options };
     queue.originalAccept=originalAccept; queue.completed=0; queue.skipped=0; queue.pendingAdvance=''; queue.advancing=false;
-    dispatch('luckybean:recognition-multi-entry-start', snapshot());
+    dispatch('luckybean:recognition-multi-entry-start', { ...snapshot(), structureRecoverySchemaVersion:RECOGNITION_STRUCTURE_RECOVERY_SCHEMA, source:recovery.source });
     await openCurrent();
-    return { multiEntry:true, count:split.documents.length, method:split.method, schemaVersion:MULTI_ENTRY_SCHEMA };
+    return {
+      multiEntry:true,
+      count:recovery.documents.length,
+      method:recovery.method,
+      source:recovery.source,
+      schemaVersion:MULTI_ENTRY_SCHEMA,
+      structureRecoverySchemaVersion:RECOGNITION_STRUCTURE_RECOVERY_SCHEMA
+    };
   };
   Object.defineProperty(flow, '__multiEntryWrapped', { value:true, enumerable:false });
   return true;
@@ -100,7 +111,9 @@ if (!installFlowWrapper()) {
 
 globalThis.LuckyBeanMultiEntryRecognition = Object.freeze({
   schemaVersion:MULTI_ENTRY_SCHEMA,
+  structureRecoverySchemaVersion:RECOGNITION_STRUCTURE_RECOVERY_SCHEMA,
   state:snapshot,
   split:splitRecognitionEntries,
+  recover:recoverRecognitionStructure,
   cancel() { if (queue.active) clearQueue('cancelled'); }
 });
