@@ -1,6 +1,6 @@
 import { preparePackageImage } from './image-quality.js';
 
-export const ADAPTIVE_OCR_IMAGE_POLICY = 'adaptive-compressed-source/1.0';
+export const ADAPTIVE_OCR_IMAGE_POLICY = 'adaptive-compressed-source/1.1';
 export const PACKAGE_OCR_FAST_EDGE = 1600;
 export const PACKAGE_OCR_DETAIL_EDGE = 2200;
 
@@ -46,63 +46,62 @@ function fullTextForImages(images, blocks) {
   return images.map(image => blocksForImage({ blocks }, image.id).map(block => String(block.text || '').trim()).filter(Boolean).join('\n')).filter(Boolean).join('\n\n');
 }
 
-function canUseCompressedSource(image) {
-  if (!image || image.nativeSource) return false;
-  if (!(image.sourceBlob instanceof Blob) || image.sourceBlob.size <= 0) return false;
-  const sourceEdge = Math.max(Number(image.sourceWidth || image.width || 0), Number(image.sourceHeight || image.height || 0));
-  const fastEdge = Math.max(Number(image.processedWidth || 0), Number(image.processedHeight || 0));
-  return !sourceEdge || !fastEdge || sourceEdge > fastEdge * 1.08;
+function imageEdge(image) {
+  return Math.max(Number(image?.processedWidth || image?.width || 0), Number(image?.processedHeight || image?.height || 0));
 }
 
-async function recognizeOneDetail(base, image, index, total) {
-  emit(`第一遍文字证据不足，正在从压缩原图生成高细节识别版本 ${index + 1}/${total}`, 91 + Math.round(index / Math.max(1, total) * 4));
-  const prepared = await preparePackageImage(image.sourceBlob, { maxEdge:PACKAGE_OCR_DETAIL_EDGE });
-  const detailEdge = Math.max(Number(prepared.processedWidth || 0), Number(prepared.processedHeight || 0));
-  const fastEdge = Math.max(Number(image.processedWidth || 0), Number(image.processedHeight || 0));
-  if (detailEdge && fastEdge && detailEdge <= fastEdge * 1.05) return null;
-  const detailImage = {
+function canFastDownscale(image) {
+  return Boolean(image && !image.nativeSource && image.blob instanceof Blob && image.blob.size > 0 && imageEdge(image) > PACKAGE_OCR_FAST_EDGE * 1.05);
+}
+
+async function makeFastImage(image, index, total) {
+  if (!canFastDownscale(image)) return image;
+  emit(`正在从压缩图生成轻量识别版本 ${index + 1}/${total}`, 4 + Math.round(index / Math.max(1, total) * 5));
+  const prepared = await preparePackageImage(image.blob, { maxEdge:PACKAGE_OCR_FAST_EDGE });
+  return {
     ...image,
     blob:prepared.blob,
     processedWidth:prepared.processedWidth,
     processedHeight:prepared.processedHeight,
-    sourceBlob:null
+    adaptiveDetailBlob:image.blob
   };
-  const result = await base.recognizeCoffeeBag([detailImage]);
-  return { result, prepared };
+}
+
+function detailSource(image) {
+  return image?.adaptiveDetailBlob instanceof Blob ? image.adaptiveDetailBlob : null;
 }
 
 async function adaptiveRecognize(base, images, options = {}) {
-  const list = Array.isArray(images) ? images : [];
+  const original = Array.isArray(images) ? images : [];
+  const fastImages = [];
+  for (let index = 0; index < original.length; index += 1) fastImages.push(await makeFastImage(original[index], index, original.length));
+
   let first;
   try {
-    first = await base.recognizeCoffeeBag(list, options);
+    first = await base.recognizeCoffeeBag(fastImages, options);
   } catch (error) {
     const message = String(error?.message || error || '');
-    if (!/没有得到可信文字/u.test(message) || !list.some(canUseCompressedSource)) throw error;
-    emit('第一遍未得到可信文字，正在从压缩原图执行一次高细节恢复识别', 88);
-    const detailImages = [];
-    for (const image of list) {
-      if (!canUseCompressedSource(image)) { detailImages.push(image); continue; }
-      const prepared = await preparePackageImage(image.sourceBlob, { maxEdge:PACKAGE_OCR_DETAIL_EDGE });
-      detailImages.push({ ...image, blob:prepared.blob, processedWidth:prepared.processedWidth, processedHeight:prepared.processedHeight, sourceBlob:null });
-    }
+    const recoverable = /没有得到可信文字/u.test(message) && fastImages.some(image => detailSource(image));
+    if (!recoverable) throw error;
+    emit('轻量识别未得到可信文字，正在用受控 2200px 压缩图恢复一次', 88);
+    const detailImages = fastImages.map(image => detailSource(image) ? { ...image, blob:detailSource(image), adaptiveDetailBlob:null } : image);
     const recovered = await base.recognizeCoffeeBag(detailImages, options);
     emit('高细节恢复识别完成', 96);
-    return { ...recovered, adaptiveImagePolicy:ADAPTIVE_OCR_IMAGE_POLICY, adaptiveDetail:{ attempted:list.length, accepted:list.map(image => image.id), recoveredFromEmpty:true } };
+    return { ...recovered, adaptiveImagePolicy:ADAPTIVE_OCR_IMAGE_POLICY, adaptiveDetail:{ attempted:detailImages.filter(image => image.blob).map(image => image.id), accepted:detailImages.map(image => image.id), recoveredFromEmpty:true } };
   }
 
   const replaceByImage = new Map();
   const attempted = [];
   const accepted = [];
-  const eligible = list.filter(image => canUseCompressedSource(image) && needsDetail(blocksForImage(first, image.id)));
+  const eligible = fastImages.filter(image => detailSource(image) && needsDetail(blocksForImage(first, image.id)));
   for (let index = 0; index < eligible.length; index += 1) {
     const image = eligible[index];
     attempted.push(image.id);
+    emit(`第一遍文字证据不足，正在用 2200px 压缩图复核 ${index + 1}/${eligible.length}`, 91 + Math.round(index / Math.max(1, eligible.length) * 4));
     try {
-      const detail = await recognizeOneDetail(base, image, index, eligible.length);
-      if (!detail) continue;
+      const detailResult = await base.recognizeCoffeeBag([{ ...image, blob:detailSource(image), adaptiveDetailBlob:null }], options);
       const fastBlocks = blocksForImage(first, image.id);
-      const detailBlocks = blocksForImage(detail.result, image.id);
+      const detailBlocks = blocksForImage(detailResult, image.id);
       if (materiallyBetter(detailBlocks, fastBlocks)) {
         replaceByImage.set(String(image.id), detailBlocks);
         accepted.push(image.id);
@@ -115,15 +114,15 @@ async function adaptiveRecognize(base, images, options = {}) {
   if (!attempted.length) return { ...first, adaptiveImagePolicy:ADAPTIVE_OCR_IMAGE_POLICY, adaptiveDetail:{ attempted:[], accepted:[] } };
 
   const mergedBlocks = [];
-  for (const image of list) {
+  for (const image of fastImages) {
     const replacement = replaceByImage.get(String(image.id));
     mergedBlocks.push(...(replacement || blocksForImage(first, image.id)));
   }
-  emit(accepted.length ? '高细节复核完成，已采用更清晰的文字结果' : '高细节复核完成，保留第一遍结果', 96);
+  emit(accepted.length ? '高细节复核完成，已采用更清晰的文字结果' : '高细节复核完成，保留轻量识别结果', 96);
   return {
     ...first,
     blocks:mergedBlocks,
-    fullText:fullTextForImages(list, mergedBlocks),
+    fullText:fullTextForImages(fastImages, mergedBlocks),
     engine:`${first.engine || 'PP-OCRv5'}${accepted.length ? '-adaptive-detail' : '-adaptive-fast'}`,
     adaptiveImagePolicy:ADAPTIVE_OCR_IMAGE_POLICY,
     adaptiveDetail:{ attempted, accepted }
