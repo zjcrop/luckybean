@@ -1,6 +1,7 @@
 const MIN_REGION_SPAN = 0.01;
 const DEFAULT_MAX_EDGE = 2200;
 const HEADER_PROBE_BYTES = 1024 * 1024;
+const ROI_DECODE_MAX_EDGE = 3000;
 
 function clamp01(value, fallback = 0) {
   const number = Number(value);
@@ -105,42 +106,52 @@ function boundedSize(width, height, maxEdge) {
   };
 }
 
+function roiDecodeEdge(region, requestedMaxEdge) {
+  if (isFullFrame(region)) return requestedMaxEdge;
+  const span = Math.max(MIN_REGION_SPAN, Math.max(region.right - region.left, region.bottom - region.top));
+  // Preserve more detail for a small crop while still putting a hard ceiling on
+  // the full decoded raster. A quarter-frame region therefore receives materially
+  // more pixels than it did in whole-page OCR without ever allocating a 12/48 MP
+  // RGBA bitmap.
+  return Math.max(
+    requestedMaxEdge,
+    Math.min(ROI_DECODE_MAX_EDGE, Math.ceil(requestedMaxEdge / span))
+  );
+}
+
 async function decodeBitmap(blob, region, maxEdge) {
-  // Whole-page OCR is the hot path for camera photos. Read only the compressed
-  // image header first and ask the browser decoder to produce an already-bounded
-  // bitmap. That prevents a 12/48 MP camera frame from ever becoming a full-size
-  // RGBA bitmap before the ROI Worker downsizes it.
-  if (isFullFrame(region)) {
-    const dimensions = await encodedDimensions(blob);
-    if (dimensions && Math.max(dimensions.width, dimensions.height) > maxEdge) {
-      const target = boundedSize(dimensions.width, dimensions.height, maxEdge);
-      try {
-        const bitmap = await createImageBitmap(blob, {
-          imageOrientation: 'from-image',
-          resizeWidth: target.width,
-          resizeHeight: target.height,
-          resizeQuality: 'high'
-        });
-        return {
-          bitmap,
-          originalWidth: dimensions.width,
-          originalHeight: dimensions.height,
-          decodePreScaled: true,
-          encodedFormat: dimensions.format
-        };
-      } catch {
-        // Older engines may reject resize hints. Keep the previous Worker-only
-        // behavior as a compatibility path; never move decoding to the UI thread.
-      }
+  const dimensions = await encodedDimensions(blob);
+  const decodeMaxEdge = roiDecodeEdge(region, maxEdge);
+  if (dimensions && Math.max(dimensions.width, dimensions.height) > decodeMaxEdge) {
+    const target = boundedSize(dimensions.width, dimensions.height, decodeMaxEdge);
+    try {
+      const bitmap = await createImageBitmap(blob, {
+        imageOrientation: 'from-image',
+        resizeWidth: target.width,
+        resizeHeight: target.height,
+        resizeQuality: 'high'
+      });
+      return {
+        bitmap,
+        originalWidth: dimensions.width,
+        originalHeight: dimensions.height,
+        decodePreScaled: true,
+        decodeMaxEdge,
+        encodedFormat: dimensions.format
+      };
+    } catch {
+      // Older engines may reject resize hints. Stay in the ROI Worker and retain
+      // compatibility; never move decoding onto the UI thread.
     }
   }
   const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
   return {
     bitmap,
-    originalWidth: bitmap.width,
-    originalHeight: bitmap.height,
+    originalWidth: dimensions?.width || bitmap.width,
+    originalHeight: dimensions?.height || bitmap.height,
     decodePreScaled: false,
-    encodedFormat: ''
+    decodeMaxEdge,
+    encodedFormat: dimensions?.format || ''
   };
 }
 
@@ -181,6 +192,7 @@ async function cropBlob(blob, regionInput, maxEdgeInput) {
       outputWidth: width,
       outputHeight: height,
       decodePreScaled: decoded.decodePreScaled,
+      decodeMaxEdge: decoded.decodeMaxEdge,
       encodedFormat: decoded.encodedFormat
     };
   } finally {
