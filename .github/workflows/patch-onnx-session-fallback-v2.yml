@@ -32,3 +32,5 @@ jobs:
           git diff --cached --check
           git commit -m 'fix(ocr): retry ONNX session init in WASM compatibility mode'
           git push origin HEAD:main
+
+# trigger-v2-after-contract-fix
