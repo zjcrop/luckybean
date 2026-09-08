@@ -14,4 +14,6 @@ fs.mkdirSync(targetDir, { recursive: true });
 fs.copyFileSync(source, target);
 console.log(`Vendored jsQR -> ${path.relative(root, target)}`);
 
-await import('./prepare-paddleocr-vendor.mjs');
+// Production builds must use the checked-in OCR runtime assets.
+// OCR vendor generation is a maintenance task, not a postinstall task.
+console.log('Skipping OCR vendor regeneration during install.');
