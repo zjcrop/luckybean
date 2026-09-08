@@ -8,7 +8,7 @@ async function loadOcrRuntimeOnDemand(page) {
   await page.waitForFunction(() => globalThis.LuckyBeanPaddleOCR?.browserSafe === true, null, { timeout: 20_000 });
 }
 
-test('PP-OCR runtime stays lazy on app startup and exposes browser-safe on-demand mode', async ({ page }) => {
+test('PP-OCR provider registers at startup while heavy OCR runtime remains strictly on-demand', async ({ page }) => {
   const pageErrors = [];
   const heavyOcrRequests = [];
   page.on('pageerror', error => pageErrors.push(String(error?.message || error)));
@@ -21,14 +21,22 @@ test('PP-OCR runtime stays lazy on app startup and exposes browser-safe on-deman
   await page.waitForFunction(() => Boolean(globalThis.LuckyBeanRuntimeFeatures?.load), null, { timeout: 20_000 });
   const beforeDemand = await page.evaluate(() => ({
     providerPresent: Boolean(globalThis.LuckyBeanPaddleOCR),
+    browserSafe: globalThis.LuckyBeanPaddleOCR?.browserSafe === true,
+    autoPreload: globalThis.LuckyBeanPaddleOCR?.autoPreload,
     lazyDeclared: globalThis.LuckyBeanRuntimeFeatures?.lazy?.includes('recognition-paddle-ocr') === true
   }));
-  expect(beforeDemand.providerPresent, 'PP-OCR provider must not be imported during ordinary app startup').toBe(false);
+  expect(beforeDemand.providerPresent, 'lightweight PP-OCR provider must be deterministically registered before capture UI can query capability').toBe(true);
+  expect(beforeDemand.browserSafe).toBe(true);
+  expect(beforeDemand.autoPreload).toBe(false);
   expect(beforeDemand.lazyDeclared).toBe(true);
-  expect(heavyOcrRequests, 'app startup must not fetch PP-OCR SDK, models, worker or ORT before recognition is requested').toEqual([]);
+  expect(heavyOcrRequests, 'ordinary app startup must not fetch PP-OCR SDK, models, worker or ORT').toEqual([]);
 
+  // LuckyBeanRuntimeFeatures is published before its serialized startup imports finish. Explicitly
+  // await the idempotent provider feature load before asserting registry state; the module has
+  // already executed from index.html, so this must not initialize the heavy OCR runtime.
   await loadOcrRuntimeOnDemand(page);
   const initial = await page.evaluate(() => ({
+    runtimeLoaded: globalThis.LuckyBeanRuntimeFeatures?.isLoaded?.('recognition-paddle-ocr') === true,
     workerOnly: globalThis.LuckyBeanPaddleOCR?.workerOnly,
     browserSafe: globalThis.LuckyBeanPaddleOCR?.browserSafe,
     autoPreload: globalThis.LuckyBeanPaddleOCR?.autoPreload,
@@ -39,6 +47,7 @@ test('PP-OCR runtime stays lazy on app startup and exposes browser-safe on-deman
     webOcr: document.documentElement.dataset.webOcr || ''
   }));
 
+  expect(initial.runtimeLoaded, 'runtime registry must mark PP-OCR loaded after the explicit idempotent feature load resolves').toBe(true);
   expect(initial.workerOnly).toBe(false);
   expect(initial.browserSafe).toBe(true);
   expect(initial.autoPreload).toBe(false);
@@ -47,7 +56,7 @@ test('PP-OCR runtime stays lazy on app startup and exposes browser-safe on-deman
   expect(initial.regionRecognition).toBe('recognition-roi/1.0');
   expect(initial.runtimeOrigin).toBe('same-origin-vendored');
   expect(initial.webOcr).toContain('self-hosted-lazy-memory-bounded');
-  expect(heavyOcrRequests, 'importing the provider metadata must still not allocate the SDK/model/worker runtime').toEqual([]);
+  expect(heavyOcrRequests, 'loading provider metadata must still not allocate SDK/model/worker/WASM resources').toEqual([]);
   expect(pageErrors.filter(message => /worker|paddle|onnx|ocr/i.test(message))).toEqual([]);
 });
 

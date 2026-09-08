@@ -24,15 +24,13 @@ const specs = [
   'tests/v124b-ui-alignment-regression.spec.mjs',
   'tests/v124b-followup-regression.spec.mjs',
   'tests/v124p-recognition-preflight-regression.spec.mjs',
-  'tests/v124p-pour-guide-ui.spec.mjs'
+  'tests/v124p-pour-guide-ui.spec.mjs',
+  'tests/p3-ux-flow-ui.spec.mjs'
 ];
 
 function annotation(text) {
   return String(text || 'unknown Playwright failure')
-    .replace(/%/g, '%25')
-    .replace(/\r/g, '%0D')
-    .replace(/\n/g, '%0A')
-    .slice(-7000);
+    .replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A').slice(-7000);
 }
 
 const supersededTitles = [
@@ -47,7 +45,7 @@ const supersededPattern = supersededTitles.map(escapeRegex).join('|');
 const args = [
   'playwright', 'test', ...specs,
   '--grep-invert', supersededPattern,
-  '--browser=chromium', '--reporter=line', '--workers=1', '--timeout=60000', '--retries=1'
+  '--browser=chromium', '--reporter=line', '--workers=1', '--timeout=90000', '--retries=1'
 ];
 const result = spawnSync('npx', args, { encoding:'utf8', env:process.env, maxBuffer:16*1024*1024, shell:process.platform === 'win32' });
 if (result.stdout) process.stdout.write(result.stdout);

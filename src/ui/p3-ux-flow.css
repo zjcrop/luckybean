@@ -1,0 +1,143 @@
+/* P3 usability consolidation: remove redundant controls and keep primary actions reachable. */
+.brew-mode-field{display:none!important}
+.brew-mode-dose-ratio{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+
+#generatedPlan>.row.menu-row{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:18px;
+  align-items:stretch;
+  margin-top:22px;
+}
+#startBrewBtn,#planToSensoryBtn{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:56px;
+  width:100%;
+  text-align:center!important;
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
+  font-size:18px;
+  font-weight:750;
+  line-height:1.15;
+  letter-spacing:.02em;
+}
+.brew-strategy-options{
+  margin:0 0 22px!important;
+  padding:0!important;
+}
+
+.v099f-freshness-note,.v099i-freshness-note{display:none!important}
+.bean-consumption-summary p{line-height:1.55}
+
+.bag-capture-dialog{
+  position:relative;
+  padding-bottom:calc(88px + env(safe-area-inset-bottom))!important;
+}
+.bag-capture-hint{
+  display:block!important;
+  margin:0 0 12px!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  color:var(--muted)!important;
+}
+.bag-capture-hint small{
+  display:block;
+  font-size:11px;
+  line-height:1.55;
+  font-weight:400;
+}
+.bag-engine-status{display:none!important}
+.bag-manual-entry{display:none!important}
+.bag-capture-actions{
+  position:fixed!important;
+  z-index:2147482000;
+  left:50%;
+  bottom:0;
+  transform:translateX(-50%);
+  width:min(880px,100%);
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:0!important;
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  background:var(--bg);
+  border-top:1px solid rgba(127,127,127,.18);
+}
+.bag-capture-actions .button{
+  min-width:0;
+  min-height:48px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px 4px;
+  text-align:center;
+  font-weight:650;
+}
+
+.lb-image-progress{
+  grid-column:1/-1;
+  width:100%;
+  height:3px;
+  margin-top:7px;
+  overflow:hidden;
+  border-radius:999px;
+  background:rgba(127,127,127,.18);
+}
+.lb-image-progress>span{
+  display:block;
+  width:0;
+  height:100%;
+  border-radius:inherit;
+  background:currentColor;
+  opacity:.78;
+  transition:width 5s cubic-bezier(.18,.72,.22,1);
+}
+.lb-image-progress.completed>span{transition-duration:.22s}
+.lb-image-progress.failed>span{opacity:.42}
+.lb-batch-progress{display:none!important}
+
+.p3-recognition-evidence{
+  margin:14px 0;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  font-size:12px;
+}
+.p3-recognition-evidence>summary{
+  cursor:pointer;
+  list-style-position:inside;
+  font-weight:500;
+}
+.p3-recognition-raw{
+  margin:10px 0 0;
+  padding:10px 0;
+  max-height:180px;
+  overflow:auto;
+  white-space:pre-wrap;
+  word-break:break-word;
+  border:0;
+  background:transparent;
+  color:inherit;
+  font:inherit;
+  line-height:1.55;
+}
+.p3-recognition-fields{
+  display:grid;
+  gap:4px;
+  padding-bottom:8px;
+}
+.p3-recognition-fields>div{
+  display:grid;
+  grid-template-columns:minmax(72px,.35fr) 1fr;
+  gap:8px;
+}
+.p3-recognition-fields b{font-weight:600;color:var(--text)}
+
+@media(max-width:520px){
+  #generatedPlan>.row.menu-row{gap:10px}
+  #startBrewBtn,#planToSensoryBtn{font-size:17px;min-height:52px}
+  .bag-capture-actions{padding-left:8px;padding-right:8px}
+  .bag-capture-actions .button{font-size:14px}
+}
