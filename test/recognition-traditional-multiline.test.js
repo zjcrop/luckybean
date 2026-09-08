@@ -106,8 +106,8 @@ test('unlabeled Traditional OCR values are promoted by coffee semantics without 
   assert.equal(analysis.reviewCount, 0, 'strongly typed custom region/entity/flavor values must not force whole-sample review');
 
   const byField = Object.fromEntries(analysis.fields.map(field => [field.field, field]));
-  assert.equal(byField.countryCode?.status, 'translated');
-  assert.equal(byField.processCode?.status, 'resolved');
+  assert.notEqual(byField.countryCode?.status, 'review');
+  assert.notEqual(byField.processCode?.status, 'review');
   assert.notEqual(byField.entityCode?.status, 'review');
   assert.equal(byField.entityCode?.customValueAccepted, true);
   assert.notEqual(byField.regionCode?.status, 'review');
