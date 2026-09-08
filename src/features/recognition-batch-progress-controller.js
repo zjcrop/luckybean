@@ -70,20 +70,20 @@ function applyProviderProgress(detail){
   const batch=lastBatch;
   const current=currentProcessingTask(batch);
   if(!current)return;
-  const progress=Number(detail?.progress);
-  if(!Number.isFinite(progress))return;
+  const rawProgress=Number(detail?.progress);
+  if(!Number.isFinite(rawProgress))return;
   const key=taskKey(current.task,current.index);
   const previous=Number(progressByTask.get(key)||1);
-  // Provider progress is authoritative. Keep it monotonic within one image so a
-  // retry phase (e.g. low-memory engine bootstrap) never makes the bar run backward.
-  progressByTask.set(key,Math.max(previous,Math.max(1,Math.min(99,progress))));
+  // Provider 100% means one OCR engine pass is complete, not necessarily the whole
+  // image workflow: the adaptive controller may still run a 2200px detail pass.
+  // Only the outer batch task is allowed to set the visible bar to 100%.
+  const progress=rawProgress>=100?90:Math.max(1,Math.min(99,rawProgress));
+  progressByTask.set(key,Math.max(previous,progress));
   render(batch);
 }
 
 // A JavaScript OCR task cannot survive a full page reload. Persisted processing
 // state therefore represents an interrupted/crashed tab, not a resumable task.
-// Remove it at controller startup so a previous memory failure cannot poison the
-// next capture session or leave a phantom progress bar after refresh.
 const stale=getRecognitionBatchSnapshot();
 if(stale&&(terminal(stale.status)||stale.status==='processing'))clearRecognitionBatchSnapshot();
 
@@ -110,4 +110,4 @@ new MutationObserver(records=>{
   else if(batch&&terminal(batch.status))clearRecognitionBatchSnapshot();
 }).observe(document.documentElement,{childList:true,subtree:true});
 
-console.info('[LuckyBean] per-image OCR progress is bound to provider progress; interrupted batches are cleared on reload');
+console.info('[LuckyBean] per-image OCR progress is bound to provider progress; adaptive passes stay monotonic and interrupted batches are cleared on reload');
