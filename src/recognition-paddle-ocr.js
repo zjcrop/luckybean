@@ -1,4 +1,4 @@
-const VERSION = '0.4.10';
+const VERSION = '0.4.11';
 const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;
 
 function isAppleMobileLike() {
@@ -22,11 +22,15 @@ const ENGINE_IDLE_MS = WEBKIT ? 30000 : LOW_MEMORY ? 45000 : 90000;
 const WORKER_BUNDLE_MIN_BYTES = 100000;
 const WORKER_BUNDLE_FETCH_ATTEMPTS = 2;
 const MEMORY_FALLBACK_SESSION_KEY = 'luckybean.ppocr.low-memory.v2';
+const COMPATIBILITY_FALLBACK_SESSION_KEY = 'luckybean.ppocr.runtime-compat.v1';
 const MEMORY_WORKER_RECLAIM_DELAY_MS = 350;
 const MEMORY_MAIN_THREAD_RECLAIM_DELAY_MS = 700;
 
 function hasRememberedMemoryConstraint() {
   try { return globalThis.sessionStorage?.getItem(MEMORY_FALLBACK_SESSION_KEY) === '1'; } catch { return false; }
+}
+function hasRememberedRuntimeCompatibilityConstraint() {
+  try { return globalThis.sessionStorage?.getItem(COMPATIBILITY_FALLBACK_SESSION_KEY) === '1'; } catch { return false; }
 }
 
 let modulePromise = null;
@@ -41,6 +45,7 @@ let busy = false;
 let disposeTimer = 0;
 let roiRequestSequence = 0;
 let memoryConstrained = LOW_MEMORY || hasRememberedMemoryConstraint();
+let runtimeCompatibilityConstrained = hasRememberedRuntimeCompatibilityConstraint();
 const activeModuleWorkers = new Set();
 
 function diagnosticNow() { return Number(globalThis.performance?.now?.() ?? Date.now()); }
@@ -54,6 +59,10 @@ function recordDiagnostic(phase, startedAt, detail = {}) {
 function rememberMemoryConstraint() {
   memoryConstrained = true;
   try { globalThis.sessionStorage?.setItem(MEMORY_FALLBACK_SESSION_KEY, '1'); } catch {}
+}
+function rememberRuntimeCompatibilityConstraint() {
+  runtimeCompatibilityConstrained = true;
+  try { globalThis.sessionStorage?.setItem(COMPATIBILITY_FALLBACK_SESSION_KEY, '1'); } catch {}
 }
 function trackModuleWorker(worker) {
   activeModuleWorkers.add(worker);
@@ -261,6 +270,10 @@ function isWasmMemoryAllocationFailure(error) {
   const message = String(error?.message || error || '');
   return /WebAssembly\.Memory\(\).*could not allocate memory|could not allocate memory|(?:WebAssembly|WASM).*out of memory|memory allocation failed|RangeError:.*WebAssembly\.Memory/iu.test(message);
 }
+function isOnnxSessionCreationFailure(error) {
+  const message = String(error?.message || error || '');
+  return /Failed to create ONNX session|Failed to create (?:an )?(?:ONNX )?InferenceSession|InferenceSession.*(?:create|initializ(?:e|ation)).*(?:fail|error)|No available adapters/iu.test(message);
+}
 async function createCompatibilityEngine() {
   const module = await loadModule(); if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');
   return module.PaddleOCR.create(ocrCreateOptions({ compatibility:true }));
@@ -296,7 +309,7 @@ async function startMemoryCompatibilityEngine(generation, failure) {
     terminateModuleWorkers();
     recordDiagnostic('wasm-memory-worker-retry-failed', retryStarted, { message:String(workerRetryError?.message || workerRetryError) });
     if (generation !== engineGeneration) throw workerRetryError;
-    if (!isWasmMemoryAllocationFailure(workerRetryError) && !isOpaqueWorkerStartupFailure(workerRetryError)) throw workerRetryError;
+    if (!isWasmMemoryAllocationFailure(workerRetryError) && !isOpaqueWorkerStartupFailure(workerRetryError) && !isOnnxSessionCreationFailure(workerRetryError)) throw workerRetryError;
 
     workerBootstrapMode = 'direct-wasm-no-simd-memory-last-resort';
     engineMode = 'direct-wasm-no-simd-low-memory-last-resort';
@@ -311,13 +324,62 @@ async function startMemoryCompatibilityEngine(generation, failure) {
     } catch (mainThreadError) {
       raw.then(ocr => { if (generation !== engineGeneration) disposeInstance(ocr); }).catch(() => {});
       recordDiagnostic('wasm-memory-main-thread-retry-failed', retryStarted, { message:String(mainThreadError?.message || mainThreadError) });
-      throw new Error(`PP-OCRv5 在低内存 Worker 与主线程兼容模式下均无法分配内存：${mainThreadError?.message || mainThreadError}`);
+      throw new Error(`PP-OCRv5 在低内存 Worker 与主线程兼容模式下均无法初始化：${mainThreadError?.message || mainThreadError}`);
     }
   }
 }
 async function startRememberedMemoryEngine() {
   const generation = ++engineGeneration;
   return startMemoryCompatibilityEngine(generation, new Error('当前会话已记录 PP-OCRv5 WASM 内存受限'));
+}
+async function startSessionCompatibilityEngine(generation, failure) {
+  if (generation !== engineGeneration) throw failure;
+  const retryStarted = diagnosticNow();
+  rememberRuntimeCompatibilityConstraint();
+  terminateModuleWorkers();
+  releaseWorkerBundle();
+  workerBootstrapMode = 'direct-module-no-simd-session-retry';
+  engineMode = 'worker-direct-module-no-simd-session-compat';
+  emit('PP-OCRv5 ONNX session 创建失败，正在以同一模型的单线程无 SIMD WASM 兼容模式重试', 10);
+  recordDiagnostic('onnx-session-retry', retryStarted, { reason:String(failure?.message || failure), to:engineMode, deviceMemory:DEVICE_MEMORY_GB || null });
+  await delay(MEMORY_WORKER_RECLAIM_DELAY_MS);
+
+  let raw = createLowMemoryWorkerEngine();
+  try {
+    const ocr = await withTimeout(raw, ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 无 SIMD Worker 兼容模式初始化超时', terminateModuleWorkers);
+    if (generation !== engineGeneration) { disposeInstance(ocr); throw new Error('PP-OCRv5 无 SIMD Worker 兼容模式结果已失效，请重新识别'); }
+    recordDiagnostic('onnx-session-worker-retry-success', retryStarted, { mode:engineMode });
+    return ocr;
+  } catch (workerRetryError) {
+    raw.then(ocr => { if (generation !== engineGeneration) disposeInstance(ocr); }).catch(() => {});
+    terminateModuleWorkers();
+    recordDiagnostic('onnx-session-worker-retry-failed', retryStarted, { message:String(workerRetryError?.message || workerRetryError) });
+    if (generation !== engineGeneration) throw workerRetryError;
+    if (isWasmMemoryAllocationFailure(workerRetryError)) {
+      return startMemoryCompatibilityEngine(generation, workerRetryError);
+    }
+    if (!isOnnxSessionCreationFailure(workerRetryError) && !isOpaqueWorkerStartupFailure(workerRetryError)) throw workerRetryError;
+
+    workerBootstrapMode = 'direct-wasm-no-simd-session-last-resort';
+    engineMode = 'direct-wasm-no-simd-session-last-resort';
+    emit('PP-OCRv5 无 SIMD Worker 仍无法建立 session，正在使用同一 PP-OCRv5 主线程 WASM 兼容模式', 12);
+    await delay(MEMORY_MAIN_THREAD_RECLAIM_DELAY_MS);
+    raw = createCompatibilityEngine();
+    try {
+      const ocr = await withTimeout(raw, ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 主线程 ONNX session 兼容模式初始化超时', () => {});
+      if (generation !== engineGeneration) { disposeInstance(ocr); throw new Error('PP-OCRv5 主线程 ONNX session 兼容模式结果已失效，请重新识别'); }
+      recordDiagnostic('onnx-session-main-thread-retry-success', retryStarted, { mode:engineMode });
+      return ocr;
+    } catch (mainThreadError) {
+      raw.then(ocr => { if (generation !== engineGeneration) disposeInstance(ocr); }).catch(() => {});
+      recordDiagnostic('onnx-session-main-thread-retry-failed', retryStarted, { message:String(mainThreadError?.message || mainThreadError) });
+      throw new Error(`PP-OCRv5 在无 SIMD Worker 与主线程 WASM 兼容模式下均无法创建 ONNX session：${mainThreadError?.message || mainThreadError}`);
+    }
+  }
+}
+async function startRememberedSessionCompatibilityEngine() {
+  const generation = ++engineGeneration;
+  return startSessionCompatibilityEngine(generation, new Error('当前会话已记录 PP-OCRv5 ONNX runtime 兼容性约束'));
 }
 async function startWorkerEngine() {
   const generation = ++engineGeneration;
@@ -331,6 +393,7 @@ async function startWorkerEngine() {
     raw.then(ocr => { if (generation !== engineGeneration) disposeInstance(ocr); }).catch(() => {});
     if (generation !== engineGeneration) throw error;
     if (isWasmMemoryAllocationFailure(error)) return startMemoryCompatibilityEngine(generation, error);
+    if (isOnnxSessionCreationFailure(error)) return startSessionCompatibilityEngine(generation, error);
     if (!isOpaqueWorkerStartupFailure(error)) throw error;
 
     const retryStarted = diagnosticNow();
@@ -352,6 +415,9 @@ async function startWorkerEngine() {
       if (generation === engineGeneration && isWasmMemoryAllocationFailure(retryError)) {
         return startMemoryCompatibilityEngine(generation, retryError);
       }
+      if (generation === engineGeneration && isOnnxSessionCreationFailure(retryError)) {
+        return startSessionCompatibilityEngine(generation, retryError);
+      }
       terminateModuleWorkers();
       recordDiagnostic('worker-bootstrap-retry-failed', retryStarted, { message:String(retryError?.message || retryError) });
       throw new Error(`PP-OCRv5 Worker 启动失败（Blob 与同源重试均失败）：${retryError?.message || retryError}`);
@@ -368,11 +434,11 @@ async function startCompatibilityEngine(reason = 'webkit') {
 async function ensureEngine() {
   globalThis.clearTimeout(disposeTimer); if (enginePromise) return enginePromise;
   const diagnosticStarted = diagnosticNow();
-  emit(WEBKIT ? '正在按需准备 Safari 本地 OCR' : memoryConstrained ? '正在按低内存模式准备本地 PP-OCRv5' : '正在后台准备本地 PP-OCRv5 中文检测与识别模型', 7);
-  const pending = WEBKIT ? startCompatibilityEngine('webkit') : memoryConstrained ? startRememberedMemoryEngine() : startWorkerEngine();
+  emit(WEBKIT ? '正在按需准备 Safari 本地 OCR' : memoryConstrained ? '正在按低内存模式准备本地 PP-OCRv5' : runtimeCompatibilityConstrained ? '正在按 ONNX runtime 兼容模式准备本地 PP-OCRv5' : '正在后台准备本地 PP-OCRv5 中文检测与识别模型', 7);
+  const pending = WEBKIT ? startCompatibilityEngine('webkit') : memoryConstrained ? startRememberedMemoryEngine() : runtimeCompatibilityConstrained ? startRememberedSessionCompatibilityEngine() : startWorkerEngine();
   const tracked = pending.then(ocr => {
-    emit(engineMode.includes('low-memory') ? 'PP-OCRv5 低内存兼容模式已就绪' : WEBKIT ? 'PP-OCRv5 Safari 兼容模式已就绪' : 'PP-OCRv5 Worker 中文模型已就绪', 18);
-    recordDiagnostic('runtime-init', diagnosticStarted, { mode:engineMode, webkit:WEBKIT, lowMemory:memoryConstrained, deviceMemory:DEVICE_MEMORY_GB || null, workerBootstrap:workerBootstrapMode });
+    emit(engineMode.includes('low-memory') ? 'PP-OCRv5 低内存兼容模式已就绪' : engineMode.includes('session') ? 'PP-OCRv5 ONNX runtime 兼容模式已就绪' : WEBKIT ? 'PP-OCRv5 Safari 兼容模式已就绪' : 'PP-OCRv5 Worker 中文模型已就绪', 18);
+    recordDiagnostic('runtime-init', diagnosticStarted, { mode:engineMode, webkit:WEBKIT, lowMemory:memoryConstrained, runtimeCompatibility:runtimeCompatibilityConstrained, deviceMemory:DEVICE_MEMORY_GB || null, workerBootstrap:workerBootstrapMode });
     return ocr;
   }).catch(error => { if (enginePromise === tracked) enginePromise = null; throw new Error(`PP-OCRv5 初始化失败：${error.message}`); });
   enginePromise = tracked; return tracked;
@@ -432,7 +498,7 @@ async function warmForRecognition() {
   if (globalThis.__LUCKYBEAN_ANDROID__) return null;
   try {
     const ocr = await ensureEngine();
-    emit(WEBKIT ? 'Safari 本地 OCR 已在录入阶段预热' : memoryConstrained ? 'PP-OCRv5 低内存模式已在录入阶段预热' : 'PP-OCRv5 模型已在录入阶段预热', 18);
+    emit(WEBKIT ? 'Safari 本地 OCR 已在录入阶段预热' : memoryConstrained ? 'PP-OCRv5 低内存模式已在录入阶段预热' : runtimeCompatibilityConstrained ? 'PP-OCRv5 ONNX runtime 兼容模式已在录入阶段预热' : 'PP-OCRv5 模型已在录入阶段预热', 18);
     scheduleDispose();
     return ocr;
   } catch (error) {
@@ -445,9 +511,10 @@ async function preload() {
   return warmForRecognition();
 }
 const paddleOcrApi = Object.freeze({
-  version:VERSION, engine:ENGINE, get lowMemory() { return memoryConstrained; }, appleMobile:APPLE_MOBILE,
+  version:VERSION, engine:ENGINE, get lowMemory() { return memoryConstrained; }, get runtimeCompatibility() { return runtimeCompatibilityConstrained; }, appleMobile:APPLE_MOBILE,
   workerOnly:false, browserSafe:true, primaryIsolation:WEBKIT ? 'webkit-direct-wasm-no-simd' : 'module-worker', compatibilityFallback:'webkit-direct-wasm-no-simd',
   memoryFallback:'direct-module-worker-wasm-no-simd-low-memory->direct-wasm-no-simd-last-resort',
+  sessionFallback:'onnx-session->direct-module-worker-wasm-no-simd->direct-wasm-no-simd-last-resort',
   autoPreload:false, disposePolicy:`idle-${Math.round(ENGINE_IDLE_MS / 1000)}s`,
   roiWorkerOnly:true, regionRecognition:'recognition-roi/1.0', runtimeOrigin:'same-origin-vendored',
   get workerBootstrap() { return workerBootstrapMode; },
@@ -471,4 +538,4 @@ globalThis.addEventListener('pagehide', () => {
   terminateModuleWorkers();
   releaseWorkerBundle();
 });
-document.documentElement.dataset.webOcr = `ppocr-v5-${VERSION}-self-hosted-lazy-memory-bounded-reuse`;
+document.documentElement.dataset.webOcr = `ppocr-v5-${VERSION}-self-hosted-lazy-memory-bounded-runtime-compat-reuse`;
