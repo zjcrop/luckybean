@@ -1,8 +1,0 @@
-/home/runner/work/luckybean/luckybean/src/recognition-paddle-ocr.js:250
-  return /Unknown worker error|Failed to construct ['\"]?Worker|SecurityError|Worker (?:startup|initialization|运行|启动|创建).*?(?:fail|error|失败)/iu.test(message);
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-SyntaxError: Invalid regular expression: /Unknown worker error|Failed to construct ['\"]?Worker|SecurityError|Worker (?:startup|initialization|运行|启动|创建).*?(?:fail|error|失败)/iu: Invalid escape
-    at checkSyntax (node:internal/main/check_syntax:74:5)
-
-Node.js v22.23.2
