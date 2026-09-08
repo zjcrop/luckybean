@@ -15,7 +15,13 @@ test('lightweight PP-OCR provider is registered before runtime feature orchestra
 });
 
 test('deterministic provider registration does not eagerly initialize SDK, models, or WASM', () => {
-  assert.doesNotMatch(provider, /\bawait\s+loadModule\(\)\s*;\s*$/m, 'module top level must not initialize Paddle SDK');
+  const loaderStart = provider.indexOf('async function loadModule()');
+  assert.ok(loaderStart > 0, 'lazy SDK loader must exist');
+
+  const registrationPrefix = provider.slice(0, loaderStart);
+  assert.doesNotMatch(registrationPrefix, /\bloadModule\s*\(/, 'module registration must not invoke the Paddle SDK loader');
+  assert.doesNotMatch(registrationPrefix, /PaddleOCR\.create|sdk\.mjs|PP-OCRv5_mobile_(?:det|rec)_onnx_infer|ort\//, 'module registration must not initialize SDK, models, or WASM');
+
   assert.match(provider, /async function loadModule\(\)/);
   assert.match(provider, /import\(assetUrl\('sdk\.mjs'\)\)/);
   assert.match(provider, /autoPreload:false/);
