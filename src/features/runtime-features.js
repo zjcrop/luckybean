@@ -93,6 +93,14 @@ async function endRecognitionSession(reason = 'add-flow') {
   await provider?.dispose?.();
 }
 function isLoaded(id) { return loaded.includes(id); }
+function addEntryFor(event) {
+  const target = event.target;
+  const rootAdd = target?.closest?.('#fabAddBtn');
+  if (rootAdd) return { reason:'fab-add' };
+  const addMode = target?.closest?.('[data-add-mode]');
+  if (addMode) return { reason:`add-mode:${addMode.dataset?.addMode || 'unknown'}` };
+  return null;
+}
 
 function installRecognitionSessionObserver() {
   const overlayRoot = document.querySelector('#overlayRoot');
@@ -107,8 +115,8 @@ function installRecognitionSessionObserver() {
 
 function installLazyTriggers() {
   document.addEventListener('click', async event => {
-    const addMode = event.target.closest?.('[data-add-mode]');
-    if (addMode) void beginRecognitionSession(`add-mode:${addMode.dataset?.addMode || 'unknown'}`);
+    const addEntry = addEntryFor(event);
+    if (addEntry) void beginRecognitionSession(addEntry.reason);
 
     const photo = event.target.closest?.('[data-add-mode="photo"]');
     if (photo) {
@@ -137,8 +145,8 @@ function installLazyTriggers() {
   }, true);
 
   document.addEventListener('pointerdown', event => {
-    const addMode = event.target.closest?.('[data-add-mode]');
-    if (addMode) void beginRecognitionSession(`pointer:${addMode.dataset?.addMode || 'unknown'}`);
+    const addEntry = addEntryFor(event);
+    if (addEntry) void beginRecognitionSession(`pointer:${addEntry.reason}`);
     if (event.target.closest?.('#fabRecommendBtn')) void loadFeature('selection').catch(() => false);
     if (event.target.closest?.('[data-v099f-world]')) void loadFeature('origin-map').catch(() => false);
   }, { capture:true, passive:true });
