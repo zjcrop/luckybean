@@ -14,6 +14,14 @@ test('detail projection loads only the selected full bean and preserves existing
   assert.match(detail, /management\.replaceChildren\(edit, storage, archive, remove\)/);
   assert.match(detail, /secondary\.append\(correct\)/);
 });
+test('detail fact sheet is content-only, slash-delimited and strips duplicate legacy labels', () => {
+  assert.match(detail, /clean\.join\(' \/ '\)/);
+  assert.match(detail, /dataset\.beanDetailFacts = 'content-only'/);
+  assert.match(detail, /DUPLICATE_DETAIL_LABELS/);
+  assert.match(detail, /stripDuplicateLegacyFacts\(overlay\)/);
+  assert.doesNotMatch(detail, /view\.notes/);
+  assert.match(detail, /textContent \|\| ''\)\.trim\(\) === '风味'/);
+});
 test('presentation controllers are core runtime features', () => {
   assert.match(runtime, /feature\('bean-card-presentation'/);
   assert.match(runtime, /feature\('bean-detail-presentation'/);
