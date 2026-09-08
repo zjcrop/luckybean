@@ -2,9 +2,10 @@ import { parseNaturalLanguage } from '../../codebook.js';
 import { automaticEntityResolutionDecision } from '../../services/coffee-knowledge-adapter.js';
 import { bestKnowledgeOnlyVarietyCandidate } from '../../services/knowledge-only-variety-candidates.js';
 import { resolveRecognitionRelations, resolverPriorityDescription } from './recognition-field-resolver-1.24b.js';
+import { preNormalizeRecognitionSemanticText } from './recognition-pre-semantic-normalizer.js';
 import { repairRecognitionSemanticText } from './recognition-semantic-repair.js';
 
-export const RECOGNITION_PIPELINE_VERSION = '1.24P-recognition-pipeline.6';
+export const RECOGNITION_PIPELINE_VERSION = '1.24P-recognition-pipeline.7';
 
 const RELATION_TO_RESULT = Object.freeze({
   country: 'countryCode', origin: 'countryCode', region: 'regionCode', farm: 'entityCode', producer: 'entityCode',
@@ -142,8 +143,6 @@ function trustedTypedCustomValue(field, customValue, parsed, customField) {
   }
   if (field === 'flavorCodes') {
     const values = (Array.isArray(customValue) ? customValue : [customValue]).map(clean).filter(Boolean);
-    // Flavor notes are inherently open vocabulary. A multi-token tasting-note list
-    // with parser-level evidence is useful data, not a canonical-identity conflict.
     return confidence >= 0.68 && values.length >= 2 && values.every(value => value.length <= 28 && !/^\d+(?:\.\d+)?$/.test(value));
   }
   return false;
@@ -218,7 +217,11 @@ export function analyzeRecognitionDocument(document, book) {
   recordDiagnostic('semantic-normalization', started);
 
   started = diagnosticNow();
-  const semanticText = repairRecognitionSemanticText(baseSemanticText, book);
+  const preSemantic = preNormalizeRecognitionSemanticText(baseSemanticText, book);
+  recordDiagnostic('pre-semantic-normalization', started, { changedLines:preSemantic.audit.length, lineCount:preSemantic.lines.length });
+
+  started = diagnosticNow();
+  const semanticText = repairRecognitionSemanticText(preSemantic.normalizedText, book);
   recordDiagnostic('semantic-repair', started);
 
   started = diagnosticNow();
@@ -253,11 +256,18 @@ export function analyzeRecognitionDocument(document, book) {
     if ((!Number.isFinite(currentConfidence) || currentConfidence <= 0) && !item.aiCandidates?.length) parsed.confidence[item.field] = Number(item.confidence || 0);
   }
   parsed.parseMetadata ||= {};
+  parsed.parseMetadata.preSemanticNormalization = {
+    schemaVersion:preSemantic.schemaVersion,
+    authority:preSemantic.authority,
+    mayOverwriteRawEvidence:preSemantic.mayOverwriteRawEvidence,
+    normalizedText:preSemantic.normalizedText,
+    audit:preSemantic.audit
+  };
   parsed.parseMetadata.recognition = {
     pipelineVersion:RECOGNITION_PIPELINE_VERSION, documentSchemaVersion:document.schemaVersion || '', parserVersion:document.parserVersion || '', engine:document.engine || '',
     imageCount:Array.isArray(document.images) ? document.images.length : 0, blockCount:Array.isArray(document.blocks) ? document.blocks.length : 0,
     relationCount:Array.isArray(document.relations) ? document.relations.length : 0, reviewFields:reviewFields.map(item => item.field), arbitrationPriority:resolverPriorityDescription(),
-    rawFullText:document.rawFullText || '', rawSemanticText:baseSemanticText, semanticText
+    rawFullText:document.rawFullText || '', rawSemanticText:baseSemanticText, preNormalizedSemanticText:preSemantic.normalizedText, semanticText
   };
   recordDiagnostic('semantic-finalization', started, { reviewCount:reviewFields.length });
   return { pipelineVersion:RECOGNITION_PIPELINE_VERSION, document, semanticText, parsed, fields, resolvedCount:fields.length - reviewFields.length, reviewCount:reviewFields.length };
