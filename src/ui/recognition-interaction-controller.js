@@ -1,4 +1,5 @@
 import './p3-ux-flow-controller.js';
+import './p3-cloud-list-refresh-controller.js';
 
 function syncRatioSource(){
   const ratio=document.querySelector('#brewRatio');
