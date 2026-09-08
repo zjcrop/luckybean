@@ -12,6 +12,29 @@ export function compactVarietyLabel(value) {
   label = label.replace(/^(?:Ethiopia(?:n)?\s+)?Landrace$/i, 'Landrace');
   return label;
 }
+export function compactHarvestSeasonLabel(value) {
+  const raw = clean(value);
+  if (!raw) return '';
+  const source = raw
+    .replace(/\s*(?:产季|產季|crop(?:\s*year)?|harvest(?:\s*year)?|season)\s*$/i, '')
+    .trim();
+  let match = source.match(/^(20)?(\d{2})\s*[-–—/]\s*(?:20)?(\d{2})$/);
+  if (match) return `${match[2]}/${match[3]}产季`;
+  match = source.match(/^(?:20)?(\d{2})$/);
+  if (match) return `${match[1]}产季`;
+  return /产季$/.test(raw) ? raw : `${raw}产季`;
+}
+function compactDisplayDate(value) {
+  const raw = clean(value);
+  const match = raw.match(/^(20\d{2})-(\d{2})-(\d{2})$/);
+  if (!match) return raw;
+  return `${match[1]}-${Number(match[2])}-${Number(match[3])}`;
+}
+function processingStationLabel(bean = {}, facts = {}) {
+  const explicit = clean(bean.processingStation);
+  if (explicit) return /(?:处理站|處理站|washing\s+station)$/i.test(explicit) ? explicit : `${explicit}处理站`;
+  return clean(facts.entity || bean.entityName || bean.entity || bean.farmName || bean.farm || bean.estateName || bean.estate);
+}
 export function buildBeanCardProjection(bean = {}, facts = {}) {
   const country = clean(facts.country || bean.countryName || bean.country || bean.countryCode);
   const origin = clean(facts.entity || bean.entityName || bean.entity || bean.processingStation || facts.region || bean.regionName || bean.region || bean.regionCode);
@@ -29,17 +52,14 @@ export function buildBeanDetailProjection(bean = {}, facts = {}) {
   const roaster = clean(bean.roasterName || bean.roaster);
   const product = clean(bean.productName || bean.product || bean.commercialName);
   const region = clean(facts.region || bean.regionName || bean.region || bean.regionCode);
-  const estate = clean(bean.farmName || bean.farm || bean.estateName || bean.estate || bean.entityName || bean.entity || bean.processingStation);
-  const altitude = Number(bean.altitude || bean.elevation || 0) > 0 ? `${Number(bean.altitude || bean.elevation)}m` : '';
-  const roastDate = clean(bean.roastDate);
+  const station = processingStationLabel(bean, facts);
+  const harvest = compactHarvestSeasonLabel(bean.harvestSeason || bean.harvestYear);
+  const roastDate = compactDisplayDate(bean.roastDate);
   const roastColor = clean(bean.roastColor || bean.agtron || bean.colorValue);
-  const roastDisplay = [card.roast, roastColor].filter(Boolean).join(' / ');
-  const notes = clean(bean.notes || bean.note || bean.remark || bean.remarks);
   return {
     primary:[card.country, card.variety].filter(Boolean),
     secondary:[roaster, product].filter(Boolean),
-    origin:[region, estate, card.process, altitude].filter(Boolean),
-    roast:[roastDate, roastDisplay].filter(Boolean),
-    notes
+    origin:[region, station, card.process, harvest].filter(Boolean),
+    roast:[roastDate, card.roast, roastColor].filter(Boolean)
   };
 }
