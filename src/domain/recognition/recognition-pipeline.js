@@ -4,7 +4,7 @@ import { bestKnowledgeOnlyVarietyCandidate } from '../../services/knowledge-only
 import { resolveRecognitionRelations, resolverPriorityDescription } from './recognition-field-resolver-1.24b.js';
 import { repairRecognitionSemanticText } from './recognition-semantic-repair.js';
 
-export const RECOGNITION_PIPELINE_VERSION = '1.24P-recognition-pipeline.5';
+export const RECOGNITION_PIPELINE_VERSION = '1.24P-recognition-pipeline.6';
 
 const RELATION_TO_RESULT = Object.freeze({
   country: 'countryCode', origin: 'countryCode', region: 'regionCode', farm: 'entityCode', producer: 'entityCode',
@@ -34,6 +34,9 @@ const ROAST_LABELS = Object.freeze({
   'RL-L0': '极浅烘', 'RL-L1': '浅烘', 'RL-L2': '浅中烘', 'RL-L3': '中烘',
   'RL-L4': '中深烘', 'RL-L5': '深烘', 'RL-L6': '极深烘'
 });
+
+const TRUSTED_ENTITY_SUFFIX = /(?:庄园|莊園|农场|農場|农园|農園|处理站|處理站|水洗站|处理厂|處理廠|合作社|estate|farm|finca|washing station|processing station|cooperative|wet mill|dry mill)$/iu;
+const TRUSTED_REGION_SUFFIX = /(?:省|州|县|縣|地区|地區|产区|產區|region|province|district)$/iu;
 
 function diagnosticNow() { return Number(globalThis.performance?.now?.() ?? Date.now()); }
 function recordDiagnostic(phase, startedAt, detail = {}) {
@@ -121,6 +124,31 @@ function enforceEntityResolutionSafety(parsed, book) {
   parsed.parseMetadata.entityResolution = { blocked:true, explicitCoreCode:false, candidateCoreCode:coreCode, issueClass:decision.issueClass, resolutionStatus:decision.resolutionStatus, automaticRecognitionPolicy:decision.automaticRecognitionPolicy, requiredContext:decision.requiredContext, manualConfirmationRequired:true, historicalCoreCompatibility:true };
 }
 
+function customValueConfidence(parsed, customField) {
+  if (!customField) return 0;
+  return Number(parsed?.confidence?.[customField] || 0);
+}
+
+function trustedTypedCustomValue(field, customValue, parsed, customField) {
+  if (!customValue) return false;
+  const confidence = customValueConfidence(parsed, customField);
+  if (field === 'entityCode') {
+    const value = clean(Array.isArray(customValue) ? customValue.join('、') : customValue);
+    return confidence >= 0.82 && TRUSTED_ENTITY_SUFFIX.test(value);
+  }
+  if (field === 'regionCode') {
+    const value = clean(Array.isArray(customValue) ? customValue.join('、') : customValue);
+    return confidence >= 0.82 && TRUSTED_REGION_SUFFIX.test(value);
+  }
+  if (field === 'flavorCodes') {
+    const values = (Array.isArray(customValue) ? customValue : [customValue]).map(clean).filter(Boolean);
+    // Flavor notes are inherently open vocabulary. A multi-token tasting-note list
+    // with parser-level evidence is useful data, not a canonical-identity conflict.
+    return confidence >= 0.68 && values.length >= 2 && values.every(value => value.length <= 28 && !/^\d+(?:\.\d+)?$/.test(value));
+  }
+  return false;
+}
+
 function buildFieldRows(document, parsed, book) {
   const relations = relationEvidence(document), rows = [];
   for (const [field, label, table, customField] of FIELD_DEFINITIONS) {
@@ -138,14 +166,17 @@ function buildFieldRows(document, parsed, book) {
     if (!standardValue && customValue) standardValue = Array.isArray(customValue) ? customValue.join('、') : clean(customValue);
     if (!rawValue && !standardValue) continue;
     const categorical = Boolean(table);
-    const resolved = field === 'flavorCodes' ? Array.isArray(value) && value.length > 0 : categorical ? Boolean(value) : Boolean(standardValue);
-    const confidence = Math.max(Number(parsed?.confidence?.[field] || 0), relationConfidence(relations, field));
+    const canonicalResolved = field === 'flavorCodes' ? Array.isArray(value) && value.length > 0 : categorical ? Boolean(value) : Boolean(standardValue);
+    const trustedCustom = !canonicalResolved && trustedTypedCustomValue(field, customValue, parsed, customField);
+    const resolved = canonicalResolved || trustedCustom;
+    const confidence = Math.max(Number(parsed?.confidence?.[field] || 0), customValueConfidence(parsed, customField), relationConfidence(relations, field));
     const translated = resolved && rawValue && standardValue && normalizedComparable(rawValue) !== normalizedComparable(standardValue);
     const requiresReview = Boolean(resolution.conflict) || !resolved;
     rows.push({ field, label, rawValue, standardValue:standardValue || rawValue, confidence, resolved:resolved && !resolution.conflict, translated,
       status:requiresReview ? 'review' : (translated ? 'translated' : 'resolved'), sources:resolution.winner?.sources || relations.get(field) || [],
+      ...(trustedCustom ? { customValueAccepted:true, canonical:false } : {}),
       ...(knowledgeCandidate ? { knowledgeCandidate:structuredClone(knowledgeCandidate) } : {}),
-      resolution:{ priority:resolverPriorityDescription(), conflict:Boolean(resolution.conflict), reason:resolution.reason, winningImageIds:resolution.winner?.imageIds || [],
+      resolution:{ priority:resolverPriorityDescription(), conflict:Boolean(resolution.conflict), reason:trustedCustom ? 'trusted-open-vocabulary-custom-value' : resolution.reason, winningImageIds:resolution.winner?.imageIds || [],
         candidates:(resolution.candidates || []).map(item=>({ value:item.value, confidence:item.confidence, explicit:item.explicit, imageCount:item.imageCount, score:Number(item.score.toFixed(3)), imageIds:item.imageIds })) }
     });
   }
