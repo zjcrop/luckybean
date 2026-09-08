@@ -15,6 +15,7 @@ const $$ = (selector, root = document) => root?.querySelectorAll ? [...root.quer
 let autoBrewToken = 0;
 let normalizeQueued = false;
 let autoHandoffQueued = false;
+let pendingRecognitionEvidence = null;
 
 function normalizeConsumptionSummary() {
   const node = $('.bean-consumption-summary p');
@@ -49,6 +50,47 @@ function normalizeBrewPlan() {
   }
 }
 
+function captureRecognitionEvidence(result) {
+  const raw = $('#bagOcrText', result)?.value?.trim?.() || '';
+  if (!raw) return null;
+  const fields = $$('.bag-semantic-row', result).map(row => ({
+    label: $('.bag-semantic-label strong', row)?.textContent?.trim?.() || '',
+    value: $('.bag-semantic-value b', row)?.textContent?.trim?.() || '',
+    state: $('.bag-semantic-label span', row)?.textContent?.trim?.() || ''
+  })).filter(item => item.label || item.value);
+  return { raw, fields, capturedAt:new Date().toISOString() };
+}
+
+function injectBeanFormEvidence() {
+  const form = $('#beanForm');
+  if (!form || !pendingRecognitionEvidence || $('.p3-recognition-evidence', form)) return;
+  const details = document.createElement('details');
+  details.className = 'p3-recognition-evidence';
+  const summary = document.createElement('summary');
+  summary.textContent = '查看识别信息';
+  const pre = document.createElement('pre');
+  pre.className = 'p3-recognition-raw';
+  pre.textContent = pendingRecognitionEvidence.raw;
+  details.append(summary, pre);
+  if (pendingRecognitionEvidence.fields.length) {
+    const list = document.createElement('div');
+    list.className = 'p3-recognition-fields';
+    for (const item of pendingRecognitionEvidence.fields) {
+      const row = document.createElement('div');
+      const label = document.createElement('b');
+      const value = document.createElement('span');
+      label.textContent = item.label;
+      value.textContent = item.value;
+      row.append(label, value);
+      list.append(row);
+    }
+    details.append(list);
+  }
+  const actionRow = [...form.children].reverse().find(node => node.classList?.contains('row')) || null;
+  form.insertBefore(details, actionRow);
+  pendingRecognitionEvidence = null;
+}
+
 function normalizeCaptureUi() {
   const overlay = $('[data-overlay="bag-capture"]');
   if (!overlay) { autoHandoffQueued = false; return; }
@@ -81,7 +123,15 @@ function normalizeCaptureUi() {
   else if (manualRow && handoff?.parentElement === actions) manualRow.remove();
 
   const result = $('.bag-recognition-result', overlay);
+  const rawEditor = result && $('#bagOcrText', result);
+  // OCR failure used to synthesize a blank manual-edit panel. The capture route now
+  // stays image-only; users can return to the dedicated text-entry route instead.
+  if (result && rawEditor && !rawEditor.value.trim()) {
+    result.remove();
+    return;
+  }
   if (result && handoff && !handoff.disabled && !autoHandoffQueued && overlay.dataset.autoHandoff !== '1') {
+    pendingRecognitionEvidence = captureRecognitionEvidence(result);
     overlay.dataset.autoHandoff = '1';
     autoHandoffQueued = true;
     queueMicrotask(() => {
@@ -102,6 +152,7 @@ function scheduleNormalize() {
     removeGroupExplanations();
     normalizeBrewPlan();
     normalizeCaptureUi();
+    injectBeanFormEvidence();
   });
 }
 
