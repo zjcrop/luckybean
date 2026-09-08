@@ -123,10 +123,11 @@ test('pending text entity enters preflight before explicit bean-form confirmatio
 
   const form = page.locator('#beanForm');
   const pending = form.locator('[data-recognition-review="pending"] .evidence-row[data-evidence-field="countryCode"]');
+  const confirmRow = form.getByRole('button', { name:/编辑并确认国家/ });
   await expect(pending).toBeVisible();
-  await expect(form.locator('[data-confirm-recognition-field="countryCode"]')).toBeVisible();
+  await expect(confirmRow).toBeVisible();
   await form.locator('#beanCountry').selectOption('CO-EA');
-  await form.locator('[data-confirm-recognition-field="countryCode"]').click();
+  await confirmRow.click();
   await expect(pending).toHaveCount(0);
   await expect(form.locator('#beanCountry')).toHaveValue('CO-EA');
 });
