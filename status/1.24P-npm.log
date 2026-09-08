@@ -1,4 +1,9 @@
 
-added 4 packages, and audited 5 packages in 813ms
+> luckybean-static-app@1.24.18 postinstall
+> node scripts/prepare-vendor.mjs
+
+Vendored jsQR -> public/vendor/jsqr/jsQR.js
+
+added 4 packages, and audited 5 packages in 997ms
 
 found 0 vulnerabilities
