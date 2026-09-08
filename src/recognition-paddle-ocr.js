@@ -14,7 +14,6 @@ function isWebKitFamily() {
 const APPLE_MOBILE = isAppleMobileLike();
 const WEBKIT = isWebKitFamily();
 const LOW_MEMORY = APPLE_MOBILE || Number(navigator.deviceMemory || 4) <= 4;
-const LIMIT_SIDE = LOW_MEMORY ? 640 : 960;
 const ENGINE_INIT_TIMEOUT_MS = WEBKIT ? 30000 : 75000;
 const PREDICT_TIMEOUT_MS = WEBKIT ? 30000 : 45000;
 const ROI_CROP_TIMEOUT_MS = 20000;
@@ -33,6 +32,7 @@ let engineGeneration = 0;
 let busy = false;
 let disposeTimer = 0;
 let roiRequestSequence = 0;
+let memoryConstrained = LOW_MEMORY;
 
 function diagnosticNow() { return Number(globalThis.performance?.now?.() ?? Date.now()); }
 function recordDiagnostic(phase, startedAt, detail = {}) {
@@ -68,6 +68,8 @@ function normalizeRegion(input) {
   if (right - left < 0.01 || bottom - top < 0.01) throw new Error('ROI 范围过小或无效');
   return Object.freeze({ left, top, right, bottom });
 }
+function currentLimitSide() { return memoryConstrained ? 640 : 960; }
+function currentMaxSide() { return memoryConstrained ? 1280 : 2200; }
 async function cropRegionInWorker(blob, regionInput, options = {}) {
   if (!(blob instanceof Blob) || blob.size === 0) throw new Error('ROI 原图不可用');
   const diagnosticStarted = diagnosticNow();
@@ -83,7 +85,7 @@ async function cropRegionInWorker(blob, regionInput, options = {}) {
       const result = event.data; cleanup(); resolve(result);
     };
     worker.onerror = event => { cleanup(); reject(new Error(`ROI Worker 运行失败：${event.message || 'unknown error'}`)); };
-    worker.postMessage({ requestId, blob, region, maxEdge:Number(options.maxEdge || (LOW_MEMORY ? 1280 : 2200)) });
+    worker.postMessage({ requestId, blob, region, maxEdge:Number(options.maxEdge || currentMaxSide()) });
   });
   try { return await withTimeout(operation, ROI_CROP_TIMEOUT_MS, 'ROI Worker 裁剪超时，已终止本次局部识别', cleanup); }
   finally { recordDiagnostic('roi-crop', diagnosticStarted); }
@@ -224,7 +226,11 @@ async function createWorkerEngine({ direct = false } = {}) {
 }
 function isOpaqueWorkerStartupFailure(error) {
   const message = String(error?.message || error || '');
-  return /Unknown worker error|Failed to construct ['"]?Worker|SecurityError|Worker (?:startup|initialization|运行|启动|创建).*?(?:fail|error|失败)/iu.test(message);
+  return /Unknown worker error|Failed to construct ['\"]?Worker|SecurityError|Worker (?:startup|initialization|运行|启动|创建).*?(?:fail|error|失败)/iu.test(message);
+}
+function isWasmMemoryAllocationFailure(error) {
+  const message = String(error?.message || error || '');
+  return /WebAssembly\.Memory\(\).*could not allocate memory|could not allocate memory|(?:WebAssembly|WASM).*out of memory|memory allocation failed/iu.test(message);
 }
 async function createCompatibilityEngine() {
   const module = await loadModule(); if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');
@@ -232,16 +238,40 @@ async function createCompatibilityEngine() {
 }
 function disposeInstance(ocr) { if (!ocr?.dispose) return; Promise.resolve().then(() => ocr.dispose()).catch(() => {}); }
 function detachEngine() { const current = enginePromise; enginePromise = null; engineGeneration += 1; if (current) current.then(disposeInstance).catch(() => {}); }
+async function startMemoryCompatibilityEngine(generation, failure) {
+  if (generation !== engineGeneration) throw failure;
+  const retryStarted = diagnosticNow();
+  memoryConstrained = true;
+  releaseWorkerBundle();
+  workerBootstrapMode = 'direct-wasm-no-simd-memory-retry';
+  engineMode = 'direct-wasm-no-simd-low-memory';
+  emit('PP-OCRv5 内存不足，正在启用同一模型的低内存兼容模式', 10);
+  recordDiagnostic('wasm-memory-retry', retryStarted, { reason:String(failure?.message || failure), to:engineMode });
+  const raw = createCompatibilityEngine();
+  try {
+    const ocr = await withTimeout(raw, ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 低内存兼容模式初始化超时，已退出本次识别；界面仍可继续操作', () => { if (generation === engineGeneration) engineGeneration += 1; });
+    if (generation !== engineGeneration) { disposeInstance(ocr); throw new Error('PP-OCRv5 低内存兼容模式初始化结果已失效，请重新识别'); }
+    recordDiagnostic('wasm-memory-retry-success', retryStarted, { mode:engineMode });
+    return ocr;
+  } catch (retryError) {
+    raw.then(ocr => { if (generation !== engineGeneration) disposeInstance(ocr); }).catch(() => {});
+    recordDiagnostic('wasm-memory-retry-failed', retryStarted, { message:String(retryError?.message || retryError) });
+    throw new Error(`PP-OCRv5 低内存兼容模式仍无法分配内存：${retryError?.message || retryError}`);
+  }
+}
 async function startWorkerEngine() {
   const generation = ++engineGeneration;
   let raw = createWorkerEngine();
   try {
     const ocr = await withTimeout(raw, ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 Worker 初始化超时，已退出本次识别；界面仍可继续操作', () => { if (generation === engineGeneration) engineGeneration += 1; });
     if (generation !== engineGeneration) { disposeInstance(ocr); throw new Error('PP-OCRv5 Worker 初始化结果已失效，请重新识别'); }
+    engineMode = 'worker';
     return ocr;
   } catch (error) {
     raw.then(ocr => { if (generation !== engineGeneration) disposeInstance(ocr); }).catch(() => {});
-    if (generation !== engineGeneration || !isOpaqueWorkerStartupFailure(error)) throw error;
+    if (generation !== engineGeneration) throw error;
+    if (isWasmMemoryAllocationFailure(error)) return startMemoryCompatibilityEngine(generation, error);
+    if (!isOpaqueWorkerStartupFailure(error)) throw error;
 
     const retryStarted = diagnosticNow();
     releaseWorkerBundle();
@@ -252,28 +282,34 @@ async function startWorkerEngine() {
     try {
       const ocr = await withTimeout(raw, ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 同源 Worker 重试超时，已退出本次识别；界面仍可继续操作', () => { if (generation === engineGeneration) engineGeneration += 1; });
       if (generation !== engineGeneration) { disposeInstance(ocr); throw new Error('PP-OCRv5 同源 Worker 重试结果已失效，请重新识别'); }
+      engineMode = 'worker-direct-module-retry';
       recordDiagnostic('worker-bootstrap-retry-success', retryStarted, { mode:workerBootstrapMode });
       return ocr;
     } catch (retryError) {
       raw.then(ocr => { if (generation !== engineGeneration) disposeInstance(ocr); }).catch(() => {});
+      if (generation === engineGeneration && isWasmMemoryAllocationFailure(retryError)) {
+        return startMemoryCompatibilityEngine(generation, retryError);
+      }
       recordDiagnostic('worker-bootstrap-retry-failed', retryStarted, { message:String(retryError?.message || retryError) });
       throw new Error(`PP-OCRv5 Worker 启动失败（Blob 与同源重试均失败）：${retryError?.message || retryError}`);
     }
   }
 }
 async function startCompatibilityEngine() {
+  memoryConstrained = true;
   emit('Safari 正在启用低内存兼容识别模式', 9);
-  return withTimeout(createCompatibilityEngine(), ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 Safari 兼容模式初始化超时', () => {});
+  const ocr = await withTimeout(createCompatibilityEngine(), ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 Safari 兼容模式初始化超时', () => {});
+  engineMode = 'direct-wasm-no-simd';
+  return ocr;
 }
 async function ensureEngine() {
   globalThis.clearTimeout(disposeTimer); if (enginePromise) return enginePromise;
   const diagnosticStarted = diagnosticNow();
   emit(WEBKIT ? '正在按需准备 Safari 本地 OCR' : '正在后台准备本地 PP-OCRv5 中文检测与识别模型', 7);
-  const pending = WEBKIT
-    ? startCompatibilityEngine().then(ocr => { engineMode='direct-wasm-no-simd'; emit('PP-OCRv5 Safari 兼容模式已就绪', 18); return ocr; })
-    : startWorkerEngine().then(ocr => { engineMode='worker'; emit('PP-OCRv5 Worker 中文模型已就绪', 18); return ocr; });
+  const pending = WEBKIT ? startCompatibilityEngine() : startWorkerEngine();
   const tracked = pending.then(ocr => {
-    recordDiagnostic('runtime-init', diagnosticStarted, { mode:engineMode, webkit:WEBKIT, lowMemory:LOW_MEMORY, workerBootstrap:workerBootstrapMode });
+    emit(engineMode.includes('low-memory') ? 'PP-OCRv5 低内存兼容模式已就绪' : WEBKIT ? 'PP-OCRv5 Safari 兼容模式已就绪' : 'PP-OCRv5 Worker 中文模型已就绪', 18);
+    recordDiagnostic('runtime-init', diagnosticStarted, { mode:engineMode, webkit:WEBKIT, lowMemory:memoryConstrained, workerBootstrap:workerBootstrapMode });
     return ocr;
   }).catch(error => { if (enginePromise === tracked) enginePromise = null; throw new Error(`PP-OCRv5 初始化失败：${error.message}`); });
   enginePromise = tracked; return tracked;
@@ -300,15 +336,15 @@ async function predict(images) {
   for (let index = 0; index < images.length; index += 1) {
     const image = images[index]; emit(`PP-OCRv5 正在识别第 ${index + 1}/${images.length} 张图片`, 20 + Math.round(index / Math.max(1, images.length) * 70));
     const diagnosticStarted = diagnosticNow();
-    const prediction = ocr.predict(image.blob, { textDetLimitSideLen:LIMIT_SIDE, textDetLimitType:'min', textDetMaxSideLimit:LOW_MEMORY ? 1280 : 2200, textDetThresh:0.22, textDetBoxThresh:0.35, textDetUnclipRatio:1.55, textRecScoreThresh:0.28 });
+    const prediction = ocr.predict(image.blob, { textDetLimitSideLen:currentLimitSide(), textDetLimitType:'min', textDetMaxSideLimit:currentMaxSide(), textDetThresh:0.22, textDetBoxThresh:0.35, textDetUnclipRatio:1.55, textRecScoreThresh:0.28 });
     const results = await withTimeout(prediction, PREDICT_TIMEOUT_MS, `PP-OCRv5 第 ${index + 1} 张图片识别超时，已退出本次任务`, detachEngine);
-    recordDiagnostic('ocr-predict', diagnosticStarted, { imageIndex:index, imageCount:images.length, mode:engineMode });
+    recordDiagnostic('ocr-predict', diagnosticStarted, { imageIndex:index, imageCount:images.length, mode:engineMode, lowMemory:memoryConstrained });
     const current = normalizeItems(results?.[0], image.id); blocks.push(...current); if (current.length) groups.push(current.map(item => item.text).join('\n'));
     await new Promise(resolve => globalThis.setTimeout(resolve, 0));
   }
   if (!blocks.length) throw new Error('PP-OCRv5 没有得到可信文字。请靠近文字区域拍摄，避免整只包装占画面过小。');
   emit('PP-OCRv5 中英文识别完成', 100);
-  return { engine:`${ENGINE}-${engineMode}${LOW_MEMORY ? '-low-memory' : ''}`, blocks, fullText:groups.join('\n\n') };
+  return { engine:`${ENGINE}-${engineMode}${memoryConstrained ? '-low-memory' : ''}`, blocks, fullText:groups.join('\n\n') };
 }
 async function predictRegion(blob, region, options = {}) {
   emit('正在 Worker 中裁剪待复核区域', 10);
@@ -342,8 +378,9 @@ async function preload() {
   return warmForRecognition();
 }
 const paddleOcrApi = Object.freeze({
-  version:VERSION, engine:ENGINE, lowMemory:LOW_MEMORY, appleMobile:APPLE_MOBILE,
+  version:VERSION, engine:ENGINE, get lowMemory() { return memoryConstrained; }, appleMobile:APPLE_MOBILE,
   workerOnly:false, browserSafe:true, primaryIsolation:WEBKIT ? 'webkit-direct-wasm-no-simd' : 'module-worker', compatibilityFallback:'webkit-direct-wasm-no-simd',
+  memoryFallback:'direct-wasm-no-simd-low-memory',
   autoPreload:false, disposePolicy:`idle-${Math.round(ENGINE_IDLE_MS / 1000)}s`,
   roiWorkerOnly:true, regionRecognition:'recognition-roi/1.0', runtimeOrigin:'same-origin-vendored',
   get workerBootstrap() { return workerBootstrapMode; },
