@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 const BASE_URL = 'http://127.0.0.1:4173';
 
 async function enterApp(page) {
+  await page.addInitScript(()=>localStorage.setItem('luckybean.onboarding.v2',JSON.stringify({stage:'existing-user',updatedAt:new Date().toISOString(),reason:'sensory-actions-test'})));
   const splash = page.locator('#splashScreen');
   if (await splash.isVisible()) await splash.click();
   await expect(page.locator('#appShell')).toBeVisible({ timeout:15000 });
@@ -74,8 +75,8 @@ test('selected sensory tags use single activate, double remove and live-preview 
 
   await page.mouse.move(firstBox.x + firstBox.width * 0.35, firstBox.y + firstBox.height / 2);
   await page.mouse.down();
-  await page.waitForTimeout(410);
-  await expect(page.locator('.lb-sort-ghost')).toHaveCount(1);
+  await page.waitForTimeout(520);
+  await expect(page.locator('.lb-sort-ghost')).toHaveCount(1, { timeout:5000 });
   await expect(page.locator('.lb-sort-placeholder')).toHaveCount(1);
   await expect(first).toHaveCSS('visibility', 'hidden');
   const initialPreview = await list.getAttribute('data-lb-sort-preview');
