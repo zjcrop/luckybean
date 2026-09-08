@@ -4,44 +4,19 @@ import { readFile } from 'node:fs/promises';
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('web OCR keeps a single precision pass and only retries a small label ROI', async () => {
-  const source = await read('src/recognition-adaptive-detail.js');
-  assert.match(source, /ADAPTIVE_OCR_IMAGE_POLICY = 'label-scale-roi\/2\.1'/);
-  assert.match(source, /PACKAGE_OCR_FAST_EDGE = 2200/);
-  assert.match(source, /PACKAGE_OCR_DETAIL_EDGE = 2200/);
-  assert.doesNotMatch(source, /preparePackageImage\(image\.blob/);
-  assert.doesNotMatch(source, /PACKAGE_OCR_FAST_EDGE = 1600/);
-  assert.match(source, /const first = await base\.recognizeCoffeeBag\(sourceImages, options\)/);
-  assert.match(source, /labelGeometry\(baseBlocks, image\)/);
-  assert.match(source, /needsFocusedRetry\(baseBlocks, geometry\)/);
-  assert.match(source, /originalCompressedSource\(image\.blob\)/);
-  assert.match(source, /base\.recognizeRegion\(roiSource, geometry\.region/);
-  assert.match(source, /materiallyBetter\(detailBlocks, baseBlocks\)/);
+test('production OCR uses the validated single-pass provider without the adaptive ROI wrapper', async () => {
+  const runtime = await read('src/features/runtime-features.js');
+  assert.match(runtime, /feature\('recognition-paddle-ocr', '\.\.\/recognition-paddle-ocr\.js'\)/);
+  assert.doesNotMatch(runtime, /recognition-adaptive-detail/);
+  assert.match(runtime, /No second-pass adaptive wrapper is installed/);
 });
 
-test('bounded preparation retains the original compressed blob by reference, not a decoded raster copy', async () => {
-  const source = await read('src/image-quality.js');
-  assert.match(source, /ORIGINAL_SOURCE_BY_PREPARED_BLOB = new WeakMap\(\)/);
-  assert.match(source, /export function originalCompressedSource/);
-  assert.match(source, /retainOriginalCompressedSource\(await canvasBlob\(outputCanvas\), file\)/);
-  assert.doesNotMatch(source, /originalPixels|originalImageData|fullResolutionCanvas/);
-});
-
-test('small-label retry depends on label occupancy and text scale, not source megapixels alone', async () => {
-  const source = await read('src/recognition-adaptive-detail.js');
-  assert.match(source, /LABEL_AREA_TRIGGER = 0\.46/);
-  assert.match(source, /SMALL_TEXT_HEIGHT_TRIGGER = 0\.038/);
-  assert.match(source, /geometry\.medianHeight <= SMALL_TEXT_HEIGHT_TRIGGER/);
-  assert.match(source, /geometry\.regionArea >= 0\.78/);
-  assert.match(source, /source:roiSource === image\.blob \? 'prepared-bounded' : 'original-compressed'/);
-});
-
-test('adaptive provider is serialized after the lightweight PP-OCR provider and before capture UI', async () => {
-  const source = await read('src/features/runtime-features.js');
-  assert.match(source, /feature\('recognition-adaptive-detail', '\.\.\/recognition-adaptive-detail\.js'\)/);
-  const startup = source.match(/try \{ await loadFeature\('recognition-paddle-ocr'\)[\s\S]*?await loadMany\(PREINTERACTION_FEATURE_IDS\)/)?.[0] || '';
-  assert.match(startup, /await loadFeature\('recognition-adaptive-detail'\)/);
-  assert.ok(startup.indexOf("loadFeature('recognition-paddle-ocr')") < startup.indexOf("loadFeature('recognition-adaptive-detail')"));
+test('bounded preparation may retain the original compressed blob without enabling a second OCR pass', async () => {
+  const imageQuality = await read('src/image-quality.js');
+  const runtime = await read('src/features/runtime-features.js');
+  assert.match(imageQuality, /ORIGINAL_SOURCE_BY_PREPARED_BLOB = new WeakMap\(\)/);
+  assert.match(imageQuality, /export function originalCompressedSource/);
+  assert.doesNotMatch(runtime, /recognition-adaptive-detail\.js/);
 });
 
 test('per-image progress reaches 100 only when the outer image task really completes', async () => {
