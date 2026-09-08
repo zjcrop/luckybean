@@ -2,6 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
+import { gzipSync } from 'node:zlib';
 
 const root = path.resolve(process.cwd());
 const port = Number(process.argv[2] || process.env.PORT || 4173);
@@ -98,15 +99,19 @@ const server = http.createServer(async (req, res) => {
 
   try {
     const { target, body } = await loadTarget(requestUrl);
+    // Match GitHub Pages: Fetch decodes gzip, but Content-Length is transfer size.
+    const compressed = target.endsWith('/paddleocr/worker.js') && /\bgzip\b/.test(req.headers['accept-encoding'] || '');
+    const wireBody = compressed ? gzipSync(body) : body;
     const contentType = MIME.get(path.extname(target).toLowerCase()) || 'application/octet-stream';
     res.writeHead(200, {
       'Content-Type': contentType,
-      'Content-Length': String(body.byteLength),
+      'Content-Length': String(wireBody.byteLength),
+      ...(compressed ? { 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding' } : {}),
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff'
     });
     if (method === 'HEAD') res.end();
-    else res.end(body);
+    else res.end(wireBody);
   } catch (error) {
     const status = Number(error?.statusCode || (error?.code === 'ENOENT' ? 404 : 500));
     res.writeHead(status, {

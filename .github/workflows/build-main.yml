@@ -67,6 +67,7 @@ jobs:
           status=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].status // "missing"')
           conclusion=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].conclusion // "missing"')
           test -n "$test_run_id"
+          echo "TEST_RUN_ID=$test_run_id" >> "$GITHUB_ENV"
           test "$status" = completed
           test "$conclusion" = success
 
@@ -92,6 +93,17 @@ jobs:
         with:
           gradle-version: '8.9'
       - run: npm ci
+      - name: Restore exact main-gate OCR artifact
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: luckybean-ocr-runtime-${{ env.SOURCE_SHA }}
+          path: public/vendor/paddleocr/
+          run-id: ${{ env.TEST_RUN_ID }}
+          github-token: ${{ github.token }}
+      - name: Verify restored runtime identity
+        run: |
+          (cd public/vendor/paddleocr && sha256sum -c SHA256SUMS)
+          npm run verify:ocr
       - name: Validate exact release source
         shell: bash
         run: |

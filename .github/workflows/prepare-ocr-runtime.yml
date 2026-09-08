@@ -12,16 +12,20 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
       - run: npm ci
       - name: Generate self-hosted PP-OCRv5 runtime
-        run: node scripts/prepare-paddleocr-vendor.mjs
-      - name: Verify OCR assets
+        run: npm run prepare:ocr
+      - name: Record immutable asset checksums
+        working-directory: public/vendor/paddleocr
         run: |
-          test -f public/vendor/paddleocr/manifest.json
-          test -f public/vendor/paddleocr/worker.js
-          test -d public/vendor/paddleocr/models
-          test -d public/vendor/paddleocr/ort
+          find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+          sha256sum -c SHA256SUMS
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: luckybean-ocr-runtime-${{ github.sha }}
+          path: public/vendor/paddleocr/
+          if-no-files-found: error

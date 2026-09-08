@@ -205,6 +205,10 @@ test('Stage 0 records repeatable PP-OCR single/repeat/four-image performance bas
   expect(baseline.provider.primaryIsolation).toBe('module-worker');
   expect(baseline.provider.workerBootstrap).toBe('preloaded-blob-module');
   expect(baseline.provider.autoPreload).toBe(false);
+  const workerFetch = baseline.stage2Diagnostics.find(entry => entry.scope === 'ocr' && entry.phase === 'worker-bundle-fetch');
+  expect(workerFetch?.contentEncoding).toBe('gzip');
+  expect(workerFetch?.transferBytes).toBeGreaterThan(0);
+  expect(workerFetch?.transferBytes).toBeLessThan(workerFetch?.bytes);
   expect(baseline.stage2DiagnosticSummary['ocr:worker-bundle-fetch']?.count).toBe(1);
   expect(baseline.stage2DiagnosticSummary['ocr:worker-bootstrap']?.count).toBe(1);
   expect(baseline.stage2DiagnosticSummary['ocr:worker-bundle-fetch-failed']?.count || 0).toBeLessThanOrEqual(1);

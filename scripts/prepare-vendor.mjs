@@ -14,6 +14,5 @@ fs.mkdirSync(targetDir, { recursive: true });
 fs.copyFileSync(source, target);
 console.log(`Vendored jsQR -> ${path.relative(root, target)}`);
 
-// Production builds must use the checked-in OCR runtime assets.
-// OCR vendor generation is a maintenance task, not a postinstall task.
-console.log('Skipping OCR vendor regeneration during install.');
+// OCR is prepared explicitly in the main test gate. Production packaging restores
+// that exact tested artifact; dependency installation only copies the local QR SDK.

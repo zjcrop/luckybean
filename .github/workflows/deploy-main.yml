@@ -55,11 +55,25 @@ jobs:
           conclusion=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].conclusion // "missing"')
           test "$status" = completed
           test "$conclusion" = success
+          test_run_id=$(printf '%s' "$runs" | jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].id // empty')
+          test -n "$test_run_id"
+          echo "TEST_RUN_ID=$test_run_id" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Restore exact main-gate OCR artifact
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: luckybean-ocr-runtime-${{ env.SOURCE_SHA }}
+          path: public/vendor/paddleocr/
+          run-id: ${{ env.TEST_RUN_ID }}
+          github-token: ${{ github.token }}
+      - name: Verify restored runtime identity
+        run: |
+          (cd public/vendor/paddleocr && sha256sum -c SHA256SUMS)
+          npm run verify:ocr
       - name: Validate deployable source
         shell: bash
         run: |
@@ -166,12 +180,24 @@ jobs:
             startup:document.documentElement.dataset.startup
           }));
           if(runtime.version!==expectedVersion||runtime.bodyVersion!==expectedVersion||runtime.revision!==expectedRevision||runtime.runtimeRevision!==expectedRevision||runtime.runtimeFailures!==0||!runtime.overflow||runtime.startup!=='ready') throw new Error(`1.24P Pages runtime mismatch: ${JSON.stringify(runtime)}`);
-          await page.waitForFunction(()=>Boolean(globalThis.LuckyBeanPaddleOCR),null,{timeout:60000});
+          await page.evaluate(()=>globalThis.LuckyBeanRuntimeFeatures.load('recognition-paddle-ocr'));
+          await page.waitForFunction(()=>Boolean(globalThis.LuckyBeanPaddleOCR),null,{timeout:20000});
           const ocr=await page.evaluate(async()=>{
             const api=globalThis.LuckyBeanPaddleOCR;
             const engine=await api.preload();
+            if(!engine) throw new Error('Live PP-OCR failed to initialize');
+            const canvas=document.createElement('canvas');
+            canvas.width=960; canvas.height=640;
+            const ctx=canvas.getContext('2d');
+            ctx.fillStyle='#fff'; ctx.fillRect(0,0,960,640);
+            ctx.fillStyle='#111'; ctx.font='bold 52px Arial';
+            ctx.fillText('ETHIOPIA GUJI',70,180);
+            ctx.fillText('WASHED 1950M',70,300);
+            const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.92));
+            const recognized=await api.recognizeCoffeeBag([{id:'live-release-check',blob}]);
             const result={
               ready:Boolean(engine),
+              text:recognized.fullText,
               version:String(api.version||''),
               workerBootstrap:String(api.workerBootstrap||''),
               webOcr:String(document.documentElement.dataset.webOcr||'')
@@ -180,6 +206,8 @@ jobs:
             return result;
           });
           if(!ocr.ready||ocr.version!=='0.4.9'||ocr.workerBootstrap!=='preloaded-blob-module'||!ocr.webOcr.includes('ppocr-v5-0.4.9')) throw new Error(`Live Pages PP-OCR initialization mismatch: ${JSON.stringify(ocr)}`);
+          if(!/ETHIOPIA/i.test(ocr.text)||!/WASHED/i.test(ocr.text)) throw new Error(`Live Pages OCR text mismatch: ${JSON.stringify(ocr)}`);
+          console.log('LIVE_PPOCR_RECOGNITION',JSON.stringify(ocr));
           if(pageErrors.length) throw new Error(`Pages pageerror: ${pageErrors.join(' | ')}`);
           await browser.close();
           NODE
@@ -193,7 +221,7 @@ jobs:
             --arg revision "$RELEASE_REVISION" \
             --arg source_sha "$SOURCE_SHA" \
             --arg generated_at "$(date -u +%FT%TZ)" \
-            '{version:$version,revision:$revision,source_sha:$source_sha,pages_url:"https://zjcrop.github.io/luckybean/",verified:true,browser_smoke:true,live_ppocr_init:true,same_sha_main_tests:true,release_metadata:true,generated_at:$generated_at}' \
+            '{version:$version,revision:$revision,source_sha:$source_sha,pages_url:"https://zjcrop.github.io/luckybean/",verified:true,browser_smoke:true,live_ppocr_init:true,live_ppocr_recognition:true,same_sha_main_tests:true,release_metadata:true,generated_at:$generated_at}' \
             > "$receipt"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com

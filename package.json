@@ -4,6 +4,9 @@
   "version": "1.24.18",
   "type": "module",
   "scripts": {
+    "postinstall": "node scripts/prepare-vendor.mjs",
+    "prepare:ocr": "node scripts/prepare-paddleocr-vendor.mjs && node scripts/verify-ocr-runtime.mjs",
+    "verify:ocr": "node scripts/verify-ocr-runtime.mjs",
     "test:recognition": "node --test test/*.test.js",
     "test:ocr-integrity": "node --test test/ocr-worker-compression-integrity.test.js",
     "test:static": "node scripts/run-static-tests.mjs",

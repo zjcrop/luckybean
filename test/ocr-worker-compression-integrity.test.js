@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
+import { createHash, webcrypto } from 'node:crypto';
 
 const runtime = fs.readFileSync('src/recognition-paddle-ocr.js', 'utf8');
 const vendor = fs.readFileSync('scripts/prepare-paddleocr-vendor.mjs', 'utf8');
@@ -23,9 +25,30 @@ test('vendoring records decoded Worker byte length and SHA-256 in manifest', () 
   assert.match(vendor, /workerSha256: workerIntegrity\.workerSha256/);
 });
 
-test('compressed transfer length is not a decoded-body truncation signal', () => {
-  const compressedTransferBytes = 3_622_327;
-  const decodedWorkerBytes = 11_341_486;
-  assert.notEqual(compressedTransferBytes, decodedWorkerBytes);
-  assert.equal(decodedWorkerBytes, 11_341_486);
+function runtimeWithResponse({ corrupt = false, missingIdentity = false } = {}) {
+  const bytes = Buffer.alloc(100001, 65);
+  const workerSha256 = createHash('sha256').update(bytes).digest('hex');
+  if (corrupt) bytes[0] = 66; // Same decoded length, different content.
+  const context = {
+    navigator: { userAgent: 'Chrome', deviceMemory: 8 },
+    document: { documentElement: { dataset: {} }, addEventListener() {} },
+    addEventListener() {}, URL, Blob, crypto: webcrypto, setTimeout, clearTimeout,
+    fetch: async url => url.endsWith('manifest.json')
+      ? Response.json(missingIdentity ? {} : { workerBytes: bytes.length, workerSha256 })
+      // Fetch exposes the decoded body while Content-Length still describes gzip bytes.
+      : new Response(bytes, { headers: { 'content-encoding': 'gzip', 'content-length': '137' } })
+  };
+  vm.runInNewContext(runtime.replaceAll('import.meta.url', '"https://example.test/src/recognition-paddle-ocr.js"')
+    + '\nglobalThis.fetchWorkerForTest = fetchCompleteWorkerBundle;', context);
+  return context.fetchWorkerForTest;
+}
+
+test('production Worker fetch accepts decoded gzip content with a smaller transfer Content-Length', async () => {
+  const bytes = await runtimeWithResponse()();
+  assert.equal(bytes.byteLength, 100001);
+});
+
+test('production Worker fetch rejects same-length corruption and missing manifest identity', async () => {
+  await assert.rejects(runtimeWithResponse({ corrupt: true })(), /SHA-256/);
+  await assert.rejects(runtimeWithResponse({ missingIdentity: true })(), /完整性元数据/);
 });
