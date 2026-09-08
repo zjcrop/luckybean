@@ -112,6 +112,5 @@ src/app.js:2783:  <details class="settings-category"><summary><span>本物</span
 .github/workflows/fix-fun-prompt-toast-owner.yml:63:          new_url = 'runtime-features.js?v=1.24B-main.17-single-toast-owner'
 .github/workflows/fix-fun-prompt-toast-owner.yml:98:          grep -Fq "BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.17-single-toast-owner'" src/features/runtime-features.js
 .github/workflows/fix-fun-prompt-toast-owner.yml:99:          grep -Fq 'runtime-features.js?v=1.24B-main.17-single-toast-owner' index.html
-.github/workflows/verify-fun-prompts-live.yml:48:          const revision='1.24B-main.17-single-toast-owner';
 sw.js:6:  'luckybean-main-v124b-', 'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
 DEVELOPMENT_STATUS.md:38:1.23D、1.23E、1.24B 和 1.24P-main.1/main.2 均为历史检查点。旧版本的详细修改记录保留在 Git 历史、Release 和 `docs/` 中，不再作为当前开发状态的权威入口。
