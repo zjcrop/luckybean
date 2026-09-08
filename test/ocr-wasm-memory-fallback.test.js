@@ -51,5 +51,10 @@ test('failed worker resources are reclaimed before retrying OCR', () => {
     'failed Worker resources must be terminated, released and given time to reclaim before the low-memory retry');
 
   assert.match(source, /async function startRememberedMemoryEngine\(\)[\s\S]*startMemoryCompatibilityEngine/u);
-  assert.match(source, /memoryConstrained \? startRememberedMemoryEngine\(\) : startWorkerEngine\(\)/u);
+  const memoryBranch = source.indexOf('memoryConstrained ? startRememberedMemoryEngine()');
+  const runtimeCompatibilityBranch = source.indexOf('runtimeCompatibilityConstrained ? startRememberedSessionCompatibilityEngine()');
+  const normalWorkerBranch = source.indexOf(': startWorkerEngine();', runtimeCompatibilityBranch);
+  assert.ok(memoryBranch >= 0, 'remembered low-memory mode must remain selectable');
+  assert.ok(runtimeCompatibilityBranch > memoryBranch, 'low-memory mode must keep priority over runtime compatibility mode');
+  assert.ok(normalWorkerBranch > runtimeCompatibilityBranch, 'normal Worker mode must remain the final default');
 });
