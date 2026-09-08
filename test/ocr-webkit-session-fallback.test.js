@@ -5,7 +5,7 @@ import test from 'node:test';
 const source = readFileSync('src/recognition-paddle-ocr.js', 'utf8');
 
 test('WebKit ONNX session failure enters the same PP-OCRv5 compatibility state machine', () => {
-  assert.match(source, /const VERSION = '0\.4\.12'/u);
+  assert.match(source, /const VERSION = '0\.4\.13'/u);
   assert.match(source, /async function startWebKitEngine\(\)/u);
   assert.match(source, /if \(isOnnxSessionCreationFailure\(error\)\) \{/u);
   assert.match(source, /return startSessionCompatibilityEngine\(generation, error\)/u);
