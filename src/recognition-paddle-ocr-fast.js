@@ -1,4 +1,4 @@
-const VERSION = '0.5.0-fastpath';
+const VERSION = '0.5.1-fastpath';
 const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;
 
 function isAppleMobileLike() {
@@ -30,6 +30,7 @@ let busy = false;
 let disposeTimer = 0;
 let sessionDepth = 0;
 let pendingEnd = false;
+let forceCompatibility = false;
 let roiRequestSequence = 0;
 const activeWorkers = new Set();
 
@@ -157,6 +158,23 @@ function detachEngine() {
   terminateWorkers();
   if (current) current.then(disposeInstance).catch(() => {});
 }
+async function startWorkerWithMode(compatibility, generation, startedAt, reason = '') {
+  engineMode = compatibility ? 'worker-no-simd-fallback' : 'worker-simd-fastpath';
+  const raw = createWorkerEngine({ compatibility });
+  try {
+    const label = compatibility ? 'PP-OCRv5 无 SIMD Worker 初始化超时' : 'PP-OCRv5 Worker 初始化超时';
+    const ocr = await withTimeout(raw, ENGINE_INIT_TIMEOUT_MS, label, terminateWorkers);
+    if (generation !== engineGeneration) { disposeInstance(ocr); throw new Error('PP-OCRv5 初始化结果已失效'); }
+    recordDiagnostic(compatibility ? 'runtime-init-fallback' : 'runtime-init', startedAt, {
+      mode:engineMode, sessionDepth, lowMemory:LOW_MEMORY, reason
+    });
+    return ocr;
+  } catch (error) {
+    raw.then(disposeInstance).catch(() => {});
+    terminateWorkers();
+    throw error;
+  }
+}
 async function startEngine() {
   const generation = ++engineGeneration;
   const startedAt = diagnosticNow();
@@ -174,31 +192,19 @@ async function startEngine() {
     }
   }
 
-  engineMode = 'worker-simd-fastpath';
-  let raw = createWorkerEngine({ compatibility:false });
+  if (forceCompatibility) {
+    emit('正在使用本次录入会话已确认需要的无 SIMD Worker', 10);
+    return startWorkerWithMode(true, generation, startedAt, 'sticky-after-real-runtime-failure');
+  }
+
   try {
-    const ocr = await withTimeout(raw, ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 Worker 初始化超时', terminateWorkers);
-    if (generation !== engineGeneration) { disposeInstance(ocr); throw new Error('PP-OCRv5 初始化结果已失效'); }
-    recordDiagnostic('runtime-init', startedAt, { mode:engineMode, sessionDepth, lowMemory:LOW_MEMORY });
-    return ocr;
+    return await startWorkerWithMode(false, generation, startedAt);
   } catch (error) {
-    raw.then(disposeInstance).catch(() => {});
-    terminateWorkers();
     if (!looksLikeCompatibilityFailure(error) || generation !== engineGeneration) throw error;
-    engineMode = 'worker-no-simd-fallback';
+    forceCompatibility = true;
     emit('PP-OCRv5 SIMD Worker 不可用，正在使用同一模型的无 SIMD Worker 兜底', 10);
     await delay(80);
-    raw = createWorkerEngine({ compatibility:true });
-    try {
-      const ocr = await withTimeout(raw, ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 无 SIMD Worker 初始化超时', terminateWorkers);
-      if (generation !== engineGeneration) { disposeInstance(ocr); throw new Error('PP-OCRv5 兼容初始化结果已失效'); }
-      recordDiagnostic('runtime-init-fallback', startedAt, { mode:engineMode, reason:String(error?.message || error) });
-      return ocr;
-    } catch (fallbackError) {
-      raw.then(disposeInstance).catch(() => {});
-      terminateWorkers();
-      throw new Error(`PP-OCRv5 快路径与兼容 Worker 均失败：${fallbackError?.message || fallbackError}`);
-    }
+    return startWorkerWithMode(true, generation, startedAt, String(error?.message || error));
   }
 }
 async function ensureEngine() {
@@ -216,9 +222,10 @@ async function ensureEngine() {
   enginePromise = tracked;
   return tracked;
 }
-async function dispose() {
+async function dispose(force = false) {
   globalThis.clearTimeout(disposeTimer);
-  if (busy) { pendingEnd = true; return; }
+  if (!force && sessionDepth > 0) return;
+  if (busy && !force) { pendingEnd = true; return; }
   const current = enginePromise;
   enginePromise = null;
   engineGeneration += 1;
@@ -244,23 +251,55 @@ function normalizeItems(result, imageId) {
     .filter(item => item.text && item.confidence >= 0.28 && meaningful(item.text) >= 0.55)
     .sort((a,b) => Number(a.polygon?.[0]?.[1] || 0) - Number(b.polygon?.[0]?.[1] || 0) || Number(a.polygon?.[0]?.[0] || 0) - Number(b.polygon?.[0]?.[0] || 0));
 }
+function predictOptions() {
+  return {
+    textDetLimitSideLen:LIMIT_SIDE,
+    textDetLimitType:'min',
+    textDetMaxSideLimit:MAX_SIDE,
+    textDetThresh:0.22,
+    textDetBoxThresh:0.35,
+    textDetUnclipRatio:1.55,
+    textRecScoreThresh:0.28
+  };
+}
+async function predictWithRuntimeRecovery(image, index, imageCount) {
+  let ocr = await ensureEngine();
+  const options = predictOptions();
+  try {
+    return await withTimeout(
+      ocr.predict(image.blob, options),
+      PREDICT_TIMEOUT_MS,
+      `PP-OCRv5 第 ${index + 1} 张图片识别超时`,
+      detachEngine
+    );
+  } catch (error) {
+    if (WEBKIT || forceCompatibility || !looksLikeCompatibilityFailure(error)) throw error;
+    const startedAt = diagnosticNow();
+    forceCompatibility = true;
+    recordDiagnostic('predict-runtime-recovery', startedAt, {
+      imageIndex:index, imageCount, reason:String(error?.message || error), fromMode:engineMode
+    });
+    detachEngine();
+    emit('预测阶段运行时异常，正在切换同一 PP-OCRv5 无 SIMD Worker 重试一次', 12);
+    await delay(80);
+    ocr = await ensureEngine();
+    const result = await withTimeout(
+      ocr.predict(image.blob, options),
+      PREDICT_TIMEOUT_MS,
+      `PP-OCRv5 第 ${index + 1} 张图片兼容模式重试超时`,
+      detachEngine
+    );
+    recordDiagnostic('predict-runtime-recovery-success', startedAt, { imageIndex:index, imageCount, mode:engineMode });
+    return result;
+  }
+}
 async function predict(images) {
-  const ocr = await ensureEngine();
   const blocks = [], groups = [];
   for (let index = 0; index < images.length; index += 1) {
     const image = images[index];
     emit(`PP-OCRv5 正在识别第 ${index + 1}/${images.length} 张图片`, 20 + Math.round(index / Math.max(1, images.length) * 70));
     const startedAt = diagnosticNow();
-    const prediction = ocr.predict(image.blob, {
-      textDetLimitSideLen:LIMIT_SIDE,
-      textDetLimitType:'min',
-      textDetMaxSideLimit:MAX_SIDE,
-      textDetThresh:0.22,
-      textDetBoxThresh:0.35,
-      textDetUnclipRatio:1.55,
-      textRecScoreThresh:0.28
-    });
-    const results = await withTimeout(prediction, PREDICT_TIMEOUT_MS, `PP-OCRv5 第 ${index + 1} 张图片识别超时`, detachEngine);
+    const results = await predictWithRuntimeRecovery(image, index, images.length);
     const current = normalizeItems(results?.[0], image.id);
     recordDiagnostic('ocr-predict', startedAt, { imageIndex:index, imageCount:images.length, mode:engineMode, limitSide:LIMIT_SIDE, maxSide:MAX_SIDE });
     blocks.push(...current);
@@ -285,7 +324,7 @@ async function run(task) {
   catch (error) { detachEngine(); emit(`识别失败：${error.message}`, 0); throw error; }
   finally {
     busy = false;
-    if (pendingEnd && sessionDepth === 0) { pendingEnd = false; void dispose(); }
+    if (pendingEnd && sessionDepth === 0) { pendingEnd = false; void dispose(true); }
     else scheduleOutsideSessionDispose();
   }
 }
@@ -302,8 +341,9 @@ async function endSession(reason = 'add-flow') {
   sessionDepth = Math.max(0, sessionDepth - 1);
   recordDiagnostic('session-end', diagnosticNow(), { reason, sessionDepth });
   if (sessionDepth === 0) {
+    forceCompatibility = false;
     if (busy) pendingEnd = true;
-    else await dispose();
+    else await dispose(true);
   }
 }
 async function warmForRecognition() {
@@ -318,8 +358,11 @@ const paddleOcrApi = Object.freeze({
   lowMemory:LOW_MEMORY,
   appleMobile:APPLE_MOBILE,
   browserSafe:true,
+  workerOnly:false,
   primaryIsolation:WEBKIT ? 'webkit-direct-wasm-no-simd' : 'module-worker',
-  compatibilityFallback:WEBKIT ? 'webkit-direct-wasm-no-simd' : 'module-worker-no-simd',
+  compatibilityFallback:WEBKIT ? 'webkit-direct-wasm-no-simd' : 'module-worker-no-simd-on-real-failure',
+  memoryFallback:WEBKIT ? 'webkit-direct-wasm-no-simd' : 'worker-simd-fastpath->worker-no-simd-on-real-failure',
+  predictRuntimeRecovery:true,
   autoPreload:false,
   disposePolicy:'capture-session',
   roiWorkerOnly:true,
@@ -327,6 +370,7 @@ const paddleOcrApi = Object.freeze({
   runtimeOrigin:'same-origin-vendored',
   inputPolicy:`${LIMIT_SIDE}/${MAX_SIDE}`,
   get sessionDepth() { return sessionDepth; },
+  get compatibilityActive() { return forceCompatibility; },
   runtimeBase() { return runtimeBase().href; },
   recognizeCoffeeBag(images) { return run(() => predict(images)); },
   recognizeRegion(blob, region, options = {}) { return run(() => predictRegion(blob, region, options)); },
@@ -343,5 +387,5 @@ globalThis.CoffeeFoundationPaddleOCR = paddleOcrApi;
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && sessionDepth === 0 && !busy) void dispose();
 });
-globalThis.addEventListener('pagehide', () => { if (!busy) void dispose(); });
+globalThis.addEventListener('pagehide', () => { if (!busy) void dispose(true); });
 document.documentElement.dataset.webOcr = `ppocr-v5-${VERSION}-session-fastpath`;
