@@ -1,39 +1,31 @@
 /* LuckyBean brew interaction emphasis: UI-only hierarchy and touch affordance. */
 :root{
   --lb-brew-action-gold:#d6ad63;
-  --lb-brew-action-fill:rgba(214,173,99,.16);
-  --lb-brew-action-fill-strong:rgba(214,173,99,.24);
-  --lb-brew-action-border:rgba(214,173,99,.86);
+  --lb-brew-action-fill:color-mix(in srgb,var(--lb-brew-action-gold) 7%,#0b0a09);
+  --lb-brew-action-fill-strong:color-mix(in srgb,var(--lb-brew-action-gold) 11%,#0b0a09);
+  --lb-brew-action-border:color-mix(in srgb,var(--lb-brew-action-gold) 35%,transparent);
   --lb-brew-underline:rgba(214,173,99,.64);
 }
 html[data-theme="light"]{
-  --lb-brew-action-gold:#a66f1f;
-  --lb-brew-action-fill:rgba(189,132,43,.14);
-  --lb-brew-action-fill-strong:rgba(189,132,43,.22);
-  --lb-brew-action-border:rgba(166,111,31,.80);
+  --lb-brew-action-gold:#d6ad63;
+  --lb-brew-action-fill:color-mix(in srgb,#d6ad63 7%,#17120d);
+  --lb-brew-action-fill-strong:color-mix(in srgb,#d6ad63 11%,#17120d);
+  --lb-brew-action-border:color-mix(in srgb,#d6ad63 35%,transparent);
   --lb-brew-underline:rgba(166,111,31,.62);
 }
 
-/* Strong interactive actions: identical type scale and affordance. */
+/* Rounded action surfaces now use the same restrained border/fill language as the preparation card. */
 #pageBrew #brewContent #generatePlanBtn,
 #pageBrew #brewContent #directSensoryBtn,
 #pageBrew #brewContent #startBrewBtn,
 #pageBrew #brewContent .brew-strategy-options .recommended-profile-option{
-  border:1.5px solid var(--lb-brew-action-border)!important;
-  border-radius:14px!important;
+  border:1px solid var(--lb-brew-action-border)!important;
+  border-radius:12px!important;
   background:var(--lb-brew-action-fill)!important;
-  color:var(--lb-brew-action-gold)!important;
-  box-shadow:0 6px 20px rgba(0,0,0,.12)!important;
-  font-family:SimHei,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif!important;
-  font-size:18px!important;
-  font-weight:900!important;
+  color:#fff!important;
+  box-shadow:none!important;
   line-height:1.2!important;
   letter-spacing:.02em!important;
-}
-#pageBrew #brewContent #generatePlanBtn,
-#pageBrew #brewContent #directSensoryBtn,
-#pageBrew #brewContent #startBrewBtn{
-  min-height:56px!important;
 }
 #pageBrew #brewContent #generatePlanBtn:active,
 #pageBrew #brewContent #directSensoryBtn:active,
@@ -41,27 +33,112 @@ html[data-theme="light"]{
 #pageBrew #brewContent .brew-strategy-options .recommended-profile-option:active,
 #pageBrew #brewContent .brew-strategy-options .recommended-profile-option.selected{
   background:var(--lb-brew-action-fill-strong)!important;
-  transform:translateY(1px);
-}
-#pageBrew #brewContent .brew-strategy-options .recommended-profile-option{
-  width:100%!important;
-  min-height:62px!important;
-  padding:12px 14px!important;
-}
-#pageBrew #brewContent .brew-strategy-options .recommended-profile-option span,
-#pageBrew #brewContent .brew-strategy-options .recommended-profile-option strong{
-  color:inherit!important;
-  font-family:inherit!important;
-  font-size:18px!important;
-  font-weight:900!important;
-}
-#pageBrew #brewContent .brew-strategy-options .recommended-profile-option small{
-  color:inherit!important;
-  font-family:SimHei,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif!important;
-  font-weight:700!important;
+  border-color:var(--lb-brew-action-border)!important;
+  box-shadow:none!important;
 }
 
-/* One decisive timer action: centered, with the duplicate lower sensory action removed from view. */
+/* Generate / direct tasting: larger labels inside smaller, compact buttons. */
+#pageBrew #brewContent .brew-generate-row{
+  display:flex!important;
+  justify-content:center!important;
+  align-items:center!important;
+  gap:12px!important;
+}
+#pageBrew #brewContent #generatePlanBtn,
+#pageBrew #brewContent #directSensoryBtn{
+  flex:0 1 150px!important;
+  width:min(42vw,150px)!important;
+  min-width:118px!important;
+  min-height:44px!important;
+  padding:7px 14px!important;
+  font-family:SimHei,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif!important;
+  font-size:20px!important;
+  font-weight:900!important;
+}
+
+/* Three tendencies: shorter/narrower cards, two-line left title, Songti explanation, bold white percentage. */
+#pageBrew #brewContent .brew-strategy-options{
+  margin-top:12px!important;
+}
+#pageBrew #brewContent .brew-strategy-options > h3{
+  color:#fff!important;
+  font-family:SimHei,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif!important;
+  font-weight:900!important;
+}
+#pageBrew #brewContent .brew-strategy-options .nested-content{
+  display:grid!important;
+  gap:8px!important;
+  justify-items:start!important;
+}
+#pageBrew #brewContent .brew-strategy-options .recommended-profile-option{
+  width:min(100%,620px)!important;
+  min-height:54px!important;
+  padding:8px 10px!important;
+  display:grid!important;
+  grid-template-columns:minmax(88px,112px) minmax(0,250px) auto!important;
+  align-items:center!important;
+  column-gap:12px!important;
+  transform:none!important;
+  text-align:left!important;
+}
+#pageBrew #brewContent .brew-strategy-options .recommended-profile-option.selected{
+  transform:none!important;
+}
+#pageBrew #brewContent .brew-strategy-options .lb-strategy-title{
+  min-width:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  gap:2px!important;
+  color:#fff!important;
+  font-family:SimHei,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif!important;
+  line-height:1.12!important;
+}
+#pageBrew #brewContent .brew-strategy-options .lb-strategy-tendency{
+  display:block!important;
+  color:#fff!important;
+  font-family:SimHei,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif!important;
+  font-size:13px!important;
+  font-weight:900!important;
+}
+#pageBrew #brewContent .brew-strategy-options .lb-strategy-method{
+  display:block!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  color:#fff!important;
+  font-family:SimHei,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif!important;
+  font-size:11px!important;
+  font-weight:800!important;
+  opacity:.88!important;
+}
+#pageBrew #brewContent .brew-strategy-options .lb-strategy-summary,
+#pageBrew #brewContent .brew-strategy-options .recommended-profile-option small{
+  min-width:0!important;
+  max-width:250px!important;
+  margin:0!important;
+  color:#fff!important;
+  font-family:SimSun,"Songti SC",STSong,serif!important;
+  font-size:11px!important;
+  font-weight:400!important;
+  line-height:1.4!important;
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+  overflow:hidden!important;
+}
+#pageBrew #brewContent .brew-strategy-options .lb-strategy-score,
+#pageBrew #brewContent .brew-strategy-options .recommended-profile-option > strong{
+  justify-self:end!important;
+  color:#fff!important;
+  font-family:SimHei,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif!important;
+  font-size:15px!important;
+  font-weight:900!important;
+  white-space:nowrap!important;
+}
+
+/* One decisive timer action: centered, extra-heavy type, duplicate lower sensory action removed. */
 #pageBrew #generatedPlan > .row.menu-row{
   display:flex!important;
   justify-content:center!important;
@@ -69,8 +146,15 @@ html[data-theme="light"]{
   gap:0!important;
 }
 #pageBrew #generatedPlan #startBrewBtn{
-  flex:0 1 320px!important;
-  width:min(100%,320px)!important;
+  flex:0 1 280px!important;
+  width:min(100%,280px)!important;
+  min-height:52px!important;
+  padding:8px 16px!important;
+  color:#fff!important;
+  font-family:SimHei,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif!important;
+  font-size:23px!important;
+  font-weight:1000!important;
+  letter-spacing:.035em!important;
 }
 #pageBrew #generatedPlan #planToSensoryBtn{display:none!important;}
 
@@ -134,4 +218,16 @@ html[data-theme="light"]{
   font-family:SimSun,"Songti SC",STSong,serif!important;
   font-size:12px!important;
   line-height:1.65!important;
+}
+
+@media (max-width:620px){
+  #pageBrew #brewContent .brew-strategy-options .recommended-profile-option{
+    width:100%!important;
+    grid-template-columns:minmax(82px,100px) minmax(0,1fr) auto!important;
+    column-gap:9px!important;
+  }
+  #pageBrew #brewContent .brew-strategy-options .lb-strategy-summary,
+  #pageBrew #brewContent .brew-strategy-options .recommended-profile-option small{
+    max-width:none!important;
+  }
 }
