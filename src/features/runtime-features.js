@@ -29,6 +29,7 @@ const P2_CORE_FEATURES = Object.freeze([
 const LAZY_FEATURES = Object.freeze([
   feature('recognition-paddle-ocr', '../recognition-paddle-ocr-fast.js'),
   feature('recognition-quality', '../recognition-quality-controller.js'),
+  feature('gallery-image-preprocess', '../gallery-image-preprocess.js'),
   feature('package-capture', '../package-capture-controller.js'),
   feature('recognition-multi-entry', './recognition-multi-entry-controller.js'),
   feature('direct-camera', '../direct-camera-controller.js'),
@@ -44,7 +45,7 @@ const LAZY_FEATURES = Object.freeze([
 ]);
 
 const PREINTERACTION_FEATURE_IDS = Object.freeze([
-  'recognition-quality', 'package-capture', 'recognition-multi-entry', 'direct-camera', 'recognition-review-owner',
+  'recognition-quality', 'gallery-image-preprocess', 'package-capture', 'recognition-multi-entry', 'direct-camera', 'recognition-review-owner',
   'recognition-batch-progress', 'brew-pour-guide', 'shared-sortable', 'sensory-tag-sort'
 ]);
 
@@ -113,7 +114,7 @@ function installLazyTriggers() {
     if (photo) {
       if (!isLoaded('package-capture')) {
         event.preventDefault(); event.stopImmediatePropagation();
-        const ready = await loadMany(['recognition-quality','package-capture','direct-camera','recognition-review-owner','recognition-batch-progress']);
+        const ready = await loadMany(['recognition-quality','gallery-image-preprocess','package-capture','direct-camera','recognition-review-owner','recognition-batch-progress']);
         if (ready && globalThis.LuckyBeanPackageCapture?.open) globalThis.LuckyBeanPackageCapture.open();
         return;
       }
