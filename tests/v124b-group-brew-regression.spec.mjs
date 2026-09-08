@@ -76,10 +76,10 @@ async function openSpecialModePage(page,mode){
     history.replaceState(null,'',`${next.pathname}${next.search}${next.hash}`);
   },mode);
 
-  // v099i.group.mode is read during startup. Reuse the Playwright fixture page and
-  // perform a full reload so the product still exercises the real cold-start path
-  // without accumulating nested pages/frames late in the single-worker core suite.
-  await page.reload({waitUntil:'domcontentloaded',timeout:30000});
+  // v099i.group.mode is read during startup. A committed full reload is sufficient
+  // to exercise the cold-start path; product readiness below is the authoritative
+  // gate and avoids waiting on a late DOMContentLoaded signal in the long core suite.
+  await page.reload({waitUntil:'commit',timeout:30000});
   await waitForStartup(page);
   await expect(page.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible({timeout:10000});
   return page;
