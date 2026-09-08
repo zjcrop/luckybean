@@ -23,20 +23,20 @@ test('PP-OCR provider registers at startup while heavy OCR runtime remains stric
     providerPresent: Boolean(globalThis.LuckyBeanPaddleOCR),
     browserSafe: globalThis.LuckyBeanPaddleOCR?.browserSafe === true,
     autoPreload: globalThis.LuckyBeanPaddleOCR?.autoPreload,
-    lazyDeclared: globalThis.LuckyBeanRuntimeFeatures?.lazy?.includes('recognition-paddle-ocr') === true,
-    runtimeLoaded: globalThis.LuckyBeanRuntimeFeatures?.isLoaded?.('recognition-paddle-ocr') === true
+    lazyDeclared: globalThis.LuckyBeanRuntimeFeatures?.lazy?.includes('recognition-paddle-ocr') === true
   }));
   expect(beforeDemand.providerPresent, 'lightweight PP-OCR provider must be deterministically registered before capture UI can query capability').toBe(true);
   expect(beforeDemand.browserSafe).toBe(true);
   expect(beforeDemand.autoPreload).toBe(false);
   expect(beforeDemand.lazyDeclared).toBe(true);
-  expect(beforeDemand.runtimeLoaded, 'runtime feature registry should recognize the already-registered provider module').toBe(true);
   expect(heavyOcrRequests, 'ordinary app startup must not fetch PP-OCR SDK, models, worker or ORT').toEqual([]);
 
-  // The feature load is intentionally idempotent: the browser module cache must not execute the
-  // provider twice, and this metadata-level request must still not initialize the heavy runtime.
+  // LuckyBeanRuntimeFeatures is published before its serialized startup imports finish. Explicitly
+  // await the idempotent provider feature load before asserting registry state; the module has
+  // already executed from index.html, so this must not initialize the heavy OCR runtime.
   await loadOcrRuntimeOnDemand(page);
   const initial = await page.evaluate(() => ({
+    runtimeLoaded: globalThis.LuckyBeanRuntimeFeatures?.isLoaded?.('recognition-paddle-ocr') === true,
     workerOnly: globalThis.LuckyBeanPaddleOCR?.workerOnly,
     browserSafe: globalThis.LuckyBeanPaddleOCR?.browserSafe,
     autoPreload: globalThis.LuckyBeanPaddleOCR?.autoPreload,
@@ -47,6 +47,7 @@ test('PP-OCR provider registers at startup while heavy OCR runtime remains stric
     webOcr: document.documentElement.dataset.webOcr || ''
   }));
 
+  expect(initial.runtimeLoaded, 'runtime registry must mark PP-OCR loaded after the explicit idempotent feature load resolves').toBe(true);
   expect(initial.workerOnly).toBe(false);
   expect(initial.browserSafe).toBe(true);
   expect(initial.autoPreload).toBe(false);
