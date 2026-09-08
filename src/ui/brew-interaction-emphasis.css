@@ -61,7 +61,7 @@ html[data-theme="light"]{
   font-weight:700!important;
 }
 
-/* One decisive timer action: centered, with the duplicate lower sensory action removed. */
+/* One decisive timer action: centered, with the duplicate lower sensory action removed from view. */
 #generatedPlan > .row.menu-row{
   display:flex!important;
   justify-content:center!important;
@@ -79,7 +79,7 @@ html[data-theme="light"]{
 #pageBrew #brewRatio{
   min-height:46px!important;
   border:0!important;
-  border-bottom:2px solid var(--lb-brew-underline)!important;
+  border-bottom:1px solid var(--lb-brew-underline)!important;
   border-radius:0!important;
   background:transparent!important;
   color:var(--text)!important;
