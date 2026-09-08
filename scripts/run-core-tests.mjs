@@ -24,15 +24,13 @@ const specs = [
   'tests/v124b-ui-alignment-regression.spec.mjs',
   'tests/v124b-followup-regression.spec.mjs',
   'tests/v124p-recognition-preflight-regression.spec.mjs',
-  'tests/v124p-pour-guide-ui.spec.mjs'
+  'tests/v124p-pour-guide-ui.spec.mjs',
+  'tests/p3-ux-flow-ui.spec.mjs'
 ];
 
 function annotation(text) {
   return String(text || 'unknown Playwright failure')
-    .replace(/%/g, '%25')
-    .replace(/\r/g, '%0D')
-    .replace(/\n/g, '%0A')
-    .slice(-7000);
+    .replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A').slice(-7000);
 }
 
 const supersededTitles = [

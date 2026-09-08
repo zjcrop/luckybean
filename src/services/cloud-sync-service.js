@@ -12,6 +12,7 @@ const STATE_ID = 'cloud.sync.state.v3';
 const DEVICE_ID = 'cloud.device.id.v3';
 const DIRTY_KEY = 'luckybean.cloud.dirty.v3';
 const DEBOUNCE_MS = 8000;
+const CHUNK_QUERY_BATCH = 40;
 const enc = new TextEncoder();
 let timer = null;
 let busy = false;
@@ -25,6 +26,19 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 function emit(state, detail = {}) {
   document.documentElement.dataset.cloudSync = state;
   document.dispatchEvent(new CustomEvent('luckybean:cloud-sync-state', { detail: { state, ...detail } }));
+}
+
+function publishManifest(manifest) {
+  if (!manifest) return;
+  const beanIndex = Array.isArray(manifest.bean_index) ? manifest.bean_index : [];
+  document.dispatchEvent(new CustomEvent('luckybean:cloud-manifest-ready', {
+    detail: {
+      revision: manifestRevision(manifest),
+      beanIndex,
+      packetCount: Array.isArray(manifest.chunks) ? manifest.chunks.length : 0,
+      sourceDeviceId: String(manifest.source_device_id || '')
+    }
+  }));
 }
 
 function readDirty() {
@@ -62,6 +76,8 @@ async function stateRecord() {
     lastRemoteRevision: '',
     lastSuccessfulSyncAt: '',
     lastSyncedUnitKeys: [],
+    lastSyncedChunks: [],
+    remoteBeanIndex: [],
     lastStatus: 'never',
     preservedDeletionFingerprint: '',
     pendingDeletionFingerprint: ''
@@ -69,6 +85,8 @@ async function stateRecord() {
 }
 
 function manifestRevision(manifest) {
+  // sync_completed_at is server-authored by the cloud store and is authoritative.
+  // Device clocks are retained for diagnostics only and never outrank it.
   return String(manifest?.sync_completed_at || manifest?.uploaded_at || manifest?.client_updated_at || '');
 }
 
@@ -104,6 +122,64 @@ async function chunkId(logicalKey, packet) {
   return b64Url(await digest(enc.encode(`${logicalKey}\n${contentHash}`))).slice(0, 32);
 }
 
+function logicalKeyOf(meta) {
+  return String(meta?.logical_key || meta?.logicalKey || '');
+}
+
+function fieldFingerprint(value) {
+  const text = JSON.stringify(value ?? null);
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function beanIndexFromBundle(bundle, metas = []) {
+  const metaById = new Map((metas || []).map(meta => [String(meta.chunk_id || ''), meta]));
+  const rows = [];
+  for (const [id, descriptor] of bundle?.descriptors || []) {
+    const packet = descriptor?.packet;
+    if (packet?.k !== 'bean-meta' || !Array.isArray(packet.b)) continue;
+    const bean = packet.b;
+    const meta = metaById.get(String(id));
+    rows.push({
+      id: String(bean[0] || ''),
+      name: String(bean[1] || ''),
+      country_code: String(bean[2] || ''),
+      region_code: String(bean[3] || ''),
+      roast_date: String(bean[9] || ''),
+      remaining_weight_g: Number(bean[11] || 0) / 10,
+      record_revision: String(meta?.chunk_id || id),
+      logical_key: descriptor.logicalKey,
+      field_revisions: bean.map(fieldFingerprint)
+    });
+  }
+  return rows.sort((a, b) => a.id.localeCompare(b.id));
+}
+
+function countFieldDiffs(remoteIndex = [], localIndex = []) {
+  const local = new Map(localIndex.map(bean => [String(bean.id), bean]));
+  let fields = 0;
+  let beans = 0;
+  for (const remote of remoteIndex) {
+    const current = local.get(String(remote.id));
+    if (!current) {
+      beans += 1;
+      fields += Array.isArray(remote.field_revisions) ? remote.field_revisions.length : 1;
+      continue;
+    }
+    const left = Array.isArray(current.field_revisions) ? current.field_revisions : [];
+    const right = Array.isArray(remote.field_revisions) ? remote.field_revisions : [];
+    const count = Math.max(left.length, right.length);
+    let different = 0;
+    for (let index = 0; index < count; index += 1) if (left[index] !== right[index]) different += 1;
+    if (different) { beans += 1; fields += different; }
+  }
+  return { beans, fields };
+}
+
 async function remoteManifest(userId) {
   const rows = await auth().apiRequest(`/rest/v1/luckybean_sync_manifests?user_id=eq.${encodeURIComponent(userId)}&select=*`, {
     method: 'GET', timeoutMs: 6000
@@ -111,39 +187,66 @@ async function remoteManifest(userId) {
   return rows?.[0] || null;
 }
 
-async function remotePacketBundle(userId, manifest) {
-  if (!manifest?.chunks?.length) return { rows: new Map(), packets: new Map() };
-  const result = await auth().apiRequest(`/rest/v1/luckybean_sync_chunks?user_id=eq.${encodeURIComponent(userId)}&select=*`, {
-    method: 'GET', timeoutMs: 12000
-  });
-  const rows = new Map((result || []).map(row => [row.chunk_id, row]));
+async function fetchChunkRows(userId, metas = [], timeoutMs = 12000) {
+  if (!metas.length) return [];
+  const result = [];
+  for (let offset = 0; offset < metas.length; offset += CHUNK_QUERY_BATCH) {
+    const part = metas.slice(offset, offset + CHUNK_QUERY_BATCH);
+    const ids = [...new Set(part.map(meta => String(meta?.chunk_id || '')).filter(Boolean))];
+    if (!ids.length) continue;
+    const filter = ids.map(value => encodeURIComponent(value)).join(',');
+    const rows = await auth().apiRequest(
+      `/rest/v1/luckybean_sync_chunks?user_id=eq.${encodeURIComponent(userId)}&chunk_id=in.(${filter})&select=*`,
+      { method: 'GET', timeoutMs }
+    );
+    result.push(...(rows || []));
+    await sleep(0);
+  }
+  return result;
+}
+
+async function decodePacketRows(rows = [], metas = [], { legacyMessage = '' } = {}) {
+  const byId = new Map((rows || []).map(row => [String(row.chunk_id || ''), row]));
   const packets = new Map();
-  for (const meta of manifest.chunks || []) {
-    const row = rows.get(meta.chunk_id);
-    if (!row) throw new Error(`云端缺少分包 ${meta.chunk_id}`);
+  for (const meta of metas) {
+    const id = String(meta.chunk_id || '');
+    const row = byId.get(id);
+    if (!row) throw new Error(`云端缺少分包 ${id}`);
     if (row.cipher && row.cipher !== 'none') {
-      const error = new Error('检测到旧版加密云端数据，已停止覆盖。请先使用旧版完成迁移。');
+      const error = new Error(legacyMessage || '检测到旧版加密云端数据，已停止覆盖。请先使用旧版完成迁移。');
       error.code = 'LEGACY_ENCRYPTED';
       throw error;
     }
     const packed = b64ToBytes(row.payload);
     const plain = await decompressBytes(packed, row.compression);
-    if (await digestB64(plain) !== row.content_hash) throw new Error(`分包 ${row.chunk_id} 完整性校验失败`);
-    packets.set(meta.chunk_id, decodePacket(plain));
+    if (await digestB64(plain) !== row.content_hash) throw new Error(`分包 ${id} 完整性校验失败`);
+    packets.set(id, decodePacket(plain));
     await sleep(0);
   }
+  return packets;
+}
+
+async function remotePacketBundle(userId, manifest) {
+  const metas = Array.isArray(manifest?.chunks) ? manifest.chunks : [];
+  if (!metas.length) return { rows: new Map(), packets: new Map() };
+  const result = await fetchChunkRows(userId, metas);
+  const rows = new Map((result || []).map(row => [String(row.chunk_id || ''), row]));
+  const packets = await decodePacketRows(result, metas);
   return { rows, packets };
 }
 
 async function localPacketBundle(built) {
   const descriptors = new Map();
   const packets = new Map();
+  const byLogicalKey = new Map();
   for (const packetInfo of built.packets) {
     const id = await chunkId(packetInfo.logicalKey, packetInfo.packet);
-    descriptors.set(id, { id, logicalKey: packetInfo.logicalKey, packet: packetInfo.packet });
+    const descriptor = { id, logicalKey: packetInfo.logicalKey, packet: packetInfo.packet };
+    descriptors.set(id, descriptor);
+    byLogicalKey.set(packetInfo.logicalKey, descriptor);
     packets.set(id, packetInfo.packet);
   }
-  return { descriptors, packets };
+  return { descriptors, byLogicalKey, packets };
 }
 
 async function commitManifest(userId, manifest, existing) {
@@ -204,7 +307,7 @@ async function prepareUploadRows({ built, localBundle, remoteBundle, existing, p
     const previous = remoteChunks.get(id);
     const plainCompatible = previous?.cipher === 'none' || previous?.transport === 'plain-compressed-v1';
     if (previous?.content_hash === contentHash && plainCompatible && !forceMigration) {
-      nextChunks.push(previous);
+      nextChunks.push({ ...previous, logical_key: descriptor.logicalKey });
       continue;
     }
     const compressed = await compressBytes(plain);
@@ -228,6 +331,7 @@ async function prepareUploadRows({ built, localBundle, remoteBundle, existing, p
       chunk_id: id,
       content_hash: contentHash,
       logical_hash: await digestB64(enc.encode(descriptor.logicalKey)),
+      logical_key: descriptor.logicalKey,
       plain_bytes: plain.byteLength,
       compressed_bytes: compressed.bytes.byteLength,
       cipher_bytes: compressed.bytes.byteLength,
@@ -310,6 +414,7 @@ async function upload({ reason = 'auto', forceMigration = false, deletionPolicy 
     });
   }
 
+  const beanIndex = beanIndexFromBundle(localBundle, prepared.nextChunks);
   const manifest = {
     user_id: userId,
     format: SYNC_FORMAT,
@@ -319,10 +424,11 @@ async function upload({ reason = 'auto', forceMigration = false, deletionPolicy 
     kdf_iterations: 0,
     kdf_salt: '',
     chunks: prepared.nextChunks,
+    bean_index: beanIndex,
     source_device_id: device,
     client_updated_at: now,
     client_data_schema_version: 10,
-    client_architecture: 'local-first-v1',
+    client_architecture: 'manifest-diff-v4',
   };
   const committedManifest = await commitManifest(userId, manifest, existing);
   if (!committedManifest) {
@@ -345,6 +451,8 @@ async function upload({ reason = 'auto', forceMigration = false, deletionPolicy 
     lastRemoteRevision: completedRevision,
     lastSuccessfulSyncAt: completedRevision,
     lastSyncedUnitKeys: baselineKeys,
+    lastSyncedChunks: prepared.nextChunks.map(meta => ({ chunk_id:meta.chunk_id, content_hash:meta.content_hash, logical_key:logicalKeyOf(meta) })),
+    remoteBeanIndex: beanIndex,
     lastStatus,
     changedPackets: prepared.changedRows.length,
     deletedPackets: prepared.staleChunkIds.length,
@@ -366,53 +474,120 @@ async function upload({ reason = 'auto', forceMigration = false, deletionPolicy 
   return { changed: prepared.changedRows.length, deleted: prepared.staleChunkIds.length, deletedUnits, preservedUnits, packetCount: prepared.nextChunks.length };
 }
 
+function mergeRestoredCounts(target = {}, source = {}) {
+  const result = { ...target };
+  for (const [key, value] of Object.entries(source || {})) {
+    if (typeof value === 'number') result[key] = Number(result[key] || 0) + value;
+    else result[key] = value;
+  }
+  return result;
+}
+
+async function mergePacketStage(packets, manifest, dirty, localState) {
+  if (!packets.length) return {};
+  return mergeRemotePacketsIntoLocal(packets, {
+    remoteCompletedAt: manifestRevision(manifest),
+    localChangedAt: dirty?.lastChangedAt || localState.lastSuccessfulSyncAt || ''
+  });
+}
+
 async function download(manifest, { interactive = false, mergeBack = false } = {}) {
   const active = auth()?.getSession?.();
   if (!active?.user?.id || !manifest) return { skipped: true };
-  emit('downloading');
-  const rows = await auth().apiRequest(`/rest/v1/luckybean_sync_chunks?user_id=eq.${encodeURIComponent(active.user.id)}&select=*`, {
-    method: 'GET', timeoutMs: 10000
+  const userId = active.user.id;
+  const localState = await stateRecord();
+  const dirty = readDirty();
+  const completedRevision = manifestRevision(manifest);
+
+  // Manifest first: it is the lightweight authoritative list/revision surface.
+  // The local UI remains responsive while the exact changed chunk set is derived.
+  publishManifest(manifest);
+  emit('comparing-list', { revision:completedRevision, beanCount:Array.isArray(manifest.bean_index) ? manifest.bean_index.length : 0 });
+
+  const localBuilt = await buildLogicalPackets();
+  const localBundle = await localPacketBundle(localBuilt);
+  const remoteMetas = Array.isArray(manifest.chunks) ? manifest.chunks : [];
+  const neededMetas = remoteMetas.filter(meta => !localBundle.descriptors.has(String(meta.chunk_id || '')));
+  const localBeanIndex = beanIndexFromBundle(localBundle);
+  const fieldDiffs = countFieldDiffs(Array.isArray(manifest.bean_index) ? manifest.bean_index : [], localBeanIndex);
+
+  const priorityMetas = neededMetas.filter(meta => {
+    const key = logicalKeyOf(meta);
+    return key.endsWith(':meta') || key.startsWith('global:bean-mutations:');
   });
-  const byId = new Map((rows || []).map(row => [row.chunk_id, row]));
-  const packets = [];
-  for (const meta of manifest.chunks || []) {
-    const row = byId.get(meta.chunk_id);
-    if (!row) throw new Error(`云端缺少分包 ${meta.chunk_id}`);
-    if (row.cipher && row.cipher !== 'none') {
-      const message = '检测到旧版密码加密云端数据。请在原设备产生一次新修改后自动迁移，或使用旧版本手动恢复。';
-      await saveState({ lastStatus: 'legacy-encrypted', legacyEncryptedAt: new Date().toISOString() });
-      emit('legacy-encrypted', { message });
-      if (interactive) throw new Error(message);
-      return { legacyEncrypted: true };
-    }
-    const packed = b64ToBytes(row.payload);
-    const plain = await decompressBytes(packed, row.compression);
-    if (await digestB64(plain) !== row.content_hash) throw new Error(`分包 ${row.chunk_id} 完整性校验失败`);
-    packets.push(decodePacket(plain));
-  }
+  const priorityIds = new Set(priorityMetas.map(meta => String(meta.chunk_id || '')));
+  const detailMetas = neededMetas.filter(meta => !priorityIds.has(String(meta.chunk_id || '')));
+  let restored = {};
+
   globalThis.__LuckyBeanCloudRestoreActive = true;
   try {
-    const localState = await stateRecord();
-    const dirty = readDirty();
-    const completedRevision = manifestRevision(manifest);
-    const restored = await mergeRemotePacketsIntoLocal(packets, {
-      remoteCompletedAt: completedRevision,
-      localChangedAt: dirty?.lastChangedAt || localState.lastSuccessfulSyncAt || ''
-    });
+    if (priorityMetas.length) {
+      emit('downloading-list', { changed:priorityMetas.length, total:neededMetas.length });
+      const priorityRows = await fetchChunkRows(userId, priorityMetas, 9000);
+      const priorityPackets = [...(await decodePacketRows(priorityRows, priorityMetas, {
+        legacyMessage:'检测到旧版密码加密云端数据。请在原设备产生一次新修改后自动迁移，或使用旧版本手动恢复。'
+      })).values()];
+      restored = mergeRestoredCounts(restored, await mergePacketStage(priorityPackets, manifest, dirty, localState));
+      document.dispatchEvent(new CustomEvent('luckybean:cloud-list-restored', {
+        detail:{ restored, revision:completedRevision, changedPackets:priorityMetas.length }
+      }));
+      // Let bean-list rendering happen before larger historical/detail packets.
+      await new Promise(resolve => requestAnimationFrame(() => resolve()));
+    }
+
+    if (detailMetas.length) {
+      emit('downloading-diff', { changed:detailMetas.length, total:neededMetas.length });
+      const detailRows = await fetchChunkRows(userId, detailMetas, 12000);
+      const detailPackets = [...(await decodePacketRows(detailRows, detailMetas, {
+        legacyMessage:'检测到旧版密码加密云端数据。请在原设备产生一次新修改后自动迁移，或使用旧版本手动恢复。'
+      })).values()];
+      restored = mergeRestoredCounts(restored, await mergePacketStage(detailPackets, manifest, dirty, localState));
+    }
+
     clearDirty();
+    const finalBuilt = await buildLogicalPackets();
+    const finalBundle = await localPacketBundle(finalBuilt);
+    const baselineKeys = [...packetUnitKeySet(finalBundle.packets)].sort();
     await saveState({
       lastRemoteRevision: completedRevision,
       lastSuccessfulSyncAt: completedRevision || new Date().toISOString(),
-      lastSyncedUnitKeys: [...packetUnitKeySet(packets)].sort(),
+      lastSyncedUnitKeys: baselineKeys,
+      lastSyncedChunks: remoteMetas.map(meta => ({ chunk_id:meta.chunk_id, content_hash:meta.content_hash, logical_key:logicalKeyOf(meta) })),
+      remoteBeanIndex: Array.isArray(manifest.bean_index) ? manifest.bean_index : [],
       lastStatus: 'downloaded',
       restored,
+      comparedPackets: remoteMetas.length,
+      downloadedPackets: neededMetas.length,
+      skippedUnchangedPackets: Math.max(0, remoteMetas.length - neededMetas.length),
+      differingBeans: fieldDiffs.beans,
+      differingFields: fieldDiffs.fields,
       pendingDeletionFingerprint: '',
       pendingDeletionDetail: null
     });
-    emit('downloaded', { restored });
+    emit('downloaded', {
+      restored,
+      downloadedPackets:neededMetas.length,
+      skippedUnchangedPackets:Math.max(0, remoteMetas.length-neededMetas.length),
+      differingBeans:fieldDiffs.beans,
+      differingFields:fieldDiffs.fields
+    });
     document.dispatchEvent(new CustomEvent('luckybean:cloud-data-restored', { detail: { restored } }));
     if (mergeBack) markMergeBackPending();
-    return { restored };
+    return {
+      restored,
+      downloadedPackets:neededMetas.length,
+      skippedUnchangedPackets:Math.max(0, remoteMetas.length-neededMetas.length),
+      differingBeans:fieldDiffs.beans,
+      differingFields:fieldDiffs.fields
+    };
+  } catch (error) {
+    if (error?.code === 'LEGACY_ENCRYPTED') {
+      await saveState({ lastStatus:'legacy-encrypted', legacyEncryptedAt:new Date().toISOString() });
+      emit('legacy-encrypted', { message:error.message });
+      if (interactive) throw error;
+      return { legacyEncrypted:true };
+    }
+    throw error;
   } finally {
     globalThis.__LuckyBeanCloudRestoreActive = false;
   }
@@ -472,6 +647,7 @@ async function reconcile({ reason = 'startup', interactive = false, forcePull = 
     const dirty = readDirty();
     const remoteRevision = manifestRevision(manifest);
     const remoteChanged = Boolean(manifest && remoteRevision && remoteRevision !== localState.lastRemoteRevision);
+    if (manifest) publishManifest(manifest);
 
     if (forcePull && manifest) return await download(manifest, { interactive: true, mergeBack: true });
     if (manifest && !localState.lastRemoteRevision) {
@@ -481,7 +657,12 @@ async function reconcile({ reason = 'startup', interactive = false, forcePull = 
     if (dirty || deletionPolicy) return await upload({ reason, deletionPolicy: deletionPolicy || 'delete', expectedFingerprint });
     if (remoteChanged) return await download(manifest, { interactive });
 
-    await saveState({ lastStatus: 'idle', lastCheckedAt: new Date().toISOString(), lastRemoteRevision: remoteRevision || localState.lastRemoteRevision });
+    await saveState({
+      lastStatus:'idle',
+      lastCheckedAt:new Date().toISOString(),
+      lastRemoteRevision:remoteRevision || localState.lastRemoteRevision,
+      remoteBeanIndex:Array.isArray(manifest?.bean_index) ? manifest.bean_index : localState.remoteBeanIndex || []
+    });
     emit('idle');
     return { idle: true };
   } catch (error) {
@@ -560,7 +741,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 globalThis.LuckyBeanCloudSync = {
-  revision: 'cloud-sync-service-v3-server-time-union',
+  revision: 'cloud-sync-service-v4-manifest-diff',
   reconcile,
   ensureAutomatic,
   resolveDeletionDecision,

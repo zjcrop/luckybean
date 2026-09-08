@@ -35,7 +35,8 @@ const tests = [
   'tests/v124b-lifecycle-ocr-storage-regression.mjs',
   'tests/v124b-ocr-worker-freeze-regression.mjs',
   'tests/v124b-ui-policy-regression.mjs',
-  'tests/v124b-recommendation-prompt-regression.mjs'
+  'tests/v124b-recommendation-prompt-regression.mjs',
+  'tests/p3-ux-sync-regression.mjs'
 ];
 
 function annotation(text) {
