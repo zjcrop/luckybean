@@ -36,7 +36,10 @@ test('a second ONNX session failure can fall through to the same PP-OCRv5 main-t
 });
 
 test('ONNX compatibility memory is not mislabeled as a low-memory session flag', () => {
-  const rememberCompatibility = source.match(/function rememberRuntimeCompatibilityConstraint[\s\S]*?\n}/u)?.[0] ?? '';
+  const start = source.indexOf('function rememberRuntimeCompatibilityConstraint()');
+  const end = start >= 0 ? source.indexOf('\n}', start) : -1;
+  const rememberCompatibility = start >= 0 && end > start ? source.slice(start, end + 2) : '';
+  assert.ok(rememberCompatibility, 'missing runtime compatibility session-memory function');
   assert.match(rememberCompatibility, /COMPATIBILITY_FALLBACK_SESSION_KEY/u);
   assert.doesNotMatch(rememberCompatibility, /MEMORY_FALLBACK_SESSION_KEY/u);
   assert.doesNotMatch(rememberCompatibility, /memoryConstrained\s*=\s*true/u);
