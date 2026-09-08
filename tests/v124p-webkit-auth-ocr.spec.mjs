@@ -151,7 +151,7 @@ test('WebKit runtime registers its lightweight provider while keeping heavy PP-O
   }));
   expect(state.browserSafe).toBe(true);
   expect(state.primaryIsolation).toBe('webkit-direct-wasm-no-simd');
-  expect(state.compatibilityFallback).toBe('webkit-direct-wasm-no-simd');
+  expect(state.compatibilityFallback).toBe('webkit-direct-wasm-no-simd->direct-module-worker-wasm-no-simd->direct-wasm-no-simd-last-resort');
   expect(state.autoPreload).toBe(false);
   expect(state.disposePolicy).toBe('idle-30s');
   expect(state.roiWorkerOnly).toBe(true);
