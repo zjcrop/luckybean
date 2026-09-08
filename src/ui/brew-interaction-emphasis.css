@@ -80,6 +80,9 @@ html[data-theme="light"]{
   column-gap:12px!important;
   transform:none!important;
   text-align:left!important;
+  font-family:SimHei,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif!important;
+  font-size:15px!important;
+  font-weight:900!important;
 }
 #pageBrew #brewContent .brew-strategy-options .recommended-profile-option.selected{
   transform:none!important;
