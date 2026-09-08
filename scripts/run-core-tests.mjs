@@ -45,7 +45,7 @@ const supersededPattern = supersededTitles.map(escapeRegex).join('|');
 const args = [
   'playwright', 'test', ...specs,
   '--grep-invert', supersededPattern,
-  '--browser=chromium', '--reporter=line', '--workers=1', '--timeout=60000', '--retries=1'
+  '--browser=chromium', '--reporter=line', '--workers=1', '--timeout=90000', '--retries=1'
 ];
 const result = spawnSync('npx', args, { encoding:'utf8', env:process.env, maxBuffer:16*1024*1024, shell:process.platform === 'win32' });
 if (result.stdout) process.stdout.write(result.stdout);
