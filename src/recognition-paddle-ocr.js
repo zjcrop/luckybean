@@ -13,13 +13,19 @@ function isWebKitFamily() {
 
 const APPLE_MOBILE = isAppleMobileLike();
 const WEBKIT = isWebKitFamily();
-const LOW_MEMORY = APPLE_MOBILE || Number(navigator.deviceMemory || 4) <= 4;
+const DEVICE_MEMORY_GB = Number(navigator.deviceMemory || 0);
+const LOW_MEMORY = APPLE_MOBILE || (DEVICE_MEMORY_GB > 0 && DEVICE_MEMORY_GB <= 4);
 const ENGINE_INIT_TIMEOUT_MS = WEBKIT ? 30000 : 75000;
 const PREDICT_TIMEOUT_MS = WEBKIT ? 30000 : 45000;
 const ROI_CROP_TIMEOUT_MS = 20000;
 const ENGINE_IDLE_MS = WEBKIT ? 30000 : LOW_MEMORY ? 45000 : 90000;
 const WORKER_BUNDLE_MIN_BYTES = 100000;
 const WORKER_BUNDLE_FETCH_ATTEMPTS = 2;
+const MEMORY_FALLBACK_SESSION_KEY = 'luckybean.ppocr.low-memory.v1';
+
+function hasRememberedMemoryConstraint() {
+  try { return globalThis.sessionStorage?.getItem(MEMORY_FALLBACK_SESSION_KEY) === '1'; } catch { return false; }
+}
 
 let modulePromise = null;
 let runtimeManifestPromise = null;
@@ -32,7 +38,8 @@ let engineGeneration = 0;
 let busy = false;
 let disposeTimer = 0;
 let roiRequestSequence = 0;
-let memoryConstrained = LOW_MEMORY;
+let memoryConstrained = LOW_MEMORY || hasRememberedMemoryConstraint();
+const activeModuleWorkers = new Set();
 
 function diagnosticNow() { return Number(globalThis.performance?.now?.() ?? Date.now()); }
 function recordDiagnostic(phase, startedAt, detail = {}) {
@@ -41,6 +48,20 @@ function recordDiagnostic(phase, startedAt, detail = {}) {
   try {
     sink.record({ scope:'ocr', phase:String(phase), durationMs:Math.max(0, diagnosticNow() - Number(startedAt || 0)), ...detail });
   } catch {}
+}
+function rememberMemoryConstraint() {
+  memoryConstrained = true;
+  try { globalThis.sessionStorage?.setItem(MEMORY_FALLBACK_SESSION_KEY, '1'); } catch {}
+}
+function trackModuleWorker(worker) {
+  activeModuleWorkers.add(worker);
+  return worker;
+}
+function terminateModuleWorkers() {
+  for (const worker of activeModuleWorkers) {
+    try { worker.terminate(); } catch {}
+  }
+  activeModuleWorkers.clear();
 }
 
 function defaultRuntimeBase() { return new URL('../public/vendor/paddleocr/', import.meta.url); }
@@ -185,20 +206,20 @@ function createModuleWorker(preloadedBlobUrl = '') {
   const diagnosticStarted = diagnosticNow();
   try {
     if (preloadedBlobUrl) {
-      const worker = new Worker(preloadedBlobUrl, { type:'module', name:'luckybean-ppocr-v5' });
+      const worker = trackModuleWorker(new Worker(preloadedBlobUrl, { type:'module', name:'luckybean-ppocr-v5' }));
       workerBootstrapMode = 'preloaded-blob-module';
       recordDiagnostic('worker-bootstrap', diagnosticStarted, { mode:workerBootstrapMode });
       return worker;
     }
     workerBootstrapMode = 'direct-module-fallback';
-    const worker = new Worker(assetUrl('worker.js'), { type:'module', name:'luckybean-ppocr-v5' });
+    const worker = trackModuleWorker(new Worker(assetUrl('worker.js'), { type:'module', name:'luckybean-ppocr-v5' }));
     recordDiagnostic('worker-bootstrap', diagnosticStarted, { mode:workerBootstrapMode });
     return worker;
   } catch (error) {
     if (preloadedBlobUrl) {
       try {
         workerBootstrapMode = 'direct-module-fallback';
-        const worker = new Worker(assetUrl('worker.js'), { type:'module', name:'luckybean-ppocr-v5' });
+        const worker = trackModuleWorker(new Worker(assetUrl('worker.js'), { type:'module', name:'luckybean-ppocr-v5' }));
         recordDiagnostic('worker-bootstrap', diagnosticStarted, { mode:workerBootstrapMode, fallbackReason:String(error?.message || error) });
         return worker;
       } catch (fallbackError) {
@@ -237,16 +258,24 @@ async function createCompatibilityEngine() {
   return module.PaddleOCR.create(ocrCreateOptions({ compatibility:true }));
 }
 function disposeInstance(ocr) { if (!ocr?.dispose) return; Promise.resolve().then(() => ocr.dispose()).catch(() => {}); }
-function detachEngine() { const current = enginePromise; enginePromise = null; engineGeneration += 1; if (current) current.then(disposeInstance).catch(() => {}); }
+function detachEngine() {
+  const current = enginePromise;
+  enginePromise = null;
+  engineGeneration += 1;
+  terminateModuleWorkers();
+  if (current) current.then(disposeInstance).catch(() => {});
+}
 async function startMemoryCompatibilityEngine(generation, failure) {
   if (generation !== engineGeneration) throw failure;
   const retryStarted = diagnosticNow();
-  memoryConstrained = true;
+  rememberMemoryConstraint();
+  terminateModuleWorkers();
   releaseWorkerBundle();
   workerBootstrapMode = 'direct-wasm-no-simd-memory-retry';
   engineMode = 'direct-wasm-no-simd-low-memory';
-  emit('PP-OCRv5 内存不足，正在启用同一模型的低内存兼容模式', 10);
-  recordDiagnostic('wasm-memory-retry', retryStarted, { reason:String(failure?.message || failure), to:engineMode });
+  emit('PP-OCRv5 内存不足，正在释放 Worker 并启用同一模型的低内存兼容模式', 10);
+  recordDiagnostic('wasm-memory-retry', retryStarted, { reason:String(failure?.message || failure), to:engineMode, deviceMemory:DEVICE_MEMORY_GB || null });
+  await new Promise(resolve => globalThis.setTimeout(resolve, 80));
   const raw = createCompatibilityEngine();
   try {
     const ocr = await withTimeout(raw, ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 低内存兼容模式初始化超时，已退出本次识别；界面仍可继续操作', () => { if (generation === engineGeneration) engineGeneration += 1; });
@@ -274,10 +303,12 @@ async function startWorkerEngine() {
     if (!isOpaqueWorkerStartupFailure(error)) throw error;
 
     const retryStarted = diagnosticNow();
+    terminateModuleWorkers();
     releaseWorkerBundle();
     workerBootstrapMode = 'direct-module-retry';
-    emit('Blob Worker 启动失败，正在用同一 PP-OCRv5 同源 Worker 重试', 10);
+    emit('Blob Worker 启动失败，正在释放旧 Worker 并用同一 PP-OCRv5 同源 Worker 重试', 10);
     recordDiagnostic('worker-bootstrap-retry', retryStarted, { reason:String(error?.message || error), from:'preloaded-blob-module', to:'direct-module' });
+    await new Promise(resolve => globalThis.setTimeout(resolve, 40));
     raw = createWorkerEngine({ direct:true });
     try {
       const ocr = await withTimeout(raw, ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 同源 Worker 重试超时，已退出本次识别；界面仍可继续操作', () => { if (generation === engineGeneration) engineGeneration += 1; });
@@ -290,33 +321,38 @@ async function startWorkerEngine() {
       if (generation === engineGeneration && isWasmMemoryAllocationFailure(retryError)) {
         return startMemoryCompatibilityEngine(generation, retryError);
       }
+      terminateModuleWorkers();
       recordDiagnostic('worker-bootstrap-retry-failed', retryStarted, { message:String(retryError?.message || retryError) });
       throw new Error(`PP-OCRv5 Worker 启动失败（Blob 与同源重试均失败）：${retryError?.message || retryError}`);
     }
   }
 }
-async function startCompatibilityEngine() {
+async function startCompatibilityEngine(reason = 'webkit') {
   memoryConstrained = true;
-  emit('Safari 正在启用低内存兼容识别模式', 9);
-  const ocr = await withTimeout(createCompatibilityEngine(), ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 Safari 兼容模式初始化超时', () => {});
-  engineMode = 'direct-wasm-no-simd';
-  return ocr;
+  const isWebKitMode = reason === 'webkit';
+  engineMode = isWebKitMode ? 'direct-wasm-no-simd' : 'direct-wasm-no-simd-low-memory';
+  emit(isWebKitMode ? 'Safari 正在启用低内存兼容识别模式' : 'PP-OCRv5 正在使用会话低内存兼容模式', 9);
+  return withTimeout(createCompatibilityEngine(), ENGINE_INIT_TIMEOUT_MS, isWebKitMode ? 'PP-OCRv5 Safari 兼容模式初始化超时' : 'PP-OCRv5 低内存兼容模式初始化超时', () => {});
 }
 async function ensureEngine() {
   globalThis.clearTimeout(disposeTimer); if (enginePromise) return enginePromise;
   const diagnosticStarted = diagnosticNow();
-  emit(WEBKIT ? '正在按需准备 Safari 本地 OCR' : '正在后台准备本地 PP-OCRv5 中文检测与识别模型', 7);
-  const pending = WEBKIT ? startCompatibilityEngine() : startWorkerEngine();
+  emit(WEBKIT ? '正在按需准备 Safari 本地 OCR' : memoryConstrained ? '正在按低内存模式准备本地 PP-OCRv5' : '正在后台准备本地 PP-OCRv5 中文检测与识别模型', 7);
+  const pending = WEBKIT ? startCompatibilityEngine('webkit') : memoryConstrained ? startCompatibilityEngine('memory') : startWorkerEngine();
   const tracked = pending.then(ocr => {
     emit(engineMode.includes('low-memory') ? 'PP-OCRv5 低内存兼容模式已就绪' : WEBKIT ? 'PP-OCRv5 Safari 兼容模式已就绪' : 'PP-OCRv5 Worker 中文模型已就绪', 18);
-    recordDiagnostic('runtime-init', diagnosticStarted, { mode:engineMode, webkit:WEBKIT, lowMemory:memoryConstrained, workerBootstrap:workerBootstrapMode });
+    recordDiagnostic('runtime-init', diagnosticStarted, { mode:engineMode, webkit:WEBKIT, lowMemory:memoryConstrained, deviceMemory:DEVICE_MEMORY_GB || null, workerBootstrap:workerBootstrapMode });
     return ocr;
   }).catch(error => { if (enginePromise === tracked) enginePromise = null; throw new Error(`PP-OCRv5 初始化失败：${error.message}`); });
   enginePromise = tracked; return tracked;
 }
 async function dispose() {
-  globalThis.clearTimeout(disposeTimer); const current = enginePromise; enginePromise = null; engineGeneration += 1; if (!current) return;
-  try { const ocr = await current; await ocr?.dispose?.(); } catch {}
+  globalThis.clearTimeout(disposeTimer);
+  const current = enginePromise;
+  enginePromise = null;
+  engineGeneration += 1;
+  try { if (current) { const ocr = await current; await ocr?.dispose?.(); } } catch {}
+  finally { terminateModuleWorkers(); }
 }
 function scheduleDispose() {
   globalThis.clearTimeout(disposeTimer);
@@ -365,7 +401,7 @@ async function warmForRecognition() {
   if (globalThis.__LUCKYBEAN_ANDROID__) return null;
   try {
     const ocr = await ensureEngine();
-    emit(WEBKIT ? 'Safari 本地 OCR 已在录入阶段预热' : 'PP-OCRv5 模型已在录入阶段预热', 18);
+    emit(WEBKIT ? 'Safari 本地 OCR 已在录入阶段预热' : memoryConstrained ? 'PP-OCRv5 低内存模式已在录入阶段预热' : 'PP-OCRv5 模型已在录入阶段预热', 18);
     scheduleDispose();
     return ocr;
   } catch (error) {
@@ -401,6 +437,7 @@ document.addEventListener('visibilitychange', () => {
 });
 globalThis.addEventListener('pagehide', () => {
   if (!busy) void dispose();
+  terminateModuleWorkers();
   releaseWorkerBundle();
 });
 document.documentElement.dataset.webOcr = `ppocr-v5-${VERSION}-self-hosted-lazy-memory-bounded-reuse`;
