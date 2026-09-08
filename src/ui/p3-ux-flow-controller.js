@@ -1,5 +1,14 @@
 import { brewSpatialView } from '../renderers/brew-spatial-view.js';
 
+const stylesheetUrl = new URL('./p3-ux-flow.css', import.meta.url).href;
+if (!document.querySelector('link[data-p3-ux-flow]')) {
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = stylesheetUrl;
+  link.dataset.p3UxFlow = '1';
+  document.head.append(link);
+}
+
 const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
 const $$ = (selector, root = document) => root?.querySelectorAll ? [...root.querySelectorAll(selector)] : [];
 
@@ -71,10 +80,6 @@ function normalizeCaptureUi() {
   if (manualRow && !manualRow.children.length) manualRow.remove();
   else if (manualRow && handoff?.parentElement === actions) manualRow.remove();
 
-  // The capture screen is acquisition, not a second approval screen. Once a
-  // valid OCR document exists, hand it to the Foundation review flow. That flow
-  // still owns ambiguous date/number/record-boundary questions and the bean form
-  // remains the final editable confirmation surface.
   const result = $('.bag-recognition-result', overlay);
   if (result && handoff && !handoff.disabled && !autoHandoffQueued && overlay.dataset.autoHandoff !== '1') {
     overlay.dataset.autoHandoff = '1';
@@ -181,7 +186,6 @@ if (!brewSpatialView.__p3LifecyclePatched) {
   const originalOpen = brewSpatialView.open.bind(brewSpatialView);
   const originalClose = brewSpatialView.close.bind(brewSpatialView);
   brewSpatialView.open = function p3Open() {
-    // Never allow a stale high-z overlay from a previous interrupted session.
     if (!this.opened) teardownSpatialOverlay(this);
     originalOpen();
     requestAnimationFrame(() => requestAnimationFrame(() => {
