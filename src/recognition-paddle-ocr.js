@@ -216,10 +216,15 @@ function ocrCreateOptions({ compatibility = false, workerBlobUrl = '' } = {}) {
     ortOptions:{ backend:'wasm', wasmPaths:assetUrl('ort/'), numThreads:1, simd:compatibility ? false : true }
   };
 }
-async function createWorkerEngine() {
-  const [module, workerBlobUrl] = await Promise.all([loadModule(), prepareWorkerBundle()]);
+async function createWorkerEngine({ direct = false } = {}) {
+  const module = await loadModule();
   if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');
-  return module.PaddleOCR.create(ocrCreateOptions({ compatibility:false, workerBlobUrl:workerBlobUrl || '' }));
+  const workerBlobUrl = direct ? '' : (await prepareWorkerBundle()) || '';
+  return module.PaddleOCR.create(ocrCreateOptions({ compatibility:false, workerBlobUrl }));
+}
+function isOpaqueWorkerStartupFailure(error) {
+  const message = String(error?.message || error || '');
+  return /Unknown worker error|Failed to construct ['"]?Worker|SecurityError|Worker (?:startup|initialization|运行|启动|创建).*?(?:fail|error|失败)/iu.test(message);
 }
 async function createCompatibilityEngine() {
   const module = await loadModule(); if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');
@@ -228,12 +233,33 @@ async function createCompatibilityEngine() {
 function disposeInstance(ocr) { if (!ocr?.dispose) return; Promise.resolve().then(() => ocr.dispose()).catch(() => {}); }
 function detachEngine() { const current = enginePromise; enginePromise = null; engineGeneration += 1; if (current) current.then(disposeInstance).catch(() => {}); }
 async function startWorkerEngine() {
-  const generation = ++engineGeneration; const raw = createWorkerEngine();
+  const generation = ++engineGeneration;
+  let raw = createWorkerEngine();
   try {
     const ocr = await withTimeout(raw, ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 Worker 初始化超时，已退出本次识别；界面仍可继续操作', () => { if (generation === engineGeneration) engineGeneration += 1; });
     if (generation !== engineGeneration) { disposeInstance(ocr); throw new Error('PP-OCRv5 Worker 初始化结果已失效，请重新识别'); }
     return ocr;
-  } catch (error) { raw.then(ocr => { if (generation !== engineGeneration) disposeInstance(ocr); }).catch(() => {}); throw error; }
+  } catch (error) {
+    raw.then(ocr => { if (generation !== engineGeneration) disposeInstance(ocr); }).catch(() => {});
+    if (generation !== engineGeneration || !isOpaqueWorkerStartupFailure(error)) throw error;
+
+    const retryStarted = diagnosticNow();
+    releaseWorkerBundle();
+    workerBootstrapMode = 'direct-module-retry';
+    emit('Blob Worker 启动失败，正在用同一 PP-OCRv5 同源 Worker 重试', 10);
+    recordDiagnostic('worker-bootstrap-retry', retryStarted, { reason:String(error?.message || error), from:'preloaded-blob-module', to:'direct-module' });
+    raw = createWorkerEngine({ direct:true });
+    try {
+      const ocr = await withTimeout(raw, ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 同源 Worker 重试超时，已退出本次识别；界面仍可继续操作', () => { if (generation === engineGeneration) engineGeneration += 1; });
+      if (generation !== engineGeneration) { disposeInstance(ocr); throw new Error('PP-OCRv5 同源 Worker 重试结果已失效，请重新识别'); }
+      recordDiagnostic('worker-bootstrap-retry-success', retryStarted, { mode:workerBootstrapMode });
+      return ocr;
+    } catch (retryError) {
+      raw.then(ocr => { if (generation !== engineGeneration) disposeInstance(ocr); }).catch(() => {});
+      recordDiagnostic('worker-bootstrap-retry-failed', retryStarted, { message:String(retryError?.message || retryError) });
+      throw new Error(`PP-OCRv5 Worker 启动失败（Blob 与同源重试均失败）：${retryError?.message || retryError}`);
+    }
+  }
 }
 async function startCompatibilityEngine() {
   emit('Safari 正在启用低内存兼容识别模式', 9);
