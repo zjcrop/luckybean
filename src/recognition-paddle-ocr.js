@@ -1,4 +1,4 @@
-const VERSION = '0.4.11';
+const VERSION = '0.4.12';
 const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;
 
 function isAppleMobileLike() {
@@ -431,11 +431,35 @@ async function startCompatibilityEngine(reason = 'webkit') {
   emit(isWebKitMode ? 'Safari 正在启用低内存兼容识别模式' : 'PP-OCRv5 正在使用会话低内存兼容模式', 9);
   return withTimeout(createCompatibilityEngine(), ENGINE_INIT_TIMEOUT_MS, isWebKitMode ? 'PP-OCRv5 Safari 兼容模式初始化超时' : 'PP-OCRv5 低内存兼容模式初始化超时', () => {});
 }
+async function startWebKitEngine() {
+  const generation = ++engineGeneration;
+  const startedAt = diagnosticNow();
+  memoryConstrained = true;
+  engineMode = 'direct-wasm-no-simd';
+  emit('Safari 正在启用单线程无 SIMD 本地 PP-OCRv5', 7);
+  let raw = createCompatibilityEngine();
+  try {
+    const ocr = await withTimeout(raw, ENGINE_INIT_TIMEOUT_MS, 'PP-OCRv5 Safari 兼容模式初始化超时', () => {});
+    if (generation !== engineGeneration) { disposeInstance(ocr); throw new Error('PP-OCRv5 Safari 初始化结果已失效，请重新识别'); }
+    recordDiagnostic('webkit-runtime-init-success', startedAt, { mode:engineMode });
+    return ocr;
+  } catch (error) {
+    raw.then(ocr => { if (generation !== engineGeneration) disposeInstance(ocr); }).catch(() => {});
+    recordDiagnostic('webkit-runtime-init-failed', startedAt, { message:String(error?.message || error) });
+    if (generation !== engineGeneration) throw error;
+    if (isWasmMemoryAllocationFailure(error)) return startMemoryCompatibilityEngine(generation, error);
+    if (isOnnxSessionCreationFailure(error)) {
+      emit('Safari 主线程 ONNX session 创建失败，正在用同一 PP-OCRv5 的无 SIMD Worker 兼容路径重试', 9);
+      return startSessionCompatibilityEngine(generation, error);
+    }
+    throw error;
+  }
+}
 async function ensureEngine() {
   globalThis.clearTimeout(disposeTimer); if (enginePromise) return enginePromise;
   const diagnosticStarted = diagnosticNow();
   emit(WEBKIT ? '正在按需准备 Safari 本地 OCR' : memoryConstrained ? '正在按低内存模式准备本地 PP-OCRv5' : runtimeCompatibilityConstrained ? '正在按 ONNX runtime 兼容模式准备本地 PP-OCRv5' : '正在后台准备本地 PP-OCRv5 中文检测与识别模型', 7);
-  const pending = WEBKIT ? startCompatibilityEngine('webkit') : memoryConstrained ? startRememberedMemoryEngine() : runtimeCompatibilityConstrained ? startRememberedSessionCompatibilityEngine() : startWorkerEngine();
+  const pending = WEBKIT ? startWebKitEngine() : memoryConstrained ? startRememberedMemoryEngine() : runtimeCompatibilityConstrained ? startRememberedSessionCompatibilityEngine() : startWorkerEngine();
   const tracked = pending.then(ocr => {
     emit(engineMode.includes('low-memory') ? 'PP-OCRv5 低内存兼容模式已就绪' : engineMode.includes('session') ? 'PP-OCRv5 ONNX runtime 兼容模式已就绪' : WEBKIT ? 'PP-OCRv5 Safari 兼容模式已就绪' : 'PP-OCRv5 Worker 中文模型已就绪', 18);
     recordDiagnostic('runtime-init', diagnosticStarted, { mode:engineMode, webkit:WEBKIT, lowMemory:memoryConstrained, runtimeCompatibility:runtimeCompatibilityConstrained, deviceMemory:DEVICE_MEMORY_GB || null, workerBootstrap:workerBootstrapMode });
@@ -512,7 +536,7 @@ async function preload() {
 }
 const paddleOcrApi = Object.freeze({
   version:VERSION, engine:ENGINE, get lowMemory() { return memoryConstrained; }, get runtimeCompatibility() { return runtimeCompatibilityConstrained; }, appleMobile:APPLE_MOBILE,
-  workerOnly:false, browserSafe:true, primaryIsolation:WEBKIT ? 'webkit-direct-wasm-no-simd' : 'module-worker', compatibilityFallback:'webkit-direct-wasm-no-simd',
+  workerOnly:false, browserSafe:true, primaryIsolation:WEBKIT ? 'webkit-direct-wasm-no-simd' : 'module-worker', compatibilityFallback:'webkit-direct-wasm-no-simd->direct-module-worker-wasm-no-simd->direct-wasm-no-simd-last-resort',
   memoryFallback:'direct-module-worker-wasm-no-simd-low-memory->direct-wasm-no-simd-last-resort',
   sessionFallback:'onnx-session->direct-module-worker-wasm-no-simd->direct-wasm-no-simd-last-resort',
   autoPreload:false, disposePolicy:`idle-${Math.round(ENGINE_IDLE_MS / 1000)}s`,
