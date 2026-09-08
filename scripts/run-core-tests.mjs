@@ -25,7 +25,8 @@ const specs = [
   'tests/v124b-followup-regression.spec.mjs',
   'tests/v124p-recognition-preflight-regression.spec.mjs',
   'tests/v124p-pour-guide-ui.spec.mjs',
-  'tests/p3-ux-flow-ui.spec.mjs'
+  'tests/p3-ux-flow-ui.spec.mjs',
+  'tests/media-tasting-ui.spec.mjs'
 ];
 
 function annotation(text) {
