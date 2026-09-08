@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 5.3235
+  duration_ms: 5.216872
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 1.88827
+  duration_ms: 2.069199
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 2.729942
+  duration_ms: 2.402243
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 2.001781
+  duration_ms: 1.900302
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.836403
+  duration_ms: 0.816881
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.942591
+  duration_ms: 2.644087
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.909093
+  duration_ms: 0.793708
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 22.359
+# duration_ms 21.792391
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 5.933195
+  duration_ms: 5.779844
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 4.002791
+  duration_ms: 3.726174
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 4.093898
+  duration_ms: 3.57974
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 3.069952
+  duration_ms: 2.860231
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 2.577574
+  duration_ms: 2.381855
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 1.146278
+  duration_ms: 1.120691
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 26.74124
+# duration_ms 25.368332
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -207,6 +207,7 @@ AssertionError [ERR_ASSERTION]: ROI Worker may downscale oversized crops but mus
   actual: 'const MIN_REGION_SPAN = 0.01;\n' +
     'const DEFAULT_MAX_EDGE = 2200;\n' +
     'const HEADER_PROBE_BYTES = 1024 * 1024;\n' +
+    'const ROI_DECODE_MAX_EDGE = 3000;\n' +
     '\n' +
     'function clamp01(value, fallback = 0) {\n' +
     '  const number = Number(value);\n' +
@@ -311,42 +312,52 @@ AssertionError [ERR_ASSERTION]: ROI Worker may downscale oversized crops but mus
     '  };\n' +
     '}\n' +
     '\n' +
+    'function roiDecodeEdge(region, requestedMaxEdge) {\n' +
+    '  if (isFullFrame(region)) return requestedMaxEdge;\n' +
+    '  const span = Math.max(MIN_REGION_SPAN, Math.max(region.right - region.left, region.bottom - region.top));\n' +
+    '  // Preserve more detail for a small crop while still putting a hard ceiling on\n' +
+    '  // the full decoded raster. A quarter-frame region therefore receives materially\n' +
+    '  // more pixels than it did in whole-page OCR without ever allocating a 12/48 MP\n' +
+    '  // RGBA bitmap.\n' +
+    '  return Math.max(\n' +
+    '    requestedMaxEdge,\n' +
+    '    Math.min(ROI_DECODE_MAX_EDGE, Math.ceil(requestedMaxEdge / span))\n' +
+    '  );\n' +
+    '}\n' +
+    '\n' +
     'async function decodeBitmap(blob, region, maxEdge) {\n' +
-    '  // Whole-page OCR is the hot path for camera photos. Read only the compressed\n' +
-    '  // image header first and ask the browser decoder to produce an already-bounded\n' +
-    '  // bitmap. That prevents a 12/48 MP camera frame from ever becoming a full-size\n' +
-    '  // RGBA bitmap before the ROI Worker downsizes it.\n' +
-    '  if (isFullFrame(region)) {\n' +
-    '    const dimensions = await encodedDimensions(blob);\n' +
-    '    if (dimensions && Math.max(dimensions.width, dimensions.height) > maxEdge) {\n' +
-    '      const target = boundedSize(dimensions.width, dimensions.height, maxEdge);\n' +
-    '      try {\n' +
-    '        const bitmap = await createImageBitmap(blob, {\n' +
-    "          imageOrientation: 'from-image',\n" +
-    '          resizeWidth: target.width,\n' +
-    '          resizeHeight: target.height,\n' +
-    "          resizeQuality: 'high'\n" +
-    '        });\n' +
-    '        return {\n' +
-    '          bitmap,\n' +
-    '          originalWidth: dimensions.width,\n' +
-    '          originalHeight: dimensions.height,\n' +
-    '          decodePreScaled: true,\n' +
-    '          encodedFormat: dimensions.format\n' +
-    '        };\n' +
-    '      } catch {\n' +
-    '        // Older engines may reject resize hints. Keep the previous Worker-only\n' +
-    '        // behavior as a compatibility path; never move decoding to the UI thread.\n' +
-    '      }\n' +
+    '  const dimensions = await encodedDimensions(blob);\n' +
+    '  const decodeMaxEdge = roiDecodeEdge(region, maxEdge);\n' +
+    '  if (dimensions && Math.max(dimensions.width, dimensions.height) > decodeMaxEdge) {\n' +
+    '    const target = boundedSize(dimensions.width, dimensions.height, decodeMaxEdge);\n' +
+    '    try {\n' +
+    '      const bitmap = await createImageBitmap(blob, {\n' +
+    "        imageOrientation: 'from-image',\n" +
+    '        resizeWidth: target.width,\n' +
+    '        resizeHeight: target.height,\n' +
+    "        resizeQuality: 'high'\n" +
+    '      });\n' +
+    '      return {\n' +
+    '        bitmap,\n' +
+    '        originalWidth: dimensions.width,\n' +
+    '        originalHeight: dimensions.height,\n' +
+    '        decodePreScaled: true,\n' +
+    '        decodeMaxEdge,\n' +
+    '        encodedFormat: dimensions.format\n' +
+    '      };\n' +
+    '    } catch {\n' +
+    '      // Older engines may reject resize hints. Stay in the ROI Worker and retain\n' +
+    '      // compatibility; never move decoding onto the UI thread.\n' +
     '    }\n' +
     '  }\n' +
     "  const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });\n" +
     '  return {\n' +
     '    bitmap,\n' +
-    '    originalWidth: bitmap.width,\n' +
-    '    originalHeight: bitmap.height,\n' +
+    '    originalWidth: dimensions?.width || bitmap.width,\n' +
+    '    originalHeight: dimensions?.height || bitmap.height,\n' +
     '    decodePreScaled: false,\n' +
-    "    encodedFormat: ''\n" +
+    '    decodeMaxEdge,\n' +
+    "    encodedFormat: dimensions?.format || ''\n" +
     '  };\n' +
     '}\n' +
     '\n' +
@@ -387,6 +398,7 @@ AssertionError [ERR_ASSERTION]: ROI Worker may downscale oversized crops but mus
     '      outputWidth: width,\n' +
     '      outputHeight: height,\n' +
     '      decodePreScaled: decoded.decodePreScaled,\n' +
+    '      decodeMaxEdge: decoded.decodeMaxEdge,\n' +
     '      encodedFormat: decoded.encodedFormat\n' +
     '    };\n' +
     '  } finally {\n' +
@@ -406,11 +418,11 @@ AssertionError [ERR_ASSERTION]: ROI Worker may downscale oversized crops but mus
     "      error: String(error?.message || error || 'ROI Worker 裁剪失败')\n" +
     '    });\n' +
     '  }\n' +
-    '};\n',
+    '};',
   expected: /Math\.min\(1,\s*maxEdge\s*\/\s*Math\.max\(crop\.width,\s*crop\.height\)\)/,
   operator: 'match',
   diff: 'simple'
 }
 
 Node.js v22.23.2
-::error file=tests/v124b-ocr-worker-freeze-regression.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: ROI Worker may downscale oversized crops but must never upscale them before PP-OCR%0A    at file:///home/runner/work/luckybean/luckybean/tests/v124b-ocr-worker-freeze-regression.mjs:48:8 {%0A  generatedMessage: false,%0A  code: 'ERR_ASSERTION',%0A  actual: 'const MIN_REGION_SPAN = 0.01;\n' +%0A    'const DEFAULT_MAX_EDGE = 2200;\n' +%0A    'const HEADER_PROBE_BYTES = 1024 * 1024;\n' +%0A    '\n' +%0A    'function clamp01(value, fallback = 0) {\n' +%0A    '  const number = Number(value);\n' +%0A    '  if (!Number.isFinite(number)) return fallback;\n' +%0A    '  return Math.max(0, Math.min(1, number));\n' +%0A    '}\n' +%0A    '\n' +%0A    'function normalizeRegion(input) {\n' +%0A    "  const source = input && typeof input === 'object' ? input : {};\n" +%0A    '  const left = clamp01(source.left);\n' +%0A    '  const top = clamp01(source.top);\n' +%0A    '  const right = clamp01(source.right, 1);\n' +%0A    '  const bottom = clamp01(source.bottom, 1);\n' +%0A    '  if (right - left < MIN_REGION_SPAN || bottom - top < MIN_REGION_SPAN) {\n' +%0A    "    throw new Error('ROI 范围过小或无效');\n" +%0A    '  }\n' +%0A    '  return { left, top, right, bottom };\n' +%0A    '}\n' +%0A    '\n' +%0A    'function isFullFrame(region) {\n' +%0A    '  return region.left <= 0.0001 && region.top <= 0.0001 &&\n' +%0A    '    region.right >= 0.9999 && region.bottom >= 0.9999;\n' +%0A    '}\n' +%0A    '\n' +%0A    'function cropGeometry(width, height, region) {\n' +%0A    '  const left = Math.max(0, Math.min(width - 1, Math.floor(region.left * width)));\n' +%0A    '  const top = Math.max(0, Math.min(height - 1, Math.floor(region.top * height)));\n' +%0A    '  const right = Math.max(left + 1, Math.min(width, Math.ceil(region.right * width)));\n' +%0A    '  const bottom = Math.max(top + 1, Math.min(height, Math.ceil(region.bottom * height)));\n' +%0A    '  return { x: left, y: top, width: right - left, height: bottom - top };\n' +%0A    '}\n' +%0A    '\n' +%0A    'function readUint32BE(bytes, offset) {\n' +%0A    '  return ((bytes[offset] << 24) >>> 0) + (bytes[offset + 1] << 16) +\n' +%0A    '    (bytes[offset + 2] << 8) + bytes[offset + 3];\n' +%0A    '}\n' +%0A    '\n' +%0A    'function pngDimensions(bytes) {\n' +%0A    '  if (bytes.length < 24) return null;\n' +%0A    '  const signature = [137, 80, 78, 71, 13, 10, 26, 10];\n' +%0A    '  if (!signature.every((value, index) => bytes[index] === value)) return null;\n' +%0A    '  const width = readUint32BE(bytes, 16);\n' +%0A    '  const height = readUint32BE(bytes, 20);\n' +%0A    "  return width > 0 && height > 0 ? { width, height, format: 'png' } : null;\n" +%0A    '}\n' +%0A    '\n' +%0A    'const JPEG_SOF_MARKERS = new Set([\n' +%0A    '  0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7,\n' +%0A    '  0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf\n' +%0A    ']);\n' +%0A    '\n' +%0A    'function jpegDimensions(bytes) {\n' +%0A    '  if (bytes.length < 10 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;\n' +%0A    '  let offset = 2;\n' +%0A    '  while (offset + 8 < bytes.length) {\n' +%0A    '    if (bytes[offset] !== 0xff) { offset += 1; continue; }\n' +%0A    '    while (offset < bytes.length && bytes[offset] === 0xff) offset += 1;\n' +%0A    '    if (offset >= bytes.length) break;\n' +%0A    '    const marker = bytes[offset];\n' +%0A    '    offset += 1;\n' +%0A    '    if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7) || marker === 0x01) continue;\n' +%0A    '    if (offset + 1 >= bytes.length) break;\n' +%0A    '    const segmentLength = (bytes[offset] << 8) | bytes[offset + 1];\n' +%0A    '    if (segmentLength < 2 || offset + segmentLength > bytes.length) break;\n' +%0A    '    if (JPEG_SOF_MARKERS.has(marker) && segmentLength >= 7) {\n' +%0A    '      const height = (bytes[offset + 3] << 8) | bytes[offset + 4];\n' +%0A    '      const width = (bytes[offset + 5] << 8) | bytes[offset + 6];\n' +%0A    "      return width > 0 && height > 0 ? { width, height, format: 'jpeg' } : null;\n" +%0A    '    }\n' +%0A    '    offset += segmentLength;\n' +%0A    '  }\n' +%0A    '  return null;\n' +%0A    '}\n' +%0A    '\n' +%0A    'function webpDimensions(bytes) {\n' +%0A    '  if (bytes.length < 30) return null;\n' +%0A    '  const ascii = (offset, length) => String.fromCharCode(...bytes.subarray(offset, offset + length));\n' +%0A    "  if (ascii(0, 4) !== 'RIFF' || ascii(8, 4) !== 'WEBP') return null;\n" +%0A    "  if (ascii(12, 4) === 'VP8X') {\n" +%0A    '    const width = 1 + bytes[24] + (bytes[25] << 8) + (bytes[26] << 16);\n' +%0A    '    const height = 1 + bytes[27] + (bytes[28] << 8) + (bytes[29] << 16);\n' +%0A    "    return width > 0 && height > 0 ? { width, height, format: 'webp' } : null;\n" +%0A    '  }\n' +%0A    '  return null;\n' +%0A    '}\n' +%0A    '\n' +%0A    'async function encodedDimensions(blob) {\n' +%0A    '  try {\n' +%0A    '    const probe = new Uint8Array(await blob.slice(0, Math.min(blob.size, HEADER_PROBE_BYTES)).arrayBuffer());\n' +%0A    '    return pngDimensions(probe) || jpegDimensions(probe) || webpDimensions(probe);\n' +%0A    '  } catch {\n' +%0A    '    return null;\n' +%0A    '  }\n' +%0A    '}\n' +%0A    '\n' +%0A    'function boundedSize(width, height, maxEdge) {\n' +%0A    '  const scale = Math.min(1, maxEdge / Math.max(width, height));\n' +%0A    '  return {\n' +%0A    '    width: Math.max(1, Math.round(width * scale)),\n' +%0A    '    height: Math.max(1, Math.round(height * scale)),\n' +%0A    '    scale\n' +%0A    '  };\n' +%0A    '}\n' +%0A    '\n' +%0A    'async function decodeBitmap(blob, region, maxEdge) {\n' +%0A    '  // Whole-page OCR is the hot path for camera photos. Read only the compressed\n' +%0A    '  // image header first and ask the browser decoder to produce an already-bounded\n' +%0A    '  // bitmap. That prevents a 12/48 MP camera frame from ever becoming a full-size\n' +%0A    '  // RGBA bitmap before the ROI Worker downsizes it.\n' +%0A    '  if (isFullFrame(region)) {\n' +%0A    '    const dimensions = await encodedDimensions(blob);\n' +%0A    '    if (dimensions && Math.max(dimensions.width, dimensions.height) > maxEdge) {\n' +%0A    '      const target = boundedSize(dimensions.width, dimensions.height, maxEdge);\n' +%0A    '      try {\n' +%0A    '        const bitmap = await createImageBitmap(blob, {\n' +%0A    "          imageOrientation: 'from-image',\n" +%0A    '          resizeWidth: target.width,\n' +%0A    '          resizeHeight: target.height,\n' +%0A    "          resizeQuality: 'high'\n" +%0A    '        });\n' +%0A    '        return {\n' +%0A    '          bitmap,\n' +%0A    '          originalWidth: dimensions.width,\n' +%0A    '          originalHeight: dimensions.height,\n' +%0A    '          decodePreScaled: true,\n' +%0A    '          encodedFormat: dimensions.format\n' +%0A    '        };\n' +%0A    '      } catch {\n' +%0A    '      
+::error file=tests/v124b-ocr-worker-freeze-regression.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: ROI Worker may downscale oversized crops but must never upscale them before PP-OCR%0A    at file:///home/runner/work/luckybean/luckybean/tests/v124b-ocr-worker-freeze-regression.mjs:48:8 {%0A  generatedMessage: false,%0A  code: 'ERR_ASSERTION',%0A  actual: 'const MIN_REGION_SPAN = 0.01;\n' +%0A    'const DEFAULT_MAX_EDGE = 2200;\n' +%0A    'const HEADER_PROBE_BYTES = 1024 * 1024;\n' +%0A    'const ROI_DECODE_MAX_EDGE = 3000;\n' +%0A    '\n' +%0A    'function clamp01(value, fallback = 0) {\n' +%0A    '  const number = Number(value);\n' +%0A    '  if (!Number.isFinite(number)) return fallback;\n' +%0A    '  return Math.max(0, Math.min(1, number));\n' +%0A    '}\n' +%0A    '\n' +%0A    'function normalizeRegion(input) {\n' +%0A    "  const source = input && typeof input === 'object' ? input : {};\n" +%0A    '  const left = clamp01(source.left);\n' +%0A    '  const top = clamp01(source.top);\n' +%0A    '  const right = clamp01(source.right, 1);\n' +%0A    '  const bottom = clamp01(source.bottom, 1);\n' +%0A    '  if (right - left < MIN_REGION_SPAN || bottom - top < MIN_REGION_SPAN) {\n' +%0A    "    throw new Error('ROI 范围过小或无效');\n" +%0A    '  }\n' +%0A    '  return { left, top, right, bottom };\n' +%0A    '}\n' +%0A    '\n' +%0A    'function isFullFrame(region) {\n' +%0A    '  return region.left <= 0.0001 && region.top <= 0.0001 &&\n' +%0A    '    region.right >= 0.9999 && region.bottom >= 0.9999;\n' +%0A    '}\n' +%0A    '\n' +%0A    'function cropGeometry(width, height, region) {\n' +%0A    '  const left = Math.max(0, Math.min(width - 1, Math.floor(region.left * width)));\n' +%0A    '  const top = Math.max(0, Math.min(height - 1, Math.floor(region.top * height)));\n' +%0A    '  const right = Math.max(left + 1, Math.min(width, Math.ceil(region.right * width)));\n' +%0A    '  const bottom = Math.max(top + 1, Math.min(height, Math.ceil(region.bottom * height)));\n' +%0A    '  return { x: left, y: top, width: right - left, height: bottom - top };\n' +%0A    '}\n' +%0A    '\n' +%0A    'function readUint32BE(bytes, offset) {\n' +%0A    '  return ((bytes[offset] << 24) >>> 0) + (bytes[offset + 1] << 16) +\n' +%0A    '    (bytes[offset + 2] << 8) + bytes[offset + 3];\n' +%0A    '}\n' +%0A    '\n' +%0A    'function pngDimensions(bytes) {\n' +%0A    '  if (bytes.length < 24) return null;\n' +%0A    '  const signature = [137, 80, 78, 71, 13, 10, 26, 10];\n' +%0A    '  if (!signature.every((value, index) => bytes[index] === value)) return null;\n' +%0A    '  const width = readUint32BE(bytes, 16);\n' +%0A    '  const height = readUint32BE(bytes, 20);\n' +%0A    "  return width > 0 && height > 0 ? { width, height, format: 'png' } : null;\n" +%0A    '}\n' +%0A    '\n' +%0A    'const JPEG_SOF_MARKERS = new Set([\n' +%0A    '  0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7,\n' +%0A    '  0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf\n' +%0A    ']);\n' +%0A    '\n' +%0A    'function jpegDimensions(bytes) {\n' +%0A    '  if (bytes.length < 10 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;\n' +%0A    '  let offset = 2;\n' +%0A    '  while (offset + 8 < bytes.length) {\n' +%0A    '    if (bytes[offset] !== 0xff) { offset += 1; continue; }\n' +%0A    '    while (offset < bytes.length && bytes[offset] === 0xff) offset += 1;\n' +%0A    '    if (offset >= bytes.length) break;\n' +%0A    '    const marker = bytes[offset];\n' +%0A    '    offset += 1;\n' +%0A    '    if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7) || marker === 0x01) continue;\n' +%0A    '    if (offset + 1 >= bytes.length) break;\n' +%0A    '    const segmentLength = (bytes[offset] << 8) | bytes[offset + 1];\n' +%0A    '    if (segmentLength < 2 || offset + segmentLength > bytes.length) break;\n' +%0A    '    if (JPEG_SOF_MARKERS.has(marker) && segmentLength >= 7) {\n' +%0A    '      const height = (bytes[offset + 3] << 8) | bytes[offset + 4];\n' +%0A    '      const width = (bytes[offset + 5] << 8) | bytes[offset + 6];\n' +%0A    "      return width > 0 && height > 0 ? { width, height, format: 'jpeg' } : null;\n" +%0A    '    }\n' +%0A    '    offset += segmentLength;\n' +%0A    '  }\n' +%0A    '  return null;\n' +%0A    '}\n' +%0A    '\n' +%0A    'function webpDimensions(bytes) {\n' +%0A    '  if (bytes.length < 30) return null;\n' +%0A    '  const ascii = (offset, length) => String.fromCharCode(...bytes.subarray(offset, offset + length));\n' +%0A    "  if (ascii(0, 4) !== 'RIFF' || ascii(8, 4) !== 'WEBP') return null;\n" +%0A    "  if (ascii(12, 4) === 'VP8X') {\n" +%0A    '    const width = 1 + bytes[24] + (bytes[25] << 8) + (bytes[26] << 16);\n' +%0A    '    const height = 1 + bytes[27] + (bytes[28] << 8) + (bytes[29] << 16);\n' +%0A    "    return width > 0 && height > 0 ? { width, height, format: 'webp' } : null;\n" +%0A    '  }\n' +%0A    '  return null;\n' +%0A    '}\n' +%0A    '\n' +%0A    'async function encodedDimensions(blob) {\n' +%0A    '  try {\n' +%0A    '    const probe = new Uint8Array(await blob.slice(0, Math.min(blob.size, HEADER_PROBE_BYTES)).arrayBuffer());\n' +%0A    '    return pngDimensions(probe) || jpegDimensions(probe) || webpDimensions(probe);\n' +%0A    '  } catch {\n' +%0A    '    return null;\n' +%0A    '  }\n' +%0A    '}\n' +%0A    '\n' +%0A    'function boundedSize(width, height, maxEdge) {\n' +%0A    '  const scale = Math.min(1, maxEdge / Math.max(width, height));\n' +%0A    '  return {\n' +%0A    '    width: Math.max(1, Math.round(width * scale)),\n' +%0A    '    height: Math.max(1, Math.round(height * scale)),\n' +%0A    '    scale\n' +%0A    '  };\n' +%0A    '}\n' +%0A    '\n' +%0A    'function roiDecodeEdge(region, requestedMaxEdge) {\n' +%0A    '  if (isFullFrame(region)) return requestedMaxEdge;\n' +%0A    '  const span = Math.max(MIN_REGION_SPAN, Math.max(region.right - region.left, region.bottom - region.top));\n' +%0A    '  // Preserve more detail for a small crop while still putting a hard ceiling on\n' +%0A    '  // the full decoded raster. A quarter-frame region therefore receives materially\n' +%0A    '  // more pixels than it did in whole-page OCR without ever allocating a 12/48 MP\n' +%0A    '  // RGBA bitmap.\n' +%0A    '  return Math.max(\n' +%0A    '    requestedMaxEdge,\n' +%0A    '    Math.min(ROI_DECODE_MAX_EDGE, Math.ceil(requestedMaxEdge / span))\n' +%0A    '  );\n' +%0A    '}\n' +%0A    '\n' +%0A    'async function decodeBitmap(blob, region, maxEdge) {\n' +%0A    '  const dimensions = await encodedDimensions(blob);\n' +%0A    '  const decodeMaxEdge = roiDecodeEdge(region, maxEdge);\n' +%0A    '  if (dimensions && Math.max(dimensions.width, dimensions.height) > decodeMaxEdge) {\n' +%0A    '    const target = boundedSize(dimensions.width, dimensions.height, decodeMaxEdge);\n' +%0A    '    try {\n' +%0A    '      const bitmap = await createImageBitmap(blob, {\n' +%0A    "        imageOrientation: 'from-image',\n" +%0A    '        resizeWidt
