@@ -87,7 +87,7 @@ async function adaptiveRecognize(base, images, options = {}) {
     const detailImages = fastImages.map(image => detailSource(image) ? { ...image, blob:detailSource(image), adaptiveDetailBlob:null } : image);
     const recovered = await base.recognizeCoffeeBag(detailImages, options);
     emit('高细节恢复识别完成', 96);
-    return { ...recovered, adaptiveImagePolicy:ADAPTIVE_OCR_IMAGE_POLICY, adaptiveDetail:{ attempted:detailImages.filter(image => image.blob).map(image => image.id), accepted:detailImages.map(image => image.id), recoveredFromEmpty:true } };
+    return { ...recovered, adaptiveImagePolicy:ADAPTIVE_OCR_IMAGE_POLICY, adaptiveDetail:{ attempted:detailImages.map(image => image.id), accepted:detailImages.map(image => image.id), recoveredFromEmpty:true } };
   }
 
   const replaceByImage = new Map();
@@ -153,4 +153,8 @@ export function installAdaptivePaddleOcrProvider() {
   if (globalThis.CoffeeFoundationPaddleOCR === base) globalThis.CoffeeFoundationPaddleOCR = wrapped;
   document.documentElement.dataset.webOcrAdaptive = ADAPTIVE_OCR_IMAGE_POLICY;
   return true;
+}
+
+if (!installAdaptivePaddleOcrProvider()) {
+  document.addEventListener('luckybean:runtime-features-ready', () => installAdaptivePaddleOcrProvider(), { once:true });
 }
