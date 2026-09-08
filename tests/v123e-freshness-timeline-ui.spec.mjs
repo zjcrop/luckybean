@@ -4,6 +4,7 @@ const BASE_URL = 'http://127.0.0.1:4173';
 
 test.beforeEach(async ({ page }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/, route => route.abort('failed'));
+  await page.addInitScript(()=>localStorage.setItem('luckybean.onboarding.v2',JSON.stringify({stage:'existing-user',updatedAt:new Date().toISOString(),reason:'freshness-timeline-test'})));
   await page.goto(`${BASE_URL}/?freshness-timeline=1`, { waitUntil: 'domcontentloaded' });
   await page.locator('#splashScreen').click();
   await expect(page.locator('#appShell')).toBeVisible({ timeout: 15000 });
@@ -51,9 +52,6 @@ test('one-line bean card restores historical freshness color/length and uses it 
   expect(solidStyle).toContain(`background:${expected.color}`);
   expect(dashStyle).toContain(`left:${expected.progress}%`);
 
-  // Let the refresh-triggered grouping controller finish its background render
-  // before exercising the menu. A click while that render owns the container is
-  // intentionally ignored to prevent two renderers from replacing each other.
   await expect(page.locator('#beanGroups')).not.toHaveClass(/v099t-group-busy/);
   await page.waitForTimeout(250);
   await page.locator('#groupBtn').click();
@@ -64,8 +62,10 @@ test('one-line bean card restores historical freshness color/length and uses it 
   await option.click();
 
   const groups = page.locator('[data-v099t-open-group],[data-v099f-open-stage]');
-  await expect(groups).toHaveCount(3);
-  await page.locator(`[data-v099t-open-group="${expected.ratioStage}"],[data-v099f-open-stage="${expected.ageStage}"]`).click();
+  await expect(groups).toHaveCount(3, { timeout: 10000 });
+  const target = page.locator(`[data-v099t-open-group="${expected.ratioStage}"],[data-v099f-open-stage="${expected.ageStage}"]`);
+  await expect(target).toBeVisible({ timeout: 10000 });
+  await target.click();
 
   const groupedCard = page.locator('.bean-card[data-bean-id="freshness-line-bean"]');
   await expect(groupedCard).toHaveClass(/lb-one-line-bean/, { timeout: 10000 });
