@@ -112,3 +112,16 @@ test('unlabeled Traditional OCR values are promoted by coffee semantics without 
   assert.notEqual(byField.regionCode?.status, 'review');
   assert.notEqual(byField.flavorCodes?.status, 'review');
 });
+
+test('unlabeled country or region fragments separated by OCR punctuation are never promoted to flavor', () => {
+  const identityNoise = repairRecognitionSemanticText('哥倫比亞、薇拉', book);
+  assert.doesNotMatch(identityNoise, /^风味:/m);
+  assert.equal(identityNoise, '哥倫比亞、薇拉');
+
+  const mixedIdentityFlavor = repairRecognitionSemanticText('哥倫比亞、红糖', book);
+  assert.doesNotMatch(mixedIdentityFlavor, /^风味:/m);
+  assert.equal(mixedIdentityFlavor, '哥倫比亞、红糖');
+
+  const realFlavor = repairRecognitionSemanticText('榛果、陳皮、紅糖', book);
+  assert.match(realFlavor, /^风味: 榛果、陈皮、红糖$/m);
+});
