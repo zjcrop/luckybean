@@ -1,7 +1,9 @@
-const DEFAULT_MAX_EDGE = 1600;
+export const PACKAGE_OCR_MAX_EDGE = 2200;
+export const PACKAGE_OCR_JPEG_QUALITY = 0.94;
+const DEFAULT_MAX_EDGE = PACKAGE_OCR_MAX_EDGE;
 const SAMPLE_EDGE = 420;
 
-function canvasBlob(canvas, type = 'image/jpeg', quality = 0.88) {
+function canvasBlob(canvas, type = 'image/jpeg', quality = PACKAGE_OCR_JPEG_QUALITY) {
   return new Promise((resolve, reject) => {
     canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('图片压缩失败')), type, quality);
   });
@@ -150,9 +152,9 @@ export async function preparePackageImage(file, { maxEdge = DEFAULT_MAX_EDGE } =
 
   // Native Android recognition owns decoding and orientation. Re-decoding a
   // 12–50 MP camera image in WebView, scanning a 420 px quality canvas and then
-  // encoding another 1600 px JPEG adds latency and memory pressure without
-  // improving the bytes consumed by the native recognizer. Preserve the source
-  // Blob/URI contract and let the native bridge read the original image once.
+  // encoding another JPEG adds latency and memory pressure without improving
+  // the bytes consumed by the native recognizer. Preserve the source Blob/URI
+  // contract and let the native bridge read the original image once.
   if (nativeRecognitionAvailable()) return nativeSource(file);
 
   let image;
@@ -173,6 +175,9 @@ export async function preparePackageImage(file, { maxEdge = DEFAULT_MAX_EDGE } =
   const metrics = analysePixels(sampleContext.getImageData(0, 0, sampleCanvas.width, sampleCanvas.height));
   const quality = scoreQuality(metrics, width, height);
 
+  // Preserve enough package detail for small roast/date/origin text. The OCR
+  // provider itself caps detection at 2200 px on normal-memory browsers, so a
+  // 1600 px source was discarding detail before PP-OCR could inspect it.
   const outputScale = Math.min(1, maxEdge / Math.max(width, height));
   const outputCanvas = document.createElement('canvas');
   outputCanvas.width = Math.max(1, Math.round(width * outputScale));
