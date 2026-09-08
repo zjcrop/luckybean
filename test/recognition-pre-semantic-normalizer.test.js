@@ -35,9 +35,10 @@ test('raw OCR remains authoritative while Traditional Chinese and coffee termino
   assert.match(result.normalizedText, /庄园: 展望庄园/u);
   assert.match(result.normalizedText, /处理法: 水洗/u);
   assert.match(result.normalizedText, /风味: 榛果、陈皮、红糖/u);
-  assert.match(result.normalizedText, /产区: 薇拉省 \/ Huila/u);
+  assert.match(result.normalizedText, /产区: 薇拉省/u);
   assert.match(result.normalizedText, /(?:^|\n)酸度1(?:\n|$)/u);
-  assert.ok(result.audit.some(item => item.candidates.some(candidate => candidate.rule.includes('transliteration'))));
+  const regionAudit = result.audit.find(item => item.rawText === '薇拉省');
+  assert.ok(regionAudit?.candidates.some(candidate => candidate.rule.includes('transliteration') && candidate.aliases.includes('Huila')));
 });
 
 test('bare coffee-origin transliterations provide field hints before canonical field parsing', () => {
@@ -87,4 +88,5 @@ test('pipeline persists pre-semantic audit and still resolves the user-reported 
   assert.equal(analysis.parsed.processCode, 'PR-WA');
   assert.equal(analysis.parsed.roastCode, 'RL-L3');
   assert.equal(analysis.parsed.entityCustomName, '展望庄园');
+  assert.equal(analysis.parsed.regionCustomName, '薇拉省');
 });
