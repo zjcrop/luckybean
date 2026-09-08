@@ -247,7 +247,7 @@ async function createWorkerEngine({ direct = false } = {}) {
 }
 function isOpaqueWorkerStartupFailure(error) {
   const message = String(error?.message || error || '');
-  return /Unknown worker error|Failed to construct ['\"]?Worker|SecurityError|Worker (?:startup|initialization|运行|启动|创建).*?(?:fail|error|失败)/iu.test(message);
+  return /Unknown worker error|Failed to construct ['"]?Worker|SecurityError|Worker (?:startup|initialization|运行|启动|创建).*?(?:fail|error|失败)/iu.test(message);
 }
 function isWasmMemoryAllocationFailure(error) {
   const message = String(error?.message || error || '');
