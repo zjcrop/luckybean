@@ -97,6 +97,44 @@
 .lb-image-progress.failed>span{opacity:.42}
 .lb-batch-progress{display:none!important}
 
+.p3-recognition-evidence{
+  margin:14px 0;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  font-size:12px;
+}
+.p3-recognition-evidence>summary{
+  cursor:pointer;
+  list-style-position:inside;
+  font-weight:500;
+}
+.p3-recognition-raw{
+  margin:10px 0 0;
+  padding:10px 0;
+  max-height:180px;
+  overflow:auto;
+  white-space:pre-wrap;
+  word-break:break-word;
+  border:0;
+  background:transparent;
+  color:inherit;
+  font:inherit;
+  line-height:1.55;
+}
+.p3-recognition-fields{
+  display:grid;
+  gap:4px;
+  padding-bottom:8px;
+}
+.p3-recognition-fields>div{
+  display:grid;
+  grid-template-columns:minmax(72px,.35fr) 1fr;
+  gap:8px;
+}
+.p3-recognition-fields b{font-weight:600;color:var(--text)}
+
 @media(max-width:520px){
   #generatedPlan>.row.menu-row{gap:10px}
   #startBrewBtn,#planToSensoryBtn{font-size:17px;min-height:52px}
