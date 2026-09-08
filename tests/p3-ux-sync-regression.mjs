@@ -32,10 +32,13 @@ assert.match(flow, /button && !button\.disabled\) button\.click\(\)/, 'successfu
 assert.doesNotMatch(progress, /正在识别 \$\{current\}/, 'standalone recognition status copy must be removed');
 assert.doesNotMatch(progress, /task\.taskId.*识别中/, 'task status text must not be rendered as a separate row');
 assert.match(progress, /className='lb-image-progress'/, 'recognition progress must live inside image cards');
-assert.match(progress, /Math\.min\(92/, 'in-progress bar must be monotonic and stop below completion');
-assert.match(progress, /task\?\.status==='completed'\)return 100/, '100% must mean completed');
+assert.match(progress, /addEventListener\('luckybean:ocr-progress'/, 'image progress must consume real OCR provider milestones');
+assert.match(progress, /rawProgress>=100\?90/, 'a completed engine pass must stay below final image completion while an adaptive detail pass may follow');
+assert.match(progress, /progressByTask\.set\(key,Math\.max\(previous,progress\)\)/, 'provider progress must stay monotonic across fast/detail passes');
+assert.match(progress, /task\?\.status==='completed'\)return 100/, 'only completed outer image task may expose 100%');
+assert.doesNotMatch(progress, /setInterval\(/, 'recognition progress must not be driven by a synthetic timer');
 
-assert.match(flow, /replace\(\/\(\\d\+\(\?:\\\.\\d\+\)\?\)g豆\/g, '\$1g'\)/, 'homepage consumed-bean unit must be compacted');
+assert.ok(flow.includes(".replace(/(\\d+(?:\\.\\d+)?)g豆/g, '$1g')"), 'homepage consumed-bean unit must be compacted');
 assert.match(flow, /\\u00a0\/\\u00a0/, 'homepage separators must stay attached during wrapping');
 assert.match(flowCss, /\.v099f-freshness-note,.v099i-freshness-note\{display:none!important\}/, 'group algorithm prose must not be shown');
 
@@ -51,4 +54,4 @@ assert.match(sync, /skippedUnchangedPackets/, 'sync diagnostics must record skip
 assert.match(sync, /field_revisions: bean\.map\(fieldFingerprint\)/, 'manifest must expose per-field revision fingerprints for diff planning');
 assert.match(sync, /revision: 'cloud-sync-service-v4-manifest-diff'/, 'runtime sync revision must identify the manifest-first implementation');
 
-console.log('P3 UX, OCR lifecycle, 3D fullscreen and manifest-first sync contracts passed');
+console.log('P3 UX, real OCR progress, 3D fullscreen and manifest-first sync contracts passed');

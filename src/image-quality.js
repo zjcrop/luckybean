@@ -3,6 +3,7 @@ export const PACKAGE_OCR_LOW_MEMORY_MAX_EDGE = 1600;
 export const PACKAGE_OCR_JPEG_QUALITY = 0.94;
 const DEFAULT_MAX_EDGE = PACKAGE_OCR_MAX_EDGE;
 const SAMPLE_EDGE = 420;
+const HEADER_PROBE_BYTES = 1024 * 1024;
 
 function isAppleMobileLike() {
   const ua = String(globalThis.navigator?.userAgent || '');
@@ -28,20 +29,134 @@ function canvasBlob(canvas, type = 'image/jpeg', quality = PACKAGE_OCR_JPEG_QUAL
   });
 }
 
-async function decodeImage(file) {
+function readUint32BE(bytes, offset) {
+  return ((bytes[offset] << 24) >>> 0) + (bytes[offset + 1] << 16) + (bytes[offset + 2] << 8) + bytes[offset + 3];
+}
+
+function pngDimensions(bytes) {
+  if (bytes.length < 24) return null;
+  const signature = [137, 80, 78, 71, 13, 10, 26, 10];
+  if (!signature.every((value, index) => bytes[index] === value)) return null;
+  const width = readUint32BE(bytes, 16);
+  const height = readUint32BE(bytes, 20);
+  return width > 0 && height > 0 ? { width, height, format:'png' } : null;
+}
+
+const JPEG_SOF_MARKERS = new Set([
+  0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7,
+  0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf
+]);
+
+function jpegDimensions(bytes) {
+  if (bytes.length < 10 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+  let offset = 2;
+  while (offset + 8 < bytes.length) {
+    if (bytes[offset] !== 0xff) { offset += 1; continue; }
+    while (offset < bytes.length && bytes[offset] === 0xff) offset += 1;
+    if (offset >= bytes.length) break;
+    const marker = bytes[offset];
+    offset += 1;
+    if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7) || marker === 0x01) continue;
+    if (offset + 1 >= bytes.length) break;
+    const segmentLength = (bytes[offset] << 8) | bytes[offset + 1];
+    if (segmentLength < 2 || offset + segmentLength > bytes.length) break;
+    if (JPEG_SOF_MARKERS.has(marker) && segmentLength >= 7) {
+      const height = (bytes[offset + 3] << 8) | bytes[offset + 4];
+      const width = (bytes[offset + 5] << 8) | bytes[offset + 6];
+      return width > 0 && height > 0 ? { width, height, format:'jpeg' } : null;
+    }
+    offset += segmentLength;
+  }
+  return null;
+}
+
+function webpDimensions(bytes) {
+  if (bytes.length < 30) return null;
+  const ascii = (offset, length) => String.fromCharCode(...bytes.subarray(offset, offset + length));
+  if (ascii(0, 4) !== 'RIFF' || ascii(8, 4) !== 'WEBP') return null;
+  if (ascii(12, 4) === 'VP8X') {
+    const width = 1 + bytes[24] + (bytes[25] << 8) + (bytes[26] << 16);
+    const height = 1 + bytes[27] + (bytes[28] << 8) + (bytes[29] << 16);
+    return width > 0 && height > 0 ? { width, height, format:'webp' } : null;
+  }
+  return null;
+}
+
+async function encodedDimensions(blob) {
+  try {
+    const bytes = new Uint8Array(await blob.slice(0, Math.min(blob.size, HEADER_PROBE_BYTES)).arrayBuffer());
+    return pngDimensions(bytes) || jpegDimensions(bytes) || webpDimensions(bytes);
+  } catch {
+    return null;
+  }
+}
+
+function boundedSize(width, height, maxEdge) {
+  const scale = Math.min(1, maxEdge / Math.max(width, height));
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+    scale
+  };
+}
+
+async function decodeImage(file, maxEdge) {
+  const encoded = await encodedDimensions(file);
   if (globalThis.createImageBitmap) {
+    if (encoded && Math.max(encoded.width, encoded.height) > maxEdge) {
+      const target = boundedSize(encoded.width, encoded.height, maxEdge);
+      try {
+        const image = await createImageBitmap(file, {
+          imageOrientation:'from-image',
+          resizeWidth:target.width,
+          resizeHeight:target.height,
+          resizeQuality:'high'
+        });
+        return {
+          image,
+          originalWidth:encoded.width,
+          originalHeight:encoded.height,
+          decodePreScaled:true,
+          encodedFormat:encoded.format
+        };
+      } catch (error) {
+        // Do not silently fall back to decoding a 12/24/48 MP source into a full
+        // RGBA bitmap. The compressed file can be only a few MB while the decoded
+        // raster consumes hundreds of MB and can freeze/restart the tab/WebView.
+        throw new Error(`当前浏览器无法安全缩放高分辨率图片：${error?.message || 'createImageBitmap resize failed'}`);
+      }
+    }
     try {
-      return await createImageBitmap(file, { imageOrientation: 'from-image' });
+      const image = await createImageBitmap(file, { imageOrientation:'from-image' });
+      const actual = dimensions(image);
+      return {
+        image,
+        originalWidth:encoded?.width || actual.width,
+        originalHeight:encoded?.height || actual.height,
+        decodePreScaled:false,
+        encodedFormat:encoded?.format || ''
+      };
     } catch { /* fallback below */ }
   }
+
+  // The Image element path is retained only for sources that were not identified
+  // as oversized above. Known oversized JPEG/PNG/WebP files never reach this path.
   const url = URL.createObjectURL(file);
   try {
-    return await new Promise((resolve, reject) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = () => reject(new Error('图片无法读取'));
-      image.src = url;
+    const image = await new Promise((resolve, reject) => {
+      const node = new Image();
+      node.onload = () => resolve(node);
+      node.onerror = () => reject(new Error('图片无法读取'));
+      node.src = url;
     });
+    const actual = dimensions(image);
+    return {
+      image,
+      originalWidth:encoded?.width || actual.width,
+      originalHeight:encoded?.height || actual.height,
+      decodePreScaled:false,
+      encodedFormat:encoded?.format || ''
+    };
   } finally {
     URL.revokeObjectURL(url);
   }
@@ -176,14 +291,18 @@ export async function preparePackageImage(file, { maxEdge = DEFAULT_MAX_EDGE } =
   // contract and let the native bridge read the original image once.
   if (nativeRecognitionAvailable()) return nativeSource(file);
 
-  let image;
+  const effectiveEdge = memoryAwareMaxEdge(maxEdge);
+  let decoded;
   try {
-    image = await decodeImage(file);
+    decoded = await decodeImage(file, effectiveEdge);
   } catch (error) {
     return androidNativeFallback(file, error);
   }
-  const { width, height } = dimensions(image);
-  if (!width || !height) {
+  const image = decoded.image;
+  const actual = dimensions(image);
+  const width = Number(decoded.originalWidth || actual.width || 0);
+  const height = Number(decoded.originalHeight || actual.height || 0);
+  if (!actual.width || !actual.height || !width || !height) {
     if (typeof image.close === 'function') image.close();
     return androidNativeFallback(file, new Error('图片尺寸无效'));
   }
@@ -191,24 +310,24 @@ export async function preparePackageImage(file, { maxEdge = DEFAULT_MAX_EDGE } =
   let sampleCanvas;
   let outputCanvas;
   try {
-    const sampleScale = Math.min(1, SAMPLE_EDGE / Math.max(width, height));
+    const sampleScale = Math.min(1, SAMPLE_EDGE / Math.max(actual.width, actual.height));
     sampleCanvas = document.createElement('canvas');
-    sampleCanvas.width = Math.max(1, Math.round(width * sampleScale));
-    sampleCanvas.height = Math.max(1, Math.round(height * sampleScale));
+    sampleCanvas.width = Math.max(1, Math.round(actual.width * sampleScale));
+    sampleCanvas.height = Math.max(1, Math.round(actual.height * sampleScale));
     const sampleContext = sampleCanvas.getContext('2d', { willReadFrequently: true });
     sampleContext.drawImage(image, 0, 0, sampleCanvas.width, sampleCanvas.height);
     const metrics = analysePixels(sampleContext.getImageData(0, 0, sampleCanvas.width, sampleCanvas.height));
     const quality = scoreQuality(metrics, width, height);
+    releaseCanvas(sampleCanvas);
+    sampleCanvas = null;
 
-    // High-memory browsers may keep 2200 px detail for small roast/date/origin text.
-    // Low-memory mobile browsers/WebViews cap the intermediate JPEG at 1600 px because
-    // PP-OCR later downsizes internally anyway; this avoids simultaneous large canvas,
-    // decoded source and WASM model buffers that can trigger a tab/WebView restart.
-    const effectiveEdge = memoryAwareMaxEdge(maxEdge);
-    const outputScale = Math.min(1, effectiveEdge / Math.max(width, height));
+    // `image` is already decoder-bounded when the source dimensions exceed the
+    // safe OCR edge. The output canvas therefore never receives the full camera
+    // raster and only performs the final deterministic JPEG encode.
+    const outputScale = Math.min(1, effectiveEdge / Math.max(actual.width, actual.height));
     outputCanvas = document.createElement('canvas');
-    outputCanvas.width = Math.max(1, Math.round(width * outputScale));
-    outputCanvas.height = Math.max(1, Math.round(height * outputScale));
+    outputCanvas.width = Math.max(1, Math.round(actual.width * outputScale));
+    outputCanvas.height = Math.max(1, Math.round(actual.height * outputScale));
     const processedWidth = outputCanvas.width;
     const processedHeight = outputCanvas.height;
     const outputContext = outputCanvas.getContext('2d');
@@ -225,6 +344,8 @@ export async function preparePackageImage(file, { maxEdge = DEFAULT_MAX_EDGE } =
       processedHeight,
       metrics,
       nativeSource: false,
+      decodePreScaled:Boolean(decoded.decodePreScaled),
+      encodedFormat:decoded.encodedFormat || '',
       ...quality
     };
   } finally {
