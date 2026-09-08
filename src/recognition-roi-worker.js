@@ -1,5 +1,6 @@
 const MIN_REGION_SPAN = 0.01;
 const DEFAULT_MAX_EDGE = 2200;
+const HEADER_PROBE_BYTES = 1024 * 1024;
 
 function clamp01(value, fallback = 0) {
   const number = Number(value);
@@ -19,12 +20,128 @@ function normalizeRegion(input) {
   return { left, top, right, bottom };
 }
 
+function isFullFrame(region) {
+  return region.left <= 0.0001 && region.top <= 0.0001 &&
+    region.right >= 0.9999 && region.bottom >= 0.9999;
+}
+
 function cropGeometry(width, height, region) {
   const left = Math.max(0, Math.min(width - 1, Math.floor(region.left * width)));
   const top = Math.max(0, Math.min(height - 1, Math.floor(region.top * height)));
   const right = Math.max(left + 1, Math.min(width, Math.ceil(region.right * width)));
   const bottom = Math.max(top + 1, Math.min(height, Math.ceil(region.bottom * height)));
   return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
+function readUint32BE(bytes, offset) {
+  return ((bytes[offset] << 24) >>> 0) + (bytes[offset + 1] << 16) +
+    (bytes[offset + 2] << 8) + bytes[offset + 3];
+}
+
+function pngDimensions(bytes) {
+  if (bytes.length < 24) return null;
+  const signature = [137, 80, 78, 71, 13, 10, 26, 10];
+  if (!signature.every((value, index) => bytes[index] === value)) return null;
+  const width = readUint32BE(bytes, 16);
+  const height = readUint32BE(bytes, 20);
+  return width > 0 && height > 0 ? { width, height, format: 'png' } : null;
+}
+
+const JPEG_SOF_MARKERS = new Set([
+  0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7,
+  0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf
+]);
+
+function jpegDimensions(bytes) {
+  if (bytes.length < 10 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+  let offset = 2;
+  while (offset + 8 < bytes.length) {
+    if (bytes[offset] !== 0xff) { offset += 1; continue; }
+    while (offset < bytes.length && bytes[offset] === 0xff) offset += 1;
+    if (offset >= bytes.length) break;
+    const marker = bytes[offset];
+    offset += 1;
+    if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7) || marker === 0x01) continue;
+    if (offset + 1 >= bytes.length) break;
+    const segmentLength = (bytes[offset] << 8) | bytes[offset + 1];
+    if (segmentLength < 2 || offset + segmentLength > bytes.length) break;
+    if (JPEG_SOF_MARKERS.has(marker) && segmentLength >= 7) {
+      const height = (bytes[offset + 3] << 8) | bytes[offset + 4];
+      const width = (bytes[offset + 5] << 8) | bytes[offset + 6];
+      return width > 0 && height > 0 ? { width, height, format: 'jpeg' } : null;
+    }
+    offset += segmentLength;
+  }
+  return null;
+}
+
+function webpDimensions(bytes) {
+  if (bytes.length < 30) return null;
+  const ascii = (offset, length) => String.fromCharCode(...bytes.subarray(offset, offset + length));
+  if (ascii(0, 4) !== 'RIFF' || ascii(8, 4) !== 'WEBP') return null;
+  if (ascii(12, 4) === 'VP8X') {
+    const width = 1 + bytes[24] + (bytes[25] << 8) + (bytes[26] << 16);
+    const height = 1 + bytes[27] + (bytes[28] << 8) + (bytes[29] << 16);
+    return width > 0 && height > 0 ? { width, height, format: 'webp' } : null;
+  }
+  return null;
+}
+
+async function encodedDimensions(blob) {
+  try {
+    const probe = new Uint8Array(await blob.slice(0, Math.min(blob.size, HEADER_PROBE_BYTES)).arrayBuffer());
+    return pngDimensions(probe) || jpegDimensions(probe) || webpDimensions(probe);
+  } catch {
+    return null;
+  }
+}
+
+function boundedSize(width, height, maxEdge) {
+  const scale = Math.min(1, maxEdge / Math.max(width, height));
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+    scale
+  };
+}
+
+async function decodeBitmap(blob, region, maxEdge) {
+  // Whole-page OCR is the hot path for camera photos. Read only the compressed
+  // image header first and ask the browser decoder to produce an already-bounded
+  // bitmap. That prevents a 12/48 MP camera frame from ever becoming a full-size
+  // RGBA bitmap before the ROI Worker downsizes it.
+  if (isFullFrame(region)) {
+    const dimensions = await encodedDimensions(blob);
+    if (dimensions && Math.max(dimensions.width, dimensions.height) > maxEdge) {
+      const target = boundedSize(dimensions.width, dimensions.height, maxEdge);
+      try {
+        const bitmap = await createImageBitmap(blob, {
+          imageOrientation: 'from-image',
+          resizeWidth: target.width,
+          resizeHeight: target.height,
+          resizeQuality: 'high'
+        });
+        return {
+          bitmap,
+          originalWidth: dimensions.width,
+          originalHeight: dimensions.height,
+          decodePreScaled: true,
+          encodedFormat: dimensions.format
+        };
+      } catch {
+        // Older engines may reject resize hints. Keep the previous Worker-only
+        // behavior as a compatibility path; never move decoding to the UI thread.
+      }
+    }
+  }
+  const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+  return {
+    bitmap,
+    originalWidth: bitmap.width,
+    originalHeight: bitmap.height,
+    decodePreScaled: false,
+    encodedFormat: ''
+  };
 }
 
 async function cropBlob(blob, regionInput, maxEdgeInput) {
@@ -34,34 +151,37 @@ async function cropBlob(blob, regionInput, maxEdgeInput) {
   }
 
   const region = normalizeRegion(regionInput);
-  const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+  const maxEdge = Math.max(320, Math.min(4096, Number(maxEdgeInput) || DEFAULT_MAX_EDGE));
+  const decoded = await decodeBitmap(blob, region, maxEdge);
+  const bitmap = decoded.bitmap;
   try {
-    const sourceWidth = bitmap.width;
-    const sourceHeight = bitmap.height;
-    if (!sourceWidth || !sourceHeight) throw new Error('ROI 原图尺寸无效');
-    const crop = cropGeometry(sourceWidth, sourceHeight, region);
-    const maxEdge = Math.max(320, Math.min(4096, Number(maxEdgeInput) || DEFAULT_MAX_EDGE));
-    const scale = Math.min(1, maxEdge / Math.max(crop.width, crop.height));
-    const width = Math.max(1, Math.round(crop.width * scale));
-    const height = Math.max(1, Math.round(crop.height * scale));
+    const bitmapWidth = bitmap.width;
+    const bitmapHeight = bitmap.height;
+    if (!bitmapWidth || !bitmapHeight) throw new Error('ROI 原图尺寸无效');
+    const crop = cropGeometry(bitmapWidth, bitmapHeight, region);
+    const output = boundedSize(crop.width, crop.height, maxEdge);
+    const width = output.width;
+    const height = output.height;
     const canvas = new OffscreenCanvas(width, height);
     const context = canvas.getContext('2d', { alpha: false });
     if (!context) throw new Error('ROI Worker 无法建立 2D 画布');
     context.imageSmoothingEnabled = true;
     context.imageSmoothingQuality = 'high';
     context.drawImage(bitmap, crop.x, crop.y, crop.width, crop.height, 0, 0, width, height);
-    const output = await canvas.convertToBlob({ type: 'image/png' });
+    const resultBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.92 });
     return {
-      blob: output,
+      blob: resultBlob,
       region,
-      sourceWidth,
-      sourceHeight,
+      sourceWidth: decoded.originalWidth,
+      sourceHeight: decoded.originalHeight,
       cropX: crop.x,
       cropY: crop.y,
       cropWidth: crop.width,
       cropHeight: crop.height,
       outputWidth: width,
-      outputHeight: height
+      outputHeight: height,
+      decodePreScaled: decoded.decodePreScaled,
+      encodedFormat: decoded.encodedFormat
     };
   } finally {
     bitmap.close?.();
