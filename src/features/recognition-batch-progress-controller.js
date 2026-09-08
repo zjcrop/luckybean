@@ -49,7 +49,7 @@ function render(batch){
     bar.classList.toggle('completed',task.status==='completed');
     bar.classList.toggle('failed',task.status==='failed');
     bar.setAttribute('aria-valuenow',String(Math.round(value)));
-    bar.setAttribute('aria-label',`图片识别进度 ${Math.round(value)}%`);
+    bar.setAttribute('aria-label',task.status==='failed' ? '本次识别失败，可重新拍摄、上传或再次识别' : `图片识别进度 ${Math.round(value)}%`);
     requestAnimationFrame(()=>{ const fill=$('span',bar); if(fill)fill.style.width=`${value}%`; });
   });
 }
