@@ -1,4 +1,5 @@
 import './p3-ux-flow-controller.js';
+import './brew-interaction-emphasis.js';
 import './p3-cloud-list-refresh-controller.js';
 import './p3-capture-policy-controller.js';
 import './media-tasting-controller.js';
