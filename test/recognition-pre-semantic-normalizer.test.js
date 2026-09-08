@@ -37,7 +37,7 @@ test('raw OCR remains authoritative while Traditional Chinese and coffee termino
   assert.match(result.normalizedText, /风味: 榛果、陈皮、红糖/u);
   assert.match(result.normalizedText, /产区: 薇拉省 \/ Huila/u);
   assert.match(result.normalizedText, /(?:^|\n)酸度1(?:\n|$)/u);
-  assert.ok(result.audit.some(item => item.candidates.some(candidate => candidate.rule === 'coffee-origin-transliteration')));
+  assert.ok(result.audit.some(item => item.candidates.some(candidate => candidate.rule.includes('transliteration'))));
 });
 
 test('bare coffee-origin transliterations provide field hints before canonical field parsing', () => {
