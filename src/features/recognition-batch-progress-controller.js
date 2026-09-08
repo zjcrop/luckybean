@@ -94,7 +94,8 @@ new MutationObserver(records=>{
   ));
   if(!overlayChanged)return;
   const batch=getRecognitionBatchSnapshot();
-  if(batch?.status==='processing'){render(batch);ensureTicking();}
+  if(batch?.status==='processing')render(batch);
+  if(batch?.status==='processing')ensureTicking();
   else if(batch&&terminal(batch.status))clearRecognitionBatchSnapshot();
 }).observe(document.documentElement,{childList:true,subtree:true});
 
