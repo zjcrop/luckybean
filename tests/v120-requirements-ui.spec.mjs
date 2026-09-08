@@ -148,17 +148,9 @@ test('one server login keeps automatic sync and exposes manual sync recovery act
   const planSensoryButton = page.locator('#planToSensoryBtn');
   await expect(planSensoryButton).toHaveAttribute('data-brew-action', 'plan-sensory');
   await expect(planSensoryButton).toHaveAttribute('data-plan-reference', /.+/);
-  const authoritativeProfileId = await planSensoryButton.getAttribute('data-profile-id');
-  expect(authoritativeProfileId).toBeTruthy();
-  await planSensoryButton.evaluate(node => node.click());
-  await expect(page.locator('[data-page="sensory"]')).toHaveClass(/active/);
-  await expect(page.locator('#sensoryContent')).toBeVisible();
-  await expect(page.locator('#sensoryContent')).toHaveAttribute('data-sensory-origin', 'generated-plan');
-  await expect(page.locator('#sensoryContent')).toHaveAttribute('data-plan-reference', /.+/);
-  await expect(page.locator('#sensoryContent')).toHaveAttribute('data-profile-id', authoritativeProfileId);
-  await expect(page.locator('#sensoryContent')).toHaveAttribute('data-brew-session-id', '');
-  await expect(page.locator('.v095-sensory-modes [data-v095-mode]')).toHaveCount(3);
-  await expect(page.locator('[data-sensory-mode="player"]')).toHaveCount(0);
+  await expect(planSensoryButton).toHaveAttribute('aria-hidden', 'true');
+  await expect(planSensoryButton).toHaveAttribute('tabindex', '-1');
+  await expect(planSensoryButton).toBeHidden();
 });
 
 test('professional tags sort and radar nodes select and drag; note mode opens directly', async ({ page }) => {

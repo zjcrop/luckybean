@@ -218,12 +218,12 @@ test('small brew has normalized auto text centered rows and underline-only autom
   await expect(page.locator('#brewRatio')).toBeVisible();
   await expect(page.locator('#brewDose')).not.toContainText('自动 ·');
   await expect(page.locator('#brewDripper option[value="recommended"]')).not.toContainText('方案推荐');
-  for(const selector of ['#brewDose','#brewRatio']) await expect(page.locator(selector)).toHaveCSS('font-size','14px');
+  for(const selector of ['#brewDose','#brewRatio']) await expect(page.locator(selector)).toHaveCSS('font-size','20px');
   for(const selector of ['#brewDripper','#brewFilterPaper','#brewWaterProfile']){
     await expect(page.locator(selector)).toHaveCSS('font-size','13px');
     await expect(page.locator(selector)).toHaveCSS('text-align','center');
   }
-  await expect(page.locator('#brewProfile')).toHaveCSS('font-size','13px');
+  await expect(page.locator('#brewProfile')).toHaveCSS('font-size','18px');
   const autoRatio=page.locator('#brewRatio');
   await expect(autoRatio).toHaveClass(/lb-auto-field/);
   await expect(autoRatio).toHaveCSS('border-bottom-width','1px');
