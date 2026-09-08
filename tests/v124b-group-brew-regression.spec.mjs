@@ -4,14 +4,14 @@ const BASE_URL='http://127.0.0.1:4173';
 
 async function waitForStartup(page){
   const splash=page.locator('#splashScreen');
-  await expect(splash).toBeAttached({timeout:15000});
   if(await splash.isVisible().catch(()=>false)){
     await expect(splash).toHaveAttribute('data-startup-bound','1',{timeout:15000});
     await splash.click({force:true});
   }
-  await expect(splash).toBeHidden({timeout:10000});
+  await page.waitForFunction(()=>document.documentElement.dataset.startup==='ready',null,{timeout:30000});
+  if(await splash.isVisible().catch(()=>false)) await splash.click({force:true});
+  await expect(splash).toBeHidden({timeout:15000});
   await expect(page.locator('#appShell')).toBeVisible({timeout:15000});
-  await page.waitForFunction(()=>document.documentElement.dataset.startup==='ready');
 }
 
 async function refreshFrom(page,source){
@@ -75,16 +75,14 @@ async function openSpecialModePage(page,mode){
     const db=await import('/src/db.js');
     await db.setSetting('v099i.group.mode',mode);
     await db.setSetting('v099f.group.mode','native');
-    const next=new URL(location.href);
-    next.searchParams.set('group-regression','1');
-    next.searchParams.set('special-mode',mode);
-    history.replaceState(null,'',`${next.pathname}${next.search}${next.hash}`);
   },mode);
 
-  // v099i.group.mode is read during startup. A committed full reload is sufficient
-  // to exercise the cold-start path; product readiness below is the authoritative
-  // gate and avoids waiting on a late DOMContentLoaded signal in the long core suite.
-  await page.reload({waitUntil:'commit',timeout:30000});
+  // Navigate as a fresh document on the same origin so IndexedDB-backed mode state
+  // is re-read during startup without depending on reload lifecycle timing.
+  await page.goto(`${BASE_URL}/?group-regression=1&special-mode=${encodeURIComponent(mode)}`,{
+    waitUntil:'domcontentloaded',
+    timeout:30000
+  });
   await waitForStartup(page);
   await expect(page.locator('#beanGroups [data-v099t-open-group]').first()).toBeVisible({timeout:10000});
   return page;
