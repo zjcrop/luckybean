@@ -2,6 +2,7 @@ import { get } from '../db.js';
 import { loadCodebook, makeIndex, displayName } from '../codebook.js';
 import { buildBeanDetailProjection } from '../domain/beans/bean-display-projection.js';
 
+const BEAN_DETAIL_PRESENTATION_REVISION = '1.24P-bean-detail-content-only.1';
 const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
 const $$ = (selector, root = document) => root?.querySelectorAll ? [...root.querySelectorAll(selector)] : [];
 const ROAST_LABELS = Object.freeze({ 'RL-L0':'极浅烘','RL-L1':'浅烘','RL-L2':'浅中烘','RL-L3':'中烘','RL-L4':'中深烘','RL-L5':'深烘','RL-L6':'极深烘' });
@@ -103,4 +104,4 @@ document.addEventListener('click', event => {
 }, true);
 const root = $('#overlayRoot');
 if (root) new MutationObserver(() => { decorate().catch(error => console.warn('豆卡详情展示投影失败', error)); }).observe(root, { childList:true, subtree:true });
-globalThis.LuckyBeanBeanDetailPresentation = { refresh:decorate, get beanId(){ return lastBeanId; } };
+globalThis.LuckyBeanBeanDetailPresentation = { revision:BEAN_DETAIL_PRESENTATION_REVISION, refresh:decorate, get beanId(){ return lastBeanId; } };
