@@ -4,7 +4,13 @@ import {
   buildDifferentiatedBrewStrategies
 } from '../services/brew-strategy-orchestrator.js';
 
-export const BREW_STRATEGY_CONTROLLER_REVISION = 'p2-brew-strategy-controller/1.3';
+export const BREW_STRATEGY_CONTROLLER_REVISION = 'p2-brew-strategy-controller/1.4';
+
+const STRATEGY_DISPLAY_SUMMARIES = Object.freeze({
+  '清晰香气': '突出花香与层次，整体更轻盈清晰。',
+  '甜感平衡': '强化甜感，同时保持酸甜与体感平衡。',
+  '醇厚高萃': '提高体感与浓度，强化萃取表现。'
+});
 
 function hasStrategyMetadata(plan) {
   return plan?.professional?.luckyBeanStrategies?.contract === BREW_STRATEGY_ORCHESTRATOR_CONTRACT;
@@ -50,6 +56,64 @@ function applyStrategies(event) {
   plan.professional.luckyBeanStrategies = strategyMetadata(choices);
 }
 
+function splitStrategyLabel(value = '') {
+  const normalized = String(value || '').trim().replace(/^\d+\.\s*/, '');
+  const [tendency = '', ...methodParts] = normalized.split(/\s*·\s*/);
+  return {
+    tendency: tendency.trim(),
+    method: methodParts.join(' · ').trim()
+  };
+}
+
+function decorateStrategyCards(section) {
+  const buttons = section?.querySelectorAll?.('[data-recommended-profile]') || [];
+  buttons.forEach(button => {
+    if (button.dataset.strategyPresentation === 'compact') return;
+
+    let label = button.querySelector(':scope > span');
+    if (!label) {
+      const originalText = String(button.textContent || '').trim();
+      button.textContent = '';
+      label = document.createElement('span');
+      label.textContent = originalText;
+      button.append(label);
+    }
+
+    const originalLabel = String(label.textContent || '').trim();
+    const { tendency, method } = splitStrategyLabel(originalLabel);
+    if (!tendency) return;
+
+    button.dataset.strategyOriginalLabel = originalLabel;
+    label.className = 'lb-strategy-title';
+    label.textContent = '';
+
+    const tendencyNode = document.createElement('b');
+    tendencyNode.className = 'lb-strategy-tendency';
+    tendencyNode.textContent = tendency;
+
+    const methodNode = document.createElement('span');
+    methodNode.className = 'lb-strategy-method';
+    methodNode.textContent = method || '推荐方案';
+    label.append(tendencyNode, methodNode);
+
+    const detail = button.querySelector(':scope > small');
+    const summary = STRATEGY_DISPLAY_SUMMARIES[tendency] || '';
+    if (detail && summary) {
+      detail.dataset.strategyFullReason = String(detail.textContent || '').trim();
+      detail.title = detail.dataset.strategyFullReason;
+      detail.textContent = summary;
+      detail.classList.add('lb-strategy-summary');
+    }
+
+    const score = button.querySelector(':scope > strong');
+    if (score) score.classList.add('lb-strategy-score');
+
+    const accessibilityParts = [tendency, method, summary, score?.textContent?.trim() ? `匹配度 ${score.textContent.trim()}` : ''].filter(Boolean);
+    if (accessibilityParts.length) button.setAttribute('aria-label', accessibilityParts.join('，'));
+    button.dataset.strategyPresentation = 'compact';
+  });
+}
+
 function surfaceStrategyOptions(root = document) {
   const planHost = root.querySelector?.('#planResult') || (root.id === 'planResult' ? root : document.querySelector('#planResult'));
   const section = planHost?.querySelector?.('.recommended-profile-options');
@@ -62,7 +126,10 @@ function surfaceStrategyOptions(root = document) {
     && !section.closest('details.professional-result')
     && heading.textContent === '三种冲煮倾向'
     && section.dataset.strategyContract === BREW_STRATEGY_ORCHESTRATOR_CONTRACT;
-  if (alreadySurfaced) return;
+  if (alreadySurfaced) {
+    decorateStrategyCards(section);
+    return;
+  }
 
   if (heading.textContent !== '三种冲煮倾向') heading.textContent = '三种冲煮倾向';
   if (!section.classList.contains('brew-strategy-options')) section.classList.add('brew-strategy-options');
@@ -72,6 +139,7 @@ function surfaceStrategyOptions(root = document) {
 
   const details = section.closest('details.professional-result');
   if (details?.parentNode) details.parentNode.insertBefore(section, details);
+  decorateStrategyCards(section);
 }
 
 document.addEventListener('luckybean:plan-ready', applyStrategies);
