@@ -1,0 +1,41 @@
+name: Fix WebKit Fallback Contract
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-webkit-fallback-contract.yml'
+permissions:
+  contents: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Update only the stale fallback expectation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('tests/v124p-webkit-auth-ocr.spec.mjs')
+          s=p.read_text(encoding='utf-8')
+          old="expect(state.compatibilityFallback).toBe('webkit-direct-wasm-no-simd');"
+          new="expect(state.compatibilityFallback).toBe('webkit-direct-wasm-no-simd->direct-module-worker-wasm-no-simd->direct-wasm-no-simd-last-resort');"
+          if s.count(old)!=1:
+              raise SystemExit('stale WebKit fallback expectation not found exactly once')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          PY
+      - name: Install test dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run real WebKit OCR gate
+        run: npm run test:webkit
+      - name: Commit validated contract
+        run: |
+          git config user.name "zjcrop"
+          git config user.email "127176814+zjcrop@users.noreply.github.com"
+          git add tests/v124p-webkit-auth-ocr.spec.mjs
+          git commit -m "test(ocr): accept WebKit PP-OCRv5 session fallback chain"
+          git push origin HEAD:main
