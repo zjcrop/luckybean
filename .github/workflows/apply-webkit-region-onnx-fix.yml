@@ -1,0 +1,32 @@
+name: Apply WebKit Region ONNX Fix
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-webkit-region-onnx-fix.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Apply runtime patch
+        run: python scripts/apply-webkit-region-onnx-fix.py
+      - name: Verify syntax and regression
+        run: |
+          node --check src/recognition-paddle-ocr.js
+          node --test test/ocr-webkit-session-fallback.test.js
+          npm run test:recognition
+      - name: Commit validated runtime
+        run: |
+          git config user.name "zjcrop"
+          git config user.email "127176814+zjcrop@users.noreply.github.com"
+          git add src/recognition-paddle-ocr.js test/ocr-webkit-session-fallback.test.js
+          git commit -m "fix(ocr): recover WebKit ONNX session for region OCR"
+          git push origin HEAD:main
