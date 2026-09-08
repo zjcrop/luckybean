@@ -55,7 +55,7 @@ test('PP-OCR provider registers at startup while heavy OCR runtime remains stric
   expect(initial.roiWorkerOnly).toBe(true);
   expect(initial.regionRecognition).toBe('recognition-roi/1.0');
   expect(initial.runtimeOrigin).toBe('same-origin-vendored');
-  expect(initial.webOcr).toContain('self-hosted-lazy-memory-bounded');
+  expect(initial.webOcr).toBe('ppocr-v5-0.5.2-fastpath-session-fastpath');
   expect(heavyOcrRequests, 'loading provider metadata must still not allocate SDK/model/worker/WASM resources').toEqual([]);
   expect(pageErrors.filter(message => /worker|paddle|onnx|ocr/i.test(message))).toEqual([]);
 });
