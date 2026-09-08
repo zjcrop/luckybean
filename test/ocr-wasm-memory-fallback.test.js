@@ -30,8 +30,26 @@ test('memory allocation failure is retried before generic worker startup handlin
 
 test('failed worker resources are reclaimed before retrying OCR', () => {
   const memoryFallback = source.match(/async function startMemoryCompatibilityEngine[\s\S]*?async function startWorkerEngine/u)?.[0] ?? '';
+  const workerDelayMatch = source.match(/const MEMORY_WORKER_RECLAIM_DELAY_MS = (\d+);/u);
+  const mainDelayMatch = source.match(/const MEMORY_MAIN_THREAD_RECLAIM_DELAY_MS = (\d+);/u);
+
+  assert.ok(workerDelayMatch, 'worker reclaim delay must be explicit');
+  assert.ok(mainDelayMatch, 'main-thread reclaim delay must be explicit');
+  assert.ok(Number(workerDelayMatch[1]) >= 100, 'worker reclaim delay must allow a real reclamation window');
+  assert.ok(Number(mainDelayMatch[1]) >= Number(workerDelayMatch[1]), 'main-thread fallback should not wait less than the worker retry');
+
   assert.match(memoryFallback, /terminateModuleWorkers\(\)/u);
   assert.match(memoryFallback, /releaseWorkerBundle\(\)/u);
-  assert.match(memoryFallback, /setTimeout\(resolve, 80\)/u);
-  assert.match(source, /memoryConstrained \? startCompatibilityEngine\('memory'\) : startWorkerEngine\(\)/u);
+  assert.match(memoryFallback, /await delay\(MEMORY_WORKER_RECLAIM_DELAY_MS\)/u);
+  assert.match(memoryFallback, /await delay\(MEMORY_MAIN_THREAD_RECLAIM_DELAY_MS\)/u);
+
+  const terminatePos = memoryFallback.indexOf('terminateModuleWorkers();');
+  const releasePos = memoryFallback.indexOf('releaseWorkerBundle();');
+  const waitPos = memoryFallback.indexOf('await delay(MEMORY_WORKER_RECLAIM_DELAY_MS);');
+  const retryPos = memoryFallback.indexOf('createLowMemoryWorkerEngine();');
+  assert.ok(terminatePos >= 0 && releasePos > terminatePos && waitPos > releasePos && retryPos > waitPos,
+    'failed Worker resources must be terminated, released and given time to reclaim before the low-memory retry');
+
+  assert.match(source, /async function startRememberedMemoryEngine\(\)[\s\S]*startMemoryCompatibilityEngine/u);
+  assert.match(source, /memoryConstrained \? startRememberedMemoryEngine\(\) : startWorkerEngine\(\)/u);
 });
