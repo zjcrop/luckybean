@@ -1,4 +1,4 @@
-export const PRE_SEMANTIC_NORMALIZATION_SCHEMA = 'recognition-pre-semantic/1.0';
+export const PRE_SEMANTIC_NORMALIZATION_SCHEMA = 'recognition-pre-semantic/1.1';
 
 const TRADITIONAL_FOLD = Object.freeze({
   '國':'国','產':'产','區':'区','莊':'庄','園':'园','農':'农','處':'处','廠':'厂','種':'种','屬':'属','藝':'艺',
@@ -6,16 +6,32 @@ const TRADITIONAL_FOLD = Object.freeze({
   '淨':'净','規':'规','號':'号','編':'编','級':'级','灣':'湾','倫':'伦','亞':'亚','馬':'马','達':'达','薩':'萨',
   '爾':'尔','盧':'卢','東':'东','門':'门','義':'义','羅':'罗','蘭':'兰','島':'岛','縣':'县','鎮':'镇','鄉':'乡',
   '嶺':'岭','嶽':'岳','穀':'谷','臺':'台','烏':'乌','貝':'贝','獅':'狮','葉':'叶','樹':'树','陳':'陈','紅':'红',
-  '黃':'黄','綠':'绿','藍':'蓝','廣':'广','寧':'宁','華':'华','賴':'赖','維':'维','納':'纳',
+  '黃':'黄','綠':'绿','藍':'蓝','廣':'广','寧':'宁','華':'华','賴':'赖','維':'维','納':'纳','嵐':'岚',
   '賞':'赏','飲':'饮','製':'制','裝':'装','質':'质','餘':'余','韻':'韵','乾':'干','潔':'洁','頭':'头'
 });
 
 const FIELD_LABELS = Object.freeze({
-  country: '国家', region: '产区', entity: '庄园', variety: '豆种', process: '处理法', roast: '烘焙度', flavor: '风味'
+  country:'国家', region:'产区', entity:'庄园', variety:'豆种', process:'处理法', roast:'烘焙度', flavor:'风味'
 });
 
-// Only exact, high-specificity coffee-domain aliases are permitted here. These
-// are shadow-normalization hints, never replacements for raw OCR evidence.
+const LABEL_ALIASES = Object.freeze({
+  country:['国家','产地国','原产国','生产国','country','country of origin','origin country'],
+  region:['产区','地区','区域','种植区','微产区','region','growing region','producing region','district','province','terroir'],
+  entity:['庄园','农场','农园','处理站','水洗站','加工站','处理厂','生产者','合作社','producer','farm','estate','finca','washing station','processing station','cooperative'],
+  variety:['豆种','品种','咖啡品种','栽培种','种属','variety','varietal','cultivar','species'],
+  process:['处理法','处理方式','加工法','加工方式','发酵方式','精制法','后制法','process','processing','processing method','fermentation','method'],
+  roast:['烘焙度','烘焙程度','焙度','roast level','roast profile','roast'],
+  flavor:['风味','风味描述','杯测风味','风味标签','品鉴笔记','香气','flavor notes','flavour notes','tasting notes','cup notes','aroma']
+});
+
+const LABEL_INDEX = (() => {
+  const result = new Map();
+  for (const [field, aliases] of Object.entries(LABEL_ALIASES)) {
+    for (const alias of aliases) result.set(alias.toLocaleLowerCase('zh-CN'), field);
+  }
+  return result;
+})();
+
 const EXACT_ALIASES = Object.freeze({
   '衣索比亚': { field:'country', canonical:'埃塞俄比亚', rule:'country-exonym', confidence:0.99 },
   '肯亚': { field:'country', canonical:'肯尼亚', rule:'country-exonym', confidence:0.99 },
@@ -84,6 +100,18 @@ export function foldRecognitionTraditional(value) {
   return [...cleanRaw(value)].map(character => TRADITIONAL_FOLD[character] || character).join('');
 }
 
+function labelField(value) {
+  return LABEL_INDEX.get(cleanRaw(value).toLocaleLowerCase('zh-CN')) || '';
+}
+
+function inlineField(value) {
+  const text = cleanRaw(value);
+  const match = /^(.{1,32}?)\s*[:：=]\s*(.+)$/u.exec(text);
+  if (!match) return null;
+  const field = labelField(match[1]);
+  return field ? { field, label:FIELD_LABELS[field] || foldRecognitionTraditional(match[1]), value:match[2] } : null;
+}
+
 function flavorShadow(value) {
   const text = foldRecognitionTraditional(value);
   return text
@@ -93,75 +121,114 @@ function flavorShadow(value) {
     .replace(/^、|、$/g, '');
 }
 
-function flavorLike(value) {
+function flavorNoiseCandidate(value) {
   const folded = foldRecognitionTraditional(value);
-  const hasHan = /\p{Script=Han}/u.test(folded);
-  const hasOcrSeparatorNoise = /[IⅠl|｜]/u.test(folded);
-  if (!hasHan || !hasOcrSeparatorNoise) return false;
-  const pieces = flavorShadow(value).split(/[、,，;；/]+/).map(cleanRaw).filter(Boolean);
-  return pieces.length >= 2 && pieces.length <= 10 && pieces.every(piece => !/\d/.test(piece) && piece.length <= 28);
+  if (!/\p{Script=Han}/u.test(folded) || !/[IⅠl|｜]/u.test(folded)) return null;
+  const normalized = flavorShadow(value);
+  const pieces = normalized.split(/[、,，;；/]+/).map(cleanRaw).filter(Boolean);
+  if (pieces.length < 2 || pieces.length > 10 || pieces.some(piece => /\d/.test(piece) || piece.length > 28)) return null;
+  return { field:'flavor', value:normalized, aliases:[], rule:'flavor-separator-repair', confidence:0.9 };
 }
 
-function lineCandidate(rawText, normalizedBase) {
+function valueCandidate(normalizedBase) {
+  return EXACT_ALIASES[normalizedBase] ? { ...EXACT_ALIASES[normalizedBase], value:EXACT_ALIASES[normalizedBase].canonical, aliases:[...(EXACT_ALIASES[normalizedBase].aliases || [])] } : null;
+}
+
+function standaloneCandidate(rawText, normalizedBase) {
   if (!normalizedBase || SENSORY_SCORE.test(normalizedBase)) return null;
-  const exact = EXACT_ALIASES[normalizedBase];
-  if (exact) return { ...exact, value:exact.canonical, aliases:[...(exact.aliases || [])] };
-  if (ENTITY_SUFFIX.test(normalizedBase)) {
-    return { field:'entity', value:normalizedBase, aliases:[], rule:'typed-entity-suffix', confidence:0.93 };
-  }
+  const exact = valueCandidate(normalizedBase);
+  if (exact) return exact;
+  if (ENTITY_SUFFIX.test(normalizedBase)) return { field:'entity', value:normalizedBase, aliases:[], rule:'typed-entity-suffix', confidence:0.93 };
   if (REGION_SUFFIX.test(normalizedBase)) {
     const stripped = normalizedBase.replace(REGION_SUFFIX, '').trim();
-    const transliteration = EXACT_ALIASES[stripped];
+    const transliteration = valueCandidate(stripped);
     return {
       field:'region', value:normalizedBase,
-      aliases:transliteration?.field === 'region' ? [transliteration.canonical, ...(transliteration.aliases || [])] : [],
+      aliases:transliteration?.field === 'region' ? [transliteration.value, ...(transliteration.aliases || [])] : [],
       rule:transliteration?.field === 'region' ? 'typed-region-suffix+transliteration' : 'typed-region-suffix',
       confidence:transliteration?.field === 'region' ? Math.max(0.95, transliteration.confidence) : 0.93
     };
   }
-  if (flavorLike(rawText)) {
-    return { field:'flavor', value:flavorShadow(rawText), aliases:[], rule:'flavor-separator-repair', confidence:0.9 };
-  }
-  return null;
+  return flavorNoiseCandidate(rawText);
 }
 
-function semanticShadow(base, candidate) {
+function normalizedValueForExplicitField(field, value) {
+  const folded = foldRecognitionTraditional(value);
+  const exact = valueCandidate(folded);
+  if (exact && exact.field === field) return { text:exact.value, candidate:exact };
+  if (field === 'flavor') {
+    const flavor = flavorNoiseCandidate(value);
+    if (flavor) return { text:flavor.value, candidate:flavor };
+  }
+  return { text:folded, candidate:null };
+}
+
+function standaloneShadow(base, candidate) {
   if (!candidate) return base;
   const label = FIELD_LABELS[candidate.field];
   if (!label) return base;
+  // A typed suffix already supplies strong field ownership. Transliteration aliases
+  // remain audit candidates instead of being injected into the stored custom value.
+  if (candidate.rule.startsWith('typed-')) return `${label}: ${candidate.value}`;
   const alternatives = [candidate.value, ...(candidate.aliases || [])].map(cleanRaw).filter(Boolean);
-  const unique = [...new Set(alternatives)];
-  return `${label}: ${unique.join(' / ')}`;
+  return `${label}: ${[...new Set(alternatives)].join(' / ')}`;
+}
+
+function auditCandidate(candidate) {
+  if (!candidate) return [];
+  return [{
+    field:candidate.field,
+    value:candidate.value,
+    aliases:[...(candidate.aliases || [])],
+    rule:candidate.rule,
+    confidence:candidate.confidence,
+    authority:'normalization-shadow'
+  }];
 }
 
 /**
- * Builds a non-destructive semantic shadow before field recognition.
- * Raw OCR is preserved after NFKC/control cleanup; only normalizedText is consumed
- * by downstream field recognition. Every changed line carries an auditable
- * rule/confidence record so translation can never masquerade as visual OCR evidence.
+ * Non-destructive, context-aware normalization before semantic field recognition.
+ * Explicit field labels always win; their following value is normalized but is
+ * never prefixed with a second field label. Bare lines may receive a high-specificity
+ * field hint. Raw OCR stays separate and auditable.
  */
 export function preNormalizeRecognitionSemanticText(source, _book) {
   const rawLines = String(source || '').replace(/\r/g, '').split(/\n+/).map(cleanRaw).filter(Boolean);
+  const foldedLines = rawLines.map(foldRecognitionTraditional);
   const lines = rawLines.map((rawText, index) => {
-    const folded = foldRecognitionTraditional(rawText);
-    const candidate = lineCandidate(rawText, folded);
-    const normalizedText = semanticShadow(folded, candidate);
-    const changed = normalizedText !== rawText;
+    const folded = foldedLines[index];
+    const inline = inlineField(folded);
+    let normalizedText = folded;
+    let candidate = null;
+
+    if (inline) {
+      const normalized = normalizedValueForExplicitField(inline.field, inline.value);
+      normalizedText = `${inline.label}: ${normalized.text}`;
+      candidate = normalized.candidate;
+    } else {
+      const currentLabel = labelField(folded);
+      const previousLabel = index > 0 ? labelField(foldedLines[index - 1]) : '';
+      if (currentLabel) {
+        normalizedText = FIELD_LABELS[currentLabel] || folded;
+      } else if (previousLabel) {
+        const normalized = normalizedValueForExplicitField(previousLabel, folded);
+        normalizedText = normalized.text;
+        candidate = normalized.candidate;
+      } else {
+        candidate = standaloneCandidate(rawText, folded);
+        normalizedText = standaloneShadow(folded, candidate);
+      }
+    }
+
     return {
       index,
       rawText,
       normalizedText,
-      ...(candidate ? { candidates:[{
-        field:candidate.field,
-        value:candidate.value,
-        aliases:[...(candidate.aliases || [])],
-        rule:candidate.rule,
-        confidence:candidate.confidence,
-        authority:'normalization-shadow'
-      }] } : { candidates:[] }),
-      changed
+      candidates:auditCandidate(candidate),
+      changed:normalizedText !== rawText
     };
   });
+
   const changedLines = lines.filter(line => line.changed);
   return {
     schemaVersion:PRE_SEMANTIC_NORMALIZATION_SCHEMA,
