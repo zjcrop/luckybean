@@ -6,8 +6,8 @@ const TRADITIONAL_FOLD = Object.freeze({
   '淨':'净','規':'规','號':'号','編':'编','級':'级','灣':'湾','倫':'伦','亞':'亚','馬':'马','達':'达','薩':'萨',
   '爾':'尔','盧':'卢','東':'东','門':'门','義':'义','羅':'罗','蘭':'兰','島':'岛','縣':'县','鎮':'镇','鄉':'乡',
   '嶺':'岭','嶽':'岳','穀':'谷','臺':'台','烏':'乌','貝':'贝','獅':'狮','葉':'叶','樹':'树','陳':'陈','紅':'红',
-  '黃':'黄','綠':'绿','藍':'蓝','廣':'广','寧':'宁','華':'华','爾':'尔','賴':'赖','維':'维','納':'纳','達':'达',
-  '賞':'赏','飲':'饮','製':'制','裝':'装','質':'质','餘':'余','韻':'韵','乾':'干','潔':'洁','頭':'头','門':'门'
+  '黃':'黄','綠':'绿','藍':'蓝','廣':'广','寧':'宁','華':'华','賴':'赖','維':'维','納':'纳',
+  '賞':'赏','飲':'饮','製':'制','裝':'装','質':'质','餘':'余','韻':'韵','乾':'干','潔':'洁','頭':'头'
 });
 
 const FIELD_LABELS = Object.freeze({
@@ -17,7 +17,6 @@ const FIELD_LABELS = Object.freeze({
 // Only exact, high-specificity coffee-domain aliases are permitted here. These
 // are shadow-normalization hints, never replacements for raw OCR evidence.
 const EXACT_ALIASES = Object.freeze({
-  // Taiwan/HK country exonyms.
   '衣索比亚': { field:'country', canonical:'埃塞俄比亚', rule:'country-exonym', confidence:0.99 },
   '肯亚': { field:'country', canonical:'肯尼亚', rule:'country-exonym', confidence:0.99 },
   '瓜地马拉': { field:'country', canonical:'危地马拉', rule:'country-exonym', confidence:0.99 },
@@ -27,7 +26,6 @@ const EXACT_ALIASES = Object.freeze({
   '蒲隆地': { field:'country', canonical:'布隆迪', rule:'country-exonym', confidence:0.99 },
   '哥伦比亚': { field:'country', canonical:'哥伦比亚', rule:'country-canonical', confidence:0.99 },
 
-  // Common coffee-origin transliterations. Field type is part of the alias fact.
   '薇拉': { field:'region', canonical:'Huila', aliases:['惠拉','乌伊拉'], rule:'coffee-origin-transliteration', confidence:0.94 },
   '惠拉': { field:'region', canonical:'Huila', aliases:['薇拉','乌伊拉'], rule:'coffee-origin-transliteration', confidence:0.94 },
   '乌伊拉': { field:'region', canonical:'Huila', aliases:['薇拉','惠拉'], rule:'coffee-origin-transliteration', confidence:0.94 },
@@ -38,11 +36,9 @@ const EXACT_ALIASES = Object.freeze({
   '西达马': { field:'region', canonical:'Sidama', aliases:['Sidamo','西达摩','锡达摩'], rule:'coffee-origin-transliteration', confidence:0.94 },
   '古吉': { field:'region', canonical:'Guji', rule:'coffee-origin-transliteration', confidence:0.97 },
 
-  // Variety naming traditions.
   '艺伎': { field:'variety', canonical:'Gesha', aliases:['Geisha','瑰夏'], rule:'coffee-variety-alias', confidence:0.94 },
   '瑰夏': { field:'variety', canonical:'Gesha', aliases:['Geisha','艺伎'], rule:'coffee-variety-alias', confidence:0.94 },
 
-  // Processing terminology in Chinese/Japanese/Korean.
   '水洗': { field:'process', canonical:'水洗', rule:'process-canonical', confidence:0.99 },
   '日晒': { field:'process', canonical:'日晒', rule:'process-canonical', confidence:0.99 },
   '蜜处理': { field:'process', canonical:'蜜处理', rule:'process-canonical', confidence:0.99 },
@@ -56,7 +52,6 @@ const EXACT_ALIASES = Object.freeze({
   '허니': { field:'process', canonical:'蜜处理', aliases:['Honey Process'], rule:'process-translation-ko', confidence:0.96 },
   '무산소': { field:'process', canonical:'厌氧', aliases:['Anaerobic'], rule:'process-translation-ko', confidence:0.94 },
 
-  // Roast terminology.
   '极浅焙': { field:'roast', canonical:'极浅烘', rule:'roast-terminology', confidence:0.99 },
   '浅焙': { field:'roast', canonical:'浅烘', rule:'roast-terminology', confidence:0.99 },
   '浅中焙': { field:'roast', canonical:'浅中烘', rule:'roast-terminology', confidence:0.99 },
@@ -99,6 +94,10 @@ function flavorShadow(value) {
 }
 
 function flavorLike(value) {
+  const folded = foldRecognitionTraditional(value);
+  const hasHan = /\p{Script=Han}/u.test(folded);
+  const hasOcrSeparatorNoise = /[IⅠl|｜]/u.test(folded);
+  if (!hasHan || !hasOcrSeparatorNoise) return false;
   const pieces = flavorShadow(value).split(/[、,，;；/]+/).map(cleanRaw).filter(Boolean);
   return pieces.length >= 2 && pieces.length <= 10 && pieces.every(piece => !/\d/.test(piece) && piece.length <= 28);
 }
@@ -137,10 +136,9 @@ function semanticShadow(base, candidate) {
 
 /**
  * Builds a non-destructive semantic shadow before field recognition.
- * Raw OCR is preserved byte-for-semantic-byte after NFKC/control cleanup; only
- * normalizedText is consumed by downstream field recognition. Every changed line
- * carries an auditable rule/confidence record so translation can never masquerade
- * as visual OCR evidence.
+ * Raw OCR is preserved after NFKC/control cleanup; only normalizedText is consumed
+ * by downstream field recognition. Every changed line carries an auditable
+ * rule/confidence record so translation can never masquerade as visual OCR evidence.
  */
 export function preNormalizeRecognitionSemanticText(source, _book) {
   const rawLines = String(source || '').replace(/\r/g, '').split(/\n+/).map(cleanRaw).filter(Boolean);
