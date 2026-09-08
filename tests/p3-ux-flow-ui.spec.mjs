@@ -4,6 +4,7 @@ const BASE_URL='http://127.0.0.1:4173';
 
 test.beforeEach(async({page})=>{
   await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/,route=>route.abort('failed'));
+  await page.addInitScript(()=>localStorage.setItem('luckybean.onboarding.v2',JSON.stringify({stage:'existing-user',updatedAt:new Date().toISOString(),reason:'p3-ux-flow-test'})));
   await page.goto(`${BASE_URL}/?p3-ux-flow=1`,{waitUntil:'domcontentloaded'});
   const splash=page.locator('#splashScreen');
   if(await splash.isVisible().catch(()=>false)) await splash.click();
@@ -41,6 +42,7 @@ test('brew tendency is placed before the generated plan and heading is neutral',
   await expect(page.locator('#generatedPlan > h2')).toHaveText('冲煮方案');
   const order=await page.locator('#planResult').evaluate(node=>[...node.children].map(child=>child.classList.contains('brew-strategy-options')?'tendency':child.id||child.tagName));
   expect(order.slice(0,2)).toEqual(['tendency','generatedPlan']);
+  await expect.poll(async()=>page.locator('#startBrewBtn').evaluate(node=>getComputedStyle(node).textAlign),{timeout:5000}).toBe('center');
   const actions=await page.locator('#startBrewBtn').evaluate(node=>{const style=getComputedStyle(node);return {display:style.display,weight:Number(style.fontWeight),align:style.textAlign};});
   expect(actions.display).toBe('flex');
   expect(actions.weight).toBeGreaterThanOrEqual(700);
