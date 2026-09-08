@@ -153,11 +153,15 @@ jobs:
             sleep 10
           done
           test "$found" = true
+          OCR_PROVIDER_VERSION=$(sed -n "s/^const VERSION = '\([^']*\)';/\1/p" src/recognition-paddle-ocr.js | head -1)
+          test -n "$OCR_PROVIDER_VERSION"
+          export OCR_PROVIDER_VERSION
           node --input-type=module <<'NODE'
           import { chromium } from '@playwright/test';
           const sha=process.env.SOURCE_SHA;
           const expectedVersion=process.env.DISPLAY_VERSION;
           const expectedRevision=process.env.RELEASE_REVISION;
+          const expectedOcrVersion=process.env.OCR_PROVIDER_VERSION;
           const browser=await chromium.launch({headless:true});
           const context=await browser.newContext({viewport:{width:390,height:844}});
           await context.addInitScript(()=>localStorage.setItem('luckybean.onboarding.v2',JSON.stringify({stage:'existing-user',updatedAt:new Date().toISOString(),reason:'pages-124p-gate'})));
@@ -205,7 +209,7 @@ jobs:
             await api.dispose();
             return result;
           });
-          if(!ocr.ready||ocr.version!=='0.4.9'||ocr.workerBootstrap!=='preloaded-blob-module'||!ocr.webOcr.includes('ppocr-v5-0.4.9')) throw new Error(`Live Pages PP-OCR initialization mismatch: ${JSON.stringify(ocr)}`);
+          if(!ocr.ready||ocr.version!==expectedOcrVersion||ocr.workerBootstrap!=='preloaded-blob-module'||!ocr.webOcr.includes(`ppocr-v5-${expectedOcrVersion}`)) throw new Error(`Live Pages PP-OCR initialization mismatch: ${JSON.stringify({expectedOcrVersion,...ocr})}`);
           if(!/ETHIOPIA/i.test(ocr.text)||!/WASHED/i.test(ocr.text)) throw new Error(`Live Pages OCR text mismatch: ${JSON.stringify(ocr)}`);
           console.log('LIVE_PPOCR_RECOGNITION',JSON.stringify(ocr));
           if(pageErrors.length) throw new Error(`Pages pageerror: ${pageErrors.join(' | ')}`);
