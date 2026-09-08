@@ -15,10 +15,10 @@ html[data-theme="light"]{
 }
 
 /* Strong interactive actions: identical type scale and affordance. */
-#pageBrew #generatePlanBtn,
-#pageBrew #directSensoryBtn,
-#pageBrew #startBrewBtn,
-#pageBrew .brew-strategy-options .recommended-profile-option{
+#pageBrew #brewContent #generatePlanBtn,
+#pageBrew #brewContent #directSensoryBtn,
+#pageBrew #brewContent #startBrewBtn,
+#pageBrew #brewContent .brew-strategy-options .recommended-profile-option{
   border:1.5px solid var(--lb-brew-action-border)!important;
   border-radius:14px!important;
   background:var(--lb-brew-action-fill)!important;
@@ -30,53 +30,53 @@ html[data-theme="light"]{
   line-height:1.2!important;
   letter-spacing:.02em!important;
 }
-#pageBrew #generatePlanBtn,
-#pageBrew #directSensoryBtn,
-#pageBrew #startBrewBtn{
+#pageBrew #brewContent #generatePlanBtn,
+#pageBrew #brewContent #directSensoryBtn,
+#pageBrew #brewContent #startBrewBtn{
   min-height:56px!important;
 }
-#pageBrew #generatePlanBtn:active,
-#pageBrew #directSensoryBtn:active,
-#pageBrew #startBrewBtn:active,
-#pageBrew .brew-strategy-options .recommended-profile-option:active,
-#pageBrew .brew-strategy-options .recommended-profile-option.selected{
+#pageBrew #brewContent #generatePlanBtn:active,
+#pageBrew #brewContent #directSensoryBtn:active,
+#pageBrew #brewContent #startBrewBtn:active,
+#pageBrew #brewContent .brew-strategy-options .recommended-profile-option:active,
+#pageBrew #brewContent .brew-strategy-options .recommended-profile-option.selected{
   background:var(--lb-brew-action-fill-strong)!important;
   transform:translateY(1px);
 }
-#pageBrew .brew-strategy-options .recommended-profile-option{
+#pageBrew #brewContent .brew-strategy-options .recommended-profile-option{
   width:100%!important;
   min-height:62px!important;
   padding:12px 14px!important;
 }
-#pageBrew .brew-strategy-options .recommended-profile-option span,
-#pageBrew .brew-strategy-options .recommended-profile-option strong{
+#pageBrew #brewContent .brew-strategy-options .recommended-profile-option span,
+#pageBrew #brewContent .brew-strategy-options .recommended-profile-option strong{
   color:inherit!important;
   font-family:inherit!important;
   font-size:18px!important;
   font-weight:900!important;
 }
-#pageBrew .brew-strategy-options .recommended-profile-option small{
+#pageBrew #brewContent .brew-strategy-options .recommended-profile-option small{
   color:inherit!important;
   font-family:SimHei,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif!important;
   font-weight:700!important;
 }
 
 /* One decisive timer action: centered, with the duplicate lower sensory action removed from view. */
-#generatedPlan > .row.menu-row{
+#pageBrew #generatedPlan > .row.menu-row{
   display:flex!important;
   justify-content:center!important;
   align-items:stretch!important;
   gap:0!important;
 }
-#generatedPlan #startBrewBtn{
+#pageBrew #generatedPlan #startBrewBtn{
   flex:0 1 320px!important;
   width:min(100%,320px)!important;
 }
-#generatedPlan #planToSensoryBtn{display:none!important;}
+#pageBrew #generatedPlan #planToSensoryBtn{display:none!important;}
 
 /* Dose and ratio are peer settings: exactly matched typography and underline. */
-#pageBrew #brewDose,
-#pageBrew #brewRatio{
+#pageBrew #brewContent #brewDose,
+#pageBrew #brewContent #brewRatio{
   min-height:46px!important;
   border:0!important;
   border-bottom:1px solid var(--lb-brew-underline)!important;
@@ -91,20 +91,20 @@ html[data-theme="light"]{
 }
 
 /* Filter gear / water and the three adjustment entries share the same underline language. */
-#pageBrew #brewDripper,
-#pageBrew #brewFilterPaper,
-#pageBrew #brewWaterProfile,
-#pageBrew #openBrewTuneBtn,
-#pageBrew #openFlavorTargetBtn,
-#pageBrew #openEnvironmentBtn{
+#pageBrew #brewContent #brewDripper,
+#pageBrew #brewContent #brewFilterPaper,
+#pageBrew #brewContent #brewWaterProfile,
+#pageBrew #brewContent #openBrewTuneBtn,
+#pageBrew #brewContent #openFlavorTargetBtn,
+#pageBrew #brewContent #openEnvironmentBtn{
   border:0!important;
-  border-bottom:1.5px solid var(--lb-brew-underline)!important;
+  border-bottom:1px solid var(--lb-brew-underline)!important;
   border-radius:0!important;
   background:transparent!important;
 }
 
 /* Automatic brew-method choice is intentionally more legible. */
-#pageBrew #brewProfile{
+#pageBrew #brewContent #brewProfile{
   font-family:SimHei,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif!important;
   font-size:18px!important;
   font-weight:900!important;

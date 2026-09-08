@@ -5,6 +5,7 @@ const read = path => fs.readFileSync(path, 'utf8');
 const flow = read('src/ui/p3-ux-flow-controller.js');
 const flowCss = read('src/ui/p3-ux-flow.css');
 const interaction = read('src/ui/recognition-interaction-controller.js');
+const brewInteractionCss = read('src/ui/brew-interaction-emphasis.css');
 const progress = read('src/features/recognition-batch-progress-controller.js');
 const sync = read('src/services/cloud-sync-service.js');
 
@@ -14,7 +15,9 @@ assert.match(flow, /button\.click\(\)/, 'bean-card brew action must auto-trigger
 assert.match(flow, /replace\(\/\^\(热冲\|冰冲\)方案\/, '冲煮方案'\)/, 'hot/cold generated heading must be normalized');
 assert.match(flow, /planHost\.insertBefore\(tendency, generated\)/, 'brew tendency must sit above generated plan');
 assert.match(flowCss, /\.brew-mode-field\{display:none!important\}/, 'top hot/cold control must be removed from layout');
-assert.match(flowCss, /#startBrewBtn,#planToSensoryBtn/, 'timer and direct tasting actions must share prominent typography');
+assert.match(flowCss, /#startBrewBtn,#planToSensoryBtn/, 'legacy action geometry must remain compatible');
+assert.match(brewInteractionCss, /#pageBrew #generatedPlan #planToSensoryBtn\{display:none!important;\}/, 'duplicate lower direct-tasting action must be removed from the visible UI');
+assert.match(brewInteractionCss, /#pageBrew #generatedPlan > \.row\.menu-row/, 'the remaining timer action must own the centered lower row');
 
 assert.match(flow, /targetWidth = view\.canvas\.width \* 0\.88/, '3D scene must fit most of the available width');
 assert.match(flow, /targetHeight = view\.canvas\.height \* 0\.76/, '3D scene must fit the useful fullscreen height');

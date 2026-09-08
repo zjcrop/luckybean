@@ -57,33 +57,85 @@ test.beforeEach(async ({ page }) => {
   await seedBean(page);
 });
 
-test('small brew peer controls share the centered dripper value typography', async ({ page }) => {
+test('small brew actions and primary settings use the requested interaction emphasis', async ({ page }) => {
   await page.locator('[data-page-target="brew"]').click();
-  const reference = page.locator('#brewDripper');
-  await expect(reference).toBeVisible();
+  await expect(page.locator('link[data-brew-interaction-emphasis]')).toHaveCount(1);
 
-  const referenceStyle = await reference.evaluate(node => {
-    const css = getComputedStyle(node);
-    return { fontSize: css.fontSize, lineHeight: css.lineHeight, textAlign: css.textAlign };
-  });
-  expect(referenceStyle.textAlign).toBe('center');
-
-  for (const selector of ['#openBrewTuneBtn', '#openFlavorTargetBtn', '#openEnvironmentBtn', '#generatePlanBtn', '#directSensoryBtn']) {
+  for (const selector of ['#generatePlanBtn', '#directSensoryBtn']) {
     const control = page.locator(selector);
     await expect(control).toBeVisible();
     const style = await control.evaluate(node => {
       const css = getComputedStyle(node);
-      return { fontSize: css.fontSize, lineHeight: css.lineHeight, textAlign: css.textAlign, fontWeight: css.fontWeight, textDecoration: css.textDecorationLine };
+      return { fontSize: css.fontSize, textAlign: css.textAlign, fontWeight: css.fontWeight, borderStyle: css.borderStyle, borderRadius: css.borderRadius };
     });
     expect(style.textAlign).toBe('center');
-    expect(style.fontSize).toBe(referenceStyle.fontSize);
-    expect(style.lineHeight).toBe(referenceStyle.lineHeight);
-    expect(Number(style.fontWeight)).toBeLessThanOrEqual(500);
-    expect(style.textDecoration).toBe('none');
+    expect(style.fontSize).toBe('18px');
+    expect(Number(style.fontWeight)).toBeGreaterThanOrEqual(800);
+    expect(style.borderStyle).toBe('solid');
+    expect(style.borderRadius).toBe('14px');
   }
+
+  await expect(page.locator('#openBrewTuneBtn')).toHaveText('方案微调');
+  for (const selector of ['#brewDripper', '#brewFilterPaper', '#brewWaterProfile', '#openBrewTuneBtn', '#openFlavorTargetBtn', '#openEnvironmentBtn']) {
+    await expect(page.locator(selector)).toHaveCSS('border-bottom-style', 'solid');
+    await expect(page.locator(selector)).toHaveCSS('border-bottom-width', '1px');
+  }
+  for (const selector of ['#brewDose', '#brewRatio']) {
+    await expect(page.locator(selector)).toHaveCSS('font-size', '20px');
+    await expect(page.locator(selector)).toHaveCSS('font-weight', '900');
+    await expect(page.locator(selector)).toHaveCSS('border-bottom-width', '1px');
+  }
+  await expect(page.locator('#brewProfile')).toHaveCSS('font-size', '18px');
+  await expect(page.locator('#brewProfile')).toHaveCSS('font-weight', '900');
 
   await page.locator('#generatePlanBtn').evaluate(node => { node.textContent = '重新生成'; });
   await expect(page.locator('#generatePlanBtn')).toHaveCSS('text-align', 'center');
+});
+
+test('generated plan keeps one centered timer action and compact same-line title copy', async ({ page }) => {
+  await page.locator('[data-page-target="brew"]').click();
+  await page.locator('#planResult').evaluate(host => {
+    host.innerHTML = `<section class="panel generated-plan" id="generatedPlan">
+      <div class="panel-title"><div><h2>热冲方案</h2><p data-test-plan-summary>15.0g · 226g水 · 01:45</p></div><span class="plan-profile-label">甜感平衡 · 四六法</span></div>
+      <div class="brew-preparation-card"><strong>计时前准备</strong><p>润湿滤纸并充分预热滤杯。</p></div>
+      <section class="brew-strategy-options"><div class="nested-content">
+        <button class="recommended-profile-option"><span>清晰香气</span></button>
+        <button class="recommended-profile-option selected"><span>甜感平衡</span></button>
+        <button class="recommended-profile-option"><span>醇厚高萃</span></button>
+      </div></section>
+      <div class="row menu-row"><button id="startBrewBtn">开始计时</button><button id="planToSensoryBtn">直接品鉴</button></div>
+    </section>`;
+  });
+
+  await expect(page.locator('#generatedPlan .lb-brew-plan-title-line h2')).toHaveText('冲煮方案');
+  await expect(page.locator('#generatedPlan .lb-brew-plan-title-line .plan-profile-label')).toHaveText('甜感平衡 · 四六法');
+  await expect(page.locator('[data-test-plan-summary]')).toHaveText('15.0g · 226g水 · 01:45');
+  await expect(page.locator('#generatedPlan .lb-brew-plan-title-line h2')).toHaveCSS('font-size', '14px');
+
+  const preparationSizes = await page.locator('#generatedPlan .brew-preparation-card').evaluate(node => ({
+    title: parseFloat(getComputedStyle(node.querySelector('strong')).fontSize),
+    copy: parseFloat(getComputedStyle(node.querySelector('p')).fontSize),
+    family: getComputedStyle(node.querySelector('p')).fontFamily
+  }));
+  expect(preparationSizes.copy).toBeLessThan(preparationSizes.title);
+  expect(preparationSizes.family).toContain('SimSun');
+
+  for (const option of await page.locator('.brew-strategy-options .recommended-profile-option').all()) {
+    await expect(option).toHaveCSS('font-size', '18px');
+    await expect(option).toHaveCSS('font-weight', '900');
+    await expect(option).toHaveCSS('border-bottom-style', 'solid');
+  }
+  await expect(page.locator('#startBrewBtn')).toHaveCSS('font-size', '18px');
+  await expect(page.locator('#startBrewBtn')).toHaveCSS('font-weight', '900');
+  await expect(page.locator('#startBrewBtn')).toHaveCSS('border-bottom-style', 'solid');
+  await expect(page.locator('#planToSensoryBtn')).toBeHidden();
+
+  const timerRow = await page.locator('#generatedPlan > .row.menu-row').evaluate(node => {
+    const row = node.getBoundingClientRect();
+    const button = node.querySelector('#startBrewBtn').getBoundingClientRect();
+    return { rowCenter: row.left + row.width / 2, buttonCenter: button.left + button.width / 2 };
+  });
+  expect(Math.abs(timerRow.rowCenter - timerRow.buttonCenter)).toBeLessThanOrEqual(1);
 });
 
 test('professional cupping score slider starts below the subjective number and never exceeds the content width', async ({ page }) => {
