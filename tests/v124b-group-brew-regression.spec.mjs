@@ -4,7 +4,12 @@ const BASE_URL='http://127.0.0.1:4173';
 
 async function waitForStartup(page){
   const splash=page.locator('#splashScreen');
-  if(await splash.isVisible().catch(()=>false)) await splash.click();
+  await expect(splash).toBeAttached({timeout:15000});
+  if(await splash.isVisible().catch(()=>false)){
+    await expect(splash).toHaveAttribute('data-startup-bound','1',{timeout:15000});
+    await splash.click({force:true});
+  }
+  await expect(splash).toBeHidden({timeout:10000});
   await expect(page.locator('#appShell')).toBeVisible({timeout:15000});
   await page.waitForFunction(()=>document.documentElement.dataset.startup==='ready');
 }
