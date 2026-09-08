@@ -3,7 +3,9 @@ import { loadCodebook, makeIndex, displayName } from '../codebook.js';
 import { buildBeanDetailProjection } from '../domain/beans/bean-display-projection.js';
 
 const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
+const $$ = (selector, root = document) => root?.querySelectorAll ? [...root.querySelectorAll(selector)] : [];
 const ROAST_LABELS = Object.freeze({ 'RL-L0':'极浅烘','RL-L1':'浅烘','RL-L2':'浅中烘','RL-L3':'中烘','RL-L4':'中深烘','RL-L5':'深烘','RL-L6':'极深烘' });
+const DUPLICATE_DETAIL_LABELS = new Set(['国家','产区','处理法','产季','烘焙日期','烘焙度','烘焙色值','色值']);
 let lastBeanId = '';
 let codebookPromise;
 let decorating = false;
@@ -24,7 +26,29 @@ function facts(bean, index) {
   };
 }
 function esc(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[char])); }
-function valueRow(values = []) { return values.length ? `<div class="p2-bean-detail-values">${values.map(value => `<span>${esc(value)}</span>`).join('')}</div>` : ''; }
+function valueRow(values = []) {
+  const clean = values.map(value => String(value || '').trim()).filter(Boolean);
+  return clean.length ? `<div class="p2-bean-detail-values">${esc(clean.join(' / '))}</div>` : '';
+}
+function stripDuplicateLegacyFacts(overlay) {
+  const factSheet = $('.p2-bean-fact-sheet', overlay);
+  const flavorHost = $('.detail-tags', overlay);
+  if (flavorHost) {
+    flavorHost.dataset.p2FlavorOnly = '1';
+    $$('h2,h3,h4,h5,label,dt,.detail-label,.meta-label', flavorHost).forEach(node => {
+      if (String(node.textContent || '').trim() === '风味') node.remove();
+    });
+  }
+  const labelCandidates = $$('label,dt,small,.detail-label,.meta-label,.bean-detail-label', overlay);
+  for (const node of labelCandidates) {
+    if (node.closest('.p2-bean-fact-sheet')) continue;
+    const text = String(node.textContent || '').trim();
+    if (!DUPLICATE_DETAIL_LABELS.has(text)) continue;
+    const row = node.closest('.bean-detail-row,.detail-row,.metadata-row,.meta-row,.field-row,li') || node.parentElement;
+    if (!row || row === factSheet || row === flavorHost || row.contains(flavorHost) || row.contains(factSheet)) continue;
+    if (String(row.textContent || '').trim().length <= 120) row.remove();
+  }
+}
 async function decorate() {
   if (decorating) return;
   const overlay = $('#overlayRoot [data-overlay="bean-detail"]');
@@ -45,7 +69,8 @@ async function decorate() {
     if (!overlay.querySelector('.p2-bean-fact-sheet')) {
       const sheet = document.createElement('section');
       sheet.className = 'p2-bean-fact-sheet';
-      sheet.innerHTML = `${valueRow(view.origin)}${valueRow(view.roast)}${view.notes ? `<p class="p2-bean-detail-note">${esc(view.notes)}</p>` : ''}`;
+      sheet.dataset.beanDetailFacts = 'content-only';
+      sheet.innerHTML = `${valueRow(view.origin)}${valueRow(view.roast)}`;
       header?.insertAdjacentElement('afterend', sheet);
     }
     const management = $('.management-stack', overlay);
@@ -65,6 +90,7 @@ async function decorate() {
       management.replaceChildren(edit, storage, archive, remove);
       if (correct && secondary) { correct.textContent = '修正克重'; secondary.append(correct); }
     }
+    stripDuplicateLegacyFacts(overlay);
     overlay.dataset.p2DetailProjected = '1';
   } finally { decorating = false; }
 }
