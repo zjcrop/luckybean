@@ -1,4 +1,4 @@
-/home/runner/work/luckybean/luckybean/src/recognition-paddle-ocr.js:229
+/home/runner/work/luckybean/luckybean/src/recognition-paddle-ocr.js:250
   return /Unknown worker error|Failed to construct ['\"]?Worker|SecurityError|Worker (?:startup|initialization|运行|启动|创建).*?(?:fail|error|失败)/iu.test(message);
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
