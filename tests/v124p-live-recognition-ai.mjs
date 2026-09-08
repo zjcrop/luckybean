@@ -17,8 +17,9 @@ function isTransientRequestError(error){
   return error?.name==='AbortError'||error instanceof TypeError;
 }
 
-function isTransientAiTimeout(attempt){
-  return attempt?.response?.status===502&&attempt?.payload?.error==='AI_TIMEOUT';
+function isTransientAiFailure(attempt){
+  if(attempt?.response?.status!==502)return false;
+  return ['AI_TIMEOUT','AI_STRUCTURE_INVALID'].includes(attempt?.payload?.error);
 }
 
 async function requestJson(options,timeoutMs){
@@ -72,8 +73,8 @@ async function requestWithTransientRetry(request,label){
       await sleep(1000*attempt);
       continue;
     }
-    if(!isTransientAiTimeout(lastAttempt)||attempt===transientAttempts)break;
-    console.warn(`${label} transient AI_TIMEOUT on attempt ${attempt}/${transientAttempts}`);
+    if(!isTransientAiFailure(lastAttempt)||attempt===transientAttempts)break;
+    console.warn(`${label} transient ${lastAttempt.payload?.error} on attempt ${attempt}/${transientAttempts}`);
     await sleep(1000*attempt);
   }
   if(!lastAttempt&&lastError)throw lastError;
