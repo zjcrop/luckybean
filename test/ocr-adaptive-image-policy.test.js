@@ -4,12 +4,16 @@ import { readFile } from 'node:fs/promises';
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('production OCR uses the session fast-path provider without the adaptive ROI wrapper', async () => {
+test('production OCR uses only the session fast-path provider without the adaptive ROI wrapper', async () => {
   const runtime = await read('src/features/runtime-features.js');
+  const index = await read('index.html');
   assert.match(runtime, /feature\('recognition-paddle-ocr', '\.\.\/recognition-paddle-ocr-fast\.js'\)/);
+  assert.match(index, /src\/recognition-paddle-ocr-fast\.js\?v=/);
+  assert.doesNotMatch(index, /src\/recognition-paddle-ocr\.js\?v=/);
   assert.doesNotMatch(runtime, /recognition-adaptive-detail/);
   assert.match(runtime, /beginRecognitionSession/);
   assert.match(runtime, /endRecognitionSession/);
+  assert.match(runtime, /closest\?\.\('#fabAddBtn'\)/);
 });
 
 test('fast path preserves 2200px detector budget and only falls back after a real runtime failure', async () => {
@@ -19,6 +23,8 @@ test('fast path preserves 2200px detector budget and only falls back after a rea
   assert.match(source, /simd:!compatibility/);
   assert.match(source, /looksLikeCompatibilityFailure/);
   assert.match(source, /worker-no-simd-fallback/);
+  assert.match(source, /predict-runtime-recovery-success/);
+  assert.match(source, /disposePolicy:'capture-session'/);
   assert.doesNotMatch(source, /textDetMaxSideLimit:LOW_MEMORY \? 1280 : 2200/);
 });
 
