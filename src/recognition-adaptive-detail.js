@@ -1,4 +1,6 @@
-export const ADAPTIVE_OCR_IMAGE_POLICY = 'label-scale-roi/2.0';
+import { originalCompressedSource } from './image-quality.js';
+
+export const ADAPTIVE_OCR_IMAGE_POLICY = 'label-scale-roi/2.1';
 export const PACKAGE_OCR_FAST_EDGE = 2200;
 export const PACKAGE_OCR_DETAIL_EDGE = 2200;
 
@@ -127,11 +129,13 @@ async function adaptiveRecognize(base, images, options = {}) {
       if (geometry) diagnostics.push({ imageId:image.id, attempted:false, area:geometry.area, medianTextHeight:geometry.medianHeight });
       continue;
     }
+    const originalSource = originalCompressedSource(image.blob);
+    const roiSource = originalSource instanceof Blob && originalSource.size ? originalSource : image.blob;
     attempted.push(image.id);
-    diagnostics.push({ imageId:image.id, attempted:true, area:geometry.area, medianTextHeight:geometry.medianHeight, region:geometry.region });
-    emit(`标签在整图中占比较小，正在放大标签区域复核 ${attempted.length}`, 91 + Math.min(4, attempted.length));
+    diagnostics.push({ imageId:image.id, attempted:true, area:geometry.area, medianTextHeight:geometry.medianHeight, region:geometry.region, source:roiSource === image.blob ? 'prepared-bounded' : 'original-compressed' });
+    emit(`标签在整图中占比较小，正在从原压缩图放大标签区域复核 ${attempted.length}`, 91 + Math.min(4, attempted.length));
     try {
-      const detailResult = await base.recognizeRegion(image.blob, geometry.region, { ...options, imageId:image.id, maxEdge:PACKAGE_OCR_DETAIL_EDGE });
+      const detailResult = await base.recognizeRegion(roiSource, geometry.region, { ...options, imageId:image.id, maxEdge:PACKAGE_OCR_DETAIL_EDGE });
       const detailBlocks = blocksForImage(detailResult, image.id);
       if (materiallyBetter(detailBlocks, baseBlocks)) {
         replaceByImage.set(String(image.id), detailBlocks);
