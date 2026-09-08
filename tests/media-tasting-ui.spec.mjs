@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('media tasting controller loads, exposes five templates and enhances sensory records', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('http://127.0.0.1:4173/');
   await page.waitForFunction(() => Boolean(globalThis.LuckyBeanMediaTasting), null, { timeout: 30000 });
 
   const metadata = await page.evaluate(() => ({
