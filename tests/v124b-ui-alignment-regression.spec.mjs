@@ -66,13 +66,15 @@ test('small brew actions and primary settings use the requested interaction emph
     await expect(control).toBeVisible();
     const style = await control.evaluate(node => {
       const css = getComputedStyle(node);
-      return { fontSize: css.fontSize, textAlign: css.textAlign, fontWeight: css.fontWeight, borderStyle: css.borderStyle, borderRadius: css.borderRadius };
+      return { fontSize: css.fontSize, textAlign: css.textAlign, fontWeight: css.fontWeight, borderStyle: css.borderStyle, borderRadius: css.borderRadius, borderWidth: css.borderWidth, color: css.color };
     });
     expect(style.textAlign).toBe('center');
-    expect(style.fontSize).toBe('18px');
-    expect(Number(style.fontWeight)).toBeGreaterThanOrEqual(800);
+    expect(style.fontSize).toBe('20px');
+    expect(Number(style.fontWeight)).toBeGreaterThanOrEqual(900);
     expect(style.borderStyle).toBe('solid');
-    expect(style.borderRadius).toBe('14px');
+    expect(style.borderWidth).toBe('1px');
+    expect(style.borderRadius).toBe('12px');
+    expect(style.color).toBe('rgb(255, 255, 255)');
   }
 
   await expect(page.locator('#openBrewTuneBtn')).toHaveText('方案微调');
@@ -121,13 +123,19 @@ test('generated plan keeps one centered timer action and compact same-line title
   expect(preparationSizes.family).toContain('SimSun');
 
   for (const option of await page.locator('.brew-strategy-options .recommended-profile-option').all()) {
-    await expect(option).toHaveCSS('font-size', '18px');
+    await expect(option).toHaveCSS('font-size', '15px');
     await expect(option).toHaveCSS('font-weight', '900');
     await expect(option).toHaveCSS('border-bottom-style', 'solid');
+    await expect(option).toHaveCSS('border-bottom-width', '1px');
+    await expect(option).toHaveCSS('border-radius', '12px');
+    await expect(option).toHaveCSS('color', 'rgb(255, 255, 255)');
   }
-  await expect(page.locator('#startBrewBtn')).toHaveCSS('font-size', '18px');
-  await expect(page.locator('#startBrewBtn')).toHaveCSS('font-weight', '900');
+  await expect(page.locator('#startBrewBtn')).toHaveCSS('font-size', '23px');
+  const timerWeight = Number(await page.locator('#startBrewBtn').evaluate(node => getComputedStyle(node).fontWeight));
+  expect(timerWeight).toBeGreaterThanOrEqual(900);
   await expect(page.locator('#startBrewBtn')).toHaveCSS('border-bottom-style', 'solid');
+  await expect(page.locator('#startBrewBtn')).toHaveCSS('border-bottom-width', '1px');
+  await expect(page.locator('#startBrewBtn')).toHaveCSS('color', 'rgb(255, 255, 255)');
   await expect(page.locator('#planToSensoryBtn')).toBeHidden();
 
   const timerRow = await page.locator('#generatedPlan > .row.menu-row').evaluate(node => {
