@@ -1,4 +1,4 @@
-import { getRecognitionBatchSnapshot } from '../recognition-bridge.js';
+import { getRecognitionBatchSnapshot, clearRecognitionBatchSnapshot } from '../recognition-bridge.js';
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 
@@ -19,6 +19,19 @@ function signatureFor(batch){
   });
 }
 
+function terminal(status){ return ['paused','failed','completed'].includes(String(status||'')); }
+function heading(batch,current){
+  if(batch?.status==='completed')return '识别完成';
+  if(batch?.status==='paused'||batch?.status==='failed')return '本次识别失败';
+  return `正在识别 ${current}/${batch.totalTasks}`;
+}
+function clearTerminalSnapshot(batch){
+  if(!terminal(batch?.status))return;
+  const current=getRecognitionBatchSnapshot();
+  if(!current||current.batchId!==batch.batchId)return;
+  clearRecognitionBatchSnapshot();
+}
+
 function render(batch){
   const overlay=$('#overlayRoot [data-overlay="bag-capture"]');
   if(!overlay||!batch?.totalTasks)return;
@@ -34,20 +47,32 @@ function render(batch){
   if(node.dataset.lbBatchSignature===signature)return;
   node.dataset.lbBatchSignature=signature;
   const current=Math.max(1,Math.min(Number(batch.currentTask||1),Number(batch.totalTasks||1)));
-  const rows=(batch.tasks||[]).map(task=>`<span class="${task.status==='completed'?'done':task.status==='processing'?'active':''}">${task.taskId} ${label(task.status)}</span>`).join('');
-  node.innerHTML=`<strong>${batch.status==='completed'?'识别完成':`正在识别 ${current}/${batch.totalTasks}`}</strong><div>${rows}</div>`;
+  const rows=(batch.tasks||[]).map(task=>`<span class="${task.status==='completed'?'done':task.status==='processing'?'active':task.status==='failed'?'failed':''}">${task.taskId} ${label(task.status)}</span>`).join('');
+  node.innerHTML=`<strong>${heading(batch,current)}</strong><div>${rows}</div>`;
 }
 
-document.addEventListener('luckybean:recognition-batch-progress',event=>render(event.detail?.batch));
+// Purge stale terminal state left by older builds before the first overlay is opened.
+const stale=getRecognitionBatchSnapshot();
+if(stale&&terminal(stale.status))clearRecognitionBatchSnapshot();
+
+document.addEventListener('luckybean:recognition-batch-progress',event=>{
+  const batch=event.detail?.batch;
+  render(batch);
+  // Keep a terminal state visible only for the current render turn. The capture
+  // controller will rebuild the overlay with its error/manual-entry state; never
+  // persist a failed/paused batch so it cannot reappear on the next scan.
+  if(terminal(batch?.status))queueMicrotask(()=>clearTerminalSnapshot(batch));
+});
 new MutationObserver(records=>{
-  // Only use DOM observation to restore progress after the capture overlay itself is rebuilt.
-  // render() is signature-idempotent, so its own DOM writes cannot form a feedback loop.
+  // Restore only an actively processing batch after the capture overlay itself is rebuilt.
+  // A paused/failed/completed batch is terminal and must never be resurrected.
   const overlayChanged=records.some(record=>[...record.addedNodes].some(node=>
     node?.nodeType===1&&(node.matches?.('[data-overlay="bag-capture"]')||node.querySelector?.('[data-overlay="bag-capture"]'))
   ));
   if(!overlayChanged)return;
   const batch=getRecognitionBatchSnapshot();
-  if(batch&&['processing','paused'].includes(batch.status))render(batch);
+  if(batch?.status==='processing')render(batch);
+  else if(batch&&terminal(batch.status))clearRecognitionBatchSnapshot();
 }).observe(document.documentElement,{childList:true,subtree:true});
 
-console.info('[LuckyBean] 1.24B serial OCR progress UI active');
+console.info('[LuckyBean] serial OCR progress UI active; terminal batches are non-persistent');

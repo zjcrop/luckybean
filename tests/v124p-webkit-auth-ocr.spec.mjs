@@ -56,22 +56,30 @@ async function installSafariStorageFailure(page){
 async function loadLazyWebOcr(page){
   await expect.poll(()=>page.evaluate(()=>({
     runtime:Boolean(globalThis.LuckyBeanRuntimeFeatures),
-    packageCapture:Boolean(globalThis.LuckyBeanPackageCapture)
-  })),{timeout:15000}).toMatchObject({runtime:true,packageCapture:true});
+    packageCapture:Boolean(globalThis.LuckyBeanPackageCapture),
+    paddle:Boolean(globalThis.LuckyBeanPaddleOCR)
+  })),{timeout:15000}).toMatchObject({runtime:true,packageCapture:true,paddle:true});
 
   const before=await page.evaluate(()=>({
     paddle:Boolean(globalThis.LuckyBeanPaddleOCR),
     declared:globalThis.LuckyBeanRuntimeFeatures?.declared?.includes('recognition-paddle-ocr')===true,
     loaded:globalThis.LuckyBeanRuntimeFeatures?.isLoaded?.('recognition-paddle-ocr')===true,
+    webPaddle:globalThis.LuckyBeanPackageCapture?.capabilities?.().webPaddle===true,
     heavyResources:performance.getEntriesByType('resource').map(item=>item.name).filter(name=>/paddleocr\/(?:sdk|models|ort)\//.test(name)||/paddleocr\/sdk\.mjs/.test(name))
   }));
   expect(before.declared).toBe(true);
-  expect(before.paddle).toBe(false);
-  expect(before.loaded).toBe(false);
+  // The lightweight provider must already be registered before capture UI can render,
+  // otherwise first-open capability detection races and reports "web OCR unavailable".
+  expect(before.paddle).toBe(true);
+  expect(before.loaded).toBe(true);
+  expect(before.webPaddle).toBe(true);
+  // Registration must remain cheap: SDK, models and ORT/WASM are still on-demand only.
   expect(before.heavyResources).toEqual([]);
 
+  // Idempotent load must not trigger heavy OCR resources either.
   await page.evaluate(()=>globalThis.LuckyBeanRuntimeFeatures.load('recognition-paddle-ocr'));
-  await page.waitForFunction(()=>Boolean(globalThis.LuckyBeanPaddleOCR),null,{timeout:15000});
+  const after=await page.evaluate(()=>performance.getEntriesByType('resource').map(item=>item.name).filter(name=>/paddleocr\/(?:sdk|models|ort)\//.test(name)||/paddleocr\/sdk\.mjs/.test(name)));
+  expect(after).toEqual([]);
 }
 
 test.describe('Safari callback auth parity',()=>{
@@ -127,7 +135,7 @@ test.describe('Safari callback auth parity',()=>{
   });
 });
 
-test('WebKit runtime stays lazy and exposes bounded reusable PP-OCR compatibility mode',async({page})=>{
+test('WebKit runtime registers its lightweight provider while keeping heavy PP-OCR resources lazy',async({page})=>{
   await isolateSupabase(page);
   await enter(page,`${BASE_URL}/?webkit-ocr=1`);
   await loadLazyWebOcr(page);

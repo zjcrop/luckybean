@@ -1,7 +1,26 @@
 export const PACKAGE_OCR_MAX_EDGE = 2200;
+export const PACKAGE_OCR_LOW_MEMORY_MAX_EDGE = 1600;
 export const PACKAGE_OCR_JPEG_QUALITY = 0.94;
 const DEFAULT_MAX_EDGE = PACKAGE_OCR_MAX_EDGE;
 const SAMPLE_EDGE = 420;
+
+function isAppleMobileLike() {
+  const ua = String(globalThis.navigator?.userAgent || '');
+  return /iPhone|iPad|iPod/i.test(ua)
+    || (globalThis.navigator?.platform === 'MacIntel' && Number(globalThis.navigator?.maxTouchPoints || 0) > 1);
+}
+function memoryAwareMaxEdge(requested) {
+  const deviceMemory = Number(globalThis.navigator?.deviceMemory || 0);
+  const lowMemory = isAppleMobileLike() || (deviceMemory > 0 && deviceMemory <= 4);
+  return lowMemory ? Math.min(Number(requested) || DEFAULT_MAX_EDGE, PACKAGE_OCR_LOW_MEMORY_MAX_EDGE) : (Number(requested) || DEFAULT_MAX_EDGE);
+}
+function releaseCanvas(canvas) {
+  if (!canvas) return;
+  // Resetting dimensions releases the backing pixel buffer immediately on most
+  // browser/WebView engines instead of waiting for a later GC cycle.
+  canvas.width = 1;
+  canvas.height = 1;
+}
 
 function canvasBlob(canvas, type = 'image/jpeg', quality = PACKAGE_OCR_JPEG_QUALITY) {
   return new Promise((resolve, reject) => {
@@ -164,39 +183,53 @@ export async function preparePackageImage(file, { maxEdge = DEFAULT_MAX_EDGE } =
     return androidNativeFallback(file, error);
   }
   const { width, height } = dimensions(image);
-  if (!width || !height) return androidNativeFallback(file, new Error('图片尺寸无效'));
+  if (!width || !height) {
+    if (typeof image.close === 'function') image.close();
+    return androidNativeFallback(file, new Error('图片尺寸无效'));
+  }
 
-  const sampleScale = Math.min(1, SAMPLE_EDGE / Math.max(width, height));
-  const sampleCanvas = document.createElement('canvas');
-  sampleCanvas.width = Math.max(1, Math.round(width * sampleScale));
-  sampleCanvas.height = Math.max(1, Math.round(height * sampleScale));
-  const sampleContext = sampleCanvas.getContext('2d', { willReadFrequently: true });
-  sampleContext.drawImage(image, 0, 0, sampleCanvas.width, sampleCanvas.height);
-  const metrics = analysePixels(sampleContext.getImageData(0, 0, sampleCanvas.width, sampleCanvas.height));
-  const quality = scoreQuality(metrics, width, height);
+  let sampleCanvas;
+  let outputCanvas;
+  try {
+    const sampleScale = Math.min(1, SAMPLE_EDGE / Math.max(width, height));
+    sampleCanvas = document.createElement('canvas');
+    sampleCanvas.width = Math.max(1, Math.round(width * sampleScale));
+    sampleCanvas.height = Math.max(1, Math.round(height * sampleScale));
+    const sampleContext = sampleCanvas.getContext('2d', { willReadFrequently: true });
+    sampleContext.drawImage(image, 0, 0, sampleCanvas.width, sampleCanvas.height);
+    const metrics = analysePixels(sampleContext.getImageData(0, 0, sampleCanvas.width, sampleCanvas.height));
+    const quality = scoreQuality(metrics, width, height);
 
-  // Preserve enough package detail for small roast/date/origin text. The OCR
-  // provider itself caps detection at 2200 px on normal-memory browsers, so a
-  // 1600 px source was discarding detail before PP-OCR could inspect it.
-  const outputScale = Math.min(1, maxEdge / Math.max(width, height));
-  const outputCanvas = document.createElement('canvas');
-  outputCanvas.width = Math.max(1, Math.round(width * outputScale));
-  outputCanvas.height = Math.max(1, Math.round(height * outputScale));
-  const outputContext = outputCanvas.getContext('2d');
-  outputContext.drawImage(image, 0, 0, outputCanvas.width, outputCanvas.height);
-  const blob = await canvasBlob(outputCanvas);
+    // High-memory browsers may keep 2200 px detail for small roast/date/origin text.
+    // Low-memory mobile browsers/WebViews cap the intermediate JPEG at 1600 px because
+    // PP-OCR later downsizes internally anyway; this avoids simultaneous large canvas,
+    // decoded source and WASM model buffers that can trigger a tab/WebView restart.
+    const effectiveEdge = memoryAwareMaxEdge(maxEdge);
+    const outputScale = Math.min(1, effectiveEdge / Math.max(width, height));
+    outputCanvas = document.createElement('canvas');
+    outputCanvas.width = Math.max(1, Math.round(width * outputScale));
+    outputCanvas.height = Math.max(1, Math.round(height * outputScale));
+    const processedWidth = outputCanvas.width;
+    const processedHeight = outputCanvas.height;
+    const outputContext = outputCanvas.getContext('2d');
+    outputContext.drawImage(image, 0, 0, processedWidth, processedHeight);
+    const blob = await canvasBlob(outputCanvas);
 
-  if (typeof image.close === 'function') image.close();
-  return {
-    blob,
-    originalName: file.name || 'coffee-bag.jpg',
-    originalSize: file.size || 0,
-    width,
-    height,
-    processedWidth: outputCanvas.width,
-    processedHeight: outputCanvas.height,
-    metrics,
-    nativeSource: false,
-    ...quality
-  };
+    return {
+      blob,
+      originalName: file.name || 'coffee-bag.jpg',
+      originalSize: file.size || 0,
+      width,
+      height,
+      processedWidth,
+      processedHeight,
+      metrics,
+      nativeSource: false,
+      ...quality
+    };
+  } finally {
+    releaseCanvas(sampleCanvas);
+    releaseCanvas(outputCanvas);
+    if (typeof image.close === 'function') image.close();
+  }
 }
