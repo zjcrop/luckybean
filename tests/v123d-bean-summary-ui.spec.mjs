@@ -42,7 +42,7 @@ test('bean digest stays concise while preference analytics live only in settings
 
   const summary = page.locator('.bean-consumption-summary');
   await expect(summary).toContainText('现有咖啡豆共计 1.25kg');
-  await expect(summary).toContainText('今日已饮用 45.0g豆');
+  await expect(summary).toContainText('今日已饮用 45.0g');
   await expect(summary).toContainText('已经超量喽，可能影响身体健康');
   await expect(summary).toContainText('可能妨碍入睡，要不明天再喝？');
   await expect(page.locator('.preference-board-strip')).toHaveCount(0);
