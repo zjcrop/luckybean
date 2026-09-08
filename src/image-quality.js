@@ -4,6 +4,19 @@ export const PACKAGE_OCR_JPEG_QUALITY = 0.94;
 const DEFAULT_MAX_EDGE = PACKAGE_OCR_MAX_EDGE;
 const SAMPLE_EDGE = 420;
 const HEADER_PROBE_BYTES = 1024 * 1024;
+const ORIGINAL_SOURCE_BY_PREPARED_BLOB = new WeakMap();
+
+export function originalCompressedSource(preparedBlob) {
+  if (!(preparedBlob instanceof Blob)) return null;
+  return ORIGINAL_SOURCE_BY_PREPARED_BLOB.get(preparedBlob) || null;
+}
+
+function retainOriginalCompressedSource(preparedBlob, sourceBlob) {
+  if (preparedBlob instanceof Blob && sourceBlob instanceof Blob && preparedBlob !== sourceBlob) {
+    try { ORIGINAL_SOURCE_BY_PREPARED_BLOB.set(preparedBlob, sourceBlob); } catch {}
+  }
+  return preparedBlob;
+}
 
 function isAppleMobileLike() {
   const ua = String(globalThis.navigator?.userAgent || '');
@@ -332,7 +345,7 @@ export async function preparePackageImage(file, { maxEdge = DEFAULT_MAX_EDGE } =
     const processedHeight = outputCanvas.height;
     const outputContext = outputCanvas.getContext('2d');
     outputContext.drawImage(image, 0, 0, processedWidth, processedHeight);
-    const blob = await canvasBlob(outputCanvas);
+    const blob = retainOriginalCompressedSource(await canvasBlob(outputCanvas), file);
 
     return {
       blob,
