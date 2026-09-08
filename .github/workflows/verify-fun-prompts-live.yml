@@ -1,15 +1,9 @@
 name: Verify live fun recommendation prompts
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'src/bean-groups-controller.js'
-      - 'src/features/runtime-features.js'
-      - 'index.html'
-      - 'tests/v124b-recommendation-prompt-regression.mjs'
-      - 'tests/v124b-selection-mode-single-group.spec.mjs'
-      - '.github/workflows/verify-fun-prompts-live.yml'
+  workflow_run:
+    workflows: ["LuckyBean main web deploy"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -19,22 +13,42 @@ concurrency:
   group: luckybean-live-fun-prompt-check
   cancel-in-progress: true
 
+env:
+  SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
 jobs:
   verify-live:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: Verify single toast owner and original fun prompt pools on live Pages
+      - name: Verify exact deployed identity and fun prompt outcomes on live Pages
         shell: bash
         run: |
           set -euo pipefail
+          export RELEASE_REVISION="$(jq -r .revision release.json)"
+          export DISPLAY_VERSION="$(jq -r .displayVersion release.json)"
+          base='https://zjcrop.github.io/luckybean'
+          found=false
+          for attempt in {1..30}; do
+            curl -L -fsS "$base/version.json?fun-prompt-check=$SOURCE_SHA" -o /tmp/luckybean-version.json || true
+            if test "$(jq -r .commit /tmp/luckybean-version.json 2>/dev/null)" = "$SOURCE_SHA" \
+              && test "$(jq -r .revision /tmp/luckybean-version.json 2>/dev/null)" = "$RELEASE_REVISION"; then
+              found=true
+              break
+            fi
+            sleep 10
+          done
+          test "$found" = true
           node --input-type=module <<'NODE'
           import { chromium } from '@playwright/test';
 
@@ -45,7 +59,8 @@ jobs:
             remaining: ['余粒无多，宜趁兴饮尽，为此豆作结。','所剩几何，当及时啜饮，不负此豆风华。','残豆将尽，速饮之，好与此只从容作别。','此豆见底啦，趁风味未散，快快饮尽收场！'],
             random: ['闭目拈签，任其自然。','信手拈签，以定今日之选。','且凭一签，决此豆归谁。','一签落地，此只当归于君。','签指此只，风味正酣，君可安心享之。','得此签，恰逢余粒无几，缘分也。','伸手拈一签，看天意选哪只！']
           };
-          const revision='1.24B-main.17-single-toast-owner';
+          const revision=process.env.RELEASE_REVISION;
+          const sourceSha=process.env.SOURCE_SHA;
           const browser = await chromium.launch({ headless: true });
           const context = await browser.newContext({ viewport:{ width:390, height:844 } });
           await context.addInitScript(() => {
@@ -54,22 +69,21 @@ jobs:
           const page = await context.newPage();
           const errors=[];
           page.on('pageerror', error => errors.push(error.message));
-          await page.goto('https://zjcrop.github.io/luckybean/?fun-prompt-check='+Date.now(), {waitUntil:'domcontentloaded',timeout:30000});
+          await page.goto(`https://zjcrop.github.io/luckybean/?fun-prompt-check=${sourceSha}`, {waitUntil:'domcontentloaded',timeout:30000});
           const splash=page.locator('#splashScreen');
           if(await splash.isVisible().catch(()=>false)) await splash.click();
           await page.locator('#appShell').waitFor({state:'visible',timeout:20000});
           await page.waitForFunction(() => document.documentElement.dataset.startup==='ready', null, {timeout:20000});
+          await page.waitForFunction(expected => globalThis.LuckyBeanRuntimeFeatures?.revision===expected, revision, {timeout:20000});
 
-          const runtime = await page.evaluate(() => {
-            const resources=performance.getEntriesByType('resource').map(entry=>entry.name);
-            return {
-              loader: resources.find(url=>url.includes('/src/features/runtime-features.js')) || '',
-              groupedOwner: resources.find(url=>url.includes('/src/bean-groups-controller.js')) || '',
-              duplicateLayer:Boolean(document.querySelector('#lbRecommendationToast'))
-            };
-          });
-          if(!runtime.loader.includes(revision) || !runtime.groupedOwner.includes(revision) || runtime.duplicateLayer){
-            throw new Error('Wrong live recommendation runtime: '+JSON.stringify(runtime));
+          const initial = await page.evaluate(expected => ({
+            revision:globalThis.LuckyBeanRuntimeFeatures?.revision||'',
+            runtimeFailures:globalThis.LuckyBeanRuntimeFeatures?.failures?.length??-1,
+            duplicateLayer:Boolean(document.querySelector('#lbRecommendationToast')),
+            expected
+          }), revision);
+          if(initial.revision!==revision || initial.runtimeFailures!==0 || initial.duplicateLayer){
+            throw new Error('Wrong live recommendation runtime: '+JSON.stringify(initial));
           }
 
           await page.evaluate(async () => {
@@ -100,7 +114,7 @@ jobs:
             const before=await page.evaluate(()=>globalThis.__funPromptEvents.length);
             await page.locator('#fabRecommendBtn').click();
             const option=page.locator(`[data-recommend-mode="${mode}"]`);
-            await option.waitFor({state:'visible',timeout:3000});
+            await option.waitFor({state:'visible',timeout:5000});
             await option.click();
             await page.waitForFunction(({before,mode})=>{
               const events=globalThis.__funPromptEvents||[];
@@ -130,8 +144,6 @@ jobs:
             results.push({mode,prompt:event.prompt});
           }
 
-          // Reproduce the historical stale-timer race: the second freshness prompt is shown
-          // before the first prompt's former 2.8s grouped-controller timer would expire.
           const first=await clickMode('freshness');
           await page.waitForTimeout(1500);
           const second=await clickMode('freshness');
@@ -152,6 +164,6 @@ jobs:
           if(race.timeline.some(item=>item.text===second.prompt && !item.className.includes('show'))) throw new Error(`Second prompt was prematurely hidden: ${JSON.stringify(race.timeline)}`);
 
           if(errors.length) throw new Error('Live page errors: '+errors.join(' | '));
-          console.log('LIVE_FUN_PROMPTS_SINGLE_OWNER_OK '+JSON.stringify({results,race:{first:first.prompt,second:second.prompt}}));
+          console.log('LIVE_FUN_PROMPTS_OK '+JSON.stringify({sourceSha,revision,results,race:{first:first.prompt,second:second.prompt}}));
           await browser.close();
           NODE
