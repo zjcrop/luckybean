@@ -45,8 +45,12 @@ const LAZY_FEATURES = Object.freeze([
   feature('sensory-tag-sort', './sensory-tag-sort-controller.js')
 ]);
 
+// The OCR provider module itself is lightweight and only registers the safe browser
+// capability. Load it before the capture controller so the first render cannot race
+// against provider registration. Heavy SDK/model initialization remains lazy and only
+// starts when recognition is actually requested.
 const PREINTERACTION_FEATURE_IDS = Object.freeze([
-  'recognition-quality', 'package-capture', 'recognition-multi-entry', 'direct-camera', 'recognition-review-owner',
+  'recognition-paddle-ocr', 'recognition-quality', 'package-capture', 'recognition-multi-entry', 'direct-camera', 'recognition-review-owner',
   'recognition-batch-progress', 'brew-pour-guide', 'shared-sortable', 'sensory-tag-sort'
 ]);
 
@@ -72,13 +76,18 @@ async function loadFeature(id) {
   pending.set(entry.id, task); return task;
 }
 async function loadMany(ids) { const results = await Promise.allSettled(ids.map(loadFeature)); return results.every(result => result.status === 'fulfilled'); }
+// Explicit diagnostic/manual warmup API only. Do not call this from photo pointer/click
+// handlers: preloading the OCR model while the camera/image decoder is active creates a
+// large avoidable memory peak on mobile browsers/WebViews.
 async function warmRecognition() { await loadFeature('recognition-paddle-ocr').catch(() => false); return globalThis.LuckyBeanPaddleOCR?.preload?.().catch?.(() => null) ?? null; }
 function isLoaded(id) { return loaded.includes(id); }
 function installLazyTriggers() {
   document.addEventListener('click', async event => {
     const photo = event.target.closest?.('[data-add-mode="photo"]');
     if (photo) {
-      void warmRecognition();
+      // Only guarantee module registration here; never initialize OCR models before
+      // the user has selected/captured an image and previews have been released.
+      void loadFeature('recognition-paddle-ocr').catch(() => false);
       if (!isLoaded('package-capture')) {
         event.preventDefault(); event.stopImmediatePropagation();
         const ready = await loadMany(['recognition-paddle-ocr','recognition-quality','package-capture','direct-camera','recognition-review-owner','recognition-batch-progress']);
@@ -94,7 +103,7 @@ function installLazyTriggers() {
     if (event.target.closest?.('.bean-card[data-bean-id],[data-bean-id]')) void loadFeature('release-1.24b-freshness-detail').catch(() => false);
   }, true);
   document.addEventListener('pointerdown', event => {
-    if (event.target.closest?.('[data-add-mode="photo"]')) void warmRecognition();
+    if (event.target.closest?.('[data-add-mode="photo"]')) void loadFeature('recognition-paddle-ocr').catch(() => false);
     if (event.target.closest?.('#fabRecommendBtn')) void loadFeature('selection').catch(() => false);
     if (event.target.closest?.('[data-v099f-world]')) void loadFeature('origin-map').catch(() => false);
   }, { capture:true, passive:true });
