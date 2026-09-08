@@ -27,7 +27,7 @@ const P2_CORE_FEATURES = Object.freeze([
 ]);
 
 const LAZY_FEATURES = Object.freeze([
-  feature('recognition-paddle-ocr', '../recognition-paddle-ocr.js'),
+  feature('recognition-paddle-ocr', '../recognition-paddle-ocr-fast.js'),
   feature('recognition-quality', '../recognition-quality-controller.js'),
   feature('package-capture', '../package-capture-controller.js'),
   feature('recognition-multi-entry', './recognition-multi-entry-controller.js'),
@@ -52,6 +52,7 @@ const catalog = new Map([...CORE_FEATURES, ...P2_CORE_FEATURES, ...LAZY_FEATURES
 const failures = [];
 const loaded = [];
 const pending = new Map();
+let recognitionSessionActive = false;
 
 function recordLoaded(id) { if (!loaded.includes(id)) loaded.push(id); }
 function recordFailure(featureEntry, error) {
@@ -71,22 +72,45 @@ async function loadFeature(id) {
 }
 async function loadMany(ids) { const results = await Promise.allSettled(ids.map(loadFeature)); return results.every(result => result.status === 'fulfilled'); }
 
-// Explicit diagnostic/manual warmup API only. Never call from camera/photo gestures:
-// model initialization can overlap with image decoding and trigger a mobile tab/WebView restart.
 async function warmRecognition() {
   await loadFeature('recognition-paddle-ocr').catch(() => false);
   return globalThis.LuckyBeanPaddleOCR?.preload?.().catch?.(() => null) ?? null;
 }
+async function beginRecognitionSession(reason = 'add-flow') {
+  if (recognitionSessionActive) return globalThis.LuckyBeanPaddleOCR?.warmForRecognition?.() ?? null;
+  recognitionSessionActive = true;
+  await loadFeature('recognition-paddle-ocr').catch(() => false);
+  const provider = globalThis.LuckyBeanPaddleOCR;
+  if (typeof provider?.beginSession === 'function') return provider.beginSession(reason);
+  return provider?.preload?.().catch?.(() => null) ?? null;
+}
+async function endRecognitionSession(reason = 'add-flow') {
+  if (!recognitionSessionActive) return;
+  recognitionSessionActive = false;
+  const provider = globalThis.LuckyBeanPaddleOCR;
+  if (typeof provider?.endSession === 'function') { await provider.endSession(reason); return; }
+  await provider?.dispose?.();
+}
 function isLoaded(id) { return loaded.includes(id); }
+
+function installRecognitionSessionObserver() {
+  const overlayRoot = document.querySelector('#overlayRoot');
+  if (!overlayRoot) return;
+  const sync = () => {
+    if (recognitionSessionActive && overlayRoot.children.length === 0) void endRecognitionSession('overlay-exit');
+  };
+  new MutationObserver(sync).observe(overlayRoot, { childList:true, subtree:false });
+  document.addEventListener('luckybean:add-flow-close', () => void endRecognitionSession('explicit-close'));
+  globalThis.addEventListener('pagehide', () => { if (recognitionSessionActive) void endRecognitionSession('pagehide'); });
+}
 
 function installLazyTriggers() {
   document.addEventListener('click', async event => {
+    const addMode = event.target.closest?.('[data-add-mode]');
+    if (addMode) void beginRecognitionSession(`add-mode:${addMode.dataset?.addMode || 'unknown'}`);
+
     const photo = event.target.closest?.('[data-add-mode="photo"]');
     if (photo) {
-      // Register only the validated PP-OCR provider. The experimental adaptive
-      // ROI wrapper is intentionally not part of the production path because it
-      // can duplicate inference and discard full-frame evidence on small labels.
-      void loadFeature('recognition-paddle-ocr').catch(() => false);
       if (!isLoaded('package-capture')) {
         event.preventDefault(); event.stopImmediatePropagation();
         const ready = await loadMany(['recognition-quality','package-capture','direct-camera','recognition-review-owner','recognition-batch-progress']);
@@ -112,9 +136,8 @@ function installLazyTriggers() {
   }, true);
 
   document.addEventListener('pointerdown', event => {
-    if (event.target.closest?.('[data-add-mode="photo"]')) {
-      void loadFeature('recognition-paddle-ocr').catch(() => false);
-    }
+    const addMode = event.target.closest?.('[data-add-mode]');
+    if (addMode) void beginRecognitionSession(`pointer:${addMode.dataset?.addMode || 'unknown'}`);
     if (event.target.closest?.('#fabRecommendBtn')) void loadFeature('selection').catch(() => false);
     if (event.target.closest?.('[data-v099f-world]')) void loadFeature('origin-map').catch(() => false);
   }, { capture:true, passive:true });
@@ -131,13 +154,13 @@ globalThis.LuckyBeanRuntimeFeatures = {
   load:loadFeature,
   loadMany,
   warmRecognition,
+  beginRecognitionSession,
+  endRecognitionSession,
+  get recognitionSessionActive() { return recognitionSessionActive; },
   isLoaded
 };
 document.documentElement.dataset.runtimeFeatures = 'declared';
 
-// Preserve the validated core ordering and register the lightweight PP-OCR
-// provider before capture UI modules. Heavy SDK/models remain lazy until the user
-// actually starts recognition. No second-pass adaptive wrapper is installed.
 for (const runtimeFeature of CORE_FEATURES) {
   try { await loadFeature(runtimeFeature.id); } catch { /* failure already recorded */ }
 }
@@ -145,6 +168,7 @@ try { await loadFeature('recognition-paddle-ocr'); } catch { /* capture UI will 
 await loadMany(PREINTERACTION_FEATURE_IDS);
 await loadMany(P2_CORE_FEATURES.map(item => item.id));
 
+installRecognitionSessionObserver();
 installLazyTriggers();
 document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', {
   detail:{ revision:RELEASE_REVISION, declared:catalog.size, coreLoaded:ALL_CORE_FEATURES.filter(item=>isLoaded(item.id)).length, lazyDeclared:LAZY_FEATURES.length, loaded:loaded.length, failures }
