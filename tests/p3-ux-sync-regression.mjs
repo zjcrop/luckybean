@@ -38,7 +38,7 @@ assert.match(progress, /progressByTask\.set\(key,Math\.max\(previous,progress\)\
 assert.match(progress, /task\?\.status==='completed'\)return 100/, 'only completed outer image task may expose 100%');
 assert.doesNotMatch(progress, /setInterval\(/, 'recognition progress must not be driven by a synthetic timer');
 
-assert.match(flow, /replace\(\/(\\d\+\(?:\\\.\\d\+\)\?)g豆\/g, '\$1g'\)/, 'homepage consumed-bean unit must be compacted');
+assert.ok(flow.includes(".replace(/(\\d+(?:\\.\\d+)?)g豆/g, '$1g')"), 'homepage consumed-bean unit must be compacted');
 assert.match(flow, /\\u00a0\/\\u00a0/, 'homepage separators must stay attached during wrapping');
 assert.match(flowCss, /\.v099f-freshness-note,.v099i-freshness-note\{display:none!important\}/, 'group algorithm prose must not be shown');
 
