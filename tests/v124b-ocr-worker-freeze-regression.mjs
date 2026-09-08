@@ -42,10 +42,13 @@ assert.match(paddle, /PREDICT_TIMEOUT_MS/, 'per-image prediction must have a bou
 assert.match(paddle, /ROI_CROP_TIMEOUT_MS/, 'ROI preprocessing must have a bounded watchdog');
 assert.match(paddle, /不会切换到 Tesseract 或其他未知 OCR/, 'interactive failure must explicitly preserve the known-engine policy');
 
-assert.match(roiWorker, /createImageBitmap\(blob,\s*\{\s*imageOrientation:\s*'from-image'\s*\}\)/, 'ROI Worker must decode orientation-aware source pixels off the UI thread');
+assert.match(roiWorker, /createImageBitmap\(blob,\s*\{\s*imageOrientation:\s*'from-image'\s*\}\)/, 'ROI Worker must retain an orientation-aware compatibility decode path off the UI thread');
 assert.match(roiWorker, /new\s+OffscreenCanvas\(/, 'ROI Worker must crop with OffscreenCanvas');
 assert.match(roiWorker, /convertToBlob\(/, 'ROI Worker must return an immutable Blob to the OCR provider');
-assert.match(roiWorker, /Math\.min\(1,\s*maxEdge\s*\/\s*Math\.max\(crop\.width,\s*crop\.height\)\)/, 'ROI Worker may downscale oversized crops but must never upscale them before PP-OCR');
+const directNoUpscale = /Math\.min\(1,\s*maxEdge\s*\/\s*Math\.max\(crop\.width,\s*crop\.height\)\)/.test(roiWorker);
+const helperNoUpscale = /function boundedSize\(width,\s*height,\s*maxEdge\)[\s\S]*Math\.min\(1,\s*maxEdge\s*\/\s*Math\.max\(width,\s*height\)\)/.test(roiWorker)
+  && /boundedSize\(crop\.width,\s*crop\.height,\s*maxEdge\)/.test(roiWorker);
+assert.ok(directNoUpscale || helperNoUpscale, 'ROI Worker may downscale oversized crops but must never upscale them before PP-OCR');
 assert.doesNotMatch(roiWorker, /\bdocument\b/, 'ROI Worker must not depend on DOM APIs');
 assert.doesNotMatch(roiWorker, /FileReader/, 'ROI Worker must not base64-encode source images');
 
