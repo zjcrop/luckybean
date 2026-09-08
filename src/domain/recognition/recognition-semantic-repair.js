@@ -177,6 +177,24 @@ function normalizeFlavorSeparators(value) {
     .replace(/^、|、$/g, '');
 }
 
+function canInferFlavorList(pieces, book, aliasCache) {
+  if (pieces.length < 2 || pieces.some(piece => /\d/.test(piece))) return false;
+
+  // Identity fields are higher-authority than flavor. If any piece is a known
+  // country/region/process/variety value, keep the whole unlabeled line as raw
+  // OCR evidence instead of relabeling identity text as tasting notes.
+  const identityFields = ['country', 'region', 'process', 'variety'];
+  const hasIdentityPiece = pieces.some(piece => identityFields.some(field => exactTableAlias(field, piece, book, aliasCache)));
+  if (hasIdentityPiece) return false;
+
+  // Open-vocabulary flavor notes remain supported, but unlabeled inference now
+  // requires dictionary evidence. One known flavor is sufficient for a 2–3 term
+  // list; longer lists require at least one third of the terms to be recognized.
+  const flavorHits = pieces.filter(piece => exactTableAlias('flavor', piece, book, aliasCache)).length;
+  const requiredHits = Math.max(1, Math.ceil(pieces.length / 3));
+  return flavorHits >= requiredHits;
+}
+
 function inferredUnlabelledField(line, book, aliasCache) {
   const raw = clean(line);
   if (!raw || SENSORY_SCORE_PATTERN.test(raw)) return null;
@@ -202,7 +220,7 @@ function inferredUnlabelledField(line, book, aliasCache) {
 
   const flavorCandidate = normalizeFlavorSeparators(folded);
   const flavorPieces = flavorCandidate.split(/[、,，;；/]+/).map(clean).filter(Boolean);
-  if (flavorPieces.length >= 2 && flavorPieces.every(piece => !/\d/.test(piece)) && flavorCandidate.length <= 48) {
+  if (flavorCandidate.length <= 48 && canInferFlavorList(flavorPieces, book, aliasCache)) {
     return { field: 'flavor', label: CANONICAL_LABEL.flavor, value: flavorCandidate };
   }
   return null;
@@ -215,7 +233,7 @@ function inferredUnlabelledField(line, book, aliasCache) {
  * - known Traditional value variants get an additional codebook lookup alias only
  *   when that alias actually exists in the current book;
  * - high-specificity unlabeled coffee values are promoted to explicit semantic fields;
- * - common OCR separator noise inside flavor lists is repaired only in flavor context.
+ * - common OCR separator noise inside flavor lists is repaired only when flavor dictionary evidence exists.
  * Unknown proper names are never discarded; suffix inference preserves them as custom fields.
  */
 export function repairRecognitionSemanticText(source, book) {
