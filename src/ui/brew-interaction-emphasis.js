@@ -16,9 +16,13 @@ function normalizeBrewInteractionUi() {
   const generated = document.querySelector('#generatedPlan');
   if (!generated) return;
 
-  // The upper direct-tasting action remains available. The duplicate action beside
-  // the final Start Timer control is intentionally removed from the generated plan.
-  generated.querySelector('#planToSensoryBtn')?.remove();
+  // Keep the legacy action node and its plan metadata intact for compatibility, but
+  // the dedicated stylesheet removes it from the visible/touchable UI as requested.
+  const redundantSensory = generated.querySelector('#planToSensoryBtn');
+  if (redundantSensory) {
+    redundantSensory.setAttribute('aria-hidden', 'true');
+    redundantSensory.tabIndex = -1;
+  }
 
   const panelTitle = generated.querySelector(':scope > .panel-title');
   const titleBox = panelTitle?.querySelector(':scope > div');
