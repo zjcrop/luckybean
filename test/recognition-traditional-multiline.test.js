@@ -35,7 +35,7 @@ test('label-only Traditional Chinese lines pair with the following OCR value', (
 });
 
 test('Traditional multiline coffee metadata resolves through the normal canonical pipeline', () => {
-  const analysis = analyzeRecognitionDocument(textDocument([
+  const raw = [
     '國家',
     '衣索比亞',
     '產區',
@@ -46,7 +46,8 @@ test('Traditional multiline coffee metadata resolves through the normal canonica
     '日曬',
     '烘焙日期',
     '2026-08-18'
-  ].join('\n')), book);
+  ].join('\n');
+  const analysis = analyzeRecognitionDocument(textDocument(raw), book);
 
   assert.equal(analysis.parsed.countryCode, 'CO-EA');
   assert.equal(analysis.parsed.regionCode, 'RG-EA-GU');
@@ -54,22 +55,25 @@ test('Traditional multiline coffee metadata resolves through the normal canonica
   assert.equal(analysis.parsed.roastDate, '2026-08-18');
   assert.match(analysis.semanticText, /国家:/);
   assert.match(analysis.semanticText, /处理法:/);
+  assert.equal(analysis.parsed.parseMetadata.recognition.rawSemanticText, raw);
 });
 
-test('Traditional inline field labels are canonicalized without changing unknown proper names', () => {
-  const analysis = analyzeRecognitionDocument(textDocument([
+test('Traditional inline field labels use a normalized shadow while preserving raw OCR evidence', () => {
+  const raw = [
     '國家：哥倫比亞',
     '莊園：山嵐莊園',
     '處理法：厭氧發酵',
     '風味描述：白花、柑橘、蜂蜜'
-  ].join('\n')), book);
+  ].join('\n');
+  const analysis = analyzeRecognitionDocument(textDocument(raw), book);
 
   assert.equal(analysis.parsed.countryCode, 'CO-CO');
   assert.equal(analysis.parsed.entityCode, undefined);
-  assert.equal(analysis.parsed.entityCustomName, '山嵐莊園');
-  assert.match(analysis.semanticText, /庄园: 山嵐莊園/);
+  assert.equal(analysis.parsed.entityCustomName, '山岚庄园');
+  assert.match(analysis.semanticText, /庄园: 山岚庄园/);
   assert.match(analysis.semanticText, /处理法:/);
   assert.match(analysis.semanticText, /风味:/);
+  assert.equal(analysis.parsed.parseMetadata.recognition.rawSemanticText, raw);
 });
 
 test('a following field label is never consumed as the previous label-only value', () => {
