@@ -1,4 +1,4 @@
-const VERSION = '0.5.1-fastpath';
+const VERSION = '0.5.2-fastpath';
 const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;
 
 function isAppleMobileLike() {
@@ -20,9 +20,16 @@ const MAX_SIDE = 2200;
 const ENGINE_INIT_TIMEOUT_MS = WEBKIT ? 30000 : 60000;
 const PREDICT_TIMEOUT_MS = WEBKIT ? 30000 : 45000;
 const ROI_CROP_TIMEOUT_MS = 20000;
+const DISPOSE_TIMEOUT_MS = 3000;
 const OUTSIDE_SESSION_IDLE_MS = 120000;
+const WORKER_BUNDLE_MIN_BYTES = 100000;
+const WORKER_BUNDLE_FETCH_ATTEMPTS = 2;
 
 let modulePromise = null;
+let runtimeManifestPromise = null;
+let workerBundlePromise = null;
+let workerBundleBlobUrl = '';
+let workerBootstrapMode = WEBKIT ? 'direct-wasm-no-simd' : 'preloaded-blob-module';
 let enginePromise = null;
 let engineGeneration = 0;
 let engineMode = WEBKIT ? 'webkit-direct-wasm-no-simd' : 'worker-simd-fastpath';
@@ -115,15 +122,111 @@ async function loadModule() {
   }
   return modulePromise;
 }
+function supportsPreloadedBlobWorker() {
+  return !WEBKIT
+    && typeof Blob === 'function'
+    && typeof Worker === 'function'
+    && typeof globalThis.URL?.createObjectURL === 'function'
+    && typeof globalThis.URL?.revokeObjectURL === 'function';
+}
+async function loadRuntimeManifest() {
+  if (!runtimeManifestPromise) {
+    runtimeManifestPromise = fetch(assetUrl('manifest.json'), { cache:'no-store' })
+      .then(async response => {
+        if (!response.ok) throw new Error(`PP-OCRv5 runtime manifest HTTP ${response.status}`);
+        const manifest = await response.json();
+        const workerBytes = Number(manifest?.workerBytes || 0);
+        const workerSha256 = String(manifest?.workerSha256 || '').trim().toLowerCase();
+        if (!Number.isSafeInteger(workerBytes) || workerBytes < WORKER_BUNDLE_MIN_BYTES || !/^[a-f0-9]{64}$/.test(workerSha256)) {
+          throw new Error('PP-OCRv5 runtime manifest 缺少有效 Worker 完整性元数据');
+        }
+        return Object.freeze({ workerBytes, workerSha256 });
+      })
+      .catch(error => { runtimeManifestPromise = null; throw error; });
+  }
+  return runtimeManifestPromise;
+}
+async function sha256Hex(bytes) {
+  if (!globalThis.crypto?.subtle) throw new Error('当前浏览器缺少 Web Crypto，无法校验 PP-OCRv5 Worker 完整性');
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map(value => value.toString(16).padStart(2, '0')).join('');
+}
+async function fetchCompleteWorkerBundle() {
+  const url = assetUrl('worker.js');
+  let lastError = null;
+  for (let attempt = 1; attempt <= WORKER_BUNDLE_FETCH_ATTEMPTS; attempt += 1) {
+    const startedAt = diagnosticNow();
+    try {
+      const response = await fetch(url, { cache:'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const transferBytes = Number(response.headers.get('content-length') || 0);
+      const contentEncoding = String(response.headers.get('content-encoding') || '').trim().toLowerCase() || 'identity';
+      const [bytes, integrity] = await Promise.all([response.arrayBuffer(), loadRuntimeManifest()]);
+      if (bytes.byteLength < WORKER_BUNDLE_MIN_BYTES) throw new Error(`Worker bundle 不完整：${bytes.byteLength} bytes`);
+      if (bytes.byteLength !== integrity.workerBytes) throw new Error(`Worker bundle 解压后长度不匹配：manifest ${integrity.workerBytes}, received ${bytes.byteLength}`);
+      const workerSha256 = await sha256Hex(bytes);
+      if (workerSha256 !== integrity.workerSha256) throw new Error(`Worker bundle SHA-256 不匹配：manifest ${integrity.workerSha256}, received ${workerSha256}`);
+      recordDiagnostic('worker-bundle-fetch', startedAt, { attempt, bytes:bytes.byteLength, transferBytes, contentEncoding, workerSha256 });
+      return bytes;
+    } catch (error) {
+      lastError = error;
+      recordDiagnostic('worker-bundle-fetch-failed', startedAt, { attempt, message:String(error?.message || error) });
+      if (attempt < WORKER_BUNDLE_FETCH_ATTEMPTS) await delay(180);
+    }
+  }
+  throw new Error(`本地 PP-OCRv5 Worker bundle 加载失败：${lastError?.message || lastError}`);
+}
+async function prepareWorkerBundle() {
+  if (!supportsPreloadedBlobWorker()) {
+    workerBootstrapMode = 'direct-module-fallback';
+    return '';
+  }
+  if (workerBundleBlobUrl) return workerBundleBlobUrl;
+  if (!workerBundlePromise) {
+    workerBundlePromise = fetchCompleteWorkerBundle().then(bytes => {
+      workerBundleBlobUrl = globalThis.URL.createObjectURL(new Blob([bytes], { type:'text/javascript' }));
+      workerBootstrapMode = 'preloaded-blob-module';
+      return workerBundleBlobUrl;
+    }).catch(error => {
+      workerBundlePromise = null;
+      throw error;
+    });
+  }
+  return workerBundlePromise;
+}
+function releaseWorkerBundle() {
+  if (workerBundleBlobUrl) {
+    try { globalThis.URL.revokeObjectURL(workerBundleBlobUrl); } catch {}
+  }
+  workerBundleBlobUrl = '';
+  workerBundlePromise = null;
+}
 function trackWorker(worker) { activeWorkers.add(worker); return worker; }
 function terminateWorkers() {
   for (const worker of activeWorkers) { try { worker.terminate(); } catch {} }
   activeWorkers.clear();
 }
-function createModuleWorker() {
-  return trackWorker(new Worker(assetUrl('worker.js'), { type:'module', name:'luckybean-ppocr-v5-fast' }));
+function createModuleWorker(preloadedBlobUrl = '') {
+  const startedAt = diagnosticNow();
+  if (preloadedBlobUrl) {
+    try {
+      const worker = trackWorker(new Worker(preloadedBlobUrl, { type:'module', name:'luckybean-ppocr-v5-fast' }));
+      workerBootstrapMode = 'preloaded-blob-module';
+      recordDiagnostic('worker-bootstrap', startedAt, { mode:workerBootstrapMode });
+      return worker;
+    } catch (error) {
+      workerBootstrapMode = 'direct-module-fallback';
+      const worker = trackWorker(new Worker(assetUrl('worker.js'), { type:'module', name:'luckybean-ppocr-v5-fast-direct' }));
+      recordDiagnostic('worker-bootstrap', startedAt, { mode:workerBootstrapMode, fallbackReason:String(error?.message || error) });
+      return worker;
+    }
+  }
+  workerBootstrapMode = 'direct-module-fallback';
+  const worker = trackWorker(new Worker(assetUrl('worker.js'), { type:'module', name:'luckybean-ppocr-v5-fast-direct' }));
+  recordDiagnostic('worker-bootstrap', startedAt, { mode:workerBootstrapMode });
+  return worker;
 }
-function ocrCreateOptions({ compatibility = false, forceWorker = false } = {}) {
+function ocrCreateOptions({ compatibility = false, forceWorker = false, workerBlobUrl = '' } = {}) {
   return {
     lang:'ch',
     ocrVersion:'PP-OCRv5',
@@ -131,7 +234,7 @@ function ocrCreateOptions({ compatibility = false, forceWorker = false } = {}) {
     textDetectionModelAsset:{ url:assetUrl('models/PP-OCRv5_mobile_det_onnx_infer.tar') },
     textRecognitionModelName:'PP-OCRv5_mobile_rec',
     textRecognitionModelAsset:{ url:assetUrl('models/PP-OCRv5_mobile_rec_onnx_infer.tar') },
-    ...((forceWorker || !compatibility) ? { worker:{ createWorker:createModuleWorker } } : {}),
+    ...((forceWorker || !compatibility) ? { worker:{ createWorker:() => createModuleWorker(workerBlobUrl) } } : {}),
     textDetectionBatchSize:1,
     textRecognitionBatchSize:1,
     ortOptions:{ backend:'wasm', wasmPaths:assetUrl('ort/'), numThreads:1, simd:!compatibility }
@@ -140,7 +243,8 @@ function ocrCreateOptions({ compatibility = false, forceWorker = false } = {}) {
 async function createWorkerEngine({ compatibility = false } = {}) {
   const module = await loadModule();
   if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');
-  return module.PaddleOCR.create(ocrCreateOptions({ compatibility, forceWorker:true }));
+  const workerBlobUrl = compatibility ? '' : await prepareWorkerBundle();
+  return module.PaddleOCR.create(ocrCreateOptions({ compatibility, forceWorker:true, workerBlobUrl }));
 }
 async function createWebKitEngine() {
   const module = await loadModule();
@@ -166,12 +270,13 @@ async function startWorkerWithMode(compatibility, generation, startedAt, reason 
     const ocr = await withTimeout(raw, ENGINE_INIT_TIMEOUT_MS, label, terminateWorkers);
     if (generation !== engineGeneration) { disposeInstance(ocr); throw new Error('PP-OCRv5 初始化结果已失效'); }
     recordDiagnostic(compatibility ? 'runtime-init-fallback' : 'runtime-init', startedAt, {
-      mode:engineMode, sessionDepth, lowMemory:LOW_MEMORY, reason
+      mode:engineMode, sessionDepth, lowMemory:LOW_MEMORY, reason, workerBootstrap:workerBootstrapMode
     });
     return ocr;
   } catch (error) {
     raw.then(disposeInstance).catch(() => {});
     terminateWorkers();
+    if (!compatibility) releaseWorkerBundle();
     throw error;
   }
 }
@@ -213,7 +318,7 @@ async function ensureEngine() {
   emit(sessionDepth > 0 ? '正在为本次添加流程预热 PP-OCRv5' : '正在准备 PP-OCRv5', 7);
   const pending = startEngine();
   const tracked = pending.then(ocr => {
-    emit('PP-OCRv5 已就绪', 18);
+    emit(engineMode === 'worker-simd-fastpath' ? 'PP-OCRv5 Worker 中文模型已就绪' : 'PP-OCRv5 兼容模式已就绪', 18);
     return ocr;
   }).catch(error => {
     if (enginePromise === tracked) enginePromise = null;
@@ -229,9 +334,12 @@ async function dispose(force = false) {
   const current = enginePromise;
   enginePromise = null;
   engineGeneration += 1;
-  terminateWorkers();
-  if (!current) return;
-  try { const ocr = await current; await ocr?.dispose?.(); } catch {}
+  if (!current) { terminateWorkers(); return; }
+  try {
+    const ocr = await current;
+    if (ocr?.dispose) await withTimeout(Promise.resolve(ocr.dispose()), DISPOSE_TIMEOUT_MS, 'PP-OCRv5 释放超时', terminateWorkers).catch(() => {});
+  } catch {}
+  finally { terminateWorkers(); }
   emit('PP-OCRv5 已释放', 0);
 }
 function scheduleOutsideSessionDispose() {
@@ -280,6 +388,7 @@ async function predictWithRuntimeRecovery(image, index, imageCount) {
       imageIndex:index, imageCount, reason:String(error?.message || error), fromMode:engineMode
     });
     detachEngine();
+    releaseWorkerBundle();
     emit('预测阶段运行时异常，正在切换同一 PP-OCRv5 无 SIMD Worker 重试一次', 12);
     await delay(80);
     ocr = await ensureEngine();
@@ -321,7 +430,11 @@ async function run(task) {
   if (busy) throw new Error('识别任务正在运行，请勿重复点击');
   busy = true;
   try { return await task(); }
-  catch (error) { detachEngine(); emit(`识别失败：${error.message}`, 0); throw error; }
+  catch (error) {
+    detachEngine();
+    emit(`识别失败：${error.message}`, 0);
+    throw new Error(`${error.message}；已停止当前任务。不会切换到 Tesseract 或其他未知 OCR。`);
+  }
   finally {
     busy = false;
     if (pendingEnd && sessionDepth === 0) { pendingEnd = false; void dispose(true); }
@@ -371,6 +484,7 @@ const paddleOcrApi = Object.freeze({
   inputPolicy:`${LIMIT_SIDE}/${MAX_SIDE}`,
   get sessionDepth() { return sessionDepth; },
   get compatibilityActive() { return forceCompatibility; },
+  get workerBootstrap() { return workerBootstrapMode; },
   runtimeBase() { return runtimeBase().href; },
   recognizeCoffeeBag(images) { return run(() => predict(images)); },
   recognizeRegion(blob, region, options = {}) { return run(() => predictRegion(blob, region, options)); },
@@ -387,5 +501,8 @@ globalThis.CoffeeFoundationPaddleOCR = paddleOcrApi;
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && sessionDepth === 0 && !busy) void dispose();
 });
-globalThis.addEventListener('pagehide', () => { if (!busy) void dispose(true); });
+globalThis.addEventListener('pagehide', () => {
+  releaseWorkerBundle();
+  if (!busy) void dispose(true);
+});
 document.documentElement.dataset.webOcr = `ppocr-v5-${VERSION}-session-fastpath`;
