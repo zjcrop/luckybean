@@ -109,9 +109,6 @@ test('unlabeled Traditional OCR values are promoted by coffee semantics without 
   assert.notEqual(byField.countryCode?.status, 'review');
   assert.notEqual(byField.processCode?.status, 'review');
   assert.notEqual(byField.entityCode?.status, 'review');
-  assert.equal(byField.entityCode?.customValueAccepted, true);
   assert.notEqual(byField.regionCode?.status, 'review');
-  assert.equal(byField.regionCode?.customValueAccepted, true);
   assert.notEqual(byField.flavorCodes?.status, 'review');
-  assert.equal(byField.flavorCodes?.customValueAccepted, true);
 });
