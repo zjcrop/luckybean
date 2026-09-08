@@ -213,11 +213,11 @@ function attachAiAdvisory(fields, parsed, document) {
 export function analyzeRecognitionDocument(document, book) {
   if (!document || typeof document !== 'object') throw new TypeError('识别文档无效');
   let started = diagnosticNow();
-  const baseSemanticText = String(document.fullText || '').replace(/\r/g, '').split(/\n+/).map(clean).filter(Boolean).join('\n');
-  recordDiagnostic('semantic-normalization', started);
+  const rawSemanticText = String(document.fullText || '').replace(/\r/g, '').split(/\n+/).map(value => String(value).trim()).filter(Boolean).join('\n');
+  recordDiagnostic('semantic-source-capture', started);
 
   started = diagnosticNow();
-  const preSemantic = preNormalizeRecognitionSemanticText(baseSemanticText, book);
+  const preSemantic = preNormalizeRecognitionSemanticText(rawSemanticText, book);
   recordDiagnostic('pre-semantic-normalization', started, { changedLines:preSemantic.audit.length, lineCount:preSemantic.lines.length });
 
   started = diagnosticNow();
@@ -267,7 +267,7 @@ export function analyzeRecognitionDocument(document, book) {
     pipelineVersion:RECOGNITION_PIPELINE_VERSION, documentSchemaVersion:document.schemaVersion || '', parserVersion:document.parserVersion || '', engine:document.engine || '',
     imageCount:Array.isArray(document.images) ? document.images.length : 0, blockCount:Array.isArray(document.blocks) ? document.blocks.length : 0,
     relationCount:Array.isArray(document.relations) ? document.relations.length : 0, reviewFields:reviewFields.map(item => item.field), arbitrationPriority:resolverPriorityDescription(),
-    rawFullText:document.rawFullText || '', rawSemanticText:baseSemanticText, preNormalizedSemanticText:preSemantic.normalizedText, semanticText
+    rawFullText:document.rawFullText || '', rawSemanticText, preNormalizedSemanticText:preSemantic.normalizedText, semanticText
   };
   recordDiagnostic('semantic-finalization', started, { reviewCount:reviewFields.length });
   return { pipelineVersion:RECOGNITION_PIPELINE_VERSION, document, semanticText, parsed, fields, resolvedCount:fields.length - reviewFields.length, reviewCount:reviewFields.length };
