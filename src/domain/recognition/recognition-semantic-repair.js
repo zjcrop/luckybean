@@ -57,8 +57,21 @@ const TRADITIONAL_LOOKUP_FOLD = Object.freeze({
   '曬':'晒','發':'发','厭':'厌','濕':'湿','漬':'渍','風':'风','標':'标','籤':'签','鑑':'鉴','記':'记','氣':'气',
   '淨':'净','規':'规','號':'号','編':'编','級':'级','灣':'湾','倫':'伦','亞':'亚','馬':'马','達':'达','薩':'萨',
   '爾':'尔','盧':'卢','東':'东','門':'门','義':'义','羅':'罗','蘭':'兰','島':'岛','縣':'县','鎮':'镇','鄉':'乡',
-  '嶺':'岭','嶽':'岳','穀':'谷','臺':'台','烏':'乌','貝':'贝','獅':'狮','葉':'叶','樹':'树'
+  '嶺':'岭','嶽':'岳','穀':'谷','臺':'台','烏':'乌','貝':'贝','獅':'狮','葉':'叶','樹':'树','陳':'陈','紅':'红'
 });
+
+const ENTITY_SUFFIX_PATTERN = /(?:庄园|莊園|农场|農場|农园|農園|处理站|處理站|水洗站|处理厂|處理廠|合作社|estate|farm|finca|washing station|processing station|cooperative)$/iu;
+const REGION_SUFFIX_PATTERN = /(?:省|州|县|縣|地区|地區|产区|產區|region|province|district)$/iu;
+const ROAST_VALUE_PATTERNS = Object.freeze([
+  [/^(?:極淺|极浅|超浅|超淺)(?:焙|烘|烘焙)?$/u, '极浅烘'],
+  [/^(?:淺中|浅中|中淺|中浅)(?:焙|烘|烘焙)?$/u, '浅中烘'],
+  [/^(?:淺|浅)(?:焙|烘|烘焙)$/u, '浅烘'],
+  [/^中(?:焙|烘|烘焙)$/u, '中烘'],
+  [/^中深(?:焙|烘|烘焙)?$/u, '中深烘'],
+  [/^深(?:焙|烘|烘焙)$/u, '深烘'],
+  [/^(?:極深|极深)(?:焙|烘|烘焙)?$/u, '极深烘']
+]);
+const SENSORY_SCORE_PATTERN = /^(?:酸度|酸質|酸质|甜感|甜度|醇厚度|醇厚|口感|餘韻|余韵|平衡|乾淨度|干净度|香氣|香气)\s*[0-9OoIl|]{1,3}$/iu;
 
 function clean(value) {
   return String(value ?? '').normalize('NFKC').replace(/[﹕︰]/g, ':').replace(/[｜丨]/g, '|').replace(/\s+/g, ' ').trim();
@@ -116,15 +129,33 @@ function tableAliases(book, table) {
   return aliases;
 }
 
-function lookupAugmentedValue(field, value, book, aliasCache) {
-  const raw = clean(value);
-  const table = TABLE_FOR_FIELD[field];
-  if (!raw || !table) return raw;
+function aliasesForTable(book, table, aliasCache) {
   let aliases = aliasCache.get(table);
   if (!aliases) {
     aliases = tableAliases(book, table);
     aliasCache.set(table, aliases);
   }
+  return aliases;
+}
+
+function exactTableAlias(field, value, book, aliasCache) {
+  const table = TABLE_FOR_FIELD[field];
+  if (!table) return '';
+  const aliases = aliasesForTable(book, table, aliasCache);
+  const raw = clean(value);
+  const folded = clean(foldTraditional(raw));
+  for (const candidate of [raw, folded, ...(SAFE_VALUE_EQUIVALENTS[raw] || [])].map(clean).filter(Boolean)) {
+    const exact = aliases.get(candidate.toLocaleLowerCase('zh-CN'));
+    if (exact) return exact;
+  }
+  return '';
+}
+
+function lookupAugmentedValue(field, value, book, aliasCache) {
+  const raw = clean(value);
+  const table = TABLE_FOR_FIELD[field];
+  if (!raw || !table) return raw;
+  const aliases = aliasesForTable(book, table, aliasCache);
   const candidates = [foldTraditional(raw), ...(SAFE_VALUE_EQUIVALENTS[raw] || [])]
     .map(clean)
     .filter(candidate => candidate && candidate !== raw);
@@ -135,13 +166,57 @@ function lookupAugmentedValue(field, value, book, aliasCache) {
   return raw;
 }
 
+function normalizeFlavorSeparators(value) {
+  const text = clean(value);
+  // PP-OCR commonly confuses a vertical separator with Latin I/l/1. Only repair
+  // the glyph when it is between CJK text, so ordinary Latin product names stay untouched.
+  return text
+    .replace(/([\p{Script=Han}])\s*[IⅠl|]\s*(?=[\p{Script=Han}])/gu, '$1、')
+    .replace(/[|｜]+/g, '、')
+    .replace(/、{2,}/g, '、')
+    .replace(/^、|、$/g, '');
+}
+
+function inferredUnlabelledField(line, book, aliasCache) {
+  const raw = clean(line);
+  if (!raw || SENSORY_SCORE_PATTERN.test(raw)) return null;
+
+  // Strongest inference: the whole OCR line is an exact dictionary value (after
+  // safe Traditional lookup folding). This never relies on substring guessing.
+  for (const field of ['country', 'region', 'process', 'variety']) {
+    if (exactTableAlias(field, raw, book, aliasCache)) {
+      return { field, label: CANONICAL_LABEL[field], value: lookupAugmentedValue(field, raw, book, aliasCache) };
+    }
+  }
+
+  const folded = clean(foldTraditional(raw));
+  if (ENTITY_SUFFIX_PATTERN.test(raw) || ENTITY_SUFFIX_PATTERN.test(folded)) {
+    return { field: 'entity', label: CANONICAL_LABEL.entity, value: folded };
+  }
+  if (REGION_SUFFIX_PATTERN.test(raw) || REGION_SUFFIX_PATTERN.test(folded)) {
+    return { field: 'region', label: CANONICAL_LABEL.region, value: folded };
+  }
+  for (const [pattern, canonical] of ROAST_VALUE_PATTERNS) {
+    if (pattern.test(raw) || pattern.test(folded)) return { field: 'roast', label: CANONICAL_LABEL.roast, value: canonical };
+  }
+
+  const flavorCandidate = normalizeFlavorSeparators(folded);
+  const flavorPieces = flavorCandidate.split(/[、,，;；/]+/).map(clean).filter(Boolean);
+  if (flavorPieces.length >= 2 && flavorPieces.every(piece => !/\d/.test(piece)) && flavorCandidate.length <= 48) {
+    return { field: 'flavor', label: CANONICAL_LABEL.flavor, value: flavorCandidate };
+  }
+  return null;
+}
+
 /**
  * Repairs OCR semantic text without rewriting the OCR evidence itself.
  * - label-only lines are paired with the next value line;
  * - Traditional/variant labels are normalized to canonical field labels;
  * - known Traditional value variants get an additional codebook lookup alias only
- *   when that alias actually exists in the current book.
- * Unknown proper names are never converted or discarded.
+ *   when that alias actually exists in the current book;
+ * - high-specificity unlabeled coffee values are promoted to explicit semantic fields;
+ * - common OCR separator noise inside flavor lists is repaired only in flavor context.
+ * Unknown proper names are never discarded; suffix inference preserves them as custom fields.
  */
 export function repairRecognitionSemanticText(source, book) {
   const lines = String(source || '').replace(/\r/g, '').split(/\n+/).map(clean).filter(Boolean);
@@ -156,18 +231,23 @@ export function repairRecognitionSemanticText(source, book) {
     }
 
     const label = detectLabelOnly(line);
-    if (!label) {
-      output.push(line);
+    if (label) {
+      const next = lines[index + 1];
+      if (next && !detectLabelOnly(next) && !splitInline(next)) {
+        output.push(`${label.label}: ${lookupAugmentedValue(label.field, next, book, aliasCache)}`);
+        index += 1;
+        continue;
+      }
+      output.push(label.label);
       continue;
     }
 
-    const next = lines[index + 1];
-    if (next && !detectLabelOnly(next) && !splitInline(next)) {
-      output.push(`${label.label}: ${lookupAugmentedValue(label.field, next, book, aliasCache)}`);
-      index += 1;
+    const inferred = inferredUnlabelledField(line, book, aliasCache);
+    if (inferred) {
+      output.push(`${inferred.label}: ${inferred.value}`);
       continue;
     }
-    output.push(label.label);
+    output.push(line);
   }
   return output.join('\n');
 }
