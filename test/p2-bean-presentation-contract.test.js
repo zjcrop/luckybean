@@ -15,7 +15,7 @@ test('detail projection loads only the selected full bean and preserves existing
   assert.match(detail, /secondary\.append\(correct\)/);
 });
 test('detail fact sheet is content-only, slash-delimited and strips duplicate legacy labels', () => {
-  assert.match(detail, /clean\.join\(' \/ '\)/);
+  assert.ok(detail.includes("clean.join('\\u00a0/\\u00a0')"), 'slash separators must remain attached during wrapping');
   assert.match(detail, /dataset\.beanDetailFacts = 'content-only'/);
   assert.match(detail, /DUPLICATE_DETAIL_LABELS/);
   assert.match(detail, /stripDuplicateLegacyFacts\(overlay\)/);
