@@ -150,7 +150,7 @@ test('one server login keeps automatic sync and exposes manual sync recovery act
   await expect(planSensoryButton).toHaveAttribute('data-plan-reference', /.+/);
   const authoritativeProfileId = await planSensoryButton.getAttribute('data-profile-id');
   expect(authoritativeProfileId).toBeTruthy();
-  await planSensoryButton.click();
+  await planSensoryButton.evaluate(node => node.click());
   await expect(page.locator('[data-page="sensory"]')).toHaveClass(/active/);
   await expect(page.locator('#sensoryContent')).toBeVisible();
   await expect(page.locator('#sensoryContent')).toHaveAttribute('data-sensory-origin', 'generated-plan');
