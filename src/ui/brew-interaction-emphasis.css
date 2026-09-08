@@ -1,0 +1,137 @@
+/* LuckyBean brew interaction emphasis: UI-only hierarchy and touch affordance. */
+:root{
+  --lb-brew-action-gold:#d6ad63;
+  --lb-brew-action-fill:rgba(214,173,99,.16);
+  --lb-brew-action-fill-strong:rgba(214,173,99,.24);
+  --lb-brew-action-border:rgba(214,173,99,.86);
+  --lb-brew-underline:rgba(214,173,99,.64);
+}
+html[data-theme="light"]{
+  --lb-brew-action-gold:#a66f1f;
+  --lb-brew-action-fill:rgba(189,132,43,.14);
+  --lb-brew-action-fill-strong:rgba(189,132,43,.22);
+  --lb-brew-action-border:rgba(166,111,31,.80);
+  --lb-brew-underline:rgba(166,111,31,.62);
+}
+
+/* Strong interactive actions: identical type scale and affordance. */
+#pageBrew #generatePlanBtn,
+#pageBrew #directSensoryBtn,
+#pageBrew #startBrewBtn,
+#pageBrew .brew-strategy-options .recommended-profile-option{
+  border:1.5px solid var(--lb-brew-action-border)!important;
+  border-radius:14px!important;
+  background:var(--lb-brew-action-fill)!important;
+  color:var(--lb-brew-action-gold)!important;
+  box-shadow:0 6px 20px rgba(0,0,0,.12)!important;
+  font-family:SimHei,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif!important;
+  font-size:18px!important;
+  font-weight:900!important;
+  line-height:1.2!important;
+  letter-spacing:.02em!important;
+}
+#pageBrew #generatePlanBtn,
+#pageBrew #directSensoryBtn,
+#pageBrew #startBrewBtn{
+  min-height:56px!important;
+}
+#pageBrew #generatePlanBtn:active,
+#pageBrew #directSensoryBtn:active,
+#pageBrew #startBrewBtn:active,
+#pageBrew .brew-strategy-options .recommended-profile-option:active,
+#pageBrew .brew-strategy-options .recommended-profile-option.selected{
+  background:var(--lb-brew-action-fill-strong)!important;
+  transform:translateY(1px);
+}
+#pageBrew .brew-strategy-options .recommended-profile-option{
+  width:100%!important;
+  min-height:62px!important;
+  padding:12px 14px!important;
+}
+#pageBrew .brew-strategy-options .recommended-profile-option span,
+#pageBrew .brew-strategy-options .recommended-profile-option strong{
+  color:inherit!important;
+  font-family:inherit!important;
+  font-size:18px!important;
+  font-weight:900!important;
+}
+#pageBrew .brew-strategy-options .recommended-profile-option small{
+  color:inherit!important;
+  font-family:SimHei,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif!important;
+  font-weight:700!important;
+}
+
+/* One decisive timer action: centered, with the duplicate lower sensory action removed. */
+#generatedPlan > .row.menu-row{
+  display:flex!important;
+  justify-content:center!important;
+  align-items:stretch!important;
+  gap:0!important;
+}
+#generatedPlan #startBrewBtn{
+  flex:0 1 320px!important;
+  width:min(100%,320px)!important;
+}
+#generatedPlan #planToSensoryBtn{display:none!important;}
+
+/* Dose and ratio are peer settings: exactly matched typography and underline. */
+#pageBrew #brewDose,
+#pageBrew #brewRatio{
+  min-height:46px!important;
+  border:0!important;
+  border-bottom:2px solid var(--lb-brew-underline)!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:var(--text)!important;
+  font-family:SimHei,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif!important;
+  font-size:20px!important;
+  font-weight:900!important;
+  line-height:1.2!important;
+  text-decoration:none!important;
+}
+
+/* Filter gear / water and the three adjustment entries share the same underline language. */
+#pageBrew #brewDripper,
+#pageBrew #brewFilterPaper,
+#pageBrew #brewWaterProfile,
+#pageBrew #openBrewTuneBtn,
+#pageBrew #openFlavorTargetBtn,
+#pageBrew #openEnvironmentBtn{
+  border:0!important;
+  border-bottom:1.5px solid var(--lb-brew-underline)!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+
+/* Automatic brew-method choice is intentionally more legible. */
+#pageBrew #brewProfile{
+  font-family:SimHei,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif!important;
+  font-size:18px!important;
+  font-weight:900!important;
+}
+
+/* Keep plan summary untouched; only title and its profile explanation become a compact same-line header. */
+#generatedPlan .lb-brew-plan-title-line{
+  display:flex!important;
+  align-items:baseline!important;
+  gap:1em!important;
+  flex-wrap:wrap!important;
+}
+#generatedPlan .lb-brew-plan-title-line h2{
+  margin:0!important;
+  font-family:SimSun,"Songti SC",STSong,serif!important;
+  font-size:14px!important;
+  font-weight:400!important;
+  line-height:1.35!important;
+}
+#generatedPlan .lb-brew-plan-title-line .plan-profile-label{
+  margin:0!important;
+  flex:0 1 auto!important;
+}
+
+/* Preparation explanation is subordinate to its heading. */
+#generatedPlan .brew-preparation-card > p{
+  font-family:SimSun,"Songti SC",STSong,serif!important;
+  font-size:12px!important;
+  line-height:1.65!important;
+}
