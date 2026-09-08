@@ -113,6 +113,30 @@ function installRecognitionSessionObserver() {
   globalThis.addEventListener('pagehide', () => { if (recognitionSessionActive) void endRecognitionSession('pagehide'); });
 }
 
+function installGalleryIntentGate() {
+  const markDirectInput = () => {
+    const input = document.querySelector('#bagGalleryInput');
+    if (!(input instanceof HTMLInputElement)) return;
+    if (input.dataset.lbGalleryUserFlow === '1') return;
+    input.dataset.lbPreprocessed = '1';
+  };
+  const overlayRoot = document.querySelector('#overlayRoot');
+  if (overlayRoot) new MutationObserver(() => queueMicrotask(markDirectInput)).observe(overlayRoot, { childList:true, subtree:true });
+  markDirectInput();
+  document.addEventListener('click', event => {
+    if (!event.target?.closest?.('#bagGalleryBtn')) return;
+    const input = document.querySelector('#bagGalleryInput');
+    if (!(input instanceof HTMLInputElement)) return;
+    input.dataset.lbGalleryUserFlow = '1';
+    delete input.dataset.lbPreprocessed;
+  }, true);
+  document.addEventListener('change', event => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || input.id !== 'bagGalleryInput') return;
+    if (input.dataset.lbGalleryUserFlow === '1' && input.dataset.lbPreprocessed === '1') delete input.dataset.lbGalleryUserFlow;
+  }, true);
+}
+
 function installLazyTriggers() {
   document.addEventListener('click', async event => {
     const addEntry = addEntryFor(event);
@@ -178,6 +202,7 @@ await loadMany(PREINTERACTION_FEATURE_IDS);
 await loadMany(P2_CORE_FEATURES.map(item => item.id));
 
 installRecognitionSessionObserver();
+installGalleryIntentGate();
 installLazyTriggers();
 document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', {
   detail:{ revision:RELEASE_REVISION, declared:catalog.size, coreLoaded:ALL_CORE_FEATURES.filter(item=>isLoaded(item.id)).length, lazyDeclared:LAZY_FEATURES.length, loaded:loaded.length, failures }
