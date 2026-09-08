@@ -20,43 +20,43 @@ TAP version 13
 # Subtest: professional brew API has a persistent installation identity and no cloud-account dependency
 ok 1 - professional brew API has a persistent installation identity and no cloud-account dependency
   ---
-  duration_ms: 3.662435
+  duration_ms: 5.331901
   type: 'test'
   ...
 # Subtest: catalog is authoritative, cached, and includes all six competition profiles
 ok 2 - catalog is authoritative, cached, and includes all six competition profiles
   ---
-  duration_ms: 1.643919
+  duration_ms: 2.208846
   type: 'test'
   ...
 # Subtest: ratio defaults to automatic recommendation while preserving explicit manual override
 ok 3 - ratio defaults to automatic recommendation while preserving explicit manual override
   ---
-  duration_ms: 1.983733
+  duration_ms: 2.414989
   type: 'test'
   ...
 # Subtest: cooling defaults to model recommendation and custom tail accepts 60°C
 ok 4 - cooling defaults to model recommendation and custom tail accepts 60°C
   ---
-  duration_ms: 1.496568
+  duration_ms: 1.882749
   type: 'test'
   ...
 # Subtest: client rejects empty or incomplete target geometry
 ok 5 - client rejects empty or incomplete target geometry
   ---
-  duration_ms: 0.649072
+  duration_ms: 0.804455
   type: 'test'
   ...
 # Subtest: new plan generation never converts an API failure into a fake successful 3D scene
 ok 6 - new plan generation never converts an API failure into a fake successful 3D scene
   ---
-  duration_ms: 2.146295
+  duration_ms: 2.605042
   type: 'test'
   ...
 # Subtest: profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
 ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist
   ---
-  duration_ms: 0.662717
+  duration_ms: 0.80693
   type: 'test'
   ...
 1..7
@@ -67,44 +67,44 @@ ok 7 - profile resolver accepts catalog IDs instead of a fixed explicit-profile 
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 16.238937
+# duration_ms 21.926976
 
 [static] tests/v123d-main-parity.mjs
 TAP version 13
 # Subtest: all pages use the same red seal slot geometry
 ok 1 - all pages use the same red seal slot geometry
   ---
-  duration_ms: 4.148089
+  duration_ms: 5.567689
   type: 'test'
   ...
 # Subtest: bean custom fields and five-row brew order are locked to the current interaction contract
 ok 2 - bean custom fields and five-row brew order are locked to the current interaction contract
   ---
-  duration_ms: 2.742792
+  duration_ms: 3.65796
   type: 'test'
   ...
 # Subtest: about section contains the shipped illustration
 ok 3 - about section contains the shipped illustration
   ---
-  duration_ms: 2.970597
+  duration_ms: 3.538738
   type: 'test'
   ...
 # Subtest: settings data collection owns coffee world and preference profile
 ok 4 - settings data collection owns coffee world and preference profile
   ---
-  duration_ms: 2.420397
+  duration_ms: 2.768386
   type: 'test'
   ...
 # Subtest: bean page shows inventory and health digest above its leaderboard
 ok 5 - bean page shows inventory and health digest above its leaderboard
   ---
-  duration_ms: 1.729879
+  duration_ms: 2.244552
   type: 'test'
   ...
 # Subtest: cloud panel exposes status and both recovery actions
 ok 6 - cloud panel exposes status and both recovery actions
   ---
-  duration_ms: 0.943994
+  duration_ms: 1.085097
   type: 'test'
   ...
 1..6
@@ -115,7 +115,7 @@ ok 6 - cloud panel exposes status and both recovery actions
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 18.883824
+# duration_ms 24.816298
 
 [static] tests/v124-stable-data-format.mjs
 Stable cross-project brew data is version-independent and uses the fixed six-target contract.
@@ -196,233 +196,1160 @@ Recognition document is the single translated and structured bean-entry source w
 LuckyBean 1.24P lifecycle, serial OCR, transit/frozen storage, order parsing and local brew regression checks passed
 
 [static] tests/v124b-ocr-worker-freeze-regression.mjs
-node:internal/modules/run_main:123
-    triggerUncaughtException(
-    ^
+LuckyBean 1.24P browser OCR is same-origin, lazy, capture-reusable, memory-bounded, ROI-capable, timeout-bounded, and has no automatic Tesseract fallback
 
-AssertionError [ERR_ASSERTION]: ROI Worker may downscale oversized crops but must never upscale them before PP-OCR
-    at file:///home/runner/work/luckybean/luckybean/tests/v124b-ocr-worker-freeze-regression.mjs:48:8 {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: 'const MIN_REGION_SPAN = 0.01;\n' +
-    'const DEFAULT_MAX_EDGE = 2200;\n' +
-    'const HEADER_PROBE_BYTES = 1024 * 1024;\n' +
-    'const ROI_DECODE_MAX_EDGE = 3000;\n' +
-    '\n' +
-    'function clamp01(value, fallback = 0) {\n' +
-    '  const number = Number(value);\n' +
-    '  if (!Number.isFinite(number)) return fallback;\n' +
-    '  return Math.max(0, Math.min(1, number));\n' +
-    '}\n' +
-    '\n' +
-    'function normalizeRegion(input) {\n' +
-    "  const source = input && typeof input === 'object' ? input : {};\n" +
-    '  const left = clamp01(source.left);\n' +
-    '  const top = clamp01(source.top);\n' +
-    '  const right = clamp01(source.right, 1);\n' +
-    '  const bottom = clamp01(source.bottom, 1);\n' +
-    '  if (right - left < MIN_REGION_SPAN || bottom - top < MIN_REGION_SPAN) {\n' +
-    "    throw new Error('ROI 范围过小或无效');\n" +
-    '  }\n' +
-    '  return { left, top, right, bottom };\n' +
-    '}\n' +
-    '\n' +
-    'function isFullFrame(region) {\n' +
-    '  return region.left <= 0.0001 && region.top <= 0.0001 &&\n' +
-    '    region.right >= 0.9999 && region.bottom >= 0.9999;\n' +
-    '}\n' +
-    '\n' +
-    'function cropGeometry(width, height, region) {\n' +
-    '  const left = Math.max(0, Math.min(width - 1, Math.floor(region.left * width)));\n' +
-    '  const top = Math.max(0, Math.min(height - 1, Math.floor(region.top * height)));\n' +
-    '  const right = Math.max(left + 1, Math.min(width, Math.ceil(region.right * width)));\n' +
-    '  const bottom = Math.max(top + 1, Math.min(height, Math.ceil(region.bottom * height)));\n' +
-    '  return { x: left, y: top, width: right - left, height: bottom - top };\n' +
-    '}\n' +
-    '\n' +
-    'function readUint32BE(bytes, offset) {\n' +
-    '  return ((bytes[offset] << 24) >>> 0) + (bytes[offset + 1] << 16) +\n' +
-    '    (bytes[offset + 2] << 8) + bytes[offset + 3];\n' +
-    '}\n' +
-    '\n' +
-    'function pngDimensions(bytes) {\n' +
-    '  if (bytes.length < 24) return null;\n' +
-    '  const signature = [137, 80, 78, 71, 13, 10, 26, 10];\n' +
-    '  if (!signature.every((value, index) => bytes[index] === value)) return null;\n' +
-    '  const width = readUint32BE(bytes, 16);\n' +
-    '  const height = readUint32BE(bytes, 20);\n' +
-    "  return width > 0 && height > 0 ? { width, height, format: 'png' } : null;\n" +
-    '}\n' +
-    '\n' +
-    'const JPEG_SOF_MARKERS = new Set([\n' +
-    '  0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7,\n' +
-    '  0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf\n' +
-    ']);\n' +
-    '\n' +
-    'function jpegDimensions(bytes) {\n' +
-    '  if (bytes.length < 10 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;\n' +
-    '  let offset = 2;\n' +
-    '  while (offset + 8 < bytes.length) {\n' +
-    '    if (bytes[offset] !== 0xff) { offset += 1; continue; }\n' +
-    '    while (offset < bytes.length && bytes[offset] === 0xff) offset += 1;\n' +
-    '    if (offset >= bytes.length) break;\n' +
-    '    const marker = bytes[offset];\n' +
-    '    offset += 1;\n' +
-    '    if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7) || marker === 0x01) continue;\n' +
-    '    if (offset + 1 >= bytes.length) break;\n' +
-    '    const segmentLength = (bytes[offset] << 8) | bytes[offset + 1];\n' +
-    '    if (segmentLength < 2 || offset + segmentLength > bytes.length) break;\n' +
-    '    if (JPEG_SOF_MARKERS.has(marker) && segmentLength >= 7) {\n' +
-    '      const height = (bytes[offset + 3] << 8) | bytes[offset + 4];\n' +
-    '      const width = (bytes[offset + 5] << 8) | bytes[offset + 6];\n' +
-    "      return width > 0 && height > 0 ? { width, height, format: 'jpeg' } : null;\n" +
-    '    }\n' +
-    '    offset += segmentLength;\n' +
-    '  }\n' +
-    '  return null;\n' +
-    '}\n' +
-    '\n' +
-    'function webpDimensions(bytes) {\n' +
-    '  if (bytes.length < 30) return null;\n' +
-    '  const ascii = (offset, length) => String.fromCharCode(...bytes.subarray(offset, offset + length));\n' +
-    "  if (ascii(0, 4) !== 'RIFF' || ascii(8, 4) !== 'WEBP') return null;\n" +
-    "  if (ascii(12, 4) === 'VP8X') {\n" +
-    '    const width = 1 + bytes[24] + (bytes[25] << 8) + (bytes[26] << 16);\n' +
-    '    const height = 1 + bytes[27] + (bytes[28] << 8) + (bytes[29] << 16);\n' +
-    "    return width > 0 && height > 0 ? { width, height, format: 'webp' } : null;\n" +
-    '  }\n' +
-    '  return null;\n' +
-    '}\n' +
-    '\n' +
-    'async function encodedDimensions(blob) {\n' +
-    '  try {\n' +
-    '    const probe = new Uint8Array(await blob.slice(0, Math.min(blob.size, HEADER_PROBE_BYTES)).arrayBuffer());\n' +
-    '    return pngDimensions(probe) || jpegDimensions(probe) || webpDimensions(probe);\n' +
-    '  } catch {\n' +
-    '    return null;\n' +
-    '  }\n' +
-    '}\n' +
-    '\n' +
-    'function boundedSize(width, height, maxEdge) {\n' +
-    '  const scale = Math.min(1, maxEdge / Math.max(width, height));\n' +
-    '  return {\n' +
-    '    width: Math.max(1, Math.round(width * scale)),\n' +
-    '    height: Math.max(1, Math.round(height * scale)),\n' +
-    '    scale\n' +
-    '  };\n' +
-    '}\n' +
-    '\n' +
-    'function roiDecodeEdge(region, requestedMaxEdge) {\n' +
-    '  if (isFullFrame(region)) return requestedMaxEdge;\n' +
-    '  const span = Math.max(MIN_REGION_SPAN, Math.max(region.right - region.left, region.bottom - region.top));\n' +
-    '  // Preserve more detail for a small crop while still putting a hard ceiling on\n' +
-    '  // the full decoded raster. A quarter-frame region therefore receives materially\n' +
-    '  // more pixels than it did in whole-page OCR without ever allocating a 12/48 MP\n' +
-    '  // RGBA bitmap.\n' +
-    '  return Math.max(\n' +
-    '    requestedMaxEdge,\n' +
-    '    Math.min(ROI_DECODE_MAX_EDGE, Math.ceil(requestedMaxEdge / span))\n' +
-    '  );\n' +
-    '}\n' +
-    '\n' +
-    'async function decodeBitmap(blob, region, maxEdge) {\n' +
-    '  const dimensions = await encodedDimensions(blob);\n' +
-    '  const decodeMaxEdge = roiDecodeEdge(region, maxEdge);\n' +
-    '  if (dimensions && Math.max(dimensions.width, dimensions.height) > decodeMaxEdge) {\n' +
-    '    const target = boundedSize(dimensions.width, dimensions.height, decodeMaxEdge);\n' +
-    '    try {\n' +
-    '      const bitmap = await createImageBitmap(blob, {\n' +
-    "        imageOrientation: 'from-image',\n" +
-    '        resizeWidth: target.width,\n' +
-    '        resizeHeight: target.height,\n' +
-    "        resizeQuality: 'high'\n" +
-    '      });\n' +
-    '      return {\n' +
-    '        bitmap,\n' +
-    '        originalWidth: dimensions.width,\n' +
-    '        originalHeight: dimensions.height,\n' +
-    '        decodePreScaled: true,\n' +
-    '        decodeMaxEdge,\n' +
-    '        encodedFormat: dimensions.format\n' +
-    '      };\n' +
-    '    } catch {\n' +
-    '      // Older engines may reject resize hints. Stay in the ROI Worker and retain\n' +
-    '      // compatibility; never move decoding onto the UI thread.\n' +
-    '    }\n' +
-    '  }\n' +
-    "  const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });\n" +
-    '  return {\n' +
-    '    bitmap,\n' +
-    '    originalWidth: dimensions?.width || bitmap.width,\n' +
-    '    originalHeight: dimensions?.height || bitmap.height,\n' +
-    '    decodePreScaled: false,\n' +
-    '    decodeMaxEdge,\n' +
-    "    encodedFormat: dimensions?.format || ''\n" +
-    '  };\n' +
-    '}\n' +
-    '\n' +
-    'async function cropBlob(blob, regionInput, maxEdgeInput) {\n' +
-    "  if (!(blob instanceof Blob) || blob.size === 0) throw new Error('ROI 原图不可用');\n" +
-    "  if (typeof createImageBitmap !== 'function' || typeof OffscreenCanvas !== 'function') {\n" +
-    "    throw new Error('当前浏览器不支持 Worker-only ROI 图像裁剪');\n" +
-    '  }\n' +
-    '\n' +
-    '  const region = normalizeRegion(regionInput);\n' +
-    '  const maxEdge = Math.max(320, Math.min(4096, Number(maxEdgeInput) || DEFAULT_MAX_EDGE));\n' +
-    '  const decoded = await decodeBitmap(blob, region, maxEdge);\n' +
-    '  const bitmap = decoded.bitmap;\n' +
-    '  try {\n' +
-    '    const bitmapWidth = bitmap.width;\n' +
-    '    const bitmapHeight = bitmap.height;\n' +
-    "    if (!bitmapWidth || !bitmapHeight) throw new Error('ROI 原图尺寸无效');\n" +
-    '    const crop = cropGeometry(bitmapWidth, bitmapHeight, region);\n' +
-    '    const output = boundedSize(crop.width, crop.height, maxEdge);\n' +
-    '    const width = output.width;\n' +
-    '    const height = output.height;\n' +
-    '    const canvas = new OffscreenCanvas(width, height);\n' +
-    "    const context = canvas.getContext('2d', { alpha: false });\n" +
-    "    if (!context) throw new Error('ROI Worker 无法建立 2D 画布');\n" +
-    '    context.imageSmoothingEnabled = true;\n' +
-    "    context.imageSmoothingQuality = 'high';\n" +
-    '    context.drawImage(bitmap, crop.x, crop.y, crop.width, crop.height, 0, 0, width, height);\n' +
-    "    const resultBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.92 });\n" +
-    '    return {\n' +
-    '      blob: resultBlob,\n' +
-    '      region,\n' +
-    '      sourceWidth: decoded.originalWidth,\n' +
-    '      sourceHeight: decoded.originalHeight,\n' +
-    '      cropX: crop.x,\n' +
-    '      cropY: crop.y,\n' +
-    '      cropWidth: crop.width,\n' +
-    '      cropHeight: crop.height,\n' +
-    '      outputWidth: width,\n' +
-    '      outputHeight: height,\n' +
-    '      decodePreScaled: decoded.decodePreScaled,\n' +
-    '      decodeMaxEdge: decoded.decodeMaxEdge,\n' +
-    '      encodedFormat: decoded.encodedFormat\n' +
-    '    };\n' +
-    '  } finally {\n' +
-    '    bitmap.close?.();\n' +
-    '  }\n' +
-    '}\n' +
-    '\n' +
-    'self.onmessage = async event => {\n' +
-    "  const requestId = String(event.data?.requestId || '');\n" +
-    '  try {\n' +
-    '    const result = await cropBlob(event.data?.blob, event.data?.region, event.data?.maxEdge);\n' +
-    '    self.postMessage({ requestId, ok: true, ...result });\n' +
-    '  } catch (error) {\n' +
-    '    self.postMessage({\n' +
-    '      requestId,\n' +
-    '      ok: false,\n' +
-    "      error: String(error?.message || error || 'ROI Worker 裁剪失败')\n" +
-    '    });\n' +
-    '  }\n' +
-    '};',
-  expected: /Math\.min\(1,\s*maxEdge\s*\/\s*Math\.max\(crop\.width,\s*crop\.height\)\)/,
-  operator: 'match',
-  diff: 'simple'
-}
+[static] tests/v124b-ui-policy-regression.mjs
+LuckyBean 1.24P single-owner bean group state, hidden preference leaderboard policy, shared live-preview sorting, text brew UI and Web/Android parity contracts passed
 
-Node.js v22.23.2
-::error file=tests/v124b-ocr-worker-freeze-regression.mjs,title=Static regression failed::node:internal/modules/run_main:123%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: ROI Worker may downscale oversized crops but must never upscale them before PP-OCR%0A    at file:///home/runner/work/luckybean/luckybean/tests/v124b-ocr-worker-freeze-regression.mjs:48:8 {%0A  generatedMessage: false,%0A  code: 'ERR_ASSERTION',%0A  actual: 'const MIN_REGION_SPAN = 0.01;\n' +%0A    'const DEFAULT_MAX_EDGE = 2200;\n' +%0A    'const HEADER_PROBE_BYTES = 1024 * 1024;\n' +%0A    'const ROI_DECODE_MAX_EDGE = 3000;\n' +%0A    '\n' +%0A    'function clamp01(value, fallback = 0) {\n' +%0A    '  const number = Number(value);\n' +%0A    '  if (!Number.isFinite(number)) return fallback;\n' +%0A    '  return Math.max(0, Math.min(1, number));\n' +%0A    '}\n' +%0A    '\n' +%0A    'function normalizeRegion(input) {\n' +%0A    "  const source = input && typeof input === 'object' ? input : {};\n" +%0A    '  const left = clamp01(source.left);\n' +%0A    '  const top = clamp01(source.top);\n' +%0A    '  const right = clamp01(source.right, 1);\n' +%0A    '  const bottom = clamp01(source.bottom, 1);\n' +%0A    '  if (right - left < MIN_REGION_SPAN || bottom - top < MIN_REGION_SPAN) {\n' +%0A    "    throw new Error('ROI 范围过小或无效');\n" +%0A    '  }\n' +%0A    '  return { left, top, right, bottom };\n' +%0A    '}\n' +%0A    '\n' +%0A    'function isFullFrame(region) {\n' +%0A    '  return region.left <= 0.0001 && region.top <= 0.0001 &&\n' +%0A    '    region.right >= 0.9999 && region.bottom >= 0.9999;\n' +%0A    '}\n' +%0A    '\n' +%0A    'function cropGeometry(width, height, region) {\n' +%0A    '  const left = Math.max(0, Math.min(width - 1, Math.floor(region.left * width)));\n' +%0A    '  const top = Math.max(0, Math.min(height - 1, Math.floor(region.top * height)));\n' +%0A    '  const right = Math.max(left + 1, Math.min(width, Math.ceil(region.right * width)));\n' +%0A    '  const bottom = Math.max(top + 1, Math.min(height, Math.ceil(region.bottom * height)));\n' +%0A    '  return { x: left, y: top, width: right - left, height: bottom - top };\n' +%0A    '}\n' +%0A    '\n' +%0A    'function readUint32BE(bytes, offset) {\n' +%0A    '  return ((bytes[offset] << 24) >>> 0) + (bytes[offset + 1] << 16) +\n' +%0A    '    (bytes[offset + 2] << 8) + bytes[offset + 3];\n' +%0A    '}\n' +%0A    '\n' +%0A    'function pngDimensions(bytes) {\n' +%0A    '  if (bytes.length < 24) return null;\n' +%0A    '  const signature = [137, 80, 78, 71, 13, 10, 26, 10];\n' +%0A    '  if (!signature.every((value, index) => bytes[index] === value)) return null;\n' +%0A    '  const width = readUint32BE(bytes, 16);\n' +%0A    '  const height = readUint32BE(bytes, 20);\n' +%0A    "  return width > 0 && height > 0 ? { width, height, format: 'png' } : null;\n" +%0A    '}\n' +%0A    '\n' +%0A    'const JPEG_SOF_MARKERS = new Set([\n' +%0A    '  0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7,\n' +%0A    '  0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf\n' +%0A    ']);\n' +%0A    '\n' +%0A    'function jpegDimensions(bytes) {\n' +%0A    '  if (bytes.length < 10 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;\n' +%0A    '  let offset = 2;\n' +%0A    '  while (offset + 8 < bytes.length) {\n' +%0A    '    if (bytes[offset] !== 0xff) { offset += 1; continue; }\n' +%0A    '    while (offset < bytes.length && bytes[offset] === 0xff) offset += 1;\n' +%0A    '    if (offset >= bytes.length) break;\n' +%0A    '    const marker = bytes[offset];\n' +%0A    '    offset += 1;\n' +%0A    '    if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7) || marker === 0x01) continue;\n' +%0A    '    if (offset + 1 >= bytes.length) break;\n' +%0A    '    const segmentLength = (bytes[offset] << 8) | bytes[offset + 1];\n' +%0A    '    if (segmentLength < 2 || offset + segmentLength > bytes.length) break;\n' +%0A    '    if (JPEG_SOF_MARKERS.has(marker) && segmentLength >= 7) {\n' +%0A    '      const height = (bytes[offset + 3] << 8) | bytes[offset + 4];\n' +%0A    '      const width = (bytes[offset + 5] << 8) | bytes[offset + 6];\n' +%0A    "      return width > 0 && height > 0 ? { width, height, format: 'jpeg' } : null;\n" +%0A    '    }\n' +%0A    '    offset += segmentLength;\n' +%0A    '  }\n' +%0A    '  return null;\n' +%0A    '}\n' +%0A    '\n' +%0A    'function webpDimensions(bytes) {\n' +%0A    '  if (bytes.length < 30) return null;\n' +%0A    '  const ascii = (offset, length) => String.fromCharCode(...bytes.subarray(offset, offset + length));\n' +%0A    "  if (ascii(0, 4) !== 'RIFF' || ascii(8, 4) !== 'WEBP') return null;\n" +%0A    "  if (ascii(12, 4) === 'VP8X') {\n" +%0A    '    const width = 1 + bytes[24] + (bytes[25] << 8) + (bytes[26] << 16);\n' +%0A    '    const height = 1 + bytes[27] + (bytes[28] << 8) + (bytes[29] << 16);\n' +%0A    "    return width > 0 && height > 0 ? { width, height, format: 'webp' } : null;\n" +%0A    '  }\n' +%0A    '  return null;\n' +%0A    '}\n' +%0A    '\n' +%0A    'async function encodedDimensions(blob) {\n' +%0A    '  try {\n' +%0A    '    const probe = new Uint8Array(await blob.slice(0, Math.min(blob.size, HEADER_PROBE_BYTES)).arrayBuffer());\n' +%0A    '    return pngDimensions(probe) || jpegDimensions(probe) || webpDimensions(probe);\n' +%0A    '  } catch {\n' +%0A    '    return null;\n' +%0A    '  }\n' +%0A    '}\n' +%0A    '\n' +%0A    'function boundedSize(width, height, maxEdge) {\n' +%0A    '  const scale = Math.min(1, maxEdge / Math.max(width, height));\n' +%0A    '  return {\n' +%0A    '    width: Math.max(1, Math.round(width * scale)),\n' +%0A    '    height: Math.max(1, Math.round(height * scale)),\n' +%0A    '    scale\n' +%0A    '  };\n' +%0A    '}\n' +%0A    '\n' +%0A    'function roiDecodeEdge(region, requestedMaxEdge) {\n' +%0A    '  if (isFullFrame(region)) return requestedMaxEdge;\n' +%0A    '  const span = Math.max(MIN_REGION_SPAN, Math.max(region.right - region.left, region.bottom - region.top));\n' +%0A    '  // Preserve more detail for a small crop while still putting a hard ceiling on\n' +%0A    '  // the full decoded raster. A quarter-frame region therefore receives materially\n' +%0A    '  // more pixels than it did in whole-page OCR without ever allocating a 12/48 MP\n' +%0A    '  // RGBA bitmap.\n' +%0A    '  return Math.max(\n' +%0A    '    requestedMaxEdge,\n' +%0A    '    Math.min(ROI_DECODE_MAX_EDGE, Math.ceil(requestedMaxEdge / span))\n' +%0A    '  );\n' +%0A    '}\n' +%0A    '\n' +%0A    'async function decodeBitmap(blob, region, maxEdge) {\n' +%0A    '  const dimensions = await encodedDimensions(blob);\n' +%0A    '  const decodeMaxEdge = roiDecodeEdge(region, maxEdge);\n' +%0A    '  if (dimensions && Math.max(dimensions.width, dimensions.height) > decodeMaxEdge) {\n' +%0A    '    const target = boundedSize(dimensions.width, dimensions.height, decodeMaxEdge);\n' +%0A    '    try {\n' +%0A    '      const bitmap = await createImageBitmap(blob, {\n' +%0A    "        imageOrientation: 'from-image',\n" +%0A    '        resizeWidt
+[static] tests/v124b-recommendation-prompt-regression.mjs
+LuckyBean 1.24P fun recommendation prompt contract passed: original fun library retained, five-mode selection mechanics unchanged, duplicate result toast removed, and runtime cache follows canonical release metadata
+
+[static] tests/p3-ux-sync-regression.mjs
+P3 UX, OCR lifecycle, 3D fullscreen and manifest-first sync contracts passed
+
+[static] npm run test:recognition
+
+> luckybean-static-app@1.24.18 test:recognition
+> node --test test/*.test.js
+
+TAP version 13
+# Subtest: sums every bean remaining weight and counts authoritative consumption events once
+ok 1 - sums every bean remaining weight and counts authoritative consumption events once
+  ---
+  duration_ms: 2.455364
+  type: 'test'
+  ...
+# Subtest: restored mistaken brew is removed from today total
+ok 2 - restored mistaken brew is removed from today total
+  ---
+  duration_ms: 0.403239
+  type: 'test'
+  ...
+# Subtest: warns when latest completed consumption is within the configured sleep buffer
+ok 3 - warns when latest completed consumption is within the configured sleep buffer
+  ---
+  duration_ms: 0.487937
+  type: 'test'
+  ...
+# Subtest: uses a higher caffeine estimate for robusta beans
+ok 4 - uses a higher caffeine estimate for robusta beans
+  ---
+  duration_ms: 1.740866
+  type: 'test'
+  ...
+# Subtest: JARC and Ethiopian landrace shortening are display-only projections
+ok 5 - JARC and Ethiopian landrace shortening are display-only projections
+  ---
+  duration_ms: 1.174774
+  type: 'test'
+  ...
+# Subtest: compact card follows country/origin/variety and roast/process/remaining structure
+ok 6 - compact card follows country/origin/variety and roast/process/remaining structure
+  ---
+  duration_ms: 0.82325
+  type: 'test'
+  ...
+# Subtest: detail projection omits absent values instead of inventing placeholders
+ok 7 - detail projection omits absent values instead of inventing placeholders
+  ---
+  duration_ms: 0.452801
+  type: 'test'
+  ...
+# Subtest: delete intent is durably recorded before canonical bean removal
+ok 8 - delete intent is durably recorded before canonical bean removal
+  ---
+  duration_ms: 1.187557
+  type: 'test'
+  ...
+# Subtest: remote merge and full restore both enforce active delete mutations
+ok 9 - remote merge and full restore both enforce active delete mutations
+  ---
+  duration_ms: 0.433585
+  type: 'test'
+  ...
+# Subtest: newer explicit delete wins over older restore or upsert-era state
+ok 10 - newer explicit delete wins over older restore or upsert-era state
+  ---
+  duration_ms: 1.82371
+  type: 'test'
+  ...
+# Subtest: explicit restore newer than delete is the only lifecycle operation that clears tombstone
+ok 11 - explicit restore newer than delete is the only lifecycle operation that clears tombstone
+  ---
+  duration_ms: 0.334181
+  type: 'test'
+  ...
+# Subtest: ledger retains one deterministic latest mutation per bean
+ok 12 - ledger retains one deterministic latest mutation per bean
+  ---
+  duration_ms: 7.615958
+  type: 'test'
+  ...
+# Subtest: invalid lifecycle records are rejected instead of becoming implicit deletes
+ok 13 - invalid lifecycle records are rejected instead of becoming implicit deletes
+  ---
+  duration_ms: 0.265033
+  type: 'test'
+  ...
+# Subtest: selection query combines date, remaining, country and origin filters with AND semantics
+ok 14 - selection query combines date, remaining, country and origin filters with AND semantics
+  ---
+  duration_ms: 2.448451
+  type: 'test'
+  ...
+# Subtest: zero remaining threshold is treated as an explicit numeric boundary
+ok 15 - zero remaining threshold is treated as an explicit numeric boundary
+  ---
+  duration_ms: 0.376891
+  type: 'test'
+  ...
+# Subtest: brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
+ok 16 - brew-analysis/2.0 authoritative plan does not require a legacy schemaVersion
+  ---
+  duration_ms: 1.374285
+  type: 'test'
+  ...
+# Subtest: production analysis envelope adapts into a plan accepted by the page validator
+ok 17 - production analysis envelope adapts into a plan accepted by the page validator
+  ---
+  duration_ms: 1.911222
+  type: 'test'
+  ...
+# Subtest: unknown analysis contracts and unversioned legacy plans remain rejected
+ok 18 - unknown analysis contracts and unversioned legacy plans remain rejected
+  ---
+  duration_ms: 0.654326
+  type: 'test'
+  ...
+# Subtest: cold brew validates stage water against brew water and recipe total independently
+ok 19 - cold brew validates stage water against brew water and recipe total independently
+  ---
+  duration_ms: 0.543961
+  type: 'test'
+  ...
+# Subtest: 参数重算保留同一豆卡已经实际采用的方案
+ok 20 - 参数重算保留同一豆卡已经实际采用的方案
+  ---
+  duration_ms: 4.532085
+  type: 'test'
+  ...
+# Subtest: 不同豆卡或手动选择方案时不会沿用旧方案
+ok 21 - 不同豆卡或手动选择方案时不会沿用旧方案
+  ---
+  duration_ms: 1.384794
+  type: 'test'
+  ...
+# Subtest: 并发计算采用 latest-wins，旧结果不能覆盖新结果
+ok 22 - 并发计算采用 latest-wins，旧结果不能覆盖新结果
+  ---
+  duration_ms: 0.700832
+  type: 'test'
+  ...
+# Subtest: 总分低于预测分不会单独触发冲煮优化
+ok 23 - 总分低于预测分不会单独触发冲煮优化
+  ---
+  duration_ms: 2.57149
+  type: 'test'
+  ...
+# Subtest: 品鉴后的具体负面维度触发可解释优化
+ok 24 - 品鉴后的具体负面维度触发可解释优化
+  ---
+  duration_ms: 0.682378
+  type: 'test'
+  ...
+# Subtest: 雷达轴只比较同组平均且无完成冲煮时不提示优化
+ok 25 - 雷达轴只比较同组平均且无完成冲煮时不提示优化
+  ---
+  duration_ms: 1.369456
+  type: 'test'
+  ...
+# Subtest: 实际执行明显偏离方案时不把负面结果归因于方案
+ok 26 - 实际执行明显偏离方案时不把负面结果归因于方案
+  ---
+  duration_ms: 0.463842
+  type: 'test'
+  ...
+# Subtest: 个人靶区至少三次证据后才改变，标准靶区保持不变
+ok 27 - 个人靶区至少三次证据后才改变，标准靶区保持不变
+  ---
+  duration_ms: 1.182368
+  type: 'test'
+  ...
+# Subtest: accepts a catalog with balanced hot and cold auto-recommend profiles
+ok 28 - accepts a catalog with balanced hot and cold auto-recommend profiles
+  ---
+  duration_ms: 1.326847
+  type: 'test'
+  ...
+# Subtest: rejects a catalog whose declared profile count differs from the payload
+ok 29 - rejects a catalog whose declared profile count differs from the payload
+  ---
+  duration_ms: 0.245356
+  type: 'test'
+  ...
+# Subtest: rejects a cold profile whose recipe water does not equal brew water + ice + bypass
+ok 30 - rejects a cold profile whose recipe water does not equal brew water + ice + bypass
+  ---
+  duration_ms: 1.041677
+  type: 'test'
+  ...
+# Subtest: rejects catalogs that cannot auto-recommend in both hot and cold modes
+ok 31 - rejects catalogs that cannot auto-recommend in both hot and cold modes
+  ---
+  duration_ms: 0.293415
+  type: 'test'
+  ...
+# Subtest: three strategy objectives select three structurally distinct profiles without mutating shared targets
+ok 32 - three strategy objectives select three structurally distinct profiles without mutating shared targets
+  ---
+  duration_ms: 4.306085
+  type: 'test'
+  ...
+# Subtest: method-layer target projections are bounded and remain product-local
+ok 33 - method-layer target projections are bounded and remain product-local
+  ---
+  duration_ms: 0.981064
+  type: 'test'
+  ...
+# Subtest: authoritative candidate metadata is reused without changing the outer objective choice
+ok 34 - authoritative candidate metadata is reused without changing the outer objective choice
+  ---
+  duration_ms: 0.915702
+  type: 'test'
+  ...
+# Subtest: bean lifecycle mutation packet round-trips without changing the existing sync format version
+ok 35 - bean lifecycle mutation packet round-trips without changing the existing sync format version
+  ---
+  duration_ms: 1.072113
+  type: 'test'
+  ...
+# Subtest: Knowledge resolution issue is exposed as an automatic-resolution decision
+ok 36 - Knowledge resolution issue is exposed as an automatic-resolution decision
+  ---
+  duration_ms: 8.653225
+  type: 'test'
+  ...
+# Subtest: name-only OCR cannot silently resolve a researched ambiguous farm
+ok 37 - name-only OCR cannot silently resolve a researched ambiguous farm
+  ---
+  duration_ms: 43.273981
+  type: 'test'
+  ...
+# Subtest: explicit stable core code remains usable for historical/explicit-code compatibility
+ok 38 - explicit stable core code remains usable for historical/explicit-code compatibility
+  ---
+  duration_ms: 29.507209
+  type: 'test'
+  ...
+# Subtest: Coffee Knowledge provider is optional and preserves QR-core ownership
+ok 39 - Coffee Knowledge provider is optional and preserves QR-core ownership
+  ---
+  duration_ms: 1.298494
+  type: 'test'
+  ...
+# Subtest: knowledge aliases augment matching without changing QR indexes or visible columns
+ok 40 - knowledge aliases augment matching without changing QR indexes or visible columns
+  ---
+  duration_ms: 2.160777
+  type: 'test'
+  ...
+# Subtest: Japanese/Korean OCR text resolves to existing v6 codes through hidden knowledge aliases
+ok 41 - Japanese/Korean OCR text resolves to existing v6 codes through hidden knowledge aliases
+  ---
+  duration_ms: 11.020135
+  type: 'test'
+  ...
+# Subtest: knowledge-only WCR varieties can match OCR evidence without receiving a QR core code
+ok 42 - knowledge-only WCR varieties can match OCR evidence without receiving a QR core code
+  ---
+  duration_ms: 3.047725
+  type: 'test'
+  ...
+# Subtest: existing v6 variety ownership remains higher priority than knowledge-only candidates
+ok 43 - existing v6 variety ownership remains higher priority than knowledge-only candidates
+  ---
+  duration_ms: 2.575337
+  type: 'test'
+  ...
+# Subtest: canonical knowledge identity is available without rewriting decoded core codes
+ok 44 - canonical knowledge identity is available without rewriting decoded core codes
+  ---
+  duration_ms: 0.481305
+  type: 'test'
+  ...
+# Subtest: harvest aliases cover five languages
+ok 45 - harvest aliases cover five languages
+  ---
+  duration_ms: 2.013714
+  type: 'test'
+  ...
+# Subtest: harvest parser normalizes multilingual seasons
+ok 46 - harvest parser normalizes multilingual seasons
+  ---
+  duration_ms: 1.290619
+  type: 'test'
+  ...
+# Subtest: labelled harvest data cannot leak into roast altitude or weight
+ok 47 - labelled harvest data cannot leak into roast altitude or weight
+  ---
+  duration_ms: 5.151015
+  type: 'test'
+  ...
+# Subtest: layout parser recognizes reversed Japanese and Korean harvest labels
+ok 48 - layout parser recognizes reversed Japanese and Korean harvest labels
+  ---
+  duration_ms: 1.808642
+  type: 'test'
+  ...
+# Subtest: native Android OCR bypasses WebView decode, pixel scan and JPEG re-encode
+ok 49 - native Android OCR bypasses WebView decode, pixel scan and JPEG re-encode
+  ---
+  duration_ms: 3.030544
+  type: 'test'
+  ...
+# Subtest: web package OCR preserves detail up to the PP-OCR detector budget
+ok 50 - web package OCR preserves detail up to the PP-OCR detector budget
+  ---
+  duration_ms: 1.018774
+  type: 'test'
+  ...
+# Subtest: DraftGuard installs beforeunload only while dirty
+ok 51 - DraftGuard installs beforeunload only while dirty
+  ---
+  duration_ms: 2.058006
+  type: 'test'
+  ...
+# Subtest: FlowNavigation prefers the latest highest-priority active handler
+ok 52 - FlowNavigation prefers the latest highest-priority active handler
+  ---
+  duration_ms: 0.501492
+  type: 'test'
+  ...
+# Subtest: RootExitGuard requires hint, confirmation and explicit exit
+ok 53 - RootExitGuard requires hint, confirmation and explicit exit
+  ---
+  duration_ms: 0.625071
+  type: 'test'
+  ...
+# Subtest: ordinary web root is not trapped by application history hacks
+ok 54 - ordinary web root is not trapped by application history hacks
+  ---
+  duration_ms: 0.546667
+  type: 'test'
+  ...
+# Subtest: navigation priority is overlay then flow then child then root
+ok 55 - navigation priority is overlay then flow then child then root
+  ---
+  duration_ms: 0.691755
+  type: 'test'
+  ...
+# Subtest: dirty context asks NavigationManager for confirmation without DraftGuard navigating
+ok 56 - dirty context asks NavigationManager for confirmation without DraftGuard navigating
+  ---
+  duration_ms: 0.39276
+  type: 'test'
+  ...
+# Subtest: archive round-trip preserves every portable store
+ok 57 - archive round-trip preserves every portable store
+  ---
+  duration_ms: 15.522372
+  type: 'test'
+  ...
+# Subtest: archive rejects tampered store data
+ok 58 - archive rejects tampered store data
+  ---
+  duration_ms: 4.401922
+  type: 'test'
+  ...
+# Subtest: legacy 1.2.x JSON backup migrates without inventing records
+ok 59 - legacy 1.2.x JSON backup migrates without inventing records
+  ---
+  duration_ms: 0.59123
+  type: 'test'
+  ...
+# Subtest: future schema cannot be imported
+ok 60 - future schema cannot be imported
+  ---
+  duration_ms: 4.20682
+  type: 'test'
+  ...
+# Subtest: OCR provider module is serialized before package capture without eager model warmup
+ok 61 - OCR provider module is serialized before package capture without eager model warmup
+  ---
+  duration_ms: 9.393632
+  type: 'test'
+  ...
+# Subtest: terminal OCR batches are purged and never restored as active progress
+ok 62 - terminal OCR batches are purged and never restored as active progress
+  ---
+  duration_ms: 2.997961
+  type: 'test'
+  ...
+# Subtest: web package preprocessing is memory-aware and explicitly releases canvas buffers
+ok 63 - web package preprocessing is memory-aware and explicitly releases canvas buffers
+  ---
+  duration_ms: 2.646489
+  type: 'test'
+  ...
+# Subtest: lightweight PP-OCR provider is registered before runtime feature orchestration with the same release URL
+ok 64 - lightweight PP-OCR provider is registered before runtime feature orchestration with the same release URL
+  ---
+  duration_ms: 1.10825
+  type: 'test'
+  ...
+# Subtest: deterministic provider registration does not eagerly initialize SDK, models, or WASM
+ok 65 - deterministic provider registration does not eagerly initialize SDK, models, or WASM
+  ---
+  duration_ms: 1.24813
+  type: 'test'
+  ...
+# Subtest: PP-OCRv5 handles WebAssembly memory allocation failures without switching OCR engines
+ok 66 - PP-OCRv5 handles WebAssembly memory allocation failures without switching OCR engines
+  ---
+  duration_ms: 1.718434
+  type: 'test'
+  ...
+# Subtest: memory allocation failure is retried before generic worker startup handling
+ok 67 - memory allocation failure is retried before generic worker startup handling
+  ---
+  duration_ms: 0.226441
+  type: 'test'
+  ...
+# Subtest: failed worker resources are reclaimed before retrying OCR
+ok 68 - failed worker resources are reclaimed before retrying OCR
+  ---
+  duration_ms: 2.28103
+  type: 'test'
+  ...
+# Subtest: PP-OCR Worker integrity is based on decoded manifest identity, not transfer Content-Length
+ok 69 - PP-OCR Worker integrity is based on decoded manifest identity, not transfer Content-Length
+  ---
+  duration_ms: 1.507211
+  type: 'test'
+  ...
+# Subtest: vendoring records decoded Worker byte length and SHA-256 in manifest
+ok 70 - vendoring records decoded Worker byte length and SHA-256 in manifest
+  ---
+  duration_ms: 0.317741
+  type: 'test'
+  ...
+# Subtest: production Worker fetch accepts decoded gzip content with a smaller transfer Content-Length
+ok 71 - production Worker fetch accepts decoded gzip content with a smaller transfer Content-Length
+  ---
+  duration_ms: 40.431816
+  type: 'test'
+  ...
+# Subtest: production Worker fetch rejects same-length corruption and missing manifest identity
+ok 72 - production Worker fetch rejects same-length corruption and missing manifest identity
+  ---
+  duration_ms: 374.256307
+  type: 'test'
+  ...
+# Subtest: bean card presentation reads lightweight beanSummaries rather than full histories
+ok 73 - bean card presentation reads lightweight beanSummaries rather than full histories
+  ---
+  duration_ms: 1.361461
+  type: 'test'
+  ...
+# Subtest: detail projection loads only the selected full bean and preserves existing action nodes
+ok 74 - detail projection loads only the selected full bean and preserves existing action nodes
+  ---
+  duration_ms: 0.249234
+  type: 'test'
+  ...
+# Subtest: presentation controllers are core runtime features
+ok 75 - presentation controllers are core runtime features
+  ---
+  duration_ms: 0.203538
+  type: 'test'
+  ...
+# Subtest: P2 batch manager owns all requested filters and delegates lifecycle changes
+ok 76 - P2 batch manager owns all requested filters and delegates lifecycle changes
+  ---
+  duration_ms: 1.577512
+  type: 'test'
+  ...
+# Subtest: group long press deletes a resolved group in one lifecycle batch
+ok 77 - group long press deletes a resolved group in one lifecycle batch
+  ---
+  duration_ms: 0.33332
+  type: 'test'
+  ...
+# Subtest: inventory controllers are startup core features, not parallel app-level state machines
+ok 78 - inventory controllers are startup core features, not parallel app-level state machines
+  ---
+  duration_ms: 2.02257
+  type: 'test'
+  ...
+# Subtest: photo OCR failure keeps the four-action flow and suppresses blank manual fallback UI
+ok 79 - photo OCR failure keeps the four-action flow and suppresses blank manual fallback UI
+  ---
+  duration_ms: 1.351362
+  type: 'test'
+  ...
+# Subtest: capture policy is loaded by the normal recognition UI boot path
+ok 80 - capture policy is loaded by the normal recognition UI boot path
+  ---
+  duration_ms: 0.156902
+  type: 'test'
+  ...
+# Subtest: priority cloud list restore refreshes the established UI path immediately
+ok 81 - priority cloud list restore refreshes the established UI path immediately
+  ---
+  duration_ms: 1.585808
+  type: 'test'
+  ...
+# Subtest: list refresh bridge is loaded by the normal UI boot path
+ok 82 - list refresh bridge is loaded by the normal UI boot path
+  ---
+  duration_ms: 0.240226
+  type: 'test'
+  ...
+# Subtest: production date never falls back to roast date
+ok 83 - production date never falls back to roast date
+  ---
+  duration_ms: 4.857239
+  type: 'test'
+  ...
+# Subtest: best before and expiry dates are excluded from roast date
+ok 84 - best before and expiry dates are excluded from roast date
+  ---
+  duration_ms: 5.01406
+  type: 'test'
+  ...
+# Subtest: explicit roast date is auto-filled while other dates remain excluded
+ok 85 - explicit roast date is auto-filled while other dates remain excluded
+  ---
+  duration_ms: 1.68904
+  type: 'test'
+  ...
+# Subtest: unlabelled date requires confirmation and is never silently filled
+ok 86 - unlabelled date requires confirmation and is never silently filled
+  ---
+  duration_ms: 0.456388
+  type: 'test'
+  ...
+# Subtest: date photo role increases provenance but does not bypass confirmation
+ok 87 - date photo role increases provenance but does not bypass confirmation
+  ---
+  duration_ms: 0.62961
+  type: 'test'
+  ...
+# Subtest: invalid calendar dates are rejected
+ok 88 - invalid calendar dates are rejected
+  ---
+  duration_ms: 0.9739
+  type: 'test'
+  ...
+# Subtest: 30-case date ownership golden set has zero silent non-roast assignments
+    # Subtest: 烘焙日期：2026-07-28
+    ok 1 - 烘焙日期：2026-07-28
+      ---
+      duration_ms: 8.489551
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE 2026/07/28
+    ok 2 - ROAST DATE 2026/07/28
+      ---
+      duration_ms: 1.925529
+      type: 'test'
+      ...
+    # Subtest: ROASTED ON 2026.7.8
+    ok 3 - ROASTED ON 2026.7.8
+      ---
+      duration_ms: 0.549421
+      type: 'test'
+      ...
+    # Subtest: 焙炒日期 2026年7月28日
+    ok 4 - 焙炒日期 2026年7月28日
+      ---
+      duration_ms: 1.061594
+      type: 'test'
+      ...
+    # Subtest: RST DATE 20260728
+    ok 5 - RST DATE 20260728
+      ---
+      duration_ms: 0.689461
+      type: 'test'
+      ...
+    # Subtest: ROAST ON 28 JUL 2026
+    ok 6 - ROAST ON 28 JUL 2026
+      ---
+      duration_ms: 0.917076
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE JUL 28 2026
+    ok 7 - ROAST DATE JUL 28 2026
+      ---
+      duration_ms: 0.81733
+      type: 'test'
+      ...
+    # Subtest: 出炉日期 26年7月28日
+    ok 8 - 出炉日期 26年7月28日
+      ---
+      duration_ms: 1.002724
+      type: 'test'
+      ...
+    # Subtest: 烘焙日 26-07-28
+    ok 9 - 烘焙日 26-07-28
+      ---
+      duration_ms: 1.202966
+      type: 'test'
+      ...
+    # Subtest: 烘烤日期 26.0728
+    ok 10 - 烘烤日期 26.0728
+      ---
+      duration_ms: 0.741589
+      type: 'test'
+      ...
+    # Subtest: 生产日期：2026-07-21
+    ok 11 - 生产日期：2026-07-21
+      ---
+      duration_ms: 0.60268
+      type: 'test'
+      ...
+    # Subtest: MFG DATE 2026/07/21
+    ok 12 - MFG DATE 2026/07/21
+      ---
+      duration_ms: 0.507292
+      type: 'test'
+      ...
+    # Subtest: MFD 20260721
+    ok 13 - MFD 20260721
+      ---
+      duration_ms: 0.667
+      type: 'test'
+      ...
+    # Subtest: 包装日期 2026.07.22
+    ok 14 - 包装日期 2026.07.22
+      ---
+      duration_ms: 0.417195
+      type: 'test'
+      ...
+    # Subtest: PACKED ON 2026-07-22
+    ok 15 - PACKED ON 2026-07-22
+      ---
+      duration_ms: 0.421022
+      type: 'test'
+      ...
+    # Subtest: PKD 20260722
+    ok 16 - PKD 20260722
+      ---
+      duration_ms: 0.370179
+      type: 'test'
+      ...
+    # Subtest: 最佳赏味期 2026-10-28
+    ok 17 - 最佳赏味期 2026-10-28
+      ---
+      duration_ms: 0.47905
+      type: 'test'
+      ...
+    # Subtest: BEST BEFORE 2026/10/28
+    ok 18 - BEST BEFORE 2026/10/28
+      ---
+      duration_ms: 0.437122
+      type: 'test'
+      ...
+    # Subtest: BBE 28 OCT 2026
+    ok 19 - BBE 28 OCT 2026
+      ---
+      duration_ms: 0.439998
+      type: 'test'
+      ...
+    # Subtest: 有效期至 2027年1月5日
+    ok 20 - 有效期至 2027年1月5日
+      ---
+      duration_ms: 0.847415
+      type: 'test'
+      ...
+    # Subtest: EXP 2027-01-05
+    ok 21 - EXP 2027-01-05
+      ---
+      duration_ms: 0.315556
+      type: 'test'
+      ...
+    # Subtest: USE BY JAN 5 2027
+    ok 22 - USE BY JAN 5 2027
+      ---
+      duration_ms: 0.351423
+      type: 'test'
+      ...
+    # Subtest: 埃塞俄比亚 / 2026-07-28
+    ok 23 - 埃塞俄比亚 / 2026-07-28
+      ---
+      duration_ms: 0.55424
+      type: 'test'
+      ...
+    # Subtest: DATE 2026/07/28
+    ok 24 - DATE 2026/07/28
+      ---
+      duration_ms: 0.330063
+      type: 'test'
+      ...
+    # Subtest: LOT 20260728
+    ok 25 - LOT 20260728
+      ---
+      duration_ms: 0.298725
+      type: 'test'
+      ...
+    # Subtest: 2026年7月28日
+    ok 26 - 2026年7月28日
+      ---
+      duration_ms: 0.34423
+      type: 'test'
+      ...
+    # Subtest: 28/07/2026
+    ok 27 - 28/07/2026
+      ---
+      duration_ms: 0.707094
+      type: 'test'
+      ...
+    # Subtest: 07/08/2026
+    ok 28 - 07/08/2026
+      ---
+      duration_ms: 0.574207
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE 07/08/2026
+    ok 29 - ROAST DATE 07/08/2026
+      ---
+      duration_ms: 0.600045
+      type: 'test'
+      ...
+    # Subtest: ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
+    ok 30 - ROAST DATE 2026-07-28 / ROAST DATE 2026-07-29
+      ---
+      duration_ms: 0.660958
+      type: 'test'
+      ...
+    1..30
+ok 89 - 30-case date ownership golden set has zero silent non-roast assignments
+  ---
+  duration_ms: 33.005855
+  type: 'test'
+  ...
+# Subtest: review model exposes automatic, excluded and unresolved candidates together
+ok 90 - review model exposes automatic, excluded and unresolved candidates together
+  ---
+  duration_ms: 6.205756
+  type: 'test'
+  ...
+# Subtest: unresolved candidate requires an explicit date assignment before confirmation
+ok 91 - unresolved candidate requires an explicit date assignment before confirmation
+  ---
+  duration_ms: 1.086639
+  type: 'test'
+  ...
+# Subtest: user confirmation retains source provenance instead of inventing confidence 1
+ok 92 - user confirmation retains source provenance instead of inventing confidence 1
+  ---
+  duration_ms: 1.001201
+  type: 'test'
+  ...
+# Subtest: two roast date selections are rejected
+ok 93 - two roast date selections are rejected
+  ---
+  duration_ms: 1.520366
+  type: 'test'
+  ...
+# Subtest: candidate value cannot be replaced with an unrecognized date
+ok 94 - candidate value cannot be replaced with an unrecognized date
+  ---
+  duration_ms: 0.373624
+  type: 'test'
+  ...
+# Subtest: stale or fabricated candidate id is rejected
+ok 95 - stale or fabricated candidate id is rejected
+  ---
+  duration_ms: 0.52175
+  type: 'test'
+  ...
+# Subtest: all candidates may be ignored without silently restoring automatic roast date
+ok 96 - all candidates may be ignored without silently restoring automatic roast date
+  ---
+  duration_ms: 0.709259
+  type: 'test'
+  ...
+# Subtest: ambiguous day-month candidate can only resolve to one offered value
+ok 97 - ambiguous day-month candidate can only resolve to one offered value
+  ---
+  duration_ms: 1.040464
+  type: 'test'
+  ...
+# Subtest: duplicate submission of the same candidate is rejected
+ok 98 - duplicate submission of the same candidate is rejected
+  ---
+  duration_ms: 0.820746
+  type: 'test'
+  ...
+# Subtest: numeric Ethiopian variety codes are split into independent exact candidates
+ok 99 - numeric Ethiopian variety codes are split into independent exact candidates
+  ---
+  duration_ms: 21.126528
+  type: 'test'
+  ...
+# Subtest: multiple labeled varieties stay unresolved instead of silently choosing the first code
+ok 100 - multiple labeled varieties stay unresolved instead of silently choosing the first code
+  ---
+  duration_ms: 12.264968
+  type: 'test'
+  ...
+# Subtest: spaced alphanumeric variety codes survive OCR tokenization
+ok 101 - spaced alphanumeric variety codes survive OCR tokenization
+  ---
+  duration_ms: 4.65299
+  type: 'test'
+  ...
+# Subtest: explicit numeric roast levels map only within the labeled 0-6 scale
+ok 102 - explicit numeric roast levels map only within the labeled 0-6 scale
+  ---
+  duration_ms: 1.018773
+  type: 'test'
+  ...
+# Subtest: mixed label layouts preserve separate variety and roast evidence
+ok 103 - mixed label layouts preserve separate variety and roast evidence
+  ---
+  duration_ms: 2.149816
+  type: 'test'
+  ...
+# Subtest: equally exact codebook candidates remain a manual choice
+ok 104 - equally exact codebook candidates remain a manual choice
+  ---
+  duration_ms: 3.266472
+  type: 'test'
+  ...
+# Subtest: unsupported region evidence has no reliable candidates
+ok 105 - unsupported region evidence has no reliable candidates
+  ---
+  duration_ms: 2.903568
+  type: 'test'
+  ...
+# Subtest: recognition review UI contains only unresolved fields and disappears when none remain
+ok 106 - recognition review UI contains only unresolved fields and disappears when none remain
+  ---
+  duration_ms: 1.10799
+  type: 'test'
+  ...
+# Subtest: recognition provenance remains persisted for audit without becoming confirmed-field UI
+ok 107 - recognition provenance remains persisted for audit without becoming confirmed-field UI
+  ---
+  duration_ms: 0.213908
+  type: 'test'
+  ...
+# Subtest: confirmed roast date is still saved from the final form value
+ok 108 - confirmed roast date is still saved from the final form value
+  ---
+  duration_ms: 0.207426
+  type: 'test'
+  ...
+# Subtest: custom dropdown opens its editor after select change dispatch completes
+ok 109 - custom dropdown opens its editor after select change dispatch completes
+  ---
+  duration_ms: 0.142866
+  type: 'test'
+  ...
+# Subtest: reversed inline key-value keeps the semantic field association
+ok 110 - reversed inline key-value keeps the semantic field association
+  ---
+  duration_ms: 2.491762
+  type: 'test'
+  ...
+# Subtest: same-row value before label is paired by geometry and field semantics
+ok 111 - same-row value before label is paired by geometry and field semantics
+  ---
+  duration_ms: 0.866531
+  type: 'test'
+  ...
+# Subtest: vertical title and value are paired in either reading direction
+ok 112 - vertical title and value are paired in either reading direction
+  ---
+  duration_ms: 1.326266
+  type: 'test'
+  ...
+# Subtest: standalone unordered coffee entities remain available instead of being forced into unrelated fields
+ok 113 - standalone unordered coffee entities remain available instead of being forced into unrelated fields
+  ---
+  duration_ms: 0.69914
+  type: 'test'
+  ...
+# Subtest: range hyphen is preserved as value content rather than treated as a field separator
+ok 114 - range hyphen is preserved as value content rather than treated as a field separator
+  ---
+  duration_ms: 0.599665
+  type: 'test'
+  ...
+# Subtest: explicit bean headings split into independent recognition documents
+ok 115 - explicit bean headings split into independent recognition documents
+  ---
+  duration_ms: 24.559583
+  type: 'test'
+  ...
+# Subtest: repeated strong country anchors split when each segment contains multiple coffee fields
+ok 116 - repeated strong country anchors split when each segment contains multiple coffee fields
+  ---
+  duration_ms: 2.188047
+  type: 'test'
+  ...
+# Subtest: geometry-first side-by-side cards become evidence-preserving record candidates
+ok 117 - geometry-first side-by-side cards become evidence-preserving record candidates
+  ---
+  duration_ms: 5.321051
+  type: 'test'
+  ...
+# Subtest: geometry-first strong vertical separation creates independent stacked records
+ok 118 - geometry-first strong vertical separation creates independent stacked records
+  ---
+  duration_ms: 2.374694
+  type: 'test'
+  ...
+# Subtest: one coffee using a two-column package design is not falsely split
+ok 119 - one coffee using a two-column package design is not falsely split
+  ---
+  duration_ms: 2.124269
+  type: 'test'
+  ...
+# Subtest: multi-view photos of one bean are never split merely because images produce paragraphs
+ok 120 - multi-view photos of one bean are never split merely because images produce paragraphs
+  ---
+  duration_ms: 0.719357
+  type: 'test'
+  ...
+# Subtest: weak prose is kept as one recognition document to prevent false bean creation
+ok 121 - weak prose is kept as one recognition document to prevent false bean creation
+  ---
+  duration_ms: 0.461057
+  type: 'test'
+  ...
+# Subtest: geometry evidence can split records even when the flattened full-text envelope is unavailable
+ok 122 - geometry evidence can split records even when the flattened full-text envelope is unavailable
+  ---
+  duration_ms: 1.460555
+  type: 'test'
+  ...
+# Subtest: geometry entry construction does not depend on native structuredClone support
+ok 123 - geometry entry construction does not depend on native structuredClone support
+  ---
+  duration_ms: 1.100125
+  type: 'test'
+  ...
+# Subtest: English labels and coffee values become Chinese canonical bean fields
+ok 124 - English labels and coffee values become Chinese canonical bean fields
+  ---
+  duration_ms: 36.36108
+  type: 'test'
+  ...
+# Subtest: unknown proper names are preserved and explicitly marked for review
+ok 125 - unknown proper names are preserved and explicitly marked for review
+  ---
+  duration_ms: 36.738475
+  type: 'test'
+  ...
+# Subtest: knowledge-only WCR variety is surfaced as a sourced review candidate without fabricating a core code
+ok 126 - knowledge-only WCR variety is surfaced as a sourced review candidate without fabricating a core code
+  ---
+  duration_ms: 23.431446
+  type: 'test'
+  ...
+# Subtest: knowledge-only source alias normalizes to canonical display but stays unresolved
+ok 127 - knowledge-only source alias normalizes to canonical display but stays unresolved
+  ---
+  duration_ms: 13.171272
+  type: 'test'
+  ...
+# Subtest: explicit numeric fields are parsed while unrelated numbers stay isolated
+ok 128 - explicit numeric fields are parsed while unrelated numbers stay isolated
+  ---
+  duration_ms: 13.273304
+  type: 'test'
+  ...
+# Subtest: Chinese, reverse-labelled and vertical fields share one canonical pipeline
+ok 129 - Chinese, reverse-labelled and vertical fields share one canonical pipeline
+  ---
+  duration_ms: 20.125076
+  type: 'test'
+  ...
+# Subtest: geometry split re-infers field relations inside each child without cross-record evidence
+ok 130 - geometry split re-infers field relations inside each child without cross-record evidence
+  ---
+  duration_ms: 13.410137
+  type: 'test'
+  ...
+# Subtest: explicit source dimensions prevent the text envelope from exaggerating a modest column gap
+ok 131 - explicit source dimensions prevent the text envelope from exaggerating a modest column gap
+  ---
+  duration_ms: 6.187281
+  type: 'test'
+  ...
+# Subtest: isolated unresolved country review is preserved without stealing mixed candidate panels
+ok 132 - isolated unresolved country review is preserved without stealing mixed candidate panels
+  ---
+  duration_ms: 1.792372
+  type: 'test'
+  ...
+# Subtest: record hypothesis treats geometry as evidence and does not make it final authority
+ok 133 - record hypothesis treats geometry as evidence and does not make it final authority
+  ---
+  duration_ms: 14.474086
+  type: 'test'
+  ...
+# Subtest: legacy splitter remains compatible while authoritative recovery disables direct geometry split
+ok 134 - legacy splitter remains compatible while authoritative recovery disables direct geometry split
+  ---
+  duration_ms: 4.440685
+  type: 'test'
+  ...
+# Subtest: valid AI evidence groups materialize independent review-required records without cross-record leakage
+ok 135 - valid AI evidence groups materialize independent review-required records without cross-record leakage
+  ---
+  duration_ms: 6.167856
+  type: 'test'
+  ...
+# Subtest: AI can resolve a geometry ambiguity as one record without geometry overriding it
+ok 136 - AI can resolve a geometry ambiguity as one record without geometry overriding it
+  ---
+  duration_ms: 1.805747
+  type: 'test'
+  ...
+# Subtest: unassigned AI evidence is explicit and blocks silent multi-record materialization
+ok 137 - unassigned AI evidence is explicit and blocks silent multi-record materialization
+  ---
+  duration_ms: 2.156328
+  type: 'test'
+  ...
+# Subtest: missing, fabricated, duplicated, overlapping or incomplete evidence partitions are rejected
+ok 138 - missing, fabricated, duplicated, overlapping or incomplete evidence partitions are rejected
+  ---
+  duration_ms: 3.631831
+  type: 'test'
+  ...
+# Subtest: low-confidence AI grouping remains advisory and cannot create multiple records
+ok 139 - low-confidence AI grouping remains advisory and cannot create multiple records
+  ---
+  duration_ms: 1.403939
+  type: 'test'
+  ...
+# Subtest: AI adapter failure is never a single point of failure
+ok 140 - AI adapter failure is never a single point of failure
+  ---
+  duration_ms: 0.621836
+  type: 'test'
+  ...
+# Subtest: strong manual-text structure splits deterministically and does not invoke AI
+ok 141 - strong manual-text structure splits deterministically and does not invoke AI
+  ---
+  duration_ms: 4.074785
+  type: 'test'
+  ...
+# Subtest: flattened text structure cannot discard spatial OCR block identity
+ok 142 - flattened text structure cannot discard spatial OCR block identity
+  ---
+  duration_ms: 6.806082
+  type: 'test'
+  ...
+# Subtest: label-only Traditional Chinese lines pair with the following OCR value
+ok 143 - label-only Traditional Chinese lines pair with the following OCR value
+  ---
+  duration_ms: 10.951457
+  type: 'test'
+  ...
+# Subtest: Traditional multiline coffee metadata resolves through the normal canonical pipeline
+ok 144 - Traditional multiline coffee metadata resolves through the normal canonical pipeline
+  ---
+  duration_ms: 34.240094
+  type: 'test'
+  ...
+# Subtest: Traditional inline field labels are canonicalized without changing unknown proper names
+ok 145 - Traditional inline field labels are canonicalized without changing unknown proper names
+  ---
+  duration_ms: 35.354931
+  type: 'test'
+  ...
+# Subtest: a following field label is never consumed as the previous label-only value
+ok 146 - a following field label is never consumed as the previous label-only value
+  ---
+  duration_ms: 0.615254
+  type: 'test'
+  ...
+# Subtest: unlabeled Traditional OCR values are promoted by coffee semantics without contaminating identity with sensory score noise
+ok 147 - unlabeled Traditional OCR values are promoted by coffee semantics without contaminating identity with sensory score noise
+  ---
+  duration_ms: 23.539137
+  type: 'test'
+  ...
+# Subtest: main.6 bean detail does not expose roast code and pairs process with roast date
+ok 148 - main.6 bean detail does not expose roast code and pairs process with roast date
+  ---
+  duration_ms: 1.088764
+  type: 'test'
+  ...
+# Subtest: main.6 floating quadrant, radar labels and sensory footer obey theme/layout contract
+ok 149 - main.6 floating quadrant, radar labels and sensory footer obey theme/layout contract
+  ---
+  duration_ms: 0.502183
+  type: 'test'
+  ...
+# Subtest: main.6 preserves FAB visibility ownership and opens manual OCR editor explicitly
+ok 150 - main.6 preserves FAB visibility ownership and opens manual OCR editor explicitly
+  ---
+  duration_ms: 0.510509
+  type: 'test'
+  ...
+# Subtest: main.6 package review waits for recognition handoff completion instead of racing the form renderer
+ok 151 - main.6 package review waits for recognition handoff completion instead of racing the form renderer
+  ---
+  duration_ms: 0.494629
+  type: 'test'
+  ...
+# Subtest: main.6 unresolved semantic fields preserve review evidence for explicit bean-form confirmation
+ok 152 - main.6 unresolved semantic fields preserve review evidence for explicit bean-form confirmation
+  ---
+  duration_ms: 0.335403
+  type: 'test'
+  ...
+# Subtest: canonical brew plan preserves immersion semantics without replacing legacy plan
+ok 153 - canonical brew plan preserves immersion semantics without replacing legacy plan
+  ---
+  duration_ms: 1.659435
+  type: 'test'
+  ...
+# Subtest: BrewResult 1.1 carries spatial evidence and a superset flavor vector
+ok 154 - BrewResult 1.1 carries spatial evidence and a superset flavor vector
+  ---
+  duration_ms: 1.218105
+  type: 'test'
+  ...
+# Subtest: calculation coordinator attaches contracts on the authoritative runtime path
+ok 155 - calculation coordinator attaches contracts on the authoritative runtime path
+  ---
+  duration_ms: 1.375356
+  type: 'test'
+  ...
+# Subtest: history comparison prefers persisted BrewResult flavor over legacy trajectory summaries
+ok 156 - history comparison prefers persisted BrewResult flavor over legacy trajectory summaries
+  ---
+  duration_ms: 1.238442
+  type: 'test'
+  ...
+# Subtest: local reference uses the same contracts but cannot masquerade as professional spatial output
+ok 157 - local reference uses the same contracts but cannot masquerade as professional spatial output
+  ---
+  duration_ms: 10.31809
+  type: 'test'
+  ...
+# Subtest: history and optimization consumers are wired to BrewResult without treating model flavor as sensory truth
+ok 158 - history and optimization consumers are wired to BrewResult without treating model flavor as sensory truth
+  ---
+  duration_ms: 0.776694
+  type: 'test'
+  ...
+1..158
+# tests 188
+# suites 0
+# pass 188
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1360.506471
+
+All LuckyBean static and recognition regression checks passed
