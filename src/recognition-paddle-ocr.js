@@ -1,4 +1,4 @@
-const VERSION = '0.4.12';
+const VERSION = '0.4.13';
 const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;
 
 function isAppleMobileLike() {
@@ -21,14 +21,10 @@ const ROI_CROP_TIMEOUT_MS = 20000;
 const ENGINE_IDLE_MS = WEBKIT ? 30000 : LOW_MEMORY ? 45000 : 90000;
 const WORKER_BUNDLE_MIN_BYTES = 100000;
 const WORKER_BUNDLE_FETCH_ATTEMPTS = 2;
-const MEMORY_FALLBACK_SESSION_KEY = 'luckybean.ppocr.low-memory.v2';
 const COMPATIBILITY_FALLBACK_SESSION_KEY = 'luckybean.ppocr.runtime-compat.v1';
 const MEMORY_WORKER_RECLAIM_DELAY_MS = 350;
 const MEMORY_MAIN_THREAD_RECLAIM_DELAY_MS = 700;
 
-function hasRememberedMemoryConstraint() {
-  try { return globalThis.sessionStorage?.getItem(MEMORY_FALLBACK_SESSION_KEY) === '1'; } catch { return false; }
-}
 function hasRememberedRuntimeCompatibilityConstraint() {
   try { return globalThis.sessionStorage?.getItem(COMPATIBILITY_FALLBACK_SESSION_KEY) === '1'; } catch { return false; }
 }
@@ -44,7 +40,11 @@ let engineGeneration = 0;
 let busy = false;
 let disposeTimer = 0;
 let roiRequestSequence = 0;
-let memoryConstrained = LOW_MEMORY || hasRememberedMemoryConstraint();
+// Device memory is only a detector/input-size hint. It must not force the whole
+// PP-OCR runtime into the slower no-SIMD fallback before a real allocation error.
+// A real memory failure remains sticky only for this page lifetime; refresh gets
+// a clean attempt after the bounded image decoder has released old pixel buffers.
+let memoryConstrained = false;
 let runtimeCompatibilityConstrained = hasRememberedRuntimeCompatibilityConstraint();
 const activeModuleWorkers = new Set();
 
@@ -58,7 +58,6 @@ function recordDiagnostic(phase, startedAt, detail = {}) {
 }
 function rememberMemoryConstraint() {
   memoryConstrained = true;
-  try { globalThis.sessionStorage?.setItem(MEMORY_FALLBACK_SESSION_KEY, '1'); } catch {}
 }
 function rememberRuntimeCompatibilityConstraint() {
   runtimeCompatibilityConstrained = true;
@@ -101,8 +100,9 @@ function normalizeRegion(input) {
   if (right - left < 0.01 || bottom - top < 0.01) throw new Error('ROI 范围过小或无效');
   return Object.freeze({ left, top, right, bottom });
 }
-function currentLimitSide() { return memoryConstrained ? 512 : 960; }
-function currentMaxSide() { return memoryConstrained ? 960 : 2200; }
+function constrainedInput() { return LOW_MEMORY || memoryConstrained || WEBKIT; }
+function currentLimitSide() { return constrainedInput() ? 640 : 960; }
+function currentMaxSide() { return constrainedInput() ? 1280 : 2200; }
 async function cropRegionInWorker(blob, regionInput, options = {}) {
   if (!(blob instanceof Blob) || blob.size === 0) throw new Error('ROI 原图不可用');
   const diagnosticStarted = diagnosticNow();
@@ -330,7 +330,7 @@ async function startMemoryCompatibilityEngine(generation, failure) {
 }
 async function startRememberedMemoryEngine() {
   const generation = ++engineGeneration;
-  return startMemoryCompatibilityEngine(generation, new Error('当前会话已记录 PP-OCRv5 WASM 内存受限'));
+  return startMemoryCompatibilityEngine(generation, new Error('当前页面已记录 PP-OCRv5 WASM 内存受限'));
 }
 async function startSessionCompatibilityEngine(generation, failure) {
   if (generation !== engineGeneration) throw failure;
@@ -428,7 +428,7 @@ async function startCompatibilityEngine(reason = 'webkit') {
   memoryConstrained = true;
   const isWebKitMode = reason === 'webkit';
   engineMode = isWebKitMode ? 'direct-wasm-no-simd' : 'direct-wasm-no-simd-low-memory';
-  emit(isWebKitMode ? 'Safari 正在启用低内存兼容识别模式' : 'PP-OCRv5 正在使用会话低内存兼容模式', 9);
+  emit(isWebKitMode ? 'Safari 正在启用低内存兼容识别模式' : 'PP-OCRv5 正在使用页面内低内存兼容模式', 9);
   return withTimeout(createCompatibilityEngine(), ENGINE_INIT_TIMEOUT_MS, isWebKitMode ? 'PP-OCRv5 Safari 兼容模式初始化超时' : 'PP-OCRv5 低内存兼容模式初始化超时', () => {});
 }
 async function startWebKitEngine() {
@@ -458,11 +458,11 @@ async function startWebKitEngine() {
 async function ensureEngine() {
   globalThis.clearTimeout(disposeTimer); if (enginePromise) return enginePromise;
   const diagnosticStarted = diagnosticNow();
-  emit(WEBKIT ? '正在按需准备 Safari 本地 OCR' : memoryConstrained ? '正在按低内存模式准备本地 PP-OCRv5' : runtimeCompatibilityConstrained ? '正在按 ONNX runtime 兼容模式准备本地 PP-OCRv5' : '正在后台准备本地 PP-OCRv5 中文检测与识别模型', 7);
+  emit(WEBKIT ? '正在按需准备 Safari 本地 OCR' : memoryConstrained ? '正在按页面内低内存模式准备本地 PP-OCRv5' : runtimeCompatibilityConstrained ? '正在按 ONNX runtime 兼容模式准备本地 PP-OCRv5' : '正在后台准备本地 PP-OCRv5 中文检测与识别模型', 7);
   const pending = WEBKIT ? startWebKitEngine() : memoryConstrained ? startRememberedMemoryEngine() : runtimeCompatibilityConstrained ? startRememberedSessionCompatibilityEngine() : startWorkerEngine();
   const tracked = pending.then(ocr => {
     emit(engineMode.includes('low-memory') ? 'PP-OCRv5 低内存兼容模式已就绪' : engineMode.includes('session') ? 'PP-OCRv5 ONNX runtime 兼容模式已就绪' : WEBKIT ? 'PP-OCRv5 Safari 兼容模式已就绪' : 'PP-OCRv5 Worker 中文模型已就绪', 18);
-    recordDiagnostic('runtime-init', diagnosticStarted, { mode:engineMode, webkit:WEBKIT, lowMemory:memoryConstrained, runtimeCompatibility:runtimeCompatibilityConstrained, deviceMemory:DEVICE_MEMORY_GB || null, workerBootstrap:workerBootstrapMode });
+    recordDiagnostic('runtime-init', diagnosticStarted, { mode:engineMode, webkit:WEBKIT, deviceLowMemory:LOW_MEMORY, lowMemoryFallback:memoryConstrained, runtimeCompatibility:runtimeCompatibilityConstrained, deviceMemory:DEVICE_MEMORY_GB || null, workerBootstrap:workerBootstrapMode });
     return ocr;
   }).catch(error => { if (enginePromise === tracked) enginePromise = null; throw new Error(`PP-OCRv5 初始化失败：${error.message}`); });
   enginePromise = tracked; return tracked;
@@ -495,7 +495,7 @@ async function predict(images) {
     const diagnosticStarted = diagnosticNow();
     const prediction = ocr.predict(image.blob, { textDetLimitSideLen:currentLimitSide(), textDetLimitType:'min', textDetMaxSideLimit:currentMaxSide(), textDetThresh:0.22, textDetBoxThresh:0.35, textDetUnclipRatio:1.55, textRecScoreThresh:0.28 });
     const results = await withTimeout(prediction, PREDICT_TIMEOUT_MS, `PP-OCRv5 第 ${index + 1} 张图片识别超时，已退出本次任务`, detachEngine);
-    recordDiagnostic('ocr-predict', diagnosticStarted, { imageIndex:index, imageCount:images.length, mode:engineMode, lowMemory:memoryConstrained });
+    recordDiagnostic('ocr-predict', diagnosticStarted, { imageIndex:index, imageCount:images.length, mode:engineMode, deviceLowMemory:LOW_MEMORY, lowMemoryFallback:memoryConstrained });
     const current = normalizeItems(results?.[0], image.id); blocks.push(...current); if (current.length) groups.push(current.map(item => item.text).join('\n'));
     await delay(0);
   }
