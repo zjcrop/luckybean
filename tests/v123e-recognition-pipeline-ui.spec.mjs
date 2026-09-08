@@ -3,8 +3,9 @@ import { test, expect } from '@playwright/test';
 const BASE_URL = 'http://127.0.0.1:4173';
 const PNG_1X1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
 
-test('native OCR payload is translated, structured, confirmed and handed to the bean form without the legacy parser race', async ({ page }) => {
+test('native OCR payload is translated, structured, auto-handed to preflight and then committed without the legacy parser race', async ({ page }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/, route => route.abort('failed'));
+  await page.addInitScript(()=>localStorage.setItem('luckybean.onboarding.v2',JSON.stringify({stage:'existing-user',updatedAt:new Date().toISOString(),reason:'recognition-pipeline-test'})));
   await page.goto(`${BASE_URL}/?recognition-pipeline=2`, { waitUntil: 'domcontentloaded' });
   await page.locator('#splashScreen').click();
   await expect(page.locator('#appShell')).toBeVisible({ timeout: 15000 });
@@ -37,19 +38,12 @@ test('native OCR payload is translated, structured, confirmed and handed to the 
   await page.locator('[data-bag-role]').selectOption('back');
   await page.locator('#bagRecognizeBtn').click();
 
-  const country = page.locator('[data-recognition-field="countryCode"]');
-  await expect(country).toContainText('埃塞俄比亚', { timeout: 15000 });
-  await expect(country).toContainText('原文：ETHIOPIA');
-  await expect(page.locator('[data-recognition-field="regionCode"]')).toContainText('古吉');
-  await expect(page.locator('[data-recognition-field="processCode"]')).toContainText('水洗');
-  await expect(page.locator('[data-recognition-field="flavorCodes"]')).toContainText('蓝莓');
-  await expect(page.locator('[data-recognition-field="altitude"]')).toHaveCount(0);
-  await expect(page.locator('.bag-semantic-summary')).toContainText('待确认 0 项');
-
-  await page.locator('#bagHandoffBtn').click();
   const preflight = page.locator('[data-overlay="recognition-preflight"]');
-  await expect(preflight).toBeVisible();
+  await expect(preflight).toBeVisible({ timeout: 15000 });
   await expect(preflight.locator('.recognition-preflight-card')).toContainText('埃塞俄比亚');
+  await expect(preflight.locator('.recognition-preflight-card')).toContainText('古吉');
+  await expect(preflight.locator('.recognition-preflight-card')).toContainText('水洗');
+  await expect(page.locator('#bagHandoffBtn')).not.toBeVisible();
   await preflight.locator('#preflightConfirmBtn').click();
   await expect(page.locator('#beanForm')).toBeVisible();
   await expect(page.locator('#beanCountry')).toHaveValue('CO-EA');
@@ -63,6 +57,7 @@ test('native OCR payload is translated, structured, confirmed and handed to the 
 
 test('pending roast date requires an explicit choice and is then inserted into the bean form', async ({ page }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/, route => route.abort('failed'));
+  await page.addInitScript(()=>localStorage.setItem('luckybean.onboarding.v2',JSON.stringify({stage:'existing-user',updatedAt:new Date().toISOString(),reason:'roast-date-confirmation-test'})));
   await page.goto(`${BASE_URL}/?roast-date-confirmation=1`, { waitUntil: 'domcontentloaded' });
   await page.locator('#splashScreen').click();
   await expect(page.locator('#appShell')).toBeVisible({ timeout: 15000 });
