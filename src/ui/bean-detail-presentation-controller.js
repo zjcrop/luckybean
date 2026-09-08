@@ -28,7 +28,7 @@ function facts(bean, index) {
 function esc(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[char])); }
 function valueRow(values = []) {
   const clean = values.map(value => String(value || '').trim()).filter(Boolean);
-  return clean.length ? `<div class="p2-bean-detail-values">${esc(clean.join(' / '))}</div>` : '';
+  return clean.length ? `<div class="p2-bean-detail-values">${esc(clean.join('\u00a0/\u00a0'))}</div>` : '';
 }
 function stripDuplicateLegacyFacts(overlay) {
   const factSheet = $('.p2-bean-fact-sheet', overlay);
