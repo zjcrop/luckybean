@@ -103,6 +103,15 @@ test('unlabeled Traditional OCR values are promoted by coffee semantics without 
   assert.equal(analysis.parsed.roastCode, 'RL-L3');
   assert.equal(analysis.parsed.entityCustomName, '展望庄园');
   assert.equal(analysis.parsed.regionCustomName, '薇拉省');
-  assert.ok(analysis.fields.some(field => field.field === 'countryCode' && field.status !== 'review'));
-  assert.ok(analysis.fields.some(field => field.field === 'processCode' && field.status !== 'review'));
+  assert.equal(analysis.reviewCount, 0, 'strongly typed custom region/entity/flavor values must not force whole-sample review');
+
+  const byField = Object.fromEntries(analysis.fields.map(field => [field.field, field]));
+  assert.equal(byField.countryCode?.status, 'translated');
+  assert.equal(byField.processCode?.status, 'resolved');
+  assert.notEqual(byField.entityCode?.status, 'review');
+  assert.equal(byField.entityCode?.customValueAccepted, true);
+  assert.notEqual(byField.regionCode?.status, 'review');
+  assert.equal(byField.regionCode?.customValueAccepted, true);
+  assert.notEqual(byField.flavorCodes?.status, 'review');
+  assert.equal(byField.flavorCodes?.customValueAccepted, true);
 });
