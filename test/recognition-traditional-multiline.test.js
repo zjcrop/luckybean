@@ -76,3 +76,33 @@ test('a following field label is never consumed as the previous label-only value
   const repaired = repairRecognitionSemanticText(['產區', '處理法', '水洗'].join('\n'), book);
   assert.equal(repaired, ['产区', '处理法: 水洗'].join('\n'));
 });
+
+test('unlabeled Traditional OCR values are promoted by coffee semantics without contaminating identity with sensory score noise', () => {
+  const raw = [
+    '哥倫比亞',
+    '中焙',
+    '展望莊園',
+    '水洗',
+    '榛果I陳皮|紅糖',
+    '酸度1',
+    '薇拉省'
+  ].join('\n');
+  const repaired = repairRecognitionSemanticText(raw, book);
+
+  assert.match(repaired, /国家: 哥倫比亞 \/ 哥伦比亚/);
+  assert.match(repaired, /烘焙度: 中烘/);
+  assert.match(repaired, /庄园: 展望庄园/);
+  assert.match(repaired, /处理法: 水洗/);
+  assert.match(repaired, /风味: 榛果、陈皮、红糖/);
+  assert.match(repaired, /产区: 薇拉省/);
+  assert.match(repaired, /(?:^|\n)酸度1(?:\n|$)/);
+
+  const analysis = analyzeRecognitionDocument(textDocument(raw), book);
+  assert.equal(analysis.parsed.countryCode, 'CO-CO');
+  assert.equal(analysis.parsed.processCode, 'PR-WA');
+  assert.equal(analysis.parsed.roastCode, 'RL-L3');
+  assert.equal(analysis.parsed.entityCustomName, '展望庄园');
+  assert.equal(analysis.parsed.regionCustomName, '薇拉省');
+  assert.ok(analysis.fields.some(field => field.field === 'countryCode' && field.status !== 'review'));
+  assert.ok(analysis.fields.some(field => field.field === 'processCode' && field.status !== 'review'));
+});
