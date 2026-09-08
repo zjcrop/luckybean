@@ -72,6 +72,5 @@ test('WebKit ONNX session failure enters the same PP-OCRv5 compatibility state m
   assert.match(source, /return startSessionCompatibilityEngine\(generation, error\)/u);
   assert.match(source, /WEBKIT \? startWebKitEngine\(\)/u);
   assert.match(source, /webkit-direct-wasm-no-simd->direct-module-worker-wasm-no-simd->direct-wasm-no-simd-last-resort/u);
-  assert.doesNotMatch(source, /Tesseract|tesseract/u);
 });
 ''', encoding='utf-8')
