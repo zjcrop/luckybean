@@ -263,8 +263,14 @@ document.addEventListener('click', event => {
   if (brewSpatialView.opened && event.target.closest?.('[data-page-target]')) brewSpatialView.close();
 }, true);
 
-const root = $('#appShell') || document.documentElement;
-new MutationObserver(scheduleNormalize).observe(root, { childList:true, subtree:true, characterData:true });
+// App content and modal/capture overlays are separate DOM ownership roots. Observing only
+// #appShell left OCR result renders invisible to the P3 normalizer, so the automatic
+// Foundation handoff never fired after a successful scan. Observe both roots explicitly.
+const mutationRoots = [$('#appShell'), $('#overlayRoot')].filter(Boolean);
+if (!mutationRoots.length) mutationRoots.push(document.documentElement);
+for (const mutationRoot of mutationRoots) {
+  new MutationObserver(scheduleNormalize).observe(mutationRoot, { childList:true, subtree:true, characterData:true });
+}
 scheduleNormalize();
 
 console.info('[LuckyBean] P3 UX flow controller active');
