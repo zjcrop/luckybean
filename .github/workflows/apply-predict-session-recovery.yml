@@ -1,0 +1,82 @@
+name: Apply Predict Session Recovery
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-predict-session-recovery.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Patch predict-time ONNX recovery
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/recognition-paddle-ocr.js')
+          s=p.read_text(encoding='utf-8')
+          if "const VERSION = '0.4.12';" not in s:
+              raise SystemExit('unexpected OCR version')
+          s=s.replace("const VERSION = '0.4.12';", "const VERSION = '0.4.13';", 1)
+          old="""async function predict(images) {
+  const ocr = await ensureEngine(); const blocks = [], groups = [];
+  for (let index = 0; index < images.length; index += 1) {
+    const image = images[index]; emit(`PP-OCRv5 正在识别第 ${index + 1}/${images.length} 张图片`, 20 + Math.round(index / Math.max(1, images.length) * 70));
+    const diagnosticStarted = diagnosticNow();
+    const prediction = ocr.predict(image.blob, { textDetLimitSideLen:currentLimitSide(), textDetLimitType:'min', textDetMaxSideLimit:currentMaxSide(), textDetThresh:0.22, textDetBoxThresh:0.35, textDetUnclipRatio:1.55, textRecScoreThresh:0.28 });
+    const results = await withTimeout(prediction, PREDICT_TIMEOUT_MS, `PP-OCRv5 第 ${index + 1} 张图片识别超时，已退出本次任务`, detachEngine);
+"""
+          new="""async function predict(images) {
+  let ocr = await ensureEngine(); const blocks = [], groups = [];
+  for (let index = 0; index < images.length; index += 1) {
+    const image = images[index]; emit(`PP-OCRv5 正在识别第 ${index + 1}/${images.length} 张图片`, 20 + Math.round(index / Math.max(1, images.length) * 70));
+    const diagnosticStarted = diagnosticNow();
+    const predictOptions = { textDetLimitSideLen:currentLimitSide(), textDetLimitType:'min', textDetMaxSideLimit:currentMaxSide(), textDetThresh:0.22, textDetBoxThresh:0.35, textDetUnclipRatio:1.55, textRecScoreThresh:0.28 };
+    let results;
+    try {
+      const prediction = ocr.predict(image.blob, predictOptions);
+      results = await withTimeout(prediction, PREDICT_TIMEOUT_MS, `PP-OCRv5 第 ${index + 1} 张图片识别超时，已退出本次任务`, detachEngine);
+    } catch (predictError) {
+      const onnxFailure = isOnnxSessionCreationFailure(predictError);
+      const memoryFailure = isWasmMemoryAllocationFailure(predictError);
+      if (!onnxFailure && !memoryFailure) throw predictError;
+      recordDiagnostic('predict-runtime-recovery', diagnosticStarted, { reason:String(predictError?.message || predictError), kind:onnxFailure ? 'onnx-session' : 'wasm-memory', imageIndex:index });
+      if (onnxFailure) rememberRuntimeCompatibilityConstraint();
+      if (memoryFailure) rememberMemoryConstraint();
+      detachEngine();
+      emit(onnxFailure ? '预测阶段 ONNX session 创建失败，正在切换同一 PP-OCRv5 无 SIMD WASM 兼容模式' : '预测阶段 WASM 内存不足，正在切换同一 PP-OCRv5 低内存模式', 12);
+      await delay(80);
+      ocr = await ensureEngine();
+      const retryPrediction = ocr.predict(image.blob, predictOptions);
+      results = await withTimeout(retryPrediction, PREDICT_TIMEOUT_MS, `PP-OCRv5 第 ${index + 1} 张图片兼容模式重试超时，已退出本次任务`, detachEngine);
+      recordDiagnostic('predict-runtime-recovery-success', diagnosticStarted, { kind:onnxFailure ? 'onnx-session' : 'wasm-memory', imageIndex:index, mode:engineMode });
+    }
+"""
+          if s.count(old)!=1:
+              raise SystemExit('predict anchor mismatch')
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+
+          t=Path('test/ocr-predict-session-recovery.test.js')
+          t.write_text("""import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\n\nconst source = readFileSync('src/recognition-paddle-ocr.js','utf8');\n\ntest('predict-time ONNX session creation failure rebuilds the same PP-OCRv5 compatibility runtime once', () => {\n  assert.match(source, /const VERSION = '0\\.4\\.13'/);\n  assert.match(source, /catch \\(predictError\\)/);\n  assert.match(source, /isOnnxSessionCreationFailure\\(predictError\\)/);\n  assert.match(source, /rememberRuntimeCompatibilityConstraint\\(\\)/);\n  assert.match(source, /detachEngine\\(\\)/);\n  assert.match(source, /ocr = await ensureEngine\\(\\)/);\n  assert.match(source, /retryPrediction = ocr\\.predict\\(image\\.blob, predictOptions\\)/);\n  assert.match(source, /predict-runtime-recovery-success/);\n});\n\ntest('predict-time runtime recovery keeps PP-OCRv5 and never introduces Tesseract', () => {\n  assert.match(source, /ocrVersion:'PP-OCRv5'/);\n  assert.doesNotMatch(source, /Tesseract|tesseract\\.js|createWorker\\(.*chi_sim/s);\n});\n""",encoding='utf-8')
+          PY
+      - name: Verify syntax and OCR regressions
+        run: |
+          node --check src/recognition-paddle-ocr.js
+          node --test test/ocr-predict-session-recovery.test.js
+          node --test test/ocr-webkit-session-fallback.test.js
+          npm run test:recognition
+      - name: Commit validated runtime
+        run: |
+          git config user.name "zjcrop"
+          git config user.email "127176814+zjcrop@users.noreply.github.com"
+          git add src/recognition-paddle-ocr.js test/ocr-predict-session-recovery.test.js
+          git commit -m "fix(ocr): recover delayed ONNX session failure during predict"
+          git push origin HEAD:main
