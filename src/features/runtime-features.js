@@ -28,7 +28,6 @@ const P2_CORE_FEATURES = Object.freeze([
 
 const LAZY_FEATURES = Object.freeze([
   feature('recognition-paddle-ocr', '../recognition-paddle-ocr.js'),
-  feature('recognition-adaptive-detail', '../recognition-adaptive-detail.js'),
   feature('recognition-quality', '../recognition-quality-controller.js'),
   feature('package-capture', '../package-capture-controller.js'),
   feature('recognition-multi-entry', './recognition-multi-entry-controller.js'),
@@ -76,7 +75,6 @@ async function loadMany(ids) { const results = await Promise.allSettled(ids.map(
 // model initialization can overlap with image decoding and trigger a mobile tab/WebView restart.
 async function warmRecognition() {
   await loadFeature('recognition-paddle-ocr').catch(() => false);
-  await loadFeature('recognition-adaptive-detail').catch(() => false);
   return globalThis.LuckyBeanPaddleOCR?.preload?.().catch?.(() => null) ?? null;
 }
 function isLoaded(id) { return loaded.includes(id); }
@@ -85,10 +83,10 @@ function installLazyTriggers() {
   document.addEventListener('click', async event => {
     const photo = event.target.closest?.('[data-add-mode="photo"]');
     if (photo) {
-      // Provider and adaptive image policy are already registered before interactions.
-      // These calls are idempotent and do not preload SDK/models.
+      // Register only the validated PP-OCR provider. The experimental adaptive
+      // ROI wrapper is intentionally not part of the production path because it
+      // can duplicate inference and discard full-frame evidence on small labels.
       void loadFeature('recognition-paddle-ocr').catch(() => false);
-      void loadFeature('recognition-adaptive-detail').catch(() => false);
       if (!isLoaded('package-capture')) {
         event.preventDefault(); event.stopImmediatePropagation();
         const ready = await loadMany(['recognition-quality','package-capture','direct-camera','recognition-review-owner','recognition-batch-progress']);
@@ -116,7 +114,6 @@ function installLazyTriggers() {
   document.addEventListener('pointerdown', event => {
     if (event.target.closest?.('[data-add-mode="photo"]')) {
       void loadFeature('recognition-paddle-ocr').catch(() => false);
-      void loadFeature('recognition-adaptive-detail').catch(() => false);
     }
     if (event.target.closest?.('#fabRecommendBtn')) void loadFeature('selection').catch(() => false);
     if (event.target.closest?.('[data-v099f-world]')) void loadFeature('origin-map').catch(() => false);
@@ -138,14 +135,13 @@ globalThis.LuckyBeanRuntimeFeatures = {
 };
 document.documentElement.dataset.runtimeFeatures = 'declared';
 
-// Preserve the validated core ordering, then serialize the lightweight PP-OCR
-// provider and adaptive image policy before capture UI modules. Heavy SDK/models
-// remain lazy until the user actually starts recognition.
+// Preserve the validated core ordering and register the lightweight PP-OCR
+// provider before capture UI modules. Heavy SDK/models remain lazy until the user
+// actually starts recognition. No second-pass adaptive wrapper is installed.
 for (const runtimeFeature of CORE_FEATURES) {
   try { await loadFeature(runtimeFeature.id); } catch { /* failure already recorded */ }
 }
 try { await loadFeature('recognition-paddle-ocr'); } catch { /* capture UI will expose a real failure */ }
-try { await loadFeature('recognition-adaptive-detail'); } catch { /* base provider remains usable */ }
 await loadMany(PREINTERACTION_FEATURE_IDS);
 await loadMany(P2_CORE_FEATURES.map(item => item.id));
 
