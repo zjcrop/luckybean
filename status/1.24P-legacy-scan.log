@@ -87,7 +87,6 @@ src/features/release-1.24b-group-navigation.js:48:console.info('[LuckyBean] 1.24
 src/features/release-1.24b-freshness-detail.js:59:console.info('[LuckyBean] 1.24B full freshness detail active');
 src/features/release-1.24b-transit-controller.js:98:console.info('[LuckyBean] 1.24B transit lifecycle controller active');
 src/features/release-1.24b-finalize.js:137:console.info('[LuckyBean] 1.24B final integration active');
-src/features/recognition-batch-progress-controller.js:53:console.info('[LuckyBean] 1.24B serial OCR progress UI active');
 src/features/release-1.24b-about-controller.js:25:console.info('[LuckyBean] 1.24B 本物 contact placement active');
 src/release-1.24b.css:1:/* Lucky Bean 1.24B compact UI states */
 src/release-1.24b.css:63:/* LuckyBean 1.24B main.6 detail/fab/sensory corrections */
