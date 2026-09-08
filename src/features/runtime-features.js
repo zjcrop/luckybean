@@ -1,5 +1,3 @@
-import '../recognition-paddle-ocr.js';
-
 const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.4';
 const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEASE_REVISION)}` });
 const BEAN_GROUP_RUNTIME_REVISION = RELEASE_REVISION;
@@ -85,9 +83,8 @@ function installLazyTriggers() {
   document.addEventListener('click', async event => {
     const photo = event.target.closest?.('[data-add-mode="photo"]');
     if (photo) {
-      // Provider module is registered as a lightweight module dependency before
-      // runtime-features executes. This remains an idempotent catalog guard and
-      // does not initialize the SDK, models or WASM runtime.
+      // Provider module is already registered before interactions. This call is only
+      // an idempotent guard and does not preload SDK/models.
       void loadFeature('recognition-paddle-ocr').catch(() => false);
       if (!isLoaded('package-capture')) {
         event.preventDefault(); event.stopImmediatePropagation();
@@ -135,16 +132,12 @@ globalThis.LuckyBeanRuntimeFeatures = {
 };
 document.documentElement.dataset.runtimeFeatures = 'declared';
 
-// The lightweight PP-OCR provider is a static dependency of this module, so its
-// public API exists before capture capability detection. Mark it in the feature
-// catalog without initializing SDK/models/WASM; those stay inside warm/recognize.
-recordLoaded('recognition-paddle-ocr');
-
-// Preserve the validated core ordering. Capture UI modules are loaded only after
-// the lightweight provider API is guaranteed to exist.
+// Preserve the validated core ordering, then SERIALIZE only the lightweight provider
+// module registration before capture UI modules. Heavy PP-OCR SDK/models remain lazy.
 for (const runtimeFeature of CORE_FEATURES) {
   try { await loadFeature(runtimeFeature.id); } catch { /* failure already recorded */ }
 }
+try { await loadFeature('recognition-paddle-ocr'); } catch { /* capture UI will expose a real failure */ }
 await loadMany(PREINTERACTION_FEATURE_IDS);
 await loadMany(P2_CORE_FEATURES.map(item => item.id));
 
