@@ -57,7 +57,7 @@ const ROAST_VALUE_PATTERNS = Object.freeze([
   [/^(?:極深|极深)(?:焙|烘|烘焙)?$/u,'极深烘']
 ]);
 const INLINE_ROAST_PATTERN = /(極淺烘|极浅烘|超浅烘|超淺烘|淺中烘|浅中烘|中淺烘|中浅烘|中深烘|極深烘|极深烘|淺烘|浅烘|中烘|深烘|淺焙|浅焙|中焙|深焙)/iu;
-const INLINE_WEIGHT_PATTERN = /(\d{1,5}(?:\.\d+)?)\s*(g|克|grams?)\b?/iu;
+const INLINE_WEIGHT_PATTERN = /(\d{1,5}(?:\.\d+)?)\s*(g|克|grams?)\b/iu;
 const SENSORY_SCORE_PATTERN = /^(?:酸度|酸質|酸质|甜感|甜度|醇厚度|醇厚|口感|餘韻|余韵|平衡|乾淨度|干净度|香氣|香气)\s*[0-9OoIl|]{1,3}$/iu;
 const BREW_GUIDANCE_HEADING = /^(?:手冲|手沖|冲煮|沖煮|冲泡|沖泡|萃取)(?:建议|建議|参数|參數|方式|方案)?\s*[:：]?$/iu;
 
