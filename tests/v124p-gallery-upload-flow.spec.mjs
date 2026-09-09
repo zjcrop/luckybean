@@ -26,6 +26,26 @@ async function openCapture(page) {
   await expect(page.locator('#bagGalleryBtn')).toBeEnabled({ timeout:10_000 });
 }
 
+async function installAutoOcrProbe(page) {
+  await page.evaluate(() => {
+    globalThis.__luckyBeanAutoOcrClicks = 0;
+    globalThis.addEventListener('click', event => {
+      const button = event.target?.closest?.('#bagRecognizeBtn');
+      if (!button) return;
+      globalThis.__luckyBeanAutoOcrClicks += 1;
+      event.preventDefault();
+      event.stopPropagation();
+    }, true);
+  });
+}
+
+async function expectAutoOcr(page, expected = 1) {
+  await expect.poll(() => page.evaluate(() => Number(globalThis.__luckyBeanAutoOcrClicks || 0)), { timeout:10_000 }).toBe(expected);
+  const internalButton = page.locator('#bagRecognizeBtn');
+  await expect(internalButton).toHaveCount(1);
+  await expect(internalButton).toBeHidden();
+}
+
 async function jpegBytes(page, width, height) {
   return page.evaluate(async ({ width, height }) => {
     const canvas = document.createElement('canvas');
@@ -49,19 +69,25 @@ async function jpegBytes(page, width, height) {
   }, { width, height });
 }
 
-async function chooseJpeg(page, { name, width, height }) {
+async function jpegFixture(page, { name, width, height }) {
   const bytes = await jpegBytes(page, width, height);
+  return { name, mimeType:'image/jpeg', buffer:Buffer.from(bytes) };
+}
+
+async function chooseJpeg(page, spec) {
+  const fixture = await jpegFixture(page, spec);
   const [chooser] = await Promise.all([
     page.waitForEvent('filechooser'),
     page.locator('#bagGalleryBtn').click()
   ]);
-  await chooser.setFiles({ name, mimeType:'image/jpeg', buffer:Buffer.from(bytes) });
+  await chooser.setFiles(fixture);
 }
 
-test('small gallery image passes through unchanged and never forces crop', async ({ page }) => {
+test('small gallery image passes through unchanged and automatically starts OCR', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(String(error?.message || error)));
   await openCapture(page);
+  await installAutoOcrProbe(page);
 
   await chooseJpeg(page, { name:'gallery-small-direct.jpg', width:1200, height:800 });
 
@@ -69,30 +95,48 @@ test('small gallery image passes through unchanged and never forces crop', async
   const card = page.locator('.bag-photo-card');
   await expect(card).toHaveCount(1, { timeout:20_000 });
   await expect(card).toContainText(/1200×800 px/);
+  await expectAutoOcr(page);
   expect(pageErrors.filter(message => /gallery|image|bitmap|preview|canvas/i.test(message))).toEqual([]);
 });
 
-test('gallery image between 1600 and 3000px shrinks in Worker without manual crop', async ({ page }) => {
+test('gallery image between 1600 and 3000px shrinks in Worker and automatically starts OCR', async ({ page }) => {
   await openCapture(page);
+  await installAutoOcrProbe(page);
   await chooseJpeg(page, { name:'gallery-medium-worker.jpg', width:2400, height:1600 });
 
   await expect(page.locator('.lb-img-pre')).toHaveCount(0);
   const card = page.locator('.bag-photo-card');
   await expect(card).toHaveCount(1, { timeout:20_000 });
   await expect(card).toContainText(/1600×1067 px/);
+  await expectAutoOcr(page);
 });
 
-test('gallery upload over 3000px automatically enters low-memory crop flow', async ({ page }) => {
+test('gallery upload over 3000px crops first and automatically starts OCR after confirm', async ({ page }) => {
   await openCapture(page);
+  await installAutoOcrProbe(page);
   await chooseJpeg(page, { name:'gallery-oversize-crop.jpg', width:3001, height:1800 });
 
   const cropOverlay = page.locator('.lb-img-pre');
   await expect(cropOverlay).toBeVisible({ timeout:20_000 });
   await expect(page.getByRole('heading', { name:'裁切识别范围' })).toBeVisible();
   await expect(page.locator('[data-confirm]')).toBeVisible();
-  await expect(page.locator('[data-cancel]')).toBeVisible();
   const statusText = await page.locator('.lb-img-pre__status').textContent();
   expect(String(statusText || '')).toMatch(/低分辨率预览|使用照片内置缩略图/);
-  await page.locator('[data-cancel]').click();
-  await expect(cropOverlay).toHaveCount(0);
+
+  await page.locator('[data-confirm]').click();
+  await expect(cropOverlay).toHaveCount(0, { timeout:20_000 });
+  await expect(page.locator('.bag-photo-card')).toHaveCount(1, { timeout:20_000 });
+  await expectAutoOcr(page);
+});
+
+test('camera image automatically starts OCR without crop', async ({ page }) => {
+  await openCapture(page);
+  await installAutoOcrProbe(page);
+  const fixture = await jpegFixture(page, { name:'camera-direct.jpg', width:1600, height:1200 });
+
+  await page.locator('#bagCameraInput').setInputFiles(fixture);
+
+  await expect(page.locator('.lb-img-pre')).toHaveCount(0);
+  await expect(page.locator('.bag-photo-card')).toHaveCount(1, { timeout:20_000 });
+  await expectAutoOcr(page);
 });
