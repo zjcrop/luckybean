@@ -28,22 +28,16 @@ async function openCapture(page) {
 
 async function installAutoOcrProbe(page) {
   await page.evaluate(() => {
-    globalThis.__luckyBeanAutoOcrClicks = 0;
-    globalThis.addEventListener('click', event => {
-      const button = event.target?.closest?.('#bagRecognizeBtn');
-      if (!button) return;
-      globalThis.__luckyBeanAutoOcrClicks += 1;
-      event.preventDefault();
-      event.stopPropagation();
-    }, true);
+    globalThis.__luckyBeanAutoOcrStarts = 0;
+    document.addEventListener('luckybean:package-auto-recognition-start', () => {
+      globalThis.__luckyBeanAutoOcrStarts += 1;
+    });
   });
 }
 
 async function expectAutoOcr(page, expected = 1) {
-  await expect.poll(() => page.evaluate(() => Number(globalThis.__luckyBeanAutoOcrClicks || 0)), { timeout:10_000 }).toBe(expected);
-  const internalButton = page.locator('#bagRecognizeBtn');
-  await expect(internalButton).toHaveCount(1);
-  await expect(internalButton).toBeHidden();
+  await expect.poll(() => page.evaluate(() => Number(globalThis.__luckyBeanAutoOcrStarts || 0)), { timeout:10_000 }).toBe(expected);
+  await expect(page.locator('#bagRecognizeBtn')).toHaveCount(0);
 }
 
 async function jpegBytes(page, width, height) {

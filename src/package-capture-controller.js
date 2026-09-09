@@ -17,7 +17,6 @@ const captureState = {
   images: [], busy: false, ocrText: '', ocrEngine: '', blocks: [], recognitionDocument: null, analysis: null,
   aiStatus: 'idle', aiDetail: ''
 };
-let recognitionQueued = false;
 let operationGeneration = 0;
 
 function esc(value) {
@@ -38,7 +37,7 @@ function statusMessage() {
   const roles = new Set(captureState.images.map(image => image.role));
   if (!roles.has('back')) return '正面已加入。建议补拍背面参数或烘焙标签。';
   if (!roles.has('date')) return '如烘焙日期不清楚，可单独拍摄日期标签。';
-  return '已具备多视角照片，可以开始识别；低质量照片仍建议重拍。';
+  return '已具备多视角照片，系统会自动识别；低质量照片仍建议重拍。';
 }
 function root() { return document.querySelector('#overlayRoot'); }
 function releasePreview(image) {
@@ -63,7 +62,7 @@ function clearCapture({ keepOverlay = false } = {}) {
   for (const image of captureState.images) releasePreview(image);
   captureState.images = []; captureState.busy = false; captureState.ocrText = ''; captureState.ocrEngine = ''; captureState.blocks = [];
   captureState.recognitionDocument = null; captureState.analysis = null; captureState.aiStatus = 'idle'; captureState.aiDetail = '';
-  recognitionQueued = false; disposeBrowserOcr();
+  disposeBrowserOcr();
   if (!keepOverlay && root()) root().innerHTML = '';
 }
 function previewHtml(image) {
@@ -135,7 +134,6 @@ function render() {
       <div class="bag-capture-actions">
         <button id="bagCameraBtn" class="button primary" type="button"${captureState.images.length >= MAX_IMAGES || captureState.busy ? ' disabled' : ''}>拍摄一张</button>
         <button id="bagGalleryBtn" class="button" type="button"${captureState.images.length >= MAX_IMAGES || captureState.busy ? ' disabled' : ''}>从相册选择</button>
-        <button id="bagRecognizeBtn" class="button" type="button"${!captureState.images.length || captureState.busy ? ' disabled' : ''}>${captureState.busy ? '本地识别中…' : '开始识别'}</button>
       </div>
       ${renderRecognitionPanel()}
       <div class="bag-manual-entry"><button id="bagManualBtn" class="button subtle" type="button">手工粘贴文字</button><span class="grow"></span><button id="bagHandoffBtn" class="button primary" type="button"${captureState.ocrText.trim() ? '' : ' disabled'}>确认并进入豆卡</button></div>
@@ -146,6 +144,7 @@ function render() {
 async function addFiles(fileList) {
   const files = [...(fileList || [])].filter(file => file.type.startsWith('image/')).slice(0, MAX_IMAGES - captureState.images.length);
   if (!files.length) return;
+  let addedCount = 0;
   captureState.busy = true; render();
   try {
     for (const file of files) {
@@ -156,9 +155,14 @@ async function addFiles(fileList) {
       if (nativeSource && !nativePreview) warnings.push('Android 原图已绑定；缩略预览生成失败，但本地 OCR 仍可直接读取原图。');
       captureState.images.push({ id, role, roleLabel:roleLabel(role), blob:prepared.blob, previewUrl, previewAvailable:Boolean(previewUrl), previewReleased:false, nativeSource,
         score:prepared.score, status:prepared.status, warnings, processedWidth:prepared.processedWidth, processedHeight:prepared.processedHeight, metrics:prepared.metrics });
+      addedCount += 1;
     }
   } catch (error) { captureState.ocrText = `图片处理失败：${error.message}`; captureState.ocrEngine = '错误'; }
   finally { captureState.busy = false; render(); }
+  if (addedCount > 0) {
+    document.dispatchEvent(new CustomEvent('luckybean:package-auto-recognition-start', { detail:{ source:'image-entry', addedCount } }));
+    void runRecognition();
+  }
 }
 function galleryFailure(error) {
   const message = `图片裁切失败：${String(error?.message || error || '未知错误')}`;
@@ -292,11 +296,5 @@ function interceptPhotoMode(event) {
   const button = event.target.closest?.('[data-add-mode="photo"]'); if (!button) return;
   event.preventDefault(); event.stopImmediatePropagation(); document.querySelectorAll('.popup-menu').forEach(node => node.remove()); openPackageCapture();
 }
-function interceptRecognitionClick(event) {
-  const button = event.target.closest?.('#bagRecognizeBtn'); if (!button || button.disabled || captureState.busy || recognitionQueued) return;
-  event.preventDefault(); event.stopImmediatePropagation(); recognitionQueued = true;
-  setTimeout(async () => { try { await runRecognition(); } finally { recognitionQueued = false; } }, 0);
-}
 document.addEventListener('click', interceptPhotoMode, true);
-document.addEventListener('click', interceptRecognitionClick, true);
 window.LuckyBeanPackageCapture = { open:openPackageCapture, capabilities:getRecognitionCapabilities };

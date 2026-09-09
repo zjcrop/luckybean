@@ -61,87 +61,9 @@ function installJarcDisplayNormalizer() {
   observer.observe(document.documentElement, { subtree:true, childList:true, characterData:true });
 }
 
-let autoRecognitionTimer = 0;
-let lastTriggeredImageSignature = '';
-
-function currentImageSignature() {
-  if (typeof document === 'undefined') return '';
-  return [...document.querySelectorAll('[data-bag-image-id]')]
-    .map(node => String(node.getAttribute('data-bag-image-id') || ''))
-    .filter(Boolean)
-    .join('|');
-}
-
-function hideRecognitionButton() {
-  if (typeof document === 'undefined') return null;
-  const button = document.querySelector('#bagRecognizeBtn');
-  if (!button) return null;
-  button.hidden = true;
-  button.tabIndex = -1;
-  button.setAttribute('aria-hidden', 'true');
-  return button;
-}
-
-function updateAutomaticRecognitionCopy() {
-  if (typeof document === 'undefined') return;
-  const status = document.querySelector('.bag-capture-status span');
-  if (!status) return;
-  if (/可以开始识别/.test(status.textContent || '')) {
-    status.textContent = String(status.textContent || '').replace('可以开始识别', '系统会自动识别');
-  }
-}
-
-function queueAutomaticRecognition(signature = currentImageSignature()) {
-  if (typeof document === 'undefined' || !signature) return;
-  globalThis.clearTimeout(autoRecognitionTimer);
-  lastTriggeredImageSignature = signature;
-  const startedAt = Date.now();
-  const poll = () => {
-    const overlay = document.querySelector('[data-overlay="bag-capture"]');
-    if (!overlay) return;
-    if (currentImageSignature() !== signature) return;
-    const button = hideRecognitionButton();
-    updateAutomaticRecognitionCopy();
-    if (document.querySelector('.lb-img-pre')) {
-      autoRecognitionTimer = globalThis.setTimeout(poll, 80);
-      return;
-    }
-    if (button && !button.disabled && /开始识别/.test(button.textContent || '')) {
-      button.click();
-      return;
-    }
-    if (Date.now() - startedAt < 30000) autoRecognitionTimer = globalThis.setTimeout(poll, 80);
-  };
-  autoRecognitionTimer = globalThis.setTimeout(poll, 0);
-}
-
-function syncPackageCaptureAutoRecognition() {
-  if (typeof document === 'undefined') return;
-  const overlay = document.querySelector('[data-overlay="bag-capture"]');
-  if (!overlay) {
-    globalThis.clearTimeout(autoRecognitionTimer);
-    lastTriggeredImageSignature = '';
-    return;
-  }
-  hideRecognitionButton();
-  updateAutomaticRecognitionCopy();
-  const signature = currentImageSignature();
-  if (signature && signature !== lastTriggeredImageSignature) queueAutomaticRecognition(signature);
-}
-
-function installPackageCaptureAutoRecognition() {
-  syncPackageCaptureAutoRecognition();
-  const observer = new MutationObserver(() => syncPackageCaptureAutoRecognition());
-  observer.observe(document.documentElement, { subtree:true, childList:true, attributes:true, attributeFilter:['disabled'] });
-}
-
 if (typeof document !== 'undefined') {
-  const install = () => {
-    installJarcDisplayNormalizer();
-    installPackageCaptureAutoRecognition();
-  };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once:true });
-  else install();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installJarcDisplayNormalizer, { once:true });
+  else installJarcDisplayNormalizer();
 }
 
-export { normalizeJarcDisplayText, queueAutomaticRecognition, currentImageSignature };
+export { normalizeJarcDisplayText };

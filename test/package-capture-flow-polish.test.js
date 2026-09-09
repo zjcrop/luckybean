@@ -15,23 +15,26 @@ test('JARC numeric varieties are shortened only for display text', () => {
   assert.equal(normalizeJarcDisplayText('JARC Selection'), 'JARC Selection');
 });
 
-test('any completed package image entry schedules OCR and hides manual recognition UI', () => {
-  const source = fs.readFileSync(path.join(root, 'src/ui/package-capture-flow-polish.js'), 'utf8');
-  assert.match(source, /\[data-bag-image-id\]/);
-  assert.match(source, /signature && signature !== lastTriggeredImageSignature/);
-  assert.match(source, /queueAutomaticRecognition\(signature\)/);
-  assert.match(source, /button\.hidden = true/);
-  assert.match(source, /button\.click\(\)/);
-  assert.doesNotMatch(source, /originalPreprocessFiles/);
-  assert.doesNotMatch(source, /installGalleryAutoRecognition/);
+test('package controller automatically starts OCR after every successful image entry', () => {
+  const controller = fs.readFileSync(path.join(root, 'src/package-capture-controller.js'), 'utf8');
+  assert.match(controller, /let addedCount = 0/);
+  assert.match(controller, /addedCount \+= 1/);
+  assert.match(controller, /luckybean:package-auto-recognition-start/);
+  assert.match(controller, /void runRecognition\(\)/);
+  assert.doesNotMatch(controller, /bagRecognizeBtn/);
+  assert.doesNotMatch(controller, /interceptRecognitionClick/);
 });
 
-test('automatic OCR applies to camera, small upload and cropped upload through the shared addFiles card state', () => {
+test('camera, small upload and cropped upload all converge on addFiles', () => {
   const controller = fs.readFileSync(path.join(root, 'src/package-capture-controller.js'), 'utf8');
   assert.match(controller, /#bagCameraInput[^\n]*addFiles\(event\.target\.files\)/);
   assert.match(controller, /processed\?\.length\) await addFiles\(processed\)/);
-  assert.match(controller, /data-bag-image-id/);
-  assert.match(controller, /id="bagRecognizeBtn"/);
+});
+
+test('flow polish retains JARC formatting only and does not own OCR triggering', () => {
+  const source = fs.readFileSync(path.join(root, 'src/ui/package-capture-flow-polish.js'), 'utf8');
+  assert.doesNotMatch(source, /queueAutomaticRecognition/);
+  assert.doesNotMatch(source, /bagRecognizeBtn/);
 });
 
 test('production html loads the flow polish controller', () => {
