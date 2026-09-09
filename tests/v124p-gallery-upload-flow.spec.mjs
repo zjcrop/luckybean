@@ -26,29 +26,31 @@ async function openCapture(page) {
   await expect(page.locator('#bagGalleryBtn')).toBeEnabled({ timeout:10_000 });
 }
 
-async function jpegBytes(page) {
-  return page.evaluate(async () => {
+async function jpegBytes(page, width, height) {
+  return page.evaluate(async ({ width, height }) => {
     const canvas = document.createElement('canvas');
-    canvas.width = 1200;
-    canvas.height = 800;
+    canvas.width = width;
+    canvas.height = height;
     const context = canvas.getContext('2d');
     context.fillStyle = '#f8f6ef';
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.fillStyle = '#151515';
-    context.font = 'bold 64px Arial';
-    context.fillText('ETHIOPIA GUJI', 100, 260);
-    context.fillText('WASHED 1950M', 100, 390);
+    context.font = `bold ${Math.max(28, Math.round(width / 20))}px Arial`;
+    context.fillText('ETHIOPIA GUJI', Math.max(30, Math.round(width * 0.08)), Math.max(90, Math.round(height * 0.32)));
+    context.fillText('WASHED 1950M', Math.max(30, Math.round(width * 0.08)), Math.max(160, Math.round(height * 0.5)));
     const blob = await new Promise((resolve, reject) => canvas.toBlob(
       result => result ? resolve(result) : reject(new Error('JPEG fixture creation failed')),
       'image/jpeg',
-      0.9
+      0.88
     ));
+    canvas.width = 1;
+    canvas.height = 1;
     return [...new Uint8Array(await blob.arrayBuffer())];
-  });
+  }, { width, height });
 }
 
-async function chooseJpeg(page, name) {
-  const bytes = await jpegBytes(page);
+async function chooseJpeg(page, { name, width, height }) {
+  const bytes = await jpegBytes(page, width, height);
   const [chooser] = await Promise.all([
     page.waitForEvent('filechooser'),
     page.locator('#bagGalleryBtn').click()
@@ -56,14 +58,12 @@ async function chooseJpeg(page, name) {
   await chooser.setFiles({ name, mimeType:'image/jpeg', buffer:Buffer.from(bytes) });
 }
 
-test('default gallery chooser uses bounded Worker fast path without forcing manual crop', async ({ page }) => {
+test('small gallery image passes through unchanged and never forces crop', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(String(error?.message || error)));
   await openCapture(page);
 
-  await expect(page.locator('#bagGalleryManualCrop')).toBeVisible({ timeout:10_000 });
-  await expect(page.locator('#bagGalleryManualCrop')).not.toBeChecked();
-  await chooseJpeg(page, 'gallery-fast-smoke.jpg');
+  await chooseJpeg(page, { name:'gallery-small-direct.jpg', width:1200, height:800 });
 
   await expect(page.locator('.lb-img-pre')).toHaveCount(0);
   const card = page.locator('.bag-photo-card');
@@ -72,15 +72,22 @@ test('default gallery chooser uses bounded Worker fast path without forcing manu
   expect(pageErrors.filter(message => /gallery|image|bitmap|preview|canvas/i.test(message))).toEqual([]);
 });
 
-test('manual crop remains available as an explicit low-memory option', async ({ page }) => {
+test('gallery image between 1600 and 3000px shrinks in Worker without manual crop', async ({ page }) => {
   await openCapture(page);
-  const toggle = page.locator('#bagGalleryManualCrop');
-  await expect(toggle).toBeVisible({ timeout:10_000 });
-  await toggle.check();
-  await chooseJpeg(page, 'gallery-manual-crop-smoke.jpg');
+  await chooseJpeg(page, { name:'gallery-medium-worker.jpg', width:2400, height:1600 });
+
+  await expect(page.locator('.lb-img-pre')).toHaveCount(0);
+  const card = page.locator('.bag-photo-card');
+  await expect(card).toHaveCount(1, { timeout:20_000 });
+  await expect(card).toContainText(/1600×1067 px/);
+});
+
+test('gallery upload over 3000px automatically enters low-memory crop flow', async ({ page }) => {
+  await openCapture(page);
+  await chooseJpeg(page, { name:'gallery-oversize-crop.jpg', width:3001, height:1800 });
 
   const cropOverlay = page.locator('.lb-img-pre');
-  await expect(cropOverlay).toBeVisible({ timeout:15_000 });
+  await expect(cropOverlay).toBeVisible({ timeout:20_000 });
   await expect(page.getByRole('heading', { name:'裁切识别范围' })).toBeVisible();
   await expect(page.locator('[data-confirm]')).toBeVisible();
   await expect(page.locator('[data-cancel]')).toBeVisible();
