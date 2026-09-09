@@ -195,9 +195,18 @@ function normalizeRoastDate(value) {
   return `${year}年${month}月${day}日`;
 }
 
+function flavorPieces(value) {
+  return normalizeFlavorSeparators(value).split(/[、,，;；/]+/).map(clean).filter(Boolean);
+}
+function canJoinFlavorBoundary(base,next,book,cache) {
+  const left=flavorPieces(base), right=flavorPieces(next);
+  if(!left.length||!right.length)return false;
+  const joined=`${left[left.length-1]}${right[0]}`;
+  return Boolean(exactTableAlias('flavor',joined,book,cache));
+}
 function mergeFlavorContinuation(base,next,book,cache) {
   const left=normalizeFlavorSeparators(base), right=normalizeFlavorSeparators(next);
-  const a=left.split(/[、,，;；/]+/).map(clean).filter(Boolean), b=right.split(/[、,，;；/]+/).map(clean).filter(Boolean);
+  const a=flavorPieces(left), b=flavorPieces(right);
   if(!a.length)return right; if(!b.length)return left;
   const joined=`${a[a.length-1]}${b[0]}`;
   if(exactTableAlias('flavor',joined,book,cache)) { a[a.length-1]=joined; b.shift(); }
@@ -205,7 +214,7 @@ function mergeFlavorContinuation(base,next,book,cache) {
 }
 function isFlavorContinuation(line,book,cache) {
   const raw=clean(line); if(!raw||splitInline(raw)||detectLabelOnly(raw)||/\d/.test(raw)||raw.length>40)return false;
-  const pieces=normalizeFlavorSeparators(raw).split(/[、,，;；/]+/).map(clean).filter(Boolean);
+  const pieces=flavorPieces(raw);
   if(!pieces.length||pieces.length>6)return false;
   return pieces.some(piece=>exactTableAlias('flavor',piece,book,cache)) || /^[、,，;；/]|[、,，;；/]$/.test(raw);
 }
@@ -283,7 +292,7 @@ export function repairRecognitionSemanticText(source,book) {
     if(inline) {
       if(inline.field==='flavor') {
         let value=inline.value;
-        while(index+1<lines.length && isFlavorContinuation(lines[index+1],book,cache)) {
+        while(index+1<lines.length && (isFlavorContinuation(lines[index+1],book,cache) || canJoinFlavorBoundary(value,lines[index+1],book,cache))) {
           value=mergeFlavorContinuation(value,lines[index+1],book,cache); index+=1;
         }
         output.push(...repairFlavorOwnership(value,book,cache));
