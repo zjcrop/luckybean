@@ -12,13 +12,13 @@ test.beforeEach(async({page})=>{
   await page.waitForFunction(()=>Boolean(globalThis.LuckyBeanPackageCapture),null,{timeout:15000});
 });
 
-test('package capture is reduced to four fixed primary actions without manual paste UI',async({page})=>{
+test('package capture keeps only capture upload and confirmation actions because OCR is automatic',async({page})=>{
   await page.evaluate(()=>globalThis.LuckyBeanPackageCapture.open());
   const overlay=page.locator('[data-overlay="bag-capture"]');
   await expect(overlay).toBeVisible();
   await expect(overlay.locator('#bagCameraBtn')).toHaveText('拍摄');
   await expect(overlay.locator('#bagGalleryBtn')).toHaveText('上传');
-  await expect(overlay.locator('#bagRecognizeBtn')).toHaveText('识别');
+  await expect(overlay.locator('#bagRecognizeBtn')).toHaveCount(0);
   await expect(overlay.locator('#bagHandoffBtn')).toHaveText('确认');
   await expect(overlay.locator('#bagManualBtn')).toHaveCount(0);
   const layout=await overlay.locator('.bag-capture-actions').evaluate(node=>{
@@ -26,7 +26,7 @@ test('package capture is reduced to four fixed primary actions without manual pa
     return {position:style.position,columns:style.gridTemplateColumns};
   });
   expect(layout.position).toBe('fixed');
-  expect(layout.columns.split(' ').filter(Boolean)).toHaveLength(4);
+  expect(layout.columns.split(' ').filter(Boolean)).toHaveLength(3);
   const hint=overlay.locator('.bag-capture-hint');
   await expect(hint).toHaveCount(1);
   expect(await hint.evaluate(node=>getComputedStyle(node).borderTopWidth)).toBe('0px');
