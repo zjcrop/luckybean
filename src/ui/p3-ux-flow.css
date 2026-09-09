@@ -58,7 +58,7 @@
   transform:translateX(-50%);
   width:min(880px,100%);
   display:grid!important;
-  grid-template-columns:repeat(4,minmax(0,1fr));
+  grid-template-columns:repeat(3,minmax(0,1fr));
   gap:0!important;
   padding:10px 14px calc(10px + env(safe-area-inset-bottom));
   background:var(--bg);
