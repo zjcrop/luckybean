@@ -27,6 +27,13 @@ function bounded(width, height, maxEdge) {
   };
 }
 
+function orientedDimensions(dimensions) {
+  const orientation = Number(dimensions?.orientation || 1);
+  return orientation >= 5 && orientation <= 8
+    ? { width:dimensions.height, height:dimensions.width }
+    : { width:dimensions.width, height:dimensions.height };
+}
+
 function readUint32BE(bytes, offset) {
   return ((bytes[offset] << 24) >>> 0) + (bytes[offset + 1] << 16) + (bytes[offset + 2] << 8) + bytes[offset + 3];
 }
@@ -37,13 +44,41 @@ function pngDimensions(bytes) {
   if (!signature.every((value,index) => bytes[index] === value)) return null;
   const width = readUint32BE(bytes, 16);
   const height = readUint32BE(bytes, 20);
-  return width > 0 && height > 0 ? { width, height, format:'png' } : null;
+  return width > 0 && height > 0 ? { width, height, format:'png', orientation:1 } : null;
+}
+
+function parseExifOrientation(bytes, segmentDataStart, segmentDataLength) {
+  const end = Math.min(bytes.length, segmentDataStart + segmentDataLength);
+  if (segmentDataLength < 14 || segmentDataStart + 14 > end) return 1;
+  if (String.fromCharCode(...bytes.subarray(segmentDataStart, segmentDataStart + 6)) !== 'Exif\0\0') return 1;
+  const tiff = segmentDataStart + 6;
+  const little = bytes[tiff] === 0x49 && bytes[tiff + 1] === 0x49;
+  const big = bytes[tiff] === 0x4d && bytes[tiff + 1] === 0x4d;
+  if (!little && !big) return 1;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const u16 = offset => offset + 2 <= end ? view.getUint16(offset, little) : 0;
+  const u32 = offset => offset + 4 <= end ? view.getUint32(offset, little) : 0;
+  if (u16(tiff + 2) !== 42) return 1;
+  const ifd0 = tiff + u32(tiff + 4);
+  if (ifd0 + 2 > end) return 1;
+  const count = u16(ifd0);
+  for (let index = 0; index < count; index += 1) {
+    const entry = ifd0 + 2 + index * 12;
+    if (entry + 12 > end) break;
+    if (u16(entry) !== 0x0112) continue;
+    const candidate = u16(entry + 8);
+    return candidate >= 1 && candidate <= 8 ? candidate : 1;
+  }
+  return 1;
 }
 
 function jpegDimensions(bytes) {
   if (bytes.length < 10 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
   let offset = 2;
-  while (offset + 8 < bytes.length) {
+  let width = 0;
+  let height = 0;
+  let orientation = 1;
+  while (offset + 4 <= bytes.length) {
     if (bytes[offset] !== 0xff) { offset += 1; continue; }
     while (offset < bytes.length && bytes[offset] === 0xff) offset += 1;
     if (offset >= bytes.length) break;
@@ -51,15 +86,19 @@ function jpegDimensions(bytes) {
     if (marker === 0xd8 || marker === 0xd9 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) continue;
     if (offset + 2 > bytes.length) break;
     const segmentLength = (bytes[offset] << 8) | bytes[offset + 1];
-    if (segmentLength < 2 || offset + segmentLength > bytes.length) break;
+    if (segmentLength < 2) break;
+    const segmentDataStart = offset + 2;
+    const segmentDataLength = segmentLength - 2;
+    if (segmentDataStart + segmentDataLength > bytes.length) break;
+    if (marker === 0xe1) orientation = parseExifOrientation(bytes, segmentDataStart, segmentDataLength) || orientation;
     if (JPEG_SOF_MARKERS.has(marker) && segmentLength >= 7) {
-      const height = (bytes[offset + 3] << 8) | bytes[offset + 4];
-      const width = (bytes[offset + 5] << 8) | bytes[offset + 6];
-      return width > 0 && height > 0 ? { width, height, format:'jpeg' } : null;
+      height = (bytes[offset + 3] << 8) | bytes[offset + 4];
+      width = (bytes[offset + 5] << 8) | bytes[offset + 6];
     }
+    if (marker === 0xda) break;
     offset += segmentLength;
   }
-  return null;
+  return width > 0 && height > 0 ? { width, height, format:'jpeg', orientation } : null;
 }
 
 function webpDimensions(bytes) {
@@ -69,7 +108,7 @@ function webpDimensions(bytes) {
   if (ascii(12,4) === 'VP8X') {
     const width = 1 + bytes[24] + (bytes[25] << 8) + (bytes[26] << 16);
     const height = 1 + bytes[27] + (bytes[28] << 8) + (bytes[29] << 16);
-    return width > 0 && height > 0 ? { width, height, format:'webp' } : null;
+    return width > 0 && height > 0 ? { width, height, format:'webp', orientation:1 } : null;
   }
   return null;
 }
@@ -92,41 +131,41 @@ async function decodeBoundedBitmap(blob, region, outputMaxEdge, decodeMaxEdge) {
   if (typeof createImageBitmap !== 'function') throw new Error('Worker 不支持图片解码');
   const dimensions = await encodedDimensions(blob);
   const targetEdge = decodeEdgeForRegion(region, outputMaxEdge, decodeMaxEdge);
-  if (dimensions && Math.max(dimensions.width, dimensions.height) > targetEdge) {
-    const target = bounded(dimensions.width, dimensions.height, targetEdge);
-    try {
-      return await createImageBitmap(blob, {
-        imageOrientation:'from-image',
-        resizeWidth:target.width,
-        resizeHeight:target.height,
-        resizeQuality:'high'
-      });
-    } catch (error) {
-      throw new Error(`无法安全缩放原始照片：${error?.message || 'resize decode failed'}`);
-    }
-  }
-  if (!dimensions) {
-    try {
-      const bitmap = await createImageBitmap(blob, {
-        imageOrientation:'from-image',
-        resizeWidth:targetEdge,
-        resizeQuality:'high'
-      });
-      if (Math.max(bitmap.width, bitmap.height) > decodeMaxEdge * 1.25) {
-        bitmap.close?.();
-        throw new Error('浏览器未执行受限解码');
+  if (dimensions) {
+    const oriented = orientedDimensions(dimensions);
+    if (Math.max(oriented.width, oriented.height) > targetEdge) {
+      const target = bounded(oriented.width, oriented.height, targetEdge);
+      try {
+        return await createImageBitmap(blob, {
+          imageOrientation:'from-image',
+          resizeWidth:target.width,
+          resizeHeight:target.height,
+          resizeQuality:'high'
+        });
+      } catch (error) {
+        throw new Error(`无法安全缩放原始照片：${error?.message || 'resize decode failed'}`);
       }
-      return bitmap;
-    } catch (error) {
-      throw new Error(`无法以低内存方式解码该图片：${error?.message || error}`);
     }
+    return createImageBitmap(blob, { imageOrientation:'from-image' });
   }
-  return createImageBitmap(blob, { imageOrientation:'from-image' });
+  try {
+    const bitmap = await createImageBitmap(blob, {
+      imageOrientation:'from-image',
+      resizeWidth:targetEdge,
+      resizeQuality:'high'
+    });
+    if (Math.max(bitmap.width, bitmap.height) > decodeMaxEdge * 1.25) {
+      bitmap.close?.();
+      throw new Error('浏览器未执行受限解码');
+    }
+    return bitmap;
+  } catch (error) {
+    throw new Error(`无法以低内存方式解码该图片：${error?.message || error}`);
+  }
 }
 
 function makeCanvas(width, height) {
-  const canvas = new OffscreenCanvas(Math.max(1, Math.round(width)), Math.max(1, Math.round(height)));
-  return canvas;
+  return new OffscreenCanvas(Math.max(1, Math.round(width)), Math.max(1, Math.round(height)));
 }
 
 function releaseCanvas(canvas) {
