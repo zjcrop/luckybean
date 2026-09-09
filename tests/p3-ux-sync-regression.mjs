@@ -8,6 +8,7 @@ const interaction = read('src/ui/recognition-interaction-controller.js');
 const brewInteractionCss = read('src/ui/brew-interaction-emphasis.css');
 const progress = read('src/features/recognition-batch-progress-controller.js');
 const sync = read('src/services/cloud-sync-service.js');
+const capture = read('src/package-capture-controller.js');
 
 assert.match(interaction, /import '\.\/p3-ux-flow-controller\.js'/, 'P3 UX controller must be loaded by an existing boot module');
 assert.match(flow, /\[data-brew-bean\]/, 'bean-card brew action must be observed');
@@ -24,13 +25,16 @@ assert.match(flow, /targetHeight = view\.canvas\.height \* 0\.76/, '3D scene mus
 assert.match(flow, /\$\$\('\.spatial-fullscreen-overlay'\)\.forEach\(node => node\.remove\(\)\)/, 'fullscreen overlay must be physically removed on exit');
 assert.match(flow, /document\.body\.classList\.remove\('spatial-fullscreen-open'\)/, 'fullscreen body state must be cleared');
 
-for (const label of ["camera.textContent = '拍摄'", "gallery.textContent = '上传'", "recognize.textContent = '识别'", "handoff.textContent = '确认'"]) {
+for (const label of ["camera.textContent = '拍摄'", "gallery.textContent = '上传'", "handoff.textContent = '确认'"]) {
   assert.ok(flow.includes(label), `capture action rename missing: ${label}`);
 }
 assert.match(flow, /#bagManualBtn[^\n]*\.remove\(\)/, 'duplicate manual paste action must be removed');
-assert.match(flowCss, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/, 'capture footer must expose four fixed actions');
+assert.match(flowCss, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/, 'capture footer must expose only capture, upload and confirmation actions');
 assert.match(flowCss, /position:fixed!important/, 'capture actions must stay fixed at viewport bottom');
-assert.match(flow, /button && !button\.disabled\) button\.click\(\)/, 'successful capture must auto-handoff into ambiguity/Foundation flow');
+assert.match(capture, /luckybean:package-auto-recognition-start/, 'successful image entry must own automatic OCR start');
+assert.match(capture, /void runRecognition\(\)/, 'automatic OCR must call the authoritative recognition path directly');
+assert.doesNotMatch(capture, /bagRecognizeBtn/, 'package capture must not render a manual recognition control');
+assert.match(flow, /button && !button\.disabled\) button\.click\(\)/, 'successful recognition must auto-handoff into ambiguity/Foundation flow');
 
 assert.doesNotMatch(progress, /正在识别 \$\{current\}/, 'standalone recognition status copy must be removed');
 assert.doesNotMatch(progress, /task\.taskId.*识别中/, 'task status text must not be rendered as a separate row');
@@ -57,4 +61,4 @@ assert.match(sync, /skippedUnchangedPackets/, 'sync diagnostics must record skip
 assert.match(sync, /field_revisions: bean\.map\(fieldFingerprint\)/, 'manifest must expose per-field revision fingerprints for diff planning');
 assert.match(sync, /revision: 'cloud-sync-service-v4-manifest-diff'/, 'runtime sync revision must identify the manifest-first implementation');
 
-console.log('P3 UX, real OCR progress, 3D fullscreen and manifest-first sync contracts passed');
+console.log('P3 UX, automatic OCR, real OCR progress, 3D fullscreen and manifest-first sync contracts passed');
