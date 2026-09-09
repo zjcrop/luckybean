@@ -15,6 +15,11 @@ test('gallery chooser proceeds to low-memory crop UI after selecting a JPEG', as
   });
 
   await page.goto('http://127.0.0.1:4173/', { waitUntil:'domcontentloaded' });
+  const splash = page.locator('#splashScreen');
+  if (await splash.isVisible().catch(() => false)) await splash.click();
+  await expect(page.locator('#appShell')).toBeVisible({ timeout:15_000 });
+  await expect(page.locator('#overlayRoot')).toBeAttached({ timeout:15_000 });
+
   await page.waitForFunction(() => Boolean(globalThis.LuckyBeanRuntimeFeatures?.loadMany), null, { timeout:20_000 });
   await page.evaluate(() => globalThis.LuckyBeanRuntimeFeatures.loadMany([
     'gallery-image-preprocess',
@@ -25,6 +30,7 @@ test('gallery chooser proceeds to low-memory crop UI after selecting a JPEG', as
 
   const galleryButton = page.locator('#bagGalleryBtn');
   await expect(galleryButton).toBeVisible({ timeout:10_000 });
+  await expect(galleryButton).toBeEnabled({ timeout:10_000 });
 
   const jpegBytes = await page.evaluate(async () => {
     const canvas = document.createElement('canvas');
@@ -45,9 +51,10 @@ test('gallery chooser proceeds to low-memory crop UI after selecting a JPEG', as
     return [...new Uint8Array(await blob.arrayBuffer())];
   });
 
-  const chooserPromise = page.waitForEvent('filechooser');
-  await galleryButton.click();
-  const chooser = await chooserPromise;
+  const [chooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    galleryButton.click()
+  ]);
   await chooser.setFiles({
     name:'gallery-upload-smoke.jpg',
     mimeType:'image/jpeg',
