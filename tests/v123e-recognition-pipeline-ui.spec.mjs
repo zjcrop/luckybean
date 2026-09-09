@@ -33,7 +33,9 @@ test('native OCR payload is translated, structured, auto-handed to preflight and
     globalThis.LuckyBeanPackageCapture.open();
   });
 
-  await page.locator('#bagGalleryInput').setInputFiles({ name: 'beanbag.png', mimeType: 'image/png', buffer: PNG_1X1 });
+  // This test owns the OCR/preflight contract, not the gallery crop UI. Use the camera
+  // input so the image fixture reaches package capture without opening the separate crop flow.
+  await page.locator('#bagCameraInput').setInputFiles({ name: 'beanbag.png', mimeType: 'image/png', buffer: PNG_1X1 });
   await expect(page.locator('#bagRecognizeBtn')).toBeEnabled();
   await page.locator('[data-bag-role]').selectOption('back');
   await page.locator('#bagRecognizeBtn').click();
