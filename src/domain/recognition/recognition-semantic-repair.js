@@ -150,7 +150,7 @@ function inferredUnlabelledField(line,book,cache) {
   if (REGION_SUFFIX_PATTERN.test(raw) || REGION_SUFFIX_PATTERN.test(folded)) return { field:'region',label:CANONICAL_LABEL.region,value:folded };
   for (const [pattern,canonical] of ROAST_VALUE_PATTERNS) if(pattern.test(raw)||pattern.test(folded)) return { field:'roast',label:CANONICAL_LABEL.roast,value:canonical };
   for (const field of ['country','region','variety','process']) {
-    const exact=exactTableAlias(field,folded,book,cache); if(exact)return { field,label:CANONICAL_LABEL[field],value:exact };
+    const exact=exactTableAlias(field,folded,book,cache); if(exact)return { field,label:CANONICAL_LABEL[field],value:lookupAugmentedValue(field,raw,book,cache) };
   }
   const flavor=normalizeFlavorSeparators(folded), pieces=flavor.split(/[、,，;；/]+/).map(clean).filter(Boolean);
   if(flavor.length<=48 && canInferFlavorList(pieces,book,cache)) return { field:'flavor',label:CANONICAL_LABEL.flavor,value:flavor };
