@@ -76,12 +76,9 @@ test('native OCR auto-handoff still requires canonical preflight confirmation be
     globalThis.LuckyBeanPackageCapture.open();
   });
 
-  // This test covers native OCR handoff/preflight rather than gallery cropping. The camera
-  // fixture path keeps the recognition contract isolated while gallery has its own chooser smoke.
+  // Camera input must immediately start OCR; no manual recognition control exists.
   await page.locator('#bagCameraInput').setInputFiles({ name: 'beanbag.png', mimeType: 'image/png', buffer: PNG_1X1 });
-  await expect(page.locator('#bagRecognizeBtn')).toBeEnabled();
-  await page.locator('[data-bag-role]').selectOption('back');
-  await page.locator('#bagRecognizeBtn').click();
+  await expect(page.locator('#bagRecognizeBtn')).toHaveCount(0);
   await expect(page.locator('[data-overlay="recognition-preflight"]')).toBeVisible({ timeout: 15000 });
   await expect(page.locator('#bagHandoffBtn')).not.toBeVisible();
 
