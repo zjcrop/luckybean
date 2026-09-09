@@ -61,64 +61,87 @@ function installJarcDisplayNormalizer() {
   observer.observe(document.documentElement, { subtree:true, childList:true, characterData:true });
 }
 
-let wrappedGalleryApi = null;
 let autoRecognitionTimer = 0;
+let lastTriggeredImageSignature = '';
 
-function queueAutomaticRecognition() {
+function currentImageSignature() {
+  if (typeof document === 'undefined') return '';
+  return [...document.querySelectorAll('[data-bag-image-id]')]
+    .map(node => String(node.getAttribute('data-bag-image-id') || ''))
+    .filter(Boolean)
+    .join('|');
+}
+
+function hideRecognitionButton() {
+  if (typeof document === 'undefined') return null;
+  const button = document.querySelector('#bagRecognizeBtn');
+  if (!button) return null;
+  button.hidden = true;
+  button.tabIndex = -1;
+  button.setAttribute('aria-hidden', 'true');
+  return button;
+}
+
+function updateAutomaticRecognitionCopy() {
   if (typeof document === 'undefined') return;
+  const status = document.querySelector('.bag-capture-status span');
+  if (!status) return;
+  if (/可以开始识别/.test(status.textContent || '')) {
+    status.textContent = String(status.textContent || '').replace('可以开始识别', '系统会自动识别');
+  }
+}
+
+function queueAutomaticRecognition(signature = currentImageSignature()) {
+  if (typeof document === 'undefined' || !signature) return;
   globalThis.clearTimeout(autoRecognitionTimer);
+  lastTriggeredImageSignature = signature;
   const startedAt = Date.now();
   const poll = () => {
+    const overlay = document.querySelector('[data-overlay="bag-capture"]');
+    if (!overlay) return;
+    if (currentImageSignature() !== signature) return;
+    const button = hideRecognitionButton();
+    updateAutomaticRecognitionCopy();
     if (document.querySelector('.lb-img-pre')) {
-      autoRecognitionTimer = globalThis.setTimeout(poll, 120);
+      autoRecognitionTimer = globalThis.setTimeout(poll, 80);
       return;
     }
-    const button = document.querySelector('#bagRecognizeBtn');
     if (button && !button.disabled && /开始识别/.test(button.textContent || '')) {
       button.click();
       return;
     }
-    if (Date.now() - startedAt < 30000) autoRecognitionTimer = globalThis.setTimeout(poll, 120);
+    if (Date.now() - startedAt < 30000) autoRecognitionTimer = globalThis.setTimeout(poll, 80);
   };
   autoRecognitionTimer = globalThis.setTimeout(poll, 0);
 }
 
-function installGalleryAutoRecognition() {
-  const api = globalThis.LuckyBeanGalleryImagePreprocess;
-  if (!api || typeof api.preprocessFiles !== 'function') return false;
-  if (api === wrappedGalleryApi) return true;
-  const originalPreprocessFiles = api.preprocessFiles.bind(api);
-  const wrappedPreprocessFiles = async files => {
-    const processed = await originalPreprocessFiles(files);
-    if (Array.isArray(processed) && processed.length) queueAutomaticRecognition();
-    return processed;
-  };
-  const nextApi = Object.freeze({ ...api, preprocessFiles:wrappedPreprocessFiles });
-  globalThis.LuckyBeanGalleryImagePreprocess = nextApi;
-  wrappedGalleryApi = nextApi;
-  return true;
+function syncPackageCaptureAutoRecognition() {
+  if (typeof document === 'undefined') return;
+  const overlay = document.querySelector('[data-overlay="bag-capture"]');
+  if (!overlay) {
+    globalThis.clearTimeout(autoRecognitionTimer);
+    lastTriggeredImageSignature = '';
+    return;
+  }
+  hideRecognitionButton();
+  updateAutomaticRecognitionCopy();
+  const signature = currentImageSignature();
+  if (signature && signature !== lastTriggeredImageSignature) queueAutomaticRecognition(signature);
 }
 
-function installWhenReady() {
-  installGalleryAutoRecognition();
-  let attempts = 0;
-  const timer = globalThis.setInterval(() => {
-    attempts += 1;
-    installGalleryAutoRecognition();
-    if (attempts >= 200) globalThis.clearInterval(timer);
-  }, 100);
+function installPackageCaptureAutoRecognition() {
+  syncPackageCaptureAutoRecognition();
+  const observer = new MutationObserver(() => syncPackageCaptureAutoRecognition());
+  observer.observe(document.documentElement, { subtree:true, childList:true, attributes:true, attributeFilter:['disabled'] });
 }
 
 if (typeof document !== 'undefined') {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      installJarcDisplayNormalizer();
-      installWhenReady();
-    }, { once:true });
-  } else {
+  const install = () => {
     installJarcDisplayNormalizer();
-    installWhenReady();
-  }
+    installPackageCaptureAutoRecognition();
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once:true });
+  else install();
 }
 
-export { normalizeJarcDisplayText, queueAutomaticRecognition };
+export { normalizeJarcDisplayText, queueAutomaticRecognition, currentImageSignature };
