@@ -8,9 +8,6 @@ function le16(value) { return [value & 255, value >> 8 & 255]; }
 function le32(value) { return [value & 255, value >>> 8 & 255, value >>> 16 & 255, value >>> 24 & 255]; }
 
 function syntheticExifJpeg({ width = 8000, height = 6000, orientation = 6 } = {}) {
-  // TIFF little-endian. IFD0 contains orientation and pointer to IFD1.
-  // IFD1 contains JPEG thumbnail offset/length. The tiny JPEG is deliberately
-  // synthetic: the header parser must return it without decoding the main raster.
   const thumbnail = Uint8Array.from([0xff,0xd8,0xff,0xdb,0,4,0,0,0xff,0xd9, ...new Uint8Array(70)]);
   const tiffHeader = [0x49,0x49,42,0,8,0,0,0];
   const ifd0 = [
@@ -80,9 +77,7 @@ test('gallery flow releases preview before original processing and marks result 
   assert.match(source, /gallery-image-finalize-worker\.js/);
   assert.match(source, /OUTPUT_QUALITY\s*=\s*0\.92/);
   assert.match(source, /skipSecondEncode:true/);
-  const releaseIndex = source.indexOf('releasePreview();');
-  const processIndex = source.indexOf('processFile(file,options)');
-  assert.ok(releaseIndex >= 0 && processIndex > releaseIndex, 'preview must be released before final source processing');
+  assert.match(source, /releasePreview\(\);[\s\S]{0,240}processFile\(file,options\)/);
 });
 
 test('OCR-ready crop bypasses preparePackageImage decode, quality scan and second JPEG encode', async () => {
