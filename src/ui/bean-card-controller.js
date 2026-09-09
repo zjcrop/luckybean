@@ -1,5 +1,6 @@
 import { get } from '../db.js';
 import { archiveBeans, moveBeansToRecycle } from '../domain/beans/bean-lifecycle-service.js';
+import { compactVarietyLabel } from '../domain/beans/bean-display-projection.js';
 
 const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
 const LONG_PRESS_MS = 500;
@@ -9,7 +10,8 @@ let suppressClickUntil = 0;
 let suppressBeanId = '';
 
 function beanName(bean) {
-  return String(bean?.name || bean?.entityName || bean?.countryName || '这张豆卡').trim();
+  const value = String(bean?.name || bean?.entityName || bean?.countryName || '这张豆卡').trim();
+  return compactVarietyLabel(value);
 }
 function notify(message, kind = 'status-good') {
   document.dispatchEvent(new CustomEvent('luckybean:user-notice', { detail:{ message, kind } }));

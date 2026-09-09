@@ -175,9 +175,13 @@ async function addGalleryFiles(fileList) {
     galleryFailure(new Error('相册裁切模块尚未就绪'));
     return;
   }
+  const imageCountBefore = captureState.images.length;
   try {
     const processed = await preprocess(files);
-    if (processed?.length) await addFiles(processed);
+    if (processed?.length) {
+      await addFiles(processed);
+      if (captureState.images.length > imageCountBefore) queueRecognition();
+    }
   } catch (error) {
     galleryFailure(error);
   }
@@ -292,10 +296,18 @@ function interceptPhotoMode(event) {
   const button = event.target.closest?.('[data-add-mode="photo"]'); if (!button) return;
   event.preventDefault(); event.stopImmediatePropagation(); document.querySelectorAll('.popup-menu').forEach(node => node.remove()); openPackageCapture();
 }
+function queueRecognition() {
+  if (!captureState.images.length || captureState.busy || recognitionQueued) return false;
+  recognitionQueued = true;
+  setTimeout(async () => {
+    try { await runRecognition(); }
+    finally { recognitionQueued = false; }
+  }, 0);
+  return true;
+}
 function interceptRecognitionClick(event) {
   const button = event.target.closest?.('#bagRecognizeBtn'); if (!button || button.disabled || captureState.busy || recognitionQueued) return;
-  event.preventDefault(); event.stopImmediatePropagation(); recognitionQueued = true;
-  setTimeout(async () => { try { await runRecognition(); } finally { recognitionQueued = false; } }, 0);
+  event.preventDefault(); event.stopImmediatePropagation(); queueRecognition();
 }
 document.addEventListener('click', interceptPhotoMode, true);
 document.addEventListener('click', interceptRecognitionClick, true);
