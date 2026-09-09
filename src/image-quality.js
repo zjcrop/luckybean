@@ -18,6 +18,41 @@ function retainOriginalCompressedSource(preparedBlob, sourceBlob) {
   return preparedBlob;
 }
 
+function galleryReadyKey(file) {
+  return [String(file?.name || ''), Number(file?.size || 0), Number(file?.lastModified || 0), String(file?.type || '')].join('|');
+}
+
+function consumeGalleryReadyMetadata(file) {
+  const registry = globalThis.__LUCKYBEAN_GALLERY_OCR_READY__;
+  if (!(registry instanceof Map)) return null;
+  const key = galleryReadyKey(file);
+  const metadata = registry.get(key) || null;
+  if (metadata) registry.delete(key);
+  return metadata;
+}
+
+function galleryReadySource(file, metadata) {
+  const width = Math.max(1, Number(metadata?.width || 0));
+  const height = Math.max(1, Number(metadata?.height || 0));
+  return {
+    blob:file,
+    originalName:file.name || 'coffee-bag-ocr-crop.jpg',
+    originalSize:file.size || 0,
+    width,
+    height,
+    processedWidth:width,
+    processedHeight:height,
+    metrics:null,
+    score:92,
+    status:'good',
+    nativeSource:false,
+    decodePreScaled:true,
+    encodedFormat:'jpeg',
+    ocrReady:true,
+    warnings:['已按框选区域生成 OCR 专用图；跳过第二次图片解码、质量扫描和 JPEG 重编码']
+  };
+}
+
 function isAppleMobileLike() {
   const ua = String(globalThis.navigator?.userAgent || '');
   return /iPhone|iPad|iPod/i.test(ua)
@@ -30,8 +65,6 @@ function memoryAwareMaxEdge(requested) {
 }
 function releaseCanvas(canvas) {
   if (!canvas) return;
-  // Resetting dimensions releases the backing pixel buffer immediately on most
-  // browser/WebView engines instead of waiting for a later GC cycle.
   canvas.width = 1;
   canvas.height = 1;
 }
@@ -133,9 +166,6 @@ async function decodeImage(file, maxEdge) {
           encodedFormat:encoded.format
         };
       } catch (error) {
-        // Do not silently fall back to decoding a 12/24/48 MP source into a full
-        // RGBA bitmap. The compressed file can be only a few MB while the decoded
-        // raster consumes hundreds of MB and can freeze/restart the tab/WebView.
         throw new Error(`当前浏览器无法安全缩放高分辨率图片：${error?.message || 'createImageBitmap resize failed'}`);
       }
     }
@@ -149,11 +179,9 @@ async function decodeImage(file, maxEdge) {
         decodePreScaled:false,
         encodedFormat:encoded?.format || ''
       };
-    } catch { /* fallback below */ }
+    } catch { }
   }
 
-  // The Image element path is retained only for sources that were not identified
-  // as oversized above. Known oversized JPEG/PNG/WebP files never reach this path.
   const url = URL.createObjectURL(file);
   try {
     const image = await new Promise((resolve, reject) => {
@@ -297,11 +325,9 @@ function androidNativeFallback(file, error) {
 export async function preparePackageImage(file, { maxEdge = DEFAULT_MAX_EDGE } = {}) {
   if (!(file instanceof Blob)) throw new TypeError('需要有效的图片文件');
 
-  // Native Android recognition owns decoding and orientation. Re-decoding a
-  // 12–50 MP camera image in WebView, scanning a 420 px quality canvas and then
-  // encoding another JPEG adds latency and memory pressure without improving
-  // the bytes consumed by the native recognizer. Preserve the source Blob/URI
-  // contract and let the native bridge read the original image once.
+  const galleryReady = consumeGalleryReadyMetadata(file);
+  if (galleryReady?.skipSecondEncode === true) return galleryReadySource(file, galleryReady);
+
   if (nativeRecognitionAvailable()) return nativeSource(file);
 
   const effectiveEdge = memoryAwareMaxEdge(maxEdge);
@@ -334,9 +360,6 @@ export async function preparePackageImage(file, { maxEdge = DEFAULT_MAX_EDGE } =
     releaseCanvas(sampleCanvas);
     sampleCanvas = null;
 
-    // `image` is already decoder-bounded when the source dimensions exceed the
-    // safe OCR edge. The output canvas therefore never receives the full camera
-    // raster and only performs the final deterministic JPEG encode.
     const outputScale = Math.min(1, effectiveEdge / Math.max(actual.width, actual.height));
     outputCanvas = document.createElement('canvas');
     outputCanvas.width = Math.max(1, Math.round(actual.width * outputScale));

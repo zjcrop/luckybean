@@ -31,12 +31,17 @@ test('fast path preserves 2200px detector budget and only falls back after a rea
 test('gallery upload gets manual crop and geometry correction while camera input stays direct', async () => {
   const runtime = await read('src/features/runtime-features.js');
   const preprocess = await read('src/gallery-image-preprocess.js');
+  const worker = await read('src/gallery-image-finalize-worker.js');
   assert.match(runtime, /feature\('gallery-image-preprocess', '\.\.\/gallery-image-preprocess\.js'\)/);
   assert.match(preprocess, /input\.id!==['"]bagGalleryInput['"]/);
   assert.doesNotMatch(preprocess, /bagCameraInput/);
   assert.match(preprocess, /自动角度校正/);
   assert.match(preprocess, /自动透视修正/);
-  assert.match(preprocess, /warpPerspectiveMesh/);
+  assert.match(preprocess, /detectPerspectiveQuad/);
+  assert.match(preprocess, /gallery-image-finalize-worker\.js/);
+  assert.match(worker, /perspectiveCanvas/);
+  assert.match(worker, /OffscreenCanvas/);
+  assert.doesNotMatch(preprocess, /warpPerspectiveMesh/);
 });
 
 test('bounded preparation may retain the original compressed blob without enabling a second OCR pass', async () => {
