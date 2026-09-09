@@ -71,6 +71,16 @@ test('final gallery crop is performed in a bounded worker and releases bitmap/ca
   assert.doesNotMatch(source, /document\.createElement\(['"]canvas['"]\)/);
 });
 
+test('final crop uses the same EXIF-oriented coordinate space as the thumbnail preview', async () => {
+  const source = await readFile(new URL('../src/gallery-image-finalize-worker.js', import.meta.url), 'utf8');
+  assert.match(source, /function parseExifOrientation/);
+  assert.match(source, /function orientedDimensions/);
+  assert.match(source, /orientation >= 5 && orientation <= 8/);
+  assert.match(source, /const oriented = orientedDimensions\(dimensions\)/);
+  assert.match(source, /bounded\(oriented\.width, oriented\.height, targetEdge\)/);
+  assert.match(source, /imageOrientation:'from-image'/);
+});
+
 test('gallery flow releases preview before original processing and marks result OCR-ready', async () => {
   const source = await readFile(new URL('../src/gallery-image-preprocess.js', import.meta.url), 'utf8');
   assert.match(source, /createLowMemoryGalleryPreview\(file,PREVIEW_MAX_EDGE\)/);
