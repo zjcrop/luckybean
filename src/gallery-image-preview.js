@@ -152,6 +152,13 @@ function releaseCanvas(canvas) {
   canvas.height = 1;
 }
 
+function notifyPreviewFailure(message) {
+  const text = String(message || '图片预览失败');
+  document.dispatchEvent(new CustomEvent('luckybean:user-notice', {
+    detail:{ kind:'status-bad', message:`图片已选择，但裁切预览失败：${text}` }
+  }));
+}
+
 async function orientThumbnail(bitmap, orientation, maxEdge) {
   const oriented = orientedDimensions(bitmap.width, bitmap.height, orientation);
   const target = bounded(oriented.width, oriented.height, maxEdge);
@@ -181,34 +188,103 @@ async function orientThumbnail(bitmap, orientation, maxEdge) {
   return result;
 }
 
-export async function createLowMemoryGalleryPreview(blob, maxEdge = 900) {
-  if (typeof createImageBitmap !== 'function') throw new Error('当前浏览器不支持低内存图片预览');
-  const header = await readGalleryImageHeader(blob);
-  if (header?.thumbnailBlob) {
-    const thumbnail = await createImageBitmap(header.thumbnailBlob);
-    try {
-      const bitmap = await orientThumbnail(thumbnail, header.orientation || 1, maxEdge);
-      return { bitmap, header, source:'embedded-thumbnail' };
-    } finally {
-      thumbnail.close?.();
-    }
+async function tryEmbeddedThumbnail(header, maxEdge) {
+  if (!header?.thumbnailBlob) return null;
+  let thumbnail = null;
+  try {
+    thumbnail = await createImageBitmap(header.thumbnailBlob);
+    const bitmap = await orientThumbnail(thumbnail, header.orientation || 1, maxEdge);
+    return { bitmap, header, source:'embedded-thumbnail' };
+  } catch (error) {
+    console.warn('EXIF 内嵌缩略图不可解码，回退到受限原图预览', error);
+    return null;
+  } finally {
+    thumbnail?.close?.();
   }
+}
 
-  if (header?.width && header?.height) {
-    const oriented = orientedDimensions(header.width, header.height, header.orientation || 1);
+async function tryBoundedBitmapDecode(blob, header, maxEdge) {
+  if (!header?.width || !header?.height) return null;
+  const oriented = orientedDimensions(header.width, header.height, header.orientation || 1);
+  const target = bounded(oriented.width, oriented.height, maxEdge);
+  try {
+    const bitmap = await createImageBitmap(blob, {
+      imageOrientation:'from-image',
+      resizeWidth:target.width,
+      resizeHeight:target.height,
+      resizeQuality:'high'
+    });
+    if (Math.max(bitmap.width, bitmap.height) > maxEdge * 1.25) {
+      bitmap.close?.();
+      return null;
+    }
+    return { bitmap, header, source:'decoder-thumbnail' };
+  } catch (error) {
+    console.warn('浏览器受限图片解码失败，继续尝试兼容预览', error);
+    return null;
+  }
+}
+
+async function tryImageDecoderPreview(blob, header, maxEdge) {
+  const Decoder = globalThis.ImageDecoder;
+  const type = String(blob?.type || '').trim();
+  if (typeof Decoder !== 'function' || !type) return null;
+  let decoder = null;
+  let frame = null;
+  let canvas = null;
+  try {
+    const oriented = header?.width && header?.height
+      ? orientedDimensions(header.width, header.height, header.orientation || 1)
+      : { width:maxEdge, height:maxEdge };
     const target = bounded(oriented.width, oriented.height, maxEdge);
+    const data = typeof blob.stream === 'function' ? blob.stream() : await blob.arrayBuffer();
+    decoder = new Decoder({ data, type, desiredWidth:target.width, desiredHeight:target.height, preferAnimation:false });
+    await decoder.tracks.ready;
+    const result = await decoder.decode({ frameIndex:0, completeFramesOnly:true });
+    frame = result.image;
+    const width = Math.max(1, Math.min(maxEdge, Number(frame.displayWidth || frame.codedWidth || target.width)));
+    const height = Math.max(1, Math.min(maxEdge, Number(frame.displayHeight || frame.codedHeight || target.height)));
+    canvas = makeCanvas(width, height);
+    const ctx = canvas.getContext('2d', { alpha:false });
+    if (!ctx) return null;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0,0,width,height);
+    ctx.drawImage(frame,0,0,width,height);
+    const bitmap = await createImageBitmap(canvas);
+    return { bitmap, header, source:'image-decoder-thumbnail' };
+  } catch (error) {
+    console.warn('ImageDecoder 低内存预览失败', error);
+    return null;
+  } finally {
+    frame?.close?.();
+    decoder?.close?.();
+    releaseCanvas(canvas);
+  }
+}
+
+export async function createLowMemoryGalleryPreview(blob, maxEdge = 900) {
+  if (typeof createImageBitmap !== 'function') {
+    const error = new Error('当前浏览器不支持低内存图片预览');
+    notifyPreviewFailure(error.message);
+    throw error;
+  }
+  const header = await readGalleryImageHeader(blob);
+
+  const embedded = await tryEmbeddedThumbnail(header, maxEdge);
+  if (embedded) return embedded;
+
+  const boundedDecode = await tryBoundedBitmapDecode(blob, header, maxEdge);
+  if (boundedDecode) return boundedDecode;
+
+  const imageDecoder = await tryImageDecoderPreview(blob, header, maxEdge);
+  if (imageDecoder) return imageDecoder;
+
+  if (header?.width && header?.height && Math.max(header.width, header.height) <= maxEdge) {
     try {
-      const bitmap = await createImageBitmap(blob, {
-        imageOrientation:'from-image',
-        resizeWidth:target.width,
-        resizeHeight:target.height,
-        resizeQuality:'high'
-      });
-      return { bitmap, header, source:'decoder-thumbnail' };
+      const bitmap = await createImageBitmap(blob, { imageOrientation:'from-image' });
+      return { bitmap, header, source:'small-source-fallback' };
     } catch (error) {
-      if (Math.max(header.width, header.height) > maxEdge) {
-        throw new Error(`当前浏览器无法安全生成低分辨率预览：${error?.message || 'resize decode failed'}`);
-      }
+      console.warn('小尺寸原图兼容预览失败', error);
     }
   }
 
@@ -218,12 +294,14 @@ export async function createLowMemoryGalleryPreview(blob, maxEdge = 900) {
       resizeWidth:maxEdge,
       resizeQuality:'high'
     });
-    if (Math.max(bitmap.width, bitmap.height) > maxEdge * 1.25) {
+    if (Math.max(bitmap.width, bitmap.height) > maxEdge * 1.4) {
       bitmap.close?.();
       throw new Error('浏览器未执行低分辨率解码');
     }
     return { bitmap, header, source:'bounded-fallback' };
   } catch (error) {
-    throw new Error(`无法以低内存方式预览该图片：${error?.message || error}`);
+    const wrapped = new Error(`无法以低内存方式预览该图片：${error?.message || error}`);
+    notifyPreviewFailure(wrapped.message);
+    throw wrapped;
   }
 }
