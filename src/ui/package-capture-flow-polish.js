@@ -65,6 +65,7 @@ let galleryWrapInstalled = false;
 let autoRecognitionTimer = 0;
 
 function queueAutomaticRecognition() {
+  if (typeof document === 'undefined') return;
   globalThis.clearTimeout(autoRecognitionTimer);
   const startedAt = Date.now();
   const poll = () => {
@@ -106,14 +107,16 @@ function installWhenReady() {
   }, 100);
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      installJarcDisplayNormalizer();
+      installWhenReady();
+    }, { once:true });
+  } else {
     installJarcDisplayNormalizer();
     installWhenReady();
-  }, { once:true });
-} else {
-  installJarcDisplayNormalizer();
-  installWhenReady();
+  }
 }
 
 export { normalizeJarcDisplayText, queueAutomaticRecognition };
