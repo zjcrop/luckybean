@@ -61,64 +61,9 @@ function installJarcDisplayNormalizer() {
   observer.observe(document.documentElement, { subtree:true, childList:true, characterData:true });
 }
 
-let wrappedGalleryApi = null;
-let autoRecognitionTimer = 0;
-
-function queueAutomaticRecognition() {
-  if (typeof document === 'undefined') return;
-  globalThis.clearTimeout(autoRecognitionTimer);
-  const startedAt = Date.now();
-  const poll = () => {
-    if (document.querySelector('.lb-img-pre')) {
-      autoRecognitionTimer = globalThis.setTimeout(poll, 120);
-      return;
-    }
-    const button = document.querySelector('#bagRecognizeBtn');
-    if (button && !button.disabled && /开始识别/.test(button.textContent || '')) {
-      button.click();
-      return;
-    }
-    if (Date.now() - startedAt < 30000) autoRecognitionTimer = globalThis.setTimeout(poll, 120);
-  };
-  autoRecognitionTimer = globalThis.setTimeout(poll, 0);
-}
-
-function installGalleryAutoRecognition() {
-  const api = globalThis.LuckyBeanGalleryImagePreprocess;
-  if (!api || typeof api.preprocessFiles !== 'function') return false;
-  if (api === wrappedGalleryApi) return true;
-  const originalPreprocessFiles = api.preprocessFiles.bind(api);
-  const wrappedPreprocessFiles = async files => {
-    const processed = await originalPreprocessFiles(files);
-    if (Array.isArray(processed) && processed.length) queueAutomaticRecognition();
-    return processed;
-  };
-  const nextApi = Object.freeze({ ...api, preprocessFiles:wrappedPreprocessFiles });
-  globalThis.LuckyBeanGalleryImagePreprocess = nextApi;
-  wrappedGalleryApi = nextApi;
-  return true;
-}
-
-function installWhenReady() {
-  installGalleryAutoRecognition();
-  let attempts = 0;
-  const timer = globalThis.setInterval(() => {
-    attempts += 1;
-    installGalleryAutoRecognition();
-    if (attempts >= 200) globalThis.clearInterval(timer);
-  }, 100);
-}
-
 if (typeof document !== 'undefined') {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      installJarcDisplayNormalizer();
-      installWhenReady();
-    }, { once:true });
-  } else {
-    installJarcDisplayNormalizer();
-    installWhenReady();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installJarcDisplayNormalizer, { once:true });
+  else installJarcDisplayNormalizer();
 }
 
-export { normalizeJarcDisplayText, queueAutomaticRecognition };
+export { normalizeJarcDisplayText };
