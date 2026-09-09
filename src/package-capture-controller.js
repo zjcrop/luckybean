@@ -160,6 +160,28 @@ async function addFiles(fileList) {
   } catch (error) { captureState.ocrText = `图片处理失败：${error.message}`; captureState.ocrEngine = '错误'; }
   finally { captureState.busy = false; render(); }
 }
+function galleryFailure(error) {
+  const message = `图片裁切失败：${String(error?.message || error || '未知错误')}`;
+  captureState.ocrText = message;
+  captureState.ocrEngine = '图片处理错误';
+  document.dispatchEvent(new CustomEvent('luckybean:user-notice', { detail:{ kind:'status-bad', message } }));
+  render();
+}
+async function addGalleryFiles(fileList) {
+  const files = [...(fileList || [])].filter(file => file.type.startsWith('image/')).slice(0, MAX_IMAGES - captureState.images.length);
+  if (!files.length) return;
+  const preprocess = globalThis.LuckyBeanGalleryImagePreprocess?.preprocessFiles;
+  if (typeof preprocess !== 'function') {
+    galleryFailure(new Error('相册裁切模块尚未就绪'));
+    return;
+  }
+  try {
+    const processed = await preprocess(files);
+    if (processed?.length) await addFiles(processed);
+  } catch (error) {
+    galleryFailure(error);
+  }
+}
 async function applyAiAdvisory(book, generation, documentRef) {
   const analysisRef = captureState.analysis;
   if (!documentRef || !analysisRef || generation !== operationGeneration) return;
@@ -245,9 +267,19 @@ async function handoffToExistingParser() {
 function bindOverlay() {
   document.querySelector('[data-bag-close]')?.addEventListener('click', () => clearCapture());
   document.querySelector('#bagCameraBtn')?.addEventListener('click', () => document.querySelector('#bagCameraInput')?.click());
-  document.querySelector('#bagGalleryBtn')?.addEventListener('click', () => document.querySelector('#bagGalleryInput')?.click());
+  document.querySelector('#bagGalleryBtn')?.addEventListener('click', () => {
+    const input = document.querySelector('#bagGalleryInput');
+    if (!input) return;
+    input.dataset.lbPreprocessed = '1';
+    input.click();
+  });
   document.querySelector('#bagCameraInput')?.addEventListener('change', event => addFiles(event.target.files));
-  document.querySelector('#bagGalleryInput')?.addEventListener('change', event => addFiles(event.target.files));
+  document.querySelector('#bagGalleryInput')?.addEventListener('change', event => {
+    const input = event.target;
+    const files = [...(input.files || [])];
+    input.value = '';
+    void addGalleryFiles(files).finally(() => { delete input.dataset.lbPreprocessed; });
+  });
   document.querySelector('#bagManualBtn')?.addEventListener('click', () => openManualEntry());
   document.querySelector('#bagHandoffBtn')?.addEventListener('click', handoffToExistingParser);
   document.querySelector('#bagReanalyzeBtn')?.addEventListener('click', reanalyzeEditedText);
