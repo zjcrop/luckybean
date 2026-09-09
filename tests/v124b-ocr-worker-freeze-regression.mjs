@@ -72,6 +72,9 @@ assert.match(bridge, /webPaddle:\s*isSafeWebPaddleProvider\(webProvider\)/, 'cap
 assert.match(bridge, /webPaddleRegion:\s*Boolean\(/, 'capability contract must report region recognition separately');
 
 assert.match(capture, /finally\s*\{[\s\S]*captureState\.busy\s*=\s*false;[\s\S]*render\(\)/, 'package recognition must always restore interactive UI state');
-assert.match(capture, /recognitionQueued\s*=\s*false/, 'recognition click queue must always be releasable');
+assert.match(capture, /luckybean:package-auto-recognition-start/, 'successful image entry must emit the automatic-recognition diagnostic event');
+assert.match(capture, /addedCount\s*>\s*0[\s\S]*void runRecognition\(\)/, 'successful image entry must directly start OCR without a manual click queue');
+assert.doesNotMatch(capture, /recognitionQueued/, 'manual recognition click queue must stay removed once image recognition is automatic');
+assert.doesNotMatch(capture, /bagRecognizeBtn/, 'manual recognition button must stay removed from package capture UI');
 
 console.log(`LuckyBean ${release.displayVersion} browser OCR is same-origin, lazy, capture-reusable, memory-bounded, ROI-capable, timeout-bounded, and has no automatic Tesseract fallback`);
