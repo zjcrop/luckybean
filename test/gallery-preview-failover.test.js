@@ -27,12 +27,13 @@ test('gallery preview failures must be user-visible instead of silently swallowi
   assert.match(source, /notifyPreviewFailure\(wrapped\.message\)/);
 });
 
-test('package capture routes the real gallery input directly through preprocessFiles before addFiles', async () => {
+test('package capture routes the real gallery input through preprocessFiles, addFiles, then auto-recognition', async () => {
   const source = await readFile(new URL('../src/package-capture-controller.js', import.meta.url), 'utf8');
   assert.match(source, /async function addGalleryFiles\(fileList\)/);
   assert.match(source, /LuckyBeanGalleryImagePreprocess\?\.preprocessFiles/);
   assert.match(source, /const processed = await preprocess\(files\);/);
-  assert.match(source, /if \(processed\?\.length\) await addFiles\(processed\);/);
+  assert.match(source, /const imageCountBefore = captureState\.images\.length;/);
+  assert.match(source, /if \(processed\?\.length\) \{\s*await addFiles\(processed\);\s*if \(captureState\.images\.length > imageCountBefore\) queueRecognition\(\);\s*\}/);
   assert.match(source, /input\.dataset\.lbPreprocessed = '1';[\s\S]{0,80}input\.click\(\)/);
   assert.match(source, /#bagGalleryInput'[\s\S]{0,260}addGalleryFiles\(files\)/);
   assert.doesNotMatch(source, /new DataTransfer\(\)/);
