@@ -15,13 +15,23 @@ test('JARC numeric varieties are shortened only for display text', () => {
   assert.equal(normalizeJarcDisplayText('JARC Selection'), 'JARC Selection');
 });
 
-test('gallery crop completion schedules the existing recognition button automatically', () => {
+test('any completed package image entry schedules OCR and hides manual recognition UI', () => {
   const source = fs.readFileSync(path.join(root, 'src/ui/package-capture-flow-polish.js'), 'utf8');
-  assert.match(source, /const processed = await originalPreprocessFiles\(files\)/);
-  assert.match(source, /processed\.length\) queueAutomaticRecognition\(\)/);
-  assert.match(source, /#bagRecognizeBtn/);
+  assert.match(source, /\[data-bag-image-id\]/);
+  assert.match(source, /signature && signature !== lastTriggeredImageSignature/);
+  assert.match(source, /queueAutomaticRecognition\(signature\)/);
+  assert.match(source, /button\.hidden = true/);
   assert.match(source, /button\.click\(\)/);
-  assert.match(source, /\.lb-img-pre/);
+  assert.doesNotMatch(source, /originalPreprocessFiles/);
+  assert.doesNotMatch(source, /installGalleryAutoRecognition/);
+});
+
+test('automatic OCR applies to camera, small upload and cropped upload through the shared addFiles card state', () => {
+  const controller = fs.readFileSync(path.join(root, 'src/package-capture-controller.js'), 'utf8');
+  assert.match(controller, /#bagCameraInput[^\n]*addFiles\(event\.target\.files\)/);
+  assert.match(controller, /processed\?\.length\) await addFiles\(processed\)/);
+  assert.match(controller, /data-bag-image-id/);
+  assert.match(controller, /id="bagRecognizeBtn"/);
 });
 
 test('production html loads the flow polish controller', () => {
