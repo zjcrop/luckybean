@@ -29,7 +29,7 @@ const P2_CORE_FEATURES = Object.freeze([
 const LAZY_FEATURES = Object.freeze([
   feature('recognition-paddle-ocr', '../recognition-paddle-ocr-fast.js'),
   feature('recognition-quality', '../recognition-quality-controller.js'),
-  feature('gallery-image-preprocess', '../gallery-image-preprocess.js'),
+  feature('gallery-image-preprocess', '../gallery-image-preprocess-fast.js'),
   feature('package-capture', '../package-capture-controller.js'),
   feature('recognition-multi-entry', './recognition-multi-entry-controller.js'),
   feature('direct-camera', '../direct-camera-controller.js'),
