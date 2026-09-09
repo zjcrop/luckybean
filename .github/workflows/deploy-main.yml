@@ -153,7 +153,7 @@ jobs:
             sleep 10
           done
           test "$found" = true
-          OCR_PROVIDER_VERSION=$(sed -n "s/^const VERSION = '\([^']*\)';/\1/p" src/recognition-paddle-ocr.js | head -1)
+          OCR_PROVIDER_VERSION=$(sed -n "s/^const VERSION = '\([^']*\)';/\1/p" src/recognition-paddle-ocr-fast.js | head -1)
           test -n "$OCR_PROVIDER_VERSION"
           export OCR_PROVIDER_VERSION
           node --input-type=module <<'NODE'
