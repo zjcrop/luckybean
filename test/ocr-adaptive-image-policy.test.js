@@ -28,13 +28,19 @@ test('fast path preserves 2200px detector budget and only falls back after a rea
   assert.doesNotMatch(source, /textDetMaxSideLimit:LOW_MEMORY \? 1280 : 2200/);
 });
 
-test('gallery upload gets manual crop and geometry correction while camera input stays direct', async () => {
+test('gallery wrapper applies 1600/3000 automatic policy while camera input stays direct', async () => {
   const runtime = await read('src/features/runtime-features.js');
+  const policy = await read('src/gallery-image-preprocess-fast.js');
   const preprocess = await read('src/gallery-image-preprocess.js');
   const worker = await read('src/gallery-image-finalize-worker.js');
-  assert.match(runtime, /feature\('gallery-image-preprocess', '\.\.\/gallery-image-preprocess\.js'\)/);
-  assert.match(preprocess, /input\.id!==['"]bagGalleryInput['"]/);
-  assert.doesNotMatch(preprocess, /bagCameraInput/);
+  assert.match(runtime, /feature\('gallery-image-preprocess', '\.\.\/gallery-image-preprocess-fast\.js'\)/);
+  assert.match(policy, /AUTO_CROP_TRIGGER_EDGE = 3000/);
+  assert.match(policy, /FULL_IMAGE_OUTPUT_MAX_EDGE = 1600/);
+  assert.match(policy, /readGalleryImageHeader/);
+  assert.match(policy, /maxEdge > AUTO_CROP_TRIGGER_EDGE/);
+  assert.match(policy, /base\.preprocessFiles\(\[file\]\)/);
+  assert.match(policy, /Small images are never enlarged/);
+  assert.doesNotMatch(policy, /bagCameraInput/);
   assert.match(preprocess, /自动角度校正/);
   assert.match(preprocess, /自动透视修正/);
   assert.match(preprocess, /detectPerspectiveQuad/);
