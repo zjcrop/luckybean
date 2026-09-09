@@ -151,15 +151,15 @@ test('WebKit runtime registers its lightweight provider while keeping heavy PP-O
   }));
   expect(state.browserSafe).toBe(true);
   expect(state.primaryIsolation).toBe('webkit-direct-wasm-no-simd');
-  expect(state.compatibilityFallback).toBe('webkit-direct-wasm-no-simd->direct-module-worker-wasm-no-simd->direct-wasm-no-simd-last-resort');
+  expect(state.compatibilityFallback).toBe('webkit-direct-wasm-no-simd');
   expect(state.autoPreload).toBe(false);
-  expect(state.disposePolicy).toBe('idle-30s');
+  expect(state.disposePolicy).toBe('capture-session');
   expect(state.roiWorkerOnly).toBe(true);
   expect(state.webPaddle).toBe(true);
   expect(state.heavyResources).toEqual([]);
 });
 
-test('WebKit PP-OCR reuses one warmed engine across consecutive local inferences',async({page})=>{
+test('WebKit PP-OCR reuses its add-session engine and releases it on exit',async({page})=>{
   await isolateSupabase(page);
   await enter(page,`${BASE_URL}/?webkit-real-ocr=1`);
   await loadLazyWebOcr(page);
@@ -177,19 +177,29 @@ test('WebKit PP-OCR reuses one warmed engine across consecutive local inferences
     canvas.width=1; canvas.height=1;
     try{
       const warmStarted=performance.now();
-      await globalThis.LuckyBeanPaddleOCR.warmForRecognition();
+      const api=globalThis.LuckyBeanPaddleOCR;
+      const sessionEngine=await api.beginSession('webkit-real-ocr');
+      if(!sessionEngine) throw new Error('add-session warmup failed');
       const warmMs=Math.round(performance.now()-warmStarted);
       const firstStarted=performance.now();
       const first=await globalThis.LuckyBeanPaddleOCR.recognize(blob);
       const firstMs=Math.round(performance.now()-firstStarted);
+      // Capture cleanup must preserve an engine owned by the open add flow.
+      await api.dispose();
+      const reusedEngine=await api.warmForRecognition()===sessionEngine;
       const secondStarted=performance.now();
       const second=await globalThis.LuckyBeanPaddleOCR.recognize(blob);
       const secondMs=Math.round(performance.now()-secondStarted);
       const texts=[...(first?.blocks||[]),...(second?.blocks||[])].map(block=>String(block?.text||'')).filter(Boolean);
-      await globalThis.LuckyBeanPaddleOCR.dispose();
-      return {ok:true,texts,warmMs,firstMs,secondMs,disposePolicy:globalThis.LuckyBeanPaddleOCR.disposePolicy,primaryIsolation:globalThis.LuckyBeanPaddleOCR.primaryIsolation};
+      const activeDepth=api.sessionDepth;
+      await api.endSession('webkit-real-ocr-exit');
+      const closedDepth=api.sessionDepth;
+      const nextEngine=await api.warmForRecognition();
+      const replacedAfterExit=Boolean(nextEngine)&&nextEngine!==sessionEngine;
+      await api.dispose();
+      return {ok:true,texts,warmMs,firstMs,secondMs,reusedEngine,activeDepth,closedDepth,replacedAfterExit,disposePolicy:api.disposePolicy,primaryIsolation:api.primaryIsolation};
     }catch(error){
-      try{await globalThis.LuckyBeanPaddleOCR.dispose()}catch{}
+      try{await globalThis.LuckyBeanPaddleOCR.endSession('webkit-test-cleanup');await globalThis.LuckyBeanPaddleOCR.dispose()}catch{}
       return {ok:false,error:error?.message||String(error)};
     }
   });
@@ -198,7 +208,11 @@ test('WebKit PP-OCR reuses one warmed engine across consecutive local inferences
   expect(result.texts.length).toBeGreaterThan(0);
   expect(result.texts.join(' ').toUpperCase()).toMatch(/ETHIOPIA|NATURAL|COFFEE/);
   expect(result.primaryIsolation).toBe('webkit-direct-wasm-no-simd');
-  expect(result.disposePolicy).toBe('idle-30s');
+  expect(result.disposePolicy).toBe('capture-session');
+  expect(result.reusedEngine).toBe(true);
+  expect(result.activeDepth).toBe(1);
+  expect(result.closedDepth).toBe(0);
+  expect(result.replacedAfterExit).toBe(true);
   expect(result.warmMs).toBeLessThan(60000);
   expect(result.firstMs).toBeLessThan(45000);
   expect(result.secondMs).toBeLessThan(45000);

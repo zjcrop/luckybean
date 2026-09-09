@@ -4,11 +4,39 @@ import { readFile } from 'node:fs/promises';
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('production OCR uses the validated single-pass provider without the adaptive ROI wrapper', async () => {
+test('production OCR uses only the session fast-path provider without the adaptive ROI wrapper', async () => {
   const runtime = await read('src/features/runtime-features.js');
-  assert.match(runtime, /feature\('recognition-paddle-ocr', '\.\.\/recognition-paddle-ocr\.js'\)/);
+  const index = await read('index.html');
+  assert.match(runtime, /feature\('recognition-paddle-ocr', '\.\.\/recognition-paddle-ocr-fast\.js'\)/);
+  assert.match(index, /src\/recognition-paddle-ocr-fast\.js\?v=/);
+  assert.doesNotMatch(index, /src\/recognition-paddle-ocr\.js\?v=/);
   assert.doesNotMatch(runtime, /recognition-adaptive-detail/);
-  assert.match(runtime, /No second-pass adaptive wrapper is installed/);
+  assert.match(runtime, /beginRecognitionSession/);
+  assert.match(runtime, /endRecognitionSession/);
+  assert.match(runtime, /closest\?\.\('#fabAddBtn'\)/);
+});
+
+test('fast path preserves 2200px detector budget and only falls back after a real runtime failure', async () => {
+  const source = await read('src/recognition-paddle-ocr-fast.js');
+  assert.match(source, /const LIMIT_SIDE = LOW_MEMORY \? 736 : 960/);
+  assert.match(source, /const MAX_SIDE = 2200/);
+  assert.match(source, /simd:!compatibility/);
+  assert.match(source, /looksLikeCompatibilityFailure/);
+  assert.match(source, /worker-no-simd-fallback/);
+  assert.match(source, /predict-runtime-recovery-success/);
+  assert.match(source, /disposePolicy:'capture-session'/);
+  assert.doesNotMatch(source, /textDetMaxSideLimit:LOW_MEMORY \? 1280 : 2200/);
+});
+
+test('gallery upload gets manual crop and geometry correction while camera input stays direct', async () => {
+  const runtime = await read('src/features/runtime-features.js');
+  const preprocess = await read('src/gallery-image-preprocess.js');
+  assert.match(runtime, /feature\('gallery-image-preprocess', '\.\.\/gallery-image-preprocess\.js'\)/);
+  assert.match(preprocess, /input\.id!==['"]bagGalleryInput['"]/);
+  assert.doesNotMatch(preprocess, /bagCameraInput/);
+  assert.match(preprocess, /自动角度校正/);
+  assert.match(preprocess, /自动透视修正/);
+  assert.match(preprocess, /warpPerspectiveMesh/);
 });
 
 test('bounded preparation may retain the original compressed blob without enabling a second OCR pass', async () => {
