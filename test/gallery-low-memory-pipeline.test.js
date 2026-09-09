@@ -4,7 +4,6 @@ import { readFile } from 'node:fs/promises';
 import { readGalleryImageHeader } from '../src/gallery-image-preview.js';
 
 function be16(value) { return [value >> 8 & 255, value & 255]; }
-function be32(value) { return [value >>> 24 & 255, value >>> 16 & 255, value >>> 8 & 255, value & 255]; }
 function le16(value) { return [value & 255, value >> 8 & 255]; }
 function le32(value) { return [value & 255, value >>> 8 & 255, value >>> 16 & 255, value >>> 24 & 255]; }
 
@@ -19,7 +18,6 @@ function syntheticExifJpeg({ width = 8000, height = 6000, orientation = 6 } = {}
     ...le16(0x0112), ...le16(3), ...le32(1), ...le16(orientation),0,0,
     ...le32(26)
   ];
-  // IFD1 starts at TIFF offset 26. Thumbnail starts after IFD1.
   const thumbOffset = 26 + 2 + 2 * 12 + 4;
   const ifd1 = [
     ...le16(2),
