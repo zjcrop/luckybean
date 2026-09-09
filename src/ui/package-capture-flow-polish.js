@@ -61,7 +61,7 @@ function installJarcDisplayNormalizer() {
   observer.observe(document.documentElement, { subtree:true, childList:true, characterData:true });
 }
 
-let galleryWrapInstalled = false;
+let wrappedGalleryApi = null;
 let autoRecognitionTimer = 0;
 
 function queueAutomaticRecognition() {
@@ -84,26 +84,28 @@ function queueAutomaticRecognition() {
 }
 
 function installGalleryAutoRecognition() {
-  if (galleryWrapInstalled) return true;
   const api = globalThis.LuckyBeanGalleryImagePreprocess;
   if (!api || typeof api.preprocessFiles !== 'function') return false;
+  if (api === wrappedGalleryApi) return true;
   const originalPreprocessFiles = api.preprocessFiles.bind(api);
   const wrappedPreprocessFiles = async files => {
     const processed = await originalPreprocessFiles(files);
     if (Array.isArray(processed) && processed.length) queueAutomaticRecognition();
     return processed;
   };
-  globalThis.LuckyBeanGalleryImagePreprocess = Object.freeze({ ...api, preprocessFiles:wrappedPreprocessFiles });
-  galleryWrapInstalled = true;
+  const nextApi = Object.freeze({ ...api, preprocessFiles:wrappedPreprocessFiles });
+  globalThis.LuckyBeanGalleryImagePreprocess = nextApi;
+  wrappedGalleryApi = nextApi;
   return true;
 }
 
 function installWhenReady() {
-  if (installGalleryAutoRecognition()) return;
+  installGalleryAutoRecognition();
   let attempts = 0;
   const timer = globalThis.setInterval(() => {
     attempts += 1;
-    if (installGalleryAutoRecognition() || attempts >= 200) globalThis.clearInterval(timer);
+    installGalleryAutoRecognition();
+    if (attempts >= 200) globalThis.clearInterval(timer);
   }, 100);
 }
 
