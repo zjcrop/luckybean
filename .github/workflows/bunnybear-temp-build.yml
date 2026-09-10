@@ -1,0 +1,79 @@
+name: BunnyBear 2.4 cycle calendar APK
+
+on:
+  push:
+    branches:
+      - 'build/bunnybear-v2.4-cycle-calendar-20260910'
+    paths:
+      - 'bunnybear_migration/**'
+      - '.github/workflows/bunnybear-temp-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v5.7.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4.0.1
+      - name: Install Android SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v6.3.0
+        with:
+          gradle-version: '8.9'
+      - name: Restore tested cycle patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/bbpatch bunnybear_migration/app/src/main/assets/patch
+          base64 -d bunnybear_migration/patch_bundle.b64 > /tmp/bunnybear-upgrade.zip
+          unzip -q /tmp/bunnybear-upgrade.zip -d /tmp/bbpatch
+          patch_root=/tmp/bbpatch/BunnyBear-v1.5.0-upgrade
+          test -s "$patch_root/bb_cycle_core.js"
+          test -s "$patch_root/bb_runtime_patch.js"
+          test -s "$patch_root/bb_v1_5.css"
+          cp "$patch_root/bb_cycle_core.js" bunnybear_migration/app/src/main/assets/patch/bb_cycle_core.js
+          cp "$patch_root/bb_runtime_patch.js" bunnybear_migration/app/src/main/assets/patch/bb_runtime_patch.js
+          cp "$patch_root/bb_v1_5.css" bunnybear_migration/app/src/main/assets/patch/bb_v2_4.css
+          cp "$patch_root/test_cycle_core.js" /tmp/test_cycle_core.js
+          cp "$patch_root/bb_cycle_core.js" /tmp/bb_cycle_core.js
+          (cd /tmp && node test_cycle_core.js)
+          node -e "const fs=require('fs'); new Function(fs.readFileSync('bunnybear_migration/app/src/main/assets/patch/bb_runtime_patch.js','utf8')); console.log('runtime syntax: PASS')"
+      - name: Build APK
+        run: gradle --no-daemon -p bunnybear_migration :app:assembleDebug
+      - name: Verify APK identity and embedded patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=bunnybear_migration/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$apk"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.yuelan.bb8' versionCode='240' versionName='2.4.0'"
+          unzip -l "$apk" | grep -q 'assets/patch/bb_cycle_core.js'
+          unzip -l "$apk" | grep -q 'assets/patch/bb_runtime_patch.js'
+          unzip -l "$apk" | grep -q 'assets/patch/bb_v2_4.css'
+          unzip -p "$apk" assets/patch/bb_cycle_core.js | grep -q 'bb-cycle/2.0'
+          unzip -p "$apk" classes.dex >/dev/null
+          mkdir -p dist
+          cp "$apk" dist/BunnyBear-v2.4.0-cycle-calendar.apk
+          sha256sum dist/BunnyBear-v2.4.0-cycle-calendar.apk > dist/SHA256SUMS.txt
+          cat > dist/BUILD_NOTES.txt <<'EOF'
+          BunnyBear 2.4.0 cycle-calendar migration APK
+          package: com.yuelan.bb8
+          minSdk: 24 (Android 7.0+)
+          First launch must occur while an earlier BunnyBear com.yuelan.bbN APK is still installed.
+          The migration host copies the complete old APK AssetManager tree byte-for-byte, retains index.original.html,
+          verifies image hashes before/after patching, then injects the tested cycle/calendar patch.
+          Source assets are never replaced by generated placeholders.
+          EOF
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: BunnyBear-v2.4.0-cycle-calendar
+          path: dist/
+          if-no-files-found: error
