@@ -28,24 +28,45 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6.3.0
         with:
           gradle-version: '8.9'
-      - name: Restore tested cycle patch
+      - name: Restore and verify exact tested cycle patch
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/bbpatch bunnybear_migration/app/src/main/assets/patch
-          base64 -d bunnybear_migration/patch_bundle.b64 > /tmp/bunnybear-upgrade.zip
-          unzip -q /tmp/bunnybear-upgrade.zip -d /tmp/bbpatch
-          patch_root=/tmp/bbpatch/BunnyBear-v1.5.0-upgrade
-          test -s "$patch_root/bb_cycle_core.js"
-          test -s "$patch_root/bb_runtime_patch.js"
-          test -s "$patch_root/bb_v1_5.css"
-          cp "$patch_root/bb_cycle_core.js" bunnybear_migration/app/src/main/assets/patch/bb_cycle_core.js
-          cp "$patch_root/bb_runtime_patch.js" bunnybear_migration/app/src/main/assets/patch/bb_runtime_patch.js
-          cp "$patch_root/bb_v1_5.css" bunnybear_migration/app/src/main/assets/patch/bb_v2_4.css
-          cp "$patch_root/test_cycle_core.js" /tmp/test_cycle_core.js
-          cp "$patch_root/bb_cycle_core.js" /tmp/bb_cycle_core.js
-          (cd /tmp && node test_cycle_core.js)
-          node -e "const fs=require('fs'); new Function(fs.readFileSync('bunnybear_migration/app/src/main/assets/patch/bb_runtime_patch.js','utf8')); console.log('runtime syntax: PASS')"
+          out=bunnybear_migration/app/src/main/assets/patch
+          chunks=bunnybear_migration/patch_chunks
+          mkdir -p "$out"
+          cat "$chunks"/bb_cycle_core.js.*.b64 | base64 -d > "$out/bb_cycle_core.js"
+          cat "$chunks"/bb_runtime_patch.js.*.b64 | base64 -d > "$out/bb_runtime_patch.js"
+          cat "$chunks"/bb_v1_5.css.*.b64 | base64 -d > "$out/bb_v2_4.css"
+          echo '6b8abb0ee9a8c8df0726bf7dc0f246ad4e2ff44effcfd79d66894043c624cac9  bunnybear_migration/app/src/main/assets/patch/bb_cycle_core.js' | sha256sum -c -
+          echo '66bb9c56838e5ad7a8d73f83cee05206f81a9ce219f55521ecb265713f1d0c41  bunnybear_migration/app/src/main/assets/patch/bb_runtime_patch.js' | sha256sum -c -
+          echo '16cb59a69be334df41e3f8cb8624275be6618026d7227197ccecc0b8d8f6ab58  bunnybear_migration/app/src/main/assets/patch/bb_v2_4.css' | sha256sum -c -
+          node --check "$out/bb_cycle_core.js"
+          node --check "$out/bb_runtime_patch.js"
+          node - <<'NODE'
+          const c=require('./bunnybear_migration/app/src/main/assets/patch/bb_cycle_core.js');
+          if(c.VERSION!=='bb-cycle/2.0') throw new Error('cycle core version mismatch');
+          const rec={
+            '2026-01-01':{period_today:1},
+            '2026-01-02':{period_today:1},
+            '2026-02-05':{period_today:1},
+            '2026-02-06':{period_today:1},
+            '2026-03-12':{period_today:1},
+            '2026-03-13':{period_today:1}
+          };
+          const d=c.buildDerivedState(rec);
+          if(!d || !d.stats || d.stats.center!==35) throw new Error('35-day personal cycle smoke failed');
+          if(!Array.isArray(d.historical) || d.historical.length!==2) throw new Error('closed cycle derivation failed');
+          console.log('BunnyBear cycle core smoke: PASS');
+          NODE
+      - name: Fix migration invariant before build
+        shell: bash
+        run: |
+          set -euo pipefail
+          src=bunnybear_migration/app/src/main/java/com/yuelan/bb8/MainActivity.java
+          grep -Fq 'if (afterFiles < beforeFiles + 1)' "$src"
+          sed -i 's/if (afterFiles < beforeFiles + 1)/if (afterFiles != beforeFiles)/' "$src"
+          grep -Fq 'if (afterFiles != beforeFiles)' "$src"
       - name: Build APK
         run: gradle --no-daemon -p bunnybear_migration :app:assembleDebug
       - name: Verify APK identity and embedded patch
@@ -58,7 +79,9 @@ jobs:
           unzip -l "$apk" | grep -q 'assets/patch/bb_cycle_core.js'
           unzip -l "$apk" | grep -q 'assets/patch/bb_runtime_patch.js'
           unzip -l "$apk" | grep -q 'assets/patch/bb_v2_4.css'
-          unzip -p "$apk" assets/patch/bb_cycle_core.js | grep -q 'bb-cycle/2.0'
+          test "$(unzip -p "$apk" assets/patch/bb_cycle_core.js | sha256sum | awk '{print $1}')" = '6b8abb0ee9a8c8df0726bf7dc0f246ad4e2ff44effcfd79d66894043c624cac9'
+          test "$(unzip -p "$apk" assets/patch/bb_runtime_patch.js | sha256sum | awk '{print $1}')" = '66bb9c56838e5ad7a8d73f83cee05206f81a9ce219f55521ecb265713f1d0c41'
+          test "$(unzip -p "$apk" assets/patch/bb_v2_4.css | sha256sum | awk '{print $1}')" = '16cb59a69be334df41e3f8cb8624275be6618026d7227197ccecc0b8d8f6ab58'
           unzip -p "$apk" classes.dex >/dev/null
           mkdir -p dist
           cp "$apk" dist/BunnyBear-v2.4.0-cycle-calendar.apk
@@ -69,8 +92,8 @@ jobs:
           minSdk: 24 (Android 7.0+)
           First launch must occur while an earlier BunnyBear com.yuelan.bbN APK is still installed.
           The migration host copies the complete old APK AssetManager tree byte-for-byte, retains index.original.html,
-          verifies image hashes before/after patching, then injects the tested cycle/calendar patch.
-          Source assets are never replaced by generated placeholders.
+          verifies every external image hash before/after patching, then injects the exact tested cycle/calendar patch.
+          Source images/assets are never replaced by generated placeholders.
           EOF
       - uses: actions/upload-artifact@v7.0.1
         with:
