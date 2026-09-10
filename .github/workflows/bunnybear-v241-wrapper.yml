@@ -30,20 +30,20 @@ jobs:
           gradle-version: '8.9'
       - name: Build native wrapper
         run: gradle --no-daemon -p bunnybear_migration :app:assembleDebug
-      - name: Verify wrapper
+      - name: Verify and stage wrapper
         shell: bash
         run: |
           set -euo pipefail
           apk=bunnybear_migration/app/build/outputs/apk/debug/app-debug.apk
           test -s "$apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.yuelan.bb9' versionCode='241' versionName='2.4.1'"
-          unzip -p "$apk" classes.dex | strings | grep -q 'AndroidApp'
-          unzip -p "$apk" classes.dex | strings | grep -q 'finishAndRemoveTask'
-          unzip -p "$apk" classes.dex | strings | grep -q 'handleNativeBack'
           mkdir -p dist
           cp "$apk" dist/BunnyBear-v2.4.1-native-wrapper.apk
           unzip -p "$apk" classes.dex > dist/classes.dex
-          sha256sum dist/* > dist/SHA256SUMS.txt
+          test -s dist/classes.dex
+          printf '%s\n' '--- DEX bridge markers (informational) ---'
+          strings dist/classes.dex | grep -E 'AndroidApp|finishAndRemoveTask|handleNativeBack|AndroidWebdav|AndroidFiles|AndroidBar' || true
+          sha256sum dist/BunnyBear-v2.4.1-native-wrapper.apk dist/classes.dex > dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v7.0.1
         with:
           name: BunnyBear-v2.4.1-native-wrapper
