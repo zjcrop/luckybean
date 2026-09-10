@@ -43,9 +43,10 @@ jobs:
           echo '16cb59a69be334df41e3f8cb8624275be6618026d7227197ccecc0b8d8f6ab58  bunnybear_migration/app/src/main/assets/patch/bb_v2_4.css' | sha256sum -c -
           node --check "$out/bb_cycle_core.js"
           node --check "$out/bb_runtime_patch.js"
+          cp "$out/bb_cycle_core.js" /tmp/bb_cycle_core.cjs
           node - <<'NODE'
-          const c=require('./bunnybear_migration/app/src/main/assets/patch/bb_cycle_core.js');
-          if(c.VERSION!=='bb-cycle/2.0') throw new Error('cycle core version mismatch');
+          const c=require('/tmp/bb_cycle_core.cjs');
+          if(c.VERSION!=='bb-cycle/2.0') throw new Error('cycle core version mismatch: '+String(c.VERSION));
           const rec={
             '2026-01-01':{period_today:1},
             '2026-01-02':{period_today:1},
