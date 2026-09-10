@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <queries>
+        <package android:name="com.yuelan.bb1"/><package android:name="com.yuelan.bb2"/>
+        <package android:name="com.yuelan.bb3"/><package android:name="com.yuelan.bb4"/>
+        <package android:name="com.yuelan.bb5"/><package android:name="com.yuelan.bb6"/>
+        <package android:name="com.yuelan.bb7"/><package android:name="com.yuelan.bb9"/>
+        <package android:name="com.yuelan.bb10"/><package android:name="com.yuelan.bb11"/>
+        <package android:name="com.yuelan.bb12"/><package android:name="com.yuelan.bb13"/>
+        <package android:name="com.yuelan.bb14"/><package android:name="com.yuelan.bb15"/>
+        <package android:name="com.yuelan.bb16"/><package android:name="com.yuelan.bb17"/>
+        <package android:name="com.yuelan.bb18"/><package android:name="com.yuelan.bb19"/>
+        <package android:name="com.yuelan.bb20"/>
+    </queries>
+
+    <application
+        android:allowBackup="true"
+        android:label="BunnyBear"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.BunnyBear"
+        android:usesCleartextTraffic="false">
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
