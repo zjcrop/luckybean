@@ -32,20 +32,31 @@ jobs:
         run: |
           set -euo pipefail
           display_version=$(jq -r '.displayVersion' release.json)
+          revision=$(jq -r '.revision' release.json)
+          cache_revision=$(jq -r '.cacheRevision' release.json)
           android_version_code=$(jq -r '.androidVersionCode' release.json)
           release_tag=$(jq -r '.releaseTag' release.json)
           test -n "$display_version"
+          test -n "$revision"
+          test -n "$cache_revision"
           test -n "$android_version_code"
           test -n "$release_tag"
           test "$display_version" != "null"
+          test "$revision" != "null"
+          test "$cache_revision" != "null"
           test "$android_version_code" != "null"
           test "$release_tag" != "null"
+          grep -Fq "content=\"$revision\"" index.html
+          grep -Fq "data-release-revision=\"$revision\"" index.html
+          grep -Fq "const REVISION = '$revision';" sw.js
+          grep -Fq "\${CACHE_PREFIX}$cache_revision" sw.js
           echo "DISPLAY_VERSION=$display_version" >> "$GITHUB_ENV"
+          echo "RELEASE_REVISION=$revision" >> "$GITHUB_ENV"
           echo "ANDROID_VERSION_CODE=$android_version_code" >> "$GITHUB_ENV"
           echo "RELEASE_TAG=$release_tag" >> "$GITHUB_ENV"
           echo "APK_NAME=LuckyBean-${display_version}-release.apk" >> "$GITHUB_ENV"
 
-      - name: Reuse validated unchanged product source
+      - name: Reuse validated product source and verify release-only delta
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -55,7 +66,18 @@ jobs:
           test "$current_main" = "$RELEASE_SHA"
           if [ "${{ github.event_name }}" = "push" ]; then
             PRODUCT_SHA=$(git rev-parse HEAD^1)
-            git diff --quiet "$PRODUCT_SHA" "$RELEASE_SHA" -- . ':(exclude).github/workflows/verified-release-main.yml'
+            changed=$(git diff --name-only "$PRODUCT_SHA" "$RELEASE_SHA" | LC_ALL=C sort)
+            expected=$(printf '%s\n' \
+              '.github/workflows/verified-release-main.yml' \
+              'index.html' \
+              'release.json' \
+              'sw.js' | LC_ALL=C sort)
+            test "$changed" = "$expected"
+            git diff --quiet "$PRODUCT_SHA" "$RELEASE_SHA" -- . \
+              ':(exclude).github/workflows/verified-release-main.yml' \
+              ':(exclude)index.html' \
+              ':(exclude)release.json' \
+              ':(exclude)sw.js'
           else
             PRODUCT_SHA="$RELEASE_SHA"
           fi
@@ -65,7 +87,7 @@ jobs:
           conclusion=$(printf '%s' "$runs" | jq -r --arg sha "$PRODUCT_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].conclusion // "missing"')
           test "$status" = "completed"
           test "$conclusion" = "success"
-          echo "Reusing successful full product validation from $PRODUCT_SHA; release wrapper is the only source delta."
+          echo "Reusing successful full product validation from $PRODUCT_SHA; current delta is restricted to release identity/cache metadata and signer workflow."
 
       - uses: actions/setup-java@v5.7.0
         with:
@@ -130,6 +152,7 @@ jobs:
           done < <(find . -maxdepth 1 -type f -name '*.css' | LC_ALL=C sort)
 
           unzip -p "$apk" assets/web-cache/index.html | grep -Fq '<script src="./native-bridge.js"></script>'
+          unzip -p "$apk" assets/web-cache/index.html | grep -Fq "data-release-revision=\"$RELEASE_REVISION\""
 
           expected_cert=$(tr -d '[:space:]:' < android/signing/CERT_SHA256.txt | tr '[:lower:]' '[:upper:]')
           actual_cert=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')
@@ -145,12 +168,12 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk "dist/$APK_NAME"
           apk_sha=$(sha256sum "dist/$APK_NAME" | awk '{print $1}')
           cert=$(cat /tmp/luckybean-cert-sha256.txt)
-          printf 'release_sha=%s\nvalidated_product_sha=%s\ndisplay_version=%s\nandroid_version_code=%s\nrelease_tag=%s\napk_sha256=%s\ncertificate_sha256=%s\nmain_tests_verified=true\nproduct_source_unchanged=true\nembedded_web_assets_verified=true\n' "$RELEASE_SHA" "$PRODUCT_SHA" "$DISPLAY_VERSION" "$ANDROID_VERSION_CODE" "$RELEASE_TAG" "$apk_sha" "$cert" > dist/BUILD_PROVENANCE.txt
+          printf 'release_sha=%s\nvalidated_product_sha=%s\ndisplay_version=%s\nrelease_revision=%s\nandroid_version_code=%s\nrelease_tag=%s\napk_sha256=%s\ncertificate_sha256=%s\nmain_tests_verified=true\nrelease_delta_restricted=true\nembedded_web_assets_verified=true\n' "$RELEASE_SHA" "$PRODUCT_SHA" "$DISPLAY_VERSION" "$RELEASE_REVISION" "$ANDROID_VERSION_CODE" "$RELEASE_TAG" "$apk_sha" "$cert" > dist/BUILD_PROVENANCE.txt
           sha256sum "dist/$APK_NAME" > dist/SHA256SUMS.txt
 
       - uses: actions/upload-artifact@v7.0.1
         with:
-          name: luckybean-verified-${{ env.DISPLAY_VERSION }}-${{ env.RELEASE_SHA }}
+          name: luckybean-verified-${{ env.DISPLAY_VERSION }}-${{ env.RELEASE_REVISION }}-${{ env.RELEASE_SHA }}
           path: dist/
           if-no-files-found: error
 
@@ -160,7 +183,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          notes="LuckyBean $DISPLAY_VERSION formal signed release. Product source is unchanged from the fully validated main parent. APK package identity, embedded web assets and official signing certificate were verified during release."
+          notes="LuckyBean $DISPLAY_VERSION formal signed release ($RELEASE_REVISION). Product source is unchanged from the fully validated main parent apart from release identity/cache metadata. APK package identity, embedded web assets and official signing certificate were verified during release."
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             git tag -f "$RELEASE_TAG" "$RELEASE_SHA"
             git push --force origin "refs/tags/$RELEASE_TAG"
