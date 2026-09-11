@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/verified-release-main.yml'
+  workflow_dispatch:
 
 permissions:
   actions: read
@@ -17,15 +18,32 @@ concurrency:
 jobs:
   verify-and-release:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 35
     env:
       RELEASE_SHA: ${{ github.sha }}
-      RELEASE_TAG: v1.24B-main.6
     steps:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ env.RELEASE_SHA }}
           fetch-depth: 2
+
+      - name: Load authoritative release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          display_version=$(jq -r '.displayVersion' release.json)
+          android_version_code=$(jq -r '.androidVersionCode' release.json)
+          release_tag=$(jq -r '.releaseTag' release.json)
+          test -n "$display_version"
+          test -n "$android_version_code"
+          test -n "$release_tag"
+          test "$display_version" != "null"
+          test "$android_version_code" != "null"
+          test "$release_tag" != "null"
+          echo "DISPLAY_VERSION=$display_version" >> "$GITHUB_ENV"
+          echo "ANDROID_VERSION_CODE=$android_version_code" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=$release_tag" >> "$GITHUB_ENV"
+          echo "APK_NAME=LuckyBean-${display_version}-release.apk" >> "$GITHUB_ENV"
 
       - name: Reuse validated unchanged product source
         env:
@@ -35,15 +53,19 @@ jobs:
           set -euo pipefail
           current_main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
           test "$current_main" = "$RELEASE_SHA"
-          PRODUCT_SHA=$(git rev-parse HEAD^)
+          if [ "${{ github.event_name }}" = "push" ]; then
+            PRODUCT_SHA=$(git rev-parse HEAD^1)
+            git diff --quiet "$PRODUCT_SHA" "$RELEASE_SHA" -- . ':(exclude).github/workflows/verified-release-main.yml'
+          else
+            PRODUCT_SHA="$RELEASE_SHA"
+          fi
           echo "PRODUCT_SHA=$PRODUCT_SHA" >> "$GITHUB_ENV"
-          git diff --quiet "$PRODUCT_SHA" "$RELEASE_SHA" -- . ':(exclude).github/workflows/verified-release-main.yml'
-          runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/test-main.yml/runs?branch=main&head_sha=$PRODUCT_SHA&per_page=10")
+          runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/test-main.yml/runs?branch=main&head_sha=$PRODUCT_SHA&per_page=20")
           status=$(printf '%s' "$runs" | jq -r --arg sha "$PRODUCT_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].status // "missing"')
           conclusion=$(printf '%s' "$runs" | jq -r --arg sha "$PRODUCT_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].conclusion // "missing"')
           test "$status" = "completed"
           test "$conclusion" = "success"
-          echo "Reusing successful full product validation from $PRODUCT_SHA; release commit changes workflow only."
+          echo "Reusing successful full product validation from $PRODUCT_SHA; release wrapper is the only source delta."
 
       - uses: actions/setup-java@v5.7.0
         with:
@@ -66,7 +88,7 @@ jobs:
           printf '%s' "$LUCKYBEAN_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/luckybean-release.jks"
           chmod 600 "$RUNNER_TEMP/luckybean-release.jks"
 
-      - name: Build signed APK now
+      - name: Build signed release APK
         env:
           LUCKYBEAN_KEYSTORE_FILE: ${{ runner.temp }}/luckybean-release.jks
           LUCKYBEAN_STORE_PASSWORD: ${{ secrets.LUCKYBEAN_STORE_PASSWORD }}
@@ -74,23 +96,41 @@ jobs:
           LUCKYBEAN_KEY_PASSWORD: ${{ secrets.LUCKYBEAN_KEY_PASSWORD }}
         run: gradle --no-daemon -p android :app:assembleRelease
 
-      - name: Verify embedded source and official certificate
+      - name: Verify package identity, embedded source and official certificate
         shell: bash
         run: |
           set -euo pipefail
           apk=android/app/build/outputs/apk/release/app-release.apk
           test -f "$apk"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='102402' versionName='1.24B'"
-          unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq '直取榜首，不问其余。'
-          unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq '此只风味精绝，君既选中，甚是妥当。'
-          unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | grep -Fq '闭目拈签，任其自然。'
-          unzip -p "$apk" assets/web-cache/src/ui/recognition-review-owner-controller.js | grep -Fq "DIRECT_MANUAL_REVIEW_FIELDS = new Set(['countryCode'])"
-          source_groups_sha=$(sha256sum src/bean-groups-controller.js | awk '{print $1}')
-          apk_groups_sha=$(unzip -p "$apk" assets/web-cache/src/bean-groups-controller.js | sha256sum | awk '{print $1}')
-          test "$source_groups_sha" = "$apk_groups_sha"
-          source_owner_sha=$(sha256sum src/ui/recognition-review-owner-controller.js | awk '{print $1}')
-          apk_owner_sha=$(unzip -p "$apk" assets/web-cache/src/ui/recognition-review-owner-controller.js | sha256sum | awk '{print $1}')
-          test "$source_owner_sha" = "$apk_owner_sha"
+          badging=$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk")
+          printf '%s\n' "$badging" | grep -q "package: name='com.luckybean.app' versionCode='$ANDROID_VERSION_CODE' versionName='$DISPLAY_VERSION'"
+
+          compare_asset() {
+            local source_path="$1"
+            local apk_path="$2"
+            local source_sha apk_sha
+            source_sha=$(sha256sum "$source_path" | awk '{print $1}')
+            apk_sha=$(unzip -p "$apk" "$apk_path" | sha256sum | awk '{print $1}')
+            test "$source_sha" = "$apk_sha"
+          }
+
+          compare_asset release.json assets/web-cache/release.json
+          compare_asset manifest.webmanifest assets/web-cache/manifest.webmanifest
+          compare_asset sw.js assets/web-cache/sw.js
+          compare_asset recognition-test.html assets/web-cache/recognition-test.html
+          compare_asset android/native-bridge.js assets/web-cache/native-bridge.js
+
+          while IFS= read -r file; do
+            compare_asset "$file" "assets/web-cache/$file"
+          done < <(find src public contracts -type f | LC_ALL=C sort)
+
+          while IFS= read -r file; do
+            rel=${file#./}
+            compare_asset "$rel" "assets/web-cache/$rel"
+          done < <(find . -maxdepth 1 -type f -name '*.css' | LC_ALL=C sort)
+
+          unzip -p "$apk" assets/web-cache/index.html | grep -Fq '<script src="./native-bridge.js"></script>'
+
           expected_cert=$(tr -d '[:space:]:' < android/signing/CERT_SHA256.txt | tr '[:lower:]' '[:upper:]')
           actual_cert=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')
           test -n "$actual_cert"
@@ -102,15 +142,15 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk dist/LuckyBean-1.24B-release.apk
-          apk_sha=$(sha256sum dist/LuckyBean-1.24B-release.apk | awk '{print $1}')
+          cp android/app/build/outputs/apk/release/app-release.apk "dist/$APK_NAME"
+          apk_sha=$(sha256sum "dist/$APK_NAME" | awk '{print $1}')
           cert=$(cat /tmp/luckybean-cert-sha256.txt)
-          printf 'release_sha=%s\nvalidated_product_sha=%s\napk_sha256=%s\ncertificate_sha256=%s\nmain_tests_verified=true\nproduct_source_unchanged=true\nfun_prompt_owner=bean-groups-controller\nrecognition_review_scope=isolated-country-only\n' "$RELEASE_SHA" "$PRODUCT_SHA" "$apk_sha" "$cert" > dist/BUILD_PROVENANCE.txt
-          sha256sum dist/LuckyBean-1.24B-release.apk > dist/SHA256SUMS.txt
+          printf 'release_sha=%s\nvalidated_product_sha=%s\ndisplay_version=%s\nandroid_version_code=%s\nrelease_tag=%s\napk_sha256=%s\ncertificate_sha256=%s\nmain_tests_verified=true\nproduct_source_unchanged=true\nembedded_web_assets_verified=true\n' "$RELEASE_SHA" "$PRODUCT_SHA" "$DISPLAY_VERSION" "$ANDROID_VERSION_CODE" "$RELEASE_TAG" "$apk_sha" "$cert" > dist/BUILD_PROVENANCE.txt
+          sha256sum "dist/$APK_NAME" > dist/SHA256SUMS.txt
 
       - uses: actions/upload-artifact@v7.0.1
         with:
-          name: luckybean-verified-v1.24B-${{ env.RELEASE_SHA }}
+          name: luckybean-verified-${{ env.DISPLAY_VERSION }}-${{ env.RELEASE_SHA }}
           path: dist/
           if-no-files-found: error
 
@@ -120,15 +160,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          notes='LuckyBean 1.24B signed release. Product source is byte-identical to the fully validated parent; APK embedded web source and official signing certificate are verified.'
+          notes="LuckyBean $DISPLAY_VERSION formal signed release. Product source is unchanged from the fully validated main parent. APK package identity, embedded web assets and official signing certificate were verified during release."
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             git tag -f "$RELEASE_TAG" "$RELEASE_SHA"
             git push --force origin "refs/tags/$RELEASE_TAG"
-            gh release edit "$RELEASE_TAG" --target "$RELEASE_SHA" --title "LuckyBean 1.24B" --notes "$notes"
-            gh release upload "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --clobber
+            gh release edit "$RELEASE_TAG" --target "$RELEASE_SHA" --title "LuckyBean $DISPLAY_VERSION" --notes "$notes"
+            gh release upload "$RELEASE_TAG" "dist/$APK_NAME" dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --clobber
           else
-            gh release create "$RELEASE_TAG" dist/LuckyBean-1.24B-release.apk dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --target "$RELEASE_SHA" --title "LuckyBean 1.24B" --notes "$notes"
+            gh release create "$RELEASE_TAG" "dist/$APK_NAME" dist/BUILD_PROVENANCE.txt dist/SHA256SUMS.txt --target "$RELEASE_SHA" --title "LuckyBean $DISPLAY_VERSION" --notes "$notes"
           fi
           tag_sha=$(git ls-remote origin "refs/tags/$RELEASE_TAG" | awk '{print $1}')
           test "$tag_sha" = "$RELEASE_SHA"
-          echo "Verified signed release published for $RELEASE_SHA"
+          echo "Verified signed release published for $RELEASE_SHA as $RELEASE_TAG"
