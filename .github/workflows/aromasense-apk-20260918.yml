@@ -97,7 +97,7 @@ jobs:
               files=list(Path('mobile/android/app/src/main/assets/www').rglob('*'))
               count=0
               for p in files:
-                  if p.is_file():
+                  if p.is_file() and p.name != '.nojekyll':
                       rel=p.relative_to('mobile/android/app/src/main/assets/www').as_posix()
                       assert z.read('assets/www/'+rel)==p.read_bytes(), rel
                       count+=1
