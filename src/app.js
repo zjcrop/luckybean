@@ -349,7 +349,8 @@ async function migrateLegacyFlavorCodes() {
   return { migrated, unmapped };
 }
 
-function pageElement(page) { return $(`#page${page[0].toUpperCase()}${page.slice(1)}`); }function switchPage(page, { preserveOverlay = false, entryMode = 'normal' } = {}) {
+function pageElement(page) { return $(`#page${page[0].toUpperCase()}${page.slice(1)}`); }
+function switchPage(page, { preserveOverlay = false, entryMode = 'normal' } = {}) {
   if (!PAGE_META[page]) return;
   const previousPage = state.page;
   if (page === 'brew' && previousPage !== 'brew') {
@@ -698,6 +699,7 @@ function filteredBeans({ includeArchived = false } = {}) {
   });
   return beans;
 }
+
 function groupKey(bean, method) {
   if (method === 'variety') return codeName('varieties', bean.varietyCode, '未记录豆种');
   if (method === 'roast') return ROAST_NAME.get(bean.roastCode) || '未记录烘焙度';
@@ -1048,7 +1050,8 @@ async function recommendBean(mode) {
 async function focusRecommendedBean(bean, { automatic = true, settle = true, openDetail = false, duration = 800 } = {}) {
   if (!bean) return;
   state.groupAnimationMode = automatic ? 'auto' : 'manual';
-  state.recommendedBeanId = bean.id;  openBeanGroup(groupKey(bean, state.settings.groupMethod || 'country'), { animation: state.groupAnimationMode });
+  state.recommendedBeanId = bean.id;
+  openBeanGroup(groupKey(bean, state.settings.groupMethod || 'country'), { animation: state.groupAnimationMode });
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const card = document.querySelector(`[data-bean-id="${CSS.escape(bean.id)}"]`);
   if (card) {
@@ -1189,7 +1192,7 @@ async function openBeanForm(bean = {}, source = { type: 'manual' }) {
     thumbnailPreview.src = previewUrl; thumbnailPreview.hidden = false;
   };
   $('#captureBeanThumbnailBtn')?.addEventListener('click', () => thumbnailInput?.click());
-  thumbnailInput?.addEventListener('change', async () => {
+  thumbnailInput?.addEventListener('change', () => {
     const file = thumbnailInput.files?.[0];
     if (!file) return;
     thumbnailSelectionChanged = true;
@@ -1442,7 +1445,8 @@ function openRecognitionDateReview({ parsed, sourceText, existingDraft, overwrit
   $('#dateReviewContinueBtn').addEventListener('click', () => {
     const selections = $$('.date-review-row', overlay).map(row => ({ candidateId: row.dataset.dateCandidate, type: $('.date-review-type', row).value, value: $('.date-review-value', row).value }));
     const reviewResolution = resolveDateReviewSelections(dateDecision, selections);
-    if (!reviewResolution.ok) return toast(reviewResolution.errors[0], 'status-bad');    finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, dateDecision, recognitionDocument, reviewResolution });
+    if (!reviewResolution.ok) return toast(reviewResolution.errors[0], 'status-bad');
+    finishRecognitionParse({ parsed, sourceText, existingDraft, overwrite, dateDecision, recognitionDocument, reviewResolution });
   });
 }
 
@@ -1792,7 +1796,8 @@ function openCoolingModeMenu(which) {
   overlay.addEventListener('click', async event => {
     const button = event.target.closest('[data-cooling-choice]');
     if (!button) return;
-    const choice = button.dataset.coolingChoice;    if (choice === 'custom') {
+    const choice = button.dataset.coolingChoice;
+    if (choice === 'custom') {
       closeOverlay();
       openCoolingDialog(which);
       return;
@@ -2159,7 +2164,8 @@ function beginTimedBrew() {
 function startTimer() {
   if (!state.currentPlan) return;
   state.currentPlan = sanitizeExecutionPlanText(state.currentPlan);
-  const speech = preparationSpeech(state.currentPlan);  const actions = (state.currentPlan.executionActions || []).filter(action => action.phase === 'before-timer');
+  const speech = preparationSpeech(state.currentPlan);
+  const actions = (state.currentPlan.executionActions || []).filter(action => action.phase === 'before-timer');
   const overlay = showOverlay(`<div class="brew-prepare-dialog">${dialogHeader('冲煮准备', '准备阶段不计入冲煮时间；确认后才开始第一段。', { centered:true })}<div class="brew-preparation-card"><strong>${state.currentBrewInput?.brew?.serveMode === 'cold' ? '❄ 冰冲准备' : '♨ 热冲准备'}</strong><p>${esc(speech)}</p></div>${actions.filter(action=>action.type!=='prepare').map(action=>`<p class="brew-prepare-action">${esc(action.speech || '')}</p>`).join('')}<div class="row"><button id="repeatPreparationBtn" class="button" type="button">重播提示</button><span class="grow"></span><button id="cancelPreparationBtn" class="button" type="button">返回</button><button id="confirmBrewPreparedBtn" class="button primary" type="button">准备好了，开始</button></div></div>`, { id:'brew-prepare', backdropClose:false, dialogClass:'bottom-sheet' });
   document.dispatchEvent(new CustomEvent('luckybean:brew-preparation', { detail:{ plan:state.currentPlan, speech } }));
   speak(speech);
@@ -2508,7 +2514,8 @@ function bindEvaluationEvents() {
     const score = clamp(parseNumber(event.target.value, 80), 0, 100);
     state.evaluation.subjectiveScore = score;
     if ($('#sensoryNoteScoreOutput')) $('#sensoryNoteScoreOutput').textContent = score.toFixed(1);
-  });  $('#sensoryNaturalNote')?.addEventListener('input', event => { state.evaluation.naturalNote = event.target.value; });
+  });
+  $('#sensoryNaturalNote')?.addEventListener('input', event => { state.evaluation.naturalNote = event.target.value; });
   $('#sensoryVoiceNoteBtn')?.addEventListener('click', () => startSpeechRecognition('sensoryNaturalNote'));
   $('#saveSensoryNoteBtn')?.addEventListener('click', async () => {
     state.evaluation.subjectiveScore = clamp(parseNumber($('#sensoryNoteScore')?.value, state.evaluation.subjectiveScore || 80), 0, 100);
