@@ -1,4 +1,4 @@
-const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.4';
+const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.6';
 const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEASE_REVISION)}` });
 const BEAN_GROUP_RUNTIME_REVISION = RELEASE_REVISION;
 const pinnedFeature = (id, path, revision) => ({ id, path: `${path}?v=${encodeURIComponent(revision)}` });
@@ -17,6 +17,7 @@ const CORE_FEATURES = Object.freeze([
 ]);
 
 const P2_CORE_FEATURES = Object.freeze([
+  feature('bean-thumbnail', '../ui/bean-thumbnail-controller.js'),
   feature('bean-batch-manager', '../ui/bean-batch-manager-controller.js'),
   feature('bean-group-actions', '../ui/bean-group-actions-controller.js'),
   feature('bean-card-presentation', '../ui/bean-card-presentation-controller.js'),

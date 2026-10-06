@@ -38,7 +38,7 @@ export function beanSummaryFromBean(bean = {}) {
     varietyName: bean.varietyName || bean.variety || '', processName: bean.processName || bean.process || '', roastName: bean.roastName || bean.roast || '',
     roastDate: bean.roastDate || '', initialWeight: Number(bean.initialWeight || 0), remainingWeight: Number(bean.remainingWeight || 0),
     refrigerated: Boolean(bean.refrigerated), freezeDate: bean.freezeDate || '', price: Number(bean.price || 0),
-    roasterName: bean.roasterName || bean.roaster || '', altitude: Number(bean.altitude || 0), archived: Boolean(bean.archived),
+    roasterName: bean.roasterName || bean.roaster || '', productName: bean.productName || bean.brand || bean.product || bean.commercialName || '', altitude: Number(bean.altitude || 0), archived: Boolean(bean.archived),
     flavorCodes: Array.isArray(bean.flavorCodes) ? [...bean.flavorCodes] : [],
     countryLabel: parts[0] || '', varietyLabel: parts[1] || '',
     createdAt: bean.createdAt || '', updatedAt: bean.updatedAt || bean.createdAt || ''

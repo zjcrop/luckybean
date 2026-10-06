@@ -62,6 +62,13 @@ async function decorate() {
     const header = $('.dialog-header', overlay);
     const heading = $('h2', header);
     const subtitle = $('p', header);
+    if (header && !$('.bean-detail-thumbnail-shell', header)) {
+      header.classList.add('bean-detail-header');
+      const shell = document.createElement('span');
+      shell.className = 'bean-thumbnail-shell bean-thumbnail-shell-detail';
+      shell.innerHTML = `<img class="bean-thumbnail bean-detail-thumbnail" data-bean-thumbnail="${esc(bean.id)}" alt="豆袋缩略图" loading="lazy" hidden><span class="bean-thumbnail-fallback" aria-hidden="true"></span>`;
+      header.prepend(shell);
+    }
     if (heading && view.primary.length) heading.textContent = view.primary.join(' \\ ');
     if (subtitle) {
       subtitle.textContent = view.secondary.join('   ');

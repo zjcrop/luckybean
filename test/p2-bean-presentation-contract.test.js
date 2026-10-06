@@ -4,9 +4,12 @@ import fs from 'node:fs';
 const cards = fs.readFileSync(new URL('../src/ui/bean-card-presentation-controller.js', import.meta.url), 'utf8');
 const detail = fs.readFileSync(new URL('../src/ui/bean-detail-presentation-controller.js', import.meta.url), 'utf8');
 const runtime = fs.readFileSync(new URL('../src/features/runtime-features.js', import.meta.url), 'utf8');
+const storage = fs.readFileSync(new URL('../src/db-storage-core.js', import.meta.url), 'utf8');
 
 test('bean card presentation reads lightweight beanSummaries rather than full histories', () => {
   assert.match(cards, /all\('beanSummaries'\)/);
+  assert.match(cards, /bean\.roasterName/);
+  assert.match(cards, /bean\.productName/);
   assert.doesNotMatch(cards, /all\('brewSessions'\)|all\('sensoryRecords'\)|all\('inventoryEvents'\)/);
 });
 test('detail projection loads only the selected full bean and preserves existing action nodes', () => {
@@ -25,4 +28,11 @@ test('detail fact sheet is content-only, slash-delimited and strips duplicate le
 test('presentation controllers are core runtime features', () => {
   assert.match(runtime, /feature\('bean-card-presentation'/);
   assert.match(runtime, /feature\('bean-detail-presentation'/);
+  assert.match(runtime, /feature\('bean-thumbnail'/);
+});
+
+test('bean directory summaries retain the roaster and product brand without storing thumbnails', () => {
+  assert.match(storage, /roasterName: bean\.roasterName/);
+  assert.match(storage, /productName: bean\.productName/);
+  assert.doesNotMatch(storage, /beanThumbnail|thumbnailData/);
 });

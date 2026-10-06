@@ -11,3 +11,24 @@
 .p2-bean-detail-values { display:flex; flex-wrap:wrap; gap:7px 14px; align-items:baseline; }
 .p2-bean-detail-values span { font-size:14px; font-weight:600; }
 .p2-bean-detail-note { margin:2px 0 0; font-size:13px; line-height:1.55; opacity:.82; }
+.bean-card.compact { grid-template-columns:4rem minmax(0,1fr) 48px; }
+.bean-thumbnail-shell { position:relative; width:4rem; height:4rem; aspect-ratio:1; display:grid; place-items:center; overflow:hidden; flex:none; }
+.bean-thumbnail { display:block; width:100%; height:100%; object-fit:cover; border-radius:10px; }
+.bean-thumbnail[hidden] { display:none; }
+.bean-thumbnail-fallback { width:9px; height:9px; display:block; border-radius:50%; background:var(--muted,#767676); opacity:.72; }
+.bean-thumbnail-fallback[hidden] { display:none; }
+.bean-card-roaster-brand { color:var(--muted,#888)!important; font-size:12px!important; line-height:1.3; }
+.bean-detail-header { display:grid; grid-template-columns:3em minmax(0,1fr) auto; align-items:center; gap:12px; }
+.bean-thumbnail-shell-detail { width:3em; height:3em; }
+.bean-thumbnail-shell-detail .bean-thumbnail-fallback { width:8px; height:8px; }
+.bean-detail-header > div { min-width:0; }
+.bean-thumbnail-picker { display:flex; align-items:center; gap:12px; min-width:0; }
+.bean-thumbnail-preview { width:4.25rem; height:4.25rem; flex:none; object-fit:cover; border-radius:10px; }
+.bean-thumbnail-picker-actions { display:flex; align-items:center; flex-wrap:wrap; gap:7px; }
+.bean-thumbnail-picker-actions small { flex-basis:100%; color:var(--muted,#888); }
+.leftover-brew-suggestion { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 14px; padding:12px 14px; border-left:2px solid #c9a45f; background:rgba(201,164,95,.08); }
+.leftover-brew-suggestion p { margin:0; font-size:14px; line-height:1.45; }
+.leftover-brew-suggestion .row { flex:none; gap:8px; }
+@media(max-width:420px) { .bean-card.compact { grid-template-columns:3.5rem minmax(0,1fr) 42px; gap:9px; } .bean-thumbnail-shell { width:3.5rem; height:3.5rem; } .leftover-brew-suggestion { align-items:flex-start; flex-direction:column; } }
+.bean-thumbnail-shell-detail { width:3em; height:3em; }
+.bean-card-roaster-brand { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
