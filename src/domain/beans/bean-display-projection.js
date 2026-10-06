@@ -50,7 +50,7 @@ export function buildBeanCardProjection(bean = {}, facts = {}) {
 export function buildBeanDetailProjection(bean = {}, facts = {}) {
   const card = buildBeanCardProjection(bean, facts);
   const roaster = clean(bean.roasterName || bean.roaster);
-  const product = clean(bean.productName || bean.product || bean.commercialName);
+  const product = clean(bean.productName || bean.brand || bean.product || bean.commercialName);
   const region = clean(facts.region || bean.regionName || bean.region || bean.regionCode);
   const station = processingStationLabel(bean, facts);
   const harvest = compactHarvestSeasonLabel(bean.harvestSeason || bean.harvestYear);

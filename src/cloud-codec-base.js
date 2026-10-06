@@ -63,7 +63,8 @@ function packBean(bean = {}) {
     compactDate(bean.roastDate), round10(bean.initialWeight), round10(bean.remainingWeight), bean.refrigerated ? 1 : 0,
     compactDate(bean.freezeDate), round100(bean.price), bean.roasterName || bean.roaster || '', Number(bean.altitude || 0),
     bean.notes || '', Array.isArray(bean.flavorCodes) ? bean.flavorCodes : [], bean.archived ? 1 : 0, token(bean.source || 'manual'),
-    Number(bean.codebookSchemaVersion || 1), String(bean.codebookDataVersion || ''), compactTime(bean.createdAt), compactTime(bean.updatedAt)
+    Number(bean.codebookSchemaVersion || 1), String(bean.codebookDataVersion || ''), compactTime(bean.createdAt), compactTime(bean.updatedAt),
+    bean.productName || bean.brand || bean.product || bean.commercialName || ''
   ];
 }
 
@@ -74,7 +75,8 @@ function unpackBean(row = []) {
     roastDate: expandDate(row[9]), initialWeight: unround10(row[10]), remainingWeight: unround10(row[11]), refrigerated: Boolean(row[12]),
     freezeDate: expandDate(row[13]), price: unround100(row[14]), roasterName: row[15] || '', altitude: Number(row[16] || 0),
     notes: row[17] || '', flavorCodes: Array.isArray(row[18]) ? row[18] : [], archived: Boolean(row[19]), source: untoken(row[20]) || 'manual',
-    codebookSchemaVersion: Number(row[21] || 1), codebookDataVersion: String(row[22] || ''), createdAt: expandTime(row[23]), updatedAt: expandTime(row[24])
+    codebookSchemaVersion: Number(row[21] || 1), codebookDataVersion: String(row[22] || ''), createdAt: expandTime(row[23]), updatedAt: expandTime(row[24]),
+    productName: row[25] || ''
   };
 }
 

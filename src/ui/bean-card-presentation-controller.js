@@ -41,7 +41,16 @@ function projectCard(card, bean, index) {
   title.classList.add('p2-bean-card-meta');
   title.innerHTML = `<span>${view.left.join(' / ')}</span><span>${view.right.join(' / ')}</span>`;
   const legacyProcess = $('small:not(.frozen-mark)', copy);
-  if (legacyProcess) legacyProcess.hidden = true;
+  if (legacyProcess) {
+    const roaster = String(bean.roasterName || bean.roaster || '').trim();
+    const brand = String(bean.productName || bean.brand || bean.product || bean.commercialName || '').trim();
+    const makerLine = [roaster, brand].filter(Boolean).join(' · ');
+    if (makerLine) {
+      legacyProcess.textContent = makerLine;
+      legacyProcess.classList.add('bean-card-roaster-brand');
+      legacyProcess.hidden = false;
+    } else legacyProcess.hidden = true;
+  }
   const legacyWeight = $('.compact-bean-row > strong', copy);
   if (legacyWeight) legacyWeight.hidden = true;
   card.dataset.p2CardProjected = '1';

@@ -17,6 +17,7 @@ const CORE_FEATURES = Object.freeze([
 ]);
 
 const P2_CORE_FEATURES = Object.freeze([
+  feature('bean-thumbnail', '../ui/bean-thumbnail-controller.js'),
   feature('bean-batch-manager', '../ui/bean-batch-manager-controller.js'),
   feature('bean-group-actions', '../ui/bean-group-actions-controller.js'),
   feature('bean-card-presentation', '../ui/bean-card-presentation-controller.js'),
