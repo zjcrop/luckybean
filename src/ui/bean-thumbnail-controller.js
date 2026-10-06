@@ -34,10 +34,12 @@ function hydrate(root = document) {
   });
 }
 
-if (document.body) {
+const thumbnailRoots = [document.getElementById('beanGroups'), document.getElementById('overlayRoot')].filter(Boolean);
+if (thumbnailRoots.length) {
   const observer = new MutationObserver(records => records.forEach(record => record.addedNodes.forEach(node => { if (node.nodeType === 1) hydrate(node); })));
-  observer.observe(document.body, { childList:true, subtree:true });
-  hydrate();
+  thumbnailRoots.forEach(root => observer.observe(root, { childList:true, subtree:true }));
 }
+hydrate();
 document.addEventListener('luckybean:request-app-refresh', () => hydrate());
+document.addEventListener('luckybean:app-refreshed', () => hydrate());
 globalThis.LuckyBeanBeanThumbnails = Object.freeze({ refresh:hydrate });
