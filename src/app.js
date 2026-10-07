@@ -1853,19 +1853,19 @@ function resolvedDoseLabel(profiles = listBrewProfiles()) {
 function openDoseModeDialog() {
   const scopedDose = state.leftoverDoseOverride?.beanId === state.selectedBeanId ? state.leftoverDoseOverride : null;
   const current = scopedDose ? (scopedDose.mode === 'manual' ? 'manual' : 'auto') : (state.settings.brew.doseMode === 'manual' ? 'manual' : 'auto');
-  const initialDose = scopedDose?.mode === 'manual' ? Number(scopedDose.doseG) : Number(selectedProfileReferenceDose());
+  const initialDose = scopedDose?.mode === 'manual' ? Number(scopedDose.doseG) : current === 'manual' ? Number(state.settings.brew.doseG || 15) : Number(selectedProfileReferenceDose());
   const overlay = showOverlay(`${dialogHeader('粉量', '自动采用方案参考粉量；未指定方案时为15g。', { centered:true })}<div class="lb-choice-grid dose-choice-grid"><button class="button${current==='auto'?' primary':''}" type="button" data-dose-choice="auto">自动</button><button class="button${current==='manual'?' primary':''}" type="button" data-dose-choice="manual">自定义</button></div><label class="field"><span>自定义克数</span><input id="customDoseInput" class="control" type="number" min="5" max="40" step="0.1" value="${initialDose}"></label><div class="row end"><button id="saveDoseModeBtn" class="button primary" type="button">确定</button></div>`, { id:'dose-mode', backdropClose:true, dialogClass:'bottom-sheet' });
   bindClose(overlay);
   let choice = current;
   $('#customDoseInput', overlay)?.addEventListener('input', () => {
     choice = 'manual';
-    $('[data-dose-choice]', overlay).forEach(item => item.classList.toggle('primary', item.dataset.doseChoice === 'manual'));
+    $$('[data-dose-choice]', overlay).forEach(item => item.classList.toggle('primary', item.dataset.doseChoice === 'manual'));
   });
   overlay.addEventListener('click', event => {
     const button = event.target.closest('[data-dose-choice]');
     if (!button) return;
     choice = button.dataset.doseChoice;
-    $$('[data-dose-choice]', overlay).forEach(item => item.classList.toggle('primary', item === button));
+    $$$('[data-dose-choice]', overlay).forEach(item => item.classList.toggle('primary', item === button));
   });
   $('#saveDoseModeBtn', overlay)?.addEventListener('click', async () => {
     const doseG = choice === 'manual' ? clamp(parseNumber($('#customDoseInput', overlay)?.value, 15), 5, 40) : selectedProfileReferenceDose();
@@ -2238,7 +2238,7 @@ function renderTimerDialog() {
   }
   const stage = state.currentPlan.stages[state.timer.stageIndex];
   const next = state.currentPlan.stages[state.timer.stageIndex+1];
-  const content = `<div class="timer-full"><div class="timer-top"><span id="timerStageCounter">${state.timer.stageIndex+1}/${state.currentPlan.stages.length}</span><strong id="timerStatusLabel" class="timer-state-label">${timerStatusLabel()}</strong></div><div class="timer-stage-name" id="timerStageName">${esc(stage.name)}</div><div id="timerClock" class="timer-clock">${formatSeconds(state.timer.remaining)}</div><div class="timer-totals"><span>总时长 <strong id="timerTotal">${formatSeconds(state.currentPlan.totals?.targetTimeSec||0)}</strong></span><span>已进行 <strong id="timerElapsed">00:00</strong></span><span>总剩余 <strong id="timerTotalRemaining">${formatSeconds(state.currentPlan.totals?.targetTimeSec||0)}</strong></span></div><div class="timer-stage-grid"><div><span>本段目标</span><strong id="timerStageWater">${Number(stage.stageWaterG).toFixed(0)}g</strong></div><div><span>累计水量</span><strong id="timerCumulativeWater">${Number(stage.cumulativeWaterG).toFixed(0)}g</strong></div><div><span>目标水温</span><strong id="timerTemperature">${Number(stage.temperatureC).toFixed(0)}°C</strong></div><div><span>本段时长</span><strong>${formatSeconds(stage.durationSec)}</strong></div></div><p id="timerStageText"><b class="timer-action-label">本段动作</b>${esc(stage.method)}${stage.notice?`<small>${esc(stage.notice)}</small>`:''}</p><div id="timerNextCue" class="timer-next-cue">${next?`下一段：${esc(next.name)} · ${Math.round(next.stageWaterG)}g · ${Math.round(next.temperatureC)}°C · ${esc(next.method)}`:'最后一段'}</div><div class="timer-progress"><span id="timerProgressFill"></span></div><div class="timer-actions four"><button id="timerPrevBtn" class="button" type="button" aria-label="上一步">上一步</button><button id="timerPauseBtn" class="button active" type="button" aria-pressed="false" data-timer-action="pause">暂停</button><button id="timerNextBtn" class="button" type="button" aria-label="下一步">下一步</button><button id="timerEndBtn" class="button" type="button">中止</button></div></div>`;
+  const content = `<div class="timer-full"><div class="timer-top"><span id="timerStageCounter">${state.timer.stageIndex+1}/${state.currentPlan.stages.length}</span><strong id="timerStatusLabel" class="timer-state-label">${timerStatusLabel()}</strong></div><div class="timer-stage-name" id="timerStageName">${esc(stage.name)}</div><div id="timerClock" class="timer-clock">${formatSeconds(state.timer.remaining)}</div><div class="timer-totals"><span>总时长 <strong id="timerTotal">${formatSeconds(state.currentPlan.totals?.targetTimeSec||0)}</strong></span><span>已进行 <strong id="timerElapsed">00:00</strong></span><span>总剩余 <strong id="timerTotalRemaining">${formatSeconds(state.currentPlan.totals?.targetTimeSec||0)}</strong></span></div><div class="timer-stage-grid"><div><span>本段目标</span><strong id="timerStageWater">${Number(stage.stageWaterG).toFixed(0)}g</strong></div><div><span>累计水量</span><strong id="timerCumulativeWater">${Number(stage.cumulativeWaterG).toFixed(0)}g</strong></div><div><span>目标水温</span><strong id="timerTemperature">${Number(stage.temperatureC).toFixed(0)}°C</strong></div><div><span>本段时长</span><strong id="timerStageDuration">${formatSeconds(stage.durationSec)}</strong></div></div><p id="timerStageText"><b class="timer-action-label">本段动作</b>${esc(stage.method)}${stage.notice?`<small>${esc(stage.notice)}</small>`:''}</p><div id="timerNextCue" class="timer-next-cue">${next?`下一段：${esc(next.name)} · ${Math.round(next.stageWaterG)}g · ${Math.round(next.temperatureC)}°C · ${esc(next.method)}`:'最后一段'}</div><div class="timer-progress"><span id="timerProgressFill"></span></div><div class="timer-actions four"><button id="timerPrevBtn" class="button" type="button" aria-label="上一步">上一步</button><button id="timerPauseBtn" class="button active" type="button" aria-pressed="false" data-timer-action="pause">暂停</button><button id="timerNextBtn" class="button" type="button" aria-label="下一步">下一步</button><button id="timerEndBtn" class="button" type="button">中止</button></div></div>`;
   showOverlay(content, { full:true, id:'timer' });
   $('#timerPauseBtn').addEventListener('click', () => {
     state.timer.paused = !state.timer.paused;
@@ -2268,6 +2268,7 @@ function renderTimerValues() {
   const elapsed = elapsedBefore + stageElapsed;
   const total = Number(state.currentPlan.totals?.targetTimeSec || stages.reduce((sum,item)=>sum+Number(item.durationSec||0),0));
   clock.textContent = formatSeconds(state.timer.remaining);
+  $('#timerStageDuration').textContent = formatSeconds(stage.durationSec);
   $('#timerElapsed').textContent = formatSeconds(elapsed); $('#timerTotalRemaining').textContent = formatSeconds(Math.max(0,total-elapsed));
   const statusLabel = $('#timerStatusLabel'); if (statusLabel) statusLabel.textContent = timerStatusLabel();
   $('#timerStageCounter').textContent = `${state.timer.stageIndex+1}/${stages.length}`; $('#timerStageName').textContent = stage.name;

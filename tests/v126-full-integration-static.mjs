@@ -35,9 +35,12 @@ assert.ok(history.includes('remainingAfter < 5'));
 assert.ok(history.includes('inventoryShortfallG'));
 
 const controller = fs.readFileSync(new URL('../src/features/full-integration-controller-v3.js', import.meta.url), 'utf8');
-for (const text of ['requestFullscreen','navigator.wakeLock.request(\'screen\')','prepareBrewExecution','startBrewExecution','validWindowMs','countdown_321','lb-one-line-bean']) {
-  assert.ok(controller.includes(text), `missing ${text}`);
-}
+for (const text of ['requestFullscreen', 'lb-one-line-bean']) assert.ok(controller.includes(text), `missing ${text}`);
+const nativeController = fs.readFileSync(new URL('../src/ui/brew-native-execution-controller.js', import.meta.url), 'utf8');
+for (const text of ['prepareBrewExecution', 'startBrewExecution', 'validWindowMs', 'countdown_321']) assert.ok(nativeController.includes(text), `missing ${text}`);
+const awakeController = fs.readFileSync(new URL('../src/ui/brew-screen-awake-controller.js', import.meta.url), 'utf8');
+assert.ok(awakeController.includes("navigator.wakeLock.request('screen')"));
+assert.doesNotMatch(controller, /prepareBrewExecution|startBrewExecution|pauseBrewExecution|navigator\.wakeLock/);
 assert.doesNotMatch(controller, /injectGear|data-lb-batch-open|remove\('beans'|new MutationObserver\([^)]*document\.body/);
 
 const gearUi = fs.readFileSync(new URL('../src/ui/gear-controller.js', import.meta.url), 'utf8');

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.setTimeout(120_000);
+test.use({serviceWorkers:'block'});
 
 async function openCapture(page) {
   await page.addInitScript(() => {
@@ -17,11 +18,19 @@ async function openCapture(page) {
   await expect(page.locator('#overlayRoot')).toBeAttached({ timeout:15_000 });
   await page.waitForFunction(() => Boolean(globalThis.LuckyBeanRuntimeFeatures?.loadMany), null, { timeout:20_000 });
   await page.evaluate(() => globalThis.LuckyBeanRuntimeFeatures.loadMany([
+    'recognition-paddle-ocr',
     'gallery-image-preprocess',
     'package-capture'
   ]));
   await page.waitForFunction(() => Boolean(globalThis.LuckyBeanPackageCapture?.open), null, { timeout:20_000 });
-  await page.evaluate(() => globalThis.LuckyBeanPackageCapture.open());
+  // This suite checks file routing and auto-start, while isolated OCR suites verify the real models.
+  await page.evaluate(() => {
+    globalThis.LuckyBeanPaddleOCR = {...globalThis.LuckyBeanPaddleOCR,
+      beginSession:async () => null, warmForRecognition:async () => null,
+      recognize:() => new Promise(() => {})
+    };
+    globalThis.LuckyBeanPackageCapture.open();
+  });
   await expect(page.locator('#bagGalleryBtn')).toBeVisible({ timeout:10_000 });
   await expect(page.locator('#bagGalleryBtn')).toBeEnabled({ timeout:10_000 });
 }

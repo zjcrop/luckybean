@@ -36,6 +36,8 @@ export function buildNativeBrewExecutionPayload(plan = {}, { stageIndex = 0 } = 
       endMs: elapsedMs + durationMs,
       name: String(stage.name || ''),
       waterG: Number(stage.stageWaterG || 0),
+      cumulativeWaterG: Number(stage.cumulativeWaterG || 0),
+      method: String(stage.method || ''),
       temperatureC: Number(stage.temperatureC || 0)
     };
     elapsedMs += durationMs;
@@ -48,6 +50,11 @@ export function buildNativeBrewExecutionPayload(plan = {}, { stageIndex = 0 } = 
     validWindowMs: 5000,
     text: stageSpeech(stages[startIndex + offset])
   }));
+
+  stageRows.slice(1).forEach(row => {
+    events.push({ id:`prepare-stage-${row.index}`, atMs:Math.max(0, row.startMs - 8000), validWindowMs:3000, text:`准备：${stageSpeech(stages[row.index])}` });
+    events.push({ id:`countdown-stage-${row.index}`, atMs:Math.max(0, row.startMs - 3200), validWindowMs:1200, text:'三，二，一', fixedKey:'countdown_321' });
+  });
 
   for (const action of Array.isArray(plan?.executionActions) ? plan.executionActions : []) {
     if (action?.phase !== 'timed' || action?.type === 'hot-pour' || !Number.isFinite(Number(action?.atSec))) continue;
@@ -116,7 +123,8 @@ function startNativeFromStage(stageIndex = 0) {
 }
 
 function timerActive() {
-  return Boolean(document.querySelector('#overlayRoot [data-overlay="timer"]'));
+  const timer = document.querySelector('#overlayRoot [data-overlay="timer"]');
+  return Boolean(timer && !timer.querySelector('.timer-draining'));
 }
 
 function syncOverlayState() {
@@ -142,17 +150,18 @@ document.addEventListener('click', event => {
   if (!nativeBridge()) return;
   if (event.target.closest?.('#timerPauseBtn')) {
     requestAnimationFrame(() => {
-      const resuming = document.querySelector('#timerPauseBtn')?.dataset?.timerAction === 'resume';
-      callNative(resuming ? 'resumeBrewExecution' : 'pauseBrewExecution');
+      const paused = document.querySelector('#timerPauseBtn')?.dataset?.timerAction === 'resume';
+      callNative(paused ? 'pauseBrewExecution' : 'resumeBrewExecution');
     });
     return;
   }
   if (event.target.closest?.('#timerPrevBtn,#timerNextBtn')) {
-    requestAnimationFrame(() => startNativeFromStage(currentTimerStageIndex()));
+    requestAnimationFrame(() => { if (timerActive()) startNativeFromStage(currentTimerStageIndex()); });
     return;
   }
   if (event.target.closest?.('#timerEndBtn,#cancelPreparationBtn')) {
     callNative('cancelBrewExecution');
+    timerWasActive = false;
   }
 }, false);
 

@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 const BASE_URL = 'http://127.0.0.1:4173';
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('luckybean.onboarding.v2', JSON.stringify({stage:'existing-user',updatedAt:new Date().toISOString(),reason:'closeout-regression'})));
   await page.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/, route => route.abort('failed'));
   await page.goto(`${BASE_URL}/?v123e-regressions=1`, { waitUntil: 'domcontentloaded' });
   await page.locator('#splashScreen').click();
@@ -147,4 +148,65 @@ test('Android URI-backed image reaches native OCR with empty dataUrl and no File
   expect(result.dataUrl).toBe('');
   expect(result.nativeSource).toBe(true);
   expect(result.text).toContain('ETHIOPIA');
+});
+
+async function seedCloseoutBean(page, {remainingWeight = 100, photo = false} = {}) {
+  await page.evaluate(async ({remainingWeight, photo}) => {
+    const db = await import('/src/db.js');
+    await db.put('beans', {
+      id:'closeout-bean', name:'埃塞俄比亚 · JARC 74158', countryName:'埃塞俄比亚', varietyName:'JARC 74158',
+      roasterName:'测试烘豆商', productName:'测试品牌', processName:'Washed', roastCode:'RL-L1',
+      roastDate:'2026-09-20', initialWeight:100, remainingWeight, archived:false, source:'manual',
+      createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()
+    });
+    if (photo) {
+      const canvas = document.createElement('canvas'); canvas.width = canvas.height = 256;
+      canvas.getContext('2d').fillRect(0, 0, 256, 256);
+      const {saveBeanThumbnail} = await import('/src/domain/beans/bean-thumbnail-storage.js');
+      await saveBeanThumbnail('closeout-bean', canvas.toDataURL('image/jpeg'));
+    }
+    document.dispatchEvent(new CustomEvent('luckybean:request-app-refresh'));
+  }, {remainingWeight, photo});
+  await expect(page.locator('.bean-card[data-bean-id="closeout-bean"]')).toHaveClass(/lb-one-line-bean/);
+}
+
+test('the active bean renderer preserves local photos and displays roaster, origin and numeric variety', async ({page}) => {
+  await seedCloseoutBean(page, {photo:true});
+  const card = page.locator('.bean-card[data-bean-id="closeout-bean"]');
+  await expect(card.locator('.lb-bean-primary')).toHaveText('测试烘豆商/埃塞/74158');
+  const image = card.locator('img[data-bean-thumbnail]');
+  await expect(image).toBeVisible();
+  await expect.poll(() => image.evaluate(node => Math.round(node.getBoundingClientRect().height * 10) / 10)).toBe(46);
+  const dimensions = await image.evaluate(node => ({width:node.getBoundingClientRect().width, height:node.getBoundingClientRect().height, decoded:node.naturalWidth}));
+  expect(dimensions.width).toBe(46); expect(dimensions.height).toBeCloseTo(46, 1); expect(dimensions.decoded).toBe(256);
+  await card.click();
+  await expect(page.locator('[data-overlay="bean-detail"] .bean-thumbnail-shell-detail img')).toBeVisible();
+  expect(await page.evaluate(async () => JSON.stringify(await (await import('/src/db.js')).get('beans','closeout-bean')))).not.toContain('data:image');
+});
+
+test('typing a 14g custom dose persists it and reopening the dialog retains 14g without a page error', async ({page}) => {
+  const errors = []; page.on('pageerror', error => errors.push(error.message));
+  await seedCloseoutBean(page);
+  await page.locator('[data-page-target="brew"]').click();
+  await page.locator('#brewBean').selectOption('closeout-bean');
+  await page.locator('#brewDose').click();
+  await page.locator('#customDoseInput').fill('14');
+  await expect(page.locator('[data-dose-choice="manual"]')).toHaveClass(/primary/);
+  await page.locator('#saveDoseModeBtn').click();
+  await expect(page.locator('#brewDose')).toContainText('14');
+  await page.locator('#brewDose').click();
+  await expect(page.locator('#customDoseInput')).toHaveValue('14');
+  expect(errors).toEqual([]);
+});
+
+test('remaining bean allocation changes only this brew dose and supports 28g, 27g and 12g', async ({page}) => {
+  for (const [remainingWeight, doses] of [[28,'14.0g + 14.0g'],[27,'15.0g + 12.0g'],[12,'一次用完']]) {
+    await page.locator('[data-page-target="beans"]').click();
+    await seedCloseoutBean(page, {remainingWeight});
+    await page.locator('[data-page-target="brew"]').click();
+    await page.locator('#brewBean').selectOption('closeout-bean');
+    await expect(page.locator('.leftover-brew-suggestion')).toContainText(doses);
+    await page.locator('#useRemainingBeanBtn').click();
+    await expect(page.locator('#brewDose')).toContainText(remainingWeight === 28 ? '14' : remainingWeight === 27 ? '15' : '12');
+  }
 });

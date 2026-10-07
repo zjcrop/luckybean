@@ -4,6 +4,7 @@ on:
   workflow_run:
     workflows: ["LuckyBean main signed release"]
     types: [completed]
+    branches: [main]
 
 permissions:
   contents: write
@@ -24,44 +25,12 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - name: Delete transient and fully merged branches
-        shell: bash
-        run: |
-          set -euo pipefail
-          git fetch --prune --no-tags origin '+refs/heads/*:refs/remotes/origin/*'
-          mapfile -t branches < <(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin | sort)
-          for branch in "${branches[@]}"; do
-            case "$branch" in
-              main|ci-status|pages-status|release-status) continue ;;
-            esac
-            [ -n "$branch" ] || continue
-            remote_ref="refs/remotes/origin/$branch"
-            if git merge-base --is-ancestor "$remote_ref" refs/remotes/origin/main; then
-              echo "Deleting fully merged branch: $branch"
-              git push origin --delete "$branch"
-            else
-              echo "Preserving unmerged branch: $branch"
-            fi
-          done
-      - name: Verify no fully merged disposable branches remain
-        shell: bash
-        run: |
-          set -euo pipefail
-          git fetch --prune --no-tags origin '+refs/heads/*:refs/remotes/origin/*'
-          unexpected=()
-          mapfile -t branches < <(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin | sort)
-          for branch in "${branches[@]}"; do
-            case "$branch" in
-              main|ci-status|pages-status|release-status) continue ;;
-            esac
-            [ -n "$branch" ] || continue
-            remote_ref="refs/remotes/origin/$branch"
-            if git merge-base --is-ancestor "$remote_ref" refs/remotes/origin/main; then
-              unexpected+=("$branch")
-            fi
-          done
-          if [ "${#unexpected[@]}" -ne 0 ]; then
-            echo 'Fully merged branches remain after cleanup:' >&2
-            printf '%s\n' "${unexpected[@]}" >&2
-            exit 1
-          fi
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+      - name: Archive superseded heads and delete verified merged branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          RELEASE_SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: node scripts/cleanup-transient-branches.mjs --apply

@@ -1,6 +1,7 @@
 import { all } from '../db.js';
+import { compactVarietyLabel } from '../domain/beans/bean-display-projection.js';
 
-const VERSION = 'full-integration/1.4';
+const VERSION = 'full-integration/1.5';
 const COUNTRY = new Map([
   ['埃塞俄比亚','埃塞'], ['Ethiopia','埃塞'], ['巴拿马','巴拿马'], ['Panama','巴拿马'],
   ['肯尼亚','肯尼亚'], ['Kenya','肯尼亚'], ['哥斯达黎加','哥达'], ['Costa Rica','哥达'],
@@ -24,8 +25,6 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&am
 let displayIndex = null;
 let beanMap = new Map();
 let latestPlan = null;
-let wakeLock = null;
-let nativeExecutionActive = false;
 let renderQueued = false;
 let beanObserver = null;
 
@@ -47,7 +46,7 @@ function shortStation(value) {
   return latin.length >= 3 ? latin.slice(0, 3) : [...text].slice(0, 3).join('');
 }
 function shortVariety(value) {
-  const text = String(value || '').trim();
+  const text = compactVarietyLabel(value);
   if (!text) return '未定';
   if (/^\d{3,}$/.test(text) || /^SL\s*\d+$/i.test(text)) return text.replace(/\s+/g, '').toUpperCase();
   return VARIETY.get(text) || ([...text].length <= 4 ? text : [...text].slice(0, 4).join(''));
@@ -80,13 +79,15 @@ function transformCard(card) {
   const bean = beanMap.get(String(card?.dataset?.beanId || ''));
   if (!bean) return;
   const value = parts(bean);
-  const primary = [value.country, value.station, value.variety].filter(Boolean).join('/');
+  const roaster = readable(bean.roasterName || bean.roaster);
+  const brand = readable(bean.productName || bean.brand || bean.product || bean.commercialName);
+  const primary = [roaster, value.country, value.station, value.variety].filter(Boolean).join('/');
   const secondary = [value.roast, value.process, value.remaining].join('/');
-  const signature = `${primary}/${secondary}`;
+  const signature = `${primary}/${secondary}/${brand}`;
   if (card.dataset.lbSignature === signature && card.classList.contains('lb-one-line-bean')) return;
   card.dataset.lbSignature = signature;
   card.classList.add('lb-one-line-bean');
-  card.innerHTML = `<div class="lb-bean-line" aria-label="${esc(signature)}"><span class="lb-bean-primary">${esc(primary)}</span><span class="lb-bean-secondary">/${esc(secondary)}</span></div><button class="cup-action compact-pick lb-brew-circle" type="button" data-brew-bean="${esc(bean.id)}" aria-label="用这只豆小酌">酌</button>`;
+  card.innerHTML = `<span class="bean-thumbnail-shell"><img class="bean-thumbnail" data-bean-thumbnail="${esc(bean.id)}" alt="豆袋缩略图" loading="lazy" hidden><span class="bean-thumbnail-fallback" aria-hidden="true"></span></span><div class="lb-bean-line" title="${esc([roaster, brand].filter(Boolean).join(' · '))}" aria-label="${esc(signature)}"><span class="lb-bean-primary">${esc(primary)}</span><span class="lb-bean-secondary">/${esc(secondary)}</span></div><button class="cup-action compact-pick lb-brew-circle" type="button" data-brew-bean="${esc(bean.id)}" aria-label="用这只豆小酌">酌</button>`;
 }
 
 function transformCards() {
@@ -135,110 +136,10 @@ function requestFullscreenForBrew() {
   const request = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
   try { request?.call(document.documentElement, { navigationUI: 'hide' })?.catch?.(() => {}); } catch {}
 }
-async function acquireWake() {
-  if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
-  try { wakeLock = await navigator.wakeLock.request('screen'); } catch { wakeLock = null; }
-}
-async function releaseWake() {
-  try { await wakeLock?.release?.(); } catch {}
-  wakeLock = null;
-}
-function stagesOf(plan) {
-  let cursor = 0;
-  return (Array.isArray(plan?.stages) ? plan.stages : []).map((stage, index) => {
-    let start = Number(stage.startSec ?? stage.start);
-    let end = Number(stage.end);
-    if (!Number.isFinite(start)) start = cursor;
-    let duration = Number(stage.durationSec);
-    if (!Number.isFinite(duration) || duration <= 0) duration = Number.isFinite(end) && end > start ? end - start : .1;
-    if (!Number.isFinite(end) || end <= start) end = start + duration;
-    cursor = end;
-    return {
-      index, startMs: Math.round(start * 1000), endMs: Math.round(end * 1000), name: String(stage.name || `第${index + 1}段`),
-      waterG: Number(stage.stageWaterG ?? stage.pour ?? 0), cumulativeWaterG: Number(stage.cumulativeWaterG ?? stage.cumulative ?? 0),
-      temperatureC: Number(stage.temperatureC ?? stage.pourTemperature ?? 90), method: String(stage.method || '')
-    };
-  });
-}
-function speechOf(plan) {
-  const stages = stagesOf(plan);
-  const events = [];
-  stages.forEach((stage, index) => {
-    if (index > 0) {
-      events.push({ id:`stage-${index + 1}-prepare`, atMs:Math.max(0, stage.startMs - 8000), text:`准备第${index + 1}段，${Math.round(stage.waterG)}克，${Math.round(stage.temperatureC)}度`, priority:'high', validWindowMs:3000 });
-      events.push({ id:`stage-${index + 1}-countdown`, atMs:Math.max(0, stage.startMs - 3200), text:'三，二，一', priority:'critical', validWindowMs:1200, fixedKey:'countdown_321' });
-    }
-    events.push({ id:`stage-${index + 1}-start`, atMs:stage.startMs, text:`第${index + 1}段，${stage.name}，注水${Math.round(stage.waterG)}克，累计${Math.round(stage.cumulativeWaterG)}克，水温${Math.round(stage.temperatureC)}度，${stage.method}`, priority:'critical', validWindowMs:4500 });
-  });
-  (plan?.executionActions || []).filter(action => action.phase === 'timed' && action.type !== 'hot-pour' && Number.isFinite(Number(action.atSec))).forEach((action,index) => {
-    const atMs = Math.max(0, Math.round(Number(action.atSec) * 1000));
-    const amount = Number(action.amountG || 0);
-    const text = String(action.speech || `${action.type === 'add-ice' ? '加入冰块' : '执行下一步'}${amount > 0 ? `${Math.round(amount)}克` : ''}`);
-    events.push({ id:`action-${index + 1}-prepare`, atMs:Math.max(0,atMs-8000), text:`准备：${text}`, priority:'high', validWindowMs:3000 });
-    events.push({ id:`action-${index + 1}-start`, atMs, text, priority:'critical', validWindowMs:5000 });
-  });
-  events.sort((a,b)=>a.atMs-b.atMs || a.id.localeCompare(b.id));
-  const totalMs = stages.at(-1)?.endMs || 0;
-  const finish = (plan?.executionActions || []).filter(action => action.phase === 'after-brew' && action.speech).map(action => action.speech).join('');
-  events.push({ id:'brew-complete', atMs:totalMs, text:finish || '冲煮完成', priority:'critical', validWindowMs:8000, fixedKey:finish ? '' : 'brew_complete' });
-  return { contract:'luckybean-speech-timeline/1.0', voicePack:'zh_CN_v1', totalMs, events };
-}
-function nativePayload(plan) {
-  return JSON.stringify({ contract:'luckybean-brew-execution/1.0', version:1, stages:stagesOf(plan), speech:speechOf(plan) });
-}
-function prepareNative(plan) {
-  if (!globalThis.__LUCKYBEAN_ANDROID__ || typeof globalThis.LuckyBeanNative?.prepareBrewExecution !== 'function') return;
-  try { globalThis.LuckyBeanNative.prepareBrewExecution(nativePayload(plan)); } catch (error) { console.warn('Android语音预载失败', error); }
-}
-function startNativeExecution(plan) {
-  requestFullscreenForBrew();
-  acquireWake();
-  if (!globalThis.__LUCKYBEAN_ANDROID__) return;
-  nativeExecutionActive = true;
-  try {
-    globalThis.LuckyBeanNative?.setBrewScreenAwake?.(true);
-    globalThis.LuckyBeanNative?.startBrewExecution?.(nativePayload(plan));
-  } catch (error) {
-    console.warn('Android原生执行启动失败', error);
-  }
-}
-function pauseNativeExecution() {
-  if (!nativeExecutionActive) return;
-  try { globalThis.LuckyBeanNative?.pauseBrewExecution?.(); } catch {}
-}
-function resumeNativeExecution() {
-  if (!nativeExecutionActive) return;
-  try { globalThis.LuckyBeanNative?.resumeBrewExecution?.(); } catch {}
-}
-function stopNativeExecution(cancel = true) {
-  releaseWake();
-  if (!globalThis.__LUCKYBEAN_ANDROID__) return;
-  try {
-    globalThis.LuckyBeanNative?.setBrewScreenAwake?.(false);
-    if (cancel && nativeExecutionActive) globalThis.LuckyBeanNative?.cancelBrewExecution?.();
-  } catch {}
-  nativeExecutionActive = false;
-}
-
-function bindNativeExecutionBridge() {
+function bindFullscreen() {
   document.addEventListener('click', event => {
-    if (event.target.closest('#confirmBrewPreparedBtn') && latestPlan) { startNativeExecution(latestPlan); return; }
-    if (event.target.closest('#timerPauseBtn')) {
-      const button = event.target.closest('#timerPauseBtn');
-      requestAnimationFrame(() => button?.textContent?.includes('继续') ? pauseNativeExecution() : resumeNativeExecution());
-      return;
-    }
-    if (event.target.closest('#timerEndBtn')) stopNativeExecution(true);
+    if (event.target.closest?.('#confirmBrewPreparedBtn')) requestFullscreenForBrew();
   }, true);
-  document.addEventListener('luckybean:brew-preparation', event => {
-    const speech = String(event.detail?.speech || '').trim();
-    if (!speech || !globalThis.__LUCKYBEAN_ANDROID__) return;
-    try { globalThis.LuckyBeanNative?.announceBrewPreparation?.(speech); } catch (error) { console.warn('Android准备提示播报失败', error); }
-  });
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && nativeExecutionActive) acquireWake();
-  });
-  window.addEventListener('pagehide', () => stopNativeExecution(true));
 }
 
 function bindEvents() {
@@ -250,7 +151,6 @@ function bindEvents() {
   document.addEventListener('luckybean:plan-ready', event => {
     latestPlan = event.detail?.plan || null;
     if (!latestPlan) return;
-    prepareNative(latestPlan);
     requestAnimationFrame(ensurePlanEffect);
   });
 }
@@ -277,7 +177,7 @@ async function init() {
   }
   await refreshBeans();
   bindBeanContainerObserver();
-  bindNativeExecutionBridge();
+  bindFullscreen();
   bindEvents();
   queueCardRender();
   document.documentElement.dataset.fullIntegration = VERSION;

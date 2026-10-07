@@ -71,3 +71,23 @@ test('rebasing from a manually selected stage removes elapsed cues and shifts re
   expect(payload.speech.events.some(event=>event.id==='stage-0')).toBe(false);
   expect(payload.speech.events.some(event=>event.id==='stage-1'&&event.atMs===0)).toBe(true);
 });
+test('pause and resume call the native bridge once and draining cancels execution', async ({ page }) => {
+  const calls = await page.evaluate(async plan => {
+    const frame = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    document.dispatchEvent(new CustomEvent('luckybean:brew-preparation', { detail:{plan,speech:'准备'} }));
+    const root = document.querySelector('#overlayRoot');
+    root.innerHTML = '<div data-overlay="timer"><span id="timerStageCounter">1/3</span><button id="timerPauseBtn" data-timer-action="pause">暂停</button></div>';
+    const button = document.querySelector('#timerPauseBtn');
+    button.addEventListener('click', () => { button.dataset.timerAction = button.dataset.timerAction === 'pause' ? 'resume' : 'pause'; });
+    await frame();
+    const starts = globalThis.__nativeCalls.filter(call => call.method === 'startBrewExecution').length;
+    globalThis.__nativeCalls.length = 0;
+    button.click(); await frame();
+    button.click(); await frame();
+    root.innerHTML = '<div data-overlay="timer"><div class="timer-draining">等待滴滤</div></div>';
+    await frame();
+    return {starts, methods:globalThis.__nativeCalls.map(call => call.method)};
+  }, PLAN);
+  expect(calls.starts).toBe(1);
+  expect(calls.methods).toEqual(['pauseBrewExecution', 'resumeBrewExecution', 'cancelBrewExecution']);
+});

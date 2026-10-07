@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-const cards = fs.readFileSync(new URL('../src/ui/bean-card-presentation-controller.js', import.meta.url), 'utf8');
+const cards = fs.readFileSync(new URL('../src/features/full-integration-controller-v3.js', import.meta.url), 'utf8');
 const detail = fs.readFileSync(new URL('../src/ui/bean-detail-presentation-controller.js', import.meta.url), 'utf8');
 const runtime = fs.readFileSync(new URL('../src/features/runtime-features.js', import.meta.url), 'utf8');
 const storage = fs.readFileSync(new URL('../src/db-storage-core.js', import.meta.url), 'utf8');
@@ -26,7 +26,8 @@ test('detail fact sheet is content-only, slash-delimited and strips duplicate le
   assert.match(detail, /textContent \|\| ''\)\.trim\(\) === '风味'/);
 });
 test('presentation controllers are core runtime features', () => {
-  assert.match(runtime, /feature\('bean-card-presentation'/);
+  assert.ok(fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8').includes('full-integration-controller-v3.js'));
+  assert.doesNotMatch(runtime, /bean-card-presentation-controller/);
   assert.match(runtime, /feature\('bean-detail-presentation'/);
   assert.match(runtime, /feature\('bean-thumbnail'/);
 });

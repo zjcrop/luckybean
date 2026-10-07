@@ -62,7 +62,7 @@ async function decorate() {
     const header = $('.dialog-header', overlay);
     const heading = $('h2', header);
     const subtitle = $('p', header);
-    if (header && !$('.bean-detail-thumbnail-shell', header)) {
+    if (header && !$('.bean-thumbnail-shell-detail', header)) {
       header.classList.add('bean-detail-header');
       const shell = document.createElement('span');
       shell.className = 'bean-thumbnail-shell bean-thumbnail-shell-detail';
