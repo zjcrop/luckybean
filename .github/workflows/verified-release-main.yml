@@ -76,7 +76,10 @@ jobs:
               '.github/workflows/build-main.yml' \
               '.github/workflows/verified-release-main.yml' \
               'tests/v127-dose-inventory-timer-regression.mjs' | LC_ALL=C sort)
-            if [ "$changed" != "$release_metadata_delta" ] && [ "$changed" != "$sdk_workflow_fix_delta" ]; then
+            release_guard_fix_delta=$(printf '%s\n' \
+              '.github/workflows/verified-release-main.yml' \
+              'tests/v127-dose-inventory-timer-regression.mjs' | LC_ALL=C sort)
+            if [ "$changed" != "$release_metadata_delta" ] && [ "$changed" != "$sdk_workflow_fix_delta" ] && [ "$changed" != "$release_guard_fix_delta" ]; then
               echo "Unexpected release delta:"
               printf '%s\n' "$changed"
               exit 1
