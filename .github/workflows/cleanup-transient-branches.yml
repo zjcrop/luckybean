@@ -2,7 +2,7 @@ name: LuckyBean cleanup transient branches
 
 on:
   workflow_run:
-    workflows: ["LuckyBean main signed release"]
+    workflows: ["LuckyBean verified signed release"]
     types: [completed]
 
 permissions:
@@ -25,10 +25,13 @@ jobs:
           ref: main
           fetch-depth: 0
       - name: Delete transient and fully merged branches
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           git fetch --prune --no-tags origin '+refs/heads/*:refs/remotes/origin/*'
+          merged_prs=$(gh pr list --state merged --base main --limit 200 --json headRefName,headRefOid)
           mapfile -t branches < <(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin | sort)
           for branch in "${branches[@]}"; do
             case "$branch" in
@@ -36,18 +39,23 @@ jobs:
             esac
             [ -n "$branch" ] || continue
             remote_ref="refs/remotes/origin/$branch"
-            if git merge-base --is-ancestor "$remote_ref" refs/remotes/origin/main; then
-              echo "Deleting fully merged branch: $branch"
+            branch_sha=$(git rev-parse "$remote_ref")
+            merged_sha=$(jq -r --arg branch "$branch" '[.[] | select(.headRefName == $branch) | .headRefOid][0] // empty' <<< "$merged_prs")
+            if git merge-base --is-ancestor "$remote_ref" refs/remotes/origin/main || { [ -n "$merged_sha" ] && [ "$branch_sha" = "$merged_sha" ]; }; then
+              echo "Deleting merged branch: $branch"
               git push origin --delete "$branch"
             else
               echo "Preserving unmerged branch: $branch"
             fi
           done
-      - name: Verify no fully merged disposable branches remain
+      - name: Verify no merged disposable branches remain
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           git fetch --prune --no-tags origin '+refs/heads/*:refs/remotes/origin/*'
+          merged_prs=$(gh pr list --state merged --base main --limit 200 --json headRefName,headRefOid)
           unexpected=()
           mapfile -t branches < <(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin | sort)
           for branch in "${branches[@]}"; do
@@ -56,12 +64,14 @@ jobs:
             esac
             [ -n "$branch" ] || continue
             remote_ref="refs/remotes/origin/$branch"
-            if git merge-base --is-ancestor "$remote_ref" refs/remotes/origin/main; then
+            branch_sha=$(git rev-parse "$remote_ref")
+            merged_sha=$(jq -r --arg branch "$branch" '[.[] | select(.headRefName == $branch) | .headRefOid][0] // empty' <<< "$merged_prs")
+            if git merge-base --is-ancestor "$remote_ref" refs/remotes/origin/main || { [ -n "$merged_sha" ] && [ "$branch_sha" = "$merged_sha" ]; }; then
               unexpected+=("$branch")
             fi
           done
           if [ "${#unexpected[@]}" -ne 0 ]; then
-            echo 'Fully merged branches remain after cleanup:' >&2
+            echo 'Merged branches remain after cleanup:' >&2
             printf '%s\n' "${unexpected[@]}" >&2
             exit 1
           fi
