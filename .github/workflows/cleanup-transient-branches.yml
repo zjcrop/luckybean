@@ -36,7 +36,7 @@ jobs:
           mapfile -t branches < <(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin | sort)
           for branch in "${branches[@]}"; do
             case "$branch" in
-              main|ci-status|pages-status|release-status) continue ;;
+              HEAD|main|ci-status|pages-status|release-status) continue ;;
             esac
             [ -n "$branch" ] || continue
             remote_ref="refs/remotes/origin/$branch"
@@ -61,7 +61,7 @@ jobs:
           mapfile -t branches < <(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin | sort)
           for branch in "${branches[@]}"; do
             case "$branch" in
-              main|ci-status|pages-status|release-status) continue ;;
+              HEAD|main|ci-status|pages-status|release-status) continue ;;
             esac
             [ -n "$branch" ] || continue
             remote_ref="refs/remotes/origin/$branch"
