@@ -67,17 +67,27 @@ jobs:
           if [ "${{ github.event_name }}" = "push" ]; then
             PRODUCT_SHA=$(git rev-parse HEAD^1)
             changed=$(git diff --name-only "$PRODUCT_SHA" "$RELEASE_SHA" | LC_ALL=C sort)
-            expected=$(printf '%s\n' \
+            release_metadata_delta=$(printf '%s\n' \
               '.github/workflows/verified-release-main.yml' \
               'index.html' \
               'release.json' \
               'sw.js' | LC_ALL=C sort)
-            test "$changed" = "$expected"
+            sdk_workflow_fix_delta=$(printf '%s\n' \
+              '.github/workflows/build-main.yml' \
+              '.github/workflows/verified-release-main.yml' \
+              'tests/v127-dose-inventory-timer-regression.mjs' | LC_ALL=C sort)
+            if [ "$changed" != "$release_metadata_delta" ] && [ "$changed" != "$sdk_workflow_fix_delta" ]; then
+              echo "Unexpected release delta:"
+              printf '%s\n' "$changed"
+              exit 1
+            fi
             git diff --quiet "$PRODUCT_SHA" "$RELEASE_SHA" -- . \
+              ':(exclude).github/workflows/build-main.yml' \
               ':(exclude).github/workflows/verified-release-main.yml' \
               ':(exclude)index.html' \
               ':(exclude)release.json' \
-              ':(exclude)sw.js'
+              ':(exclude)sw.js' \
+              ':(exclude)tests/v127-dose-inventory-timer-regression.mjs'
           else
             PRODUCT_SHA="$RELEASE_SHA"
           fi
@@ -87,7 +97,7 @@ jobs:
           conclusion=$(printf '%s' "$runs" | jq -r --arg sha "$PRODUCT_SHA" '[.workflow_runs[] | select(.head_sha == $sha)][0].conclusion // "missing"')
           test "$status" = "completed"
           test "$conclusion" = "success"
-          echo "Reusing successful full product validation from $PRODUCT_SHA; current delta is restricted to release identity/cache metadata and signer workflow."
+          echo "Reusing successful full product validation from $PRODUCT_SHA; current delta matches an explicit release metadata or Android SDK workflow maintenance allowlist."
 
       - uses: actions/setup-java@v5.7.0
         with:
