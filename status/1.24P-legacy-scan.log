@@ -81,7 +81,7 @@ src/features/release-1.24b-polish.js:68:console.info('[LuckyBean] 1.24B help, Gr
 src/ui/recognition-review-owner-controller.js:1:const REVIEW_OWNER_REVISION = '1.24B-review-owner.1';
 src/ui/appearance-controller.js:3:const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24B-main.3';
 src/ui/release-1.24b-followup-controller.js:395:export const followupUiRevision = '1.24B-followup.3';
-src/app.js:2899:  <details class="settings-category"><summary><span>本物</span><small>关于本工具和开发小哥的一切</small></summary><div class="settings-category-body about-content"><figure class="about-illustration"><img src="./public/Luckybean-END.webp?v=1.24B-main.2" alt="富贵盒子猫咪插图" loading="lazy" decoding="async"><figcaption>富贵盒子</figcaption></figure><h2>富贵盒子</h2><p>咖啡豆管理、冲煮辅助、品鉴记录与本地数据归档工具。</p><dl><dt>版本</dt><dd>${APP_VERSION}</dd><dt>数据结构</dt><dd>${SCHEMA_VERSION}</dd><dt>离线引擎</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>数据源</dt><dd>公开编码数据 ${esc(meta.version||state.codebook?.version||'6')}</dd><dt>开发与维护</dt><dd>zjcrop</dd></dl></div></details>
+src/app.js:2900:  <details class="settings-category"><summary><span>本物</span><small>关于本工具和开发小哥的一切</small></summary><div class="settings-category-body about-content"><figure class="about-illustration"><img src="./public/Luckybean-END.webp?v=1.24B-main.2" alt="富贵盒子猫咪插图" loading="lazy" decoding="async"><figcaption>富贵盒子</figcaption></figure><h2>富贵盒子</h2><p>咖啡豆管理、冲煮辅助、品鉴记录与本地数据归档工具。</p><dl><dt>版本</dt><dd>${APP_VERSION}</dd><dt>数据结构</dt><dd>${SCHEMA_VERSION}</dd><dt>离线引擎</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>数据源</dt><dd>公开编码数据 ${esc(meta.version||state.codebook?.version||'6')}</dd><dt>开发与维护</dt><dd>zjcrop</dd></dl></div></details>
 src/domain/recognition/recognition-document.js:337:    parserVersion: '1.23E-recognition-layout.2',
 src/domain/recognition/recognition-date-classifier.js:4:export const DATE_CLASSIFIER_VERSION = '1.23D-date-fields.2';
 src/domain/recognition/recognition-date-review.js:1:export const DATE_REVIEW_VERSION = '1.23E-date-review.3';
@@ -92,15 +92,6 @@ src/cloud-codec-base.js:238:  // 1.23D/early 1.23E accidentally serialized an ob
 src/release-1.24b.css:1:/* Lucky Bean 1.24B compact UI states */
 src/release-1.24b.css:63:/* LuckyBean 1.24B main.6 detail/fab/sensory corrections */
 src/release-1.24b.css:173:/* LuckyBean 1.24B main.7 professional score responsive layout.
-.github/workflows/fix-fun-prompt-toast-owner.yml:54:          old_rev = "const BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.16-fun-prompt-owner';"
-.github/workflows/fix-fun-prompt-toast-owner.yml:55:          new_rev = "const BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.17-single-toast-owner';"
-.github/workflows/fix-fun-prompt-toast-owner.yml:62:          old_url = 'runtime-features.js?v=1.24B-main.16-fun-prompt-owner'
-.github/workflows/fix-fun-prompt-toast-owner.yml:63:          new_url = 'runtime-features.js?v=1.24B-main.17-single-toast-owner'
-.github/workflows/fix-fun-prompt-toast-owner.yml:98:          grep -Fq "BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.17-single-toast-owner'" src/features/runtime-features.js
-.github/workflows/fix-fun-prompt-toast-owner.yml:99:          grep -Fq 'runtime-features.js?v=1.24B-main.17-single-toast-owner' index.html
 .github/workflows/diagnose-main.yml:57:              "1\\.24B|1\\.23E|1\\.23D|102402|main-v124b|main-v123e|main-v123d" \
-.github/workflows/fix-reminder-trigger-order.yml:36:          grep -Fq "BEAN_GROUP_RUNTIME_REVISION = '1.24B-main.16-fun-prompt-owner'" src/features/runtime-features.js
-.github/workflows/fix-reminder-trigger-order.yml:37:          grep -Fq 'runtime-features.js?v=1.24B-main.16-fun-prompt-owner' index.html
-.github/workflows/fix-reminder-trigger-order.yml:39:          grep -Fq 'GROUP_PROMPT_RUNTIME_REVISION: 1.24B-main.16-fun-prompt-owner' .github/workflows/deploy-main.yml
 sw.js:6:  'luckybean-main-v124b-', 'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
-DEVELOPMENT_STATUS.md:38:1.23D、1.23E、1.24B 和 1.24P-main.1/main.2 均为历史检查点。旧版本的详细修改记录保留在 Git 历史、Release 和 `docs/` 中，不再作为当前开发状态的权威入口。
+DEVELOPMENT_STATUS.md:45:1.23D、1.23E、1.24B 和 1.24P-main.1/main.2 均为历史检查点。旧版本的详细修改记录保留在 Git 历史、Release 和 `docs/` 中，不再作为当前开发状态的权威入口。
