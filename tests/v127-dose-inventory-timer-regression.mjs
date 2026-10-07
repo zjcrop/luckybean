@@ -32,4 +32,13 @@ for (const workflow of androidWorkflows) {
   assert.doesNotMatch(workflow, /packages:\s*['"]tools(?:\s+platform-tools)?['"]/);
 }
 
+const signedReleaseWorkflow = androidWorkflows[3];
+for (const allowedDeltaPath of [
+  '.github/workflows/build-main.yml',
+  '.github/workflows/verified-release-main.yml',
+  'tests/v127-dose-inventory-timer-regression.mjs'
+]) {
+  assert.ok(signedReleaseWorkflow.includes(allowedDeltaPath), `release SDK fix allowlist missing ${allowedDeltaPath}`);
+}
+
 console.log('Dose allocation, custom dose, brew timer, and supported Android SDK package contracts passed');
