@@ -142,8 +142,8 @@ document.addEventListener('click', event => {
   if (!nativeBridge()) return;
   if (event.target.closest?.('#timerPauseBtn')) {
     requestAnimationFrame(() => {
-      const paused = document.querySelector('#timerPauseBtn')?.textContent?.trim() === '续';
-      callNative(paused ? 'pauseBrewExecution' : 'resumeBrewExecution');
+      const resuming = document.querySelector('#timerPauseBtn')?.dataset?.timerAction === 'resume';
+      callNative(resuming ? 'resumeBrewExecution' : 'pauseBrewExecution');
     });
     return;
   }

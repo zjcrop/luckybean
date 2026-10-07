@@ -1,7 +1,7 @@
 // LuckyBean 1.24P: resilient offline shell with lazy feature/runtime caching.
-const REVISION = '1.24P-main.6';
+const REVISION = '1.24P-main.7';
 const CACHE_PREFIX = 'luckybean-main-v124p-';
-const CACHE_NAME = `${CACHE_PREFIX}main-6-bean-thumbnail-leftover-dose-20261006`;
+const CACHE_NAME = `${CACHE_PREFIX}main-7-dose-allocation-timer-state-20261006`;
 const LEGACY_CACHE_PREFIXES = [
   'luckybean-main-v124b-', 'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
   'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',
@@ -48,6 +48,7 @@ const LAZY_RUNTIME_RESOURCES = [
   './src/data/local-brew-recipes-1.24b.js',
   './src/renderers/brew-spatial-view.js',
   './src/domain/history/history-service.js',
+  './src/domain/brew/timer-state-machine.js',
   './src/recognition-bridge.js',
   './public/Luckybean-END.webp',
   './public/vendor/jsvectormap/world.js'

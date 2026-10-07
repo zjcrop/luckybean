@@ -13,7 +13,8 @@ import { attachSensoryToCompletedBrew, attachOptimizationDraft, completeOptimiza
 import { assessTastingForOptimization } from './domain/sensory/brew-optimization-assessment.js';
 import { buildBeanConsumptionSummary, DEFAULT_CAFFEINE_HEALTH_SETTINGS } from './domain/beans/bean-consumption-summary.js';
 import { prepareBeanThumbnail, saveBeanThumbnail, getBeanThumbnail, deleteBeanThumbnail } from './domain/beans/bean-thumbnail-storage.js';
-import { leftoverBrewDose } from './domain/beans/leftover-brew-recommendation.js';
+import { planRemainingBeanDoses } from './domain/beans/leftover-brew-recommendation.js';
+import { TIMER_STATUS, transitionBrewTimerState } from './domain/brew/timer-state-machine.js';
 import { beanGroupState, setBeanGroupMode, openBeanGroupState, closeBeanGroupState, hasActiveBeanGroup } from './domain/beans/bean-group-state.js';
 import { createLocalReferenceAnalysis } from './services/local-reference-analysis.js';
 import { adaptAuthoritativePlan } from './services/brew-analysis-service.js';
@@ -102,7 +103,7 @@ const state = {
   recommendedBeanId: null, currentPlan: null, currentBrewInput: null,
   brewProfileOverride: null, brewDripperOverride: null, brewEntryMode: 'normal',
   beanFormSource: null, beanFormDraft: null, cameraScanner: null,
-  timer: { interval: null, paused: false, stageIndex: 0, remaining: 0, actionCues:new Set() }, currentExecution: null,
+  timer: { interval: null, paused: false, status: TIMER_STATUS.READY, stageIndex: 0, remaining: 0, actionCues:new Set() }, currentExecution: null,
   get activeGroupKey(){ return beanGroupState.groupKey; }, set activeGroupKey(value){ value ? openBeanGroupState(value) : closeBeanGroupState(); }, groupAnimationMode: 'manual', recommendationTimer: null, recommendationRun: false, recommendationPromptMemory: {}, preferenceBoardOpen: false, settingsFocusFilterId: '',
   evaluation: null, pendingSensoryContext: null, sensoryHistoryOpen: false, leftoverPromptDismissedBeanId: '', leftoverDoseOverride: null, sensoryFilter: { beanId: '', minScore: '', maxScore: '', start: '', end: '', expanded: false }
 };
@@ -1714,11 +1715,11 @@ function buildBrewInput(bean) {
   const ratio = ratioMode === 'auto'
     ? Number(state.settings.brew.ratio || DEFAULT_SETTINGS.brew.ratio)
     : parseNumber(ratioSelection, state.settings.brew.ratio || DEFAULT_SETTINGS.brew.ratio);
-  const leftoverDose = state.leftoverDoseOverride?.beanId === bean.id ? Number(state.leftoverDoseOverride.doseG) : null;
+  const leftoverDose = state.leftoverDoseOverride?.beanId === bean.id ? state.leftoverDoseOverride : null;
   return {
     bean: { countryCode: bean.countryCode, regionCode: bean.regionCode, entityCode: bean.entityCode, varietyCode: bean.varietyCode, processCode: bean.processCode, roastCode: bean.roastCode, roastColor: bean.roastColor || null, roastDate: bean.roastDate, altitude: bean.altitude || null },
     brew: {
-      mode: 'professional', method: 'pourover', serveMode:state.settings.brew.serveMode === 'cold' ? 'cold' : 'hot', doseMode:leftoverDose != null ? 'manual' : (state.settings.brew.doseMode === 'manual' ? 'manual' : 'auto'), doseG:leftoverDose ?? Number(state.settings.brew.doseG || 15), ratio, ratioMode,
+      mode: 'professional', method: 'pourover', serveMode:state.settings.brew.serveMode === 'cold' ? 'cold' : 'hot', doseMode:leftoverDose ? (leftoverDose.mode === 'manual' ? 'manual' : 'auto') : (state.settings.brew.doseMode === 'manual' ? 'manual' : 'auto'), doseG:leftoverDose?.mode === 'manual' ? Number(leftoverDose.doseG) : (leftoverDose?.mode === 'auto' ? selectedProfileReferenceDose() : Number(state.settings.brew.doseG || 15)), ratio, ratioMode,
       profileId: profileSelection, segmentMode, segments,
       dripperSelectionMode: dripperSelection === 'recommended' ? 'recommended' : 'manual', dripperId: dripper?.id || '', dripperCode: dripper?.type || '平底滤杯', dripperMaterial: normalizeDripperMaterial(dripper?.material), filterPaper: selectedFilterItem()?.type || '', filterPaperId: $('#brewFilterPaper')?.value || '', grinder: state.settings.brew.grinder || '',
       firstCoolingMode: state.settings.brew.firstCoolingMode || 'auto', firstTemperatureC: state.settings.brew.firstCoolingMode === 'custom' ? Number(state.settings.brew.firstTemperatureC) : null,
@@ -1826,6 +1827,14 @@ function openBrewEnvironmentDialog() {
   });
 }
 
+function transitionTimer(event) {
+  state.timer.status = transitionBrewTimerState(state.timer.status, event);
+  return state.timer.status;
+}
+function timerStatusLabel(status = state.timer.status) {
+  return ({ [TIMER_STATUS.PREPARING]:'准备中', [TIMER_STATUS.STEP_ACTIVE]:'本段计时中', [TIMER_STATUS.STEP_WAITING]:'已暂停', [TIMER_STATUS.DRAINING]:'等待滴滤', [TIMER_STATUS.FINISHED]:'冲煮完成', [TIMER_STATUS.READY]:'待开始' })[status] || '待开始';
+}
+
 function selectedProfileReferenceDose(profiles = listBrewProfiles()) {
   const selectedId = brewProfileSelection();
   const selected = profiles.find(profile => profile.id === selectedId);
@@ -1833,19 +1842,25 @@ function selectedProfileReferenceDose(profiles = listBrewProfiles()) {
 }
 
 function resolvedDoseLabel(profiles = listBrewProfiles()) {
-  if (state.leftoverDoseOverride?.beanId === state.selectedBeanId) return `${Number(state.leftoverDoseOverride.doseG).toFixed(1)}g`;
+  const scopedDose = state.leftoverDoseOverride?.beanId === state.selectedBeanId ? state.leftoverDoseOverride : null;
+  if (scopedDose?.mode === 'manual') return `${Number(scopedDose.doseG).toFixed(1)}g`;
+  if (scopedDose?.mode === 'auto') return `${Number(selectedProfileReferenceDose(profiles)).toFixed(1)}g`;
   if (state.settings.brew.doseMode === 'manual') return `${Number(state.settings.brew.doseG || 15).toFixed(1)}g`;
   const dose = brewProfileSelection() === 'recommended' ? Number(state.settings.brew.doseG || 15) : selectedProfileReferenceDose(profiles);
   return `${Number(dose).toFixed(dose % 1 ? 1 : 0)}g`;
 }
 
 function openDoseModeDialog() {
-  const leftoverDose = state.leftoverDoseOverride?.beanId === state.selectedBeanId ? Number(state.leftoverDoseOverride.doseG) : null;
-  const current = leftoverDose != null || state.settings.brew.doseMode === 'manual' ? 'manual' : 'auto';
-  const initialDose = leftoverDose ?? Number(state.settings.brew.doseG || 15);
+  const scopedDose = state.leftoverDoseOverride?.beanId === state.selectedBeanId ? state.leftoverDoseOverride : null;
+  const current = scopedDose ? (scopedDose.mode === 'manual' ? 'manual' : 'auto') : (state.settings.brew.doseMode === 'manual' ? 'manual' : 'auto');
+  const initialDose = scopedDose?.mode === 'manual' ? Number(scopedDose.doseG) : Number(selectedProfileReferenceDose());
   const overlay = showOverlay(`${dialogHeader('粉量', '自动采用方案参考粉量；未指定方案时为15g。', { centered:true })}<div class="lb-choice-grid dose-choice-grid"><button class="button${current==='auto'?' primary':''}" type="button" data-dose-choice="auto">自动</button><button class="button${current==='manual'?' primary':''}" type="button" data-dose-choice="manual">自定义</button></div><label class="field"><span>自定义克数</span><input id="customDoseInput" class="control" type="number" min="5" max="40" step="0.1" value="${initialDose}"></label><div class="row end"><button id="saveDoseModeBtn" class="button primary" type="button">确定</button></div>`, { id:'dose-mode', backdropClose:true, dialogClass:'bottom-sheet' });
   bindClose(overlay);
   let choice = current;
+  $('#customDoseInput', overlay)?.addEventListener('input', () => {
+    choice = 'manual';
+    $('[data-dose-choice]', overlay).forEach(item => item.classList.toggle('primary', item.dataset.doseChoice === 'manual'));
+  });
   overlay.addEventListener('click', event => {
     const button = event.target.closest('[data-dose-choice]');
     if (!button) return;
@@ -1853,9 +1868,9 @@ function openDoseModeDialog() {
     $$('[data-dose-choice]', overlay).forEach(item => item.classList.toggle('primary', item === button));
   });
   $('#saveDoseModeBtn', overlay)?.addEventListener('click', async () => {
-    state.leftoverDoseOverride = null;
-    state.settings.brew.doseMode = choice;
-    state.settings.brew.doseG = choice === 'manual' ? clamp(parseNumber($('#customDoseInput', overlay)?.value, 15), 5, 40) : selectedProfileReferenceDose();
+    const doseG = choice === 'manual' ? clamp(parseNumber($('#customDoseInput', overlay)?.value, 15), 5, 40) : selectedProfileReferenceDose();
+    if (scopedDose) state.leftoverDoseOverride = choice === 'manual' ? { beanId:scopedDose.beanId, mode:'manual', doseG } : { beanId:scopedDose.beanId, mode:'auto' };
+    else { state.settings.brew.doseMode = choice; state.settings.brew.doseG = doseG; state.leftoverDoseOverride = null; }
     await saveSettings(); closeOverlay(); renderBrew();
   });
 }
@@ -1865,9 +1880,13 @@ function renderBrew() {
   const activeBeans = state.beans.filter(bean => !bean.archived && Number(bean.remainingWeight) > 0);
   if (!state.selectedBeanId && activeBeans.length) state.selectedBeanId = activeBeans[0].id;
   const selected = activeBeans.find(bean => bean.id === state.selectedBeanId);
-  const leftoverSuggestionDose = selected ? leftoverBrewDose(selected.remainingWeight) : null;
-  const leftoverSuggestion = leftoverSuggestionDose != null && state.leftoverPromptDismissedBeanId !== selected.id
-    ? `<section class="leftover-brew-suggestion" data-leftover-bean="${esc(selected.id)}"><p>${leftoverSuggestionDose <= 15 ? '只剩' : '剩余'} ${leftoverSuggestionDose.toFixed(1)}g。${leftoverSuggestionDose <= 15 ? '建议一次用完这支豆。' : '可以按剩余量一次冲完。'}</p><div class="row"><button class="button primary" id="useRemainingBeanBtn" type="button">按 ${leftoverSuggestionDose.toFixed(1)}g 冲煮</button><button class="button subtle" id="dismissRemainingBeanBtn" type="button">稍后</button></div></section>`
+  const remainingDosePlan = selected ? planRemainingBeanDoses(selected.remainingWeight) : null;
+  const leftoverSuggestion = remainingDosePlan && state.leftoverPromptDismissedBeanId !== selected.id
+    ? `<section class="leftover-brew-suggestion" data-leftover-bean="${esc(selected.id)}" data-dose-allocation="${remainingDosePlan.kind}"><p>${remainingDosePlan.kind === 'below-minimum'
+      ? `当前只剩 ${remainingDosePlan.remainingG.toFixed(1)}g，低于5g最低支持粉量，无法生成标准方案。`
+      : remainingDosePlan.kind === 'single'
+        ? `当前剩余 ${remainingDosePlan.remainingG.toFixed(1)}g，建议本次一次用完。`
+        : `当前剩余 ${remainingDosePlan.remainingG.toFixed(1)}g，建议分两次冲煮：${remainingDosePlan.doses.map(value => `${value.toFixed(1)}g`).join(' + ')}；本次先按 ${remainingDosePlan.doses[0].toFixed(1)}g 计算。`}</p><div class="row">${remainingDosePlan.kind === 'below-minimum' ? '' : `<button class="button primary" id="useRemainingBeanBtn" type="button">按 ${remainingDosePlan.doses[0].toFixed(1)}g 冲煮</button>`}<button class="button subtle" id="dismissRemainingBeanBtn" type="button">稍后</button></div></section>`
     : '';
   const settings = state.settings.brew;
   const waterProfiles = listWaterProfiles();
@@ -1901,14 +1920,16 @@ function renderBrew() {
   <div id="planResult">${state.currentPlan && state.currentPlan.beanId === state.selectedBeanId ? planHtml(state.currentPlan) : ''}</div>
   ${recentSessions.length ? `<section class="panel"><div class="panel-title"><div><h3>往次方案</h3><p>点击复刻，修正方案标“修”</p></div></div><div class="record-list">${recentSessions.map(sessionRecordHtml).join('')}</div></section>` : ''}`;
   $('#brewBean')?.addEventListener('change', event => { state.selectedBeanId = event.target.value; state.leftoverDoseOverride = null; state.leftoverPromptDismissedBeanId = ''; state.currentPlan = null; state.brewProfileOverride = null; state.brewDripperOverride = null; state.brewEntryMode = 'normal'; renderBrew(); });
-  $('#useRemainingBeanBtn')?.addEventListener('click', () => {
+  $('#useRemainingBeanBtn')?.addEventListener('click', async () => {
     const bean = state.beans.find(item => item.id === state.selectedBeanId);
-    const doseG = bean ? leftoverBrewDose(bean.remainingWeight) : null;
-    if (doseG == null) return toast('当前剩余量低于标准粉量下限，无法按整支豆生成方案', 'status-warn');
-    state.leftoverDoseOverride = { beanId:bean.id, doseG };
+    const dosePlan = bean ? planRemainingBeanDoses(bean.remainingWeight) : null;
+    if (!dosePlan || dosePlan.kind === 'below-minimum') return toast('剩余量低于5g最低支持粉量，无法生成标准冲煮方案', 'status-warn');
+    const doseG = dosePlan.doses[0];
+    state.leftoverDoseOverride = { beanId:bean.id, mode:'manual', doseG };
     state.currentPlan = null; state.currentBrewInput = null;
     renderBrew();
-    toast(`粉量已填入 ${doseG.toFixed(1)}g`, 'status-good');
+    toast(`本次粉量已填入 ${doseG.toFixed(1)}g${dosePlan.doses.length > 1 ? `，下一次建议 ${dosePlan.doses[1].toFixed(1)}g` : ''}，正在重算方案`, 'status-good');
+    await generatePlan();
   });
   $('#dismissRemainingBeanBtn')?.addEventListener('click', () => { state.leftoverPromptDismissedBeanId = state.selectedBeanId; renderBrew(); });
 
@@ -2026,6 +2047,9 @@ async function generatePlan() {
   const bean = state.beans.find(item => item.id === $('#brewBean').value); if (!bean) return toast('请先选择豆卡');
   const button = $('#generatePlanBtn'); state.selectedBeanId = bean.id;
   const previousCandidates = state.currentPlan?.recommendation?.candidates || [];
+  const sessionOnlyDose = state.leftoverDoseOverride?.beanId === bean.id;
+  const persistentDoseMode = state.settings.brew.doseMode;
+  const persistentDoseG = state.settings.brew.doseG;
   const requestedInput = buildBrewInput(bean);
   button.disabled = true; button.textContent = '正在计算…';
   try {
@@ -2060,6 +2084,10 @@ async function generatePlan() {
       environment: { ...input.environment },
       flavorTargets: { acidity: input.targets.acidity, floral: input.targets.floral, fruity: input.targets.fruity, sweetness: input.targets.sweetness, bitterness: input.targets.bitterness, astringency: input.targets.astringency }
     };
+    if (sessionOnlyDose) {
+      state.settings.brew.doseMode = persistentDoseMode;
+      state.settings.brew.doseG = persistentDoseG;
+    }
     await saveSettings(); $('#planResult').innerHTML = planHtml(plan); bindPlanActions();
     requestAnimationFrame(() => $('#planResult').scrollIntoView({ behavior: 'smooth', block: 'start' }));
   } catch (error) {
@@ -2156,6 +2184,7 @@ function beginTimedBrew() {
     deviations: [],
     notes: []
   };
+  transitionTimer('start');
   state.timer.stageIndex = 0; state.timer.remaining = Number(first.durationSec); state.timer.paused = false; state.timer.actionCues = new Set();
   renderTimerDialog(); startTimerInterval();
   speak(`第一段，${first.name}，注水${Math.round(first.stageWaterG)}克，水温${Math.round(first.temperatureC)}度，${first.method}。${first.notice || ''}`);
@@ -2163,6 +2192,7 @@ function beginTimedBrew() {
 
 function startTimer() {
   if (!state.currentPlan) return;
+  transitionTimer('prepare');
   state.currentPlan = sanitizeExecutionPlanText(state.currentPlan);
   const speech = preparationSpeech(state.currentPlan);
   const actions = (state.currentPlan.executionActions || []).filter(action => action.phase === 'before-timer');
@@ -2170,14 +2200,14 @@ function startTimer() {
   document.dispatchEvent(new CustomEvent('luckybean:brew-preparation', { detail:{ plan:state.currentPlan, speech } }));
   speak(speech);
   $('#repeatPreparationBtn', overlay)?.addEventListener('click', () => { document.dispatchEvent(new CustomEvent('luckybean:brew-preparation', { detail:{ plan:state.currentPlan, speech } })); speak(speech); });
-  $('#cancelPreparationBtn', overlay)?.addEventListener('click', () => { stopSpeech(); closeOverlay(); });
+  $('#cancelPreparationBtn', overlay)?.addEventListener('click', () => { stopSpeech(); transitionTimer('cancelPreparation'); closeOverlay(); });
   $('#confirmBrewPreparedBtn', overlay)?.addEventListener('click', () => { stopSpeech(); closeOverlay(); beginTimedBrew(); });
 }
 
 function startTimerInterval() {
   clearInterval(state.timer.interval);
   state.timer.interval = setInterval(() => {
-    if (state.timer.paused) return;
+    if (state.timer.paused || state.timer.status !== TIMER_STATUS.STEP_ACTIVE) return;
     state.timer.remaining -= 1;
     const stages = state.currentPlan?.stages || [];
     const elapsedBefore = stages.slice(0,state.timer.stageIndex).reduce((sum,item)=>sum+Number(item.durationSec||0),0);
@@ -2199,14 +2229,31 @@ function startTimerInterval() {
   }, 1000);
 }
 function renderTimerDialog() {
+  if (state.timer.status === TIMER_STATUS.DRAINING) {
+    const content = `<div class="timer-full timer-draining"><strong class="timer-state-label">${timerStatusLabel()}</strong><h2>等待滤杯滴滤完成</h2><p>分段计时已经结束。待液面落尽后，确认本次实际用量并保存记录。</p><div class="timer-draining-summary">总计时 ${formatSeconds(state.currentPlan?.totals?.targetTimeSec || 0)} · ${state.currentPlan?.stages?.length || 0} 段已完成</div><div class="timer-actions"><button id="timerEndBtn" class="button" type="button">中止，不记录</button><button id="finishDrainBtn" class="button primary" type="button">滴滤完成，记录本次用量</button></div></div>`;
+    showOverlay(content, { full:true, id:'timer' });
+    $('#finishDrainBtn')?.addEventListener('click', () => { transitionTimer('finish'); promptRecordConsumption('complete'); });
+    $('#timerEndBtn')?.addEventListener('click', () => { clearInterval(state.timer.interval); stopSpeech(); state.timer.paused = true; transitionTimer('abort'); state.currentExecution = null; closeOverlay(); switchPage('brew'); toast('本次冲煮已中止，不扣豆、不保存记录'); });
+    return;
+  }
   const stage = state.currentPlan.stages[state.timer.stageIndex];
   const next = state.currentPlan.stages[state.timer.stageIndex+1];
-  const content = `<div class="timer-full"><div class="timer-top"><span id="timerStageCounter">${state.timer.stageIndex+1}/${state.currentPlan.stages.length}</span></div><div class="timer-stage-name" id="timerStageName">${esc(stage.name)}</div><div id="timerClock" class="timer-clock">${formatSeconds(state.timer.remaining)}</div><div class="timer-totals"><span>总时长 <strong id="timerTotal">${formatSeconds(state.currentPlan.totals?.targetTimeSec||0)}</strong></span><span>已进行 <strong id="timerElapsed">00:00</strong></span><span>总剩余 <strong id="timerTotalRemaining">${formatSeconds(state.currentPlan.totals?.targetTimeSec||0)}</strong></span></div><div class="timer-stage-grid"><div><span>本段</span><strong id="timerStageWater">${Number(stage.stageWaterG).toFixed(0)}g</strong></div><div><span>累计</span><strong id="timerCumulativeWater">${Number(stage.cumulativeWaterG).toFixed(0)}g</strong></div><div><span>水温</span><strong id="timerTemperature">${Number(stage.temperatureC).toFixed(0)}°C</strong></div></div><p id="timerStageText">${esc(stage.method)}${stage.notice?`<small>${esc(stage.notice)}</small>`:''}</p><div id="timerNextCue" class="timer-next-cue">${next?`下一段：${esc(next.name)} · ${Math.round(next.stageWaterG)}g · ${Math.round(next.temperatureC)}°C · ${esc(next.method)}`:'最后一段'}</div><div class="timer-progress"><span id="timerProgressFill"></span></div><div class="timer-actions four"><button id="timerPrevBtn" class="button" type="button">退</button><button id="timerPauseBtn" class="button active" type="button">驻</button><button id="timerNextBtn" class="button" type="button">进</button><button id="timerEndBtn" class="button" type="button">终</button></div></div>`;
-  showOverlay(content, { full: true, id: 'timer' });
-  $('#timerPauseBtn').addEventListener('click', () => { state.timer.paused = !state.timer.paused; $('#timerPauseBtn').textContent = state.timer.paused ? '续' : '驻'; $('#timerPauseBtn').classList.toggle('active', state.timer.paused); if (state.timer.paused) speak('已暂停'); });
+  const content = `<div class="timer-full"><div class="timer-top"><span id="timerStageCounter">${state.timer.stageIndex+1}/${state.currentPlan.stages.length}</span><strong id="timerStatusLabel" class="timer-state-label">${timerStatusLabel()}</strong></div><div class="timer-stage-name" id="timerStageName">${esc(stage.name)}</div><div id="timerClock" class="timer-clock">${formatSeconds(state.timer.remaining)}</div><div class="timer-totals"><span>总时长 <strong id="timerTotal">${formatSeconds(state.currentPlan.totals?.targetTimeSec||0)}</strong></span><span>已进行 <strong id="timerElapsed">00:00</strong></span><span>总剩余 <strong id="timerTotalRemaining">${formatSeconds(state.currentPlan.totals?.targetTimeSec||0)}</strong></span></div><div class="timer-stage-grid"><div><span>本段目标</span><strong id="timerStageWater">${Number(stage.stageWaterG).toFixed(0)}g</strong></div><div><span>累计水量</span><strong id="timerCumulativeWater">${Number(stage.cumulativeWaterG).toFixed(0)}g</strong></div><div><span>目标水温</span><strong id="timerTemperature">${Number(stage.temperatureC).toFixed(0)}°C</strong></div><div><span>本段时长</span><strong>${formatSeconds(stage.durationSec)}</strong></div></div><p id="timerStageText"><b class="timer-action-label">本段动作</b>${esc(stage.method)}${stage.notice?`<small>${esc(stage.notice)}</small>`:''}</p><div id="timerNextCue" class="timer-next-cue">${next?`下一段：${esc(next.name)} · ${Math.round(next.stageWaterG)}g · ${Math.round(next.temperatureC)}°C · ${esc(next.method)}`:'最后一段'}</div><div class="timer-progress"><span id="timerProgressFill"></span></div><div class="timer-actions four"><button id="timerPrevBtn" class="button" type="button" aria-label="上一步">上一步</button><button id="timerPauseBtn" class="button active" type="button" aria-pressed="false" data-timer-action="pause">暂停</button><button id="timerNextBtn" class="button" type="button" aria-label="下一步">下一步</button><button id="timerEndBtn" class="button" type="button">中止</button></div></div>`;
+  showOverlay(content, { full:true, id:'timer' });
+  $('#timerPauseBtn').addEventListener('click', () => {
+    state.timer.paused = !state.timer.paused;
+    transitionTimer(state.timer.paused ? 'pause' : 'resume');
+    const button = $('#timerPauseBtn');
+    button.textContent = state.timer.paused ? '继续' : '暂停';
+    button.dataset.timerAction = state.timer.paused ? 'resume' : 'pause';
+    button.setAttribute('aria-pressed', String(state.timer.paused));
+    button.classList.toggle('active', state.timer.paused);
+    $('#timerStatusLabel').textContent = timerStatusLabel();
+    speak(state.timer.paused ? '已暂停' : '继续计时');
+  });
   $('#timerPrevBtn').addEventListener('click', () => moveTimerStage(-1));
   $('#timerNextBtn').addEventListener('click', () => moveTimerStage(1));
-  $('#timerEndBtn').addEventListener('click', () => { clearInterval(state.timer.interval); stopSpeech(); state.timer.paused = true; state.currentExecution = null; closeOverlay(); switchPage('brew'); toast('本次冲煮已中止，不扣豆、不保存记录'); });
+  $('#timerEndBtn').addEventListener('click', () => { clearInterval(state.timer.interval); stopSpeech(); state.timer.paused = true; transitionTimer('abort'); state.currentExecution = null; closeOverlay(); switchPage('brew'); toast('本次冲煮已中止，不扣豆、不保存记录'); });
   renderTimerValues();
 }
 
@@ -2222,8 +2269,9 @@ function renderTimerValues() {
   const total = Number(state.currentPlan.totals?.targetTimeSec || stages.reduce((sum,item)=>sum+Number(item.durationSec||0),0));
   clock.textContent = formatSeconds(state.timer.remaining);
   $('#timerElapsed').textContent = formatSeconds(elapsed); $('#timerTotalRemaining').textContent = formatSeconds(Math.max(0,total-elapsed));
+  const statusLabel = $('#timerStatusLabel'); if (statusLabel) statusLabel.textContent = timerStatusLabel();
   $('#timerStageCounter').textContent = `${state.timer.stageIndex+1}/${stages.length}`; $('#timerStageName').textContent = stage.name;
-  $('#timerStageText').innerHTML = `${esc(stage.method)}${stage.notice?`<small>${esc(stage.notice)}</small>`:''}`;
+  $('#timerStageText').innerHTML = `<b class="timer-action-label">本段动作</b>${esc(stage.method)}${stage.notice?`<small>${esc(stage.notice)}</small>`:''}`;
   $('#timerStageWater').textContent = `${Number(stage.stageWaterG).toFixed(0)}g`; $('#timerCumulativeWater').textContent = `${Number(stage.cumulativeWaterG).toFixed(0)}g`; $('#timerTemperature').textContent = `${Number(stage.temperatureC).toFixed(0)}°C`;
   if ($('#timerNextCue')) $('#timerNextCue').textContent = next ? `下一段：${next.name} · ${Math.round(next.stageWaterG)}g · ${Math.round(next.temperatureC)}°C · ${next.method}` : '最后一段';
   $('#timerProgressFill').style.width = `${clamp((1-state.timer.remaining/Math.max(1,Number(stage.durationSec)))*100,0,100)}%`;
@@ -2233,10 +2281,11 @@ function advanceTimerStage() { moveTimerStage(1, true); }
 function moveTimerStage(direction = 1, automatic = false) {
   const next = state.timer.stageIndex + direction;
   if (next < 0) return;
-  if (next >= state.currentPlan.stages.length) { clearInterval(state.timer.interval); promptRecordConsumption('complete'); return; }
+  if (next >= state.currentPlan.stages.length) { clearInterval(state.timer.interval); state.timer.paused = true; transitionTimer('drain'); renderTimerDialog(); return; }
+  transitionTimer('advance');
   state.timer.stageIndex = next; state.timer.remaining = Number(state.currentPlan.stages[next].durationSec); state.timer.paused = false;
   const stage = state.currentPlan.stages[next];
-  if ($('#timerPauseBtn')) { $('#timerPauseBtn').textContent = '驻'; $('#timerPauseBtn').classList.remove('active'); }
+  if ($('#timerPauseBtn')) { const pauseButton = $('#timerPauseBtn'); pauseButton.textContent = '暂停'; pauseButton.dataset.timerAction = 'pause'; pauseButton.setAttribute('aria-pressed', 'false'); pauseButton.classList.remove('active'); }
   renderTimerValues();
   speak(`${automatic?'进入':'切换到'}第${stage.index}段，${stage.name}，注水${Math.round(stage.stageWaterG)}克，水温${Math.round(stage.temperatureC)}度，${stage.method}。${stage.notice || ''}`);
 }

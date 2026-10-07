@@ -15,6 +15,7 @@ const tests = [
   'tests/v124p-auth-ocr-ai-hotfix-static.mjs',
   'tests/v124p-local-first-data-architecture.mjs',
   'tests/v124p-execution-copy-regression.mjs',
+  'tests/v127-dose-inventory-timer-regression.mjs',
   'tests/v124p-brew-action-emphasis.mjs',
   'tests/v124p-pour-guide-regression.mjs',
   'tests/v123d-ui-sensory-regressions.mjs',
