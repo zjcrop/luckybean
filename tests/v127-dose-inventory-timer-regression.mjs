@@ -42,6 +42,7 @@ for (const allowedDeltaPath of [
 }
 
 for (const releaseGuardPath of [
+  '.github/workflows/cleanup-transient-branches.yml',
   '.github/workflows/verified-release-main.yml',
   'tests/v127-dose-inventory-timer-regression.mjs'
 ]) {
