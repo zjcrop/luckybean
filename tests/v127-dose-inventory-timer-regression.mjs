@@ -41,4 +41,11 @@ for (const allowedDeltaPath of [
   assert.ok(signedReleaseWorkflow.includes(allowedDeltaPath), `release SDK fix allowlist missing ${allowedDeltaPath}`);
 }
 
+for (const releaseGuardPath of [
+  '.github/workflows/verified-release-main.yml',
+  'tests/v127-dose-inventory-timer-regression.mjs'
+]) {
+  assert.ok(signedReleaseWorkflow.includes(releaseGuardPath), `release guard maintenance allowlist missing ${releaseGuardPath}`);
+}
+
 console.log('Dose allocation, custom dose, brew timer, and supported Android SDK package contracts passed');
