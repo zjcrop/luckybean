@@ -4,6 +4,7 @@ on:
   workflow_run:
     workflows: ["LuckyBean main web deploy"]
     types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

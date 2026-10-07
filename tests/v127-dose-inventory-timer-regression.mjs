@@ -8,8 +8,7 @@ const timer = read('src/domain/brew/timer-state-machine.js');
 const androidWorkflows = [
   '.github/workflows/test-main.yml',
   '.github/workflows/full-integration-pr.yml',
-  '.github/workflows/build-main.yml',
-  '.github/workflows/verified-release-main.yml'
+  '.github/workflows/build-main.yml'
 ].map(read);
 
 assert.match(app, /customDoseInput', overlay\)\?\.addEventListener\('input'/);

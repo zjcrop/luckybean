@@ -54,11 +54,8 @@ async function installSafariStorageFailure(page){
 }
 
 async function loadLazyWebOcr(page){
-  await expect.poll(()=>page.evaluate(()=>({
-    runtime:Boolean(globalThis.LuckyBeanRuntimeFeatures),
-    packageCapture:Boolean(globalThis.LuckyBeanPackageCapture),
-    paddle:Boolean(globalThis.LuckyBeanPaddleOCR)
-  })),{timeout:15000}).toMatchObject({runtime:true,packageCapture:true,paddle:true});
+  await page.waitForFunction(() => Boolean(globalThis.LuckyBeanRuntimeFeatures?.loadMany), null, {timeout:15000});
+  await page.evaluate(() => globalThis.LuckyBeanRuntimeFeatures.loadMany(['recognition-paddle-ocr', 'package-capture']));
 
   const before=await page.evaluate(()=>({
     paddle:Boolean(globalThis.LuckyBeanPaddleOCR),

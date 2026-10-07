@@ -17,18 +17,26 @@ function hydrate(root = document) {
       const fallback = shell?.querySelector('.bean-thumbnail-fallback');
       if (!dataUrl) {
         image.hidden = true;
+        const failedShell = image.closest('.bean-thumbnail-shell');
+        if (failedShell) failedShell.dataset.thumbnailAvailable = 'false';
         if (fallback) fallback.hidden = false;
         return;
       }
       image.onerror = () => {
         image.hidden = true;
+        const failedShell = image.closest('.bean-thumbnail-shell');
+        if (failedShell) failedShell.dataset.thumbnailAvailable = 'false';
         if (fallback) fallback.hidden = false;
       };
-      image.onload = () => { image.hidden = false; if (fallback) fallback.hidden = true; };
+      image.onload = () => { if (shell) shell.dataset.thumbnailAvailable = 'true'; image.hidden = false; if (fallback) fallback.hidden = true; };
+      // Hidden lazy images never enter the viewport; load the small local JPEG eagerly.
+      image.loading = 'eager';
       image.src = dataUrl;
     }).catch(() => {
       const fallback = image.closest('.bean-thumbnail-shell')?.querySelector('.bean-thumbnail-fallback');
       image.hidden = true;
+      const failedShell = image.closest('.bean-thumbnail-shell');
+      if (failedShell) failedShell.dataset.thumbnailAvailable = 'false';
       if (fallback) fallback.hidden = false;
     }).finally(() => pending.delete(image));
   });

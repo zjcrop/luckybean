@@ -4,6 +4,7 @@ on:
   workflow_run:
     workflows: ["LuckyBean main tests"]
     types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

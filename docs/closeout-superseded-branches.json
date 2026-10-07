@@ -1,0 +1,14 @@
+[
+  {
+    "branch": "fix/auto-ocr-compact-jarc-20260909",
+    "sha": "a65a54ef0710c011c9c0d9d163074bde8913da3a",
+    "pr": 120,
+    "reason": "All image-entry auto OCR is already in main via #121/#122; numeric variety display is finalized in main.8."
+  },
+  {
+    "branch": "fix/release-guard-sdk-delta-20261007",
+    "sha": "64ae6a6dd5f655a21f8f65b0a851eaa7603a959a",
+    "pr": 127,
+    "reason": "Redundant release workflow is retired; squash-aware cleanup replaces the proposed guard widening."
+  }
+]
