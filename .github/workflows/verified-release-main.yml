@@ -77,6 +77,7 @@ jobs:
               '.github/workflows/verified-release-main.yml' \
               'tests/v127-dose-inventory-timer-regression.mjs' | LC_ALL=C sort)
             release_guard_fix_delta=$(printf '%s\n' \
+              '.github/workflows/cleanup-transient-branches.yml' \
               '.github/workflows/verified-release-main.yml' \
               'tests/v127-dose-inventory-timer-regression.mjs' | LC_ALL=C sort)
             if [ "$changed" != "$release_metadata_delta" ] && [ "$changed" != "$sdk_workflow_fix_delta" ] && [ "$changed" != "$release_guard_fix_delta" ]; then
@@ -86,6 +87,7 @@ jobs:
             fi
             git diff --quiet "$PRODUCT_SHA" "$RELEASE_SHA" -- . \
               ':(exclude).github/workflows/build-main.yml' \
+              ':(exclude).github/workflows/cleanup-transient-branches.yml' \
               ':(exclude).github/workflows/verified-release-main.yml' \
               ':(exclude)index.html' \
               ':(exclude)release.json' \
