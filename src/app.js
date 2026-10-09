@@ -3028,7 +3028,8 @@ async function init() {
       consumptionSummary.outerHTML = beanConsumptionSummaryHtml();
     }
   });
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+  // The startup controller owns the revisioned service-worker registration.
+  // A second script URL here would install and claim a new worker on every load.
 }
 
 
