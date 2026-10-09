@@ -17,7 +17,7 @@ Android：`versionCode 102425` / `versionName 1.24P`
 - iOS/Safari：支持 Supabase 邮箱验证回调 token 消费；localStorage 受限时使用非破坏性的临时会话；WebKit OCR 使用受限 direct-WASM/no-SIMD 兼容路径。
 - 同步：登录成功与云同步解耦，云同步等待 `local-app-ready`；继续兼容 `luckybean-sync-v2`，不批量重编码旧云 payload。
 - 数据安全：Supabase 已建立迁移前 SHA-256 影子快照和 UPDATE/DELETE 前置归档；v9→v10 有 canonical 不变性回归。
-- 发布身份统一：`release.json`、PWA/Web 缓存、Android versionCode 与 Schema 同步到 main.8 候选。
+- 发布身份统一：`release.json`、PWA/Web 缓存、Android versionCode 与 Schema 同步到 main.9 候选。
 
 ## 本次收尾范围
 
@@ -25,6 +25,14 @@ Android：`versionCode 102425` / `versionName 1.24P`
 - 保留余量当次建议：28g→14g+14g，27g→15g+12g，低于20g一次用完；不改写用户长期粉量偏好。
 - 移除6个一次性补丁工作流和旧重复发布入口；下游仅响应main。清理支持squash合并、精确SHA删除、旧候选归档，并保护未合并工作。
 - 详细问题、29个历史分支SHA与处置见[收尾盘点](docs/CLOSEOUT_20261007.md)。候选状态不等同于已发布状态。
+
+## 2026-10-09 OCR 与发布恢复修复
+
+- PP-OCRv5 预测超时后最多使用同一模型的无 SIMD Worker 重试一次；再次失败停止当前任务，保留原图并提供重试入口。
+- Service Worker 在异步缓存之前复制响应并保留缓存任务，缓存写入失败不阻断原始响应；照片预览释放前先移除图片引用。
+- 主线测试、Pages 和签名发布串行执行；下游核对同 SHA 成功测试与未过期产物，签名发布再次核对 Pages 回执。已有 Release 标签不得迁移到另一提交。
+- BrewProfiles 保留全部在线断言，每次请求连同响应体限时 20 秒、最多两次；单套限时 5 分钟，总门禁 15 分钟。日志记录请求序号、状态和耗时，不记录凭据。
+- 旧未合并分支继续保留，清理仅在签名发布成功后按精确分支头与合并证据执行。本节说明候选机制，不声明 PR、部署或用户照片验收已完成。
 
 ## 发布门禁
 
