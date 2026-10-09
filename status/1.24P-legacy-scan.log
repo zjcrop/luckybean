@@ -94,4 +94,4 @@ src/release-1.24b.css:63:/* LuckyBean 1.24B main.6 detail/fab/sensory correction
 src/release-1.24b.css:173:/* LuckyBean 1.24B main.7 professional score responsive layout.
 .github/workflows/diagnose-main.yml:57:              "1\\.24B|1\\.23E|1\\.23D|102402|main-v124b|main-v123e|main-v123d" \
 sw.js:6:  'luckybean-main-v124b-', 'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
-DEVELOPMENT_STATUS.md:45:1.23D、1.23E、1.24B 和 1.24P-main.1/main.2 均为历史检查点。旧版本的详细修改记录保留在 Git 历史、Release 和 `docs/` 中，不再作为当前开发状态的权威入口。
+DEVELOPMENT_STATUS.md:55:1.23D、1.23E、1.24B 和 1.24P-main.1/main.2 均为历史检查点。旧版本的详细修改记录保留在 Git 历史、Release 和 `docs/` 中，不再作为当前开发状态的权威入口。
