@@ -1,7 +1,7 @@
 {
   "version": "1.24P",
-  "revision": "1.24P-main.8",
-  "source_sha": "544124949b7bb4868320a0ff4e32d778bba49d23",
+  "revision": "1.24P-main.9",
+  "source_sha": "84cbe5850538b2b7c689f7e16840078851a1d443",
   "pages_url": "https://zjcrop.github.io/luckybean/",
   "verified": true,
   "browser_smoke": true,
@@ -9,5 +9,5 @@
   "live_ppocr_recognition": true,
   "same_sha_main_tests": true,
   "release_metadata": true,
-  "generated_at": "2026-10-07T12:50:36Z"
+  "generated_at": "2026-10-09T15:25:38Z"
 }
