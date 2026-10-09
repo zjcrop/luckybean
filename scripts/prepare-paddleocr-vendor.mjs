@@ -1,3 +1,4 @@
+import { fetchResource } from './fetch-with-retry.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,33 +31,12 @@ const ORT_FILES = [
 const moduleMap = new Map();
 let dependencyCounter = 0;
 
-async function fetchResponse(url, { timeoutMs = 120000, attempts = 3 } = {}) {
-  let lastError;
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(new Error(`timeout after ${timeoutMs}ms`)), timeoutMs);
-    try {
-      const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return response;
-    } catch (error) {
-      lastError = error;
-      if (attempt < attempts) await new Promise(resolve => setTimeout(resolve, 750 * attempt));
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-  throw new Error(`Failed to fetch ${url}: ${lastError?.message || lastError}`);
-}
-
 async function fetchText(url) {
-  const response = await fetchResponse(url);
-  return response.text();
+  return fetchResource(url, { format:'text', timeoutMs:120000 });
 }
 
 async function fetchBinary(url, minBytes = 1) {
-  const response = await fetchResponse(url, { timeoutMs: 180000 });
-  const bytes = Buffer.from(await response.arrayBuffer());
+  const bytes = Buffer.from(await fetchResource(url, { format:'bytes', timeoutMs:180000 }));
   if (bytes.byteLength < minBytes) throw new Error(`Fetched asset is unexpectedly small: ${url} (${bytes.byteLength} bytes)`);
   return bytes;
 }

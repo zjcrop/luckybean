@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: luckybean-main-tests-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   prepare_runtime:
@@ -54,8 +54,8 @@ jobs:
         run: node tests/foundation-live-contract.mjs
       - name: Verify live BrewProfiles contract
         run: npm run test:live-brewprofiles
-      - name: Verify live recognition AI contract
-        run: node tests/v124p-live-recognition-ai.mjs
+      - name: Verify advisory AI contracts locally without paid inference
+        run: node --test test/recognition-structure-recovery.test.js test/recognition-pipeline.test.js test/recognition-multi-entry.test.js
       - run: npx playwright install --with-deps chromium webkit
       - name: Start deterministic CI web server and wait until ready
         shell: bash
@@ -106,7 +106,7 @@ jobs:
       - name: Start isolated core CI web server and wait until ready
         shell: bash
         run: |
-          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/luckybean-core-http.log 2>&1 &
+          node scripts/ci-static-server.mjs 4173 > /tmp/luckybean-core-http.log 2>&1 &
           server_pid=$!
           echo "$server_pid" > /tmp/luckybean-core-http.pid
           for attempt in {1..30}; do

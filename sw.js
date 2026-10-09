@@ -1,7 +1,7 @@
 // LuckyBean 1.24P: resilient offline shell with lazy feature/runtime caching.
-const REVISION = '1.24P-main.8';
+const REVISION = '1.24P-main.9';
 const CACHE_PREFIX = 'luckybean-main-v124p-';
-const CACHE_NAME = `${CACHE_PREFIX}main-8-finalize-20261007`;
+const CACHE_NAME = `${CACHE_PREFIX}main-9-ocr-closeout-20261009`;
 const LEGACY_CACHE_PREFIXES = [
   'luckybean-main-v124b-', 'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
   'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',
@@ -83,6 +83,19 @@ async function cacheBootstrapBestEffort() {
   }));
 }
 
+function cacheSuccessfulResponse(event, response) {
+  const request = event.request;
+  if (!response.ok) return;
+  // Clone while the response body is still unused. Callers may consume the
+  // returned response immediately (for example, OCR model fetches in a Worker).
+  let cacheCopy;
+  try { cacheCopy = response.clone(); } catch { return; }
+  const pending = caches.open(CACHE_NAME)
+    .then(cache => cache.put(request, cacheCopy))
+    .catch(() => {});
+  event.waitUntil(pending);
+}
+
 self.addEventListener('install', event => {
   event.waitUntil(cacheBootstrapBestEffort().then(() => self.skipWaiting()));
 });
@@ -109,7 +122,7 @@ self.addEventListener('fetch', event => {
 
   if (request.mode === 'navigate') {
     event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {
-      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
+      cacheSuccessfulResponse(event, response);
       return response;
     }).catch(async () => {
       const cached = await caches.match(request);
@@ -120,7 +133,7 @@ self.addEventListener('fetch', event => {
 
   if (url.origin === self.location.origin) {
     event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {
-      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
+      cacheSuccessfulResponse(event, response);
       return response;
     }).catch(() => caches.match(request)));
     return;
@@ -128,7 +141,7 @@ self.addEventListener('fetch', event => {
 
   if (url.hostname === 'cdn.jsdelivr.net') {
     event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {
-      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
+      cacheSuccessfulResponse(event, response);
       return response;
     })));
   }

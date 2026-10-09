@@ -14,10 +14,11 @@ const ROLE_OPTIONS = [
 ];
 
 const captureState = {
-  images: [], busy: false, ocrText: '', ocrEngine: '', blocks: [], recognitionDocument: null, analysis: null,
+  images: [], busy: false, ocrText: '', ocrEngine: '', ocrError: '', blocks: [], recognitionDocument: null, analysis: null,
   aiStatus: 'idle', aiDetail: ''
 };
 let operationGeneration = 0;
+let pendingGalleryFiles = [];
 
 function esc(value) {
   return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
@@ -42,6 +43,8 @@ function statusMessage() {
 function root() { return document.querySelector('#overlayRoot'); }
 function releasePreview(image) {
   const url = String(image?.previewUrl || '');
+  const card = [...document.querySelectorAll('.bag-photo-card')].find(node => node.dataset.bagImageId === String(image?.id || ''));
+  card?.querySelector('img')?.removeAttribute('src');
   if (url.startsWith('blob:')) URL.revokeObjectURL(url);
   if (image && !image.nativeSource) { image.previewUrl = ''; image.previewAvailable = false; image.previewReleased = true; }
 }
@@ -59,8 +62,9 @@ function bindAndroidImageSource(imageId, includePreview) {
 }
 function clearCapture({ keepOverlay = false } = {}) {
   operationGeneration += 1;
+  pendingGalleryFiles = [];
   for (const image of captureState.images) releasePreview(image);
-  captureState.images = []; captureState.busy = false; captureState.ocrText = ''; captureState.ocrEngine = ''; captureState.blocks = [];
+  captureState.images = []; captureState.busy = false; captureState.ocrText = ''; captureState.ocrEngine = ''; captureState.ocrError = ''; captureState.blocks = [];
   captureState.recognitionDocument = null; captureState.analysis = null; captureState.aiStatus = 'idle'; captureState.aiDetail = '';
   disposeBrowserOcr();
   if (!keepOverlay && root()) root().innerHTML = '';
@@ -98,7 +102,11 @@ function aiStatusCopy() {
   return '';
 }
 function renderRecognitionPanel() {
-  if (!captureState.ocrText && !captureState.blocks.length) return '';
+  // A failed task has a dedicated panel: P3 removes empty OCR editors, not recovery actions.
+  if (captureState.ocrError && !captureState.ocrText.trim()) {
+    return `<section class="bag-capture-error"><p class="muted small" role="alert">${esc(captureState.ocrError)}。可保留当前照片后重试；若已刷新页面，请重新选择照片。</p><div class="row end"><button id="bagRetryRecognitionBtn" class="button" type="button"${captureState.busy || (!captureState.images.length && !pendingGalleryFiles.length) ? ' disabled' : ''}>重试识别</button></div></section>`;
+  }
+  if (!captureState.ocrText && !captureState.blocks.length && !captureState.ocrError) return '';
   const analysis = captureState.analysis;
   const fieldRows = (analysis?.fields || []).map(item => {
     const percent = Math.round(Number(item.confidence || 0) * 100);
@@ -157,7 +165,7 @@ async function addFiles(fileList) {
         score:prepared.score, status:prepared.status, warnings, processedWidth:prepared.processedWidth, processedHeight:prepared.processedHeight, metrics:prepared.metrics });
       addedCount += 1;
     }
-  } catch (error) { captureState.ocrText = `图片处理失败：${error.message}`; captureState.ocrEngine = '错误'; }
+  } catch (error) { captureState.ocrText = ''; captureState.ocrError = `图片处理失败：${error.message}`; captureState.ocrEngine = '错误'; }
   finally { captureState.busy = false; render(); }
   if (addedCount > 0) {
     document.dispatchEvent(new CustomEvent('luckybean:package-auto-recognition-start', { detail:{ source:'image-entry', addedCount } }));
@@ -166,26 +174,32 @@ async function addFiles(fileList) {
 }
 function galleryFailure(error) {
   const message = `图片裁切失败：${String(error?.message || error || '未知错误')}`;
-  captureState.ocrText = message;
+  captureState.ocrText = ''; captureState.ocrError = message;
+  captureState.blocks = []; captureState.analysis = null; captureState.recognitionDocument = null;
   captureState.ocrEngine = '图片处理错误';
   document.dispatchEvent(new CustomEvent('luckybean:user-notice', { detail:{ kind:'status-bad', message } }));
   render();
 }
 async function addGalleryFiles(fileList) {
   const files = [...(fileList || [])].filter(file => file.type.startsWith('image/')).slice(0, MAX_IMAGES - captureState.images.length);
-  if (!files.length) return;
-  const preprocess = globalThis.LuckyBeanGalleryImagePreprocess?.preprocessFiles;
-  if (typeof preprocess !== 'function') {
-    galleryFailure(new Error('相册裁切模块尚未就绪'));
-    return;
-  }
+  if (!files.length || captureState.busy) return;
+  const generation = ++operationGeneration;
+  pendingGalleryFiles = files;
+  captureState.busy = true; captureState.ocrError = ''; render();
   try {
+    const preprocess = globalThis.LuckyBeanGalleryImagePreprocess?.preprocessFiles;
+    if (typeof preprocess !== 'function') throw new Error('相册裁切模块尚未就绪');
     const processed = await preprocess(files);
+    if (generation !== operationGeneration) return;
+    pendingGalleryFiles = [];
     if (processed?.length) await addFiles(processed);
   } catch (error) {
-    galleryFailure(error);
+    if (generation === operationGeneration) galleryFailure(error);
+  } finally {
+    if (generation === operationGeneration) { captureState.busy = false; render(); }
   }
 }
+
 async function applyAiAdvisory(book, generation, documentRef) {
   const analysisRef = captureState.analysis;
   if (!documentRef || !analysisRef || generation !== operationGeneration) return;
@@ -204,7 +218,7 @@ async function applyAiAdvisory(book, generation, documentRef) {
 }
 async function runRecognition() {
   const generation = ++operationGeneration;
-  captureState.busy = true; captureState.ocrText = ''; captureState.blocks = []; captureState.aiStatus = 'idle'; captureState.aiDetail = '';
+  captureState.busy = true; captureState.ocrText = ''; captureState.ocrError = ''; captureState.blocks = []; captureState.aiStatus = 'idle'; captureState.aiDetail = '';
   releaseWebPreviewsForRecognition(); render();
   let localSuccess = false; let book = null; let documentRef = null;
   try {
@@ -220,8 +234,9 @@ async function runRecognition() {
     captureState.aiStatus = 'running'; localSuccess = true;
   } catch (error) {
     if (generation !== operationGeneration) return;
+    captureState.ocrError = String(error?.message || error || '未知错误');
     if (error instanceof RecognitionUnavailableError) { captureState.ocrEngine = '网页 OCR 不可用'; captureState.ocrText = ''; }
-    else { captureState.ocrEngine = '识别失败'; captureState.ocrText = ''; alert(error.message); }
+    else { captureState.ocrEngine = '识别失败'; captureState.ocrText = ''; }
   } finally {
     if (generation === operationGeneration) {
       captureState.busy = false; render();
@@ -287,6 +302,7 @@ function bindOverlay() {
   document.querySelector('#bagManualBtn')?.addEventListener('click', () => openManualEntry());
   document.querySelector('#bagHandoffBtn')?.addEventListener('click', handoffToExistingParser);
   document.querySelector('#bagReanalyzeBtn')?.addEventListener('click', reanalyzeEditedText);
+  document.querySelector('#bagRetryRecognitionBtn')?.addEventListener('click', () => { if (captureState.busy) return; if (pendingGalleryFiles.length) void addGalleryFiles(pendingGalleryFiles); else if (captureState.images.length) void runRecognition(); });
   document.querySelector('#bagOcrText')?.addEventListener('input', event => { captureState.ocrText = event.target.value; const button = document.querySelector('#bagHandoffBtn'); if (button) button.disabled = !event.target.value.trim(); });
   document.querySelectorAll('[data-bag-remove]').forEach(button => button.addEventListener('click', () => { const index = captureState.images.findIndex(image => image.id === button.dataset.bagRemove); if (index < 0) return; releasePreview(captureState.images[index]); captureState.images.splice(index, 1); render(); }));
   document.querySelectorAll('[data-bag-role]').forEach(select => select.addEventListener('change', () => { const image = captureState.images.find(item => item.id === select.dataset.bagRole); if (!image) return; image.role = select.value; image.roleLabel = roleLabel(select.value); render(); }));

@@ -15,7 +15,7 @@ const FIELD_LABELS = Object.freeze({
   flavor: ['风味','風味','风味描述','風味描述','杯测风味','杯測風味','风味标签','風味標籤','品鉴笔记','品鑑筆記','香气','香氣','flavor notes','flavour notes','tasting notes','cup notes','aroma'],
   altitude: ['海拔','种植海拔','種植海拔','海拔高度','种植高度','種植高度','altitude','elevation','masl'],
   roastColor: ['烘焙色值','色值','艾格壮','艾格壯','agtron','roast color','colour value','color value'],
-  weight: ['净重','淨重','净含量','淨含量','重量','规格','規格','克重','包装重量','包裝重量','net weight','net wt'],
+  weight: ['净重','凈重','凈含量','淨重','净含量','淨含量','重量','规格','規格','克重','包装重量','包裝重量','net weight','net wt'],
   lot: ['批次','批号','批號','批次号','批次號','批次编号','批次編號','lot','lot no','lot number','batch','batch no'],
   grade: ['等级','等級','分级','分級','grade','screen size','screen','cup score','score']
 });

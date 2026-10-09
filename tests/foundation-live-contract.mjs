@@ -1,14 +1,11 @@
 import fs from 'node:fs';
+import { fetchResource } from '../scripts/fetch-with-retry.mjs';
 import assert from 'node:assert/strict';
 
 const consumer = JSON.parse(fs.readFileSync('contracts/foundation-consumer.json', 'utf8'));
 const localRecognition = JSON.parse(fs.readFileSync(consumer.localSnapshots.recognitionDocument, 'utf8'));
 
-async function getJson(url) {
-  const response = await fetch(url, { cache: 'no-store', headers: { 'accept': 'application/json' } });
-  assert.equal(response.ok, true, `${url} -> HTTP ${response.status}`);
-  return response.json();
-}
+const getJson = url => fetchResource(url, { timeoutMs:20000, headers:{accept:'application/json'} });
 
 const manifest = await getJson(consumer.foundation.manifestUrl);
 assert.equal(manifest.contract, consumer.foundation.contract);

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+const read = async path => (await readFile(new URL(`../${path}`, import.meta.url), 'utf8')).replace(/\r\n/g, '\n');
 
 test('OCR provider is registered before capture and model warmup starts only from an explicit add-session', async () => {
   const source = await read('src/features/runtime-features.js');
@@ -43,4 +43,22 @@ test('web package preprocessing is memory-aware and explicitly releases canvas b
   assert.match(source, /releaseCanvas\(sampleCanvas\)/);
   assert.match(source, /releaseCanvas\(outputCanvas\)/);
   assert.match(source, /image\.close/);
+});
+
+test('prediction timeout retries once with the same PP-OCR model in no-SIMD mode', async () => {
+  const source = await read('src/recognition-paddle-ocr-fast.js');
+  const recovery = source.match(/async function predictWithRuntimeRecovery\([\s\S]*?\n}/)?.[0] || '';
+  assert.match(recovery, /error\?\.name === 'RecognitionTimeoutError'/);
+  assert.match(recovery, /forceCompatibility = true/);
+  assert.match(recovery, /同一模型的无 SIMD Worker 重试一次/);
+  assert.match(recovery, /PREDICT_TIMEOUT_MS/);
+});
+
+test('service worker clones successful responses before asynchronous cache writes', async () => {
+  const source = await read('sw.js');
+  const cacheHelper = source.match(/function cacheSuccessfulResponse\([\s\S]*?\n}/)?.[0] || '';
+  const fetchHandler = source.match(/self\.addEventListener\('fetch',[\s\S]*$/)?.[0] || '';
+  assert.match(cacheHelper, /cacheCopy\s*=\s*response\.clone\(\)/);
+  assert.ok(cacheHelper.indexOf('response.clone()') < cacheHelper.indexOf('caches.open('));
+  assert.doesNotMatch(fetchHandler, /cache\.put\(request,\s*response\.clone\(\)\)/);
 });
