@@ -47,7 +47,7 @@ function annotation(text) {
 
 for (const file of tests) {
   process.stdout.write(`\n[static] ${file}\n`);
-  const result = spawnSync(process.execPath, [file], { encoding: 'utf8', env: process.env });
+  const result = spawnSync(process.execPath, [file], { encoding: 'utf8', env: process.env, timeout:120000, maxBuffer:16*1024*1024 });
   if (result.stdout) process.stdout.write(result.stdout);
   if (result.stderr) process.stderr.write(result.stderr);
   if (result.status !== 0) {
@@ -61,7 +61,7 @@ process.stdout.write('\n[static] test:recognition\n');
 const recognitionFiles = readdirSync('test')
   .filter(file => file.endsWith('.test.js'))
   .map(file => `test/${file}`);
-const recognition = spawnSync(process.execPath, ['--test', ...recognitionFiles], { encoding:'utf8', env:process.env });
+const recognition = spawnSync(process.execPath, ['--test', ...recognitionFiles], { encoding:'utf8', env:process.env, timeout:180000, maxBuffer:16*1024*1024 });
 if (recognition.stdout) process.stdout.write(recognition.stdout);
 if (recognition.stderr) process.stderr.write(recognition.stderr);
 if (recognition.status !== 0) {

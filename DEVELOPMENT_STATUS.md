@@ -1,13 +1,13 @@
 # LuckyBean 1.24P — 当前开发状态
 
-当前发布候选：`1.24P-main.8`
-语义版本：`1.24.20`
-Android：`versionCode 102424` / `versionName 1.24P`
+当前发布候选：`1.24P-main.9`
+语义版本：`1.24.21`
+Android：`versionCode 102425` / `versionName 1.24P`
 本地数据 Schema：`v10`
 
 > 本文件记录当前发布候选。正式 `main` 仍以最后通过全部同 SHA 门禁并合并的提交为准；任何开发分支状态不得冒充已发布状态。
 
-## 1.24P-main.8 发布候选范围
+## 1.24P-main.9 发布候选范围
 
 - 本地优先数据架构：新增可重建的 `beanSummaries` 轻量目录；豆卡 canonical 数据不重写；冲煮、品鉴和库存记录按 `beanId` 索引按需读取。
 - 首屏性能：首屏不再阻塞完整 Coffee Foundation codebook；使用轻量显示索引；OCR、地图、选择等重模块按功能加载。
@@ -34,7 +34,7 @@ Android：`versionCode 102424` / `versionName 1.24P`
 2. 静态架构与迁移测试通过。
 3. 实时 BrewIon Coffee Foundation 契约通过。
 4. 实时 BrewProfiles 契约通过。
-5. 实时 `recognition-ai-v1` advisory 契约通过。
+5. 本地 AI advisory/结构恢复契约通过；自动门禁禁止调用收费推理接口。
 6. Chromium startup/smoke/core/visual 回归通过。
 7. WebKit 登录/OCR 回归通过。
 8. Android 编译、Native/Web 契约、Android 10 启动与 APK 打包通过。

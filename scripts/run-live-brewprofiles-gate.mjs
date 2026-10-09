@@ -13,7 +13,7 @@ function run(file) {
     const child = spawn(process.execPath, [file], {
       cwd: process.cwd(),
       env: process.env,
-      stdio: ['ignore', 'pipe', 'pipe']
+      stdio: ['ignore', 'pipe', 'pipe'], timeout:120000, killSignal:'SIGKILL'
     });
     let output = '';
     const forward = (stream, target) => stream.on('data', chunk => {

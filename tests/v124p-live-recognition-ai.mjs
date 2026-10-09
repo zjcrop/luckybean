@@ -1,3 +1,5 @@
+throw new Error('Paid live AI inference is disabled for LuckyBean remediation. Use the local advisory contract tests.');
+
 import assert from 'node:assert/strict';
 
 const endpoint='https://vaxwncdcuvbpvdbbketb.supabase.co/functions/v1/recognition-ai-v1';

@@ -1,15 +1,15 @@
 {
   "product": "LuckyBean",
   "displayVersion": "1.24P",
-  "semver": "1.24.20",
-  "revision": "1.24P-main.8",
-  "androidVersionCode": 102424,
+  "semver": "1.24.21",
+  "revision": "1.24P-main.9",
+  "androidVersionCode": 102425,
   "androidUserAgent": "LuckyBeanAndroid/1.24P",
-  "releaseTag": "v1.24P-main.8",
+  "releaseTag": "v1.24P-main.9",
   "cachePrefix": "luckybean-main-v124p-",
-  "cacheRevision": "main-8-finalize-20261007",
+  "cacheRevision": "main-9-ocr-closeout-20261009",
   "schemaVersion": 10,
   "brewResultVersion": "1.1",
   "brewPlanVersion": "brew-plan/1.0",
-  "hotfix": "ppocr-worker-compression-integrity-20260907"
+  "hotfix": "ocr-timeout-sw-cache-closeout-20261009"
 }
