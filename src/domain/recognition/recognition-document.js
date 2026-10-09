@@ -32,7 +32,7 @@ export const RECOGNITION_FIELD_ALIASES = Object.freeze({
   aroma: ['香气','干香','湿香','香氣','乾香','濕香','aroma','fragrance'],
   roast: ['烘焙度','焙度','烘焙程度','烘焙程度描述','焙度','焙煎度','ローストレベル','焼き加減','배전도','로스팅 정도','로스트 레벨','roast level','roast profile','roast'],
   roastColor: ['烘焙色值','色值','艾格壮','艾格壯','agtron','gourmet agtron','commercial agtron','roast color','colour value','color value'],
-  weight: ['净含量','净重','重量','规格','克重','包裝重量','淨含量','淨重','net weight','net wt','net wt.','n.w.','nw'],
+  weight: ['净含量','净重','凈重','凈含量','重量','规格','克重','包裝重量','淨含量','淨重','net weight','net wt','net wt.','n.w.','nw'],
   lot: ['批次','批号','批次号','批次编号','地块批次','批號','批次編號','lot','lot no','lot number','batch','batch no'],
   grade: ['等级','分级','等級','分級','grade','screen size','screen','cup score','score'],
   roaster: ['烘焙商','烘焙厂','烘焙品牌','烘焙者','品牌','烘焙廠','roaster','roasted by','roast house','roastery']
