@@ -25,6 +25,20 @@ test('package controller automatically starts OCR after every successful image e
   assert.doesNotMatch(controller, /interceptRecognitionClick/);
 });
 
+test('OCR failure keeps the current photos and exposes an explicit retry action', () => {
+  const controller = fs.readFileSync(path.join(root, 'src/package-capture-controller.js'), 'utf8');
+  assert.match(controller, /ocrError/);
+  assert.match(controller, /id="bagRetryRecognitionBtn"/);
+  assert.match(controller, /bagRetryRecognitionBtn[^\n]*addEventListener\('click',[^\n]*runRecognition\(\)/);
+  assert.match(controller, /若已刷新页面，请重新选择照片/);
+});
+
+test('released thumbnail URL is detached from its image element before revocation', () => {
+  const controller = fs.readFileSync(path.join(root, 'src/package-capture-controller.js'), 'utf8');
+  const releasePreview = controller.match(/function releasePreview\([\s\S]*?\n}/)?.[0] || '';
+  assert.ok(releasePreview.indexOf("removeAttribute('src')") < releasePreview.indexOf('URL.revokeObjectURL(url)'));
+});
+
 test('camera, small upload and cropped upload all converge on addFiles', () => {
   const controller = fs.readFileSync(path.join(root, 'src/package-capture-controller.js'), 'utf8');
   assert.match(controller, /#bagCameraInput[^\n]*addFiles\(event\.target\.files\)/);

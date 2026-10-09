@@ -381,15 +381,18 @@ async function predictWithRuntimeRecovery(image, index, imageCount) {
       detachEngine
     );
   } catch (error) {
-    if (WEBKIT || forceCompatibility || !looksLikeCompatibilityFailure(error)) throw error;
+    const predictionTimedOut = error?.name === 'RecognitionTimeoutError';
+    if (WEBKIT || forceCompatibility || (!predictionTimedOut && !looksLikeCompatibilityFailure(error))) throw error;
     const startedAt = diagnosticNow();
     forceCompatibility = true;
     recordDiagnostic('predict-runtime-recovery', startedAt, {
-      imageIndex:index, imageCount, reason:String(error?.message || error), fromMode:engineMode
+      imageIndex:index, imageCount, reason:String(error?.message || error), fromMode:engineMode, timeoutFallback:predictionTimedOut
     });
     detachEngine();
     releaseWorkerBundle();
-    emit('预测阶段运行时异常，正在切换同一 PP-OCRv5 无 SIMD Worker 重试一次', 12);
+    emit(predictionTimedOut
+      ? 'PP-OCRv5 识别超时，正在切换同一模型的无 SIMD Worker 重试一次'
+      : '预测阶段运行时异常，正在切换同一 PP-OCRv5 无 SIMD Worker 重试一次', 12);
     await delay(80);
     ocr = await ensureEngine();
     const result = await withTimeout(

@@ -83,6 +83,17 @@ async function cacheBootstrapBestEffort() {
   }));
 }
 
+function cacheSuccessfulResponse(request, response) {
+  if (!response.ok) return;
+  // Clone while the response body is still unused. Callers may consume the
+  // returned response immediately (for example, OCR model fetches in a Worker).
+  let cacheCopy;
+  try { cacheCopy = response.clone(); } catch { return; }
+  void caches.open(CACHE_NAME)
+    .then(cache => cache.put(request, cacheCopy))
+    .catch(() => {});
+}
+
 self.addEventListener('install', event => {
   event.waitUntil(cacheBootstrapBestEffort().then(() => self.skipWaiting()));
 });
@@ -109,7 +120,7 @@ self.addEventListener('fetch', event => {
 
   if (request.mode === 'navigate') {
     event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {
-      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
+      cacheSuccessfulResponse(request, response);
       return response;
     }).catch(async () => {
       const cached = await caches.match(request);
@@ -120,7 +131,7 @@ self.addEventListener('fetch', event => {
 
   if (url.origin === self.location.origin) {
     event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {
-      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
+      cacheSuccessfulResponse(request, response);
       return response;
     }).catch(() => caches.match(request)));
     return;
@@ -128,7 +139,7 @@ self.addEventListener('fetch', event => {
 
   if (url.hostname === 'cdn.jsdelivr.net') {
     event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {
-      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
+      cacheSuccessfulResponse(request, response);
       return response;
     })));
   }

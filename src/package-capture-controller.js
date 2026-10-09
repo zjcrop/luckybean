@@ -14,7 +14,7 @@ const ROLE_OPTIONS = [
 ];
 
 const captureState = {
-  images: [], busy: false, ocrText: '', ocrEngine: '', blocks: [], recognitionDocument: null, analysis: null,
+  images: [], busy: false, ocrText: '', ocrEngine: '', ocrError: '', blocks: [], recognitionDocument: null, analysis: null,
   aiStatus: 'idle', aiDetail: ''
 };
 let operationGeneration = 0;
@@ -42,6 +42,8 @@ function statusMessage() {
 function root() { return document.querySelector('#overlayRoot'); }
 function releasePreview(image) {
   const url = String(image?.previewUrl || '');
+  const card = [...document.querySelectorAll('.bag-photo-card')].find(node => node.dataset.bagImageId === String(image?.id || ''));
+  card?.querySelector('img')?.removeAttribute('src');
   if (url.startsWith('blob:')) URL.revokeObjectURL(url);
   if (image && !image.nativeSource) { image.previewUrl = ''; image.previewAvailable = false; image.previewReleased = true; }
 }
@@ -60,7 +62,7 @@ function bindAndroidImageSource(imageId, includePreview) {
 function clearCapture({ keepOverlay = false } = {}) {
   operationGeneration += 1;
   for (const image of captureState.images) releasePreview(image);
-  captureState.images = []; captureState.busy = false; captureState.ocrText = ''; captureState.ocrEngine = ''; captureState.blocks = [];
+  captureState.images = []; captureState.busy = false; captureState.ocrText = ''; captureState.ocrEngine = ''; captureState.ocrError = ''; captureState.blocks = [];
   captureState.recognitionDocument = null; captureState.analysis = null; captureState.aiStatus = 'idle'; captureState.aiDetail = '';
   disposeBrowserOcr();
   if (!keepOverlay && root()) root().innerHTML = '';
@@ -98,7 +100,7 @@ function aiStatusCopy() {
   return '';
 }
 function renderRecognitionPanel() {
-  if (!captureState.ocrText && !captureState.blocks.length) return '';
+  if (!captureState.ocrText && !captureState.blocks.length && !captureState.ocrError) return '';
   const analysis = captureState.analysis;
   const fieldRows = (analysis?.fields || []).map(item => {
     const percent = Math.round(Number(item.confidence || 0) * 100);
@@ -114,6 +116,7 @@ function renderRecognitionPanel() {
   return `
     <section class="bag-recognition-result">
       <div class="bag-result-heading"><strong>翻译与字段整理</strong><span>${esc(captureState.ocrEngine || '手工输入')}</span></div>
+      ${captureState.ocrError ? `<p class="muted small" role="alert">${esc(captureState.ocrError)}。可保留当前照片后重试；若已刷新页面，请重新选择照片。</p><div class="row end"><button id="bagRetryRecognitionBtn" class="button" type="button"${captureState.busy || !captureState.images.length ? ' disabled' : ''}>重试识别</button></div>` : ''}
       ${analysis ? `<div class="bag-semantic-summary"><span>已归类 ${analysis.resolvedCount} 项</span><span class="${analysis.reviewCount ? 'needs-review' : ''}">待确认 ${analysis.reviewCount} 项</span></div>` : '<p class="muted small">修改文字后点击“重新整理”。</p>'}
       ${aiCopy ? `<p class="muted small" data-recognition-ai-status>${esc(aiCopy)}</p>` : ''}
       <div class="bag-semantic-grid">${fieldRows || '<p class="muted small">尚未形成可靠字段；原始文字仍会保留，未确认内容不会强行写入豆卡。</p>'}</div>
@@ -204,7 +207,7 @@ async function applyAiAdvisory(book, generation, documentRef) {
 }
 async function runRecognition() {
   const generation = ++operationGeneration;
-  captureState.busy = true; captureState.ocrText = ''; captureState.blocks = []; captureState.aiStatus = 'idle'; captureState.aiDetail = '';
+  captureState.busy = true; captureState.ocrText = ''; captureState.ocrError = ''; captureState.blocks = []; captureState.aiStatus = 'idle'; captureState.aiDetail = '';
   releaseWebPreviewsForRecognition(); render();
   let localSuccess = false; let book = null; let documentRef = null;
   try {
@@ -220,8 +223,9 @@ async function runRecognition() {
     captureState.aiStatus = 'running'; localSuccess = true;
   } catch (error) {
     if (generation !== operationGeneration) return;
+    captureState.ocrError = String(error?.message || error || '未知错误');
     if (error instanceof RecognitionUnavailableError) { captureState.ocrEngine = '网页 OCR 不可用'; captureState.ocrText = ''; }
-    else { captureState.ocrEngine = '识别失败'; captureState.ocrText = ''; alert(error.message); }
+    else { captureState.ocrEngine = '识别失败'; captureState.ocrText = ''; }
   } finally {
     if (generation === operationGeneration) {
       captureState.busy = false; render();
@@ -287,6 +291,7 @@ function bindOverlay() {
   document.querySelector('#bagManualBtn')?.addEventListener('click', () => openManualEntry());
   document.querySelector('#bagHandoffBtn')?.addEventListener('click', handoffToExistingParser);
   document.querySelector('#bagReanalyzeBtn')?.addEventListener('click', reanalyzeEditedText);
+  document.querySelector('#bagRetryRecognitionBtn')?.addEventListener('click', () => { if (!captureState.busy && captureState.images.length) void runRecognition(); });
   document.querySelector('#bagOcrText')?.addEventListener('input', event => { captureState.ocrText = event.target.value; const button = document.querySelector('#bagHandoffBtn'); if (button) button.disabled = !event.target.value.trim(); });
   document.querySelectorAll('[data-bag-remove]').forEach(button => button.addEventListener('click', () => { const index = captureState.images.findIndex(image => image.id === button.dataset.bagRemove); if (index < 0) return; releasePreview(captureState.images[index]); captureState.images.splice(index, 1); render(); }));
   document.querySelectorAll('[data-bag-role]').forEach(select => select.addEventListener('change', () => { const image = captureState.images.find(item => item.id === select.dataset.bagRole); if (!image) return; image.role = select.value; image.roleLabel = roleLabel(select.value); render(); }));
