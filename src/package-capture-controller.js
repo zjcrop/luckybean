@@ -18,6 +18,7 @@ const captureState = {
   aiStatus: 'idle', aiDetail: ''
 };
 let operationGeneration = 0;
+let pendingGalleryFiles = [];
 
 function esc(value) {
   return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
@@ -61,6 +62,7 @@ function bindAndroidImageSource(imageId, includePreview) {
 }
 function clearCapture({ keepOverlay = false } = {}) {
   operationGeneration += 1;
+  pendingGalleryFiles = [];
   for (const image of captureState.images) releasePreview(image);
   captureState.images = []; captureState.busy = false; captureState.ocrText = ''; captureState.ocrEngine = ''; captureState.ocrError = ''; captureState.blocks = [];
   captureState.recognitionDocument = null; captureState.analysis = null; captureState.aiStatus = 'idle'; captureState.aiDetail = '';
@@ -100,6 +102,10 @@ function aiStatusCopy() {
   return '';
 }
 function renderRecognitionPanel() {
+  // A failed task has a dedicated panel: P3 removes empty OCR editors, not recovery actions.
+  if (captureState.ocrError && !captureState.ocrText.trim()) {
+    return `<section class="bag-capture-error"><p class="muted small" role="alert">${esc(captureState.ocrError)}。可保留当前照片后重试；若已刷新页面，请重新选择照片。</p><div class="row end"><button id="bagRetryRecognitionBtn" class="button" type="button"${captureState.busy || (!captureState.images.length && !pendingGalleryFiles.length) ? ' disabled' : ''}>重试识别</button></div></section>`;
+  }
   if (!captureState.ocrText && !captureState.blocks.length && !captureState.ocrError) return '';
   const analysis = captureState.analysis;
   const fieldRows = (analysis?.fields || []).map(item => {
@@ -116,7 +122,6 @@ function renderRecognitionPanel() {
   return `
     <section class="bag-recognition-result">
       <div class="bag-result-heading"><strong>翻译与字段整理</strong><span>${esc(captureState.ocrEngine || '手工输入')}</span></div>
-      ${captureState.ocrError ? `<p class="muted small" role="alert">${esc(captureState.ocrError)}。可保留当前照片后重试；若已刷新页面，请重新选择照片。</p><div class="row end"><button id="bagRetryRecognitionBtn" class="button" type="button"${captureState.busy || !captureState.images.length ? ' disabled' : ''}>重试识别</button></div>` : ''}
       ${analysis ? `<div class="bag-semantic-summary"><span>已归类 ${analysis.resolvedCount} 项</span><span class="${analysis.reviewCount ? 'needs-review' : ''}">待确认 ${analysis.reviewCount} 项</span></div>` : '<p class="muted small">修改文字后点击“重新整理”。</p>'}
       ${aiCopy ? `<p class="muted small" data-recognition-ai-status>${esc(aiCopy)}</p>` : ''}
       <div class="bag-semantic-grid">${fieldRows || '<p class="muted small">尚未形成可靠字段；原始文字仍会保留，未确认内容不会强行写入豆卡。</p>'}</div>
@@ -160,7 +165,7 @@ async function addFiles(fileList) {
         score:prepared.score, status:prepared.status, warnings, processedWidth:prepared.processedWidth, processedHeight:prepared.processedHeight, metrics:prepared.metrics });
       addedCount += 1;
     }
-  } catch (error) { captureState.ocrText = `图片处理失败：${error.message}`; captureState.ocrEngine = '错误'; }
+  } catch (error) { captureState.ocrText = ''; captureState.ocrError = `图片处理失败：${error.message}`; captureState.ocrEngine = '错误'; }
   finally { captureState.busy = false; render(); }
   if (addedCount > 0) {
     document.dispatchEvent(new CustomEvent('luckybean:package-auto-recognition-start', { detail:{ source:'image-entry', addedCount } }));
@@ -169,26 +174,32 @@ async function addFiles(fileList) {
 }
 function galleryFailure(error) {
   const message = `图片裁切失败：${String(error?.message || error || '未知错误')}`;
-  captureState.ocrText = message;
+  captureState.ocrText = ''; captureState.ocrError = message;
+  captureState.blocks = []; captureState.analysis = null; captureState.recognitionDocument = null;
   captureState.ocrEngine = '图片处理错误';
   document.dispatchEvent(new CustomEvent('luckybean:user-notice', { detail:{ kind:'status-bad', message } }));
   render();
 }
 async function addGalleryFiles(fileList) {
   const files = [...(fileList || [])].filter(file => file.type.startsWith('image/')).slice(0, MAX_IMAGES - captureState.images.length);
-  if (!files.length) return;
-  const preprocess = globalThis.LuckyBeanGalleryImagePreprocess?.preprocessFiles;
-  if (typeof preprocess !== 'function') {
-    galleryFailure(new Error('相册裁切模块尚未就绪'));
-    return;
-  }
+  if (!files.length || captureState.busy) return;
+  const generation = ++operationGeneration;
+  pendingGalleryFiles = files;
+  captureState.busy = true; captureState.ocrError = ''; render();
   try {
+    const preprocess = globalThis.LuckyBeanGalleryImagePreprocess?.preprocessFiles;
+    if (typeof preprocess !== 'function') throw new Error('相册裁切模块尚未就绪');
     const processed = await preprocess(files);
+    if (generation !== operationGeneration) return;
+    pendingGalleryFiles = [];
     if (processed?.length) await addFiles(processed);
   } catch (error) {
-    galleryFailure(error);
+    if (generation === operationGeneration) galleryFailure(error);
+  } finally {
+    if (generation === operationGeneration) { captureState.busy = false; render(); }
   }
 }
+
 async function applyAiAdvisory(book, generation, documentRef) {
   const analysisRef = captureState.analysis;
   if (!documentRef || !analysisRef || generation !== operationGeneration) return;
@@ -291,7 +302,7 @@ function bindOverlay() {
   document.querySelector('#bagManualBtn')?.addEventListener('click', () => openManualEntry());
   document.querySelector('#bagHandoffBtn')?.addEventListener('click', handoffToExistingParser);
   document.querySelector('#bagReanalyzeBtn')?.addEventListener('click', reanalyzeEditedText);
-  document.querySelector('#bagRetryRecognitionBtn')?.addEventListener('click', () => { if (!captureState.busy && captureState.images.length) void runRecognition(); });
+  document.querySelector('#bagRetryRecognitionBtn')?.addEventListener('click', () => { if (captureState.busy) return; if (pendingGalleryFiles.length) void addGalleryFiles(pendingGalleryFiles); else if (captureState.images.length) void runRecognition(); });
   document.querySelector('#bagOcrText')?.addEventListener('input', event => { captureState.ocrText = event.target.value; const button = document.querySelector('#bagHandoffBtn'); if (button) button.disabled = !event.target.value.trim(); });
   document.querySelectorAll('[data-bag-remove]').forEach(button => button.addEventListener('click', () => { const index = captureState.images.findIndex(image => image.id === button.dataset.bagRemove); if (index < 0) return; releasePreview(captureState.images[index]); captureState.images.splice(index, 1); render(); }));
   document.querySelectorAll('[data-bag-role]').forEach(select => select.addEventListener('change', () => { const image = captureState.images.find(item => item.id === select.dataset.bagRole); if (!image) return; image.role = select.value; image.roleLabel = roleLabel(select.value); render(); }));
