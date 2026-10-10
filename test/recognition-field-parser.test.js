@@ -50,3 +50,33 @@ test('unsupported region evidence has no reliable candidates', () => {
   assert.ok(candidates.length > 0, 'the fuzzy matcher should expose its raw low-score results for diagnostics');
   assert.deepEqual(reliableCandidates('regionCode', candidates), []);
 });
+
+
+test('dictionary aliases are matched when the OCR wraps a labeled estate name across lines', () => {
+  const wrappedBook = structuredClone(book);
+  wrappedBook.entities.push(['ST-TEST-SARDO', 'CO-CR', 'estate_or_farm', '莎朵庄园', 'Sardo Estate', '莎朵', 'active']);
+  const parsed = parseNaturalLanguage('庄园：莎朵庄\\n园\\n豆种：74110', wrappedBook);
+  assert.equal(parsed.entityCode, 'ST-TEST-SARDO');
+  assert.equal(parsed.varietyCode, 'VA-JA10');
+});
+
+test('unlabeled dictionary aliases match across OCR line endings', () => {
+  const parsed = parseNaturalLanguage('蓝火山\\n庄园', book);
+  assert.equal(parsed.entityCode, 'ST-CR-VOL2');
+});
+
+
+test('near-match estate candidates remain available for explicit review', () => {
+  const candidates = fieldCandidates('entityCode', '蓝色火山庄园', book, { countryCode:'CO-CR' }, 8);
+  const reliable = reliableCandidates('entityCode', candidates);
+  assert.ok(reliable.some(item => item.code === 'ST-CR-VOL2'));
+  assert.ok(reliable.find(item => item.code === 'ST-CR-VOL2').score < 1, 'near matches are surfaced as candidates, not exact matches');
+});
+
+
+test('one-character estate OCR variant preselects a unique row but records manual review', () => {
+  const parsed = parseNaturalLanguage('庄园：蓝色火山庄园', book);
+  assert.equal(parsed.entityCode, 'ST-CR-VOL2');
+  assert.equal(parsed.parseMetadata.dictionaryMatchReview.entityCode.code, 'ST-CR-VOL2');
+  assert.equal(parsed.parseMetadata.dictionaryMatchReview.entityCode.requiresUserConfirmation, true);
+});

@@ -170,8 +170,9 @@ function buildFieldRows(document, parsed, book) {
     const resolved = canonicalResolved || trustedCustom;
     const confidence = Math.max(Number(parsed?.confidence?.[field] || 0), customValueConfidence(parsed, customField), relationConfidence(relations, field));
     const translated = resolved && rawValue && standardValue && normalizedComparable(rawValue) !== normalizedComparable(standardValue);
-    const requiresReview = Boolean(resolution.conflict) || !resolved;
-    rows.push({ field, label, rawValue, standardValue:standardValue || rawValue, confidence, resolved:resolved && !resolution.conflict, translated,
+    const dictionaryReview = Boolean(parsed?.parseMetadata?.dictionaryMatchReview?.[field]?.requiresUserConfirmation);
+    const requiresReview = Boolean(resolution.conflict) || !resolved || dictionaryReview;
+    rows.push({ field, label, rawValue, standardValue:standardValue || rawValue, confidence, resolved:resolved && !resolution.conflict && !dictionaryReview, translated,
       status:requiresReview ? 'review' : (translated ? 'translated' : 'resolved'), sources:resolution.winner?.sources || relations.get(field) || [],
       ...(trustedCustom ? { customValueAccepted:true, canonical:false } : {}),
       ...(knowledgeCandidate ? { knowledgeCandidate:structuredClone(knowledgeCandidate) } : {}),
