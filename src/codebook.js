@@ -1,5 +1,7 @@
 import { get, put, all, activateCodebook } from './db.js';
 import { sha256Hex } from './utils.js';
+import { bestDictionarySpan } from './domain/recognition/dictionary-span-matcher.js';
+import { codebookCandidates, reliableCandidates } from './recognition-candidates.js';
 
 export const REMOTE_CODEBOOK_URL = 'https://raw.githubusercontent.com/zjcrop/BrewIon/main/coffee-qr-codebook/coffee_qr_codebook_v6.json';
 export const REMOTE_LABEL_LEXICON_URL = 'https://raw.githubusercontent.com/zjcrop/BrewIon/main/coffee-qr-codebook/coffee_label_lexicon_v1.json';
@@ -243,46 +245,71 @@ function escapeRegex(value) { return String(value).replace(/[.*+?^${}()|[\]\\]/g
 
 function labeledFieldValues(source, book) {
   const fieldOrder = ['roastDate','productionDate','packDate','bestBefore','expiryDate','roastColor','country','region','entity','variety','process','roast','roaster','harvest','flavor','altitude','weight','price','lot','grade'];
-  const definitions = fieldOrder.map(field => [field, new RegExp(`^(?:${lexiconTerms(book, field).sort((a,b)=>b.length-a.length).map(escapeRegex).join('|')})\\s*(?:[:：=]|-\\s+)?\\s*(.+)$`, 'i')]);
+  const definitions = fieldOrder.map(field => [field, new RegExp(`^(?:${lexiconTerms(book, field).sort((a,b)=>b.length-a.length).map(escapeRegex).join('|')})\\s*(?:[:：=]|-\\s+)?\\s*(.*)$`, 'i')]);
   const result = {};
   const lines = String(source || '').replace(/\r/g, '').split(/\n+/).map(normalizeLabelValue).filter(Boolean);
-  for (const line of lines) {
+  const labelAt = index => {
     for (const [field, regex] of definitions) {
-      const match = line.match(regex);
-      if (match && !result[field]) { result[field] = normalizeLabelValue(match[1]); break; }
+      const match = lines[index]?.match(regex);
+      if (match) return { field, value:normalizeLabelValue(match[1] || '') };
     }
+    return null;
+  };
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const current = labelAt(index);
+    if (!current) continue;
+    const parts = current.value ? [current.value] : [];
+    let next = index + 1;
+    // A line break is an OCR layout artifact. Retain all continuation lines up
+    // to the next recognized field label so a field value can cross line edges.
+    while (next < lines.length && !labelAt(next)) {
+      parts.push(lines[next]);
+      next += 1;
+    }
+    if (!result[current.field] && parts.length) result[current.field] = normalizeLabelValue(parts.join(' '));
+    index = next - 1;
   }
   return result;
 }
-
-function bestTableMatch(value, rows) {
+function bestTableMatch(value, rows, field = '', context = {}) {
   const source = normalizeLabelValue(value);
   if (!source) return null;
   const normalizedCodes = normalizeCodeSource(source);
   const directMatches = (rows || []).map(row => directCodeMatch(normalizedCodes, [row])).filter(Boolean);
   if (directMatches.length === 1) return directMatches[0];
   if (directMatches.length > 1) return null;
-  const lower = source.toLocaleLowerCase('zh-CN');
-  const exactFragments = lower.split(/[\/、,，;；|]+/).map(item => item.trim()).filter(Boolean);
-  const exactMatches = [];
-  for (const row of rows || []) {
-    const aliases = row.slice(1).filter(item => typeof item === 'string').map(item => item.toLocaleLowerCase('zh-CN').trim()).filter(Boolean);
-    const alias = aliases.find(item => exactFragments.includes(item));
-    if (alias) exactMatches.push({ code: row[0], alias, row, direct: false });
+
+  // Search the whole field value as a character stream. OCR separators and line
+  // wrapping are layout evidence, not token boundaries.
+  const span = bestDictionarySpan(source, rows);
+  if (span) return { code:span.code, alias:span.alias, row:span.row, direct:false, span:{ start:span.start, end:span.end } };
+
+  // A single OCR edit may still identify a unique dictionary row. Keep it
+  // reviewable instead of silently treating a near-match as exact.
+  const tableByField = { countryCode:'countries', regionCode:'regions', entityCode:'entities', varietyCode:'varieties', processCode:'processes' };
+  const table = tableByField[field];
+  if (table && source.length <= 180) {
+    const candidates = reliableCandidates(field, codebookCandidates(field, source, { [table]:rows || [] }, context, 5));
+    const best = candidates[0];
+    const runnerUp = candidates.find(candidate => candidate.code !== best?.code);
+    if (best && best.score >= 0.80 && (!runnerUp || best.score - runnerUp.score >= 0.06)) {
+      return { code:best.code, alias:best.matched, row:(rows || []).find(row => String(row?.[0]) === String(best.code)), direct:false, approximate:true, score:best.score };
+    }
   }
-  if (exactMatches.length === 1) return exactMatches[0];
-  if (exactMatches.length > 1) return null;
+
+  // Keep the existing safe partial-name behavior for short user-entered fragments.
+  const lower = source.toLocaleLowerCase('zh-CN');
   let best = null;
   for (const row of rows || []) {
-    const aliases = row.slice(1)
+    for (const alias of row.slice(1)
       .filter(item => typeof item === 'string' && item && !['active', 'candidate'].includes(item))
       .flatMap(item => item.split(/[\\/、,，;；|]/))
       .map(item => item.trim())
-      .filter(item => item.length >= 1);
-    for (const alias of aliases) {
+      .filter(item => item.length >= 2)) {
       const needle = alias.toLocaleLowerCase('zh-CN');
-      if ((lower === needle || lower.includes(needle) || needle.includes(lower)) && (!best || needle.length > best.alias.length)) {
-        best = { code: row[0], alias, row, direct: false };
+      if ((lower === needle || needle.includes(lower)) && (!best || needle.length > best.alias.length)) {
+        best = { code:row[0], alias, row, direct:false };
       }
     }
   }
@@ -362,8 +389,17 @@ export function parseRoastColorValue(value) {
 function recordMatch(result, field, match, labeled = false) {
   if (!match) return;
   result[field] = match.code;
-  result.confidence[field] = match.direct ? 0.995 : (labeled ? 0.96 : Math.min(0.94, 0.62 + match.alias.length / 20));
+  result.confidence[field] = match.direct ? 0.995 : match.approximate ? Math.min(0.86, Number(match.score || 0)) : (labeled ? 0.96 : Math.min(0.94, 0.62 + match.alias.length / 20));
   result.evidence[field] = match.alias;
+  if (match.approximate) {
+    result.parseMetadata.dictionaryMatchReview ||= {};
+    result.parseMetadata.dictionaryMatchReview[field] = {
+      code:String(match.code),
+      matchedText:String(match.alias || ''),
+      score:Number(match.score || 0),
+      requiresUserConfirmation:true
+    };
+  }
 }
 
 export function parseNaturalLanguage(text, book) {
@@ -377,7 +413,6 @@ export function parseNaturalLanguage(text, book) {
     .filter(line => line && !/^[^:：]{1,48}[:：]/.test(line))
     .join('\n');
   const inferenceSource = Object.keys(labeled).length ? unlabelledSource : source;
-  const lower = inferenceSource.toLocaleLowerCase('zh-CN');
   const normalizedCodes = normalizeCodeSource(inferenceSource);
   const result = { confidence: {}, evidence: {}, parseMetadata: {}, sourceText: source };
   const usedAliases = new Set();
@@ -392,7 +427,7 @@ export function parseNaturalLanguage(text, book) {
   for (const [table, field, labelKey, customField] of definitions) {
     const labeledValue = labeled[labelKey] || '';
     if (labeledValue) {
-      const labeledMatch = bestTableMatch(labeledValue, book[table]);
+      const labeledMatch = bestTableMatch(labeledValue, book[table], field, { countryCode:result.countryCode, regionCode:result.regionCode });
       if (labeledMatch) {
         recordMatch(result, field, labeledMatch, true);
       } else {
@@ -407,17 +442,8 @@ export function parseNaturalLanguage(text, book) {
 
     let best = directCodeMatch(normalizedCodes, book[table]);
     if (!best) {
-      for (const row of book[table] || []) {
-        const aliases = row.slice(1)
-          .filter(value => typeof value === 'string' && value && !['active', 'candidate'].includes(value))
-          .flatMap(value => value.split(/[\\/、,，;；|]/))
-          .map(value => value.trim())
-          .filter(value => value.length >= 2);
-        for (const alias of aliases) {
-          const needle = alias.toLocaleLowerCase('zh-CN');
-          if (lower.includes(needle) && (!best || needle.length > best.alias.length)) best = { code: row[0], alias, row, direct: false };
-        }
-      }
+      const span = bestDictionarySpan(inferenceSource, book[table]);
+      if (span) best = { code:span.code, alias:span.alias, row:span.row, direct:false, span:{ start:span.start, end:span.end } };
     }
     const aliasKey = normalizeLabelValue(best?.alias).toLocaleLowerCase('zh-CN');
     if (aliasKey && usedAliases.has(aliasKey)) best = null;
