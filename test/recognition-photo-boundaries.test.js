@@ -25,3 +25,13 @@ test('leading explicit crop season is parsed without consuming bag identity or c
   assert.deepEqual(document,before);
   assert.equal(document.rawFullText,raw);
 });
+
+test('explicit leading season survives OCR removing whitespace after the label',()=>{
+ for(const raw of ['26产季巴拿马波奎特精品级','26產季巴拿馬波奎特精品級','2026产季:巴拿马波奎特']){
+  const repaired=repairRecognitionSemanticText(raw,book);
+  assert.match(repaired,/产季: (26|2026)/);
+  const analysis=analyzeRecognitionDocument(recognitionDocumentFromText(raw),book);
+  assert.equal(analysis.parsed.harvestYear,2026);
+  assert.equal(analysis.parsed.harvestDate,undefined);
+ }
+});

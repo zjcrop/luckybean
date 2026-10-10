@@ -15,7 +15,7 @@ const APPLE_MOBILE = isAppleMobileLike();
 const WEBKIT = isWebKitFamily();
 const DEVICE_MEMORY_GB = Number(globalThis.navigator?.deviceMemory || 0);
 const LOW_MEMORY = APPLE_MOBILE || (DEVICE_MEMORY_GB > 0 && DEVICE_MEMORY_GB <= 4);
-const LIMIT_SIDE = LOW_MEMORY ? 736 : 960;
+const LIMIT_SIDE = LOW_MEMORY ? 1600 : 2200;
 const MAX_SIDE = 2200;
 const ENGINE_INIT_TIMEOUT_MS = WEBKIT ? 30000 : 60000;
 const PREDICT_TIMEOUT_MS = WEBKIT ? 30000 : 45000;
@@ -359,10 +359,10 @@ function normalizeItems(result, imageId) {
     .filter(item => item.text && item.confidence >= 0.28 && meaningful(item.text) >= 0.55)
     .sort((a,b) => Number(a.polygon?.[0]?.[1] || 0) - Number(b.polygon?.[0]?.[1] || 0) || Number(a.polygon?.[0]?.[0] || 0) - Number(b.polygon?.[0]?.[0] || 0));
 }
-function predictOptions() {
+function predictOptions({ recovery = false } = {}) {
   return {
-    textDetLimitSideLen:LIMIT_SIDE,
-    textDetLimitType:'min',
+    textDetLimitSideLen:recovery ? Math.min(LIMIT_SIDE, 1280) : LIMIT_SIDE,
+    textDetLimitType:'max',
     textDetMaxSideLimit:MAX_SIDE,
     textDetThresh:0.22,
     textDetBoxThresh:0.35,
@@ -391,14 +391,15 @@ async function predictWithRuntimeRecovery(image, index, imageCount) {
     detachEngine();
     releaseWorkerBundle();
     emit(predictionTimedOut
-      ? 'PP-OCRv5 识别超时，正在切换同一模型的无 SIMD Worker 重试一次'
+      ? 'PP-OCRv5 识别超时，正在降低检测尺寸并切换同一模型的无 SIMD Worker 重试一次'
       : '预测阶段运行时异常，正在切换同一 PP-OCRv5 无 SIMD Worker 重试一次', 12);
     await delay(80);
     ocr = await ensureEngine();
+    const retryOptions = predictOptions({ recovery:predictionTimedOut });
     const result = await withTimeout(
-      ocr.predict(image.blob, options),
+      ocr.predict(image.blob, retryOptions),
       PREDICT_TIMEOUT_MS,
-      `PP-OCRv5 第 ${index + 1} 张图片兼容模式重试超时`,
+      `PP-OCRv5 第 ${index + 1} 张图片低负载兼容重试超时`,
       detachEngine
     );
     recordDiagnostic('predict-runtime-recovery-success', startedAt, { imageIndex:index, imageCount, mode:engineMode });

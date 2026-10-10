@@ -16,9 +16,9 @@ test('production OCR uses only the session fast-path provider without the adapti
   assert.match(runtime, /closest\?\.\('#fabAddBtn'\)/);
 });
 
-test('fast path preserves 2200px detector budget and only falls back after a real runtime failure', async () => {
+test('fast path bounds long-edge detection while retaining the absolute safety cap and only falls back after a real runtime failure', async () => {
   const source = await read('src/recognition-paddle-ocr-fast.js');
-  assert.match(source, /const LIMIT_SIDE = LOW_MEMORY \? 736 : 960/);
+  assert.match(source, /const LIMIT_SIDE = LOW_MEMORY \? 1600 : 2200/);
   assert.match(source, /const MAX_SIDE = 2200/);
   assert.match(source, /simd:!compatibility/);
   assert.match(source, /looksLikeCompatibilityFailure/);
