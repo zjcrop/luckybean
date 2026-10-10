@@ -284,7 +284,7 @@ export function repairRecognitionSemanticText(source,book) {
   for(let index=0;index<lines.length;index+=1) {
     const line=lines[index];
     if(BREW_GUIDANCE_HEADING.test(line)) { brewGuidance=true; continue; }
-    const cropPrefix=/^(\d{2}|\d{4})\s*(?:产季|產季)(?:\s+|$)(.*)$/u.exec(line);
+    const cropPrefix=/^(\d{4}|\d{2})\s*(?:产季|產季)\s*[:：]?\s*(.*)$/u.exec(line);
     if(cropPrefix) {
       output.push('产季: '+cropPrefix[1]);
       if(cropPrefix[2])lines[index]=cropPrefix[2]; else continue;

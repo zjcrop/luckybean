@@ -137,7 +137,7 @@ function render() {
     <div class="overlay full bag-capture-overlay" data-overlay="bag-capture"><div class="dialog bag-capture-dialog">
       <div class="dialog-header"><div><h2>拍袋录入</h2><p>多视角采集，分别处理曲面、倾斜、反光和碎片化信息</p></div><button class="close-button" type="button" data-bag-close aria-label="关闭">×</button></div>
       <div class="bag-capture-status"><strong>${captureState.images.length}/${MAX_IMAGES}</strong><span>${esc(statusMessage())}</span></div>
-      <div class="bag-engine-status"><span>识别通道</span><b>${capabilities.native ? 'Android 本地中英文 OCR 可用' : capabilities.webPaddle ? '网页 PP-OCR 可用（Safari 按需低内存模式）' : capabilities.textDetector ? '浏览器文字检测可用' : '网页 OCR 当前不可用，可改用文字录入'}</b></div>
+      <div class="bag-engine-status"><span>识别通道</span><b>${capabilities.native ? 'Android 本地中英文 OCR 可用' : capabilities.webPaddle ? `网页 PP-OCR 可用（${globalThis.LuckyBeanPaddleOCR?.lowMemory ? '低内存模式' : '标准模式'}）· ${esc(document.body?.dataset.releaseRevision || '版本未知')}` : capabilities.textDetector ? '浏览器文字检测可用' : '网页 OCR 当前不可用，可改用文字录入'}</b></div>
       <div class="bag-photo-list">${renderImageCards()}</div>
       <div class="bag-capture-actions">
         <button id="bagCameraBtn" class="button primary" type="button"${captureState.images.length >= MAX_IMAGES || captureState.busy ? ' disabled' : ''}>拍摄一张</button>
