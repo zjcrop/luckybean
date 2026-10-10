@@ -57,7 +57,7 @@ export function buildRecognitionRecordHypothesis(document, options = {}) {
   const countries = countryAnchorCount(lines);
   const paragraphs = paragraphCount(document);
   const tableRows = tableRowCount(lines, document);
-  const geometry = groupRecognitionRecordCandidates(document, options.geometry || {});
+  const geometry = groupRecognitionRecordCandidates(document, { ...options, ...(options.geometry || {}) });
   const geometryCount = geometry.grouped ? Number(geometry.candidates?.length || 0) : 0;
   const geometryConfidence = geometryCount >= 2
     ? geometry.candidates.reduce((sum, item) => sum + clamp01(item?.confidence), 0) / geometryCount

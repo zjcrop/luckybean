@@ -1,13 +1,13 @@
 # LuckyBean 1.24P — 当前开发状态
 
-当前发布候选：`1.24P-main.9`
-语义版本：`1.24.21`
-Android：`versionCode 102425` / `versionName 1.24P`
+当前发布候选：`1.24P-main.10`
+语义版本：`1.24.22`
+Android：`versionCode 102426` / `versionName 1.24P`
 本地数据 Schema：`v10`
 
 > 本文件记录当前发布候选。正式 `main` 仍以最后通过全部同 SHA 门禁并合并的提交为准；任何开发分支状态不得冒充已发布状态。
 
-## 1.24P-main.9 发布候选范围
+## 1.24P-main.10 发布候选范围
 
 - 本地优先数据架构：新增可重建的 `beanSummaries` 轻量目录；豆卡 canonical 数据不重写；冲煮、品鉴和库存记录按 `beanId` 索引按需读取。
 - 首屏性能：首屏不再阻塞完整 Coffee Foundation codebook；使用轻量显示索引；OCR、地图、选择等重模块按功能加载。
@@ -17,7 +17,7 @@ Android：`versionCode 102425` / `versionName 1.24P`
 - iOS/Safari：支持 Supabase 邮箱验证回调 token 消费；localStorage 受限时使用非破坏性的临时会话；WebKit OCR 使用受限 direct-WASM/no-SIMD 兼容路径。
 - 同步：登录成功与云同步解耦，云同步等待 `local-app-ready`；继续兼容 `luckybean-sync-v2`，不批量重编码旧云 payload。
 - 数据安全：Supabase 已建立迁移前 SHA-256 影子快照和 UPDATE/DELETE 前置归档；v9→v10 有 canonical 不变性回归。
-- 发布身份统一：`release.json`、PWA/Web 缓存、Android versionCode 与 Schema 同步到 main.9 候选。
+- 发布身份统一：`release.json`、PWA/Web 缓存、Android versionCode 与 Schema 同步到 main.10 候选。
 
 ## 本次收尾范围
 
@@ -53,3 +53,11 @@ Android：`versionCode 102425` / `versionName 1.24P`
 ## 历史说明
 
 1.23D、1.23E、1.24B 和 1.24P-main.1/main.2 均为历史检查点。旧版本的详细修改记录保留在 Git 历史、Release 和 `docs/` 中，不再作为当前开发状态的权威入口。
+
+
+## 2026-10-10 Foundation 收尾候选
+
+- 主线保护已启用；本候选须通过严格 PR 门禁后发布。
+- #97 分割证据改为可注入、可追溯的 Knowledge/BrewIon provider，生成离线 fixture 保证无网络也可恢复。
+- 海拔范围保留端点并要求核对，前缀产季独立解析。
+- 三个旧分支和历史 CI issues 的逐项处置依据见 [本次收尾](docs/CLOSEOUT_20261010.md)。实际发布以 GitHub 同 SHA 回执为准。

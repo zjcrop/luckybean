@@ -65,6 +65,7 @@ function installFlowWrapper() {
   flow.acceptDocument = async (recognitionDocument, options = {}) => {
     if (queue.active) return originalAccept(recognitionDocument, options);
     const recovery = await recoverRecognitionStructure(recognitionDocument, {
+      evidenceSignalProvider:flow.evidenceSignalProvider?.(),
       aiRecoverStructure:(document, hypothesis) => recoverRecognitionStructureWithAi(document, hypothesis, { timeoutMs:7000 })
     });
     if (!recovery.split || recovery.documents.length < 2) return originalAccept(recognitionDocument, options);

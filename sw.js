@@ -1,7 +1,7 @@
 // LuckyBean 1.24P: resilient offline shell with lazy feature/runtime caching.
-const REVISION = '1.24P-main.9';
+const REVISION = '1.24P-main.10';
 const CACHE_PREFIX = 'luckybean-main-v124p-';
-const CACHE_NAME = `${CACHE_PREFIX}main-9-ocr-closeout-20261009`;
+const CACHE_NAME = `${CACHE_PREFIX}main-10-foundation-closeout-20261010`;
 const LEGACY_CACHE_PREFIXES = [
   'luckybean-main-v124b-', 'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
   'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',
@@ -42,6 +42,10 @@ const LAZY_RUNTIME_RESOURCES = [
   './src/features/recognition-batch-progress-controller.js',
   './src/features/recognition-multi-entry-controller.js',
   './src/domain/recognition/recognition-entry-splitter.js',
+  './src/domain/recognition/recognition-evidence-signals.js',
+  './src/domain/recognition/recognition-evidence-fixture.js',
+  './src/domain/recognition/recognition-evidence-signals.js',
+  './src/domain/recognition/recognition-evidence-fixture.js',
   './src/features/sensory-tag-sort-controller.js',
   './src/domain/recognition/recognition-field-resolver-1.24b.js',
   './src/domain/recognition/order-recognition-1.24b.js',

@@ -1,6 +1,7 @@
 import { sanitizeExecutionText, sanitizeExecutionPlanText } from './services/execution-text-sanitizer.js';
 import { APP_VERSION, SCHEMA_VERSION, $, $$, uid, esc, clamp, todayISO, formatDate, freshness, freshnessProfile, downloadBlob, safeJsonParse, assertPlainObject, assertSafeJson, browserTitle, parseNumber } from './utils.js';
 import { openDb, all, allByIndex, get, put, remove, bulkPut, getSetting, setSetting, clearAll, migrateLegacy } from './db.js';
+import { createRecognitionEvidenceSignalProvider } from './domain/recognition/recognition-evidence-signals.js';
 import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, parseHarvestSeasonValue, REMOTE_CODEBOOK_URL } from './codebook.js';
 import { CameraScanner, scanQrFile, decodeJsQrResult } from './qr.js';
 import { computeFallbackPlan, requestPrivatePlan, validatePlan, FALLBACK_ENGINE_VERSION, buildCorrectedPlan, listBrewProfiles, recommendProfile } from './brew-engine.js';
@@ -1486,6 +1487,7 @@ function openTextRecognition(text = '', existingDraft = null, suppliedDocument =
 }
 
 globalThis.LuckyBeanRecognitionFlow = {
+  evidenceSignalProvider() { return createRecognitionEvidenceSignalProvider({ book:state.codebook }); },
   acceptDocument(recognitionDocument, options = {}) {
     return Promise.resolve(processRecognitionDocument(recognitionDocument, options));
   },
