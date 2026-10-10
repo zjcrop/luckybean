@@ -247,7 +247,7 @@ function labeledFieldValues(source, book) {
   const fieldOrder = ['roastDate','productionDate','packDate','bestBefore','expiryDate','roastColor','country','region','entity','variety','process','roast','roaster','harvest','flavor','altitude','weight','price','lot','grade'];
   const definitions = fieldOrder.map(field => [field, new RegExp(`^(?:${lexiconTerms(book, field).sort((a,b)=>b.length-a.length).map(escapeRegex).join('|')})\\s*(?:[:：=]|-\\s+)?\\s*(.*)$`, 'i')]);
   const result = {};
-  const lines = String(source || '').replace(/\\r/g, '').split(/\\n+/).map(normalizeLabelValue).filter(Boolean);
+  const lines = String(source || '').replace(/\r/g, '').split(/\n+/).map(normalizeLabelValue).filter(Boolean);
   const labelAt = index => {
     for (const [field, regex] of definitions) {
       const match = lines[index]?.match(regex);
