@@ -9,7 +9,7 @@ export default {
       "owner": "BrewIon",
       "url": "https://github.com/zjcrop/BrewIon/blob/main/coffee-qr-codebook/coffee_qr_codebook_v6.json",
       "version": "6",
-      "sha256": "d42bf35c134e7a7def1b93810bd4195fa035ff8b54852ed303a5921bc8479eb2"
+      "sha256": "a438f93644dfe7bdc5541a13174c1e723c4ce21bfe3966b11ab629a8ffbfd47c"
     },
     {
       "path": "contracts/dictionaries/origin.seed.json",

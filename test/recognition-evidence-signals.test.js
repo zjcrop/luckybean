@@ -13,7 +13,7 @@ import { recoverRecognitionStructureLocal } from '../src/domain/recognition/reco
 const book=JSON.parse(fs.readFileSync(new URL('../public/fallback-codebook.json',import.meta.url)));
 const evaluate=(provider,text)=>provider.evaluate([{text}]);
 test('offline evidence aliases are generated deterministically from hashed owner sources',()=>{
-  for(const source of fixture.sources)assert.equal(createHash('sha256').update(fs.readFileSync(new URL('../'+source.path,import.meta.url))).digest('hex'),source.sha256);
+  for(const source of fixture.sources)assert.equal(createHash('sha256').update(fs.readFileSync(new URL('../'+source.path,import.meta.url),'utf8').replace(/\r\n/g,'\n')).digest('hex'),source.sha256);
   execFileSync(process.execPath,['scripts/generate-recognition-evidence-fixture.mjs','--check']);
   assert.equal(fixture.authority,'segmentation-only');assert.equal(fixture.requiresUserConfirmation,true);
 });
