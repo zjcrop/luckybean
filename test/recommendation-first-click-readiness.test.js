@@ -19,3 +19,11 @@ test('failed required module load cannot replay into legacy recommendation fallb
  await run({target:{closest:()=>({click(){clicks++;}})},preventDefault(){},stopImmediatePropagation(){}},()=>false,async()=>false);
  assert.equal(clicks,0);
 });
+
+test('intent guard is installed before slow core imports so declared readiness cannot bypass it',()=>{
+ const declaration=source.indexOf("document.documentElement.dataset.runtimeFeatures = 'declared';");
+ const gate=source.indexOf('installLazyTriggers();',declaration);
+ const core=source.indexOf('for (const runtimeFeature of CORE_FEATURES)',declaration);
+ assert.ok(declaration>=0&&gate>declaration&&gate<core);
+ assert.equal((source.match(/installLazyTriggers\(\);/g)||[]).length,1);
+});

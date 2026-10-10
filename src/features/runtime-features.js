@@ -193,6 +193,8 @@ globalThis.LuckyBeanRuntimeFeatures = {
   isLoaded
 };
 document.documentElement.dataset.runtimeFeatures = 'declared';
+// Guard user intent as soon as the loader API is published, before slow core imports.
+installLazyTriggers();
 
 for (const runtimeFeature of CORE_FEATURES) {
   try { await loadFeature(runtimeFeature.id); } catch { /* failure already recorded */ }
@@ -203,7 +205,6 @@ await loadMany(P2_CORE_FEATURES.map(item => item.id));
 
 installRecognitionSessionObserver();
 installGalleryIntentGate();
-installLazyTriggers();
 document.dispatchEvent(new CustomEvent('luckybean:runtime-features-ready', {
   detail:{ revision:RELEASE_REVISION, declared:catalog.size, coreLoaded:ALL_CORE_FEATURES.filter(item=>isLoaded(item.id)).length, lazyDeclared:LAZY_FEATURES.length, loaded:loaded.length, failures }
 }));
