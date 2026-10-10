@@ -55,13 +55,13 @@ test('unsupported region evidence has no reliable candidates', () => {
 test('dictionary aliases are matched when the OCR wraps a labeled estate name across lines', () => {
   const wrappedBook = structuredClone(book);
   wrappedBook.entities.push(['ST-TEST-SARDO', 'CO-CR', 'estate_or_farm', '莎朵庄园', 'Sardo Estate', '莎朵', 'active']);
-  const parsed = parseNaturalLanguage('庄园：莎朵庄\\n园\\n豆种：74110', wrappedBook);
+  const parsed = parseNaturalLanguage('庄园：莎朵庄\n园\n豆种：74110', wrappedBook);
   assert.equal(parsed.entityCode, 'ST-TEST-SARDO');
   assert.equal(parsed.varietyCode, 'VA-JA10');
 });
 
 test('unlabeled dictionary aliases match across OCR line endings', () => {
-  const parsed = parseNaturalLanguage('蓝火山\\n庄园', book);
+  const parsed = parseNaturalLanguage('蓝火山\n庄园', book);
   assert.equal(parsed.entityCode, 'ST-CR-VOL2');
 });
 
