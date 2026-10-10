@@ -372,7 +372,7 @@ function predictOptions({ recovery = false } = {}) {
 }
 async function predictWithRuntimeRecovery(image, index, imageCount) {
   let ocr = await ensureEngine();
-  const options = predictOptions();
+  const options = predictOptions({ recovery:forceCompatibility });
   try {
     return await withTimeout(
       ocr.predict(image.blob, options),

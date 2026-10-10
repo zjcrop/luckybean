@@ -29,3 +29,13 @@ test('capture status does not mislabel every browser as Safari',()=>{
  const panel=fs.readFileSync('src/package-capture-controller.js','utf8');
  assert.ok(!panel.includes('Safari 按需低内存模式'));
 });
+test('manual retries in the failed capture session retain the reduced workload',async()=>{
+ const start=source.indexOf('async function predictWithRuntimeRecovery('),end=source.indexOf('\nasync function predict(images)',start);
+ let optionsSeen;
+ const context={WEBKIT:false,forceCompatibility:true,PREDICT_TIMEOUT_MS:45000,engineMode:'worker-no-simd-fallback',
+  ensureEngine:async()=>({predict:async(_blob,options)=>{optionsSeen=options;return 'recognized';}}),
+  predictOptions:({recovery=false}={})=>({edge:recovery?1280:2200}),withTimeout:p=>p,detachEngine(){}};
+ vm.runInNewContext(source.slice(start,end)+'\nglobalThis.recover=predictWithRuntimeRecovery;',context);
+ assert.equal(await context.recover({blob:new Blob(['same source'])},0,1),'recognized');
+ assert.equal(optionsSeen.edge,1280);
+});
