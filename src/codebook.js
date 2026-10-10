@@ -494,7 +494,10 @@ export function parseNaturalLanguage(text, book) {
     ? altitudeSource.match(/(\d{3,4})(?:\s*[-~至到]\s*\d{3,4})?\s*(?:m|米|masl)?/i)
     : altitudeSource.match(/(\d{3,4})(?:\s*[-~至到]\s*\d{3,4})?\s*(?:m(?:asl)?\b|米)/i);
   if (altitude) {
-    result.altitude = Number(altitude[1]);
+    const range=/(\d{3,4})\s*[-~–—至到]\s*(\d{3,4})\s*(?:m|米|masl)?/iu.exec(altitudeSource);
+    if(range) {
+      result.parseMetadata.altitude={rawValue:labeled.altitude||range[0],minimum:Number(range[1]),maximum:Number(range[2]),unit:/\bft\b|feet/iu.test(altitudeSource)?'ft':'m',formatId:'ALTITUDE_RANGE',requiresUserConfirmation:true};
+    } else result.altitude = Number(altitude[1]);
     result.confidence.altitude = labeled.altitude ? 0.97 : 0.85;
     result.evidence.altitude = labeled.altitude || altitude[0];
   }

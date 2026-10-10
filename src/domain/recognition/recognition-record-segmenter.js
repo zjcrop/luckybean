@@ -1,8 +1,7 @@
+import { recognitionEvidenceProvider } from './recognition-evidence-signals.js';
+
 export const RECOGNITION_RECORD_CANDIDATE_SCHEMA = 'recognition-record-candidate/1.0';
 
-const PROCESS_SIGNAL = /(?:水洗|日晒|日曬|厌氧|厭氧|蜜处理|蜜處理|湿刨|濕刨|酵素|發酵|发酵|washed|natural|anaerobic|honey\s*process|wet\s*hulled|semi[-\s]?washed|carbonic|ナチュラル|ウォッシュド|ハニー|嫌気|워시드|내추럴|허니|무산소)/iu;
-const COFFEE_IDENTITY_SIGNAL = /(?:ethiopia|kenya|colombia|brazil|panama|guatemala|honduras|costa\s*rica|el\s*salvador|rwanda|burundi|indonesia|yirgacheffe|guji|sidamo|nyeri|huila|gesha|geisha|sl\s*28|sl\s*34|caturra|bourbon|typica|74110|74112|74158|衣索比亞|埃塞俄比亚|埃塞俄比亞|肯亞|肯尼亚|哥倫比亞|哥伦比亚|巴西|巴拿馬|巴拿马|瓜地馬拉|危地马拉|宏都拉斯|洪都拉斯|哥斯大黎加|薩爾瓦多|萨尔瓦多|盧安達|卢旺达|蒲隆地|布隆迪|印尼|耶加雪菲|古吉|瑰夏|藝伎|艺伎|波旁|卡杜拉|鐵皮卡|铁皮卡)/iu;
-const IDENTITY_ANCHORS = new Set(['country','origin','region','farm','producer','station','cooperative','variety','species']);
 
 function clean(value) {
   return String(value ?? '').normalize('NFKC').replace(/\s+/g, ' ').trim();
@@ -86,15 +85,8 @@ function verticalOverlap(a, b) {
   return overlapRatio(a.top, a.bottom, b.top, b.bottom);
 }
 
-function evidence(blocks) {
-  const text = blocks.map(block => clean(block.text)).join(' ');
-  const anchors = new Set(blocks.map(block => String(block.fieldAnchor || '')).filter(Boolean));
-  const identityAnchor = [...anchors].some(anchor => IDENTITY_ANCHORS.has(anchor));
-  return {
-    process:Boolean(PROCESS_SIGNAL.test(text) || anchors.has('process')),
-    identity:Boolean(COFFEE_IDENTITY_SIGNAL.test(text) || identityAnchor),
-    anchors:[...anchors]
-  };
+function evidence(blocks, provider) {
+  return provider.evaluate(blocks);
 }
 
 function orderBlocks(blocks) {
@@ -110,9 +102,9 @@ function orderBlocks(blocks) {
   });
 }
 
-function candidate(document, blocks, index, method, confidence) {
+function candidate(document, blocks, index, method, confidence, provider) {
   const ordered = orderBlocks(blocks);
-  const ev = evidence(ordered);
+  const ev = evidence(ordered, provider);
   return {
     schemaVersion:RECOGNITION_RECORD_CANDIDATE_SCHEMA,
     id:`${String(document?.images?.[0]?.id || 'recognition')}:record-${index + 1}`,
@@ -128,7 +120,7 @@ function candidate(document, blocks, index, method, confidence) {
   };
 }
 
-function sideBySideCandidates(document, blocks) {
+function sideBySideCandidates(document, blocks, provider) {
   if (blocks.length < 6) return [];
   const byX = [...blocks].sort((a, b) => a.normalizedBox.centerX - b.normalizedBox.centerX);
   let splitIndex = -1;
@@ -149,9 +141,9 @@ function sideBySideCandidates(document, blocks) {
   const rightBox = unionBox(right.map(block => ({ box:block.normalizedBox }))) || null;
   if (!leftBox || !rightBox || verticalOverlap(leftBox, rightBox) < 0.6) return [];
   if (leftBox.height < 0.18 || rightBox.height < 0.18) return [];
-  const leftEvidence = evidence(left), rightEvidence = evidence(right);
+  const leftEvidence = evidence(left, provider), rightEvidence = evidence(right, provider);
   if (!leftEvidence.process || !leftEvidence.identity || !rightEvidence.process || !rightEvidence.identity) return [];
-  return [candidate(document, left, 0, 'geometry-side-by-side-v1', 0.82), candidate(document, right, 1, 'geometry-side-by-side-v1', 0.82)];
+  return [candidate(document, left, 0, 'geometry-side-by-side-v1', 0.82, provider), candidate(document, right, 1, 'geometry-side-by-side-v1', 0.82, provider)];
 }
 
 function buildRows(blocks) {
@@ -176,18 +168,18 @@ function buildRows(blocks) {
   return rows.sort((a, b) => a.box.top - b.box.top || a.box.left - b.box.left);
 }
 
-function rowCandidates(document, blocks) {
+function rowCandidates(document, blocks, provider) {
   const rows = buildRows(blocks).filter(row => row.blocks.map(block => clean(block.text)).join('').length >= 6);
   if (rows.length < 2) return [];
   const records = rows.filter(row => {
-    const ev = evidence(row.blocks);
+    const ev = evidence(row.blocks, provider);
     return ev.process && ev.identity;
   });
   if (records.length < 2 || records.length / rows.length < 0.72) return [];
-  return records.map((row, index) => candidate(document, row.blocks, index, 'geometry-process-rows-v1', 0.8));
+  return records.map((row, index) => candidate(document, row.blocks, index, 'geometry-process-rows-v1', 0.8, provider));
 }
 
-function verticalGapCandidates(document, blocks) {
+function verticalGapCandidates(document, blocks, provider) {
   if (blocks.length < 4) return [];
   const ordered = [...blocks].sort((a, b) => a.normalizedBox.top - b.normalizedBox.top || a.normalizedBox.left - b.normalizedBox.left);
   const medianHeight = median(ordered.map(block => block.normalizedBox.height), 0.04);
@@ -198,11 +190,11 @@ function verticalGapCandidates(document, blocks) {
     const gap = Math.max(0, current.normalizedBox.top - previous.normalizedBox.bottom);
     if (gap >= threshold) groups.push([current]); else groups[groups.length - 1].push(current);
   }
-  const viable = groups.filter(group => group.length >= 2 && evidence(group).process && evidence(group).identity);
+  const viable = groups.filter(group => group.length >= 2 && evidence(group, provider).process && evidence(group, provider).identity);
   if (viable.length < 2) return [];
   const covered = viable.reduce((sum, group) => sum + group.length, 0) / ordered.length;
   if (covered < 0.7) return [];
-  return viable.map((group, index) => candidate(document, group, index, 'geometry-vertical-gap-v1', 0.78));
+  return viable.map((group, index) => candidate(document, group, index, 'geometry-vertical-gap-v1', 0.78, provider));
 }
 
 /**
@@ -218,10 +210,11 @@ function verticalGapCandidates(document, blocks) {
 export function groupRecognitionRecordCandidates(document, options = {}) {
   if (!document || typeof document !== 'object') return { grouped:false, method:'none', candidates:[], schemaVersion:RECOGNITION_RECORD_CANDIDATE_SCHEMA };
   if ((document.images || []).length !== 1) return { grouped:false, method:'none', candidates:[], schemaVersion:RECOGNITION_RECORD_CANDIDATE_SCHEMA };
+  const provider = recognitionEvidenceProvider(options);
   const blocks = preparedBlocks(document, options);
   if (blocks.length < 2) return { grouped:false, method:'none', candidates:[], schemaVersion:RECOGNITION_RECORD_CANDIDATE_SCHEMA };
   for (const detector of [sideBySideCandidates, rowCandidates, verticalGapCandidates]) {
-    const candidates = detector(document, blocks);
+    const candidates = detector(document, blocks, provider);
     if (candidates.length >= 2) return { grouped:true, method:candidates[0].method, candidates, schemaVersion:RECOGNITION_RECORD_CANDIDATE_SCHEMA };
   }
   return { grouped:false, method:'none', candidates:[], schemaVersion:RECOGNITION_RECORD_CANDIDATE_SCHEMA };

@@ -2,6 +2,8 @@
 // This file intentionally re-exports LuckyBean's production recognition modules;
 // downstream apps must consume these implementations rather than reimplementing them.
 
+export { RECOGNITION_EVIDENCE_SIGNAL_CONTRACT, createRecognitionEvidenceSignalProvider } from './domain/recognition/recognition-evidence-signals.js';
+
 export { preparePackageImage } from './image-quality.js';
 export {
   recognizeCoffeeBag,

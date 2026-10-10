@@ -284,7 +284,13 @@ export function repairRecognitionSemanticText(source,book) {
   for(let index=0;index<lines.length;index+=1) {
     const line=lines[index];
     if(BREW_GUIDANCE_HEADING.test(line)) { brewGuidance=true; continue; }
-    const inline=splitInline(line), label=detectLabelOnly(line);
+    const cropPrefix=/^(\d{2}|\d{4})\s*(?:产季|產季)(?:\s+|$)(.*)$/u.exec(line);
+    if(cropPrefix) {
+      output.push('产季: '+cropPrefix[1]);
+      if(cropPrefix[2])lines[index]=cropPrefix[2]; else continue;
+    }
+    const currentLine=cropPrefix?cropPrefix[2]:line;
+    const inline=splitInline(currentLine), label=detectLabelOnly(currentLine);
     if(brewGuidance) {
       if(!inline&&!label)continue;
       brewGuidance=false;
@@ -307,8 +313,8 @@ export function repairRecognitionSemanticText(source,book) {
       }
       output.push(label.label); continue;
     }
-    const inferred=inferredUnlabelledField(line,book,cache);
-    if(inferred)output.push(`${inferred.label}: ${inferred.value}`); else output.push(line);
+    const inferred=inferredUnlabelledField(currentLine,book,cache);
+    if(inferred)output.push(`${inferred.label}: ${inferred.value}`); else output.push(currentLine);
   }
   return output.join('\n');
 }

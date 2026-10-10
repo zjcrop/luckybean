@@ -1,0 +1,22 @@
+{
+  "contract": "recognition-evidence-signals/1.0",
+  "purpose": "segmentation-only",
+  "owner": "Coffee Knowledge/BrewIon aliases; Recognition Foundation consumer",
+  "input": {
+    "book": "verified coffee-codebook/1.0 with optional coffee-knowledge/1.0 matching aliases",
+    "options": "evidenceSignalProvider or book; sourceWidth/sourceHeight unchanged"
+  },
+  "output": {
+    "process": "boolean hint",
+    "identity": "boolean hint",
+    "anchors": "source field anchors"
+  },
+  "policies": {
+    "canonicalMutation": false,
+    "qrIndexMutation": false,
+    "automaticRecordCreation": false,
+    "requiresUserConfirmation": true,
+    "networkRequired": false,
+    "missingProvider": "deterministic generated offline fixture"
+  }
+}

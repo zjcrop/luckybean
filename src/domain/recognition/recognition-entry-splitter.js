@@ -141,7 +141,7 @@ export function splitRecognitionEntries(document, options = {}) {
   }
 
   if (options.allowGeometry !== false) {
-    const geometry = splitGeometryRecords(document, options.geometry || {});
+    const geometry = splitGeometryRecords(document, { ...options, ...(options.geometry || {}) });
     if (geometry) return geometry;
   }
 

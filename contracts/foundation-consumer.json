@@ -13,10 +13,12 @@
     "canonicalCoffeeRecord": "coffee-canonical-record/1.0",
     "aiEnrichmentResult": "ai-enrichment-result/1.0",
     "codebookProvider": "coffee-codebook/1.0",
-    "coffeeKnowledge": "coffee-knowledge/1.0"
+    "coffeeKnowledge": "coffee-knowledge/1.0",
+    "recognitionEvidenceSignals": "recognition-evidence-signals/1.0"
   },
   "localSnapshots": {
-    "recognitionDocument": "contracts/recognition-document-v1.1.schema.json"
+    "recognitionDocument": "contracts/recognition-document-v1.1.schema.json",
+    "recognitionEvidenceSignals": "src/domain/recognition/recognition-evidence-fixture.js"
   },
   "policies": {
     "applicationDependencyAsFoundation": false,
