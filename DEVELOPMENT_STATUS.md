@@ -1,13 +1,13 @@
 # LuckyBean 1.24P — 当前开发状态
 
-当前发布候选：`1.24P-main.10`
-语义版本：`1.24.22`
-Android：`versionCode 102426` / `versionName 1.24P`
+当前发布候选：`1.24P-main.11`
+语义版本：`1.24.23`
+Android：`versionCode 102427` / `versionName 1.24P`
 本地数据 Schema：`v10`
 
 > 本文件记录当前发布候选。正式 `main` 仍以最后通过全部同 SHA 门禁并合并的提交为准；任何开发分支状态不得冒充已发布状态。
 
-## 1.24P-main.10 发布候选范围
+## 1.24P-main.11 发布候选范围
 
 - 本地优先数据架构：新增可重建的 `beanSummaries` 轻量目录；豆卡 canonical 数据不重写；冲煮、品鉴和库存记录按 `beanId` 索引按需读取。
 - 首屏性能：首屏不再阻塞完整 Coffee Foundation codebook；使用轻量显示索引；OCR、地图、选择等重模块按功能加载。
@@ -61,3 +61,8 @@ Android：`versionCode 102426` / `versionName 1.24P`
 - #97 分割证据改为可注入、可追溯的 Knowledge/BrewIon provider，生成离线 fixture 保证无网络也可恢复。
 - 海拔范围保留端点并要求核对，前缀产季独立解析。
 - 三个旧分支和历史 CI issues 的逐项处置依据见 [本次收尾](docs/CLOSEOUT_20261010.md)。实际发布以 GitHub 同 SHA 回执为准。
+
+
+## 2026-10-10 首次推荐点击候选
+
+线上 fun 提示检查暴露冷启动模块竞争：仅等待 selection 会在 bean-groups 权威入口尚未加载时重放点击，进入旧提示路径。首次点击现同时等待两模块，模块失败不重放。新增实际等待/失败分支回归；不放宽线上趣味提示断言。main.11 候选须独立通过 PR、同 SHA 主线、Pages 和签名发布门禁。

@@ -1,4 +1,4 @@
-const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.10';
+const RELEASE_REVISION = document.body?.dataset.releaseRevision || document.querySelector('meta[name="release-revision"]')?.content || '1.24P-main.11';
 const feature = (id, path) => ({ id, path: `${path}?v=${encodeURIComponent(RELEASE_REVISION)}` });
 const BEAN_GROUP_RUNTIME_REVISION = RELEASE_REVISION;
 const pinnedFeature = (id, path, revision) => ({ id, path: `${path}?v=${encodeURIComponent(revision)}` });
@@ -158,9 +158,9 @@ function installLazyTriggers() {
       return;
     }
     const recommend = event.target.closest?.('#fabRecommendBtn');
-    if (recommend && !isLoaded('selection')) {
+    if (recommend && (!isLoaded('selection') || !isLoaded('bean-groups'))) {
       event.preventDefault(); event.stopImmediatePropagation();
-      if (await loadFeature('selection').catch(() => false)) recommend.click();
+      if (await loadMany(['selection','bean-groups'])) recommend.click();
       return;
     }
     if (event.target.closest?.('[data-page-target="brew"]')) { void loadMany(['brew-pour-guide','release-1.24b-brew-mode']); return; }
