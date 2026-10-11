@@ -13,12 +13,13 @@
 .p2-bean-detail-note { margin:2px 0 0; font-size:13px; line-height:1.55; opacity:.82; }
 
 /* Local bean photos share one renderer; absent photos collapse to a color dot. */
-.bean-thumbnail-shell { display:inline-flex; align-items:center; justify-content:center; flex:0 0 8px; inline-size:8px; block-size:8px; }
-.bean-thumbnail-shell[data-thumbnail-available="true"] { flex-basis:46px; inline-size:46px; block-size:46px; }
+.bean-thumbnail-shell { display:inline-flex; align-items:center; justify-content:center; flex:0 0 34px; inline-size:34px; block-size:46px; border-radius:8px; overflow:hidden; background:var(--surface-raised, #252525); }
+.bean-thumbnail-shell[data-thumbnail-available="true"] { flex-basis:34px; inline-size:34px; block-size:46px; }
 .bean-thumbnail { display:block; inline-size:100%; block-size:100%; object-fit:cover; border-radius:10px; }
 .bean-thumbnail[hidden], .bean-thumbnail-fallback[hidden] { display:none; }
 .bean-thumbnail-fallback { display:block; inline-size:8px; block-size:8px; border-radius:50%; background:var(--accent, #b7312c); }
-.bean-card.compact.lb-one-line-bean { padding-block:0; }
+.bean-card.compact.lb-one-line-bean { padding-block:0; padding-inline-start:0; }
+.bean-card.compact:not(.lb-one-line-bean) { grid-template-columns:34px minmax(0,1fr) 54px; }
 .bean-detail-header { display:grid; grid-template-columns:3em minmax(0,1fr) auto; column-gap:12px; font-size:21px; }
 .bean-detail-header .bean-thumbnail-shell-detail { grid-column:1; grid-row:1 / span 2; inline-size:3em; block-size:3em; }
 .bean-detail-header > div { grid-column:2; }

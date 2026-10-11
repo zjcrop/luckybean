@@ -36,7 +36,7 @@ test('main.6 preserves FAB visibility ownership and opens manual OCR editor expl
 test('main.6 package review waits for recognition handoff completion instead of racing the form renderer', () => {
   const capture = read('src/package-capture-controller.js');
   const followup = read('src/ui/release-1.24b-followup-controller.js');
-  assert.match(capture, /await flow\.acceptDocument\(recognitionDocument, \{\s*overwrite\s*:\s*true\s*\}\);[\s\S]*luckybean:recognition-handoff-complete/);
+  assert.match(capture, /await flow\.acceptDocument\(recognitionDocument, \{\s*overwrite\s*:\s*true,\s*thumbnailDataUrl\s*\}\);[\s\S]*luckybean:recognition-handoff-complete/);
   assert.match(followup, /addEventListener\('luckybean:recognition-handoff-complete', onHandoffComplete\)/);
   assert.match(followup, /attempts >= 100/);
   assert.equal(followup.includes('form && attempts >= 10'), false);

@@ -4,6 +4,7 @@ import { loadCodebook } from './codebook.js';
 import { createRecognitionDocument, recognitionDocumentFromText } from './domain/recognition/recognition-document.js';
 import { analyzeRecognitionDocument } from './domain/recognition/recognition-pipeline.js';
 import { enrichRecognitionWithAi } from './services/recognition-ai-service.js';
+import { prepareBeanThumbnail } from './domain/beans/bean-thumbnail-storage.js';
 
 const MAX_IMAGES = 4;
 const ROLE_OPTIONS = [
@@ -277,7 +278,23 @@ async function handoffToExistingParser() {
   const recognitionDocument = unchanged ? captureState.recognitionDocument : recognitionDocumentFromText(text); if (!recognitionDocument) return;
   const flow = globalThis.LuckyBeanRecognitionFlow;
   if (typeof flow?.acceptDocument !== 'function') { globalThis.LuckyBeanPendingRecognitionDocument = recognitionDocument; alert('豆卡识别流程尚未就绪，请稍后重试'); return; }
-  clearCapture(); await flow.acceptDocument(recognitionDocument, { overwrite:true });
+  const generation = operationGeneration;
+  const handoffButton = document.querySelector('#bagHandoffBtn');
+  if (handoffButton) handoffButton.disabled = true;
+  const photo = captureState.images.find(image => image.role === 'front') || captureState.images[0];
+  let thumbnailDataUrl = '';
+  if (photo) {
+    try {
+      const thumbnailBlob = photo.nativeSource && /^data:image\//.test(photo.previewUrl || '')
+        ? await (await fetch(photo.previewUrl)).blob() : photo.blob;
+      thumbnailDataUrl = await prepareBeanThumbnail(thumbnailBlob);
+    } catch (error) {
+      document.dispatchEvent(new CustomEvent('luckybean:user-notice', { detail:{ kind:'status-warn', message:'识别照片的缩略图保存失败，请在豆卡中重新选择原照片' } }));
+      console.warn('识别照片缩略图生成失败', error);
+    }
+  }
+  if (generation !== operationGeneration) return;
+  clearCapture(); await flow.acceptDocument(recognitionDocument, { overwrite:true, thumbnailDataUrl });
   document.dispatchEvent(new CustomEvent('luckybean:recognition-handoff-complete', { detail:{ source:'package-capture' } }));
 }
 function bindOverlay() {

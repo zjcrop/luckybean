@@ -37,15 +37,13 @@ export async function prepareBeanThumbnail(file) {
   const width = Number(image.width || image.naturalWidth || 0);
   const height = Number(image.height || image.naturalHeight || 0);
   if (!width || !height) throw new Error('图片尺寸无效');
-  const side = Math.min(width, height);
-  const x = Math.floor((width - side) / 2);
-  const y = Math.floor((height - side) / 2);
   const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 256;
+  const scale = Math.min(1, 320 / Math.max(width, height));
+  canvas.width = Math.max(1, Math.round(width * scale));
+  canvas.height = Math.max(1, Math.round(height * scale));
   const context = canvas.getContext('2d', { alpha:false });
   if (!context) throw new Error('当前设备无法处理图片');
-  context.drawImage(image, x, y, side, side, 0, 0, 256, 256);
+  context.drawImage(image, 0, 0, width, height, 0, 0, canvas.width, canvas.height);
   image.close?.();
   return canvas.toDataURL('image/jpeg', 0.72);
 }

@@ -64,7 +64,8 @@ function packBean(bean = {}) {
     compactDate(bean.freezeDate), round100(bean.price), bean.roasterName || bean.roaster || '', Number(bean.altitude || 0),
     bean.notes || '', Array.isArray(bean.flavorCodes) ? bean.flavorCodes : [], bean.archived ? 1 : 0, token(bean.source || 'manual'),
     Number(bean.codebookSchemaVersion || 1), String(bean.codebookDataVersion || ''), compactTime(bean.createdAt), compactTime(bean.updatedAt),
-    bean.productName || bean.brand || bean.product || bean.commercialName || ''
+    bean.productName || bean.brand || bean.product || bean.commercialName || bean.roasterName || bean.roaster || '',
+    Boolean(bean.brandManuallyEdited)
   ];
 }
 
@@ -76,7 +77,7 @@ function unpackBean(row = []) {
     freezeDate: expandDate(row[13]), price: unround100(row[14]), roasterName: row[15] || '', altitude: Number(row[16] || 0),
     notes: row[17] || '', flavorCodes: Array.isArray(row[18]) ? row[18] : [], archived: Boolean(row[19]), source: untoken(row[20]) || 'manual',
     codebookSchemaVersion: Number(row[21] || 1), codebookDataVersion: String(row[22] || ''), createdAt: expandTime(row[23]), updatedAt: expandTime(row[24]),
-    productName: row[25] || ''
+    productName: row[25] || row[15] || '', brandManuallyEdited:Boolean(row[26])
   };
 }
 
