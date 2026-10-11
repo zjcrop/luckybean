@@ -36,7 +36,7 @@ assert.equal(packageLock.version, release.semver, 'package-lock top-level versio
 assert.equal(packageLock.packages?.['']?.version, release.semver, 'package-lock root package version must follow release semver');
 
 assert.match(index, /application-version" content="1\.24P"/);
-assert.match(index, /release-revision" content="1\.24P-main\.13"/);
+assert.match(index, /release-revision" content="1\.24P-main\.14"/);
 assert.match(index, /data-release="1\.24P"/);
 assert.equal(manifest.version, '1.24P');
 assert.match(utils, /APP_VERSION = '1\.24P'/);
