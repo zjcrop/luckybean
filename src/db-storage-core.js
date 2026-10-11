@@ -787,7 +787,7 @@ export async function replaceStores(storeRows) {
 export async function rollbackRoomToIndexedDb() {
   if (!await isRoomBackendActive()) return { rolledBack: false, reason: 'room-not-active' };
   const nativeStore = roomStore();
-  const db = await openDb();
+  const db = await openIndexedDb();
   const storeNames = STORES.filter(name => name !== ROOM_SNAPSHOT_STORE);
   const restored = Object.fromEntries(await Promise.all(storeNames.map(async name => [name, await nativeStore.all(name)])));
   const metadata = restored.syncMetadata || [];
@@ -842,25 +842,27 @@ export async function setSetting(id, value) { return put('settings', { id, value
 
 export async function clearAll() {
   if (await isRoomBackendActive()) {
-    await roomStore().clearAll();
-    const db = await openDb();
-    await Promise.all(STORES.map(name => new Promise((resolve, reject) => {
-      const request = db.transaction(name, 'readwrite').objectStore(name).clear();
-      request.onsuccess = resolve;
-      request.onerror = () => reject(request.error || new Error('IndexedDB 清理失败'));
-    })));
-    await roomStore().put('syncMetadata', {
-      id: ROOM_ACTIVE_KEY,
-      active: true,
-      schemaVersion: SCHEMA_VERSION,
-      clearedAt: new Date().toISOString(),
-      stores: {}
+    await withRoomMutex(async () => {
+      await roomStore().clearAll();
+      const db = await openIndexedDb();
+      await Promise.all(STORES.map(name => new Promise((resolve, reject) => {
+        const request = db.transaction(name, 'readwrite').objectStore(name).clear();
+        request.onsuccess = resolve;
+        request.onerror = () => reject(request.error || new Error('IndexedDB 清理失败'));
+      })));
+      await roomStore().put('syncMetadata', {
+        id: ROOM_ACTIVE_KEY,
+        active: true,
+        schemaVersion: SCHEMA_VERSION,
+        clearedAt: new Date().toISOString(),
+        stores: {}
+      });
     });
     roomBackendActivePromise = Promise.resolve(true);
     sensorySecretPromise = undefined;
     return;
   }
-  const db = await openDb();
+  const db = await openIndexedDb();
   await Promise.all(STORES.map(name => new Promise((resolve, reject) => {
     const request = db.transaction(name, 'readwrite').objectStore(name).clear();
     request.onsuccess = resolve;
