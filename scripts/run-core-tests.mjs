@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 
 const specs = [
+  'tests/v128-room-migration.spec.mjs',
   'tests/v120-core-flow.spec.mjs',
   'tests/v120-history-integrity.spec.mjs',
   'tests/v120-requirements-ui.spec.mjs',
