@@ -86,11 +86,10 @@ public final class MainActivity extends Activity {
         latinTextRecognizer = recognitionRuntime.latinRecognizer();
         configureWebView();
         registerSystemBackCallback();
-        if (savedInstanceState == null) {
-            webView.loadUrl(APP_ORIGIN + "index.html");
-        } else {
-            webView.restoreState(savedInstanceState);
-        }
+        // Always start from the bundled local entry point. WebView history may
+        // contain an external page opened from a coffee source link and cannot
+        // serve as a reliable cold-start checkpoint after process death.
+        webView.loadUrl(APP_ORIGIN + "index.html");
     }
 
     private void enterImmersiveMode() {
@@ -305,11 +304,16 @@ public final class MainActivity extends Activity {
                             Exception failure = chineseTask.getException() != null ? chineseTask.getException() : latinTask.getException();
                             throw new IllegalStateException(failure == null ? "未识别到清晰文字" : failure.getMessage(), failure);
                         }
+                        ArrayList<JSONObject> orderedLines = new ArrayList<>(uniqueLines.values());
+                        orderedLines.sort((left, right) -> {
+                            int vertical = Integer.compare(minPolygonCoordinate(left, 1), minPolygonCoordinate(right, 1));
+                            return vertical != 0 ? vertical : Integer.compare(minPolygonCoordinate(left, 0), minPolygonCoordinate(right, 0));
+                        });
                         JSONObject payload = new JSONObject();
                         payload.put("engine", "android-mlkit-bundled-16.0.1");
-                        payload.put("blocks", new JSONArray(uniqueLines.values()));
+                        payload.put("blocks", new JSONArray(orderedLines));
                         StringBuilder fullText = new StringBuilder();
-                        for (JSONObject line : uniqueLines.values()) {
+                        for (JSONObject line : orderedLines) {
                             if (fullText.length() > 0) fullText.append('\n');
                             fullText.append(line.optString("text"));
                         }
@@ -425,6 +429,17 @@ public final class MainActivity extends Activity {
             points.put(new JSONArray().put(rect.left).put(rect.bottom));
         }
         return points;
+    }
+
+    private static int minPolygonCoordinate(JSONObject line, int axis) {
+        JSONArray points = line.optJSONArray("polygon");
+        if (points == null || points.length() == 0) return Integer.MAX_VALUE;
+        int minimum = Integer.MAX_VALUE;
+        for (int index = 0; index < points.length(); index++) {
+            JSONArray point = points.optJSONArray(index);
+            if (point != null && point.length() > axis) minimum = Math.min(minimum, point.optInt(axis, Integer.MAX_VALUE));
+        }
+        return minimum;
     }
 
     private void resolveRecognition(String requestId, JSONObject payload) {

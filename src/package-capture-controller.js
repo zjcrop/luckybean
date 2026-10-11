@@ -48,9 +48,6 @@ function releasePreview(image) {
   if (url.startsWith('blob:')) URL.revokeObjectURL(url);
   if (image && !image.nativeSource) { image.previewUrl = ''; image.previewAvailable = false; image.previewReleased = true; }
 }
-function releaseWebPreviewsForRecognition() {
-  for (const image of captureState.images) if (!image.nativeSource) releasePreview(image);
-}
 function disposeBrowserOcr() {
   try { void globalThis.LuckyBeanPaddleOCR?.dispose?.(); } catch {}
 }
@@ -71,18 +68,18 @@ function clearCapture({ keepOverlay = false } = {}) {
 }
 function previewHtml(image) {
   if (image.previewAvailable && image.previewUrl) return `<img src="${esc(image.previewUrl)}" alt="${esc(image.roleLabel)}预览">`;
-  if (image.previewReleased) return `<div class="bag-photo-native-preview" aria-label="预览已释放以降低识别内存占用" style="display:grid;place-items:center;min-height:132px;border-radius:14px;background:rgba(255,255,255,.04);color:#8f8b83;font-size:13px;letter-spacing:.06em;text-align:center;line-height:1.7">识别中已释放预览<br>原压缩图仍用于 OCR</div>`;
+  if (image.previewReleased) return `<div class="bag-photo-native-preview" aria-label="照片缩略预览不可用" style="display:grid;place-items:center;min-height:132px;border-radius:14px;background:rgba(255,255,255,.04);color:#8f8b83;font-size:13px;letter-spacing:.06em;text-align:center;line-height:1.7">照片预览不可用</div>`;
   return `<div class="bag-photo-native-preview" aria-label="Android 原图已绑定，缩略预览暂不可用" style="display:grid;place-items:center;min-height:132px;border-radius:14px;background:rgba(255,255,255,.04);color:#8f8b83;font-size:13px;letter-spacing:.06em;text-align:center;line-height:1.7">Android 原图<br>预览暂不可用</div>`;
 }
 function sourceInfo(image) {
   if (image.nativeSource) return image.previewAvailable ? 'Android 原图 · 原生缩略预览 · 本地 URI 识别' : 'Android 原图 · 本地 URI 识别';
-  return `${image.processedWidth}×${image.processedHeight} px · ${Math.round(image.blob.size / 1024)} KB${image.previewReleased ? ' · 预览内存已释放' : ''}`;
+  return `${image.processedWidth}×${image.processedHeight} px · ${Math.round(image.blob.size / 1024)} KB`;
 }
 function renderImageCards() {
   if (!captureState.images.length) return '<div class="bag-empty">尚未添加照片</div>';
   return captureState.images.map(image => `
     <article class="bag-photo-card" data-bag-image-id="${esc(image.id)}">
-      ${previewHtml(image)}
+      <div class="bag-photo-thumbnail">${previewHtml(image)}</div>
       <div class="bag-photo-main">
         <div class="bag-photo-heading"><strong>${esc(image.roleLabel)}</strong><span class="bag-quality ${esc(image.status)}">${qualityLabel(image)} · ${image.score}</span></div>
         <select class="control bag-role-select" data-bag-role="${esc(image.id)}" aria-label="照片类型">
@@ -219,7 +216,7 @@ async function applyAiAdvisory(book, generation, documentRef) {
 async function runRecognition() {
   const generation = ++operationGeneration;
   captureState.busy = true; captureState.ocrText = ''; captureState.ocrError = ''; captureState.blocks = []; captureState.aiStatus = 'idle'; captureState.aiDetail = '';
-  releaseWebPreviewsForRecognition(); render();
+  render();
   let localSuccess = false; let book = null; let documentRef = null;
   try {
     const result = await recognizeCoffeeBag(captureState.images, { locale:'zh-CN' });
