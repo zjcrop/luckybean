@@ -1,6 +1,6 @@
 import { sanitizeExecutionText, sanitizeExecutionPlanText } from './services/execution-text-sanitizer.js';
 import { APP_VERSION, SCHEMA_VERSION, $, $$, uid, esc, clamp, todayISO, formatDate, freshness, freshnessProfile, downloadBlob, safeJsonParse, assertPlainObject, assertSafeJson, browserTitle, parseNumber } from './utils.js';
-import { openDb, all, allByIndex, get, put, remove, bulkPut, getSetting, setSetting, clearAll, migrateLegacy } from './db.js';
+import { openDb, all, allByIndex, get, put, remove, bulkPut, getSetting, setSetting, clearAll, migrateLegacy, migrateSchema10ToRoom } from './db.js';
 import { createRecognitionEvidenceSignalProvider } from './domain/recognition/recognition-evidence-signals.js';
 import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, parseHarvestSeasonValue, REMOTE_CODEBOOK_URL } from './codebook.js';
 import { CameraScanner, scanQrFile, decodeJsQrResult } from './qr.js';
@@ -3013,6 +3013,9 @@ async function handleSharedHash() {
 async function init() {
   state.db = await openDb();
   await migrateLegacy().catch(error=>({error:error.message}));
+  if (globalThis.__LUCKYBEAN_ENABLE_ROOM_MIGRATION__ === true) {
+    await migrateSchema10ToRoom().catch(error => console.warn('IndexedDB→Room 迁移未切换，保留 IndexedDB 使用', error));
+  }
   await loadSettings();
   if (location.hash) await ensureFullCodebook();
   if (await handleSharedHash()) return;
