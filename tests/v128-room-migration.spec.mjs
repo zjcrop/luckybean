@@ -88,6 +88,11 @@ async function installFixture(page) {
           for (const row of values) getMap(name).set(String(keyOf(name, row)), clone(row));
         }
       },
+      async applyChanges(changes) {
+        for (const name of changes.clearStores) getMap(name).clear();
+        for (const row of changes.deletes) getMap(row.store).delete(String(row.key));
+        for (const row of changes.puts) getMap(row.store).set(String(keyOf(row.store, row.value)), clone(row.value));
+      },
       async clearAll() { room.clear(); }
     };
     globalThis.__LUCKYBEAN_ANDROID__ = true;
