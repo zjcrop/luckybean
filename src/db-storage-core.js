@@ -200,6 +200,10 @@ async function isRoomBackendActive() {
   return roomBackendActivePromise;
 }
 
+export async function isRoomStorageActive() {
+  return isRoomBackendActive();
+}
+
 function stableJson(value) {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value);
   if (typeof value === 'number' && Number.isFinite(value)) return JSON.stringify(value);
