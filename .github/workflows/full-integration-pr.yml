@@ -194,6 +194,8 @@ jobs:
           fi
           adb -s "$emulator_serial" shell rm -f "$remote_apk" >/dev/null 2>&1 || true
 
+          timeout --kill-after=10s 600s gradle --no-daemon -p android :app:connectedDebugAndroidTest 2>&1 | tee android-room-tests.log
+
           timeout --kill-after=2s 10s adb -s "$emulator_serial" logcat -c || true
           set +e
           timeout --kill-after=5s 30s adb -s "$emulator_serial" shell am start -W -n com.luckybean.app/.MainActivity > android-start.txt 2>&1
