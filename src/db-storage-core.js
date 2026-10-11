@@ -372,8 +372,8 @@ export async function put(name, value) {
   assertPlainObject(value, name);
   const prepared = await transformForWrite(name, value);
   if (await isRoomBackendActive()) {
-    await roomStore().put(name, prepared);
-    if (name === 'beans') await roomStore().put('beanSummaries', beanSummaryFromBean(value));
+    if (name === 'beans') await roomStore().putBean(prepared, beanSummaryFromBean(value));
+    else await roomStore().put(name, prepared);
     return name === 'customCodes' ? value.code : value.id;
   }
   const db = await openDb();
@@ -392,8 +392,8 @@ export async function put(name, value) {
 
 export async function remove(name, key) {
   if (await isRoomBackendActive()) {
-    await roomStore().remove(name, key);
-    if (name === 'beans') await roomStore().remove('beanSummaries', key);
+    if (name === 'beans') await roomStore().removeBean(key);
+    else await roomStore().remove(name, key);
     return;
   }
   const db = await openDb();
@@ -410,8 +410,8 @@ export async function remove(name, key) {
 
 export async function clear(name) {
   if (await isRoomBackendActive()) {
-    await roomStore().clear(name);
-    if (name === 'beans') await roomStore().clear('beanSummaries');
+    if (name === 'beans') await roomStore().clearBeans();
+    else await roomStore().clear(name);
     return;
   }
   const db = await openDb();
@@ -430,8 +430,8 @@ export async function bulkPut(name, values) {
   if (!Array.isArray(values)) throw new Error('批量写入数据必须是数组');
   const prepared = await Promise.all(values.map(value => transformForWrite(name, value)));
   if (await isRoomBackendActive()) {
-    await roomStore().bulkPut(name, prepared);
-    if (name === 'beans') await roomStore().bulkPut('beanSummaries', values.map(beanSummaryFromBean));
+    if (name === 'beans') await roomStore().bulkPutBeans(prepared, values.map(beanSummaryFromBean));
+    else await roomStore().bulkPut(name, prepared);
     return;
   }
   const db = await openDb();
@@ -456,10 +456,10 @@ export async function replaceStores(storeRows) {
     const prepared = Object.fromEntries(await Promise.all(Object.entries(storeRows).map(async ([name, values]) => [
       name, await Promise.all(values.map(value => transformForWrite(name, value)))
     ])));
-    await roomStore().replaceStores(prepared);
-    if (Object.hasOwn(storeRows, 'beans') && !Object.hasOwn(storeRows, 'beanSummaries')) {
-      await roomStore().replaceStores({ beanSummaries: storeRows.beans.map(beanSummaryFromBean) });
+    if (Object.hasOwn(storeRows, 'beans') && !Object.hasOwn(prepared, 'beanSummaries')) {
+      prepared.beanSummaries = storeRows.beans.map(beanSummaryFromBean);
     }
+    await roomStore().replaceStores(prepared);
     return;
   }
   const names = Object.keys(storeRows);
