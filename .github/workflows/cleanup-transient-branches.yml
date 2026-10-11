@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: read
 
 concurrency:
@@ -29,9 +29,9 @@ jobs:
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
-      - name: Archive superseded heads and delete verified merged branches
+      - name: Report branch disposition without changing branches or tags
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           RELEASE_SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: node scripts/cleanup-transient-branches.mjs --apply
+        run: node scripts/cleanup-transient-branches.mjs
