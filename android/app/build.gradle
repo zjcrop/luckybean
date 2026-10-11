@@ -63,6 +63,11 @@ android {
         minSdk 26
         targetSdk 35
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments = ["room.schemaLocation": "$projectDir/schemas"]
+            }
+        }
         versionCode (releaseMeta.androidVersionCode as int)
         versionName releaseMeta.displayVersion as String
     }
