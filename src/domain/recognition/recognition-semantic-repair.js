@@ -1,3 +1,6 @@
+import { hasMixedDictionaryFields } from './dictionary-span-matcher.js';
+import { splitContinuousFlavorList } from './recognition-flavor-layout.js';
+
 const FIELD_LABELS = Object.freeze({
   country: ['国家','國家','产地国','產地國','原产国','原產國','生产国','生產國','country','country of origin','origin country'],
   region: ['产区','產區','地区','地區','区域','區域','种植区','種植區','微产区','微產區','region','growing region','producing region','district','province','terroir'],
@@ -145,6 +148,9 @@ function canInferFlavorList(pieces,book,cache) {
 }
 function inferredUnlabelledField(line,book,cache) {
   const raw=clean(line); if(!raw || SENSORY_SCORE_PATTERN.test(raw))return null;
+  if (hasMixedDictionaryFields(raw, book)) return null;
+  const continuousFlavors = splitContinuousFlavorList(raw, book);
+  if (continuousFlavors) return { field:'flavor', label:CANONICAL_LABEL.flavor, value:continuousFlavors.join('、') };
   const folded=clean(foldTraditional(raw));
   if (ENTITY_SUFFIX_PATTERN.test(raw) || ENTITY_SUFFIX_PATTERN.test(folded)) return { field:'entity',label:CANONICAL_LABEL.entity,value:folded };
   if (REGION_SUFFIX_PATTERN.test(raw) || REGION_SUFFIX_PATTERN.test(folded)) return { field:'region',label:CANONICAL_LABEL.region,value:folded };
@@ -229,7 +235,7 @@ function classifyIdentityPiece(piece,book,cache) {
   return null;
 }
 function repairFlavorOwnership(value,book,cache) {
-  const normalized=normalizeFlavorSeparators(value);
+  const normalized=normalizeFlavorSeparators(splitContinuousFlavorList(value, book)?.join('、') || value);
   const pieces=normalized.split(/[、,，;；/]+/).map(clean).filter(Boolean);
   const identity=new Map(), flavor=[];
   for(const piece of pieces) {

@@ -49,7 +49,7 @@ function galleryReadySource(file, metadata) {
     decodePreScaled:true,
     encodedFormat:'jpeg',
     ocrReady:true,
-    warnings:['已按框选区域生成 OCR 专用图；跳过第二次图片解码、质量扫描和 JPEG 重编码']
+    warnings:[metadata?.source === 'camera-guide-crop' ? '已按中央取景框裁切；只识别框内画面' : '已按框选区域生成 OCR 专用图；跳过第二次图片解码、质量扫描和 JPEG 重编码']
   };
 }
 

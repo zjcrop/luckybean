@@ -1,3 +1,5 @@
+import { reviewedRecognitionAliases } from './domain/recognition/recognition-dictionary-aliases.js';
+
 const FIELD_TABLE = Object.freeze({
   countryCode: 'countries',
   regionCode: 'regions',
@@ -24,7 +26,7 @@ const OCR_CONFUSIONS = Object.freeze({
   '8': 'B', B: '8',
   '埃': '唉挨', '塞': '寨秦春', '瑰': '桂', '夏': '厦',
   '水': '氺', '洗': '冼', '日': '曰', '晒': '哂',
-  '蜜': '密', '处理': '处埋', '庄': '荘', '园': '圜'
+  '蜜': '密', '处理': '处埋', '庄': '荘', '园': '圜', '厌': '庆'
 });
 
 function normalize(value) {
@@ -71,7 +73,7 @@ function similarity(a, b) {
 
 function termsForRow(table, row) {
   const labelIndex = FIELD_LABEL_INDEX[table] || 1;
-  const values = [row?.[0], row?.[labelIndex], ...row.slice(1)]
+  const values = [row?.[0], row?.[labelIndex], ...row.slice(1), ...reviewedRecognitionAliases(row)]
     .filter(value => typeof value === 'string' && value && !['active', 'candidate'].includes(value));
   return [...new Set(values.flatMap(value => value.split(/[\/、,，;；|]/).map(item => item.trim()).filter(Boolean)))];
 }

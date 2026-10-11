@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises';
 import { fieldCandidates, reliableCandidates } from '../src/recognition-candidates.js';
 import { bestCandidateDecision, extractRecognitionEvidence, localRoastCandidate } from '../src/ui-layout-controller.js';
 import { parseNaturalLanguage } from '../src/codebook.js';
+import { analyzeRecognitionDocument } from '../src/domain/recognition/recognition-pipeline.js';
+import { recognitionDocumentFromText } from '../src/domain/recognition/recognition-document.js';
 
 const book = JSON.parse(await readFile(new URL('../public/fallback-codebook.json', import.meta.url), 'utf8'));
 
@@ -67,7 +69,7 @@ test('unlabeled dictionary aliases match across OCR line endings', () => {
 
 
 test('near-match estate candidates remain available for explicit review', () => {
-  const candidates = fieldCandidates('entityCode', '蓝色火山庄园', book, { countryCode:'CO-CR' }, 8);
+  const candidates = fieldCandidates('entityCode', '蓝火汕庄园', book, { countryCode:'CO-CR' }, 8);
   const reliable = reliableCandidates('entityCode', candidates);
   assert.ok(reliable.some(item => item.code === 'ST-CR-VOL2'));
   assert.ok(reliable.find(item => item.code === 'ST-CR-VOL2').score < 1, 'near matches are surfaced as candidates, not exact matches');
@@ -75,9 +77,38 @@ test('near-match estate candidates remain available for explicit review', () => 
 
 
 test('one-character estate OCR variant suggests a row for review without assigning a canonical code', () => {
-  const parsed = parseNaturalLanguage('庄园：蓝色火山庄园', book);
+  const parsed = parseNaturalLanguage('庄园：蓝火汕庄园', book);
   assert.equal(parsed.entityCode, undefined);
-  assert.equal(parsed.entityCustomName, '蓝色火山庄园');
+  assert.equal(parsed.entityCustomName, '蓝火汕庄园');
   assert.equal(parsed.parseMetadata.dictionaryMatchReview.entityCode.candidateCode, 'ST-CR-VOL2');
   assert.equal(parsed.parseMetadata.dictionaryMatchReview.entityCode.requiresUserConfirmation, true);
+});
+
+test('reported Volcan Azul label separates identity, award category, process suggestion and continuous flavors', () => {
+  const raw = '样匀面条尝\n月季花蔓越莓杏桃车厘子蜂蜜\n哥斯达黎加·蓝色火山庄园·OT-036批次\n#2026.COE蜜处理与日晒第四名\n瑰夏庆氧日晒1650-1700m45s8.31';
+  const analysis = analyzeRecognitionDocument(recognitionDocumentFromText(raw), book);
+  const parsed = analysis.parsed;
+  assert.equal(parsed.countryCode, 'CO-CR');
+  assert.equal(parsed.entityCode, 'ST-CR-VOL2');
+  assert.equal(parsed.varietyCode, 'VA-GE');
+  assert.equal(parsed.processCode, undefined, 'an OCR correction remains a candidate');
+  assert.equal(parsed.parseMetadata.dictionaryMatchReview.processCode.candidateCode, 'PR-ANN');
+  assert.equal(analysis.fields.find(item => item.field === 'processCode').standardValue, '厌氧日晒');
+  assert.equal(analysis.fields.find(item => item.field === 'processCode').status, 'review');
+  assert.deepEqual(parsed.customFlavorNames, ['月季花', '蔓越莓', '杏桃', '车厘子']);
+  assert.ok(parsed.flavorCodes.includes('FV-093'));
+  assert.equal(parsed.parseMetadata.altitude.minimum, 1650);
+  assert.equal(parsed.parseMetadata.altitude.maximum, 1700);
+  assert.equal(parsed.initialWeight, undefined);
+  assert.equal(parsed.roastDate, undefined);
+  assert.equal(analysis.document.rawFullText, raw);
+});
+
+test('Chinese inline labels and a wrapped estate name remain separate fields throughout the pipeline', () => {
+  const raw = '国家：哥斯达黎加庄园：蓝色火山庄\n园豆种：瑰夏处理法：厌氧日晒';
+  const parsed = analyzeRecognitionDocument(recognitionDocumentFromText(raw), book).parsed;
+  assert.equal(parsed.countryCode, 'CO-CR');
+  assert.equal(parsed.entityCode, 'ST-CR-VOL2');
+  assert.equal(parsed.varietyCode, 'VA-GE');
+  assert.equal(parsed.processCode, 'PR-ANN');
 });

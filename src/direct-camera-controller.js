@@ -39,6 +39,8 @@ function ensureCameraStyles() {
       max-height:420px!important;
       aspect-ratio:auto!important;
     }
+    .lb-direct-camera .lb-camera-view video{object-fit:cover!important;object-position:50% 50%!important}
+    .lb-direct-camera .lb-camera-guide{border-radius:0!important}
     .lb-direct-camera .lb-camera-head,
     .lb-direct-camera .lb-camera-head strong,
     .lb-direct-camera .lb-camera-head button,
@@ -108,34 +110,45 @@ function cameraErrorMessage(error) {
 async function takeFrame(video) {
   const track = stream?.getVideoTracks?.()[0];
   if (!track) throw new Error('摄像头尚未启动');
-
-  if (globalThis.ImageCapture) {
-    try {
-      const capture = new ImageCapture(track);
-      const blob = await capture.takePhoto();
-      if (blob?.size) return blob;
-    } catch { /* 部分手机仅支持视频帧回退 */ }
-  }
-
-  const width = video.videoWidth || 1920;
-  const height = video.videoHeight || 1080;
+  const width = video.videoWidth;
+  const height = video.videoHeight;
+  const guide = video.parentElement?.querySelector('.lb-camera-guide');
+  if (!width || !height || !guide) throw new Error('取景画面尚未准备完成');
+  const preview = video.getBoundingClientRect();
+  const frame = guide.getBoundingClientRect();
+  // object-fit: cover clips the live video. Map only the visible guide back into
+  // that same frame; a separate still-camera stream can have a different field of view.
+  const scale = Math.max(preview.width / width, preview.height / height);
+  if (!Number.isFinite(scale) || scale <= 0) throw new Error('取景范围无效');
+  const offsetX = (preview.width - width * scale) / 2;
+  const offsetY = (preview.height - height * scale) / 2;
+  const left = Math.max(0, (frame.left + guide.clientLeft - preview.left - offsetX) / scale);
+  const top = Math.max(0, (frame.top + guide.clientTop - preview.top - offsetY) / scale);
+  const cropWidth = Math.min(width - left, guide.clientWidth / scale);
+  const cropHeight = Math.min(height - top, guide.clientHeight / scale);
+  if (cropWidth <= 0 || cropHeight <= 0) throw new Error('中央取景框不可用');
   const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext('2d');
-  context.drawImage(video, 0, 0, width, height);
-  return new Promise((resolve, reject) => canvas.toBlob(
-    blob => blob ? resolve(blob) : reject(new Error('摄像头画面截取失败')),
-    'image/jpeg',
-    0.94
-  ));
+  canvas.width = Math.max(1, Math.round(cropWidth));
+  canvas.height = Math.max(1, Math.round(cropHeight));
+  try {
+    const context = canvas.getContext('2d');
+    context.drawImage(video, left, top, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((resolve, reject) => canvas.toBlob(
+      blob => blob ? resolve(blob) : reject(new Error('摄像头画面截取失败')),
+      'image/jpeg', 0.94
+    ));
+    return { blob, width:canvas.width, height:canvas.height };
+  } finally { canvas.width = 1; canvas.height = 1; }
 }
 
-function sendBlobToBagCapture(blob) {
+function sendBlobToBagCapture(blob, dimensions) {
   const input = document.querySelector('#bagCameraInput');
   if (!input) throw new Error('拍袋录入窗口已经关闭');
   const extension = blob.type === 'image/png' ? 'png' : 'jpg';
   const file = new File([blob], `coffee-bag-${Date.now()}.${extension}`, { type: blob.type || 'image/jpeg' });
+  if (!(globalThis.__LUCKYBEAN_GALLERY_OCR_READY__ instanceof Map)) globalThis.__LUCKYBEAN_GALLERY_OCR_READY__ = new Map();
+  const key = [file.name, file.size, file.lastModified, file.type].join('|');
+  globalThis.__LUCKYBEAN_GALLERY_OCR_READY__.set(key, Object.freeze({ ...dimensions, source:'camera-guide-crop', skipSecondEncode:true }));
   const transfer = new DataTransfer();
   transfer.items.add(file);
   input.files = transfer.files;
@@ -168,7 +181,7 @@ async function openStream(video, status) {
   } catch { /* 浏览器不支持时保持默认相机参数 */ }
 
   const settings = track.getSettings?.() || {};
-  status.textContent = `${settings.width || video.videoWidth || ''}×${settings.height || video.videoHeight || ''} · 对准文字后点击拍摄`;
+  status.textContent = '只拍摄中央框内区域，请将需要识别的文字放入框内';
 }
 
 function stopTracksOnly() {
@@ -185,7 +198,7 @@ async function openCamera() {
   root.innerHTML = `
     <div class="lb-camera-panel" role="dialog" aria-modal="true" aria-label="网页内拍摄豆袋">
       <div class="lb-camera-head"><strong>拍摄豆袋</strong><button type="button" data-camera-close aria-label="关闭">×</button></div>
-      <div class="lb-camera-view"><video playsinline muted autoplay></video><div class="lb-camera-guide"><span>尽量让中文和英文文字占满框内区域</span></div></div>
+      <div class="lb-camera-view"><video playsinline muted autoplay></video><div class="lb-camera-guide" aria-label="实际拍摄和识别范围"></div></div>
       <p class="lb-camera-status">正在请求摄像头权限…</p>
       <div class="lb-camera-actions">
         <button type="button" class="button" data-camera-switch>切换摄像头</button>
@@ -214,8 +227,8 @@ async function openCamera() {
     shot.disabled = true;
     status.textContent = '正在截取高清画面…';
     try {
-      const blob = await takeFrame(video);
-      sendBlobToBagCapture(blob);
+      const frame = await takeFrame(video);
+      sendBlobToBagCapture(frame.blob, { width:frame.width, height:frame.height });
       stopCamera();
     } catch (error) {
       status.textContent = cameraErrorMessage(error);

@@ -5,6 +5,8 @@
  * breaks are ignored for lookup while source offsets remain available for audit.
  * The automaton is cached by the rows array so each active codebook is indexed once.
  */
+import { reviewedRecognitionAliases } from './recognition-dictionary-aliases.js';
+
 const automata = new WeakMap();
 const ignoredValues = new Set(['active', 'candidate']);
 
@@ -53,7 +55,7 @@ function normalizeWithOffsets(value) {
 
 function aliasesForRow(row) {
   const result = [];
-  for (const value of Array.isArray(row) ? row.slice(1) : []) {
+  for (const value of Array.isArray(row) ? [...row.slice(1), ...reviewedRecognitionAliases(row)] : []) {
     if (typeof value !== 'string') continue;
     const trimmed = value.trim();
     if (!trimmed || ignoredValues.has(trimmed.toLocaleLowerCase('en-US')) || trimmed.includes('_')) continue;
@@ -163,4 +165,18 @@ export function bestDictionarySpan(text, rows) {
   const codes = new Set(top.map(match => match.code));
   if (codes.size !== 1) return null;
   return top[0];
+}
+
+/** A bare OCR line may contain several fields; do not relabel it as one field. */
+export function hasMixedDictionaryFields(text, book) {
+  const matches = ['countries', 'regions', 'entities', 'varieties', 'processes']
+    .flatMap(table => findDictionarySpans(text, book?.[table] || [], { limit: 12 }).map(match => ({ ...match, table })))
+    .sort((a, b) => b.normalizedLength - a.normalizedLength);
+  const selected = [];
+  for (const match of matches) {
+    if (selected.some(other => match.start < other.end && match.end > other.start)) continue;
+    selected.push(match);
+    if (new Set(selected.map(item => item.table)).size > 1) return true;
+  }
+  return false;
 }

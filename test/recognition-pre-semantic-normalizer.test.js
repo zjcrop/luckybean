@@ -79,7 +79,7 @@ test('pipeline persists pre-semantic audit and still resolves the user-reported 
   const analysis = analyzeRecognitionDocument(textDocument(raw), book);
   const pre = analysis.parsed.parseMetadata.preSemanticNormalization;
 
-  assert.equal(analysis.pipelineVersion, '1.24P-recognition-pipeline.7');
+  assert.equal(analysis.pipelineVersion, '1.24P-recognition-pipeline.8');
   assert.equal(analysis.reviewCount, 0);
   assert.equal(pre.mayOverwriteRawEvidence, false);
   assert.ok(Array.isArray(pre.audit) && pre.audit.length >= 5);

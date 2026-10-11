@@ -17,6 +17,7 @@ import { prepareBeanThumbnail, saveBeanThumbnail, getBeanThumbnail, deleteBeanTh
 import { planRemainingBeanDoses } from './domain/beans/leftover-brew-recommendation.js';
 import { TIMER_STATUS, transitionBrewTimerState } from './domain/brew/timer-state-machine.js';
 import { beanGroupState, setBeanGroupMode, openBeanGroupState, closeBeanGroupState, hasActiveBeanGroup } from './domain/beans/bean-group-state.js';
+import { loadBeanGroupMode } from './domain/beans/bean-group-settings.js';
 import { createLocalReferenceAnalysis } from './services/local-reference-analysis.js';
 import { adaptAuthoritativePlan } from './services/brew-analysis-service.js';
 import { BrewCalculationCoordinator } from './services/brew-calculation-coordinator.js';
@@ -199,13 +200,6 @@ async function loadSettings() {
   state.settings.brew.profileId = 'recommended';
 }
 
-void loadSettings().catch(error => {
-  console.warn('保存的应用设置读取失败，暂时使用默认设置', error);
-}).then(() => {
-  globalThis.__LuckyBeanAppSettingsReady = true;
-  document.dispatchEvent(new CustomEvent('luckybean:app-settings-ready'));
-});
-
 async function saveSettings() { await setSetting('app.settings', state.settings); }
 
 document.addEventListener('luckybean:codebook-provider-activated', event => {
@@ -223,7 +217,7 @@ document.addEventListener('luckybean:brew-profile-catalog-updated', () => {
 });
 
 document.addEventListener('luckybean:request-app-refresh', async event => {
-  await loadSettings();
+  await Promise.all([loadSettings(), loadBeanGroupMode({ force: true })]);
   await refreshData();
   if (state.page === 'beans') await ensureBeanConsumptionData({ force: true });
   else await ensurePageData(state.page, { force: true });
@@ -787,7 +781,31 @@ async function openRecommendationLeaderboard() {
   overlay.addEventListener('click', event => { const button = event.target.closest('[data-board-bean]'); if (!button) return; const bean = state.beans.find(item => item.id === button.dataset.boardBean); closeOverlay(); if (bean) focusRecommendedBean(bean, { openDetail: true, duration: 800 }); });
 }
 
+function renderSpecialBeanGroups(container, beans, board, mode) {
+  const groups = new Map();
+  if (mode === 'freshness-ratio') for (const key of ['养豆中', '味正盛', '味将尽']) groups.set(key, { key, label: key, items: [] });
+  for (const bean of beans) {
+    const progress = clamp(Number(freshnessProfile(bean).progress || 0), 0, 1);
+    const key = mode === 'freshness-ratio' ? (progress < 1 / 3 ? '养豆中' : progress < 2 / 3 ? '味正盛' : '味将尽') : String(Math.floor(Math.max(0, Number(bean.remainingWeight || 0)) / 50) * 50);
+    if (!groups.has(key)) groups.set(key, { key, label: `${key}–${Number(key) + 49}g`, items: [] });
+    groups.get(key).items.push(bean);
+  }
+  const ordered = [...groups.values()];
+  if (mode === 'remaining-50') ordered.sort((a, b) => Number(a.key) - Number(b.key));
+  if (state.activeGroupKey && !groups.has(state.activeGroupKey)) state.activeGroupKey = null;
+  container.dataset.v099tGroupKey = `${mode}|${state.activeGroupKey || ''}`;
+  const note = mode === 'freshness-ratio' ? '按养豆时间轴分为养豆中、味正盛、味将尽；组内按烘焙日期由新到旧。' : '按当前余量每50g划分一组；组内按剩余克重由少到多排列。';
+  if (!state.activeGroupKey) {
+    container.innerHTML = `${board}<section data-v099t-group-root><div class="v099f-freshness-note v099i-freshness-note">${note}</div><div class="bean-grid compact-grid group-grid bean-grid-animated manual-motion">${ordered.map(group => `<button class="group-card v099f-stage-card" type="button" data-v099t-open-group="${esc(group.key)}"><span>${esc(group.label)}</span><small>${group.items.length}只 · ${group.items.reduce((sum, bean) => sum + Number(bean.remainingWeight || 0), 0).toFixed(1)}g</small></button>`).join('')}</div></section>`;
+    return;
+  }
+  const group = groups.get(state.activeGroupKey);
+  const items = [...group.items].sort((a, b) => (mode === 'remaining-50' ? Number(a.remainingWeight || 0) - Number(b.remainingWeight || 0) : 0) || String(b.roastDate || '').localeCompare(String(a.roastDate || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  container.innerHTML = `${board}<section data-v099t-group-root class="active-group-panel auto-motion"><div class="active-group-title"><span>${esc(group.label)}</span><small>${items.length}只</small></div><div class="bean-grid compact-grid bean-grid-animated auto-motion">${items.map(beanCardHtml).join('')}</div><button class="bean-group-dismiss-surface" type="button" data-close-bean-group aria-label="返回分组列表"></button></section>`;
+}
+
 function renderBeans() {
+  if (!globalThis.__LuckyBeanAppSettingsReady || !state.data.beansReady) return;
   const container = $('#beanGroups');
   const beans = filteredBeans();
   const board = beanSummaryBlockHtml();
@@ -800,12 +818,18 @@ function renderBeans() {
   const bar = $('#activeFilterBar');
   bar.classList.toggle('hidden', !filterParts.length);
   bar.innerHTML = filterParts.length ? `${filterParts.map(value => `<span class="tag">${esc(value)}</span>`).join('')}<button class="button subtle small" id="clearActiveFilters" type="button">清除</button>` : '';
+  container.dataset.groupMode = filterParts.length ? 'filtered' : beanGroupState.mode === 'native' ? state.settings.groupMethod : beanGroupState.mode;
+  delete container.dataset.v099tGroupKey;
   if (!beans.length) {
     state.activeGroupKey = null;
       const hasActiveBeans = state.beans.some(bean => !bean.archived && Number(bean.remainingWeight) > 0);
     container.innerHTML = hasActiveBeans
       ? `${board}<div class="empty-state"><strong>没有符合条件的豆卡</strong><p>请调整搜索或筛选条件。</p></div>`
       : `${board}<button class="empty-state empty-bean-entry" type="button" data-empty-add-bean><strong>添加第一支咖啡豆小酌一杯吧</strong><p>点击建立第一张豆卡</p></button>`;
+    return;
+  }
+  if (!filterParts.length && ['freshness-ratio', 'remaining-50'].includes(beanGroupState.mode)) {
+    renderSpecialBeanGroups(container, beans, board, beanGroupState.mode);
     return;
   }
   if (beans.length <= 6) {
@@ -828,6 +852,8 @@ function renderBeans() {
   const items = groups.get(state.activeGroupKey) || [];
   container.innerHTML = `${board}<section class="active-group-panel ${state.groupAnimationMode === 'auto' ? 'auto-motion' : 'manual-motion'}" data-active-group-panel><div class="active-group-title"><span>${esc(state.activeGroupKey)}</span><small>${items.length}只</small></div><div class="bean-grid compact-grid">${items.map(beanCardHtml).join('')}</div><button class="bean-group-dismiss-surface" type="button" data-close-bean-group aria-label="返回分组列表"></button></section>`;
 }
+
+globalThis.LuckyBeanBeanListView = Object.freeze({ render: renderBeans });
 
 function positionPopup(anchor, popup, { above = false } = {}) {
   const rect = anchor.getBoundingClientRect();
@@ -3025,13 +3051,15 @@ async function handleSharedHash() {
 async function init() {
   state.db = await openDb();
   await migrateLegacy().catch(error=>({error:error.message}));
-  await loadSettings();
+  await Promise.all([loadSettings(), loadBeanGroupMode()]);
+  globalThis.__LuckyBeanAppSettingsReady = true;
+  document.dispatchEvent(new CustomEvent('luckybean:app-settings-ready'));
   if (location.hash) await ensureFullCodebook();
   if (await handleSharedHash()) return;
   await refreshData();
+  await loadBeanDisplayIndex();
   bindGlobalEvents();
   enterApp();
-  void loadBeanDisplayIndex();
   scheduleIdleWork(async () => {
     await migrateLegacyFlavorCodes().catch(error => console.warn('旧风味编码后台迁移失败', error));
     await migrateLegacyBrewHistory().catch(error => console.warn('冲煮历史后台迁移失败', error));
