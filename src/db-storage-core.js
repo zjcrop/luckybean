@@ -582,62 +582,66 @@ export async function migrateSchema10ToRoom({ onProgress = () => {} } = {}) {
 }
 
 export async function all(name) {
-  if (await isRoomBackendActive()) return withRoomMutex(async () => {
-    const values = await roomStore().all(name);
+  if (await isRoomBackendActive()) {
+    const values = await withRoomMutex(() => roomStore().all(name));
     if (name !== 'sensoryRecords') return values;
     return Promise.all(values.map(value => transformForRead(name, value)));
-  });
+  }
   const values = await requestToPromise((await store(name)).getAll());
   if (name !== 'sensoryRecords') return values;
   return Promise.all(values.map(value => transformForRead(name, value)));
 }
 
 export async function get(name, key) {
-  if (await isRoomBackendActive()) return withRoomMutex(async () => transformForRead(name, await roomStore().get(name, key)));
+  if (await isRoomBackendActive()) {
+    const value = await withRoomMutex(() => roomStore().get(name, key));
+    return transformForRead(name, value);
+  }
   return transformForRead(name, await requestToPromise((await store(name)).get(key)));
 }
 
 export async function allByIndex(name, indexName, key, { raw = false } = {}) {
   if (!STORES.includes(name)) throw new Error(`未知数据表：${name}`);
-  if (await isRoomBackendActive()) return withRoomMutex(async () => {
-    const values = await roomStore().all(name);
-    const indexedValue = value => indexName === 'beanId' ? value.beanId
-      : indexName === 'beanCreatedAt' ? [value.beanId, value.createdAt]
-      : indexName === 'updatedAt' ? value.updatedAt : undefined;
-    const compare = (left, right) => {
-      if (Array.isArray(left) && Array.isArray(right)) {
-        for (let index = 0; index < Math.min(left.length, right.length); index++) {
-          const result = compare(left[index], right[index]);
-          if (result) return result;
+  if (await isRoomBackendActive()) {
+    const matched = await withRoomMutex(async () => {
+      const values = await roomStore().all(name);
+      const indexedValue = value => indexName === 'beanId' ? value.beanId
+        : indexName === 'beanCreatedAt' ? [value.beanId, value.createdAt]
+        : indexName === 'updatedAt' ? value.updatedAt : undefined;
+      const compare = (left, right) => {
+        if (Array.isArray(left) && Array.isArray(right)) {
+          for (let index = 0; index < Math.min(left.length, right.length); index++) {
+            const result = compare(left[index], right[index]);
+            if (result) return result;
+          }
+          return left.length - right.length;
         }
-        return left.length - right.length;
-      }
-      if (left === right) return 0;
-      if (left == null) return -1;
-      if (right == null) return 1;
-      return left < right ? -1 : 1;
-    };
-    const range = typeof IDBKeyRange !== 'undefined' && key instanceof IDBKeyRange;
-    const matched = values.filter(value => {
-      const indexed = indexedValue(value);
-      if (indexed === undefined) return false;
-      if (!range) return stableJson(indexed) === stableJson(key);
-      if (!key.lowerOpen && key.lower !== undefined && compare(indexed, key.lower) < 0) return false;
-      if (key.lowerOpen && key.lower !== undefined && compare(indexed, key.lower) <= 0) return false;
-      if (!key.upperOpen && key.upper !== undefined && compare(indexed, key.upper) > 0) return false;
-      if (key.upperOpen && key.upper !== undefined && compare(indexed, key.upper) >= 0) return false;
-      return true;
+        if (left === right) return 0;
+        if (left == null) return -1;
+        if (right == null) return 1;
+        return left < right ? -1 : 1;
+      };
+      const range = typeof IDBKeyRange !== 'undefined' && key instanceof IDBKeyRange;
+      return values.filter(value => {
+        const indexed = indexedValue(value);
+        if (indexed === undefined) return false;
+        if (!range) return stableJson(indexed) === stableJson(key);
+        if (!key.lowerOpen && key.lower !== undefined && compare(indexed, key.lower) < 0) return false;
+        if (key.lowerOpen && key.lower !== undefined && compare(indexed, key.lower) <= 0) return false;
+        if (!key.upperOpen && key.upper !== undefined && compare(indexed, key.upper) > 0) return false;
+        if (key.upperOpen && key.upper !== undefined && compare(indexed, key.upper) >= 0) return false;
+        return true;
+      });
     });
     if (raw || name !== 'sensoryRecords') return matched;
     return Promise.all(matched.map(value => transformForRead(name, value)));
-  });
+  }
   const objectStore = await store(name);
   if (!objectStore.indexNames.contains(indexName)) throw new Error(`${name} 缺少索引 ${indexName}`);
   const values = await requestToPromise(objectStore.index(indexName).getAll(key));
   if (raw || name !== 'sensoryRecords') return values;
   return Promise.all(values.map(value => transformForRead(name, value)));
 }
-
 export async function sensoryHeadersByBean(beanId) {
   const rows = await allByIndex('sensoryRecords', 'beanId', beanId, { raw: true });
   return rows.map(value => ({
