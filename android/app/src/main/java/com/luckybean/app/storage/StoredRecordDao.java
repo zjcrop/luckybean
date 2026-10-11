@@ -24,6 +24,9 @@ public interface StoredRecordDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void upsertAll(List<StoredRecord> rows);
 
+    @Query("DELETE FROM records WHERE storeName = :storeName AND recordId = :recordId")
+    void deleteStoreRecord(String storeName, String recordId);
+
     @Query("DELETE FROM records WHERE storeName = :storeName")
     void deleteStore(String storeName);
 
