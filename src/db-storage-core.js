@@ -201,12 +201,14 @@ async function isRoomBackendActive() {
 }
 
 function stableJson(value) {
-  if (Array.isArray(value)) return `[${value.map(item => item === undefined ? 'null' : stableJson(item)).join(',')}]`;
-  if (value && typeof value === 'object') {
-    const fields = Object.keys(value).filter(key => value[key] !== undefined && typeof value[key] !== 'function');
-    return `{${fields.sort().map(key => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value);
+  if (typeof value === 'number' && Number.isFinite(value)) return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(item => stableJson(item)).join(',')}]`;
+  if (value && typeof value === 'object' && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)) {
+    const fields = Object.keys(value).sort();
+    return `{${fields.map(key => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
   }
-  return JSON.stringify(value);
+  throw new Error('IndexedDB 包含非 JSON 类型记录，已停止 Room 迁移以避免数据丢失');
 }
 
 function recordKey(name, value) {
