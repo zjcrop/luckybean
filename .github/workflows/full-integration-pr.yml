@@ -258,6 +258,7 @@ jobs:
             package-manager-ready.txt
             android-push.txt
             android-install.txt
+            android-room-tests.log
             android-package-dump.txt
             android-start.txt
             android-runtime.log
