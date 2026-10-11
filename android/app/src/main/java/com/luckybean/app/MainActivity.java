@@ -29,6 +29,8 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import com.luckybean.app.storage.RoomStoreBridge;
+
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.mlkit.vision.common.InputImage;
@@ -142,6 +144,7 @@ public final class MainActivity extends Activity {
         settings.setUserAgentString(settings.getUserAgentString() + " LuckyBeanAndroid/" + BuildConfig.VERSION_NAME);
 
         webView.addJavascriptInterface(new NativeFileBridge(), "LuckyBeanNative");
+        webView.addJavascriptInterface(new RoomStoreBridge(this, webView), "LuckyBeanRoomNative");
 
         webView.setWebViewClient(new LocalAssetClient());
         webView.setWebChromeClient(new LuckyBeanChromeClient());
