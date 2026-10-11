@@ -103,6 +103,8 @@ android {
 tasks.named('preBuild').configure { dependsOn tasks.named('syncLuckyBeanWebAssets') }
 
 dependencies {
+    implementation 'androidx.room:room-runtime:2.8.5'
+    annotationProcessor 'androidx.room:room-compiler:2.8.5'
     implementation 'com.google.mlkit:text-recognition:16.0.1'
     implementation 'com.google.mlkit:text-recognition-chinese:16.0.1'
     implementation 'androidx.media3:media3-exoplayer:1.8.1'
