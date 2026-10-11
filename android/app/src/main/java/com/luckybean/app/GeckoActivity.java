@@ -95,7 +95,8 @@ public final class GeckoActivity extends MainActivity {
                 connection.setDelegate(new WebExtension.PortDelegate() {
                     @Override public void onPortMessage(Object message, WebExtension.Port source) {
                         if (source != port || !(message instanceof JSONObject)) return;
-                        receive((JSONObject) message, source);
+                        try { receive(new JSONObject(((JSONObject) message).getString("json")), source); }
+                        catch (Exception error) { Log.e("LuckyBeanGecko", "Invalid native message envelope", error); }
                     }
                     @Override public void onDisconnect(WebExtension.Port source) { if (source == port) port = null; }
                 });
@@ -104,6 +105,11 @@ public final class GeckoActivity extends MainActivity {
         extension.setMessageDelegate(delegate, "luckybean");
         session.getWebExtensionController().setMessageDelegate(extension, delegate, "luckybean");
         session.loadUri(baseUrl + "web-cache/index.html");
+    }
+
+    // Preserve arbitrary JSON (including mixed arrays) without GeckoBundle coercion.
+    private static void postMessage(WebExtension.Port connection, JSONObject message) throws org.json.JSONException {
+        connection.postMessage(new JSONObject().put("json", message.toString()));
     }
 
     private void receive(JSONObject request, WebExtension.Port source) {
@@ -155,7 +161,7 @@ public final class GeckoActivity extends MainActivity {
             final String failure = error;
             runOnUiThread(() -> {
                 if (source != port) return;
-                try { source.postMessage(new JSONObject().put("type", "result").put("id", id)
+                try { postMessage(source, new JSONObject().put("type", "result").put("id", id)
                     .put("value", value == null ? JSONObject.NULL : value).put("error", failure == null ? JSONObject.NULL : failure)); }
                 catch (Exception ignored) { Log.w("LuckyBeanGecko", "Native result delivery failed"); }
             });
@@ -166,21 +172,21 @@ public final class GeckoActivity extends MainActivity {
     protected void dispatchJavascriptCallback(String callback, String requestId, Object value) {
         runOnUiThread(() -> {
             if (port == null) return;
-            try { port.postMessage(new JSONObject().put("type", "callback").put("callback", callback)
+            try { postMessage(port, new JSONObject().put("type", "callback").put("callback", callback)
                 .put("id", requestId).put("value", value == null ? JSONObject.NULL : value)); }
-            catch (Exception ignored) { Log.w("LuckyBeanGecko", "Native callback delivery failed"); }
+            catch (Exception error) { Log.w("LuckyBeanGecko", "Native callback delivery failed", error); }
         });
     }
 
     void runOfflineAcceptance() {
         if (!BuildConfig.DEBUG || port == null) throw new IllegalStateException("Debug runtime not ready");
-        try { port.postMessage(new JSONObject().put("type", "acceptance")); }
+        try { postMessage(port, new JSONObject().put("type", "acceptance")); }
         catch (Exception error) { acceptanceFailure = error.getMessage(); }
     }
 
     @Override protected void handleSystemBack() {
         if (port == null) { showEngineFailure(new IllegalStateException("原生连接尚未就绪")); return; }
-        try { port.postMessage(new JSONObject().put("type", "back")); }
+        try { postMessage(port, new JSONObject().put("type", "back")); }
         catch (Exception ignored) { finish(); }
     }
 

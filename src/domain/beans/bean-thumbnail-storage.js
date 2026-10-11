@@ -124,16 +124,18 @@ async function thumbnailDigest(rows) {
   return [...new Uint8Array(bytes)].map(value => value.toString(16).padStart(2, '0')).join('');
 }
 
-export async function migrateBeanThumbnailsToRoom() {
+export async function migrateBeanThumbnailsToRoom({ onProgress = () => {} } = {}) {
   const native = globalThis.LuckyBeanRoomStore;
   if (!native) throw new Error('原生照片存储接口不可用');
   const rows = await thumbnailRows(await openDatabase());
   const sha256 = await thumbnailDigest(rows);
   await native.put('migrationSnapshots', { id: 'beanThumbnails:manifest', count: rows.length, sha256 });
   await native.clear('beanThumbnails');
+  let completed = 0;
   for (const row of rows) {
     await native.put('migrationSnapshots', { id: `beanThumbnails:${row.id}`, value: row });
     await native.put('beanThumbnails', row);
+    onProgress({ completed: ++completed, total: rows.length });
   }
   const stored = await native.all('beanThumbnails');
   if (stored.length !== rows.length || await thumbnailDigest(stored) !== sha256) throw new Error('照片迁移校验失败，原始照片库保留');

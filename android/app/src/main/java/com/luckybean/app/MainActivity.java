@@ -58,11 +58,15 @@ public class MainActivity extends Activity {
     private static final int FILE_CHOOSER_REQUEST = 2101;
     private static final int MEDIA_PERMISSION_REQUEST = 2102;
     private static final int SAVE_FILE_REQUEST = 2103;
+    private static final int CAMERA_FILE_PERMISSION_REQUEST = 2104;
     private static final int IMAGE_PREVIEW_MAX_EDGE = 960;
 
     private WebView webView;
     private com.luckybean.app.storage.RoomStoreRepository platformRepository;
     private ValueCallback<Uri[]> filePathCallback;
+    private ValueCallback<Uri[]> pendingCameraFileCallback;
+    private boolean pendingCameraMultiple;
+    private String[] pendingCameraAcceptTypes;
     private Uri cameraOutputUri;
     private PermissionRequest pendingWebPermission;
     private byte[] pendingExportBytes;
@@ -426,7 +430,7 @@ public class MainActivity extends Activity {
             com.luckybean.app.storage.RoomStoreRepository repository = platformRepository;
             repository.get("syncMetadata", "native.storage.backend.v1").thenCombine(
                 repository.get("platformPreferences", "engineMigration"),
-                (storage, assets) -> storage != null && storage.optBoolean("active") && assets != null && assets.optBoolean("ready")
+                (storage, assets) -> storage != null && storage.optBoolean("active") && storage.optInt("schemaVersion") == 10 && assets != null && assets.optBoolean("ready")
             ).whenComplete((ready, error) -> runOnUiThread(() -> {
                 if (error != null || !Boolean.TRUE.equals(ready)) {
                     Toast.makeText(MainActivity.this, "请先完成本地数据与照片迁移校验", Toast.LENGTH_LONG).show();
@@ -564,6 +568,14 @@ public class MainActivity extends Activity {
 
     protected boolean openNativeFileChooser(boolean captureOnly, boolean multiple, String[] acceptTypes,
                                              ValueCallback<Uri[]> callback) {
+            if (captureOnly && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                if (pendingCameraFileCallback != null) pendingCameraFileCallback.onReceiveValue(null);
+                pendingCameraFileCallback = callback;
+                pendingCameraMultiple = multiple;
+                pendingCameraAcceptTypes = acceptTypes;
+                requestPermissions(new String[] { Manifest.permission.CAMERA }, CAMERA_FILE_PERMISSION_REQUEST);
+                return true;
+            }
             if (filePathCallback != null) filePathCallback.onReceiveValue(null);
             filePathCallback = callback;
             cleanupUnusedCameraOutput(null);
@@ -631,6 +643,17 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == CAMERA_FILE_PERMISSION_REQUEST && pendingCameraFileCallback != null) {
+            ValueCallback<Uri[]> callback = pendingCameraFileCallback;
+            pendingCameraFileCallback = null;
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                openNativeFileChooser(true, pendingCameraMultiple, pendingCameraAcceptTypes, callback);
+            } else {
+                callback.onReceiveValue(null);
+                Toast.makeText(this, "未授予相机权限，可以选择相册照片", Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
         if (requestCode != MEDIA_PERMISSION_REQUEST || pendingWebPermission == null) return;
         boolean granted = true;
         for (int result : grantResults) granted &= result == PackageManager.PERMISSION_GRANTED;
@@ -732,6 +755,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (pendingCameraFileCallback != null) { pendingCameraFileCallback.onReceiveValue(null); pendingCameraFileCallback = null; }
+        if (filePathCallback != null) { filePathCallback.onReceiveValue(null); filePathCallback = null; }
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         cleanupUnusedCameraOutput(null);
         synchronized (recognitionSourceLock) {

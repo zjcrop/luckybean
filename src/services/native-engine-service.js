@@ -11,7 +11,7 @@ async function savePreferences() {
   }
 }
 
-export async function switchNativeEngine() {
+export async function switchNativeEngine({ onProgress } = {}) {
   const native = globalThis.LuckyBeanNative;
   if (typeof native?.switchEngine !== 'function') throw new Error('当前安装包不支持引擎切换');
   if (globalThis.__LUCKYBEAN_ENGINE__ === 'gecko') {
@@ -23,7 +23,7 @@ export async function switchNativeEngine() {
   if (!await isRoomStorageActive()) throw new Error('请先迁移本地记录到 Room');
   // Once enabled, Room contains current thumbnails; never overwrite them with an old IDB copy.
   const current = await globalThis.LuckyBeanRoomStore.get('platformPreferences', 'engineMigration');
-  const thumbnails = current?.ready ? current.thumbnails : await migrateBeanThumbnailsToRoom();
+  const thumbnails = current?.ready ? current.thumbnails : await migrateBeanThumbnailsToRoom({ onProgress });
   await savePreferences();
   await globalThis.LuckyBeanRoomStore.put('platformPreferences', { id: 'engineMigration', ready: true, thumbnails });
   await globalThis.LuckyBeanRoomStore.put('platformPreferences', { id: 'restoreGeckoPreferences', pending: true });

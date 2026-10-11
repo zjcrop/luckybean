@@ -97,7 +97,7 @@ async function installFixture(page) {
     };
     globalThis.__LUCKYBEAN_ANDROID__ = true;
     globalThis.LuckyBeanRoomStore = api;
-    const storage = await import('/src/db-storage-core.js?room-migration-contract=1');
+    const storage = await import('/src/db-storage-core.js');
     globalThis.__roomMigrationApi = storage;
     return Object.keys(rows);
   }, STORES);
@@ -306,6 +306,20 @@ test('Web IndexedDB and Room use the same golden fixture for all stores, indexes
       }
       transaction.oncomplete = resolve;
     });
+    const history = await import('/src/domain/history/history-service.js');
+    const webCommit = await history.commitCompletedBrew(fixture.offlineBrew);
+    const webDuplicate = await history.commitCompletedBrew(fixture.offlineBrew);
+    const webBean = await globalThis.__roomMigrationApi.get('beans', 'golden-bean');
+    const webEvent = await globalThis.__roomMigrationApi.get('inventoryEvents', webCommit.record.inventoryEventId);
+    const webSummary = { remaining: webBean.remainingWeight, amount: webEvent.amountG, duplicate: webDuplicate.duplicate };
+    await new Promise(resolve => {
+      const transaction = database.transaction(Object.keys(fixture.stores), 'readwrite');
+      for (const [name, rows] of Object.entries(fixture.stores)) {
+        const store = transaction.objectStore(name); store.clear();
+        for (const row of rows) store.put(row);
+      }
+      transaction.oncomplete = resolve;
+    });
     database.close();
     await globalThis.__roomMigrationApi.migrateSchema10ToRoom();
     const native = globalThis.LuckyBeanRoomStore;
@@ -321,17 +335,33 @@ test('Web IndexedDB and Room use the same golden fixture for all stores, indexes
         .getAll(IDBKeyRange.bound(['golden-bean', ''], ['golden-bean', '9999']));
       request.onsuccess = () => resolve(request.result.map(row => row.id));
     });
-    const history = await import('/src/domain/history/history-service.js');
     const committed = await history.commitCompletedBrew(fixture.offlineBrew);
     const duplicate = await history.commitCompletedBrew(fixture.offlineBrew);
     const bean = await native.get('beans', 'golden-bean');
     const summary = await native.get('beanSummaries', 'golden-bean');
     const event = await native.get('inventoryEvents', committed.record.inventoryEventId);
     const outbox = await native.all('syncOutbox');
-    return { ordered, expected: fixture.byBeanExpected, duplicate: duplicate.duplicate,
+    return { webSummary, ordered, expected: fixture.byBeanExpected, duplicate: duplicate.duplicate,
       remaining: bean.remainingWeight, summaryRemaining: summary.remainingWeight, amount: event.amountG,
       queued: outbox.some(row => row.entityId === committed.record.id) };
   });
   expect(result.ordered).toEqual(result.expected);
+  expect(result.webSummary).toEqual({ duplicate: true, remaining: result.remaining, amount: result.amount });
   expect(result).toMatchObject({ duplicate: true, remaining: 85, summaryRemaining: 85, amount: -15, queued: true });
+});
+
+
+test('empty Room transactions complete without blocking subsequent writes', async ({ page }) => {
+  await installFixture(page);
+  await page.evaluate(async () => {
+    await globalThis.__roomMigrationApi.migrateSchema10ToRoom();
+    const database = await globalThis.__roomMigrationApi.openDb();
+    const empty = database.transaction('beans', 'readonly');
+    const completed = new Promise((resolve, reject) => {
+      empty.oncomplete = resolve;
+      empty.onerror = () => reject(empty.error);
+    });
+    await Promise.all([completed, globalThis.__roomMigrationApi.put('settings', { id: 'after-empty', value: 42 })]);
+  });
+  expect(await page.evaluate(() => globalThis.__roomMigrationApi.get('settings', 'after-empty'))).toEqual({ id: 'after-empty', value: 42 });
 });

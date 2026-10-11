@@ -53,6 +53,7 @@ public final class GeckoRuntimeTest {
             assertEquals(85, activity.get().acceptanceResult.getInt("remainingWeight"));
             assertEquals(85, store.get("beans", "golden-bean").get(20, TimeUnit.SECONDS).getInt("remainingWeight"));
             assertTrue(activity.get().acceptanceResult.getBoolean("duplicate"));
+            assertEquals(0, activity.get().acceptanceResult.getInt("cloudRequests"));
         }
     }
 }

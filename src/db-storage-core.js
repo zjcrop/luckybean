@@ -333,6 +333,7 @@ function createRoomDatabaseFacade() {
             this.scheduled = false;
             if (this.completed || this.pending > 0) return;
             try {
+              await this.ready;
               if (this.aborted) {
                 this.completed = true;
                 this.onabort?.({ target: this });
@@ -437,6 +438,7 @@ function createRoomDatabaseFacade() {
         if (transaction.clearStores.has('beans')) changes.clearStores.push('beanSummaries');
         return changes;
       };
+      tx.scheduleFinish(); // Empty transactions must complete and release the mutex too.
       return tx;
     }
   };

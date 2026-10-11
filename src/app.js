@@ -2946,8 +2946,9 @@ function openNativeEngineConfirmation() {
   const overlay = showOverlay(`${dialogHeader(gecko ? '切换到 GeckoView' : '切回 WebView')}<p>本地记录与照片继续保存在 Room。${gecko ? '首次切换会校验并迁移照片和本地偏好，原始 IndexedDB 保留。' : '切回后可在这里将当前数据回滚到原始 IndexedDB。'}</p><button id="confirmNativeEngineBtn" class="button primary" type="button">确认切换</button>`);
   bindClose(overlay);
   $('#confirmNativeEngineBtn').addEventListener('click', async event => {
-    event.currentTarget.disabled = true;
-    try { await switchNativeEngine(); }
+    closeOverlay();
+    showOverlay(`${dialogHeader('正在切换引擎', '请保持应用打开', false)}<p id="nativeEngineProgress" role="status">正在校验照片和本地偏好…</p>`);
+    try { await switchNativeEngine({ onProgress: ({ completed, total }) => { const node = $('#nativeEngineProgress'); if (node) node.textContent = `正在校验照片：${completed}/${total}`; } }); }
     catch (error) { closeOverlay(); toast(`引擎未切换：${error.message}`, 'status-bad'); }
   });
 }
