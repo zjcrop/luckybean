@@ -64,6 +64,50 @@ public final class RoomStoreRepository {
         });
     }
 
+    public CompletableFuture<Void> putBean(JSONObject bean, JSONObject summary) {
+        return submit(() -> {
+            StoredRecord beanRow = toRow("beans", bean);
+            StoredRecord summaryRow = toRow("beanSummaries", summary);
+            database.runInTransaction(() -> {
+                database.records().upsert(beanRow);
+                database.records().upsert(summaryRow);
+            });
+            return null;
+        });
+    }
+
+    public CompletableFuture<Void> bulkPutBeans(JSONArray beans, JSONArray summaries) {
+        return submit(() -> {
+            List<StoredRecord> beanRows = decodeRows("beans", beans);
+            List<StoredRecord> summaryRows = decodeRows("beanSummaries", summaries);
+            database.runInTransaction(() -> {
+                database.records().upsertAll(beanRows);
+                database.records().upsertAll(summaryRows);
+            });
+            return null;
+        });
+    }
+
+    public CompletableFuture<Void> removeBean(String key) {
+        return submit(() -> {
+            database.runInTransaction(() -> {
+                database.records().deleteStoreRecord("beans", key);
+                database.records().deleteStoreRecord("beanSummaries", key);
+            });
+            return null;
+        });
+    }
+
+    public CompletableFuture<Void> clearBeans() {
+        return submit(() -> {
+            database.runInTransaction(() -> {
+                database.records().deleteStore("beans");
+                database.records().deleteStore("beanSummaries");
+            });
+            return null;
+        });
+    }
+
     public CompletableFuture<Void> bulkPut(String store, JSONArray values) {
         return submit(() -> {
             String checkedStore = requireStore(store);
