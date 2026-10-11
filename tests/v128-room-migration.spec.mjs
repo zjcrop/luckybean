@@ -115,7 +115,7 @@ async function rawRows(page, name) {
   }, name);
 }
 
-test('schema 10 migration snapshots, verifies, routes writes and can roll back to IndexedDB', async ({ page }) => {
+test('schema 10 migration snapshots, verifies, runs atomic Room transactions and can roll back to IndexedDB', async ({ page }) => {
   await installFixture(page);
   const before = {};
   for (const name of STORES) before[name] = await rawRows(page, name);
@@ -141,10 +141,33 @@ test('schema 10 migration snapshots, verifies, routes writes and can roll back t
   expect(state.snapshotCount).toBe(1);
   for (const name of STORES) expect(await rawRows(page, name)).toEqual(before[name]);
 
-  const rollback = await page.evaluate(async () => {
-    await globalThis.__roomMigrationApi.put('beans', { id: 'bean-1', name: 'Room edit', note: 'LATEST' });
-    return globalThis.__roomMigrationApi.rollbackRoomToIndexedDb();
+  await page.evaluate(async () => {
+    const db = await globalThis.__roomMigrationApi.openDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(['beans', 'syncOutbox'], 'readwrite');
+      const beans = tx.objectStore('beans');
+      const current = beans.get('bean-1');
+      current.onsuccess = () => {
+        beans.put({ ...current.result, name: 'Room edit', note: 'LATEST' });
+        tx.objectStore('syncOutbox').put({
+          id: 'transaction-outbox-1', store: 'beans', recordId: 'bean-1', state: 'pending'
+        });
+      };
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error || new Error('Room transaction failed'));
+      tx.onabort = () => reject(tx.error || new Error('Room transaction aborted'));
+    });
   });
+  const transactionState = await page.evaluate(async () => ({
+    bean: await globalThis.LuckyBeanRoomStore.get('beans', 'bean-1'),
+    summary: await globalThis.LuckyBeanRoomStore.get('beanSummaries', 'bean-1'),
+    outbox: await globalThis.LuckyBeanRoomStore.get('syncOutbox', 'transaction-outbox-1')
+  }));
+  expect(transactionState.bean.name).toBe('Room edit');
+  expect(transactionState.summary.displayName).toBe('Room edit');
+  expect(transactionState.outbox.recordId).toBe('bean-1');
+
+  const rollback = await page.evaluate(() => globalThis.__roomMigrationApi.rollbackRoomToIndexedDb());
   expect(rollback.rolledBack).toBe(true);
   expect(await rawRows(page, 'beans')).toEqual([{ id: 'bean-1', name: 'Room edit', note: 'LATEST' }]);
   expect(await page.evaluate(() => globalThis.LuckyBeanRoomStore.get('syncMetadata', 'native.storage.backend.v1').then(row => row.active))).toBe(false);
