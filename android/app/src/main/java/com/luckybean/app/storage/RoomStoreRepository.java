@@ -147,6 +147,42 @@ public final class RoomStoreRepository {
         });
     }
 
+    public CompletableFuture<Void> applyChanges(JSONObject changes) {
+        return submit(() -> {
+            List<String> clearStores = readStringArray(changes.optJSONArray("clearStores"));
+            JSONArray deletes = changes.optJSONArray("deletes");
+            JSONArray puts = changes.optJSONArray("puts");
+            List<String[]> deleteRows = new ArrayList<>();
+            List<StoredRecord> putRows = new ArrayList<>();
+            if (deletes != null) {
+                for (int i = 0; i < deletes.length(); i++) {
+                    JSONObject row = deletes.getJSONObject(i);
+                    deleteRows.add(new String[] { requireStore(row.getString("store")), row.getString("key") });
+                }
+            }
+            if (puts != null) {
+                for (int i = 0; i < puts.length(); i++) {
+                    JSONObject row = puts.getJSONObject(i);
+                    String store = requireStore(row.getString("store"));
+                    putRows.add(toRow(store, row.getJSONObject("value")));
+                }
+            }
+            database.runInTransaction(() -> {
+                for (String store : clearStores) database.records().deleteStore(requireStore(store));
+                for (String[] row : deleteRows) database.records().deleteStoreRecord(row[0], row[1]);
+                database.records().upsertAll(putRows);
+            });
+            return null;
+        });
+    }
+
+    private static List<String> readStringArray(JSONArray values) throws JSONException {
+        List<String> result = new ArrayList<>();
+        if (values == null) return result;
+        for (int i = 0; i < values.length(); i++) result.add(values.getString(i));
+        return result;
+    }
+
     public CompletableFuture<Void> clearAll() {
         return submit(() -> {
             database.records().deleteAll();
