@@ -1,6 +1,6 @@
 import { sanitizeExecutionText, sanitizeExecutionPlanText } from './services/execution-text-sanitizer.js';
 import { APP_VERSION, SCHEMA_VERSION, $, $$, uid, esc, clamp, todayISO, formatDate, freshness, freshnessProfile, downloadBlob, safeJsonParse, assertPlainObject, assertSafeJson, browserTitle, parseNumber } from './utils.js';
-import { openDb, all, allByIndex, get, put, remove, bulkPut, getSetting, setSetting, clearAll, migrateLegacy, migrateSchema10ToRoom } from './db.js';
+import { openDb, all, allByIndex, get, put, remove, bulkPut, getSetting, setSetting, clearAll, migrateLegacy, migrateSchema10ToRoom, isRoomStorageActive } from './db.js';
 import { createRecognitionEvidenceSignalProvider } from './domain/recognition/recognition-evidence-signals.js';
 import { loadCodebook, makeIndex, displayName, optionsHtml, relatedRows, parseHarvestSeasonValue, REMOTE_CODEBOOK_URL } from './codebook.js';
 import { CameraScanner, scanQrFile, decodeJsQrResult } from './qr.js';
@@ -3015,7 +3015,9 @@ async function init() {
   let indexedDbMigrationsReady = true;
   try {
     await migrateLegacy();
-    await migrateLegacyBrewHistory();
+    if (globalThis.__LUCKYBEAN_ENABLE_ROOM_MIGRATION__ === true && !await isRoomStorageActive()) {
+      await migrateLegacyBrewHistory();
+    }
   } catch (error) {
     indexedDbMigrationsReady = false;
     console.warn('本地历史迁移未完成，保留 IndexedDB 使用', error);
