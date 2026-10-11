@@ -8,7 +8,7 @@ const STORES = [
 ];
 
 async function installFixture(page) {
-  await page.goto(`${BASE_URL}/?room-migration-contract=1`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${BASE_URL}/public/fallback-codebook.json?room-migration-contract=1`, { waitUntil: 'domcontentloaded' });
   await page.evaluate(async stores => {
     await new Promise(resolve => {
       const request = indexedDB.deleteDatabase('luckybean');
