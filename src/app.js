@@ -2945,7 +2945,7 @@ function openRoomMigrationConfirmation() {
 
 async function runRoomMigration() {
   closeOverlay();
-  const overlay = showOverlay(`${dialogHeader('正在迁移本地数据', '请保持应用打开')}<progress id="roomMigrationProgress" max="1" value="0"></progress><p id="roomMigrationProgressText" role="status">整理旧冲煮历史…</p><button id="cancelRoomMigrationBtn" class="button danger" type="button">取消迁移</button>`);
+  const overlay = showOverlay(`${dialogHeader('正在迁移本地数据', '请保持应用打开', false)}<progress id="roomMigrationProgress" max="1" value="0"></progress><p id="roomMigrationProgressText" role="status">整理旧冲煮历史…</p><button id="cancelRoomMigrationBtn" class="button danger" type="button">取消迁移</button>`);
   const controller = new AbortController();
   const cancelButton = $('#cancelRoomMigrationBtn');
   cancelButton.addEventListener('click', () => {
