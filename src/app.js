@@ -1401,6 +1401,11 @@ function recognitionPreflightRows(bean = {}, parsed = {}) {
 
 function recognitionPreflightExtra(parsed, dateDecision) {
   const items = [];
+  const dictionaryFieldLabels = { countryCode:'国家', regionCode:'产区', entityCode:'庄园 / 处理站', varietyCode:'豆种', processCode:'处理法' };
+  for (const [field, candidate] of Object.entries(parsed.parseMetadata?.dictionaryMatchReview || {})) {
+    const label = dictionaryFieldLabels[field] || field;
+    items.push(`${label}近似候选待核对：原文“${candidate.sourceText || ''}”；候选“${candidate.matchedText || ''}”`);
+  }
   for (const candidate of dateDecision?.candidates || []) {
     if (candidate.decision === 'exclude') items.push(`${candidate.fieldLabel}：${candidate.normalizedValue || candidate.rawValue}`);
     else if (candidate.decision === 'review') items.push(`未自动写入日期：${candidate.rawValue}`);
