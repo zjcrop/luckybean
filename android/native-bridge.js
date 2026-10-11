@@ -1,5 +1,6 @@
 globalThis.__LUCKYBEAN_ANDROID__ = true;
-globalThis.__LUCKYBEAN_ENABLE_ROOM_MIGRATION__ = true;
+// Room migration starts only from the explicit, progress-visible settings flow.
+globalThis.__LUCKYBEAN_ENABLE_ROOM_MIGRATION__ = false;
 globalThis.__LUCKYBEAN_PUBLIC_URL__ = 'https://zjcrop.github.io/luckybean/';
 
 (() => {
