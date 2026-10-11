@@ -261,7 +261,13 @@ export async function migrateSchema10ToRoom({ onProgress = () => {} } = {}) {
 
   try {
     await nativeStore.clearAll();
-    let completed = 0;
+    await nativeStore.put(ROOM_SNAPSHOT_STORE, {
+      id: 'manifest',
+      format: 'luckybean-indexeddb-snapshot/1',
+      sourceSchemaVersion: db.version,
+      capturedAt: new Date().toISOString(),
+      stores: snapshot
+    });
     for (const name of storeNames) {
       const backupRows = source[name].map((value, index) => ({
         id: `${name}:${recordKey(name, value) || index}`,
@@ -270,7 +276,14 @@ export async function migrateSchema10ToRoom({ onProgress = () => {} } = {}) {
         value
       }));
       for (const batch of chunkByUtf8Size(backupRows)) await nativeStore.bulkPut(ROOM_SNAPSHOT_STORE, batch);
+      const snapshotRows = (await nativeStore.all(ROOM_SNAPSHOT_STORE))
+        .filter(row => row.sourceStore === name)
+        .map(row => row.value);
+      if (snapshotRows.length !== snapshot[name].count || await rowsDigest(snapshotRows) !== snapshot[name].sha256) {
+        throw new Error(`迁移前快照校验失败：${name}`);
+      }
     }
+    let completed = 0;
     for (const name of storeNames) {
       for (const batch of chunkByUtf8Size(source[name])) {
         await nativeStore.bulkPut(name, batch);
