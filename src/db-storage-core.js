@@ -11,6 +11,9 @@ const INDEX_DEFS = Object.freeze({
   inventoryEvents: [['beanId', 'beanId', { unique: false }], ['beanCreatedAt', ['beanId', 'createdAt'], { unique: false }]]
 });
 const SENSORY_KEY_ID = 'local.sensory.key.v1';
+const ROOM_ACTIVE_KEY = 'native.storage.backend.v1';
+const ROOM_SNAPSHOT_STORE = 'migrationSnapshots';
+let roomBackendActivePromise;
 let dbPromise;
 let sensorySecretPromise;
 
@@ -173,6 +176,129 @@ async function transformForRead(name, value) {
       scoreDelta: 0,
       storageError: error.message
     };
+  }
+}
+
+
+function roomStore() {
+  return globalThis.__LUCKYBEAN_ANDROID__ && globalThis.LuckyBeanRoomStore
+    ? globalThis.LuckyBeanRoomStore
+    : null;
+}
+
+async function isRoomBackendActive() {
+  const nativeStore = roomStore();
+  if (!nativeStore) return false;
+  if (!roomBackendActivePromise) {
+    roomBackendActivePromise = nativeStore.get('syncMetadata', ROOM_ACTIVE_KEY)
+      .then(value => Boolean(value?.active && value?.schemaVersion === SCHEMA_VERSION))
+      .catch(() => false);
+  }
+  return roomBackendActivePromise;
+}
+
+function stableJson(value) {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function recordKey(name, value) {
+  return String(name === 'customCodes' ? value?.code ?? '' : value?.id ?? '');
+}
+
+async function rowsDigest(rows) {
+  const canonicalRows = rows.map(value => stableJson(value)).sort();
+  const bytes = new TextEncoder().encode(canonicalRows.join('\\n'));
+  if (!globalThis.crypto?.subtle) throw new Error('当前环境无法为 Room 迁移计算 SHA-256');
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map(value => value.toString(16).padStart(2, '0')).join('');
+}
+
+function chunkByUtf8Size(rows, maxBytes = 160 * 1024) {
+  const chunks = [];
+  let current = [];
+  let bytes = 2;
+  for (const row of rows) {
+    const rowBytes = new TextEncoder().encode(JSON.stringify(row)).length + 1;
+    if (rowBytes > 1024 * 1024) throw new Error('单条本地记录超过 1 MiB，已停止迁移以保留原始 IndexedDB');
+    if (current.length && bytes + rowBytes > maxBytes) {
+      chunks.push(current);
+      current = [];
+      bytes = 2;
+    }
+    current.push(row);
+    bytes += rowBytes;
+  }
+  if (current.length) chunks.push(current);
+  return chunks;
+}
+
+function readRawStore(db, name) {
+  return requestToPromise(db.transaction(name, 'readonly').objectStore(name).getAll());
+}
+
+export async function migrateSchema10ToRoom({ onProgress = () => {} } = {}) {
+  const nativeStore = roomStore();
+  if (!nativeStore) throw new Error('Android Room 存储接口不可用');
+  if (await isRoomBackendActive()) return { migrated: false, reason: 'already-active' };
+
+  const db = await openDb();
+  if (db.version !== SCHEMA_VERSION) throw new Error(`需要 IndexedDB schema ${SCHEMA_VERSION}，当前为 ${db.version}`);
+  const storeNames = STORES.filter(name => name !== ROOM_SNAPSHOT_STORE);
+  const source = Object.fromEntries(await Promise.all(storeNames.map(async name => [name, await readRawStore(db, name)])));
+  const snapshot = Object.fromEntries(await Promise.all(storeNames.map(async name => [name, {
+    count: source[name].length,
+    sha256: await rowsDigest(source[name])
+  }])));
+  const total = storeNames.reduce((sum, name) => sum + source[name].length, 0);
+
+  try {
+    await nativeStore.clearAll();
+    let completed = 0;
+    for (const name of storeNames) {
+      const backupRows = source[name].map((value, index) => ({
+        id: `${name}:${recordKey(name, value) || index}`,
+        sourceStore: name,
+        sourceKey: recordKey(name, value),
+        value
+      }));
+      for (const batch of chunkByUtf8Size(backupRows)) await nativeStore.bulkPut(ROOM_SNAPSHOT_STORE, batch);
+    }
+    for (const name of storeNames) {
+      for (const batch of chunkByUtf8Size(source[name])) {
+        await nativeStore.bulkPut(name, batch);
+        completed += batch.length;
+        onProgress({ completed, total, store: name });
+        globalThis.document?.dispatchEvent(new CustomEvent('luckybean:room-migration-progress', {
+          detail: { completed, total, store: name }
+        }));
+      }
+    }
+
+    const verified = {};
+    for (const name of storeNames) {
+      const rows = await nativeStore.all(name);
+      verified[name] = { count: rows.length, sha256: await rowsDigest(rows) };
+      if (verified[name].count !== snapshot[name].count || verified[name].sha256 !== snapshot[name].sha256) {
+        throw new Error(`Room 校验失败：${name}`);
+      }
+    }
+    await nativeStore.put('syncMetadata', {
+      id: ROOM_ACTIVE_KEY,
+      active: true,
+      schemaVersion: SCHEMA_VERSION,
+      migratedAt: new Date().toISOString(),
+      stores: verified
+    });
+    roomBackendActivePromise = Promise.resolve(true);
+    return { migrated: true, stores: verified, total };
+  } catch (error) {
+    roomBackendActivePromise = undefined;
+    await nativeStore.clearAll().catch(() => {});
+    throw error;
   }
 }
 
