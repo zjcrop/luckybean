@@ -74,6 +74,9 @@ public final class RoomStoreBridge {
                 case "replaceStores":
                     operation = repository.replaceStores(readStores(request.getJSONObject("stores")));
                     break;
+                case "applyChanges":
+                    operation = repository.applyChanges(request.getJSONObject("changes"));
+                    break;
                 case "clearAll":
                     operation = repository.clearAll();
                     break;
