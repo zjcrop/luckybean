@@ -3012,9 +3012,15 @@ async function handleSharedHash() {
 
 async function init() {
   state.db = await openDb();
-  await migrateLegacy().catch(error=>({error:error.message}));
-  if (globalThis.__LUCKYBEAN_ENABLE_ROOM_MIGRATION__ === true) {
-    await migrateLegacyBrewHistory().catch(error => console.warn('Room 切换前的冲煮历史迁移失败，保留 IndexedDB 使用', error));
+  let indexedDbMigrationsReady = true;
+  try {
+    await migrateLegacy();
+    await migrateLegacyBrewHistory();
+  } catch (error) {
+    indexedDbMigrationsReady = false;
+    console.warn('本地历史迁移未完成，保留 IndexedDB 使用', error);
+  }
+  if (indexedDbMigrationsReady && globalThis.__LUCKYBEAN_ENABLE_ROOM_MIGRATION__ === true) {
     await migrateSchema10ToRoom().catch(error => console.warn('IndexedDB→Room 迁移未切换，保留 IndexedDB 使用', error));
   }
   await loadSettings();
