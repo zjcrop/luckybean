@@ -16,6 +16,21 @@ function isSeparator(character) {
   return /[\s\p{P}\p{S}]/u.test(character);
 }
 
+function isLatinWordCharacter(character) {
+  return Boolean(character) && /[\p{Script=Latin}\p{N}]/u.test(character.normalize('NFKC'));
+}
+
+function hasLatinTokenBoundaries(source, start, end, normalizedAlias) {
+  const aliasCharacters = [...normalizedAlias];
+  if (!aliasCharacters.some(isLatinWordCharacter)) return true;
+  const first = aliasCharacters[0], last = aliasCharacters.at(-1);
+  const before = start > 0 ? source[start - 1] : '';
+  const after = end < source.length ? source[end] : '';
+  if (isLatinWordCharacter(first) && isLatinWordCharacter(before)) return false;
+  if (isLatinWordCharacter(last) && isLatinWordCharacter(after)) return false;
+  return true;
+}
+
 function normalizeWithOffsets(value) {
   const source = String(value ?? '');
   const characters = [];
@@ -94,7 +109,8 @@ function automatonFor(rows) {
  * may cross arbitrary whitespace, punctuation, or line boundaries.
  */
 export function findDictionarySpans(text, rows, { limit = 32 } = {}) {
-  const normalized = normalizeWithOffsets(text);
+  const source = String(text ?? '');
+  const normalized = normalizeWithOffsets(source);
   if (!normalized.text) return [];
   const root = automatonFor(rows);
   const matches = [];
@@ -109,6 +125,7 @@ export function findDictionarySpans(text, rows, { limit = 32 } = {}) {
       if (normalizedStart < 0) continue;
       const first = normalized.sourceOffsets[normalizedStart];
       const last = normalized.sourceOffsets[index];
+      if (!hasLatinTokenBoundaries(source, first.start, last.end, output.normalized)) continue;
       matches.push({
         code:output.code,
         alias:output.alias,

@@ -243,7 +243,48 @@ function lexiconTerms(book, field) {
 
 function escapeRegex(value) { return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
+function inlineFieldSegments(source, book) {
+  const fields = ['roastDate','productionDate','packDate','bestBefore','expiryDate','roastColor','country','region','entity','variety','process','roast','roaster','harvest','flavor','altitude','weight','price','lot','grade'];
+  const fieldForLabel = new Map();
+  const terms = [];
+  for (const field of fields) for (const term of lexiconTerms(book, field)) {
+    const key = term.normalize('NFKC').replace(/\s+/g, ' ').trim().toLocaleLowerCase('zh-CN');
+    if (!fieldForLabel.has(key)) fieldForLabel.set(key, field);
+    terms.push(term);
+  }
+  const uniqueTerms = [...new Set(terms)].sort((left, right) => [...right].length - [...left].length);
+  if (!uniqueTerms.length) return null;
+  const alternatives = uniqueTerms.map(term => escapeRegex(term).replace(/\s+/g, '\\s+')).join('|');
+  const pattern = new RegExp(`(^|[\\s,，;；|。])(${alternatives})(\\s*[:：=]\\s*|\\s+)`, 'gimu');
+  const markers = [];
+  const ambiguousWhitespaceLabels = new Set(['estate','farm','producer','farmer','grower','station','washing station','wet mill','dry mill','mill','factory','method','roast','lot','score','grade']);
+  let match;
+  while ((match = pattern.exec(source))) {
+    const label = match[2].normalize('NFKC').replace(/\s+/g, ' ').trim().toLocaleLowerCase('zh-CN');
+    const field = fieldForLabel.get(label);
+    if (!field) continue;
+    const marker = { field, start:match.index + match[1].length, valueStart:match.index + match[0].length };
+    const explicitDelimiter = /[:：=]/.test(match[3]);
+    const lineStart = Math.max(source.lastIndexOf('\n', marker.start - 1), source.lastIndexOf('\r', marker.start - 1)) + 1;
+    if (!explicitDelimiter && ambiguousWhitespaceLabels.has(label) && source.slice(lineStart, marker.start).trim()) continue;
+    if (markers.length && marker.start < markers.at(-1).valueStart) continue;
+    markers.push(marker);
+  }
+  if (markers.length < 2) return null;
+  const result = {};
+  for (let index = 0; index < markers.length; index += 1) {
+    const marker = markers[index];
+    const end = markers[index + 1]?.start ?? source.length;
+    const value = normalizeLabelValue(source.slice(marker.valueStart, end).replace(/^[\s,，;；|。]+|[\s,，;；|。]+$/g, ''));
+    if (!value) continue;
+    result[marker.field] = result[marker.field] ? `${result[marker.field]}\n${value}` : value;
+  }
+  return { fields:result, residualText:source.slice(0, markers[0].start).trim(), inline:true };
+}
+
 function labeledFieldValues(source, book) {
+  const inline = inlineFieldSegments(source, book);
+  if (inline) return inline;
   const fieldOrder = ['roastDate','productionDate','packDate','bestBefore','expiryDate','roastColor','country','region','entity','variety','process','roast','roaster','harvest','flavor','altitude','weight','price','lot','grade'];
   const definitions = fieldOrder.map(field => [field, new RegExp(`^(?:${lexiconTerms(book, field).sort((a,b)=>b.length-a.length).map(escapeRegex).join('|')})\\s*(?:[:：=]|-\\s+)?\\s*(.*)$`, 'i')]);
   const result = {};
@@ -270,8 +311,19 @@ function labeledFieldValues(source, book) {
     if (!result[current.field] && parts.length) result[current.field] = normalizeLabelValue(parts.join(' '));
     index = next - 1;
   }
-  return result;
+  return { fields:result, residualText:'' };
 }
+
+function rowsForFieldContext(field, rows, context = {}) {
+  let filtered = rows || [];
+  if (field === 'regionCode' && context.countryCode) {
+    filtered = filtered.filter(row => String(row?.[1] || '') === String(context.countryCode));
+  } else if (field === 'entityCode' && context.countryCode) {
+    filtered = filtered.filter(row => String(row?.[1] || '') === String(context.countryCode) || String(row?.[2] || '') === String(context.countryCode));
+  }
+  return filtered;
+}
+
 function bestTableMatch(value, rows, field = '', context = {}) {
   const source = normalizeLabelValue(value);
   if (!source) return null;
@@ -282,7 +334,11 @@ function bestTableMatch(value, rows, field = '', context = {}) {
 
   // Search the whole field value as a character stream. OCR separators and line
   // wrapping are layout evidence, not token boundaries.
-  const span = bestDictionarySpan(source, rows);
+  const contextualRows = rowsForFieldContext(field, rows, context);
+  const hasContextConstraint = (field === 'regionCode' || field === 'entityCode') && Boolean(context.countryCode);
+  if (hasContextConstraint && !contextualRows.length) return null;
+  const matchRows = hasContextConstraint ? contextualRows : rows || [];
+  const span = bestDictionarySpan(source, matchRows);
   if (span) return { code:span.code, alias:span.alias, row:span.row, direct:false, span:{ start:span.start, end:span.end } };
 
   // A single OCR edit may still identify a unique dictionary row. Keep it
@@ -290,18 +346,18 @@ function bestTableMatch(value, rows, field = '', context = {}) {
   const tableByField = { countryCode:'countries', regionCode:'regions', entityCode:'entities', varietyCode:'varieties', processCode:'processes' };
   const table = tableByField[field];
   if (table && source.length <= 180) {
-    const candidates = reliableCandidates(field, codebookCandidates(field, source, { [table]:rows || [] }, context, 5));
+    const candidates = reliableCandidates(field, codebookCandidates(field, source, { [table]:matchRows }, context, 5));
     const best = candidates[0];
     const runnerUp = candidates.find(candidate => candidate.code !== best?.code);
     if (best && best.score >= 0.80 && (!runnerUp || best.score - runnerUp.score >= 0.06)) {
-      return { code:best.code, alias:best.matched, row:(rows || []).find(row => String(row?.[0]) === String(best.code)), direct:false, approximate:true, score:best.score };
+      return { code:best.code, alias:best.matched, sourceText:source, row:(rows || []).find(row => String(row?.[0]) === String(best.code)), direct:false, approximate:true, score:best.score };
     }
   }
 
   // Keep the existing safe partial-name behavior for short user-entered fragments.
   const lower = source.toLocaleLowerCase('zh-CN');
   let best = null;
-  for (const row of rows || []) {
+  for (const row of matchRows) {
     for (const alias of row.slice(1)
       .filter(item => typeof item === 'string' && item && !['active', 'candidate'].includes(item))
       .flatMap(item => item.split(/[\\/、,，;；|]/))
@@ -309,7 +365,7 @@ function bestTableMatch(value, rows, field = '', context = {}) {
       .filter(item => item.length >= 2)) {
       const needle = alias.toLocaleLowerCase('zh-CN');
       if ((lower === needle || needle.includes(lower)) && (!best || needle.length > best.alias.length)) {
-        best = { code:row[0], alias, row, direct:false };
+        best = { code:row[0], alias, sourceText:source, row, direct:false, approximate:true, score:Math.min(0.79, lower.length / needle.length) };
       }
     }
   }
@@ -386,29 +442,40 @@ export function parseRoastColorValue(value) {
   return {rawValue:text,normalizedValue:String(values[0]),value:values[0],scale,formatId:'AGTRON_VALUE',confidence:values.length===1?0.98:0.76,candidates:values.map(String),warnings:values.length>1?['同一标签包含多个色值，默认采用第一个并保留全部候选。']:[]};
 }
 
-function recordMatch(result, field, match, labeled = false) {
+function recordMatch(result, field, match, labeled = false, customField = '') {
   if (!match) return;
-  result[field] = match.code;
-  result.confidence[field] = match.direct ? 0.995 : match.approximate ? Math.min(0.86, Number(match.score || 0)) : (labeled ? 0.96 : Math.min(0.94, 0.62 + match.alias.length / 20));
-  result.evidence[field] = match.alias;
   if (match.approximate) {
+    const sourceText = String(match.sourceText || match.alias || '').trim();
+    if (customField && sourceText) {
+      result[customField] = sourceText;
+      result.confidence[customField] = Math.min(0.86, Number(match.score || 0));
+      result.evidence[customField] = sourceText;
+    }
+    result.confidence[field] = Math.min(0.86, Number(match.score || 0));
+    result.evidence[field] = sourceText;
     result.parseMetadata.dictionaryMatchReview ||= {};
     result.parseMetadata.dictionaryMatchReview[field] = {
-      code:String(match.code),
+      candidateCode:String(match.code),
       matchedText:String(match.alias || ''),
+      sourceText,
       score:Number(match.score || 0),
       requiresUserConfirmation:true
     };
+    return;
   }
+  result[field] = match.code;
+  result.confidence[field] = match.direct ? 0.995 : (labeled ? 0.96 : Math.min(0.94, 0.62 + match.alias.length / 20));
+  result.evidence[field] = match.alias;
 }
 
 export function parseNaturalLanguage(text, book) {
   const source = String(text || '').trim();
-  const labeled = labeledFieldValues(source, book);
+  const labeledResult = labeledFieldValues(source, book);
+  const labeled = labeledResult.fields;
   // Once a line has an explicit field label, its value belongs only to that field.
   // Global inference is restricted to genuinely unlabelled lines so a region cannot
   // also become a station and a variety number cannot become weight or altitude.
-  const unlabelledSource = source.split(/\n+/)
+  const unlabelledSource = labeledResult.inline ? labeledResult.residualText : source.split(/\n+/)
     .map(line => line.trim())
     .filter(line => line && !/^[^:：]{1,48}[:：]/.test(line))
     .join('\n');
@@ -429,7 +496,7 @@ export function parseNaturalLanguage(text, book) {
     if (labeledValue) {
       const labeledMatch = bestTableMatch(labeledValue, book[table], field, { countryCode:result.countryCode, regionCode:result.regionCode });
       if (labeledMatch) {
-        recordMatch(result, field, labeledMatch, true);
+        recordMatch(result, field, labeledMatch, true, customField);
       } else {
         result[customField] = labeledValue;
         result.confidence[customField] = 0.86;
@@ -442,7 +509,8 @@ export function parseNaturalLanguage(text, book) {
 
     let best = directCodeMatch(normalizedCodes, book[table]);
     if (!best) {
-      const span = bestDictionarySpan(inferenceSource, book[table]);
+      const contextRows = rowsForFieldContext(field, book[table], { countryCode:result.countryCode, regionCode:result.regionCode });
+      const span = bestDictionarySpan(inferenceSource, contextRows);
       if (span) best = { code:span.code, alias:span.alias, row:span.row, direct:false, span:{ start:span.start, end:span.end } };
     }
     const aliasKey = normalizeLabelValue(best?.alias).toLocaleLowerCase('zh-CN');

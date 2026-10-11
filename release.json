@@ -2,14 +2,14 @@
   "product": "LuckyBean",
   "displayVersion": "1.24P",
   "semver": "1.24.24",
-  "revision": "1.24P-main.14",
-  "androidVersionCode": 102430,
+  "revision": "1.24P-main.15",
+  "androidVersionCode": 102431,
   "androidUserAgent": "LuckyBeanAndroid/1.24P",
-  "releaseTag": "v1.24P-main.14",
+  "releaseTag": "v1.24P-main.15",
   "cachePrefix": "luckybean-main-v124p-",
-  "cacheRevision": "main-14-android-reliability-20261011",
+  "cacheRevision": "main-15-ocr-context-matching-20261011",
   "schemaVersion": 10,
   "brewResultVersion": "1.1",
   "brewPlanVersion": "brew-plan/1.0",
-  "hotfix": "android-reliability-20261011"
+  "hotfix": "ocr-context-matching-20261011"
 }

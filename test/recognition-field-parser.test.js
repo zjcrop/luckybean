@@ -74,9 +74,10 @@ test('near-match estate candidates remain available for explicit review', () => 
 });
 
 
-test('one-character estate OCR variant preselects a unique row but records manual review', () => {
+test('one-character estate OCR variant suggests a row for review without assigning a canonical code', () => {
   const parsed = parseNaturalLanguage('庄园：蓝色火山庄园', book);
-  assert.equal(parsed.entityCode, 'ST-CR-VOL2');
-  assert.equal(parsed.parseMetadata.dictionaryMatchReview.entityCode.code, 'ST-CR-VOL2');
+  assert.equal(parsed.entityCode, undefined);
+  assert.equal(parsed.entityCustomName, '蓝色火山庄园');
+  assert.equal(parsed.parseMetadata.dictionaryMatchReview.entityCode.candidateCode, 'ST-CR-VOL2');
   assert.equal(parsed.parseMetadata.dictionaryMatchReview.entityCode.requiresUserConfirmation, true);
 });
