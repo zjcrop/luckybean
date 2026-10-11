@@ -3014,6 +3014,7 @@ async function init() {
   state.db = await openDb();
   await migrateLegacy().catch(error=>({error:error.message}));
   if (globalThis.__LUCKYBEAN_ENABLE_ROOM_MIGRATION__ === true) {
+    await migrateLegacyBrewHistory().catch(error => console.warn('Room 切换前的冲煮历史迁移失败，保留 IndexedDB 使用', error));
     await migrateSchema10ToRoom().catch(error => console.warn('IndexedDB→Room 迁移未切换，保留 IndexedDB 使用', error));
   }
   await loadSettings();
@@ -3025,7 +3026,6 @@ async function init() {
   void loadBeanDisplayIndex();
   scheduleIdleWork(async () => {
     await migrateLegacyFlavorCodes().catch(error => console.warn('旧风味编码后台迁移失败', error));
-    await migrateLegacyBrewHistory().catch(error => console.warn('冲煮历史后台迁移失败', error));
     await cleanupExpiredBeanRecycle().catch(error => console.warn('回收站后台清理失败', error));
     await ensureBeanConsumptionData().catch(error => console.warn('今日咖啡摄入摘要后台加载失败', error));
     const consumptionSummary = document.querySelector('.bean-consumption-summary');
