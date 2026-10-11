@@ -195,3 +195,27 @@ test('failed verification leaves the schema 10 source intact and Room inactive',
   expect(await rawRows(page, 'inventoryEvents')).toEqual(before);
   expect(await page.evaluate(() => globalThis.LuckyBeanRoomStore.all('beans'))).toEqual([]);
 });
+
+test('cancelled schema 10 import clears Room and keeps every IndexedDB store intact', async ({ page }) => {
+  await installFixture(page);
+  const before = {};
+  for (const name of STORES) before[name] = await rawRows(page, name);
+
+  const cancelled = await page.evaluate(async () => {
+    const controller = new AbortController();
+    try {
+      await globalThis.__roomMigrationApi.migrateSchema10ToRoom({
+        signal: controller.signal,
+        onProgress: () => controller.abort()
+      });
+      return null;
+    } catch (error) {
+      return { name: error.name, message: error.message };
+    }
+  });
+  expect(cancelled.name).toBe('AbortError');
+  expect(cancelled.message).toContain('迁移已取消');
+  for (const name of STORES) expect(await rawRows(page, name)).toEqual(before[name]);
+  expect(await page.evaluate(() => globalThis.LuckyBeanRoomStore.get('syncMetadata', 'native.storage.backend.v1'))).toBeNull();
+  expect(await page.evaluate(() => globalThis.LuckyBeanRoomStore.all('beans'))).toEqual([]);
+});
