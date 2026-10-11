@@ -169,6 +169,24 @@ const overlayRoot = document.querySelector('#overlayRoot');
 const observer = new MutationObserver(scheduleOverlaySync);
 if (overlayRoot) observer.observe(overlayRoot, { childList: true, subtree: true });
 
+// The timer overlay is intentionally full-screen and therefore classified as a
+// page by the generic overlay manager. Consume the first system-back action
+// while it is actively running so it pauses instead of falling through to app exit.
+globalThis.LuckyBeanNavigation?.registerChildBack?.({
+  id: 'active-brew-timer-back-guard',
+  priority: 1000,
+  canBack: () => timerActive() && document.querySelector('#timerPauseBtn')?.dataset?.timerAction !== 'resume',
+  back: () => {
+    const button = document.querySelector('#timerPauseBtn');
+    if (!timerActive() || !button || button.dataset.timerAction === 'resume') return false;
+    button.click();
+    document.dispatchEvent(new CustomEvent('luckybean:user-notice', {
+      detail: { message: '计时已暂停；再次返回将打开退出确认', kind: 'status-neutral' }
+    }));
+    return true;
+  }
+});
+
 scheduleOverlaySync();
 
 globalThis.LuckyBeanNativeBrewExecution = Object.freeze({

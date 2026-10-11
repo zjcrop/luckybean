@@ -407,7 +407,13 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
 
   const prewarm = () => loadData().catch(() => {});
   if ('requestIdleCallback' in globalThis) requestIdleCallback(prewarm, { timeout: 1600 }); else setTimeout(prewarm, 600);
-  getMode().then(mode => { if ([MODE_FRESHNESS, MODE_REMAINING].includes(mode) && $('#pageBeans.active')) setTimeout(() => { captureBoard(); render({ force: true }).catch(() => {}); }, 80); }).catch(() => {});
+  const settingsReady = globalThis.__LuckyBeanAppSettingsReady
+    ? Promise.resolve()
+    : new Promise(resolve => document.addEventListener('luckybean:app-settings-ready', resolve, { once: true }));
+  settingsReady
+    .then(() => getMode())
+    .then(mode => { if ([MODE_FRESHNESS, MODE_REMAINING].includes(mode) && $('#pageBeans.active')) setTimeout(() => { captureBoard(); render({ force: true }).catch(() => {}); }, 80); })
+    .catch(() => {});
 
   globalThis.LuckyBeanV099tBeanGroups = {
     render,

@@ -199,6 +199,13 @@ async function loadSettings() {
   state.settings.brew.profileId = 'recommended';
 }
 
+void loadSettings().catch(error => {
+  console.warn('保存的应用设置读取失败，暂时使用默认设置', error);
+}).then(() => {
+  globalThis.__LuckyBeanAppSettingsReady = true;
+  document.dispatchEvent(new CustomEvent('luckybean:app-settings-ready'));
+});
+
 async function saveSettings() { await setSetting('app.settings', state.settings); }
 
 document.addEventListener('luckybean:codebook-provider-activated', event => {
