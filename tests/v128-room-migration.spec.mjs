@@ -219,3 +219,73 @@ test('cancelled schema 10 import clears Room and keeps every IndexedDB store int
   expect(await page.evaluate(() => globalThis.LuckyBeanRoomStore.get('syncMetadata', 'native.storage.backend.v1'))).toBeNull();
   expect(await page.evaluate(() => globalThis.LuckyBeanRoomStore.all('beans'))).toEqual([]);
 });
+
+test('source writes during migration prevent activation and preserve the latest IndexedDB records', async ({ page }) => {
+  await installFixture(page);
+  const result = await page.evaluate(async () => {
+    const native = globalThis.LuckyBeanRoomStore;
+    const original = native.bulkPut.bind(native);
+    native.bulkPut = async (name, values) => {
+      await original(name, values);
+      if (name !== 'beans') return;
+      const db = await new Promise(resolve => {
+        const request = indexedDB.open('luckybean');
+        request.onsuccess = () => resolve(request.result);
+      });
+      await new Promise(resolve => {
+        const transaction = db.transaction('beans', 'readwrite');
+        transaction.objectStore('beans').put({ id: 'concurrent-write', name: 'Keep this new record' });
+        transaction.oncomplete = resolve;
+      });
+      db.close();
+    };
+    try {
+      await globalThis.__roomMigrationApi.migrateSchema10ToRoom();
+      return { migrated: true };
+    } catch (error) { return { error: error.message }; }
+  });
+  expect(result.error).toMatch(/源数据已变化/);
+  expect((await rawRows(page, 'beans')).some(row => row.id === 'concurrent-write')).toBe(true);
+  expect(await page.evaluate(() => globalThis.LuckyBeanRoomStore.get('syncMetadata', 'native.storage.backend.v1'))).toBeNull();
+});
+
+test('engine switching preserves thumbnails, preferences and current Room edits across both engines', async ({ page }) => {
+  await installFixture(page);
+  const result = await page.evaluate(async () => {
+    await globalThis.__roomMigrationApi.migrateSchema10ToRoom();
+    const thumbnails = await import('/src/domain/beans/bean-thumbnail-storage.js');
+    const engine = await import('/src/services/native-engine-service.js');
+    await thumbnails.saveBeanThumbnail('bean-1', 'data:image/jpeg;base64,ORIGINAL');
+    localStorage.setItem('local.preference', 'source');
+    const switches = [];
+    globalThis.LuckyBeanNative = { switchEngine(value) { switches.push(value); } };
+    await engine.switchNativeEngine();
+    const first = await thumbnails.getBeanThumbnail('bean-1');
+    globalThis.__LUCKYBEAN_ENGINE__ = 'gecko';
+    await thumbnails.saveBeanThumbnail('bean-1', 'data:image/jpeg;base64,GECKO-EDIT');
+    localStorage.setItem('local.preference', 'gecko-edit');
+    await engine.switchNativeEngine();
+    const preferences = await globalThis.LuckyBeanRoomStore.get('platformPreferences', 'localStorage');
+    globalThis.__LUCKYBEAN_ENGINE__ = 'webview';
+    await engine.switchNativeEngine();
+    const current = await thumbnails.getBeanThumbnail('bean-1');
+    await thumbnails.restoreBeanThumbnailsToIndexedDb();
+    const restored = await thumbnails.getBeanThumbnail('bean-1');
+    return { first, current, restored, preferences, switches };
+  });
+  expect(result.first).toBe('data:image/jpeg;base64,ORIGINAL');
+  expect(result.current).toBe('data:image/jpeg;base64,GECKO-EDIT');
+  expect(result.restored).toBe('data:image/jpeg;base64,GECKO-EDIT');
+  expect(result.preferences.values['local.preference']).toBe('gecko-edit');
+  expect(result.switches).toEqual(['gecko', 'webview', 'gecko']);
+});
+
+test('Gecko cannot restore into its own empty IndexedDB instead of the original WebView store', async ({ page }) => {
+  await installFixture(page);
+  await page.evaluate(async () => {
+    await globalThis.__roomMigrationApi.migrateSchema10ToRoom();
+    globalThis.__LUCKYBEAN_ENGINE__ = 'gecko';
+  });
+  await expect(page.evaluate(() => globalThis.__roomMigrationApi.rollbackRoomToIndexedDb())).rejects.toThrow(/先切回 WebView/);
+  expect(await page.evaluate(() => globalThis.LuckyBeanRoomStore.get('syncMetadata', 'native.storage.backend.v1'))).toMatchObject({ active: true });
+});

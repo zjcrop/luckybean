@@ -126,7 +126,7 @@ with zipfile.ZipFile(APK) as archive:
 android_home = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
 if not android_home:
     fail("ANDROID_HOME/ANDROID_SDK_ROOT is missing")
-aapt = Path(android_home) / "build-tools/35.0.0/aapt"
+aapt = Path(android_home) / "build-tools/36.0.0/aapt"
 if not aapt.is_file():
     fail(f"aapt missing: {aapt}")
 badging = subprocess.run(

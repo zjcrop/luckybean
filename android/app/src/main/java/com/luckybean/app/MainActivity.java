@@ -550,7 +550,8 @@ public class MainActivity extends Activity {
         @Override
         public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> callback,
                                          FileChooserParams params) {
-            return openNativeFileChooser(params.isCaptureEnabled(), params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE,
+            boolean captureOnly = params.isCaptureEnabled();
+            return openNativeFileChooser(captureOnly, params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE,
                 params.getAcceptTypes(), callback);
         }
 
