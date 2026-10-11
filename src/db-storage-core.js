@@ -303,17 +303,55 @@ export async function migrateSchema10ToRoom({ onProgress = () => {} } = {}) {
 }
 
 export async function all(name) {
+  if (await isRoomBackendActive()) {
+    const values = await roomStore().all(name);
+    if (name !== 'sensoryRecords') return values;
+    return Promise.all(values.map(value => transformForRead(name, value)));
+  }
   const values = await requestToPromise((await store(name)).getAll());
   if (name !== 'sensoryRecords') return values;
   return Promise.all(values.map(value => transformForRead(name, value)));
 }
 
 export async function get(name, key) {
+  if (await isRoomBackendActive()) return transformForRead(name, await roomStore().get(name, key));
   return transformForRead(name, await requestToPromise((await store(name)).get(key)));
 }
 
 export async function allByIndex(name, indexName, key, { raw = false } = {}) {
   if (!STORES.includes(name)) throw new Error(`未知数据表：${name}`);
+  if (await isRoomBackendActive()) {
+    const values = await roomStore().all(name);
+    const indexedValue = value => indexName === 'beanId' ? value.beanId
+      : indexName === 'beanCreatedAt' ? [value.beanId, value.createdAt]
+      : indexName === 'updatedAt' ? value.updatedAt : undefined;
+    const compare = (left, right) => {
+      if (Array.isArray(left) && Array.isArray(right)) {
+        for (let index = 0; index < Math.min(left.length, right.length); index++) {
+          const result = compare(left[index], right[index]);
+          if (result) return result;
+        }
+        return left.length - right.length;
+      }
+      if (left === right) return 0;
+      if (left == null) return -1;
+      if (right == null) return 1;
+      return left < right ? -1 : 1;
+    };
+    const range = typeof IDBKeyRange !== 'undefined' && key instanceof IDBKeyRange;
+    const matched = values.filter(value => {
+      const indexed = indexedValue(value);
+      if (indexed === undefined) return false;
+      if (!range) return stableJson(indexed) === stableJson(key);
+      if (!key.lowerOpen && key.lower !== undefined && compare(indexed, key.lower) < 0) return false;
+      if (key.lowerOpen && key.lower !== undefined && compare(indexed, key.lower) <= 0) return false;
+      if (!key.upperOpen && key.upper !== undefined && compare(indexed, key.upper) > 0) return false;
+      if (key.upperOpen && key.upper !== undefined && compare(indexed, key.upper) >= 0) return false;
+      return true;
+    });
+    if (raw || name !== 'sensoryRecords') return matched;
+    return Promise.all(matched.map(value => transformForRead(name, value)));
+  }
   const objectStore = await store(name);
   if (!objectStore.indexNames.contains(indexName)) throw new Error(`${name} 缺少索引 ${indexName}`);
   const values = await requestToPromise(objectStore.index(indexName).getAll(key));
@@ -333,6 +371,11 @@ export async function sensoryHeadersByBean(beanId) {
 export async function put(name, value) {
   assertPlainObject(value, name);
   const prepared = await transformForWrite(name, value);
+  if (await isRoomBackendActive()) {
+    await roomStore().put(name, prepared);
+    if (name === 'beans') await roomStore().put('beanSummaries', beanSummaryFromBean(value));
+    return name === 'customCodes' ? value.code : value.id;
+  }
   const db = await openDb();
   const names = name === 'beans' ? ['beans', 'beanSummaries'] : [name];
   return new Promise((resolve, reject) => {
@@ -348,6 +391,11 @@ export async function put(name, value) {
 }
 
 export async function remove(name, key) {
+  if (await isRoomBackendActive()) {
+    await roomStore().remove(name, key);
+    if (name === 'beans') await roomStore().remove('beanSummaries', key);
+    return;
+  }
   const db = await openDb();
   const names = name === 'beans' ? ['beans', 'beanSummaries'] : [name];
   return new Promise((resolve, reject) => {
@@ -361,6 +409,11 @@ export async function remove(name, key) {
 }
 
 export async function clear(name) {
+  if (await isRoomBackendActive()) {
+    await roomStore().clear(name);
+    if (name === 'beans') await roomStore().clear('beanSummaries');
+    return;
+  }
   const db = await openDb();
   const names = name === 'beans' ? ['beans', 'beanSummaries'] : [name];
   return new Promise((resolve, reject) => {
@@ -376,6 +429,11 @@ export async function clear(name) {
 export async function bulkPut(name, values) {
   if (!Array.isArray(values)) throw new Error('批量写入数据必须是数组');
   const prepared = await Promise.all(values.map(value => transformForWrite(name, value)));
+  if (await isRoomBackendActive()) {
+    await roomStore().bulkPut(name, prepared);
+    if (name === 'beans') await roomStore().bulkPut('beanSummaries', values.map(beanSummaryFromBean));
+    return;
+  }
   const db = await openDb();
   await new Promise((resolve, reject) => {
     const names = name === 'beans' ? ['beans', 'beanSummaries'] : [name];
@@ -394,6 +452,16 @@ export async function bulkPut(name, values) {
 
 export async function replaceStores(storeRows) {
   assertPlainObject(storeRows, '恢复数据');
+  if (await isRoomBackendActive()) {
+    const prepared = Object.fromEntries(await Promise.all(Object.entries(storeRows).map(async ([name, values]) => [
+      name, await Promise.all(values.map(value => transformForWrite(name, value)))
+    ])));
+    await roomStore().replaceStores(prepared);
+    if (Object.hasOwn(storeRows, 'beans') && !Object.hasOwn(storeRows, 'beanSummaries')) {
+      await roomStore().replaceStores({ beanSummaries: storeRows.beans.map(beanSummaryFromBean) });
+    }
+    return;
+  }
   const names = Object.keys(storeRows);
   if (!names.length) return;
   for (const name of names) {
@@ -426,6 +494,13 @@ export async function replaceStores(storeRows) {
 
 export async function activateCodebook(candidate) {
   assertPlainObject(candidate, '编码表候选');
+  if (await isRoomBackendActive()) {
+    await roomStore().bulkPut('codebookCache', [
+      { ...candidate, id: 'candidate' },
+      { ...candidate, id: 'active' }
+    ]);
+    return;
+  }
   const db = await openDb();
   await new Promise((resolve, reject) => {
     const tx = db.transaction('codebookCache', 'readwrite');
@@ -446,6 +521,12 @@ export async function getSetting(id, fallback = null) {
 export async function setSetting(id, value) { return put('settings', { id, value, updatedAt: new Date().toISOString() }); }
 
 export async function clearAll() {
+  if (await isRoomBackendActive()) {
+    await roomStore().clearAll();
+    roomBackendActivePromise = undefined;
+    sensorySecretPromise = undefined;
+    return;
+  }
   const db = await openDb();
   await Promise.all(STORES.map(name => new Promise((resolve, reject) => {
     const request = db.transaction(name, 'readwrite').objectStore(name).clear();
