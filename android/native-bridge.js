@@ -92,6 +92,7 @@ globalThis.__LUCKYBEAN_PUBLIC_URL__ = 'https://zjcrop.github.io/luckybean/';
     clear(store) { return requestRoomStore('clear', { store }); },
     clearBeans() { return requestRoomStore('clearBeans'); },
     replaceStores(stores) { return requestRoomStore('replaceStores', { stores }); },
+    applyChanges(changes) { return requestRoomStore('applyChanges', { changes }); },
     clearAll() { return requestRoomStore('clearAll'); }
   });
 
