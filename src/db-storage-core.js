@@ -437,6 +437,7 @@ function createRoomDatabaseFacade() {
         if (transaction.clearStores.has('beans')) changes.clearStores.push('beanSummaries');
         return changes;
       };
+      return tx;
     }
   };
 }
