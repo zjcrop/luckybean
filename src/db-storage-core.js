@@ -276,9 +276,10 @@ export async function migrateSchema10ToRoom({ onProgress = () => {} } = {}) {
         value
       }));
       for (const batch of chunkByUtf8Size(backupRows)) await nativeStore.bulkPut(ROOM_SNAPSHOT_STORE, batch);
-      const snapshotRows = (await nativeStore.all(ROOM_SNAPSHOT_STORE))
-        .filter(row => row.sourceStore === name)
-        .map(row => row.value);
+    }
+    const persistedSnapshot = await nativeStore.all(ROOM_SNAPSHOT_STORE);
+    for (const name of storeNames) {
+      const snapshotRows = persistedSnapshot.filter(row => row.sourceStore === name).map(row => row.value);
       if (snapshotRows.length !== snapshot[name].count || await rowsDigest(snapshotRows) !== snapshot[name].sha256) {
         throw new Error(`迁移前快照校验失败：${name}`);
       }
