@@ -50,6 +50,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.ArrayList;
 
 public final class MainActivity extends Activity {
     private static final String APP_ORIGIN = "https://app.luckybean.local/";
