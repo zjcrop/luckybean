@@ -1,15 +1,13 @@
-import { all, getSetting, setSetting } from './db.js';
+import { all, getSetting } from './db.js';
 import { loadCodebook, makeIndex, displayName } from './codebook.js';
 import { freshnessProfile, clamp } from './utils.js';
 import { normalizeRecommendationScore } from './preference-model.js';
-import { beanGroupState, setBeanGroupMode, openBeanGroupState, closeBeanGroupState } from './domain/beans/bean-group-state.js';
+import { beanGroupState, openBeanGroupState, closeBeanGroupState } from './domain/beans/bean-group-state.js';
+import { loadBeanGroupMode, saveBeanGroupMode } from './domain/beans/bean-group-settings.js';
 
 if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
   globalThis.__LuckyBeanV099tBeanGroupsLoaded = true;
 
-  const MODE_KEY = 'v099i.group.mode';
-  const LEGACY_MODE_KEY = 'v099f.group.mode';
-  const LEGACY_GROUP_KEY = 'luckybean.group.method.v098';
   const MODE_NATIVE = 'native';
   const MODE_FRESHNESS = 'freshness-ratio';
   const MODE_REMAINING = 'remaining-50';
@@ -63,7 +61,6 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
   let dataCache = null;
   let dataPromise = null;
   let currentMode = '';
-  let rendering = false;
   let recommendationBusy = false;
   let selectedId = localStorage.getItem(SELECTED_KEY) || '';
   let boardHtmlCache = '';
@@ -106,7 +103,6 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
   }
 
   function ratioFor(bean) {
-    if (measuredRatios.has(bean.id)) return measuredRatios.get(bean.id);
     return clamp(Number(freshnessProfile(bean).progress || 0), 0, 1);
   }
 
@@ -146,26 +142,13 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
   function invalidateData() { dataCache = null; }
 
   async function getMode() {
-    if (currentMode) return currentMode;
-    const [saved, legacy] = await Promise.all([getSetting(MODE_KEY, MODE_NATIVE), getSetting(LEGACY_MODE_KEY, MODE_NATIVE)]);
-    const oldGroup = localStorage.getItem(LEGACY_GROUP_KEY) || '';
-    if (saved === MODE_FRESHNESS || saved === MODE_REMAINING) currentMode = saved;
-    else if (legacy === 'freshness') currentMode = MODE_FRESHNESS;
-    else if (oldGroup === MODE_REMAINING) currentMode = MODE_REMAINING;
-    else currentMode = MODE_NATIVE;
-    if (currentMode !== MODE_NATIVE || legacy === 'freshness' || oldGroup === MODE_REMAINING) {
-      localStorage.setItem(LEGACY_GROUP_KEY, 'roast');
-      await Promise.all([setSetting(MODE_KEY, currentMode), setSetting(LEGACY_MODE_KEY, MODE_NATIVE)]);
-    }
-    setBeanGroupMode(currentMode);
+    currentMode = await loadBeanGroupMode();
     return currentMode;
   }
 
   async function saveMode(mode) {
     currentMode = mode;
-    setBeanGroupMode(mode);
-    localStorage.setItem(LEGACY_GROUP_KEY, 'roast');
-    await Promise.all([setSetting(MODE_KEY, mode), setSetting(LEGACY_MODE_KEY, MODE_NATIVE)]);
+    await saveBeanGroupMode(mode);
   }
 
   async function nativeGroupMethod() {
@@ -221,39 +204,11 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
   }
 
   async function render({ force = false, refreshData = false } = {}) {
-    if (rendering) return;
-    const mode = await getMode();
-    if (![MODE_FRESHNESS, MODE_REMAINING].includes(mode)) return;
-    const page = $('#pageBeans.active');
-    const container = $('#beanGroups');
-    if (!page || !container || !$('#activeFilterBar')?.classList.contains('hidden')) return;
-    const board = captureBoard(container);
-    const renderKey = `${mode}|${beanGroupState.groupKey}`;
-    if (!force && container.dataset.v099tGroupKey === renderKey && container.querySelector('[data-v099t-group-root]')) return;
-
-    rendering = true;
-    container.classList.add('v099t-group-busy');
-    try {
-      const { index, active, scoreMap } = await loadData({ force: refreshData });
-      const groups = groupData(active, mode);
-      if (beanGroupState.groupKey && !groups.some(group => group.key === beanGroupState.groupKey)) closeBeanGroupState();
-      container.dataset.v099tGroupKey = `${mode}|${beanGroupState.groupKey}`;
-      if (!active.length) {
-        container.innerHTML = `${board}<div data-v099t-group-root class="empty-state"><strong>没有可分组的豆卡</strong></div>`;
-        return;
-      }
-      if (!beanGroupState.groupKey) {
-        container.innerHTML = `${board}<section data-v099t-group-root><div class="v099f-freshness-note v099i-freshness-note">${modeNote(mode)}</div><div class="bean-grid compact-grid group-grid bean-grid-animated manual-motion">${groups.map(group => { const weight = group.items.reduce((sum, bean) => sum + Number(bean.remainingWeight || 0), 0); return `<button class="group-card v099f-stage-card" type="button" data-v099t-open-group="${esc(group.key)}"><span>${esc(group.label)}</span><small>${group.items.length}只 · ${weight.toFixed(1)}g</small></button>`; }).join('')}</div></section>`;
-        return;
-      }
-      const group = groups.find(item => item.key === beanGroupState.groupKey);
-      const items = group ? sortedItems(group.items, mode) : [];
-      container.innerHTML = `${board}<section data-v099t-group-root class="active-group-panel auto-motion"><div class="active-group-title"><span>${esc(group?.label || beanGroupState.groupKey)}</span><small>${items.length}只 · ${mode === MODE_FRESHNESS ? '烘焙日期由新到旧' : '余量由少到多'}</small></div><div class="bean-grid compact-grid bean-grid-animated auto-motion">${items.map(bean => beanCardHtml(bean, index, scoreMap)).join('') || '<p class="muted">该分组没有豆卡</p>'}</div><button class="bean-group-dismiss-surface" type="button" data-close-bean-group aria-label="返回分组列表"></button></section>`;
-    } finally {
-      rendering = false;
-      container.classList.remove('v099t-group-busy');
-      globalThis.LuckyBeanFreshnessTimeline?.refresh?.();
-    }
+    await getMode();
+    if (refreshData) invalidateData();
+    // The app owns the list for every mode, including background refreshes.
+    globalThis.LuckyBeanBeanListView?.render();
+    globalThis.LuckyBeanFreshnessTimeline?.refresh?.();
   }
 
   async function closeActiveGroup({ refreshData = false } = {}) {
@@ -336,7 +291,7 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
   }
 
   async function handleClick(event) {
-    const mode = currentMode || MODE_NATIVE;
+    const mode = beanGroupState.mode;
     const dismiss = event.target.closest?.('[data-close-bean-group]');
     if (dismiss && [MODE_FRESHNESS, MODE_REMAINING].includes(mode) && beanGroupState.groupKey) {
       event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
@@ -377,18 +332,8 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
   }
 
   window.addEventListener('click', event => { handleClick(event).catch(error => console.error('豆藏分组处理失败', error)); }, true);
-  window.addEventListener('pageshow', () => { getMode().then(mode => { if ([MODE_FRESHNESS, MODE_REMAINING].includes(mode) && $('#pageBeans.active')) setTimeout(() => { captureBoard(); render({ force: true, refreshData: true }).catch(() => {}); }, 80); }).catch(() => {}); });
-  document.addEventListener('luckybean:app-refreshed', () => {
-    invalidateData();
-    getMode().then(mode => {
-      if (![MODE_FRESHNESS, MODE_REMAINING].includes(mode) || !$('#pageBeans.active')) return;
-      setTimeout(() => {
-        captureBoard();
-        const container = $('#beanGroups'); if (container) delete container.dataset.v099tGroupKey;
-        render({ force: true, refreshData: true }).catch(error => console.warn('豆藏分组刷新失败', error));
-      }, 0);
-    }).catch(() => {});
-  });
+  window.addEventListener('pageshow', invalidateData);
+  document.addEventListener('luckybean:app-refreshed', invalidateData);
   document.addEventListener('luckybean:data-changed', () => { invalidateData(); });
   document.addEventListener('luckybean:close-bean-group', event => {
     if (!beanGroupState.groupKey) return;
@@ -398,7 +343,7 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
 
   document.addEventListener('luckybean:bean-group-closed', event => {
     if (event.detail?.source === 'special') return;
-    const mode = currentMode || MODE_NATIVE;
+    const mode = beanGroupState.mode;
     if (![MODE_FRESHNESS, MODE_REMAINING].includes(mode)) return;
     const container = $('#beanGroups');
     if (container) delete container.dataset.v099tGroupKey;
@@ -412,7 +357,6 @@ if (!globalThis.__LuckyBeanV099tBeanGroupsLoaded) {
     : new Promise(resolve => document.addEventListener('luckybean:app-settings-ready', resolve, { once: true }));
   settingsReady
     .then(() => getMode())
-    .then(mode => { if ([MODE_FRESHNESS, MODE_REMAINING].includes(mode) && $('#pageBeans.active')) setTimeout(() => { captureBoard(); render({ force: true }).catch(() => {}); }, 80); })
     .catch(() => {});
 
   globalThis.LuckyBeanV099tBeanGroups = {

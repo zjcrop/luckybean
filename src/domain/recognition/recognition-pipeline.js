@@ -1,11 +1,11 @@
-import { parseNaturalLanguage } from '../../codebook.js';
+import { parseNaturalLanguage, splitRecognitionFieldLayout } from '../../codebook.js';
 import { automaticEntityResolutionDecision } from '../../services/coffee-knowledge-adapter.js';
 import { bestKnowledgeOnlyVarietyCandidate } from '../../services/knowledge-only-variety-candidates.js';
 import { resolveRecognitionRelations, resolverPriorityDescription } from './recognition-field-resolver-1.24b.js';
 import { preNormalizeRecognitionSemanticText } from './recognition-pre-semantic-normalizer.js';
 import { repairRecognitionSemanticText } from './recognition-semantic-repair.js';
 
-export const RECOGNITION_PIPELINE_VERSION = '1.24P-recognition-pipeline.7';
+export const RECOGNITION_PIPELINE_VERSION = '1.24P-recognition-pipeline.8';
 
 const RELATION_TO_RESULT = Object.freeze({
   country: 'countryCode', origin: 'countryCode', region: 'regionCode', farm: 'entityCode', producer: 'entityCode',
@@ -157,8 +157,7 @@ function buildFieldRows(document, parsed, book) {
     let standardValue = '';
     if (field === 'flavorCodes') {
       const codes = Array.isArray(value) ? value : [];
-      standardValue = codes.map(code => labelForCode(book, table, code)).filter(Boolean).join('、');
-      if (!standardValue && Array.isArray(customValue)) standardValue = customValue.join('、');
+      standardValue = [...new Set([...codes.map(code => labelForCode(book, table, code)).filter(Boolean), ...(Array.isArray(customValue) ? customValue : [])])].join('、');
     } else if (table && value) standardValue = labelForCode(book, table, value);
     else standardValue = displayScalar(field, value);
     if (!standardValue && knowledgeCandidate?.canonicalNameEn) standardValue = clean(knowledgeCandidate.canonicalNameEn);
@@ -170,7 +169,9 @@ function buildFieldRows(document, parsed, book) {
     const resolved = canonicalResolved || trustedCustom;
     const confidence = Math.max(Number(parsed?.confidence?.[field] || 0), customValueConfidence(parsed, customField), relationConfidence(relations, field));
     const translated = resolved && rawValue && standardValue && normalizedComparable(rawValue) !== normalizedComparable(standardValue);
-    const dictionaryReview = Boolean(parsed?.parseMetadata?.dictionaryMatchReview?.[field]?.requiresUserConfirmation);
+    const dictionaryReviewInfo = parsed?.parseMetadata?.dictionaryMatchReview?.[field];
+    const dictionaryReview = Boolean(dictionaryReviewInfo?.requiresUserConfirmation);
+    if (dictionaryReview && table && dictionaryReviewInfo.candidateCode) standardValue = labelForCode(book, table, dictionaryReviewInfo.candidateCode) || standardValue;
     const requiresReview = Boolean(resolution.conflict) || !resolved || dictionaryReview;
     rows.push({ field, label, rawValue, standardValue:standardValue || rawValue, confidence, resolved:resolved && !resolution.conflict && !dictionaryReview, translated,
       status:requiresReview ? 'review' : (translated ? 'translated' : 'resolved'), sources:resolution.winner?.sources || relations.get(field) || [],
@@ -218,7 +219,7 @@ export function analyzeRecognitionDocument(document, book) {
   recordDiagnostic('semantic-source-capture', started);
 
   started = diagnosticNow();
-  const preSemantic = preNormalizeRecognitionSemanticText(rawSemanticText, book);
+  const preSemantic = preNormalizeRecognitionSemanticText(splitRecognitionFieldLayout(rawSemanticText, book), book);
   recordDiagnostic('pre-semantic-normalization', started, { changedLines:preSemantic.audit.length, lineCount:preSemantic.lines.length });
 
   started = diagnosticNow();

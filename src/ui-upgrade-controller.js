@@ -50,7 +50,6 @@ if (!globalThis.__LuckyBeanV099fUiUpgradeLoaded) {
       enhanceBeanForm();
       normalizeDialogPosition();
       removeDuplicateStoragePanels();
-      if (await getSetting(GROUP_MODE_KEY, 'native') === 'freshness') renderFreshnessGrouping();
     }));
   }
 
@@ -196,6 +195,7 @@ if (!globalThis.__LuckyBeanV099fUiUpgradeLoaded) {
   }
 
   async function renderFreshnessGrouping() {
+    if (globalThis.LuckyBeanBeanListView) return globalThis.LuckyBeanBeanListView.render();
     if (freshnessRendering) return;
     const container = $('#beanGroups');
     if (!container || !$('#pageBeans.active')) return;

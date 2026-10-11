@@ -193,6 +193,34 @@ test('freshness and remaining groups keep their renderer while sharing canonical
   }
 });
 
+test('startup paints only the saved grouping mode, including explicit native mode with stale legacy keys', async ({ page }) => {
+  await page.addInitScript(() => {
+    globalThis.__groupPaintModes = [];
+    new MutationObserver(records => {
+      if (!records.some(record => record.target.id === 'beanGroups')) return;
+      const root = document.querySelector('#beanGroups');
+      if (root?.children.length) globalThis.__groupPaintModes.push(root.dataset.groupMode);
+    }).observe(document, { childList:true, subtree:true });
+  });
+  for (const mode of ['freshness-ratio', 'remaining-50', 'native']) {
+    await page.evaluate(async mode => {
+      const db = await import('/src/db.js');
+      const settings = await db.getSetting('app.settings', {});
+      await db.setSetting('app.settings', { ...settings, groupMethod:'variety' });
+      await db.setSetting('v099i.group.mode', mode);
+      await db.setSetting('v099f.group.mode', 'freshness');
+      localStorage.setItem('luckybean.group.method.v098', 'remaining-50');
+    }, mode);
+    await page.goto(`${BASE_URL}/?group-startup=${mode}`, { waitUntil:'domcontentloaded' });
+    await waitForStartup(page);
+    await page.waitForFunction(() => globalThis.LuckyBeanV099tBeanGroups);
+    await refreshFrom(page, 'group-startup-verification');
+    const painted = await page.evaluate(() => globalThis.__groupPaintModes);
+    expect(painted.length).toBeGreaterThan(0);
+    expect([...new Set(painted)]).toEqual([mode === 'native' ? 'variety' : mode]);
+  }
+});
+
 test('special group recommendations also keep exactly one target group open',async({page})=>{
   for(const mode of ['freshness-ratio','remaining-50']){
     const specialPage=await openSpecialModePage(page,mode);

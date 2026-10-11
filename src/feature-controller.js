@@ -57,7 +57,7 @@ async function migrateDefaultGroup() {
   const done = await getSetting('migration.v098.default-roast-group', false);
   if (done) return;
   const settings = await getSetting('app.settings', {});
-  settings.groupMethod = 'roast';
+  settings.groupMethod ||= 'roast';
   await setSetting('app.settings', settings);
   await setSetting('migration.v098.default-roast-group', true);
   localStorage.setItem(GROUP_KEY, 'roast');
@@ -123,6 +123,7 @@ function sortItems(items, descriptor) {
 }
 
 async function renderCustomGroups() {
+  if (globalThis.LuckyBeanBeanListView) return globalThis.LuckyBeanBeanListView.render();
   if (groupBusy) return;
   const container = $('#beanGroups');
   if (!container || !$('#pageBeans.active')) return;
@@ -517,7 +518,7 @@ const uiObserver = new MutationObserver(queueUi);
   const root = document.querySelector(selector);
   if (root) uiObserver.observe(root, { childList: true, subtree: true });
 });
-migrateDefaultGroup().catch(console.error).finally(queueUi);
+document.addEventListener('luckybean:app-settings-ready', queueUi, { once: true });
 queueUi();
 
 globalThis.LuckyBeanV098Fixes = {

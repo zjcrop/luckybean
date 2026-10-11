@@ -1,3 +1,5 @@
+import { hasMixedDictionaryFields } from './dictionary-span-matcher.js';
+
 export const PRE_SEMANTIC_NORMALIZATION_SCHEMA = 'recognition-pre-semantic/1.1';
 
 const TRADITIONAL_FOLD = Object.freeze({
@@ -215,7 +217,7 @@ export function preNormalizeRecognitionSemanticText(source, _book) {
         normalizedText = normalized.text;
         candidate = normalized.candidate;
       } else {
-        candidate = standaloneCandidate(rawText, folded);
+        candidate = hasMixedDictionaryFields(folded, _book) ? null : standaloneCandidate(rawText, folded);
         normalizedText = standaloneShadow(folded, candidate);
       }
     }

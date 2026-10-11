@@ -1,6 +1,6 @@
 import { get, put, all, activateCodebook } from './db.js';
 import { sha256Hex } from './utils.js';
-import { bestDictionarySpan } from './domain/recognition/dictionary-span-matcher.js';
+import { bestDictionarySpan, hasMixedDictionaryFields } from './domain/recognition/dictionary-span-matcher.js';
 import { codebookCandidates, reliableCandidates } from './recognition-candidates.js';
 
 export const REMOTE_CODEBOOK_URL = 'https://raw.githubusercontent.com/zjcrop/BrewIon/main/coffee-qr-codebook/coffee_qr_codebook_v6.json';
@@ -243,7 +243,7 @@ function lexiconTerms(book, field) {
 
 function escapeRegex(value) { return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-function inlineFieldSegments(source, book) {
+function recognitionFieldMarkers(source, book) {
   const fields = ['roastDate','productionDate','packDate','bestBefore','expiryDate','roastColor','country','region','entity','variety','process','roast','roaster','harvest','flavor','altitude','weight','price','lot','grade'];
   const fieldForLabel = new Map();
   const terms = [];
@@ -253,33 +253,64 @@ function inlineFieldSegments(source, book) {
     terms.push(term);
   }
   const uniqueTerms = [...new Set(terms)].sort((left, right) => [...right].length - [...left].length);
-  if (!uniqueTerms.length) return null;
+  if (!uniqueTerms.length) return [];
   const alternatives = uniqueTerms.map(term => escapeRegex(term).replace(/\s+/g, '\\s+')).join('|');
-  const pattern = new RegExp(`(^|[\\s,，;；|。])(${alternatives})(\\s*[:：=]\\s*|\\s+)`, 'gimu');
+  const pattern = new RegExp(`(${alternatives})([ \\t]*[:：=][ \\t]*|[ \\t]+|(?=\\r?\\n))`, 'giu');
   const markers = [];
-  const ambiguousWhitespaceLabels = new Set(['estate','farm','producer','farmer','grower','station','washing station','wet mill','dry mill','mill','factory','method','roast','lot','score','grade']);
+  const ambiguousWhitespaceLabels = new Set(['estate','farm','finca','producer','farmer','grower','station','washing station','wet mill','dry mill','mill','factory','method','roast','lot','score','grade']);
   let match;
   while ((match = pattern.exec(source))) {
-    const label = match[2].normalize('NFKC').replace(/\s+/g, ' ').trim().toLocaleLowerCase('zh-CN');
+    const label = match[1].normalize('NFKC').replace(/\s+/g, ' ').trim().toLocaleLowerCase('zh-CN');
     const field = fieldForLabel.get(label);
     if (!field) continue;
-    const marker = { field, start:match.index + match[1].length, valueStart:match.index + match[0].length };
-    const explicitDelimiter = /[:：=]/.test(match[3]);
+    const marker = { field, start:match.index, valueStart:match.index + match[0].length };
+    const explicitDelimiter = /[:：=]/.test(match[2]);
+    const previous = source[marker.start - 1] || '';
+    if (/^[A-Za-z]/.test(label) && /[A-Za-z0-9]/.test(previous)) continue;
+    if (!explicitDelimiter && previous && !/[\s,，;；|。]/.test(previous)) continue;
     const lineStart = Math.max(source.lastIndexOf('\n', marker.start - 1), source.lastIndexOf('\r', marker.start - 1)) + 1;
+    if (field === 'harvest' && /^\d{2,4}$/.test(source.slice(lineStart, marker.start).trim())) continue;
     if (!explicitDelimiter && ambiguousWhitespaceLabels.has(label) && source.slice(lineStart, marker.start).trim()) continue;
     if (markers.length && marker.start < markers.at(-1).valueStart) continue;
     markers.push(marker);
   }
-  if (markers.length < 2) return null;
+  return markers;
+}
+
+// Split labels before semantic repair so one field cannot consume another field
+// printed on the same line, including Chinese labels without separating spaces.
+export function splitRecognitionFieldLayout(text, book) {
+  const source = String(text || '');
+  const markers = recognitionFieldMarkers(source, book);
+  let output = '', cursor = 0;
+  for (const marker of markers) {
+    output += source.slice(cursor, marker.start);
+    if (marker.start && !/[\r\n]$/.test(output)) output += '\n';
+    cursor = marker.start;
+  }
+  return output + source.slice(cursor);
+}
+
+function inlineFieldSegments(source, book) {
+  const markers = recognitionFieldMarkers(source, book);
+  if (!markers.length) return null;
   const result = {};
+  const residual = [source.slice(0, markers[0].start).trim()];
   for (let index = 0; index < markers.length; index += 1) {
     const marker = markers[index];
     const end = markers[index + 1]?.start ?? source.length;
-    const value = normalizeLabelValue(source.slice(marker.valueStart, end).replace(/^[\s,，;；|。]+|[\s,，;；|。]+$/g, ''));
+    const owned = [];
+    const lines = source.slice(marker.valueStart, end).split(/\r?\n/);
+    for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+      const line = lines[lineIndex];
+      if (hasMixedDictionaryFields(line, book) || (marker.field === 'flavor' && lineIndex > 0 && /\d/.test(line))) residual.push(line);
+      else owned.push(line);
+    }
+    const value = normalizeLabelValue(owned.join('\n').replace(/^[\s,，;；|。]+|[\s,，;；|。]+$/g, ''));
     if (!value) continue;
     result[marker.field] = result[marker.field] ? `${result[marker.field]}\n${value}` : value;
   }
-  return { fields:result, residualText:source.slice(0, markers[0].start).trim(), inline:true };
+  return { fields:result, residualText:residual.filter(Boolean).join('\n'), inline:true };
 }
 
 function labeledFieldValues(source, book) {
@@ -339,7 +370,6 @@ function bestTableMatch(value, rows, field = '', context = {}) {
   if (hasContextConstraint && !contextualRows.length) return null;
   const matchRows = hasContextConstraint ? contextualRows : rows || [];
   const span = bestDictionarySpan(source, matchRows);
-  if (span) return { code:span.code, alias:span.alias, row:span.row, direct:false, span:{ start:span.start, end:span.end } };
 
   // A single OCR edit may still identify a unique dictionary row. Keep it
   // reviewable instead of silently treating a near-match as exact.
@@ -348,11 +378,14 @@ function bestTableMatch(value, rows, field = '', context = {}) {
   if (table && source.length <= 180) {
     const candidates = reliableCandidates(field, codebookCandidates(field, source, { [table]:matchRows }, context, 5));
     const best = candidates[0];
-    const runnerUp = candidates.find(candidate => candidate.code !== best?.code);
-    if (best && best.score >= 0.80 && (!runnerUp || best.score - runnerUp.score >= 0.06)) {
+    const runnerUp = candidates.find(candidate => candidate.code !== best?.code
+      && !String(best?.matched || '').toLocaleLowerCase('zh-CN').includes(String(candidate.matched || '').toLocaleLowerCase('zh-CN')));
+    if (best && best.score >= 0.80 && (!runnerUp || best.score - runnerUp.score >= 0.06)
+      && (!span || [...best.matched.replace(/[\s\p{P}\p{S}]/gu, '')].length > span.normalizedLength)) {
       return { code:best.code, alias:best.matched, sourceText:source, row:(rows || []).find(row => String(row?.[0]) === String(best.code)), direct:false, approximate:true, score:best.score };
     }
   }
+  if (span) return { code:span.code, alias:span.alias, row:span.row, direct:false, span:{ start:span.start, end:span.end } };
 
   // Keep the existing safe partial-name behavior for short user-entered fragments.
   const lower = source.toLocaleLowerCase('zh-CN');
@@ -468,6 +501,21 @@ function recordMatch(result, field, match, labeled = false, customField = '') {
   result.evidence[field] = match.alias;
 }
 
+function unlabelledProcessMatch(source, book) {
+  // Competition categories describe an award, not this lot's processing method.
+  const lines = String(source || '').split(/\n+/).filter(line => !/(?:\bCOE\b|Cup\s+of\s+Excellence|卓越杯|竞赛|竞标).*?(?:第?[一二三四五六七八九十\d]+名|rank|place|winner|组|category)/iu.test(line));
+  let best = bestTableMatch(lines.join('\n'), book.processes, 'processCode');
+  for (const line of lines) {
+    const variety = bestDictionarySpan(line, book.varieties || []);
+    if (!variety) continue;
+    const phrase = line.slice(variety.end).match(/^[\s·•、,，:：/|\-]*([\p{Script=Han}]{2,18})/u)?.[1];
+    if (!phrase) continue;
+    const candidate = bestTableMatch(phrase, book.processes, 'processCode');
+    if (candidate && (!best || candidate.alias.length > best.alias.length)) best = candidate;
+  }
+  return best;
+}
+
 export function parseNaturalLanguage(text, book) {
   const source = String(text || '').trim();
   const labeledResult = labeledFieldValues(source, book);
@@ -508,14 +556,15 @@ export function parseNaturalLanguage(text, book) {
     }
 
     let best = directCodeMatch(normalizedCodes, book[table]);
-    if (!best) {
+    if (!best && field === 'processCode') best = unlabelledProcessMatch(inferenceSource, book);
+    if (!best && field !== 'processCode') {
       const contextRows = rowsForFieldContext(field, book[table], { countryCode:result.countryCode, regionCode:result.regionCode });
       const span = bestDictionarySpan(inferenceSource, contextRows);
       if (span) best = { code:span.code, alias:span.alias, row:span.row, direct:false, span:{ start:span.start, end:span.end } };
     }
     const aliasKey = normalizeLabelValue(best?.alias).toLocaleLowerCase('zh-CN');
     if (aliasKey && usedAliases.has(aliasKey)) best = null;
-    recordMatch(result, field, best, false);
+    recordMatch(result, field, best, false, customField);
     if (best && aliasKey) usedAliases.add(aliasKey);
   }
 
@@ -586,7 +635,7 @@ export function parseNaturalLanguage(text, book) {
   const altitudeSource = labeled.altitude || inferenceSource;
   const altitude = labeled.altitude
     ? altitudeSource.match(/(\d{3,4})(?:\s*[-~至到]\s*\d{3,4})?\s*(?:m|米|masl)?/i)
-    : altitudeSource.match(/(\d{3,4})(?:\s*[-~至到]\s*\d{3,4})?\s*(?:m(?:asl)?\b|米)/i);
+    : altitudeSource.match(/(\d{3,4})(?:\s*[-~至到]\s*\d{3,4})?\s*(?:m(?:asl)?(?![a-z])|米)/i);
   if (altitude) {
     const range=/(\d{3,4})\s*[-~–—至到]\s*(\d{3,4})\s*(?:m|米|masl)?/iu.exec(altitudeSource);
     if(range) {
@@ -638,6 +687,10 @@ export function parseNaturalLanguage(text, book) {
     residue = residue.replace(new RegExp(escapeRegex(alias), 'gi'), ' ');
   }
   result.flavorCodes = [...new Set(flavorMatches)].slice(0, 12);
+  if (result.flavorCodes.length) {
+    result.evidence.flavorCodes = labeled.flavor || matchedFlavorAliases.join('、');
+    result.confidence.flavorCodes = labeled.flavor ? 0.93 : 0.8;
+  }
   if (labeled.flavor) {
     const custom = residue
       .split(/[、,，;；/|\s]+/)
