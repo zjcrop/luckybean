@@ -1,43 +1,49 @@
 # LuckyBean Core v2：Schema 10 原生存储迁移
 
-状态：实施中；不代表已通过 Android 真机或数据迁移验收。
+状态：实施中，PR #135 草稿；尚未达到合并、发布或关闭 Issue #22 的门槛。
+
+- 基线：`ee6488e4d2dc28d640a4cb1d3887430381687fcf`
+- 当前验证 head：`cf9ccdf7dcd6773a12ca8097f2f5e8064795e8f6`
+- [主测试与浏览器工作流](https://github.com/zjcrop/luckybean/actions/runs/38109628735)通过；[API 29 Android 集成工作流](https://github.com/zjcrop/luckybean/actions/runs/38109628622)通过。
 
 ## 当前事实
 
-- Web 与 Android 当前都运行 schema 10 的 IndexedDB；Android UI 容器是 WebView。
-- 领域模块、schema 9→10 投影迁移、数据安全、同步 outbox 已有实现，不能作为 Core v2 未完成项重复实现。
-- Room、GeckoView 以及 IndexedDB→Room 的在线迁移尚未接入。
-- 当前基线：`ee6488e4d2dc28d640a4cb1d3887430381687fcf`。
+- Web 与已发布 Android 版使用 schema 10 IndexedDB；Android 容器仍是 WebView。
+- 已有本地优先领域模块、schema 9→10 投影迁移、加密品鉴记录和同步 outbox，不在本迁移中重做。
+- 旧提案的 schema 3 已过时；唯一迁移源是 schema 10。
+- Room/IndexedDB 代码仅在 PR #135 分支，尚未进入 main 或发布版。
+
+## PR #135 已实现并通过 CI
+
+- Room v1 记录模型、复合索引、异步仓库及 WebView 原生桥接；Gradle 配置 Room schema 导出。
+- schema 10 IndexedDB 各 store 的原始数据快照、分块导入、逐 store 记录数与 SHA-256 校验；所有 store 验证通过后才写入 Room active 标记。
+- 保留未知字段、sensoryRecords 密文、设备密钥、syncOutbox、historyRevisions 与 recycleBin；不解密迁移记录。
+- 兼容业务代码现有的 IndexedDB 事务调用，并将一次事务中的变化作为单个 Room 事务提交。
+- 回滚时串行化 Room 操作，将业务记录完整写回 IndexedDB，并排除 Room 专用 active 标记；浏览器 fixture 覆盖全表回滚比对。
+- 浏览器迁移/回滚用例、Android Room repository 仪器测试和 API 29 启动冒烟通过。
+
+## 尚未完成的交付与发布阻断
+
+- Android 仍是 WebView；GeckoView 及其 Native bridge 未实现。
+- 文件、相机、OCR、计时、后台任务仍未迁移到平台抽象；独立豆卡缩略图 IndexedDB 也未迁入 Room。
+- 当前分支的 Android 启动脚本会自动触发 Room 迁移；尚无迁移确认、进度、取消和应用内回滚入口。该行为仅留在草稿分支，补齐显式用户流程前不得合并或发布。
+- API 29 自动冒烟尚未在飞行模式下跑完整冲煮及本地历史功能，也没有证明这条流程不访问 Supabase。
+- 没有真实设备上的既有 schema 10 历史数据升级、重启、逐表校验和回滚演练。
+- Room schema 导出已配置，但 Room 版本化 schema 文件仍需纳入并审核。
 
 ## 目标边界
 
-- Web 继续使用 IndexedDB。
-- Android 新安装使用 GeckoView 与 Room；原有 WebView 用户通过显式、可回滚迁移转入 Room。
-- 同步、识别、文件、计时等业务模块只依赖异步存储/平台契约，不依赖 Room、GeckoView 或 Supabase 实现细节。
-- schema 10 是唯一迁移源；不再引入旧提案的 schema 3。
-- 迁移期间保留旧 IndexedDB，不删库、不做 destructive migration；有快照、逐 store 计数与摘要校验，失败自动回到旧引擎/旧存储。
-
-## 交付批次
-
-1. 冻结现有 IndexedDB v10 存储契约及黄金 fixture；明确主键、二级索引、敏感字段原样搬运规则。
-2. 落地异步 Store/Platform contracts，Web IndexedDB 实现作为基准，Node/浏览器黄金测试保持一致。
-3. 建立 Room v1 记录模型与 schema export；加入可测试的事务、索引、备份和恢复接口。
-4. 实现可中断、可重试的 v10→Room 影子导入：生成本地快照，分块导入，验证 store、记录数和 SHA-256；只有验证成功才切换。
-5. GeckoView 通过单一 Native bridge 接入 Room、文件/相机/OCR/计时；逐项替换并保留 WebView 回退。
-6. CI 运行 Web/Node/Android 编译、模拟器离线启动、迁移与回滚测试；人工 Android 设备验收通过后才能合并与发布。
-
-## 数据与回滚约束
-
-- 搬运 canonical 行的原始 JSON，不重新序列化业务字段、不重算 ID、不丢弃未知字段；派生 beanSummaries 可以重建。
-- 包括 sensoryRecords 的密文、syncMetadata 中的设备密钥、syncOutbox、historyRevisions 和 recycleBin。不得将敏感记录解密后写进迁移日志。
-- 迁移快照与原 IndexedDB 在切换后都保留；Room 写入失败不能吞掉业务变更，也不能标记 outbox 已同步。
-- 迁移只能在后台异步执行，UI 继续显示进度；取消、进程终止、空间不足和校验失败都必须可恢复。
-- Android 单元/模拟器不能替代真实设备的飞行模式、现有用户历史数据和升级覆盖测试。
+- Web 继续使用 IndexedDB；Android 最终使用 GeckoView 与 Room。
+- 业务模块只依赖异步 Store/Platform contracts，不依赖 Room、浏览器内核或 Supabase 实现细节。
+- 既有用户必须能明确选择迁移，迁移时看到进度；旧 IndexedDB 与快照保留，失败或回滚不能丢数据。
+- 禁止 destructive migration，未知字段和敏感记录必须原样保留。
 
 ## 验收门槛
 
-- Web IndexedDB 与 Room 对同一 Golden fixture 的 CRUD、复合索引、批量写入、事务恢复、敏感记录字节和 outbox 行为一致。
-- 人为中断每个导入阶段后，重启可以安全重试；回滚后 IndexedDB 摘要与迁移前完全一致。
-- Android API 29 模拟器飞行模式下启动、读写豆卡、完成冲煮并生成本地历史；关闭联网不应访问 Supabase。
-- 至少一台已有 LuckyBean schema 10 历史数据的实体 Android 设备完成升级迁移、校验、重启、回滚演练。
-- 以上自动与人工门槛未全部通过前，不关闭 #22，不切换发布版默认引擎，不删除旧数据库。
+1. Web IndexedDB 与 Room 对同一 Golden fixture 的 CRUD、复合索引、批量写入、事务原子性、密文和 outbox 行为一致。
+2. 人为中断每个导入阶段后可安全重试；回滚后的 IndexedDB 与 Room 当前业务数据逐 store 一致。
+3. Android API 29 飞行模式下启动、读写豆卡、完成冲煮并生成本地历史；确认流程不访问 Supabase。
+4. 至少一台已有 schema 10 用户数据的实体设备完成迁移、校验、重启与回滚。
+5. 通过以上自动及人工门槛后，才能请求合并与发布，并更新 #22 的完成批次。
+
+任一人工验收不可由模拟器或 CI 代替；全部门槛通过前，保持 #22 open，不切换发布默认后端，也不删除旧数据库。
