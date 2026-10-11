@@ -45,6 +45,11 @@ export async function brewApiJson(path = '', {
   timeoutMs = 10000,
   signal
 } = {}) {
+  if (globalThis.__LUCKYBEAN_NATIVE_ONLINE__ === false || globalThis.navigator?.onLine === false) {
+    const error = new Error('当前处于离线状态，可继续使用已保存的冲煮方案。');
+    error.code = 'NETWORK_UNAVAILABLE';
+    throw error;
+  }
   const controller = new AbortController();
   const abort = () => controller.abort(signal?.reason);
   if (signal) {

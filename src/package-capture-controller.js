@@ -54,11 +54,11 @@ function releaseWebPreviewsForRecognition() {
 function disposeBrowserOcr() {
   try { void globalThis.LuckyBeanPaddleOCR?.dispose?.(); } catch {}
 }
-function bindAndroidImageSource(imageId, includePreview) {
+async function bindAndroidImageSource(imageId, includePreview) {
   if (!globalThis.__LUCKYBEAN_ANDROID__) return '';
   const native = globalThis.LuckyBeanNative;
   if (typeof native?.bindImageSource !== 'function') return '';
-  try { return String(native.bindImageSource(String(imageId || ''), Boolean(includePreview)) || ''); } catch { return ''; }
+  try { return String(await native.bindImageSource(String(imageId || ''), Boolean(includePreview)) || ''); } catch { return ''; }
 }
 function clearCapture({ keepOverlay = false } = {}) {
   operationGeneration += 1;
@@ -158,7 +158,7 @@ async function addFiles(fileList) {
     for (const file of files) {
       const prepared = await preparePackageImage(file); const role = nextRole();
       const id = `bag_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-      const nativeSource = Boolean(prepared.nativeSource); const nativePreview = bindAndroidImageSource(id, nativeSource);
+      const nativeSource = Boolean(prepared.nativeSource); const nativePreview = await bindAndroidImageSource(id, nativeSource);
       const previewUrl = nativeSource ? nativePreview : URL.createObjectURL(prepared.blob); const warnings = [...(prepared.warnings || [])];
       if (nativeSource && !nativePreview) warnings.push('Android 原图已绑定；缩略预览生成失败，但本地 OCR 仍可直接读取原图。');
       captureState.images.push({ id, role, roleLabel:roleLabel(role), blob:prepared.blob, previewUrl, previewAvailable:Boolean(previewUrl), previewReleased:false, nativeSource,

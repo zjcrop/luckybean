@@ -1,4 +1,26 @@
+globalThis.LuckyBeanNetworkBridge = {
+  setOnline(value) {
+    const previous = globalThis.__LUCKYBEAN_NATIVE_ONLINE__;
+    globalThis.__LUCKYBEAN_NATIVE_ONLINE__ = value === true;
+    if (previous !== value) window.dispatchEvent(new Event(value ? 'online' : 'offline'));
+  }
+};
+if (typeof globalThis.LuckyBeanNative?.isNetworkAvailable === 'function' && globalThis.__LUCKYBEAN_ENGINE__ !== 'gecko') {
+  globalThis.LuckyBeanNetworkBridge.setOnline(globalThis.LuckyBeanNative.isNetworkAvailable());
+}
+globalThis.__LUCKYBEAN_ENGINE__ ||= 'webview';
+if (typeof globalThis.LuckyBeanNative?.readEnginePreferences === 'function') {
+  const serialized = globalThis.LuckyBeanNative.readEnginePreferences();
+  if (serialized) {
+    const values = JSON.parse(serialized);
+    localStorage.clear();
+    for (const [key, value] of Object.entries(values)) localStorage.setItem(key, value);
+    globalThis.LuckyBeanNative.acknowledgeEnginePreferences();
+  }
+}
 globalThis.__LUCKYBEAN_ANDROID__ = true;
+// Room migration starts only from the explicit, progress-visible settings flow.
+globalThis.__LUCKYBEAN_ENABLE_ROOM_MIGRATION__ = false;
 globalThis.__LUCKYBEAN_PUBLIC_URL__ = 'https://zjcrop.github.io/luckybean/';
 
 (() => {
@@ -31,6 +53,69 @@ globalThis.__LUCKYBEAN_PUBLIC_URL__ = 'https://zjcrop.github.io/luckybean/';
       }
     });
   }
+
+  const storeRequests = new Map();
+  let storeSequence = 0;
+
+  function requestRoomStore(method, payload = {}) {
+    const native = globalThis.LuckyBeanRoomNative;
+    if (typeof native?.request !== 'function') {
+      return Promise.reject(new Error('Android Room 存储接口不可用'));
+    }
+    storeSequence += 1;
+    const requestId = `room-${Date.now().toString(36)}-${storeSequence.toString(36)}`;
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        storeRequests.delete(requestId);
+        reject(new Error('Android 本地数据操作超时'));
+      }, 60000);
+      storeRequests.set(requestId, {
+        resolve(value) {
+          clearTimeout(timeout);
+          storeRequests.delete(requestId);
+          resolve(value);
+        },
+        reject(error) {
+          clearTimeout(timeout);
+          storeRequests.delete(requestId);
+          reject(error);
+        }
+      });
+      try {
+        native.request(requestId, JSON.stringify({ method, ...payload }));
+      } catch (error) {
+        clearTimeout(timeout);
+        storeRequests.delete(requestId);
+        reject(error);
+      }
+    });
+  }
+
+  globalThis.LuckyBeanStoreBridge = {
+    resolve(requestId, value) {
+      storeRequests.get(String(requestId))?.resolve(value);
+    },
+    reject(requestId, message) {
+      storeRequests.get(String(requestId))?.reject(new Error(String(message || 'Android 本地数据操作失败')));
+    }
+  };
+
+  globalThis.LuckyBeanRoomStore = Object.freeze({
+    get(store, key) { return requestRoomStore('get', { store, key: String(key) }); },
+    all(store) { return requestRoomStore('all', { store }); },
+    allByBean(store, beanId) { return requestRoomStore('allByBean', { store, beanId: String(beanId) }); },
+    put(store, value) { return requestRoomStore('put', { store, value }); },
+    putBean(value, summary) { return requestRoomStore('putBean', { value, summary }); },
+    bulkPut(store, values) { return requestRoomStore('bulkPut', { store, values }); },
+    bulkPutBeans(values, summaries) { return requestRoomStore('bulkPutBeans', { values, summaries }); },
+    remove(store, key) { return requestRoomStore('remove', { store, key: String(key) }); },
+    removeBean(key) { return requestRoomStore('removeBean', { key: String(key) }); },
+    clear(store) { return requestRoomStore('clear', { store }); },
+    clearBeans() { return requestRoomStore('clearBeans'); },
+    replaceStores(stores) { return requestRoomStore('replaceStores', { stores }); },
+    applyChanges(changes) { return requestRoomStore('applyChanges', { changes }); },
+    clearAll() { return requestRoomStore('clearAll'); }
+  });
 
   globalThis.LuckyBeanNativeRecognition = {
     resolve(requestId, payload) {

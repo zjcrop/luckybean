@@ -24,6 +24,7 @@ tasks.register('syncLuckyBeanWebAssets') {
         fileTree(new File(repositoryRoot, 'src')),
         fileTree(new File(repositoryRoot, 'public')),
         fileTree(new File(repositoryRoot, 'contracts')),
+        fileTree(new File(repositoryRoot, 'android/gecko')),
         new File(repositoryRoot, 'android/native-bridge.js'),
         new File(repositoryRoot, 'recognition-test.html')
     )
@@ -49,12 +50,25 @@ tasks.register('syncLuckyBeanWebAssets') {
         if (!moduleMatcher.find()) throw new GradleException('未找到应用模块入口，Android资产同步中止。')
         String moduleTag = moduleMatcher.group(0)
         indexFile.write(indexHtml.replace(moduleTag, '<script src="./native-bridge.js"></script>\n  ' + moduleTag), 'UTF-8')
+        File gecko = new File(output, 'gecko')
+        copy { from webCache; into new File(gecko, 'web-cache') }
+        copy { from new File(repositoryRoot, 'android/gecko'); into gecko }
+        String geckoHtml = indexHtml
+        def scripts = []
+        geckoHtml = geckoHtml.replaceAll(/<script([^>]*)src="([^"]+)"([^>]*)><\/script>/) { full, before, src, after ->
+            scripts.add(src)
+            return ''
+        }
+        File geckoIndex = new File(gecko, 'web-cache/index.html')
+        geckoIndex.write(geckoHtml.replace('</body>', '<script type="module" src="../bootstrap.js"></script></body>'), 'UTF-8')
+        new File(gecko, 'entrypoints.json').write(groovy.json.JsonOutput.toJson(scripts), 'UTF-8')
+
     }
 }
 
 android {
     namespace 'com.luckybean.app'
-    compileSdk 35
+    compileSdk { version = release(37) { minorApiLevel = 0 } }
     buildFeatures {
         buildConfig true
     }
@@ -62,10 +76,16 @@ android {
         applicationId 'com.luckybean.app'
         minSdk 26
         targetSdk 35
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments = ["room.schemaLocation": "$projectDir/schemas"]
+            }
+        }
         versionCode (releaseMeta.androidVersionCode as int)
         versionName releaseMeta.displayVersion as String
     }
-    sourceSets { main.assets.srcDir(generatedWebAssets) }
+    sourceSets { main.assets.srcDir(generatedWebAssets.get().asFile) }
     signingConfigs {
         if (hasReleaseSigning) {
             luckyBeanRelease {
@@ -103,6 +123,13 @@ android {
 tasks.named('preBuild').configure { dependsOn tasks.named('syncLuckyBeanWebAssets') }
 
 dependencies {
+    implementation 'org.mozilla.geckoview:geckoview:157.0.20261005135250'
+    implementation 'androidx.room:room-runtime:2.8.5'
+    annotationProcessor 'androidx.room:room-compiler:2.8.5'
+    androidTestImplementation 'androidx.room:room-testing:2.8.5'
+    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+    androidTestImplementation 'androidx.test:runner:1.7.0'
+    androidTestImplementation 'androidx.test:core:1.7.0'
     implementation 'com.google.mlkit:text-recognition:16.0.1'
     implementation 'com.google.mlkit:text-recognition-chinese:16.0.1'
     implementation 'androidx.media3:media3-exoplayer:1.8.1'

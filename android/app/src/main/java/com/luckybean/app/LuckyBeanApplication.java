@@ -27,6 +27,8 @@ public final class LuckyBeanApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        // Gecko child services do not initialize ML Kit; OCR belongs to the app process.
+        if (android.os.Build.VERSION.SDK_INT >= 28 && !getPackageName().equals(Application.getProcessName())) return;
         warmupThread = new HandlerThread("LuckyBean-OCR-Warmup", android.os.Process.THREAD_PRIORITY_BACKGROUND);
         warmupThread.start();
         warmupHandler = new Handler(warmupThread.getLooper());

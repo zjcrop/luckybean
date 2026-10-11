@@ -53,6 +53,8 @@ export async function prepareBeanThumbnail(file) {
 export async function saveBeanThumbnail(beanId, dataUrl) {
   const id = String(beanId || '').trim();
   if (!id || !/^data:image\/jpeg;base64,/.test(String(dataUrl || ''))) throw new Error('豆袋缩略图数据无效');
+  const native = await nativeThumbnailStore();
+  if (native) { await native.put('beanThumbnails', { id, dataUrl }); return; }
   const db = await openDatabase();
   await new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readwrite');
@@ -66,6 +68,8 @@ export async function saveBeanThumbnail(beanId, dataUrl) {
 export async function getBeanThumbnail(beanId) {
   const id = String(beanId || '').trim();
   if (!id) return '';
+  const native = await nativeThumbnailStore();
+  if (native) return (await native.get('beanThumbnails', id))?.dataUrl || '';
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
     const request = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(id);
@@ -77,6 +81,8 @@ export async function getBeanThumbnail(beanId) {
 export async function deleteBeanThumbnail(beanId) {
   const id = String(beanId || '').trim();
   if (!id) return;
+  const native = await nativeThumbnailStore();
+  if (native) { await native.remove('beanThumbnails', id); return; }
   const db = await openDatabase();
   await new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readwrite');
@@ -85,4 +91,75 @@ export async function deleteBeanThumbnail(beanId) {
     transaction.onerror = () => reject(transaction.error || new Error('本机照片删除失败'));
     transaction.onabort = () => reject(transaction.error || new Error('本机照片删除已取消'));
   });
+}
+
+async function nativeThumbnailStore() {
+  const native = globalThis.__LUCKYBEAN_ANDROID__ && globalThis.LuckyBeanRoomStore;
+  if (!native) return null;
+  const status = await native.get('platformPreferences', 'engineMigration');
+  return status?.ready ? native : null;
+}
+
+async function thumbnailRows(db) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readonly');
+    const store = transaction.objectStore(STORE_NAME);
+    const keys = store.getAllKeys();
+    const values = store.getAll();
+    transaction.oncomplete = () => {
+      try {
+        resolve(keys.result.map((id, index) => {
+          if (typeof id !== 'string' || typeof values.result[index] !== 'string') throw new Error('照片库包含不支持的记录，请保留原始库');
+          return { id, dataUrl: values.result[index] };
+        }));
+      } catch (error) { reject(error); }
+    };
+    transaction.onabort = transaction.onerror = () => reject(transaction.error || new Error('照片库读取失败'));
+  });
+}
+
+async function thumbnailDigest(rows) {
+  const canonical = rows.map(row => JSON.stringify([row.id, row.dataUrl])).sort().join('\n');
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical));
+  return [...new Uint8Array(bytes)].map(value => value.toString(16).padStart(2, '0')).join('');
+}
+
+export async function migrateBeanThumbnailsToRoom({ onProgress = () => {} } = {}) {
+  const native = globalThis.LuckyBeanRoomStore;
+  if (!native) throw new Error('原生照片存储接口不可用');
+  const rows = await thumbnailRows(await openDatabase());
+  const sha256 = await thumbnailDigest(rows);
+  await native.put('migrationSnapshots', { id: 'beanThumbnails:manifest', count: rows.length, sha256 });
+  await native.clear('beanThumbnails');
+  let completed = 0;
+  for (const row of rows) {
+    await native.put('migrationSnapshots', { id: `beanThumbnails:${row.id}`, value: row });
+    await native.put('beanThumbnails', row);
+    onProgress({ completed: ++completed, total: rows.length });
+  }
+  const stored = await native.all('beanThumbnails');
+  if (stored.length !== rows.length || await thumbnailDigest(stored) !== sha256) throw new Error('照片迁移校验失败，原始照片库保留');
+  const current = await thumbnailRows(await openDatabase());
+  if (current.length !== rows.length || await thumbnailDigest(current) !== sha256) throw new Error('迁移期间照片已变化，请重试');
+  return { count: rows.length, sha256 };
+}
+
+export async function restoreBeanThumbnailsToIndexedDb() {
+  if (globalThis.__LUCKYBEAN_ENGINE__ === 'gecko') throw new Error('请先切回 WebView 再恢复照片');
+  const native = await nativeThumbnailStore();
+  if (!native) return;
+  const rows = await native.all('beanThumbnails');
+  const expected = await thumbnailDigest(rows);
+  const db = await openDatabase();
+  await new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    store.clear();
+    for (const row of rows) store.put(row.dataUrl, row.id);
+    transaction.oncomplete = resolve;
+    transaction.onabort = transaction.onerror = () => reject(transaction.error || new Error('照片回滚失败'));
+  });
+  const restored = await thumbnailRows(db);
+  if (restored.length !== rows.length || await thumbnailDigest(restored) !== expected) throw new Error('照片回滚校验失败');
+  await native.remove('platformPreferences', 'engineMigration');
 }

@@ -27,7 +27,7 @@ assert.ok(recognitionBridge.includes("dataUrl: nativeSource ? '' : await blobToD
 const packageCapture = fs.readFileSync(new URL('../src/package-capture-controller.js', import.meta.url), 'utf8');
 assert.ok(packageCapture.includes('bindAndroidImageSource(id, nativeSource)'), 'every Android-selected image must bind to its content URI in file order');
 assert.ok(packageCapture.includes('原生缩略预览'), 'capture UI must expose the native JPEG preview path');
-assert.match(packageCapture, /nativePreview\s*=\s*bindAndroidImageSource\(id,\s*nativeSource\)/, 'native-source fallback must request an Android thumbnail');
+assert.match(packageCapture, /nativePreview\s*=\s*await\s+bindAndroidImageSource\(id,\s*nativeSource\)/, 'native-source fallback must request an Android thumbnail');
 assert.match(packageCapture, /previewUrl\s*=\s*nativeSource\s*\?\s*nativePreview\s*:\s*URL\.createObjectURL\(prepared\.blob\)/, 'native-source fallback must select the Android thumbnail as its preview');
 assert.match(packageCapture, /previewAvailable\s*:\s*Boolean\(previewUrl\)/, 'native-source fallback must show a preview when Android returns a thumbnail');
 

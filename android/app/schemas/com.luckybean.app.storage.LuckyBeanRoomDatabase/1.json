@@ -1,0 +1,77 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "0961e4f05bec63c4086545dc52d911da",
+    "entities": [
+      {
+        "tableName": "records",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`storeName` TEXT NOT NULL, `recordId` TEXT NOT NULL, `beanId` TEXT, `createdAt` TEXT, `payloadJson` TEXT NOT NULL, PRIMARY KEY(`storeName`, `recordId`))",
+        "fields": [
+          {
+            "fieldPath": "storeName",
+            "columnName": "storeName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recordId",
+            "columnName": "recordId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "beanId",
+            "columnName": "beanId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "payloadJson",
+            "columnName": "payloadJson",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "storeName",
+            "recordId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_records_storeName_beanId_createdAt",
+            "unique": false,
+            "columnNames": [
+              "storeName",
+              "beanId",
+              "createdAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_records_storeName_beanId_createdAt` ON `${TABLE_NAME}` (`storeName`, `beanId`, `createdAt`)"
+          },
+          {
+            "name": "index_records_storeName_createdAt",
+            "unique": false,
+            "columnNames": [
+              "storeName",
+              "createdAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_records_storeName_createdAt` ON `${TABLE_NAME}` (`storeName`, `createdAt`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0961e4f05bec63c4086545dc52d911da')"
+    ]
+  }
+}

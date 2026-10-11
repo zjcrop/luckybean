@@ -113,6 +113,21 @@ with zipfile.ZipFile(APK) as archive:
     for entry, needle in forbidden:
         forbid_entry(archive, entry, needle)
 
+    gecko_manifest = json.loads(read_entry(archive, "assets/gecko/manifest.json"))
+    if gecko_manifest.get("browser_specific_settings", {}).get("gecko", {}).get("id") != "local-runtime@luckybean":
+        fail("APK Gecko runtime id mismatch")
+    if "nativeMessaging" not in gecko_manifest.get("permissions", []):
+        fail("APK Gecko native bridge permission missing")
+    for entry in archive.namelist():
+        if entry.startswith("assets/web-cache/") and not entry.endswith("/") and entry != "assets/web-cache/index.html":
+            gecko_entry = entry.replace("assets/web-cache/", "assets/gecko/web-cache/", 1)
+            if sha256(read_entry(archive, entry)) != sha256(read_entry(archive, gecko_entry)):
+                fail(f"Gecko/WebView canonical asset mismatch: {entry}")
+    require_entry(archive, "assets/gecko/web-cache/index.html", 'src="../bootstrap.js"')
+    require_entry(archive, "assets/gecko/bootstrap.js", "active.schemaVersion !== 10")
+
+    read_entry(archive, "assets/web-cache/public/vendor/jsqr/jsQR.js")
+
     source_release = RELEASE_PATH.read_bytes()
     apk_release = read_entry(archive, "assets/web-cache/release.json")
     if source_release != apk_release:
@@ -126,7 +141,7 @@ with zipfile.ZipFile(APK) as archive:
 android_home = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
 if not android_home:
     fail("ANDROID_HOME/ANDROID_SDK_ROOT is missing")
-aapt = Path(android_home) / "build-tools/35.0.0/aapt"
+aapt = Path(android_home) / "build-tools/36.0.0/aapt"
 if not aapt.is_file():
     fail(f"aapt missing: {aapt}")
 badging = subprocess.run(

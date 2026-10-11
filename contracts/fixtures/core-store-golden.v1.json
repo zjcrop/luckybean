@@ -1,0 +1,201 @@
+{
+  "contract": "core-store-golden/1",
+  "schemaVersion": 10,
+  "stores": {
+    "beans": [
+      {
+        "id": "golden-bean",
+        "name": "Golden bean",
+        "remainingWeight": 100,
+        "initialWeight": 100,
+        "unknown": {
+          "nested": [
+            true,
+            3,
+            "原样保留"
+          ]
+        }
+      }
+    ],
+    "beanSummaries": [
+      {
+        "id": "golden-bean",
+        "displayName": "Golden bean",
+        "remainingWeight": 100,
+        "updatedAt": "2026-10-01T00:00:00.000Z"
+      }
+    ],
+    "brewSessions": [
+      {
+        "id": "golden-brew-z",
+        "beanId": "golden-bean",
+        "createdAt": "2026-10-02T00:00:00.000Z",
+        "extra": "late"
+      },
+      {
+        "id": "golden-brew-a",
+        "beanId": "golden-bean",
+        "createdAt": "2026-10-01T00:00:00.000Z",
+        "extra": "early"
+      },
+      {
+        "id": "golden-brew-other",
+        "beanId": "other",
+        "createdAt": "2026-10-01T00:00:00.000Z"
+      }
+    ],
+    "sensoryRecords": [
+      {
+        "id": "golden-sealed",
+        "beanId": "golden-bean",
+        "createdAt": "2026-10-01T00:00:00.000Z",
+        "storageFormat": "sensory-record/aes-gcm-v1",
+        "ciphertext": "OPAQUE-SEALED-GOLDEN"
+      }
+    ],
+    "inventoryEvents": [
+      {
+        "id": "golden-inventoryEvents",
+        "unknown": {
+          "nested": [
+            true,
+            3,
+            "原样保留"
+          ]
+        }
+      }
+    ],
+    "settings": [
+      {
+        "id": "golden-settings",
+        "unknown": {
+          "nested": [
+            true,
+            3,
+            "原样保留"
+          ]
+        }
+      }
+    ],
+    "customCodes": [
+      {
+        "code": "GOLDEN-CUSTOM",
+        "label": "保留自定义代码",
+        "extra": {
+          "origin": "local"
+        }
+      }
+    ],
+    "codebookCache": [
+      {
+        "id": "golden-codebookCache",
+        "unknown": {
+          "nested": [
+            true,
+            3,
+            "原样保留"
+          ]
+        }
+      }
+    ],
+    "syncMetadata": [
+      {
+        "id": "golden-syncMetadata",
+        "unknown": {
+          "nested": [
+            true,
+            3,
+            "原样保留"
+          ]
+        }
+      }
+    ],
+    "shareDrafts": [
+      {
+        "id": "golden-shareDrafts",
+        "unknown": {
+          "nested": [
+            true,
+            3,
+            "原样保留"
+          ]
+        }
+      }
+    ],
+    "historyRevisions": [
+      {
+        "id": "golden-historyRevisions",
+        "unknown": {
+          "nested": [
+            true,
+            3,
+            "原样保留"
+          ]
+        }
+      }
+    ],
+    "recycleBin": [
+      {
+        "id": "golden-recycleBin",
+        "unknown": {
+          "nested": [
+            true,
+            3,
+            "原样保留"
+          ]
+        }
+      }
+    ],
+    "syncOutbox": [
+      {
+        "id": "golden-outbox",
+        "store": "beans",
+        "recordId": "golden-bean",
+        "state": "pending",
+        "payload": {
+          "unknown": "preserve"
+        }
+      }
+    ]
+  },
+  "byBeanExpected": [
+    "golden-brew-a",
+    "golden-brew-z"
+  ],
+  "offlineBrew": {
+    "beanId": "golden-bean",
+    "deductedWeightG": 15,
+    "rawInput": {},
+    "normalizedInput": {},
+    "analysisSnapshot": {
+      "contract": "brew-analysis/2.1",
+      "analysisFingerprint": "golden-persisted-online-analysis",
+      "plan": {
+        "totals": {
+          "doseG": 15,
+          "waterG": 225,
+          "targetTimeSec": 120
+        },
+        "stages": []
+      },
+      "trajectory": {
+        "schemaVersion": "brew-spatial/1.3",
+        "path": [
+          {
+            "t": 0
+          },
+          {
+            "t": 120
+          }
+        ]
+      }
+    },
+    "execution": {
+      "startedAt": "2026-10-01T00:00:00.000Z",
+      "finishedAt": "2026-10-01T00:02:00.000Z",
+      "actualTotalTimeSec": 120
+    },
+    "providerVersions": {},
+    "idempotencyKey": "golden-offline-brew"
+  }
+}

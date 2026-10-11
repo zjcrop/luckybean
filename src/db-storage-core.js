@@ -11,6 +11,9 @@ const INDEX_DEFS = Object.freeze({
   inventoryEvents: [['beanId', 'beanId', { unique: false }], ['beanCreatedAt', ['beanId', 'createdAt'], { unique: false }]]
 });
 const SENSORY_KEY_ID = 'local.sensory.key.v1';
+const ROOM_ACTIVE_KEY = 'native.storage.backend.v1';
+const ROOM_SNAPSHOT_STORE = 'migrationSnapshots';
+let roomBackendActivePromise;
 let dbPromise;
 let sensorySecretPromise;
 
@@ -89,7 +92,7 @@ function openDatabase(version) {
   });
 }
 
-export function openDb() {
+async function openIndexedDb() {
   if (dbPromise) return dbPromise;
   dbPromise = (async () => {
     if (!globalThis.indexedDB) throw new Error('当前浏览器不支持 IndexedDB');
@@ -104,6 +107,12 @@ export function openDb() {
     throw error;
   });
   return dbPromise;
+}
+
+export async function openDb() {
+  const database = await openIndexedDb();
+  if (await isRoomBackendActive()) return createRoomDatabaseFacade();
+  return database;
 }
 
 async function store(name, mode = 'readonly') {
@@ -176,25 +185,490 @@ async function transformForRead(name, value) {
   }
 }
 
+
+function roomStore() {
+  return globalThis.__LUCKYBEAN_ANDROID__ && globalThis.LuckyBeanRoomStore
+    ? globalThis.LuckyBeanRoomStore
+    : null;
+}
+
+
+let roomMutexTail = Promise.resolve();
+
+function acquireRoomMutex() {
+  const previous = roomMutexTail;
+  let releaseCurrent;
+  const current = new Promise(resolve => { releaseCurrent = resolve; });
+  roomMutexTail = previous.then(() => current);
+  return previous.then(() => releaseCurrent);
+}
+
+async function withRoomMutex(action) {
+  const release = await acquireRoomMutex();
+  try { return await action(); }
+  finally { release(); }
+}
+
+function roomKeyValue(name, value) {
+  return String(name === 'customCodes' ? value?.code ?? '' : value?.id ?? '');
+}
+
+function compareRoomKeys(left, right) {
+  if (Array.isArray(left) && Array.isArray(right)) {
+    for (let index = 0; index < Math.min(left.length, right.length); index++) {
+      const compared = compareRoomKeys(left[index], right[index]);
+      if (compared) return compared;
+    }
+    return left.length - right.length;
+  }
+  if (left === right) return 0;
+  if (left == null) return -1;
+  if (right == null) return 1;
+  return left < right ? -1 : 1;
+}
+
+function roomKeyMatches(value, query) {
+  if (query === undefined) return true;
+  const isRange = typeof IDBKeyRange !== 'undefined' && query instanceof IDBKeyRange;
+  if (!isRange) return stableJson(value) === stableJson(query);
+  if (query.lower !== undefined && (query.lowerOpen ? compareRoomKeys(value, query.lower) <= 0 : compareRoomKeys(value, query.lower) < 0)) return false;
+  if (query.upper !== undefined && (query.upperOpen ? compareRoomKeys(value, query.upper) >= 0 : compareRoomKeys(value, query.upper) > 0)) return false;
+  return true;
+}
+
+function createRoomDatabaseFacade() {
+  return {
+    name: DB_NAME,
+    version: SCHEMA_VERSION,
+    objectStoreNames: Object.assign([...STORES], { contains: name => STORES.includes(name) }),
+    close() {},
+    transaction(names, mode = 'readonly') {
+      const selected = new Set(Array.isArray(names) ? names : [names]);
+      if (!['readonly', 'readwrite'].includes(mode)) throw new Error('Room 事务模式无效');
+      for (const name of selected) if (!STORES.includes(name)) throw new Error(`未知数据表：${name}`);
+
+      const tx = {
+        mode,
+        error: null,
+        oncomplete: null,
+        onerror: null,
+        onabort: null,
+        pending: 0,
+        completed: false,
+        aborted: false,
+        scheduled: false,
+        ready: acquireRoomMutex(),
+        storeMaps: new Map(),
+        changes: new Map(),
+        clearStores: new Set(),
+        stores: new Map(),
+        objectStore(name) {
+          if (!selected.has(name)) throw new Error(`数据表不在当前 Room 事务中：${name}`);
+          if (this.stores.has(name)) return this.stores.get(name);
+          const objectStore = createObjectStore(name);
+          this.stores.set(name, objectStore);
+          return objectStore;
+        },
+        abort() {
+          if (this.completed) return;
+          this.aborted = true;
+          this.error = this.error || new Error('Room 事务已中止');
+          this.scheduleFinish();
+        },
+        async loadStore(name) {
+          if (!this.storeMaps.has(name)) {
+            const pending = roomStore().all(name).then(rows => new Map(rows.map(row => [roomKeyValue(name, row), structuredClone(row)])));
+            this.storeMaps.set(name, pending);
+          }
+          return this.storeMaps.get(name);
+        },
+        note(name, key, operation, value) {
+          if (!this.changes.has(name)) this.changes.set(name, new Map());
+          this.changes.get(name).set(String(key), { operation, value });
+        },
+        request(action) {
+          if (this.completed || this.aborted) throw new Error('Room 事务不再接受请求');
+          this.pending += 1;
+          const request = {
+            result: undefined,
+            error: null,
+            onsuccess: null,
+            onerror: null,
+            listeners: new Map(),
+            addEventListener(type, listener) {
+              if (!this.listeners.has(type)) this.listeners.set(type, new Set());
+              this.listeners.get(type).add(listener);
+            },
+            removeEventListener(type, listener) { this.listeners.get(type)?.delete(listener); }
+          };
+          const fire = (type, error = null) => {
+            request.error = error;
+            const event = { target: request, currentTarget: request };
+            try { request[`on${type}`]?.(event); } catch (listenerError) { console.error(listenerError); }
+            for (const listener of request.listeners.get(type) || []) {
+              try { listener(event); } catch (listenerError) { console.error(listenerError); }
+            }
+          };
+          queueMicrotask(async () => {
+            try {
+              await this.ready;
+              if (this.aborted) throw this.error || new Error('Room 事务已中止');
+              request.result = await action();
+              fire('success');
+            } catch (error) {
+              this.error = error;
+              fire('error', error);
+              this.aborted = true;
+            } finally {
+              this.pending -= 1;
+              this.scheduleFinish();
+            }
+          });
+          return request;
+        },
+        scheduleFinish() {
+          if (this.completed || this.scheduled || this.pending > 0) return;
+          this.scheduled = true;
+          setTimeout(async () => {
+            this.scheduled = false;
+            if (this.completed || this.pending > 0) return;
+            try {
+              await this.ready;
+              if (this.aborted) {
+                this.completed = true;
+                this.onabort?.({ target: this });
+                return;
+              }
+              if (this.mode === 'readwrite') {
+                const changes = compileChanges(this);
+                if (changes.puts.length || changes.deletes.length || changes.clearStores.length) {
+                  await roomStore().applyChanges(changes);
+                }
+              }
+              this.completed = true;
+              this.oncomplete?.({ target: this });
+            } catch (error) {
+              this.error = error;
+              this.aborted = true;
+              this.completed = true;
+              this.onerror?.({ target: this });
+              this.onabort?.({ target: this });
+            } finally {
+              this.ready.then(release => release());
+            }
+          }, 0);
+        }
+      };
+
+      const createObjectStore = name => ({
+        get(key) {
+          return tx.request(async () => {
+            const map = await tx.loadStore(name);
+            return structuredClone(map.get(String(key)));
+          });
+        },
+        getAll(query) {
+          return tx.request(async () => {
+            const map = await tx.loadStore(name);
+            const rows = [...map.values()].sort((a, b) => compareRoomKeys(roomKeyValue(name, a), roomKeyValue(name, b)));
+            return rows.filter(row => roomKeyMatches(roomKeyValue(name, row), query)).map(row => structuredClone(row));
+          });
+        },
+        put(value) {
+          if (mode !== 'readwrite') throw new Error('只读 Room 事务不能写入');
+          return tx.request(async () => {
+            const map = await tx.loadStore(name);
+            const row = structuredClone(value);
+            const key = roomKeyValue(name, row);
+            if (!key) throw new Error(`${name} 记录缺少主键`);
+            map.set(key, row);
+            tx.note(name, key, 'put', row);
+            return name === 'customCodes' ? row.code : row.id;
+          });
+        },
+        delete(key) {
+          if (mode !== 'readwrite') throw new Error('只读 Room 事务不能删除');
+          return tx.request(async () => {
+            const map = await tx.loadStore(name);
+            map.delete(String(key));
+            tx.note(name, String(key), 'delete', null);
+            return undefined;
+          });
+        },
+        clear() {
+          if (mode !== 'readwrite') throw new Error('只读 Room 事务不能清空');
+          return tx.request(async () => {
+            const map = await tx.loadStore(name);
+            map.clear();
+            tx.clearStores.add(name);
+            tx.changes.set(name, new Map());
+            return undefined;
+          });
+        },
+        index(indexName) {
+          return {
+            getAll(query) {
+              return tx.request(async () => {
+                const map = await tx.loadStore(name);
+                const indexValue = row => indexName === 'beanId' ? row.beanId
+                  : indexName === 'beanCreatedAt' ? [row.beanId, row.createdAt]
+                  : indexName === 'updatedAt' ? row.updatedAt : undefined;
+                return [...map.values()]
+                  .filter(row => indexValue(row) !== undefined && roomKeyMatches(indexValue(row), query))
+                  .sort((a, b) => compareRoomKeys(indexValue(a), indexValue(b)))
+                  .map(row => structuredClone(row));
+              });
+            }
+          };
+        }
+      });
+
+      const compileChanges = transaction => {
+        const changes = { clearStores: [...transaction.clearStores], deletes: [], puts: [] };
+        for (const [storeName, entries] of transaction.changes) {
+          for (const [key, entry] of entries) {
+            if (entry.operation === 'delete') changes.deletes.push({ store: storeName, key });
+            else changes.puts.push({ store: storeName, value: entry.value });
+            if (storeName === 'beans') {
+              if (entry.operation === 'delete') changes.deletes.push({ store: 'beanSummaries', key });
+              else changes.puts.push({ store: 'beanSummaries', value: beanSummaryFromBean(entry.value) });
+            }
+          }
+        }
+        if (transaction.clearStores.has('beans')) changes.clearStores.push('beanSummaries');
+        return changes;
+      };
+      tx.scheduleFinish(); // Empty transactions must complete and release the mutex too.
+      return tx;
+    }
+  };
+}
+
+async function isRoomBackendActive() {
+  const nativeStore = roomStore();
+  if (!nativeStore) return false;
+  if (!roomBackendActivePromise) {
+    roomBackendActivePromise = nativeStore.get('syncMetadata', ROOM_ACTIVE_KEY)
+      .then(value => Boolean(value?.active && value?.schemaVersion === SCHEMA_VERSION))
+      .catch(error => {
+        roomBackendActivePromise = undefined;
+        throw new Error(`无法读取 Room 后端状态，已停止存储切换：${error.message}`);
+      });
+  }
+  return roomBackendActivePromise;
+}
+
+export async function isRoomStorageActive() {
+  return isRoomBackendActive();
+}
+
+function stableJson(value) {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value);
+  if (typeof value === 'number' && Number.isFinite(value)) return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(item => stableJson(item)).join(',')}]`;
+  if (value && typeof value === 'object' && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)) {
+    const fields = Object.keys(value).sort();
+    return `{${fields.map(key => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
+  }
+  throw new Error('IndexedDB 包含非 JSON 类型记录，已停止 Room 迁移以避免数据丢失');
+}
+
+function recordKey(name, value) {
+  return String(name === 'customCodes' ? value?.code ?? '' : value?.id ?? '');
+}
+
+async function rowsDigest(rows) {
+  const canonicalRows = rows.map(value => stableJson(value)).sort();
+  const bytes = new TextEncoder().encode(canonicalRows.join('\\n'));
+  if (!globalThis.crypto?.subtle) throw new Error('当前环境无法为 Room 迁移计算 SHA-256');
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map(value => value.toString(16).padStart(2, '0')).join('');
+}
+
+function chunkByUtf8Size(rows, maxBytes = 160 * 1024) {
+  const chunks = [];
+  let current = [];
+  let bytes = 2;
+  for (const row of rows) {
+    const rowBytes = new TextEncoder().encode(JSON.stringify(row)).length + 1;
+    if (rowBytes > 1024 * 1024) throw new Error('单条本地记录超过 1 MiB，已停止迁移以保留原始 IndexedDB');
+    if (current.length && bytes + rowBytes > maxBytes) {
+      chunks.push(current);
+      current = [];
+      bytes = 2;
+    }
+    current.push(row);
+    bytes += rowBytes;
+  }
+  if (current.length) chunks.push(current);
+  return chunks;
+}
+
+function readRawStore(db, name) {
+  return requestToPromise(db.transaction(name, 'readonly').objectStore(name).getAll());
+}
+
+function throwIfRoomMigrationAborted(signal) {
+  if (!signal?.aborted) return;
+  const error = new Error('迁移已取消，IndexedDB 保持不变');
+  error.name = 'AbortError';
+  throw error;
+}
+
+export async function migrateSchema10ToRoom({ onProgress = () => {}, signal } = {}) {
+  const nativeStore = roomStore();
+  if (!nativeStore) throw new Error('Android Room 存储接口不可用');
+  if (await isRoomBackendActive()) return { migrated: false, reason: 'already-active' };
+
+  const db = await openDb();
+  if (db.version !== SCHEMA_VERSION) throw new Error(`需要 IndexedDB schema ${SCHEMA_VERSION}，当前为 ${db.version}`);
+  const storeNames = STORES.filter(name => name !== ROOM_SNAPSHOT_STORE);
+  const source = Object.fromEntries(await Promise.all(storeNames.map(async name => [name, await readRawStore(db, name)])));
+  const snapshot = Object.fromEntries(await Promise.all(storeNames.map(async name => [name, {
+    count: source[name].length,
+    sha256: await rowsDigest(source[name])
+  }])));
+  const total = storeNames.reduce((sum, name) => sum + source[name].length, 0);
+
+  try {
+    throwIfRoomMigrationAborted(signal);
+    await nativeStore.clearAll();
+    await nativeStore.put(ROOM_SNAPSHOT_STORE, {
+      id: 'manifest',
+      format: 'luckybean-indexeddb-snapshot/1',
+      sourceSchemaVersion: db.version,
+      capturedAt: new Date().toISOString(),
+      stores: snapshot
+    });
+    for (const name of storeNames) {
+      throwIfRoomMigrationAborted(signal);
+      const backupRows = source[name].map((value, index) => ({
+        id: `${name}:${recordKey(name, value) || index}`,
+        sourceStore: name,
+        sourceKey: recordKey(name, value),
+        value
+      }));
+      for (const batch of chunkByUtf8Size(backupRows)) {
+        throwIfRoomMigrationAborted(signal);
+        await nativeStore.bulkPut(ROOM_SNAPSHOT_STORE, batch);
+      }
+    }
+    const persistedSnapshot = await nativeStore.all(ROOM_SNAPSHOT_STORE);
+    for (const name of storeNames) {
+      throwIfRoomMigrationAborted(signal);
+      const snapshotRows = persistedSnapshot.filter(row => row.sourceStore === name).map(row => row.value);
+      if (snapshotRows.length !== snapshot[name].count || await rowsDigest(snapshotRows) !== snapshot[name].sha256) {
+        throw new Error(`迁移前快照校验失败：${name}`);
+      }
+    }
+    let completed = 0;
+    for (const name of storeNames) {
+      throwIfRoomMigrationAborted(signal);
+      for (const batch of chunkByUtf8Size(source[name])) {
+        throwIfRoomMigrationAborted(signal);
+        await nativeStore.bulkPut(name, batch);
+        completed += batch.length;
+        onProgress({ completed, total, store: name });
+        globalThis.document?.dispatchEvent(new CustomEvent('luckybean:room-migration-progress', {
+          detail: { completed, total, store: name }
+        }));
+      }
+    }
+
+    const verified = {};
+    for (const name of storeNames) {
+      throwIfRoomMigrationAborted(signal);
+      const rows = await nativeStore.all(name);
+      verified[name] = { count: rows.length, sha256: await rowsDigest(rows) };
+      if (verified[name].count !== snapshot[name].count || verified[name].sha256 !== snapshot[name].sha256) {
+        throw new Error(`Room 校验失败：${name}`);
+      }
+    }
+    for (const name of storeNames) {
+      const current = await readRawStore(db, name);
+      if (current.length !== snapshot[name].count || await rowsDigest(current) !== snapshot[name].sha256) {
+        throw new Error(`迁移期间源数据已变化，请重试：${name}`);
+      }
+    }
+    throwIfRoomMigrationAborted(signal);
+    await nativeStore.put('syncMetadata', {
+      id: ROOM_ACTIVE_KEY,
+      active: true,
+      schemaVersion: SCHEMA_VERSION,
+      migratedAt: new Date().toISOString(),
+      stores: verified
+    });
+    throwIfRoomMigrationAborted(signal);
+    roomBackendActivePromise = Promise.resolve(true);
+    return { migrated: true, stores: verified, total };
+  } catch (error) {
+    roomBackendActivePromise = undefined;
+    await nativeStore.clearAll().catch(() => {});
+    throw error;
+  }
+}
+
 export async function all(name) {
+  if (await isRoomBackendActive()) {
+    const values = await withRoomMutex(() => roomStore().all(name));
+    if (name !== 'sensoryRecords') return values;
+    return Promise.all(values.map(value => transformForRead(name, value)));
+  }
   const values = await requestToPromise((await store(name)).getAll());
   if (name !== 'sensoryRecords') return values;
   return Promise.all(values.map(value => transformForRead(name, value)));
 }
 
 export async function get(name, key) {
+  if (await isRoomBackendActive()) {
+    const value = await withRoomMutex(() => roomStore().get(name, key));
+    return transformForRead(name, value);
+  }
   return transformForRead(name, await requestToPromise((await store(name)).get(key)));
 }
 
 export async function allByIndex(name, indexName, key, { raw = false } = {}) {
   if (!STORES.includes(name)) throw new Error(`未知数据表：${name}`);
+  if (await isRoomBackendActive()) {
+    const matched = await withRoomMutex(async () => {
+      const values = await roomStore().all(name);
+      const indexedValue = value => indexName === 'beanId' ? value.beanId
+        : indexName === 'beanCreatedAt' ? [value.beanId, value.createdAt]
+        : indexName === 'updatedAt' ? value.updatedAt : undefined;
+      const compare = (left, right) => {
+        if (Array.isArray(left) && Array.isArray(right)) {
+          for (let index = 0; index < Math.min(left.length, right.length); index++) {
+            const result = compare(left[index], right[index]);
+            if (result) return result;
+          }
+          return left.length - right.length;
+        }
+        if (left === right) return 0;
+        if (left == null) return -1;
+        if (right == null) return 1;
+        return left < right ? -1 : 1;
+      };
+      const range = typeof IDBKeyRange !== 'undefined' && key instanceof IDBKeyRange;
+      return values.filter(value => {
+        const indexed = indexedValue(value);
+        if (indexed === undefined) return false;
+        if (!range) return stableJson(indexed) === stableJson(key);
+        if (!key.lowerOpen && key.lower !== undefined && compare(indexed, key.lower) < 0) return false;
+        if (key.lowerOpen && key.lower !== undefined && compare(indexed, key.lower) <= 0) return false;
+        if (!key.upperOpen && key.upper !== undefined && compare(indexed, key.upper) > 0) return false;
+        if (key.upperOpen && key.upper !== undefined && compare(indexed, key.upper) >= 0) return false;
+        return true;
+      });
+    });
+    if (raw || name !== 'sensoryRecords') return matched;
+    return Promise.all(matched.map(value => transformForRead(name, value)));
+  }
   const objectStore = await store(name);
   if (!objectStore.indexNames.contains(indexName)) throw new Error(`${name} 缺少索引 ${indexName}`);
   const values = await requestToPromise(objectStore.index(indexName).getAll(key));
   if (raw || name !== 'sensoryRecords') return values;
   return Promise.all(values.map(value => transformForRead(name, value)));
 }
-
 export async function sensoryHeadersByBean(beanId) {
   const rows = await allByIndex('sensoryRecords', 'beanId', beanId, { raw: true });
   return rows.map(value => ({
@@ -207,6 +681,13 @@ export async function sensoryHeadersByBean(beanId) {
 export async function put(name, value) {
   assertPlainObject(value, name);
   const prepared = await transformForWrite(name, value);
+  if (await isRoomBackendActive()) {
+    await withRoomMutex(async () => {
+      if (name === 'beans') await roomStore().putBean(prepared, beanSummaryFromBean(value));
+      else await roomStore().put(name, prepared);
+    });
+    return name === 'customCodes' ? value.code : value.id;
+  }
   const db = await openDb();
   const names = name === 'beans' ? ['beans', 'beanSummaries'] : [name];
   return new Promise((resolve, reject) => {
@@ -222,6 +703,13 @@ export async function put(name, value) {
 }
 
 export async function remove(name, key) {
+  if (await isRoomBackendActive()) {
+    await withRoomMutex(async () => {
+      if (name === 'beans') await roomStore().removeBean(key);
+      else await roomStore().remove(name, key);
+    });
+    return;
+  }
   const db = await openDb();
   const names = name === 'beans' ? ['beans', 'beanSummaries'] : [name];
   return new Promise((resolve, reject) => {
@@ -235,6 +723,13 @@ export async function remove(name, key) {
 }
 
 export async function clear(name) {
+  if (await isRoomBackendActive()) {
+    await withRoomMutex(async () => {
+      if (name === 'beans') await roomStore().clearBeans();
+      else await roomStore().clear(name);
+    });
+    return;
+  }
   const db = await openDb();
   const names = name === 'beans' ? ['beans', 'beanSummaries'] : [name];
   return new Promise((resolve, reject) => {
@@ -250,6 +745,13 @@ export async function clear(name) {
 export async function bulkPut(name, values) {
   if (!Array.isArray(values)) throw new Error('批量写入数据必须是数组');
   const prepared = await Promise.all(values.map(value => transformForWrite(name, value)));
+  if (await isRoomBackendActive()) {
+    await withRoomMutex(async () => {
+      if (name === 'beans') await roomStore().bulkPutBeans(prepared, values.map(beanSummaryFromBean));
+      else await roomStore().bulkPut(name, prepared);
+    });
+    return;
+  }
   const db = await openDb();
   await new Promise((resolve, reject) => {
     const names = name === 'beans' ? ['beans', 'beanSummaries'] : [name];
@@ -268,6 +770,16 @@ export async function bulkPut(name, values) {
 
 export async function replaceStores(storeRows) {
   assertPlainObject(storeRows, '恢复数据');
+  if (await isRoomBackendActive()) {
+    const prepared = Object.fromEntries(await Promise.all(Object.entries(storeRows).map(async ([name, values]) => [
+      name, await Promise.all(values.map(value => transformForWrite(name, value)))
+    ])));
+    if (Object.hasOwn(storeRows, 'beans') && !Object.hasOwn(prepared, 'beanSummaries')) {
+      prepared.beanSummaries = storeRows.beans.map(beanSummaryFromBean);
+    }
+    await withRoomMutex(() => roomStore().replaceStores(prepared));
+    return;
+  }
   const names = Object.keys(storeRows);
   if (!names.length) return;
   for (const name of names) {
@@ -298,8 +810,53 @@ export async function replaceStores(storeRows) {
   });
 }
 
+
+export async function rollbackRoomToIndexedDb() {
+  return withRoomMutex(async () => {
+    if (globalThis.__LUCKYBEAN_ENGINE__ === 'gecko') throw new Error('请先切回 WebView，再回滚至原始 IndexedDB');
+    if (!await isRoomBackendActive()) return { rolledBack: false, reason: 'room-not-active' };
+    const nativeStore = roomStore();
+    const db = await openIndexedDb();
+    const storeNames = STORES.filter(name => name !== ROOM_SNAPSHOT_STORE);
+    const restored = Object.fromEntries(await Promise.all(storeNames.map(async name => [name, await nativeStore.all(name)])));
+    // The active marker belongs to Room's backend metadata. Never copy it into the
+    // restored canonical IndexedDB, so rollback matches the user's actual records.
+    restored.syncMetadata = restored.syncMetadata.filter(value => value?.id !== ROOM_ACTIVE_KEY);
+    const expected = Object.fromEntries(await Promise.all(storeNames.map(async name => [name, {
+      count: restored[name].length, sha256: await rowsDigest(restored[name])
+    }])));
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(storeNames, 'readwrite');
+      for (const name of storeNames) {
+        const objectStore = tx.objectStore(name);
+        objectStore.clear();
+        for (const value of restored[name]) objectStore.put(value);
+      }
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error || new Error('Room 回滚到 IndexedDB 失败'));
+      tx.onabort = () => reject(tx.error || new Error('Room 回滚到 IndexedDB 已中止'));
+    });
+    for (const name of storeNames) {
+      const rows = await readRawStore(db, name);
+      if (rows.length !== expected[name].count || await rowsDigest(rows) !== expected[name].sha256) {
+        throw new Error(`Room 回滚校验失败：${name}`);
+      }
+    }
+    await nativeStore.remove('syncMetadata', ROOM_ACTIVE_KEY);
+    roomBackendActivePromise = Promise.resolve(false);
+    return { rolledBack: true, stores: storeNames.length };
+  });
+}
+
 export async function activateCodebook(candidate) {
   assertPlainObject(candidate, '编码表候选');
+  if (await isRoomBackendActive()) {
+    await withRoomMutex(() => roomStore().bulkPut('codebookCache', [
+      { ...candidate, id: 'candidate' },
+      { ...candidate, id: 'active' }
+    ]));
+    return;
+  }
   const db = await openDb();
   await new Promise((resolve, reject) => {
     const tx = db.transaction('codebookCache', 'readwrite');
@@ -320,7 +877,28 @@ export async function getSetting(id, fallback = null) {
 export async function setSetting(id, value) { return put('settings', { id, value, updatedAt: new Date().toISOString() }); }
 
 export async function clearAll() {
-  const db = await openDb();
+  if (await isRoomBackendActive()) {
+    await withRoomMutex(async () => {
+      await roomStore().clearAll();
+      const db = await openIndexedDb();
+      await Promise.all(STORES.map(name => new Promise((resolve, reject) => {
+        const request = db.transaction(name, 'readwrite').objectStore(name).clear();
+        request.onsuccess = resolve;
+        request.onerror = () => reject(request.error || new Error('IndexedDB 清理失败'));
+      })));
+      await roomStore().put('syncMetadata', {
+        id: ROOM_ACTIVE_KEY,
+        active: true,
+        schemaVersion: SCHEMA_VERSION,
+        clearedAt: new Date().toISOString(),
+        stores: {}
+      });
+    });
+    roomBackendActivePromise = Promise.resolve(true);
+    sensorySecretPromise = undefined;
+    return;
+  }
+  const db = await openIndexedDb();
   await Promise.all(STORES.map(name => new Promise((resolve, reject) => {
     const request = db.transaction(name, 'readwrite').objectStore(name).clear();
     request.onsuccess = resolve;
