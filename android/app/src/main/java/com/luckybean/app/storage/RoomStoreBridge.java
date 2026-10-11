@@ -15,11 +15,25 @@ import java.util.concurrent.CompletableFuture;
 
 /** Narrow asynchronous bridge between the Web storage contract and Room. */
 public final class RoomStoreBridge {
-    private final WebView webView;
+    public interface ResultSink {
+        void complete(String callback, String requestId, Object value);
+    }
+    private final ResultSink sink;
     private final RoomStoreRepository repository;
 
     public RoomStoreBridge(Context context, WebView webView) {
-        this.webView = webView;
+        this(context, (callback, requestId, value) -> {
+            String encoded = value == null ? "null" : value instanceof JSONObject || value instanceof JSONArray
+                ? value.toString() : JSONObject.quote(value.toString());
+            String method = callback.endsWith("resolve") ? "resolve" : "reject";
+            String script = "globalThis.LuckyBeanStoreBridge&&globalThis.LuckyBeanStoreBridge." + method + "("
+                + JSONObject.quote(requestId == null ? "" : requestId) + "," + encoded + ");";
+            webView.post(() -> webView.evaluateJavascript(script, null));
+        });
+    }
+
+    public RoomStoreBridge(Context context, ResultSink sink) {
+        this.sink = sink;
         this.repository = new RoomStoreRepository(context);
     }
 
@@ -109,18 +123,11 @@ public final class RoomStoreBridge {
     }
 
     private void resolve(String requestId, Object value) {
-        String encoded = value == null ? "null" : JSONObject.quote(value.toString());
-        if (value instanceof JSONObject || value instanceof JSONArray) encoded = value.toString();
-        String script = "globalThis.LuckyBeanStoreBridge&&globalThis.LuckyBeanStoreBridge.resolve("
-            + JSONObject.quote(requestId == null ? "" : requestId) + "," + encoded + ");";
-        webView.post(() -> webView.evaluateJavascript(script, null));
+        sink.complete("store.resolve", requestId, value);
     }
 
     private void reject(String requestId, String message) {
-        String script = "globalThis.LuckyBeanStoreBridge&&globalThis.LuckyBeanStoreBridge.reject("
-            + JSONObject.quote(requestId == null ? "" : requestId) + ","
-            + JSONObject.quote(message == null ? "Room storage operation failed" : message) + ");";
-        webView.post(() -> webView.evaluateJavascript(script, null));
+        sink.complete("store.reject", requestId, message);
     }
 
     private static String safeMessage(Throwable error) {

@@ -1,3 +1,13 @@
+globalThis.__LUCKYBEAN_ENGINE__ ||= 'webview';
+if (typeof globalThis.LuckyBeanNative?.readEnginePreferences === 'function') {
+  const serialized = globalThis.LuckyBeanNative.readEnginePreferences();
+  if (serialized) {
+    const values = JSON.parse(serialized);
+    localStorage.clear();
+    for (const [key, value] of Object.entries(values)) localStorage.setItem(key, value);
+    globalThis.LuckyBeanNative.acknowledgeEnginePreferences();
+  }
+}
 globalThis.__LUCKYBEAN_ANDROID__ = true;
 // Room migration starts only from the explicit, progress-visible settings flow.
 globalThis.__LUCKYBEAN_ENABLE_ROOM_MIGRATION__ = false;

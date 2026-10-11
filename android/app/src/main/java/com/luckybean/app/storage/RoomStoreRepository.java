@@ -28,7 +28,7 @@ public final class RoomStoreRepository {
     private static final Set<String> STORES = new HashSet<>(Arrays.asList(
         "beans", "beanSummaries", "brewSessions", "sensoryRecords", "inventoryEvents",
         "settings", "customCodes", "codebookCache", "syncMetadata", "shareDrafts",
-        "historyRevisions", "recycleBin", "syncOutbox", "migrationSnapshots"
+        "historyRevisions", "recycleBin", "syncOutbox", "migrationSnapshots", "beanThumbnails", "platformPreferences"
     ));
 
     private final LuckyBeanRoomDatabase database;

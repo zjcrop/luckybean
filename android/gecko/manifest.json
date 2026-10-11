@@ -1,0 +1,8 @@
+{
+  "manifest_version": 2,
+  "name": "LuckyBean local runtime",
+  "version": "1.0.0",
+  "browser_specific_settings": { "gecko": { "id": "local-runtime@luckybean" } },
+  "permissions": ["nativeMessaging", "geckoViewAddons", "unlimitedStorage", "https://*/*"],
+  "content_security_policy": "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; object-src 'none'"
+}

@@ -53,7 +53,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
-public final class MainActivity extends Activity {
+public class MainActivity extends Activity {
     private static final String APP_ORIGIN = "https://app.luckybean.local/";
     private static final int FILE_CHOOSER_REQUEST = 2101;
     private static final int MEDIA_PERMISSION_REQUEST = 2102;
@@ -61,6 +61,7 @@ public final class MainActivity extends Activity {
     private static final int IMAGE_PREVIEW_MAX_EDGE = 960;
 
     private WebView webView;
+    private com.luckybean.app.storage.RoomStoreRepository platformRepository;
     private ValueCallback<Uri[]> filePathCallback;
     private Uri cameraOutputUri;
     private PermissionRequest pendingWebPermission;
@@ -78,21 +79,28 @@ public final class MainActivity extends Activity {
         getWindow().setStatusBarColor(Color.rgb(8, 9, 9));
         getWindow().setNavigationBarColor(Color.rgb(8, 9, 9));
 
-        webView = new WebView(this);
-        webView.setBackgroundColor(Color.rgb(8, 9, 9));
-        setContentView(webView);
-        webView.post(this::enterImmersiveMode);
-
         LuckyBeanApplication recognitionRuntime = (LuckyBeanApplication) getApplication();
         chineseTextRecognizer = recognitionRuntime.chineseRecognizer();
         latinTextRecognizer = recognitionRuntime.latinRecognizer();
-        configureWebView();
+        platformRepository = new com.luckybean.app.storage.RoomStoreRepository(this);
+        initializeEngine(savedInstanceState);
         registerSystemBackCallback();
-        if (savedInstanceState == null) {
-            webView.loadUrl(APP_ORIGIN + "index.html");
-        } else {
-            webView.restoreState(savedInstanceState);
+        getWindow().getDecorView().post(this::enterImmersiveMode);
+    }
+
+    protected void initializeEngine(Bundle savedInstanceState) {
+        if (!getIntent().getBooleanExtra("forceWebView", false)
+                && "gecko".equals(getSharedPreferences("MainActivity", MODE_PRIVATE).getString("engine", "webview"))) {
+            startActivity(new Intent(this, GeckoActivity.class));
+            finish();
+            return;
         }
+        webView = new WebView(this);
+        webView.setBackgroundColor(Color.rgb(8, 9, 9));
+        setContentView(webView);
+        configureWebView();
+        if (savedInstanceState == null) webView.loadUrl(APP_ORIGIN + "index.html");
+        else webView.restoreState(savedInstanceState);
     }
 
     private void enterImmersiveMode() {
@@ -268,7 +276,7 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private final class NativeFileBridge {
+    protected final class NativeFileBridge {
         @JavascriptInterface
         public String bindImageSource(String imageId, boolean includePreview) {
             Uri sourceUri = claimRecognitionSource(imageId);
@@ -388,6 +396,49 @@ public final class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public String readEnginePreferences() {
+            try {
+                com.luckybean.app.storage.RoomStoreRepository repository = platformRepository;
+                JSONObject pending = repository.get("platformPreferences", "restoreWebViewPreferences").get(15, java.util.concurrent.TimeUnit.SECONDS);
+                if (pending == null || !pending.optBoolean("pending")) return "";
+                JSONObject preferences = repository.get("platformPreferences", "localStorage").get(15, java.util.concurrent.TimeUnit.SECONDS);
+                if (preferences == null) throw new IllegalStateException("本地偏好不可用");
+                return preferences.getJSONObject("values").toString();
+            } catch (Exception error) { throw new IllegalStateException("本地偏好恢复失败", error); }
+        }
+
+        @JavascriptInterface
+        public void acknowledgeEnginePreferences() {
+            platformRepository.remove("platformPreferences", "restoreWebViewPreferences");
+        }
+
+        @JavascriptInterface
+        public void switchEngine(String engine) {
+            if (!"gecko".equals(engine) && !"webview".equals(engine)) return;
+            if ("webview".equals(engine)) {
+                runOnUiThread(() -> {
+                    getSharedPreferences("MainActivity", MODE_PRIVATE).edit().putString("engine", "webview").apply();
+                    startActivity(new Intent(MainActivity.this, MainActivity.class).putExtra("forceWebView", true));
+                    finish();
+                });
+                return;
+            }
+            com.luckybean.app.storage.RoomStoreRepository repository = platformRepository;
+            repository.get("syncMetadata", "native.storage.backend.v1").thenCombine(
+                repository.get("platformPreferences", "engineMigration"),
+                (storage, assets) -> storage != null && storage.optBoolean("active") && assets != null && assets.optBoolean("ready")
+            ).whenComplete((ready, error) -> runOnUiThread(() -> {
+                if (error != null || !Boolean.TRUE.equals(ready)) {
+                    Toast.makeText(MainActivity.this, "请先完成本地数据与照片迁移校验", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                getSharedPreferences("MainActivity", MODE_PRIVATE).edit().putString("engine", "gecko").apply();
+                startActivity(new Intent(MainActivity.this, GeckoActivity.class));
+                finish();
+            }));
+        }
+
+        @JavascriptInterface
         public void exitApp() {
             runOnUiThread(MainActivity.this::finish);
         }
@@ -431,16 +482,22 @@ public final class MainActivity extends Activity {
     }
 
     private void resolveRecognition(String requestId, JSONObject payload) {
-        String script = "globalThis.LuckyBeanNativeRecognition&&globalThis.LuckyBeanNativeRecognition.resolve("
-            + JSONObject.quote(requestId == null ? "" : requestId) + "," + payload + ");";
-        runOnUiThread(() -> webView.evaluateJavascript(script, null));
+        dispatchJavascriptCallback("recognition.resolve", requestId, payload);
     }
 
     private void rejectRecognition(String requestId, String message) {
-        String script = "globalThis.LuckyBeanNativeRecognition&&globalThis.LuckyBeanNativeRecognition.reject("
-            + JSONObject.quote(requestId == null ? "" : requestId) + ","
-            + JSONObject.quote(message == null || message.isEmpty() ? "Android 本地 OCR 失败" : message) + ");";
-        runOnUiThread(() -> webView.evaluateJavascript(script, null));
+        dispatchJavascriptCallback("recognition.reject", requestId,
+            message == null || message.isEmpty() ? "Android 本地 OCR 失败" : message);
+    }
+
+    protected void dispatchJavascriptCallback(String callback, String requestId, Object value) {
+        String target = callback.startsWith("recognition.") ? "LuckyBeanNativeRecognition" : "LuckyBeanStoreBridge";
+        String method = callback.endsWith("resolve") ? "resolve" : "reject";
+        String encoded = value == null ? "null" : value instanceof JSONObject || value instanceof JSONArray
+            ? value.toString() : JSONObject.quote(value.toString());
+        String script = "globalThis." + target + "&&globalThis." + target + "." + method + "("
+            + JSONObject.quote(requestId == null ? "" : requestId) + "," + encoded + ");";
+        runOnUiThread(() -> { if (webView != null) webView.evaluateJavascript(script, null); });
     }
 
     private static String sanitizeFilename(String value) {
@@ -493,11 +550,23 @@ public final class MainActivity extends Activity {
         @Override
         public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> callback,
                                          FileChooserParams params) {
+            return openNativeFileChooser(params.isCaptureEnabled(), params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE,
+                params.getAcceptTypes(), callback);
+        }
+
+        @Override
+        public boolean onConsoleMessage(ConsoleMessage message) {
+            android.util.Log.d("LuckyBeanWeb", message.message() + " @" + message.lineNumber());
+            return true;
+        }
+    }
+
+    protected boolean openNativeFileChooser(boolean captureOnly, boolean multiple, String[] acceptTypes,
+                                             ValueCallback<Uri[]> callback) {
             if (filePathCallback != null) filePathCallback.onReceiveValue(null);
             filePathCallback = callback;
             cleanupUnusedCameraOutput(null);
 
-            boolean captureOnly = params.isCaptureEnabled();
             if (captureOnly && getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
                 Intent camera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
                 android.content.ContentValues values = new android.content.ContentValues();
@@ -518,14 +587,17 @@ public final class MainActivity extends Activity {
 
             Intent contentIntent;
             try {
-                contentIntent = params.createIntent();
+                contentIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                contentIntent.addCategory(Intent.CATEGORY_OPENABLE);
+                contentIntent.setType(acceptTypes.length == 1 && acceptTypes[0].contains("/") ? acceptTypes[0] : "*/*");
+                if (acceptTypes.length > 1) contentIntent.putExtra(Intent.EXTRA_MIME_TYPES, acceptTypes);
             } catch (Exception error) {
                 contentIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
                 contentIntent.addCategory(Intent.CATEGORY_OPENABLE);
                 contentIntent.setType("*/*");
             }
             contentIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-            if (params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE) {
+            if (multiple) {
                 contentIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             }
 
@@ -539,14 +611,6 @@ public final class MainActivity extends Activity {
             }
             return true;
         }
-
-        @Override
-        public boolean onConsoleMessage(ConsoleMessage message) {
-            android.util.Log.d("LuckyBeanWeb", message.message() + " @" + message.lineNumber());
-            return true;
-        }
-    }
-
     private boolean hasMediaPermissions(boolean camera, boolean audio) {
         return (!camera || checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
             && (!audio || checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED);
@@ -629,7 +693,7 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void handleSystemBack() {
+    protected void handleSystemBack() {
         if (webView == null) {
             finish();
             return;
@@ -661,7 +725,7 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        webView.saveState(outState);
+        if (webView != null) webView.saveState(outState);
         super.onSaveInstanceState(outState);
     }
 

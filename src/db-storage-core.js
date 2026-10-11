@@ -582,6 +582,12 @@ export async function migrateSchema10ToRoom({ onProgress = () => {}, signal } = 
         throw new Error(`Room 校验失败：${name}`);
       }
     }
+    for (const name of storeNames) {
+      const current = await readRawStore(db, name);
+      if (current.length !== snapshot[name].count || await rowsDigest(current) !== snapshot[name].sha256) {
+        throw new Error(`迁移期间源数据已变化，请重试：${name}`);
+      }
+    }
     throwIfRoomMigrationAborted(signal);
     await nativeStore.put('syncMetadata', {
       id: ROOM_ACTIVE_KEY,
@@ -805,6 +811,7 @@ export async function replaceStores(storeRows) {
 
 export async function rollbackRoomToIndexedDb() {
   return withRoomMutex(async () => {
+    if (globalThis.__LUCKYBEAN_ENGINE__ === 'gecko') throw new Error('请先切回 WebView，再回滚至原始 IndexedDB');
     if (!await isRoomBackendActive()) return { rolledBack: false, reason: 'room-not-active' };
     const nativeStore = roomStore();
     const db = await openIndexedDb();
@@ -813,6 +820,9 @@ export async function rollbackRoomToIndexedDb() {
     // The active marker belongs to Room's backend metadata. Never copy it into the
     // restored canonical IndexedDB, so rollback matches the user's actual records.
     restored.syncMetadata = restored.syncMetadata.filter(value => value?.id !== ROOM_ACTIVE_KEY);
+    const expected = Object.fromEntries(await Promise.all(storeNames.map(async name => [name, {
+      count: restored[name].length, sha256: await rowsDigest(restored[name])
+    }])));
     await new Promise((resolve, reject) => {
       const tx = db.transaction(storeNames, 'readwrite');
       for (const name of storeNames) {
@@ -824,6 +834,12 @@ export async function rollbackRoomToIndexedDb() {
       tx.onerror = () => reject(tx.error || new Error('Room 回滚到 IndexedDB 失败'));
       tx.onabort = () => reject(tx.error || new Error('Room 回滚到 IndexedDB 已中止'));
     });
+    for (const name of storeNames) {
+      const rows = await readRawStore(db, name);
+      if (rows.length !== expected[name].count || await rowsDigest(rows) !== expected[name].sha256) {
+        throw new Error(`Room 回滚校验失败：${name}`);
+      }
+    }
     await nativeStore.remove('syncMetadata', ROOM_ACTIVE_KEY);
     roomBackendActivePromise = Promise.resolve(false);
     return { rolledBack: true, stores: storeNames.length };

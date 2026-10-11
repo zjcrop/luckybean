@@ -156,6 +156,9 @@ jobs:
             exit 1
           fi
 
+          adb -s "$emulator_serial" shell settings put global airplane_mode_on 1
+          adb -s "$emulator_serial" shell svc wifi disable
+          adb -s "$emulator_serial" shell svc data disable
           timeout --kill-after=10s 600s gradle --no-daemon -p android :app:connectedDebugAndroidTest 2>&1 | tee android-room-tests.log
 
           remote_apk='/data/local/tmp/LuckyBean-integration.apk'
@@ -260,6 +263,8 @@ jobs:
             android-push.txt
             android-install.txt
             android-room-tests.log
+            android/app/schemas/
+            android/app/build/outputs/androidTest-results/
             android-package-dump.txt
             android-start.txt
             android-runtime.log

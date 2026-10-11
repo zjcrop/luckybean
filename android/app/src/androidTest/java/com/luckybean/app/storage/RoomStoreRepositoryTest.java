@@ -26,10 +26,10 @@ public final class RoomStoreRepositoryTest {
     private RoomStoreRepository repository;
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        context.deleteDatabase("luckybean-room.db");
         repository = new RoomStoreRepository(context);
+        repository.clearAll().get(20, TimeUnit.SECONDS);
     }
 
     @Test

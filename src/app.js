@@ -1,3 +1,5 @@
+import { switchNativeEngine } from './services/native-engine-service.js';
+import { restoreBeanThumbnailsToIndexedDb } from './domain/beans/bean-thumbnail-storage.js';
 import { sanitizeExecutionText, sanitizeExecutionPlanText } from './services/execution-text-sanitizer.js';
 import { APP_VERSION, SCHEMA_VERSION, $, $$, uid, esc, clamp, todayISO, formatDate, freshness, freshnessProfile, downloadBlob, safeJsonParse, assertPlainObject, assertSafeJson, browserTitle, parseNumber } from './utils.js';
 import { openDb, all, allByIndex, get, put, remove, bulkPut, getSetting, setSetting, clearAll, migrateLegacy, migrateSchema10ToRoom, isRoomStorageActive, rollbackRoomToIndexedDb } from './db.js';
@@ -2900,7 +2902,7 @@ function renderSettings() {
   <details class="settings-category" data-settings-key="account"><summary><span>账户</span><small>登录、云端同步、恢复与多设备连接</small></summary><div class="settings-category-body" data-cloud-account-host></div></details>
   <details class="settings-category" id="privateGearCategory"><summary><span>私器${low.length?'<sup class="gear-low-star">*</sup>':''}</span><small>滤纸，滤杯，磨豆机设定</small></summary><div class="settings-category-body">${gearManagerHtml()}</div></details>
   <details class="settings-category data-category"><summary><span>数藏</span><small>数据的导入导出、分析及备份</small></summary><div class="settings-category-body">
-  ${roomMigrationTools ? '<section class="room-storage-controls" id="roomStorageMigration"><h3>本地存储迁移</h3><p class="muted small">将本机 schema 10 数据迁移至 Room。迁移前会生成快照并逐表校验；取消或失败时保留 IndexedDB。迁移后仍可回滚。</p><div class="text-actions"><button id="roomMigrationStartBtn" class="button" type="button">迁移到 Room</button><button id="roomMigrationRollbackBtn" class="button danger" type="button" hidden>回滚到 IndexedDB</button></div><p id="roomMigrationStatus" class="muted small" role="status"></p></section>' : ''}<section class="v099p-data-analysis" data-v099p-data-analysis><h3>数藏分析</h3><p class="muted small">从豆卡、冲煮与品鉴记录生成个人咖啡图谱。</p><div class="v099p-analysis-actions"><button type="button" data-v099f-preference>风味喜好数字测写</button><button type="button" data-v099f-world>咖啡世界</button></div></section><details class="nested-settings"><summary>健康提醒参数（点击展开）</summary><div class="nested-content"><div class="grid-2"><label class="field"><span>每日咖啡因参考上限</span><input id="dailyCaffeineLimitMg" class="control" type="number" min="50" max="400" step="10" value="${Math.min(400,Number(state.settings.health.dailyCaffeineLimitMg || 400))}"><small>mg；一般健康成人默认400mg，只允许向下调整</small></label><label class="field"><span>预计入睡时间</span><input id="bedtimeLocal" class="control" type="time" value="${esc(state.settings.health.bedtimeLocal || '23:00')}"></label><label class="field"><span>睡前停止咖啡因</span><input id="caffeineCutoffHours" class="control" type="number" min="1" max="12" step="1" value="${Number(state.settings.health.caffeineCutoffHours || 6)}"><small>小时；默认至少提前6小时</small></label></div><p class="muted small">克数为咖啡因估算，不是医学诊断。孕期、未成年人、对咖啡因敏感或有医嘱者不适用一般成人阈值。</p><button id="saveHealthSettingsBtn" class="button" type="button">保存健康提醒</button></div></details><div class="text-actions data-actions"><button id="settingsExportBtn" class="button" type="button">导出备份</button><button id="settingsImportBtn" class="button" type="button">导入备份</button><button id="clearAllDataBtn" class="button danger" type="button">清空本地数据</button></div><details class="nested-settings"><summary>数据源与接口（点击展开）</summary><div class="nested-content"><div class="setting-row"><div><h3>数据源</h3><p>后台校验并原子更新，失败时保留最后有效版本。</p></div><button id="updateCodebookBtn" class="button" type="button">更新全部数据源</button></div><div id="providerStatusPanel"></div><label class="field"><span>私有冲煮 API</span><input id="brewApiEndpoint" class="control" type="url" placeholder="HTTPS 服务端地址" value="${esc(state.settings.brew.apiEndpoint||'')}"></label><button id="saveApiBtn" class="button" type="button">保存接口</button></div></details></div></details>
+  ${roomMigrationTools ? '<section class="room-storage-controls" id="roomStorageMigration"><h3>本地存储迁移</h3><p class="muted small">将本机 schema 10 数据迁移至 Room。迁移前会生成快照并逐表校验；取消或失败时保留 IndexedDB。迁移后仍可回滚。</p><div class="text-actions"><button id="roomMigrationStartBtn" class="button" type="button">迁移到 Room</button><button id="roomMigrationRollbackBtn" class="button danger" type="button" hidden>回滚到 IndexedDB</button><button id="nativeEngineSwitchBtn" class="button" type="button" hidden>切换到 GeckoView</button></div><p id="roomMigrationStatus" class="muted small" role="status"></p></section>' : ''}<section class="v099p-data-analysis" data-v099p-data-analysis><h3>数藏分析</h3><p class="muted small">从豆卡、冲煮与品鉴记录生成个人咖啡图谱。</p><div class="v099p-analysis-actions"><button type="button" data-v099f-preference>风味喜好数字测写</button><button type="button" data-v099f-world>咖啡世界</button></div></section><details class="nested-settings"><summary>健康提醒参数（点击展开）</summary><div class="nested-content"><div class="grid-2"><label class="field"><span>每日咖啡因参考上限</span><input id="dailyCaffeineLimitMg" class="control" type="number" min="50" max="400" step="10" value="${Math.min(400,Number(state.settings.health.dailyCaffeineLimitMg || 400))}"><small>mg；一般健康成人默认400mg，只允许向下调整</small></label><label class="field"><span>预计入睡时间</span><input id="bedtimeLocal" class="control" type="time" value="${esc(state.settings.health.bedtimeLocal || '23:00')}"></label><label class="field"><span>睡前停止咖啡因</span><input id="caffeineCutoffHours" class="control" type="number" min="1" max="12" step="1" value="${Number(state.settings.health.caffeineCutoffHours || 6)}"><small>小时；默认至少提前6小时</small></label></div><p class="muted small">克数为咖啡因估算，不是医学诊断。孕期、未成年人、对咖啡因敏感或有医嘱者不适用一般成人阈值。</p><button id="saveHealthSettingsBtn" class="button" type="button">保存健康提醒</button></div></details><div class="text-actions data-actions"><button id="settingsExportBtn" class="button" type="button">导出备份</button><button id="settingsImportBtn" class="button" type="button">导入备份</button><button id="clearAllDataBtn" class="button danger" type="button">清空本地数据</button></div><details class="nested-settings"><summary>数据源与接口（点击展开）</summary><div class="nested-content"><div class="setting-row"><div><h3>数据源</h3><p>后台校验并原子更新，失败时保留最后有效版本。</p></div><button id="updateCodebookBtn" class="button" type="button">更新全部数据源</button></div><div id="providerStatusPanel"></div><label class="field"><span>私有冲煮 API</span><input id="brewApiEndpoint" class="control" type="url" placeholder="HTTPS 服务端地址" value="${esc(state.settings.brew.apiEndpoint||'')}"></label><button id="saveApiBtn" class="button" type="button">保存接口</button></div></details></div></details>
   <details class="settings-category"><summary><span>本物</span><small>关于本工具和开发小哥的一切</small></summary><div class="settings-category-body about-content"><figure class="about-illustration"><img src="./public/Luckybean-END.webp?v=1.24B-main.2" alt="富贵盒子猫咪插图" loading="lazy" decoding="async"><figcaption>富贵盒子</figcaption></figure><h2>富贵盒子</h2><p>咖啡豆管理、冲煮辅助、品鉴记录与本地数据归档工具。</p><dl><dt>版本</dt><dd>${APP_VERSION}</dd><dt>数据结构</dt><dd>${SCHEMA_VERSION}</dd><dt>离线引擎</dt><dd>${esc(FALLBACK_ENGINE_VERSION)}</dd><dt>数据源</dt><dd>公开编码数据 ${esc(meta.version||state.codebook?.version||'6')}</dd><dt>开发与维护</dt><dd>zjcrop</dd></dl></div></details>
   </div>`;
   renderProviderStatusPanel($('#providerStatusPanel')).catch(error => console.warn('数据源状态读取失败', error));
@@ -2909,7 +2911,9 @@ function renderSettings() {
     const rollbackButton = $('#roomMigrationRollbackBtn');
     isRoomStorageActive().then(active => {
       if (startButton) startButton.hidden = active;
-      if (rollbackButton) rollbackButton.hidden = !active;
+      if (rollbackButton) rollbackButton.hidden = !active || globalThis.__LUCKYBEAN_ENGINE__ === 'gecko';
+      const engineButton = $('#nativeEngineSwitchBtn');
+      if (engineButton) { engineButton.hidden = !active; engineButton.textContent = globalThis.__LUCKYBEAN_ENGINE__ === 'gecko' ? '切回 WebView' : '切换到 GeckoView'; }
       const status = $('#roomMigrationStatus');
       if (status) status.textContent = active ? '当前本机数据已使用 Room；IndexedDB 原始库仍保留。' : '当前仍使用 IndexedDB。';
     }).catch(error => {
@@ -2918,6 +2922,7 @@ function renderSettings() {
       if (startButton) startButton.disabled = true;
       if (rollbackButton) rollbackButton.disabled = true;
     });
+    $('#nativeEngineSwitchBtn')?.addEventListener('click', openNativeEngineConfirmation);
     startButton?.addEventListener('click', openRoomMigrationConfirmation);
     rollbackButton?.addEventListener('click', openRoomRollbackConfirmation);
   }
@@ -2936,6 +2941,17 @@ function renderSettings() {
   requestAnimationFrame(() => document.dispatchEvent(new CustomEvent('luckybean:settings-rendered')));
 }
 
+function openNativeEngineConfirmation() {
+  const gecko = globalThis.__LUCKYBEAN_ENGINE__ !== 'gecko';
+  const overlay = showOverlay(`${dialogHeader(gecko ? '切换到 GeckoView' : '切回 WebView')}<p>本地记录与照片继续保存在 Room。${gecko ? '首次切换会校验并迁移照片和本地偏好，原始 IndexedDB 保留。' : '切回后可在这里将当前数据回滚到原始 IndexedDB。'}</p><button id="confirmNativeEngineBtn" class="button primary" type="button">确认切换</button>`);
+  bindClose(overlay);
+  $('#confirmNativeEngineBtn').addEventListener('click', async event => {
+    event.currentTarget.disabled = true;
+    try { await switchNativeEngine(); }
+    catch (error) { closeOverlay(); toast(`引擎未切换：${error.message}`, 'status-bad'); }
+  });
+}
+
 function openRoomMigrationConfirmation() {
   const overlay = showOverlay(`${dialogHeader('迁移到 Room', '迁移期间保留原始 IndexedDB')}<p>系统会先完成旧冲煮历史整理，再生成 schema 10 全库快照、分块导入并逐表校验。迁移完成后可以在此处回滚。</p><p class="status-bad">迁移期间请保持应用打开；取消会清除未完成的 Room 导入并继续使用 IndexedDB。</p><div class="text-actions"><button id="cancelRoomMigrationConfirmBtn" class="button" type="button">暂不迁移</button><button id="confirmRoomMigrationBtn" class="button" type="button">确认并开始</button></div>`);
   bindClose(overlay);
@@ -2945,7 +2961,7 @@ function openRoomMigrationConfirmation() {
 
 async function runRoomMigration() {
   closeOverlay();
-  const overlay = showOverlay(`${dialogHeader('正在迁移本地数据', '请保持应用打开', false)}<progress id="roomMigrationProgress" max="1" value="0"></progress><p id="roomMigrationProgressText" role="status">整理旧冲煮历史…</p><button id="cancelRoomMigrationBtn" class="button danger" type="button">取消迁移</button>`);
+  const overlay = showOverlay(`${dialogHeader('正在迁移本地数据', '请保持应用打开', false)}<progress id="roomMigrationProgress" max="1" value="0"></progress><p id="roomMigrationProgressText" role="status">整理旧冲煮历史…</p><button id="cancelRoomMigrationBtn" class="button danger" type="button" disabled>取消迁移</button>`);
   const controller = new AbortController();
   const cancelButton = $('#cancelRoomMigrationBtn');
   cancelButton.addEventListener('click', () => {
@@ -2965,6 +2981,8 @@ async function runRoomMigration() {
   };
   try {
     await migrateLegacyBrewHistory();
+    cancelButton.disabled = false;
+    $('#roomMigrationProgressText').textContent = '正在准备迁移快照…';
     const result = await migrateSchema10ToRoom({ signal: controller.signal, onProgress });
     await loadSettings();
     await refreshData();
@@ -2987,6 +3005,7 @@ function openRoomRollbackConfirmation() {
     button.disabled = true;
     button.textContent = '正在回滚…';
     try {
+      await restoreBeanThumbnailsToIndexedDb();
       const result = await rollbackRoomToIndexedDb();
       if (!result.rolledBack) throw new Error('Room 当前未启用');
       await refreshData();
