@@ -68,7 +68,7 @@ tasks.register('syncLuckyBeanWebAssets') {
 
 android {
     namespace 'com.luckybean.app'
-    compileSdk 37
+    compileSdk { version = release(37) { minorApiLevel = 0 } }
     buildFeatures {
         buildConfig true
     }
