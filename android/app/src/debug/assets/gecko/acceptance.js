@@ -1,5 +1,5 @@
 // Instrumentation-only module: packaged in debug assets, absent from release builds.
-export async function runAcceptance() {
+export async function runAcceptance({ verifyOnly = false } = {}) {
   const db = await import('./web-cache/src/db.js');
   const history = await import('./web-cache/src/domain/history/history-service.js');
   const fixture = await (await fetch(new URL('./web-cache/contracts/fixtures/core-store-golden.v1.json', import.meta.url))).json();
@@ -18,7 +18,7 @@ export async function runAcceptance() {
   const events = await db.all('inventoryEvents');
   const outbox = await db.all('syncOutbox');
   const records = await history.listCompletedBrews();
-  if (before.remainingWeight !== 100 || after.remainingWeight !== 85) throw new Error('扣豆账本不一致');
+  if (before.remainingWeight !== (verifyOnly ? 85 : 100) || after.remainingWeight !== 85) throw new Error('扣豆账本不一致');
   if (!duplicate.duplicate) throw new Error('重复提交未保持幂等性');
   if (!events.some(row => row.id === committed.record.inventoryEventId && row.amountG === -15)) throw new Error('扣豆证据未持久化');
   if (!outbox.some(row => row.entityId === committed.record.id)) throw new Error('离线 outbox 缺失');

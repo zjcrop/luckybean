@@ -62,6 +62,30 @@ public class MainActivity extends Activity {
     private static final int IMAGE_PREVIEW_MAX_EDGE = 960;
 
     private WebView webView;
+    private android.net.ConnectivityManager connectivity;
+    private android.net.ConnectivityManager.NetworkCallback networkCallback;
+    protected boolean networkAvailable() {
+        android.net.ConnectivityManager manager = (android.net.ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        android.net.Network network = manager == null ? null : manager.getActiveNetwork();
+        android.net.NetworkCapabilities caps = network == null ? null : manager.getNetworkCapabilities(network);
+        boolean flight = android.provider.Settings.Global.getInt(getContentResolver(), "airplane_mode_on", 0) != 0;
+        return caps != null && caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            && caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+            && (!flight || caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI));
+    }
+    private void watchNetwork() {
+        connectivity = (android.net.ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        if (connectivity == null) return;
+        networkCallback = new android.net.ConnectivityManager.NetworkCallback() {
+            @Override public void onCapabilitiesChanged(android.net.Network network, android.net.NetworkCapabilities caps) {
+                dispatchJavascriptCallback("network.setOnline", "", networkAvailable());
+            }
+            @Override public void onLost(android.net.Network network) {
+                dispatchJavascriptCallback("network.setOnline", "", networkAvailable());
+            }
+        };
+        connectivity.registerDefaultNetworkCallback(networkCallback);
+    }
     private com.luckybean.app.storage.RoomStoreRepository platformRepository;
     private ValueCallback<Uri[]> filePathCallback;
     private ValueCallback<Uri[]> pendingCameraFileCallback;
@@ -88,6 +112,7 @@ public class MainActivity extends Activity {
         latinTextRecognizer = recognitionRuntime.latinRecognizer();
         platformRepository = new com.luckybean.app.storage.RoomStoreRepository(this);
         initializeEngine(savedInstanceState);
+        watchNetwork();
         registerSystemBackCallback();
         getWindow().getDecorView().post(this::enterImmersiveMode);
     }
@@ -281,6 +306,7 @@ public class MainActivity extends Activity {
     }
 
     protected final class NativeFileBridge {
+        @JavascriptInterface public boolean isNetworkAvailable() { return networkAvailable(); }
         @JavascriptInterface
         public String bindImageSource(String imageId, boolean includePreview) {
             Uri sourceUri = claimRecognitionSource(imageId);
@@ -495,6 +521,11 @@ public class MainActivity extends Activity {
     }
 
     protected void dispatchJavascriptCallback(String callback, String requestId, Object value) {
+        if ("network.setOnline".equals(callback)) {
+            String script = "globalThis.LuckyBeanNetworkBridge&&globalThis.LuckyBeanNetworkBridge.setOnline(" + value + ");";
+            runOnUiThread(() -> { if (webView != null) webView.evaluateJavascript(script, null); });
+            return;
+        }
         String target = callback.startsWith("recognition.") ? "LuckyBeanNativeRecognition" : "LuckyBeanStoreBridge";
         String method = callback.endsWith("resolve") ? "resolve" : "reject";
         String encoded = value == null ? "null" : value instanceof JSONObject || value instanceof JSONArray
@@ -755,6 +786,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (connectivity != null && networkCallback != null) connectivity.unregisterNetworkCallback(networkCallback);
+        networkCallback = null;
         if (pendingCameraFileCallback != null) { pendingCameraFileCallback.onReceiveValue(null); pendingCameraFileCallback = null; }
         if (filePathCallback != null) { filePathCallback.onReceiveValue(null); filePathCallback = null; }
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

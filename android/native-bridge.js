@@ -1,3 +1,13 @@
+globalThis.LuckyBeanNetworkBridge = {
+  setOnline(value) {
+    const previous = globalThis.__LUCKYBEAN_NATIVE_ONLINE__;
+    globalThis.__LUCKYBEAN_NATIVE_ONLINE__ = value === true;
+    if (previous !== value) window.dispatchEvent(new Event(value ? 'online' : 'offline'));
+  }
+};
+if (typeof globalThis.LuckyBeanNative?.isNetworkAvailable === 'function' && globalThis.__LUCKYBEAN_ENGINE__ !== 'gecko') {
+  globalThis.LuckyBeanNetworkBridge.setOnline(globalThis.LuckyBeanNative.isNetworkAvailable());
+}
 globalThis.__LUCKYBEAN_ENGINE__ ||= 'webview';
 if (typeof globalThis.LuckyBeanNative?.readEnginePreferences === 'function') {
   const serialized = globalThis.LuckyBeanNative.readEnginePreferences();

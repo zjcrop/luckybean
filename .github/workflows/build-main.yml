@@ -120,7 +120,7 @@ jobs:
           set -euo pipefail
           apk=android/app/build/outputs/apk/release/app-release.apk
           test -f "$apk"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='${ANDROID_VERSION_CODE}' versionName='${DISPLAY_VERSION}'"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk" | grep -q "package: name='com.luckybean.app' versionCode='${ANDROID_VERSION_CODE}' versionName='${DISPLAY_VERSION}'"
           unzip -p "$apk" assets/web-cache/release.json > /tmp/apk-release.json
           test "$(jq -r .displayVersion /tmp/apk-release.json)" = "$DISPLAY_VERSION"
           test "$(jq -r .revision /tmp/apk-release.json)" = "$RELEASE_REVISION"
@@ -132,7 +132,7 @@ jobs:
           apk_app_sha=$(unzip -p "$apk" assets/web-cache/src/app.js | sha256sum | awk '{print $1}')
           test "$source_app_sha" = "$apk_app_sha"
           expected_cert=$(tr -d '[:space:]:' < android/signing/CERT_SHA256.txt | tr '[:lower:]' '[:upper:]')
-          actual_cert=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')
+          actual_cert=$("$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')
           test -n "$actual_cert"
           test "$actual_cert" = "$expected_cert"
           printf '%s' "$actual_cert" > /tmp/luckybean-cert-sha256.txt

@@ -2,6 +2,7 @@ import './bridge.js';
 
 async function start() {
   await import('./web-cache/native-bridge.js');
+  globalThis.LuckyBeanNetworkBridge.setOnline(await globalThis.LuckyBeanNative.isNetworkAvailable());
   const active = await globalThis.LuckyBeanRoomStore.get('syncMetadata', 'native.storage.backend.v1');
   if (!active?.active || active.schemaVersion !== 10) throw new Error('Room 未就绪，请切回 WebView 完成迁移');
   const pending = await globalThis.LuckyBeanRoomStore.get('platformPreferences', 'restoreGeckoPreferences');

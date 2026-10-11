@@ -142,6 +142,7 @@ public final class GeckoActivity extends MainActivity {
             String error = null;
             try {
                 switch (request.optString("method")) {
+                    case "isNetworkAvailable": result = nativeBridge.isNetworkAvailable(); break;
                     case "bindImageSource": result = nativeBridge.bindImageSource(values.getString(0), values.getBoolean(1)); break;
                     case "recognizeImage": nativeBridge.recognizeImage(values.getString(0), values.getString(1), values.getString(2), values.getString(3)); break;
                     case "saveFile": nativeBridge.saveFile(values.getString(0), values.getString(1), values.getString(2)); break;
@@ -178,9 +179,13 @@ public final class GeckoActivity extends MainActivity {
         });
     }
 
-    void runOfflineAcceptance() {
+    void runOfflineAcceptance() { runOfflineAcceptance(false); }
+
+    void runOfflineAcceptance(boolean verifyOnly) {
+        acceptanceResult = null;
+        acceptanceFailure = null;
         if (!BuildConfig.DEBUG || port == null) throw new IllegalStateException("Debug runtime not ready");
-        try { postMessage(port, new JSONObject().put("type", "acceptance")); }
+        try { postMessage(port, new JSONObject().put("type", "acceptance").put("verifyOnly", verifyOnly)); }
         catch (Exception error) { acceptanceFailure = error.getMessage(); }
     }
 

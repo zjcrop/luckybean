@@ -15,7 +15,9 @@ function call(method, args = []) {
 function fire(method, args) { void call(method, args).catch(error => console.warn('原生操作失败', method, error.message)); }
 port.onMessage.addListener(envelope => {
   const message = JSON.parse(envelope.json);
-  if (message.type === 'callback') {
+  if (message.type === 'callback' && message.callback === 'network.setOnline') {
+    globalThis.LuckyBeanNetworkBridge?.setOnline(message.value);
+  } else if (message.type === 'callback') {
     const target = message.callback.startsWith('recognition.') ? globalThis.LuckyBeanNativeRecognition : globalThis.LuckyBeanStoreBridge;
     target?.[message.callback.endsWith('resolve') ? 'resolve' : 'reject']?.(message.id, message.value);
   } else if (message.type === 'result') {
@@ -24,7 +26,7 @@ port.onMessage.addListener(envelope => {
     requests.delete(message.id); clearTimeout(request.timeout);
     if (message.error) request.reject(new Error(message.error)); else request.resolve(message.value);
   } else if (message.type === 'acceptance') {
-    import('./acceptance.js').then(module => module.runAcceptance()).then(
+    import('./acceptance.js').then(module => module.runAcceptance({ verifyOnly: message.verifyOnly === true })).then(
       result => send({ type: 'acceptanceResult', result }),
       error => send({ type: 'acceptanceResult', error: error.message })
     );
@@ -38,6 +40,7 @@ port.onDisconnect.addListener(() => {
 });
 globalThis.LuckyBeanRoomNative = { request(id, json) { send({ type: 'store', id, json }); } };
 globalThis.LuckyBeanNative = {
+  isNetworkAvailable() { return call('isNetworkAvailable'); },
   bindImageSource(id, preview) { return call('bindImageSource', [id, preview]); },
   recognizeImage(...args) { fire('recognizeImage', args); },
   saveFile(...args) { fire('saveFile', args); },

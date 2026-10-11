@@ -134,6 +134,7 @@ function friendlyAuthMessage(error, mode = 'login') {
 }
 
 async function rawRequest(path, { method = 'POST', body, token, timeoutMs = 6000, headers = {} } = {}) {
+  if (globalThis.__LUCKYBEAN_NATIVE_ONLINE__ === false || globalThis.navigator?.onLine === false) throw new Error('当前处于离线状态，云端操作将在联网后恢复');
   const controller = typeof AbortController === 'function' ? new AbortController() : null;
   let timeout = null;
   try {
@@ -230,7 +231,7 @@ async function refreshSession({ force = false, reason = 'background' } = {}) {
     let active = readSession();
     if (!active?.refresh_token) { emit('signed-out'); return null; }
     if (rememberUntil() && Date.now() > rememberUntil()) { writeSession(null); emit('expired', { reason:'seven-day-inactivity' }); return null; }
-    if (!navigator.onLine) { emit('offline', { session:active }); return accessTokenValid(active, 0) ? active : null; }
+    if (globalThis.__LUCKYBEAN_NATIVE_ONLINE__ === false || !navigator.onLine) { emit('offline', { session:active }); return accessTokenValid(active, 0) ? active : null; }
     const forcedByApi401 = force && reason === 'api-401';
     if (accessTokenValid(active) && !forcedByApi401) {
       emit('authenticated', { user:active.user, cached:true, authAction:callbackSessionAuthoritative(active) ? 'email-callback' : 'session-resume' });

@@ -22,6 +22,7 @@ export interface NativeStore {
   replaceStores(stores: Partial<Record<NativeLocalStore, RecordPayload[]>>): Promise<void>;
 }
 export interface Platform {
+  isNetworkAvailable(): Promise<boolean> | boolean;
   bindImageSource(imageId: string, includePreview: boolean): Promise<string> | string;
   recognizeImage(requestId: string, imageId: string, role: string, dataUrl: string): void;
   saveFile(base64: string, filename: string, mimeType: string): void;

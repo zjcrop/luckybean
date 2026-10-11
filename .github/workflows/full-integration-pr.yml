@@ -285,3 +285,76 @@ jobs:
       - name: Fail if Android compile failed
         if: steps.compile.outputs.status != '0'
         run: exit 1
+
+
+  signed_candidate:
+    name: Signed Core v2 device candidate
+    needs: android
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'refactor/core-v2-schema10-room'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - uses: actions/setup-java@v5.7.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4.0.1
+        with:
+          packages: 'platform-tools'
+      - run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
+      - uses: gradle/actions/setup-gradle@v6.3.0
+        with:
+          gradle-version: '9.3.1'
+      - name: Require successful main tests for this exact candidate head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 90); do
+            state=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$CANDIDATE_HEAD_SHA&per_page=100" --jq '[.workflow_runs[] | select(.name == "LuckyBean main tests")] | sort_by(.created_at) | last | (.conclusion // .status // "missing")')
+            if [ "$state" = success ]; then exit 0; fi
+            case "$state" in failure|cancelled|timed_out|action_required) echo "Main gate failed: $state" >&2; exit 1;; esac
+            sleep 10
+          done
+          echo 'Exact-head main gate did not complete successfully within 15 minutes' >&2
+          exit 1
+      - name: Restore official key for private device candidate
+        env:
+          LUCKYBEAN_KEYSTORE_B64: ${{ secrets.LUCKYBEAN_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "$LUCKYBEAN_KEYSTORE_B64"
+          printf '%s' "$LUCKYBEAN_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/luckybean-candidate.jks"
+          chmod 600 "$RUNNER_TEMP/luckybean-candidate.jks"
+      - name: Build signed candidate
+        env:
+          LUCKYBEAN_KEYSTORE_FILE: ${{ runner.temp }}/luckybean-candidate.jks
+          LUCKYBEAN_STORE_PASSWORD: ${{ secrets.LUCKYBEAN_STORE_PASSWORD }}
+          LUCKYBEAN_KEY_ALIAS: ${{ secrets.LUCKYBEAN_KEY_ALIAS }}
+          LUCKYBEAN_KEY_PASSWORD: ${{ secrets.LUCKYBEAN_KEY_PASSWORD }}
+        run: gradle --no-daemon -p android :app:assembleRelease
+      - name: Verify reviewed schema, packaged contracts and official certificate
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- android/app/schemas
+          apk=android/app/build/outputs/apk/release/app-release.apk
+          python3 scripts/verify_android_apk_contracts.py "$apk"
+          expected_cert=$(tr -d '[:space:]:' < android/signing/CERT_SHA256.txt | tr '[:lower:]' '[:upper:]')
+          actual_cert=$("$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')
+          test "$actual_cert" = "$expected_cert"
+          mkdir -p candidate
+          cp "$apk" candidate/LuckyBean-Core-v2-device-candidate.apk
+          sha256sum candidate/*.apk > candidate/SHA256SUMS.txt
+          printf 'tested_merge_sha=%s\npr_head_sha=%s\nsigning=official-release-keystore\nstatus=device-acceptance-pending\n' "$GITHUB_SHA" '${{ github.event.pull_request.head.sha }}' > candidate/BUILD_PROVENANCE.txt
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: luckybean-core-v2-signed-candidate-${{ github.event.pull_request.head.sha }}
+          path: candidate/
+          if-no-files-found: error

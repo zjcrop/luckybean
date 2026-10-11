@@ -54,6 +54,22 @@ public final class GeckoRuntimeTest {
             assertEquals(85, store.get("beans", "golden-bean").get(20, TimeUnit.SECONDS).getInt("remainingWeight"));
             assertTrue(activity.get().acceptanceResult.getBoolean("duplicate"));
             assertEquals(0, activity.get().acceptanceResult.getInt("cloudRequests"));
+            String committedId = activity.get().acceptanceResult.getString("recordId");
+            // Recreate the engine/session and prove the page reads the same persisted brew.
+            scenario.recreate();
+            scenario.onActivity(activity::set);
+            deadline = System.currentTimeMillis() + 90000;
+            while (!activity.get().localAppReady && System.currentTimeMillis() < deadline) Thread.sleep(200);
+            assertTrue("Gecko restart did not become ready", activity.get().localAppReady);
+            scenario.onActivity(current -> current.runOfflineAcceptance(true));
+            deadline = System.currentTimeMillis() + 30000;
+            while (activity.get().acceptanceResult == null && (activity.get().acceptanceFailure == null || activity.get().acceptanceFailure.isEmpty())
+                    && System.currentTimeMillis() < deadline) Thread.sleep(200);
+            assertNotNull("Restart persistence failed: " + activity.get().acceptanceFailure, activity.get().acceptanceResult);
+            assertEquals(committedId, activity.get().acceptanceResult.getString("recordId"));
+            assertEquals(85, activity.get().acceptanceResult.getInt("remainingWeight"));
+            assertTrue(activity.get().acceptanceResult.getBoolean("duplicate"));
+            assertEquals(0, activity.get().acceptanceResult.getInt("cloudRequests"));
         }
     }
 }
