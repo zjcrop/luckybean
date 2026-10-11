@@ -92,7 +92,7 @@ function openDatabase(version) {
   });
 }
 
-export function openDb() {
+async function openIndexedDb() {
   if (dbPromise) return dbPromise;
   dbPromise = (async () => {
     if (!globalThis.indexedDB) throw new Error('当前浏览器不支持 IndexedDB');
@@ -107,6 +107,12 @@ export function openDb() {
     throw error;
   });
   return dbPromise;
+}
+
+export async function openDb() {
+  const database = await openIndexedDb();
+  if (await isRoomBackendActive()) return createRoomDatabaseFacade();
+  return database;
 }
 
 async function store(name, mode = 'readonly') {
