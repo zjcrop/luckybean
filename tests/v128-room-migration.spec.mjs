@@ -100,7 +100,7 @@ async function installFixture(page) {
     const storage = await import('/src/db-storage-core.js?room-migration-contract=1');
     globalThis.__roomMigrationApi = storage;
     return Object.keys(rows);
-  }, stores);
+  }, STORES);
 }
 
 async function rawRows(page, name) {
@@ -172,10 +172,19 @@ test('schema 10 migration snapshots, verifies, runs atomic Room transactions and
   expect(transactionState.summary.displayName).toBe('Room edit');
   expect(transactionState.outbox.recordId).toBe('bean-1');
 
+  const expectedAfterRollback = await page.evaluate(async stores => {
+    const nativeStore = globalThis.LuckyBeanRoomStore;
+    return Object.fromEntries(await Promise.all(stores.map(async name => {
+      const values = await nativeStore.all(name);
+      return [name, name === 'syncMetadata'
+        ? values.filter(value => value.id !== 'native.storage.backend.v1')
+        : values];
+    })));
+  }, STORES);
   const rollback = await page.evaluate(() => globalThis.__roomMigrationApi.rollbackRoomToIndexedDb());
   expect(rollback.rolledBack).toBe(true);
-  expect(await rawRows(page, 'beans')).toEqual([{ id: 'bean-1', name: 'Room edit', note: 'LATEST' }]);
-  expect(await page.evaluate(() => globalThis.LuckyBeanRoomStore.get('syncMetadata', 'native.storage.backend.v1').then(row => row.active))).toBe(false);
+  for (const name of STORES) expect(await rawRows(page, name)).toEqual(expectedAfterRollback[name]);
+  expect(await page.evaluate(() => globalThis.LuckyBeanRoomStore.get('syncMetadata', 'native.storage.backend.v1'))).toBeNull();
 });
 
 test('failed verification leaves the schema 10 source intact and Room inactive', async ({ page }) => {
