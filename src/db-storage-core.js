@@ -582,24 +582,24 @@ export async function migrateSchema10ToRoom({ onProgress = () => {} } = {}) {
 }
 
 export async function all(name) {
-  if (await isRoomBackendActive()) {
+  if (await isRoomBackendActive()) return withRoomMutex(async () => {
     const values = await roomStore().all(name);
     if (name !== 'sensoryRecords') return values;
     return Promise.all(values.map(value => transformForRead(name, value)));
-  }
+  });
   const values = await requestToPromise((await store(name)).getAll());
   if (name !== 'sensoryRecords') return values;
   return Promise.all(values.map(value => transformForRead(name, value)));
 }
 
 export async function get(name, key) {
-  if (await isRoomBackendActive()) return transformForRead(name, await roomStore().get(name, key));
+  if (await isRoomBackendActive()) return withRoomMutex(async () => transformForRead(name, await roomStore().get(name, key)));
   return transformForRead(name, await requestToPromise((await store(name)).get(key)));
 }
 
 export async function allByIndex(name, indexName, key, { raw = false } = {}) {
   if (!STORES.includes(name)) throw new Error(`未知数据表：${name}`);
-  if (await isRoomBackendActive()) {
+  if (await isRoomBackendActive()) return withRoomMutex(async () => {
     const values = await roomStore().all(name);
     const indexedValue = value => indexName === 'beanId' ? value.beanId
       : indexName === 'beanCreatedAt' ? [value.beanId, value.createdAt]
@@ -630,7 +630,7 @@ export async function allByIndex(name, indexName, key, { raw = false } = {}) {
     });
     if (raw || name !== 'sensoryRecords') return matched;
     return Promise.all(matched.map(value => transformForRead(name, value)));
-  }
+  });
   const objectStore = await store(name);
   if (!objectStore.indexNames.contains(indexName)) throw new Error(`${name} 缺少索引 ${indexName}`);
   const values = await requestToPromise(objectStore.index(indexName).getAll(key));
@@ -651,8 +651,10 @@ export async function put(name, value) {
   assertPlainObject(value, name);
   const prepared = await transformForWrite(name, value);
   if (await isRoomBackendActive()) {
-    if (name === 'beans') await roomStore().putBean(prepared, beanSummaryFromBean(value));
-    else await roomStore().put(name, prepared);
+    await withRoomMutex(async () => {
+      if (name === 'beans') await roomStore().putBean(prepared, beanSummaryFromBean(value));
+      else await roomStore().put(name, prepared);
+    });
     return name === 'customCodes' ? value.code : value.id;
   }
   const db = await openDb();
@@ -671,8 +673,10 @@ export async function put(name, value) {
 
 export async function remove(name, key) {
   if (await isRoomBackendActive()) {
-    if (name === 'beans') await roomStore().removeBean(key);
-    else await roomStore().remove(name, key);
+    await withRoomMutex(async () => {
+      if (name === 'beans') await roomStore().removeBean(key);
+      else await roomStore().remove(name, key);
+    });
     return;
   }
   const db = await openDb();
@@ -689,8 +693,10 @@ export async function remove(name, key) {
 
 export async function clear(name) {
   if (await isRoomBackendActive()) {
-    if (name === 'beans') await roomStore().clearBeans();
-    else await roomStore().clear(name);
+    await withRoomMutex(async () => {
+      if (name === 'beans') await roomStore().clearBeans();
+      else await roomStore().clear(name);
+    });
     return;
   }
   const db = await openDb();
@@ -709,8 +715,10 @@ export async function bulkPut(name, values) {
   if (!Array.isArray(values)) throw new Error('批量写入数据必须是数组');
   const prepared = await Promise.all(values.map(value => transformForWrite(name, value)));
   if (await isRoomBackendActive()) {
-    if (name === 'beans') await roomStore().bulkPutBeans(prepared, values.map(beanSummaryFromBean));
-    else await roomStore().bulkPut(name, prepared);
+    await withRoomMutex(async () => {
+      if (name === 'beans') await roomStore().bulkPutBeans(prepared, values.map(beanSummaryFromBean));
+      else await roomStore().bulkPut(name, prepared);
+    });
     return;
   }
   const db = await openDb();
@@ -738,7 +746,7 @@ export async function replaceStores(storeRows) {
     if (Object.hasOwn(storeRows, 'beans') && !Object.hasOwn(prepared, 'beanSummaries')) {
       prepared.beanSummaries = storeRows.beans.map(beanSummaryFromBean);
     }
-    await roomStore().replaceStores(prepared);
+    await withRoomMutex(() => roomStore().replaceStores(prepared));
     return;
   }
   const names = Object.keys(storeRows);
@@ -803,10 +811,10 @@ export async function rollbackRoomToIndexedDb() {
 export async function activateCodebook(candidate) {
   assertPlainObject(candidate, '编码表候选');
   if (await isRoomBackendActive()) {
-    await roomStore().bulkPut('codebookCache', [
+    await withRoomMutex(() => roomStore().bulkPut('codebookCache', [
       { ...candidate, id: 'candidate' },
       { ...candidate, id: 'active' }
-    ]);
+    ]));
     return;
   }
   const db = await openDb();
