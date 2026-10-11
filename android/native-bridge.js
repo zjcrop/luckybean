@@ -1,4 +1,5 @@
 globalThis.__LUCKYBEAN_ANDROID__ = true;
+globalThis.__LUCKYBEAN_ENABLE_ROOM_MIGRATION__ = true;
 globalThis.__LUCKYBEAN_PUBLIC_URL__ = 'https://zjcrop.github.io/luckybean/';
 
 (() => {
