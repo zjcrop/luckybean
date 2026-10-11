@@ -83,9 +83,13 @@ globalThis.__LUCKYBEAN_PUBLIC_URL__ = 'https://zjcrop.github.io/luckybean/';
     all(store) { return requestRoomStore('all', { store }); },
     allByBean(store, beanId) { return requestRoomStore('allByBean', { store, beanId: String(beanId) }); },
     put(store, value) { return requestRoomStore('put', { store, value }); },
+    putBean(value, summary) { return requestRoomStore('putBean', { value, summary }); },
     bulkPut(store, values) { return requestRoomStore('bulkPut', { store, values }); },
+    bulkPutBeans(values, summaries) { return requestRoomStore('bulkPutBeans', { values, summaries }); },
     remove(store, key) { return requestRoomStore('remove', { store, key: String(key) }); },
+    removeBean(key) { return requestRoomStore('removeBean', { key: String(key) }); },
     clear(store) { return requestRoomStore('clear', { store }); },
+    clearBeans() { return requestRoomStore('clearBeans'); },
     replaceStores(stores) { return requestRoomStore('replaceStores', { stores }); },
     clearAll() { return requestRoomStore('clearAll'); }
   });
