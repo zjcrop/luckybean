@@ -582,6 +582,7 @@ export async function migrateSchema10ToRoom({ onProgress = () => {}, signal } = 
         throw new Error(`Room 校验失败：${name}`);
       }
     }
+    throwIfRoomMigrationAborted(signal);
     await nativeStore.put('syncMetadata', {
       id: ROOM_ACTIVE_KEY,
       active: true,
@@ -589,6 +590,7 @@ export async function migrateSchema10ToRoom({ onProgress = () => {}, signal } = 
       migratedAt: new Date().toISOString(),
       stores: verified
     });
+    throwIfRoomMigrationAborted(signal);
     roomBackendActivePromise = Promise.resolve(true);
     return { migrated: true, stores: verified, total };
   } catch (error) {
