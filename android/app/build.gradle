@@ -85,7 +85,7 @@ android {
         versionCode (releaseMeta.androidVersionCode as int)
         versionName releaseMeta.displayVersion as String
     }
-    sourceSets { main.assets.srcDir(generatedWebAssets) }
+    sourceSets { main.assets.srcDir(generatedWebAssets.get().asFile) }
     signingConfigs {
         if (hasReleaseSigning) {
             luckyBeanRelease {

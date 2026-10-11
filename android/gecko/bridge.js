@@ -20,6 +20,11 @@ port.onMessage.addListener(message => {
     if (!request) return;
     requests.delete(message.id); clearTimeout(request.timeout);
     if (message.error) request.reject(new Error(message.error)); else request.resolve(message.value);
+  } else if (message.type === 'acceptance') {
+    import('./acceptance.js').then(module => module.runAcceptance()).then(
+      result => port.postMessage({ type: 'acceptanceResult', result }),
+      error => port.postMessage({ type: 'acceptanceResult', error: error.message })
+    );
   } else if (message.type === 'back') {
     if (!globalThis.LuckyBeanNavigation?.back?.()) fire('exitApp', []);
   }

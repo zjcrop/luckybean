@@ -289,3 +289,49 @@ test('Gecko cannot restore into its own empty IndexedDB instead of the original 
   await expect(page.evaluate(() => globalThis.__roomMigrationApi.rollbackRoomToIndexedDb())).rejects.toThrow(/先切回 WebView/);
   expect(await page.evaluate(() => globalThis.LuckyBeanRoomStore.get('syncMetadata', 'native.storage.backend.v1'))).toMatchObject({ active: true });
 });
+
+test('Web IndexedDB and Room use the same golden fixture for all stores, indexes and offline brew commit', async ({ page }) => {
+  await installFixture(page);
+  const result = await page.evaluate(async () => {
+    const fixture = await (await fetch('/contracts/fixtures/core-store-golden.v1.json')).json();
+    const database = await new Promise(resolve => {
+      const request = indexedDB.open('luckybean');
+      request.onsuccess = () => resolve(request.result);
+    });
+    await new Promise(resolve => {
+      const transaction = database.transaction(Object.keys(fixture.stores), 'readwrite');
+      for (const [name, rows] of Object.entries(fixture.stores)) {
+        const store = transaction.objectStore(name); store.clear();
+        for (const row of rows) store.put(row);
+      }
+      transaction.oncomplete = resolve;
+    });
+    database.close();
+    await globalThis.__roomMigrationApi.migrateSchema10ToRoom();
+    const native = globalThis.LuckyBeanRoomStore;
+    for (const [name, rows] of Object.entries(fixture.stores)) {
+      for (const row of rows) {
+        const stored = await native.get(name, name === 'customCodes' ? row.code : row.id);
+        if (JSON.stringify(stored) !== JSON.stringify(row)) throw new Error(`Golden payload mismatch: ${name}`);
+      }
+    }
+    const facade = await globalThis.__roomMigrationApi.openDb();
+    const ordered = await new Promise(resolve => {
+      const request = facade.transaction('brewSessions').objectStore('brewSessions').index('beanCreatedAt')
+        .getAll(IDBKeyRange.bound(['golden-bean', ''], ['golden-bean', '9999']));
+      request.onsuccess = () => resolve(request.result.map(row => row.id));
+    });
+    const history = await import('/src/domain/history/history-service.js');
+    const committed = await history.commitCompletedBrew(fixture.offlineBrew);
+    const duplicate = await history.commitCompletedBrew(fixture.offlineBrew);
+    const bean = await native.get('beans', 'golden-bean');
+    const summary = await native.get('beanSummaries', 'golden-bean');
+    const event = await native.get('inventoryEvents', committed.record.inventoryEventId);
+    const outbox = await native.all('syncOutbox');
+    return { ordered, expected: fixture.byBeanExpected, duplicate: duplicate.duplicate,
+      remaining: bean.remainingWeight, summaryRemaining: summary.remainingWeight, amount: event.amountG,
+      queued: outbox.some(row => row.entityId === committed.record.id) };
+  });
+  expect(result.ordered).toEqual(result.expected);
+  expect(result).toMatchObject({ duplicate: true, remaining: 85, summaryRemaining: 85, amount: -15, queued: true });
+});

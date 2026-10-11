@@ -87,4 +87,33 @@ public final class RoomStoreRepositoryTest {
         assertNull(repository.get("beans", "bean-1").get(20, TimeUnit.SECONDS));
         assertNull(repository.get("beanSummaries", "bean-1").get(20, TimeUnit.SECONDS));
     }
+    @Test
+    public void sharedGoldenFixturePreservesEveryStoreAndOrdering() throws Exception {
+        JSONObject fixture;
+        try (java.io.InputStream input = context.getAssets().open("web-cache/contracts/fixtures/core-store-golden.v1.json")) {
+            java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int length;
+            while ((length = input.read(buffer)) != -1) output.write(buffer, 0, length);
+            fixture = new JSONObject(output.toString("UTF-8"));
+        }
+        JSONObject stores = fixture.getJSONObject("stores");
+        java.util.Iterator<String> names = stores.keys();
+        while (names.hasNext()) {
+            String name = names.next();
+            JSONArray rows = stores.getJSONArray(name);
+            repository.bulkPut(name, rows).get(20, TimeUnit.SECONDS);
+            assertEquals(rows.length(), repository.all(name).get(20, TimeUnit.SECONDS).length());
+            for (int index = 0; index < rows.length(); index++) {
+                JSONObject row = rows.getJSONObject(index);
+                String key = row.getString("customCodes".equals(name) ? "code" : "id");
+                assertEquals(row.toString(), repository.get(name, key).get(20, TimeUnit.SECONDS).toString());
+            }
+        }
+        JSONArray byBean = repository.allByBean("brewSessions", "golden-bean").get(20, TimeUnit.SECONDS);
+        JSONArray expected = fixture.getJSONArray("byBeanExpected");
+        assertEquals(expected.length(), byBean.length());
+        for (int index = 0; index < expected.length(); index++) assertEquals(expected.getString(index), byBean.getJSONObject(index).getString("id"));
+    }
+
 }

@@ -30,6 +30,8 @@ public final class GeckoActivity extends MainActivity {
     private boolean loaded;
     volatile boolean localAppReady;
     volatile String startupFailure;
+    volatile JSONObject acceptanceResult;
+    volatile String acceptanceFailure;
     private NativeFileBridge nativeBridge;
     private RoomStoreBridge roomBridge;
     private GeckoSession.PermissionDelegate.Callback permissionCallback;
@@ -105,6 +107,11 @@ public final class GeckoActivity extends MainActivity {
     }
 
     private void receive(JSONObject request, WebExtension.Port source) {
+        if (BuildConfig.DEBUG && "acceptanceResult".equals(request.optString("type"))) {
+            acceptanceResult = request.optJSONObject("result");
+            acceptanceFailure = request.optString("error", "");
+            return;
+        }
         if ("ready".equals(request.optString("type"))) {
             localAppReady = true;
             Log.i("LuckyBeanGecko", "Local app ready with Room bridge");
@@ -163,6 +170,12 @@ public final class GeckoActivity extends MainActivity {
                 .put("id", requestId).put("value", value == null ? JSONObject.NULL : value)); }
             catch (Exception ignored) { Log.w("LuckyBeanGecko", "Native callback delivery failed"); }
         });
+    }
+
+    void runOfflineAcceptance() {
+        if (!BuildConfig.DEBUG || port == null) throw new IllegalStateException("Debug runtime not ready");
+        try { port.postMessage(new JSONObject().put("type", "acceptance")); }
+        catch (Exception error) { acceptanceFailure = error.getMessage(); }
     }
 
     @Override protected void handleSystemBack() {
