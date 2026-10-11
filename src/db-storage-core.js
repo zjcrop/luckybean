@@ -506,7 +506,14 @@ function readRawStore(db, name) {
   return requestToPromise(db.transaction(name, 'readonly').objectStore(name).getAll());
 }
 
-export async function migrateSchema10ToRoom({ onProgress = () => {} } = {}) {
+function throwIfRoomMigrationAborted(signal) {
+  if (!signal?.aborted) return;
+  const error = new Error('迁移已取消，IndexedDB 保持不变');
+  error.name = 'AbortError';
+  throw error;
+}
+
+export async function migrateSchema10ToRoom({ onProgress = () => {}, signal } = {}) {
   const nativeStore = roomStore();
   if (!nativeStore) throw new Error('Android Room 存储接口不可用');
   if (await isRoomBackendActive()) return { migrated: false, reason: 'already-active' };
@@ -522,6 +529,7 @@ export async function migrateSchema10ToRoom({ onProgress = () => {} } = {}) {
   const total = storeNames.reduce((sum, name) => sum + source[name].length, 0);
 
   try {
+    throwIfRoomMigrationAborted(signal);
     await nativeStore.clearAll();
     await nativeStore.put(ROOM_SNAPSHOT_STORE, {
       id: 'manifest',
@@ -531,16 +539,21 @@ export async function migrateSchema10ToRoom({ onProgress = () => {} } = {}) {
       stores: snapshot
     });
     for (const name of storeNames) {
+      throwIfRoomMigrationAborted(signal);
       const backupRows = source[name].map((value, index) => ({
         id: `${name}:${recordKey(name, value) || index}`,
         sourceStore: name,
         sourceKey: recordKey(name, value),
         value
       }));
-      for (const batch of chunkByUtf8Size(backupRows)) await nativeStore.bulkPut(ROOM_SNAPSHOT_STORE, batch);
+      for (const batch of chunkByUtf8Size(backupRows)) {
+        throwIfRoomMigrationAborted(signal);
+        await nativeStore.bulkPut(ROOM_SNAPSHOT_STORE, batch);
+      }
     }
     const persistedSnapshot = await nativeStore.all(ROOM_SNAPSHOT_STORE);
     for (const name of storeNames) {
+      throwIfRoomMigrationAborted(signal);
       const snapshotRows = persistedSnapshot.filter(row => row.sourceStore === name).map(row => row.value);
       if (snapshotRows.length !== snapshot[name].count || await rowsDigest(snapshotRows) !== snapshot[name].sha256) {
         throw new Error(`迁移前快照校验失败：${name}`);
@@ -548,7 +561,9 @@ export async function migrateSchema10ToRoom({ onProgress = () => {} } = {}) {
     }
     let completed = 0;
     for (const name of storeNames) {
+      throwIfRoomMigrationAborted(signal);
       for (const batch of chunkByUtf8Size(source[name])) {
+        throwIfRoomMigrationAborted(signal);
         await nativeStore.bulkPut(name, batch);
         completed += batch.length;
         onProgress({ completed, total, store: name });
@@ -560,6 +575,7 @@ export async function migrateSchema10ToRoom({ onProgress = () => {} } = {}) {
 
     const verified = {};
     for (const name of storeNames) {
+      throwIfRoomMigrationAborted(signal);
       const rows = await nativeStore.all(name);
       verified[name] = { count: rows.length, sha256: await rowsDigest(rows) };
       if (verified[name].count !== snapshot[name].count || verified[name].sha256 !== snapshot[name].sha256) {
