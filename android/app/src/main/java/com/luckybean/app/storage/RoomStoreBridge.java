@@ -50,6 +50,18 @@ public final class RoomStoreBridge {
                 case "put":
                     operation = repository.put(store, request.getJSONObject("value"));
                     break;
+                case "putBean":
+                    operation = repository.putBean(request.getJSONObject("value"), request.getJSONObject("summary"));
+                    break;
+                case "bulkPutBeans":
+                    operation = repository.bulkPutBeans(request.getJSONArray("values"), request.getJSONArray("summaries"));
+                    break;
+                case "removeBean":
+                    operation = repository.removeBean(request.getString("key"));
+                    break;
+                case "clearBeans":
+                    operation = repository.clearBeans();
+                    break;
                 case "bulkPut":
                     operation = repository.bulkPut(store, request.getJSONArray("values"));
                     break;
