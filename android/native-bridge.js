@@ -32,6 +32,64 @@ globalThis.__LUCKYBEAN_PUBLIC_URL__ = 'https://zjcrop.github.io/luckybean/';
     });
   }
 
+  const storeRequests = new Map();
+  let storeSequence = 0;
+
+  function requestRoomStore(method, payload = {}) {
+    const native = globalThis.LuckyBeanRoomNative;
+    if (typeof native?.request !== 'function') {
+      return Promise.reject(new Error('Android Room 存储接口不可用'));
+    }
+    storeSequence += 1;
+    const requestId = `room-${Date.now().toString(36)}-${storeSequence.toString(36)}`;
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        storeRequests.delete(requestId);
+        reject(new Error('Android 本地数据操作超时'));
+      }, 60000);
+      storeRequests.set(requestId, {
+        resolve(value) {
+          clearTimeout(timeout);
+          storeRequests.delete(requestId);
+          resolve(value);
+        },
+        reject(error) {
+          clearTimeout(timeout);
+          storeRequests.delete(requestId);
+          reject(error);
+        }
+      });
+      try {
+        native.request(requestId, JSON.stringify({ method, ...payload }));
+      } catch (error) {
+        clearTimeout(timeout);
+        storeRequests.delete(requestId);
+        reject(error);
+      }
+    });
+  }
+
+  globalThis.LuckyBeanStoreBridge = {
+    resolve(requestId, value) {
+      storeRequests.get(String(requestId))?.resolve(value);
+    },
+    reject(requestId, message) {
+      storeRequests.get(String(requestId))?.reject(new Error(String(message || 'Android 本地数据操作失败')));
+    }
+  };
+
+  globalThis.LuckyBeanRoomStore = Object.freeze({
+    get(store, key) { return requestRoomStore('get', { store, key: String(key) }); },
+    all(store) { return requestRoomStore('all', { store }); },
+    allByBean(store, beanId) { return requestRoomStore('allByBean', { store, beanId: String(beanId) }); },
+    put(store, value) { return requestRoomStore('put', { store, value }); },
+    bulkPut(store, values) { return requestRoomStore('bulkPut', { store, values }); },
+    remove(store, key) { return requestRoomStore('remove', { store, key: String(key) }); },
+    clear(store) { return requestRoomStore('clear', { store }); },
+    replaceStores(stores) { return requestRoomStore('replaceStores', { stores }); },
+    clearAll() { return requestRoomStore('clearAll'); }
+  });
+
   globalThis.LuckyBeanNativeRecognition = {
     resolve(requestId, payload) {
       const entry = pending.get(String(requestId));
