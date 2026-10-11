@@ -192,6 +192,255 @@ function roomStore() {
     : null;
 }
 
+
+let roomMutexTail = Promise.resolve();
+
+function acquireRoomMutex() {
+  const previous = roomMutexTail;
+  let releaseCurrent;
+  const current = new Promise(resolve => { releaseCurrent = resolve; });
+  roomMutexTail = previous.then(() => current);
+  return previous.then(() => releaseCurrent);
+}
+
+async function withRoomMutex(action) {
+  const release = await acquireRoomMutex();
+  try { return await action(); }
+  finally { release(); }
+}
+
+function roomKeyValue(name, value) {
+  return String(name === 'customCodes' ? value?.code ?? '' : value?.id ?? '');
+}
+
+function compareRoomKeys(left, right) {
+  if (Array.isArray(left) && Array.isArray(right)) {
+    for (let index = 0; index < Math.min(left.length, right.length); index++) {
+      const compared = compareRoomKeys(left[index], right[index]);
+      if (compared) return compared;
+    }
+    return left.length - right.length;
+  }
+  if (left === right) return 0;
+  if (left == null) return -1;
+  if (right == null) return 1;
+  return left < right ? -1 : 1;
+}
+
+function roomKeyMatches(value, query) {
+  if (query === undefined) return true;
+  const isRange = typeof IDBKeyRange !== 'undefined' && query instanceof IDBKeyRange;
+  if (!isRange) return stableJson(value) === stableJson(query);
+  if (query.lower !== undefined && (query.lowerOpen ? compareRoomKeys(value, query.lower) <= 0 : compareRoomKeys(value, query.lower) < 0)) return false;
+  if (query.upper !== undefined && (query.upperOpen ? compareRoomKeys(value, query.upper) >= 0 : compareRoomKeys(value, query.upper) > 0)) return false;
+  return true;
+}
+
+function createRoomDatabaseFacade() {
+  return {
+    name: DB_NAME,
+    version: SCHEMA_VERSION,
+    objectStoreNames: Object.assign([...STORES], { contains: name => STORES.includes(name) }),
+    close() {},
+    transaction(names, mode = 'readonly') {
+      const selected = new Set(Array.isArray(names) ? names : [names]);
+      if (!['readonly', 'readwrite'].includes(mode)) throw new Error('Room 事务模式无效');
+      for (const name of selected) if (!STORES.includes(name)) throw new Error(`未知数据表：${name}`);
+
+      const tx = {
+        mode,
+        error: null,
+        oncomplete: null,
+        onerror: null,
+        onabort: null,
+        pending: 0,
+        completed: false,
+        aborted: false,
+        scheduled: false,
+        ready: acquireRoomMutex(),
+        storeMaps: new Map(),
+        changes: new Map(),
+        clearStores: new Set(),
+        stores: new Map(),
+        objectStore(name) {
+          if (!selected.has(name)) throw new Error(`数据表不在当前 Room 事务中：${name}`);
+          if (this.stores.has(name)) return this.stores.get(name);
+          const objectStore = createObjectStore(name);
+          this.stores.set(name, objectStore);
+          return objectStore;
+        },
+        abort() {
+          if (this.completed) return;
+          this.aborted = true;
+          this.error = this.error || new Error('Room 事务已中止');
+          this.scheduleFinish();
+        },
+        async loadStore(name) {
+          if (!this.storeMaps.has(name)) {
+            const pending = roomStore().all(name).then(rows => new Map(rows.map(row => [roomKeyValue(name, row), structuredClone(row)])));
+            this.storeMaps.set(name, pending);
+          }
+          return this.storeMaps.get(name);
+        },
+        note(name, key, operation, value) {
+          if (!this.changes.has(name)) this.changes.set(name, new Map());
+          this.changes.get(name).set(String(key), { operation, value });
+        },
+        request(action) {
+          if (this.completed || this.aborted) throw new Error('Room 事务不再接受请求');
+          this.pending += 1;
+          const request = {
+            result: undefined,
+            error: null,
+            onsuccess: null,
+            onerror: null,
+            listeners: new Map(),
+            addEventListener(type, listener) {
+              if (!this.listeners.has(type)) this.listeners.set(type, new Set());
+              this.listeners.get(type).add(listener);
+            },
+            removeEventListener(type, listener) { this.listeners.get(type)?.delete(listener); }
+          };
+          const fire = (type, error = null) => {
+            request.error = error;
+            const event = { target: request, currentTarget: request };
+            try { request[`on${type}`]?.(event); } catch (listenerError) { console.error(listenerError); }
+            for (const listener of request.listeners.get(type) || []) {
+              try { listener(event); } catch (listenerError) { console.error(listenerError); }
+            }
+          };
+          queueMicrotask(async () => {
+            try {
+              await this.ready;
+              if (this.aborted) throw this.error || new Error('Room 事务已中止');
+              request.result = await action();
+              fire('success');
+            } catch (error) {
+              this.error = error;
+              fire('error', error);
+              this.aborted = true;
+            } finally {
+              this.pending -= 1;
+              this.scheduleFinish();
+            }
+          });
+          return request;
+        },
+        scheduleFinish() {
+          if (this.completed || this.scheduled || this.pending > 0) return;
+          this.scheduled = true;
+          setTimeout(async () => {
+            this.scheduled = false;
+            if (this.completed || this.pending > 0) return;
+            try {
+              if (this.aborted) {
+                this.completed = true;
+                this.onabort?.({ target: this });
+                return;
+              }
+              if (this.mode === 'readwrite') {
+                const changes = compileChanges(this);
+                if (changes.puts.length || changes.deletes.length || changes.clearStores.length) {
+                  await roomStore().applyChanges(changes);
+                }
+              }
+              this.completed = true;
+              this.oncomplete?.({ target: this });
+            } catch (error) {
+              this.error = error;
+              this.aborted = true;
+              this.completed = true;
+              this.onerror?.({ target: this });
+              this.onabort?.({ target: this });
+            } finally {
+              this.ready.then(release => release());
+            }
+          }, 0);
+        }
+      };
+
+      const createObjectStore = name => ({
+        get(key) {
+          return tx.request(async () => {
+            const map = await tx.loadStore(name);
+            return structuredClone(map.get(String(key)));
+          });
+        },
+        getAll(query) {
+          return tx.request(async () => {
+            const map = await tx.loadStore(name);
+            const rows = [...map.values()].sort((a, b) => compareRoomKeys(roomKeyValue(name, a), roomKeyValue(name, b)));
+            return rows.filter(row => roomKeyMatches(roomKeyValue(name, row), query)).map(row => structuredClone(row));
+          });
+        },
+        put(value) {
+          if (mode !== 'readwrite') throw new Error('只读 Room 事务不能写入');
+          return tx.request(async () => {
+            const map = await tx.loadStore(name);
+            const row = structuredClone(value);
+            const key = roomKeyValue(name, row);
+            if (!key) throw new Error(`${name} 记录缺少主键`);
+            map.set(key, row);
+            tx.note(name, key, 'put', row);
+            return name === 'customCodes' ? row.code : row.id;
+          });
+        },
+        delete(key) {
+          if (mode !== 'readwrite') throw new Error('只读 Room 事务不能删除');
+          return tx.request(async () => {
+            const map = await tx.loadStore(name);
+            map.delete(String(key));
+            tx.note(name, String(key), 'delete', null);
+            return undefined;
+          });
+        },
+        clear() {
+          if (mode !== 'readwrite') throw new Error('只读 Room 事务不能清空');
+          return tx.request(async () => {
+            const map = await tx.loadStore(name);
+            map.clear();
+            tx.clearStores.add(name);
+            tx.changes.set(name, new Map());
+            return undefined;
+          });
+        },
+        index(indexName) {
+          return {
+            getAll(query) {
+              return tx.request(async () => {
+                const map = await tx.loadStore(name);
+                const indexValue = row => indexName === 'beanId' ? row.beanId
+                  : indexName === 'beanCreatedAt' ? [row.beanId, row.createdAt]
+                  : indexName === 'updatedAt' ? row.updatedAt : undefined;
+                return [...map.values()]
+                  .filter(row => indexValue(row) !== undefined && roomKeyMatches(indexValue(row), query))
+                  .sort((a, b) => compareRoomKeys(indexValue(a), indexValue(b)))
+                  .map(row => structuredClone(row));
+              });
+            }
+          };
+        }
+      });
+
+      const compileChanges = transaction => {
+        const changes = { clearStores: [...transaction.clearStores], deletes: [], puts: [] };
+        for (const [storeName, entries] of transaction.changes) {
+          for (const [key, entry] of entries) {
+            if (entry.operation === 'delete') changes.deletes.push({ store: storeName, key });
+            else changes.puts.push({ store: storeName, value: entry.value });
+            if (storeName === 'beans') {
+              if (entry.operation === 'delete') changes.deletes.push({ store: 'beanSummaries', key });
+              else changes.puts.push({ store: 'beanSummaries', value: beanSummaryFromBean(entry.value) });
+            }
+          }
+        }
+        if (transaction.clearStores.has('beans')) changes.clearStores.push('beanSummaries');
+        return changes;
+      };
+    }
+  };
+}
+
 async function isRoomBackendActive() {
   const nativeStore = roomStore();
   if (!nativeStore) return false;
