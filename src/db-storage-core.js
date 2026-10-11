@@ -192,15 +192,19 @@ async function isRoomBackendActive() {
   if (!roomBackendActivePromise) {
     roomBackendActivePromise = nativeStore.get('syncMetadata', ROOM_ACTIVE_KEY)
       .then(value => Boolean(value?.active && value?.schemaVersion === SCHEMA_VERSION))
-      .catch(() => false);
+      .catch(error => {
+        roomBackendActivePromise = undefined;
+        throw new Error(`无法读取 Room 后端状态，已停止存储切换：${error.message}`);
+      });
   }
   return roomBackendActivePromise;
 }
 
 function stableJson(value) {
-  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (Array.isArray(value)) return `[${value.map(item => item === undefined ? 'null' : stableJson(item)).join(',')}]`;
   if (value && typeof value === 'object') {
-    return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
+    const fields = Object.keys(value).filter(key => value[key] !== undefined && typeof value[key] !== 'function');
+    return `{${fields.sort().map(key => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
   }
   return JSON.stringify(value);
 }
@@ -492,6 +496,35 @@ export async function replaceStores(storeRows) {
   });
 }
 
+
+export async function rollbackRoomToIndexedDb() {
+  if (!await isRoomBackendActive()) return { rolledBack: false, reason: 'room-not-active' };
+  const nativeStore = roomStore();
+  const db = await openDb();
+  const storeNames = STORES.filter(name => name !== ROOM_SNAPSHOT_STORE);
+  const restored = Object.fromEntries(await Promise.all(storeNames.map(async name => [name, await nativeStore.all(name)])));
+  const metadata = restored.syncMetadata || [];
+  const activeMarker = metadata.find(value => value?.id === ROOM_ACTIVE_KEY);
+  if (activeMarker) {
+    activeMarker.active = false;
+    activeMarker.rolledBackAt = new Date().toISOString();
+  }
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(storeNames, 'readwrite');
+    for (const name of storeNames) {
+      const objectStore = tx.objectStore(name);
+      objectStore.clear();
+      for (const value of restored[name]) objectStore.put(value);
+    }
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error || new Error('Room 回滚到 IndexedDB 失败'));
+    tx.onabort = () => reject(tx.error || new Error('Room 回滚到 IndexedDB 已中止'));
+  });
+  if (activeMarker) await nativeStore.put('syncMetadata', activeMarker);
+  roomBackendActivePromise = Promise.resolve(false);
+  return { rolledBack: true, stores: storeNames.length };
+}
+
 export async function activateCodebook(candidate) {
   assertPlainObject(candidate, '编码表候选');
   if (await isRoomBackendActive()) {
@@ -523,7 +556,20 @@ export async function setSetting(id, value) { return put('settings', { id, value
 export async function clearAll() {
   if (await isRoomBackendActive()) {
     await roomStore().clearAll();
-    roomBackendActivePromise = undefined;
+    const db = await openDb();
+    await Promise.all(STORES.map(name => new Promise((resolve, reject) => {
+      const request = db.transaction(name, 'readwrite').objectStore(name).clear();
+      request.onsuccess = resolve;
+      request.onerror = () => reject(request.error || new Error('IndexedDB 清理失败'));
+    })));
+    await roomStore().put('syncMetadata', {
+      id: ROOM_ACTIVE_KEY,
+      active: true,
+      schemaVersion: SCHEMA_VERSION,
+      clearedAt: new Date().toISOString(),
+      stores: {}
+    });
+    roomBackendActivePromise = Promise.resolve(true);
     sensorySecretPromise = undefined;
     return;
   }
