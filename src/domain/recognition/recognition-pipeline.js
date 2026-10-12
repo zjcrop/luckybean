@@ -5,7 +5,7 @@ import { resolveRecognitionRelations, resolverPriorityDescription } from './reco
 import { preNormalizeRecognitionSemanticText } from './recognition-pre-semantic-normalizer.js';
 import { repairRecognitionSemanticText } from './recognition-semantic-repair.js';
 
-export const RECOGNITION_PIPELINE_VERSION = '1.24P-recognition-pipeline.8';
+export const RECOGNITION_PIPELINE_VERSION = '1.24P-recognition-pipeline.9';
 
 const RELATION_TO_RESULT = Object.freeze({
   country: 'countryCode', origin: 'countryCode', region: 'regionCode', farm: 'entityCode', producer: 'entityCode',
@@ -170,7 +170,7 @@ function buildFieldRows(document, parsed, book) {
     const confidence = Math.max(Number(parsed?.confidence?.[field] || 0), customValueConfidence(parsed, customField), relationConfidence(relations, field));
     const translated = resolved && rawValue && standardValue && normalizedComparable(rawValue) !== normalizedComparable(standardValue);
     const dictionaryReviewInfo = parsed?.parseMetadata?.dictionaryMatchReview?.[field];
-    const dictionaryReview = Boolean(dictionaryReviewInfo?.requiresUserConfirmation);
+    const dictionaryReview = Boolean(dictionaryReviewInfo?.requiresUserConfirmation) || Boolean(parsed?.parseMetadata?.numericReview?.[field]?.requiresUserConfirmation);
     if (dictionaryReview && table && dictionaryReviewInfo.candidateCode) standardValue = labelForCode(book, table, dictionaryReviewInfo.candidateCode) || standardValue;
     const requiresReview = Boolean(resolution.conflict) || !resolved || dictionaryReview;
     rows.push({ field, label, rawValue, standardValue:standardValue || rawValue, confidence, resolved:resolved && !resolution.conflict && !dictionaryReview, translated,

@@ -26,3 +26,37 @@ test('same release retains one service worker across navigation and keeps Indexe
   }
   expect(workers).toEqual([expected]);expect(errors).toEqual([]);
 });
+
+test('warm startup uses local modules and saved display index when the network takes six seconds', async ({page,context}) => {
+  test.setTimeout(60000);
+  await context.route(/^https?:\/\/(?!127\.0\.0\.1:4173)/,route=>route.abort());
+  await context.addInitScript(()=>localStorage.setItem('luckybean.onboarding.v2',JSON.stringify({stage:'existing-user'})));
+  for (let i=0;i<2;i++) {
+    await page.goto('http://127.0.0.1:4173/?warm-start-proof',{waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>document.documentElement.dataset.startup==='ready' && navigator.serviceWorker.controller);
+    await page.waitForTimeout(1000);
+  }
+  await page.evaluate(async()=> {
+    const db = await import('/src/db.js');
+    await db.setSetting('worker-lifecycle-proof','warm-start-data-preserved');
+  });
+  let networkAssets = 0;
+  await context.route('http://127.0.0.1:4173/**',async route=> {
+    if (/\.(?:js|css)(?:\?|$)/.test(route.request().url()) && !route.request().url().includes('/sw.js')) networkAssets++;
+    await new Promise(resolve=>setTimeout(resolve,6000));
+    await route.continue().catch(()=>{});
+  });
+  const started = Date.now();
+  await page.reload({waitUntil:'domcontentloaded',timeout:5000});
+  await page.waitForFunction(()=>document.documentElement.dataset.startup==='ready',null,{timeout:4000});
+  const readyMs = Date.now()-started;
+  const saved = await page.evaluate(async()=> {
+    const db = await import('/src/db.js');
+    return {proof:await db.getSetting('worker-lifecycle-proof',null),index:await db.get('syncMetadata','bean-display-index.v1')};
+  });
+  expect(saved.proof).toBe('warm-start-data-preserved');
+  expect(saved.index.revision).toBe(release.revision);
+  expect(networkAssets).toBe(0);
+  expect(readyMs).toBeLessThan(4000);
+  console.log('WARM_START_DELAYED_NETWORK',JSON.stringify({readyMs,networkAssets}));
+});

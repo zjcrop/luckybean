@@ -1,16 +1,17 @@
 // LuckyBean 1.24P: resilient offline shell with lazy feature/runtime caching.
-const REVISION = '1.24P-main.18';
+const REVISION = '1.24P-main.19';
 const CACHE_PREFIX = 'luckybean-main-v124p-';
-const CACHE_NAME = `${CACHE_PREFIX}main-18-ocr-performance-20261012`;
+const CACHE_NAME = `${CACHE_PREFIX}main-19-startup-field-layout-20261012`;
 const LEGACY_CACHE_PREFIXES = [
   'luckybean-main-v124b-', 'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
   'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',
   'luckybean-v123-brewprofiles-integration-test-', 'luckybean-v200-foundation-'
 ];
 const versioned = path => `${path}?v=${REVISION}`;
+const newerDocumentClients = new Set();
 
 // Runtime/offline contract inventory. These resources are intentionally NOT fetched
-// during service-worker installation; same-origin network-first requests cache them
+// during service-worker installation; same-origin requests cache them
 // after actual use. Keeping the inventory explicit preserves auditability without
 // making first load depend on a large all-or-nothing precache transaction.
 const LAZY_RUNTIME_RESOURCES = [
@@ -67,6 +68,7 @@ const BOOTSTRAP_CORE = [
   './',
   './index.html',
   './release.json',
+  './public/bean-display-index.json',
   versioned('./manifest.webmanifest'),
   versioned('./styles.css'),
   versioned('./src/ui/app-layout.css'),
@@ -86,14 +88,14 @@ async function cacheBootstrapBestEffort() {
       const response = await fetch(request);
       if (response.ok) await cache.put(request, response.clone());
     } catch {
-      // Runtime network-first fetch will retry when the resource is actually used.
+      // Runtime cache misses retry when the resource is actually used.
     }
   }));
 }
 
 function cacheSuccessfulResponse(event, response) {
   const request = event.request;
-  if (!response.ok) return;
+  if (!response.ok || newerDocumentClients.has(event.clientId)) return;
   // Clone while the response body is still unused. Callers may consume the
   // returned response immediately (for example, OCR model fetches in a Worker).
   let cacheCopy;
@@ -123,32 +125,76 @@ self.addEventListener('message', event => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
+async function readCachedResponse(request, { navigation = false } = {}) {
+  let timer;
+  try {
+    const lookup = caches.open(CACHE_NAME).then(async cache => await cache.match(request) || (navigation ? await cache.match('./index.html') : null)).catch(() => null);
+    return await Promise.race([lookup, new Promise(resolve => { timer = setTimeout(() => resolve(null), 250); })]);
+  } finally { clearTimeout(timer); }
+}
+
+async function networkWithCachedDeadline(event, cached, { navigation = false } = {}) {
+  const request = event.request;
+  let networkDocumentRevision = REVISION;
+  const finish = response => {
+    if (navigation && response !== cached && networkDocumentRevision !== REVISION) newerDocumentClients.add(event.resultingClientId || event.clientId);
+    return response;
+  };
+  const network = fetch(new Request(request, { cache: 'no-cache' })).then(async response => {
+    if (!response.ok && cached) return cached;
+    if (navigation && response.ok) {
+      const html = await response.clone().text();
+      const documentRevision = html.match(/name=["']release-revision["']\s+content=["']([^"']+)/)?.[1];
+      if (documentRevision && documentRevision !== REVISION) {
+        // Before the new SW claims this navigation, unversioned module imports
+        // must not read the preceding release's cache.
+        networkDocumentRevision = documentRevision;
+        return response;
+      }
+    }
+    cacheSuccessfulResponse(event, response);
+    if (navigation && response.ok) {
+      const copy = response.clone();
+      event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy)).catch(() => {}));
+    }
+    return response;
+  }).catch(error => { if (cached) return cached; throw error; });
+  if (!cached) return network.then(finish);
+  // Fresh HTML/metadata still get a network check, but a slow connection cannot
+  // hold the local application hostage. Keep that check alive in the background.
+  event.waitUntil(network.then(() => {}, () => {}));
+  let timer;
+  try {
+    return finish(await Promise.race([network, new Promise(resolve => { timer = setTimeout(() => resolve(cached), navigation ? 800 : 2000); })]));
+  } finally { clearTimeout(timer); }
+}
+
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
 
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {
-      cacheSuccessfulResponse(event, response);
-      return response;
-    }).catch(async () => {
-      const cached = await caches.match(request);
-      return cached || caches.match('./index.html');
-    }));
+    event.respondWith((async () => {
+      const cached = await readCachedResponse(request, { navigation:true });
+      return networkWithCachedDeadline(event, cached, { navigation:true });
+    })());
     return;
   }
 
   if (url.origin === self.location.origin) {
-    event.respondWith(fetch(new Request(request, { cache: 'reload' })).then(response => {
-      cacheSuccessfulResponse(event, response);
-      return response;
-    }).catch(() => caches.match(request)));
+    event.respondWith((async () => {
+      const cached = newerDocumentClients.has(event.clientId) ? null : await readCachedResponse(request);
+      // All app assets belong to this revision's cache. New releases change the
+      // cache name; re-downloading every module on every warm start wastes time.
+      if (!/(?:^|\/)(?:release|version)\.json$/.test(url.pathname) && cached) return cached;
+      return networkWithCachedDeadline(event, cached);
+    })());
     return;
   }
 
   if (url.hostname === 'cdn.jsdelivr.net') {
-    event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {
+    event.respondWith(readCachedResponse(request).then(cached => cached || fetch(request).then(response => {
       cacheSuccessfulResponse(event, response);
       return response;
     })));

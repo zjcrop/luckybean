@@ -1,6 +1,6 @@
 import { get, put, all, activateCodebook } from './db.js';
 import { sha256Hex } from './utils.js';
-import { bestDictionarySpan, hasMixedDictionaryFields } from './domain/recognition/dictionary-span-matcher.js';
+import { bestDictionarySpan, findDictionarySpans, hasMixedDictionaryFields } from './domain/recognition/dictionary-span-matcher.js';
 import { codebookCandidates, reliableCandidates } from './recognition-candidates.js';
 
 export const REMOTE_CODEBOOK_URL = 'https://raw.githubusercontent.com/zjcrop/BrewIon/main/coffee-qr-codebook/coffee_qr_codebook_v6.json';
@@ -566,18 +566,33 @@ export function parseNaturalLanguage(text, book) {
     if (aliasKey && usedAliases.has(aliasKey)) best = null;
     recordMatch(result, field, best, false, customField);
     if (best && aliasKey) usedAliases.add(aliasKey);
+    // An exact, unambiguous region has a country in the dictionary. Use that
+    // relationship when OCR omitted the country, never a variety's prevalence.
+    if (field === 'regionCode' && best && !result.countryCode && !labeled.country) {
+      const parents = new Set(findDictionarySpans(inferenceSource, book.regions, { limit: 128 }).map(span => span.row?.[1]).filter(Boolean));
+      const parent = best.row?.[1];
+      if (parents.size === 1 && parents.has(parent) && book.countries.some(row => row[0] === parent)) {
+        result.countryCode = parent;
+        result.confidence.countryCode = 0.88;
+        result.evidence.countryCode = best.alias;
+        result.parseMetadata.countryInference = { source:'exact-region-parent', regionCode:best.code, regionAlias:best.alias, countryCode:parent };
+      }
+    }
   }
 
   const roastSource = labeled.roast || inferenceSource;
+  // Chinese character spacing/line wrapping is an OCR layout artifact. Keep
+  // original evidence while matching both spaced Chinese and English names.
+  const roastMatchSource = roastSource.replace(/(?<=[\p{Script=Han}])\s+(?=[\p{Script=Han}])/gu, '');
   const roastMap = [
     [/极浅|超浅|lightest/i, 'RL-L0'], [/浅中|medium\s*light/i, 'RL-L2'], [/浅烘|浅度|light/i, 'RL-L1'],
     [/中深|medium\s*dark/i, 'RL-L4'], [/中烘|中度|medium/i, 'RL-L3'], [/极深|法式|very\s*dark/i, 'RL-L6'], [/深烘|深度|dark/i, 'RL-L5']
   ];
   for (const [regex, code] of roastMap) {
-    if (regex.test(roastSource)) {
+    if (regex.test(roastMatchSource)) {
       result.roastCode = code;
       result.confidence.roastCode = labeled.roast ? 0.96 : 0.9;
-      result.evidence.roastCode = roastSource.match(regex)?.[0];
+      result.evidence.roastCode = labeled.roast || roastMatchSource.match(regex)?.[0];
       break;
     }
   }
@@ -652,6 +667,9 @@ export function parseNaturalLanguage(text, book) {
     result.initialWeight = Number(weight[1]);
     result.confidence.initialWeight = labeled.weight ? 0.95 : 0.8;
     result.evidence.initialWeight = labeled.weight || weight[0];
+    if (labeled.weight && !/(?:g|克|grams?)\s*[,，.。]?\s*$/i.test(labeled.weight)) {
+      result.parseMetadata.numericReview = { initialWeight:{ requiresUserConfirmation:true, reason:'missing-weight-unit', rawValue:labeled.weight } };
+    }
   }
   const priceSource = labeled.price || inferenceSource;
   const price = priceSource.match(/[¥￥]?\s*(\d+(?:\.\d+)?)/);

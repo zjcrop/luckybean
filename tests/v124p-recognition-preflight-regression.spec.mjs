@@ -109,6 +109,15 @@ test('native OCR auto-handoff still requires canonical preflight confirmation be
   await expect.poll(() => image.evaluate(node => Math.round(node.getBoundingClientRect().height * 10) / 10)).toBe(46);
   const dimensions = await image.evaluate(node => ({width:node.getBoundingClientRect().width,height:node.getBoundingClientRect().height}));
   expect(dimensions.width).toBe(34); expect(dimensions.height).toBeCloseTo(46, 1);
+  await expect(card.locator('.bean-freshness-progress')).toHaveCount(1);
+  const geometry = await card.evaluate(node => ({
+    imageBottom:node.querySelector('img[data-bean-thumbnail]').getBoundingClientRect().bottom,
+    timelineTop:node.querySelector('.bean-freshness-progress').getBoundingClientRect().top,
+    timelineBottom:node.querySelector('.bean-freshness-progress').getBoundingClientRect().bottom,
+    cardBottom:node.getBoundingClientRect().bottom
+  }));
+  expect(geometry.timelineTop).toBeGreaterThanOrEqual(geometry.imageBottom);
+  expect(geometry.timelineBottom).toBeLessThanOrEqual(geometry.cardBottom);
   const beanId = await card.getAttribute('data-bean-id');
   const saved = await page.evaluate(async id => (await import('/src/db.js')).get('beans',id),beanId);
   expect(saved.productName).toBe('最终烘焙商');

@@ -44,7 +44,7 @@ test('service worker caches an independent response body while the caller consum
   const handlers={}; const tasks=[]; let cached='';
   let releaseOpen;
   const opened=new Promise(resolve=>{releaseOpen=resolve;});
-  const context={URL,Request,Response,self:{location:{origin:'https://example.test'},addEventListener:(name,handler)=>handlers[name]=handler},
+  const context={URL,Request,Response,setTimeout,clearTimeout,self:{location:{origin:'https://example.test'},addEventListener:(name,handler)=>handlers[name]=handler},
     fetch:async()=>new Response('complete OCR model payload'),caches:{open:()=>opened,match:async()=>null}};
   vm.runInNewContext(source,context);
   let result;
