@@ -212,7 +212,24 @@ function attachAiAdvisory(fields, parsed, document) {
   return decorated;
 }
 
+const recognitionAnalysisCache = new WeakMap();
+
 export function analyzeRecognitionDocument(document, book) {
+  if (!document || typeof document !== 'object') throw new TypeError('识别文档无效');
+  const signature = JSON.stringify([document.fullText, document.rawFullText, document.blocks, document.relations,
+    document.images, document.extensions, document.parserVersion, document.engine, document.schemaVersion]);
+  const dictionary = JSON.stringify(book);
+  const cached = recognitionAnalysisCache.get(document);
+  if (cached?.signature === signature && cached.dictionary === dictionary) {
+    recordDiagnostic('semantic-cache-hit', diagnosticNow());
+    return { ...structuredClone(cached.result), document };
+  }
+  const { document:ignored, ...result } = analyzeRecognitionDocumentUncached(document, book);
+  recognitionAnalysisCache.set(document, { signature, dictionary, result:structuredClone(result) });
+  return { ...result, document };
+}
+
+function analyzeRecognitionDocumentUncached(document, book) {
   if (!document || typeof document !== 'object') throw new TypeError('识别文档无效');
   let started = diagnosticNow();
   const rawSemanticText = String(document.fullText || '').replace(/\r/g, '').split(/\n+/).map(value => String(value).trim()).filter(Boolean).join('\n');

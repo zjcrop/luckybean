@@ -1,4 +1,6 @@
-const VERSION = '0.5.2-fastpath';
+import { runtimeAcceleration, detectionLimit, needsDetectionDetail, preferDetailedRecognition, OCR_PERFORMANCE_POLICY } from './domain/recognition/recognition-performance-policy.js';
+
+const VERSION = '0.5.3-performance';
 const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;
 
 function isAppleMobileLike() {
@@ -21,7 +23,7 @@ const ENGINE_INIT_TIMEOUT_MS = WEBKIT ? 30000 : 60000;
 const PREDICT_TIMEOUT_MS = WEBKIT ? 30000 : 45000;
 const ROI_CROP_TIMEOUT_MS = 20000;
 const DISPOSE_TIMEOUT_MS = 3000;
-const OUTSIDE_SESSION_IDLE_MS = 120000;
+const OUTSIDE_SESSION_IDLE_MS = LOW_MEMORY ? 20000 : 120000;
 const WORKER_BUNDLE_MIN_BYTES = 100000;
 const WORKER_BUNDLE_FETCH_ATTEMPTS = 2;
 
@@ -40,6 +42,29 @@ let pendingEnd = false;
 let forceCompatibility = false;
 let roiRequestSequence = 0;
 const activeWorkers = new Set();
+let accelerationPlan = { backend:'wasm', numThreads:1 };
+let accelerationPromise;
+let gpuDisabled = false;
+let threadsDisabled = false;
+
+async function chooseAcceleration() {
+  if (!accelerationPromise) accelerationPromise = (async () => {
+    let gpu = false;
+    if (!WEBKIT && !LOW_MEMORY && globalThis.navigator?.gpu?.requestAdapter) {
+      try {
+        const adapter = await withTimeout(navigator.gpu.requestAdapter({ powerPreference:'high-performance' }), 1500, 'GPU capability probe timed out');
+        const info = adapter?.info || {};
+        gpu = Boolean(adapter && !adapter.isFallbackAdapter && !/swiftshader|llvmpipe|lavapipe|software|basic render/i.test([info.vendor,info.architecture,info.description].join(' ')));
+      } catch { /* Capability failure uses the established CPU path. */ }
+    }
+    return runtimeAcceleration({ webkit:WEBKIT, lowMemory:LOW_MEMORY, isolated:globalThis.crossOriginIsolated === true,
+      sharedMemory:typeof SharedArrayBuffer === 'function', cores:navigator.hardwareConcurrency, gpu });
+  })();
+  const selected = await accelerationPromise;
+  accelerationPlan = { ...selected, backend:gpuDisabled ? 'wasm' : selected.backend, numThreads:threadsDisabled ? 1 : selected.numThreads };
+  recordDiagnostic('acceleration-plan', diagnosticNow(), { ...accelerationPlan, isolated:globalThis.crossOriginIsolated === true });
+  return accelerationPlan;
+}
 
 function diagnosticNow() { return Number(globalThis.performance?.now?.() ?? Date.now()); }
 function recordDiagnostic(phase, startedAt, detail = {}) {
@@ -237,7 +262,7 @@ function ocrCreateOptions({ compatibility = false, forceWorker = false, workerBl
     ...((forceWorker || !compatibility) ? { worker:{ createWorker:() => createModuleWorker(workerBlobUrl) } } : {}),
     textDetectionBatchSize:1,
     textRecognitionBatchSize:1,
-    ortOptions:{ backend:'wasm', wasmPaths:assetUrl('ort/'), numThreads:1, simd:!compatibility }
+    ortOptions:{ backend:compatibility ? 'wasm' : accelerationPlan.backend, wasmPaths:assetUrl('ort/'), numThreads:compatibility ? 1 : accelerationPlan.numThreads, simd:!compatibility, proxy:false }
   };
 }
 async function createWorkerEngine({ compatibility = false } = {}) {
@@ -263,7 +288,7 @@ function detachEngine() {
   if (current) current.then(disposeInstance).catch(() => {});
 }
 async function startWorkerWithMode(compatibility, generation, startedAt, reason = '') {
-  engineMode = compatibility ? 'worker-no-simd-fallback' : 'worker-simd-fastpath';
+  engineMode = compatibility ? 'worker-no-simd-fallback' : accelerationPlan.backend === 'webgpu' ? 'worker-webgpu' : accelerationPlan.numThreads > 1 ? `worker-simd-${accelerationPlan.numThreads}threads` : 'worker-simd-fastpath';
   const raw = createWorkerEngine({ compatibility });
   try {
     const label = compatibility ? 'PP-OCRv5 无 SIMD Worker 初始化超时' : 'PP-OCRv5 Worker 初始化超时';
@@ -297,6 +322,18 @@ async function startEngine() {
     }
   }
 
+  await chooseAcceleration();
+  if (accelerationPlan.backend === 'webgpu' && !forceCompatibility) {
+    try { return await startWorkerWithMode(false, generation, startedAt); }
+    catch (error) {
+      if (generation !== engineGeneration) throw error;
+      gpuDisabled = true;
+      accelerationPlan = { ...accelerationPlan, backend:'wasm' };
+      recordDiagnostic('gpu-fallback', startedAt, { reason:String(error?.message || error) });
+      emit('硬件加速不可用，继续使用同一 OCR 模型的 CPU 模式', 10);
+    }
+  }
+
   if (forceCompatibility) {
     emit('正在使用本次录入会话已确认需要的无 SIMD Worker', 10);
     return startWorkerWithMode(true, generation, startedAt, 'sticky-after-real-runtime-failure');
@@ -305,6 +342,13 @@ async function startEngine() {
   try {
     return await startWorkerWithMode(false, generation, startedAt);
   } catch (error) {
+    if (accelerationPlan.numThreads > 1 && generation === engineGeneration) {
+      threadsDisabled = true;
+      accelerationPlan = { ...accelerationPlan, numThreads:1 };
+      recordDiagnostic('thread-fallback', startedAt, { reason:String(error?.message || error) });
+      try { return await startWorkerWithMode(false, generation, startedAt, 'threading-unavailable'); }
+      catch (singleError) { error = singleError; }
+    }
     if (!looksLikeCompatibilityFailure(error) || generation !== engineGeneration) throw error;
     forceCompatibility = true;
     emit('PP-OCRv5 SIMD Worker 不可用，正在使用同一模型的无 SIMD Worker 兜底', 10);
@@ -318,7 +362,7 @@ async function ensureEngine() {
   emit(sessionDepth > 0 ? '正在为本次添加流程预热 PP-OCRv5' : '正在准备 PP-OCRv5', 7);
   const pending = startEngine();
   const tracked = pending.then(ocr => {
-    emit(engineMode === 'worker-simd-fastpath' ? 'PP-OCRv5 Worker 中文模型已就绪' : 'PP-OCRv5 兼容模式已就绪', 18);
+    emit(engineMode === 'worker-webgpu' ? 'PP-OCRv5 WebGPU 模型已就绪' : engineMode.startsWith('worker-simd') ? 'PP-OCRv5 Worker 中文模型已就绪' : 'PP-OCRv5 兼容模式已就绪', 18);
     return ocr;
   }).catch(error => {
     if (enginePromise === tracked) enginePromise = null;
@@ -334,12 +378,16 @@ async function dispose(force = false) {
   const current = enginePromise;
   enginePromise = null;
   engineGeneration += 1;
-  if (!current) { terminateWorkers(); return; }
+  forceCompatibility = false;
+  const retiringWorkers = [...activeWorkers];
+  retiringWorkers.forEach(worker => activeWorkers.delete(worker));
+  const retire = () => retiringWorkers.forEach(worker => { try { worker.terminate(); } catch {} });
+  if (!current) { retire(); return; }
   try {
     const ocr = await current;
-    if (ocr?.dispose) await withTimeout(Promise.resolve(ocr.dispose()), DISPOSE_TIMEOUT_MS, 'PP-OCRv5 释放超时', terminateWorkers).catch(() => {});
+    if (ocr?.dispose) await withTimeout(Promise.resolve(ocr.dispose()), DISPOSE_TIMEOUT_MS, 'PP-OCRv5 释放超时', retire).catch(() => {});
   } catch {}
-  finally { terminateWorkers(); }
+  finally { retire(); }
   emit('PP-OCRv5 已释放', 0);
 }
 function scheduleOutsideSessionDispose() {
@@ -359,9 +407,9 @@ function normalizeItems(result, imageId) {
     .filter(item => item.text && item.confidence >= 0.28 && meaningful(item.text) >= 0.55)
     .sort((a,b) => Number(a.polygon?.[0]?.[1] || 0) - Number(b.polygon?.[0]?.[1] || 0) || Number(a.polygon?.[0]?.[0] || 0) - Number(b.polygon?.[0]?.[0] || 0));
 }
-function predictOptions({ recovery = false } = {}) {
+function predictOptions({ recovery = false, limitSide = LIMIT_SIDE } = {}) {
   return {
-    textDetLimitSideLen:recovery ? Math.min(LIMIT_SIDE, 1280) : LIMIT_SIDE,
+    textDetLimitSideLen:recovery ? Math.min(LIMIT_SIDE, 1280) : limitSide,
     textDetLimitType:'max',
     textDetMaxSideLimit:MAX_SIDE,
     textDetThresh:0.22,
@@ -370,9 +418,9 @@ function predictOptions({ recovery = false } = {}) {
     textRecScoreThresh:0.28
   };
 }
-async function predictWithRuntimeRecovery(image, index, imageCount) {
+async function predictWithRuntimeRecovery(image, index, imageCount, limitSide) {
   let ocr = await ensureEngine();
-  const options = predictOptions({ recovery:forceCompatibility });
+  const options = predictOptions({ recovery:forceCompatibility, limitSide });
   try {
     return await withTimeout(
       ocr.predict(image.blob, options),
@@ -381,6 +429,12 @@ async function predictWithRuntimeRecovery(image, index, imageCount) {
       detachEngine
     );
   } catch (error) {
+    if (typeof accelerationPlan !== 'undefined' && accelerationPlan.backend === 'webgpu') {
+      gpuDisabled = true; accelerationPlan = { ...accelerationPlan, backend:'wasm' };
+      detachEngine();
+      recordDiagnostic('gpu-predict-fallback', diagnosticNow(), { reason:String(error?.message || error) });
+      return predictWithRuntimeRecovery(image, index, imageCount, limitSide);
+    }
     const predictionTimedOut = error?.name === 'RecognitionTimeoutError';
     if (WEBKIT || forceCompatibility || (!predictionTimedOut && !looksLikeCompatibilityFailure(error))) throw error;
     const startedAt = diagnosticNow();
@@ -412,9 +466,22 @@ async function predict(images) {
     const image = images[index];
     emit(`PP-OCRv5 正在识别第 ${index + 1}/${images.length} 张图片`, 20 + Math.round(index / Math.max(1, images.length) * 70));
     const startedAt = diagnosticNow();
-    const results = await predictWithRuntimeRecovery(image, index, images.length);
+    const initialLimit = detectionLimit(image, LIMIT_SIDE, { recovery:forceCompatibility });
+    let results = await predictWithRuntimeRecovery(image, index, images.length, initialLimit);
+    if (!forceCompatibility && needsDetectionDetail(results?.[0]?.items, image, initialLimit, LIMIT_SIDE)) {
+      emit('正在以原图精度复核小字和低置信文字', 85);
+      const detailStarted = diagnosticNow();
+      try {
+        const detailed = await predictWithRuntimeRecovery(image, index, images.length, LIMIT_SIDE);
+        results = preferDetailedRecognition(results, detailed);
+        recordDiagnostic('detection-detail', detailStarted, { imageId:image.id, firstLimit:initialLimit, detailLimit:LIMIT_SIDE });
+      } catch (error) {
+        if (!results?.[0]?.items?.length) throw error;
+        recordDiagnostic('detection-detail-failed', detailStarted, { imageId:image.id, reason:String(error?.message || error) });
+      }
+    }
     const current = normalizeItems(results?.[0], image.id);
-    recordDiagnostic('ocr-predict', startedAt, { imageIndex:index, imageCount:images.length, mode:engineMode, limitSide:LIMIT_SIDE, maxSide:MAX_SIDE });
+    recordDiagnostic('ocr-predict', startedAt, { imageIndex:index, imageCount:images.length, mode:engineMode, limitSide:initialLimit, maxSide:MAX_SIDE });
     blocks.push(...current);
     if (current.length) groups.push(current.map(item => item.text).join('\n'));
     await delay(0);
@@ -441,7 +508,8 @@ async function run(task) {
   }
   finally {
     busy = false;
-    if (pendingEnd && sessionDepth === 0) { pendingEnd = false; void dispose(true); }
+    if (globalThis.document?.hidden === true) { pendingEnd = false; void dispose(true); }
+    else if (pendingEnd && sessionDepth === 0) { pendingEnd = false; scheduleOutsideSessionDispose(); }
     else scheduleOutsideSessionDispose();
   }
 }
@@ -458,9 +526,8 @@ async function endSession(reason = 'add-flow') {
   sessionDepth = Math.max(0, sessionDepth - 1);
   recordDiagnostic('session-end', diagnosticNow(), { reason, sessionDepth });
   if (sessionDepth === 0) {
-    forceCompatibility = false;
     if (busy) pendingEnd = true;
-    else await dispose(true);
+    else scheduleOutsideSessionDispose();
   }
 }
 async function warmForRecognition() {
@@ -481,7 +548,10 @@ const paddleOcrApi = Object.freeze({
   memoryFallback:WEBKIT ? 'webkit-direct-wasm-no-simd' : 'worker-simd-fastpath->worker-no-simd-on-real-failure',
   predictRuntimeRecovery:true,
   autoPreload:false,
-  disposePolicy:'capture-session',
+  disposePolicy:'capture-session-idle',
+  performancePolicy:OCR_PERFORMANCE_POLICY,
+  get acceleration() { return Object.freeze({ ...accelerationPlan, gpuDisabled }); },
+  releaseAfterCapture:scheduleOutsideSessionDispose,
   roiWorkerOnly:true,
   regionRecognition:'recognition-roi/1.0',
   runtimeOrigin:'same-origin-vendored',
@@ -503,7 +573,7 @@ const paddleOcrApi = Object.freeze({
 globalThis.LuckyBeanPaddleOCR = paddleOcrApi;
 globalThis.CoffeeFoundationPaddleOCR = paddleOcrApi;
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && sessionDepth === 0 && !busy) void dispose();
+  if (document.hidden && !busy) void dispose(true);
 });
 globalThis.addEventListener('pagehide', () => {
   releaseWorkerBundle();

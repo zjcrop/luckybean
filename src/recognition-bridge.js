@@ -251,6 +251,9 @@ export async function recognizeCoffeeBag(images, options = {}) {
   const perImage = [];
   let engine = '';
   const batch = newBatch(images);
+  const cache = options.resultCache instanceof Map ? options.resultCache : null;
+  const provider = globalThis.LuckyBeanRecognitionBridge || globalThis.LuckyBeanPaddleOCR;
+  const locale = options.locale || 'zh-CN';
   safeStoreBatch(batch);
   for (let index=0; index<images.length; index+=1) {
     const image = images[index];
@@ -259,8 +262,13 @@ export async function recognizeCoffeeBag(images, options = {}) {
     task.status = 'processing';
     safeStoreBatch(batch);
     try {
-      const result = await recognizeSingleImage(image, options);
+      const cached = cache?.get(image.id);
+      const reuse = !options.forceRefresh && cached?.blob === image.blob && cached?.provider === provider && cached?.locale === locale;
+      const result = reuse ? structuredClone(cached.result) : await recognizeSingleImage(image, options);
       const blocks = collectBlocks(result, [image]);
+      blocks.forEach(block => { block.imageRole = image.role || block.imageRole; });
+      if (!reuse) cache?.set(image.id, { blob:image.blob, provider, locale, result:{ engine:result.engine, blocks:structuredClone(blocks), fullText:result.fullText } });
+      task.reused = Boolean(reuse);
       engine = result?.engine || engine || 'unknown';
       task.engine = engine;
       task.blocks = blocks;

@@ -138,7 +138,7 @@ async function runStage0Baseline(page) {
       }
       const batchOcr = await recognize(batchPrepared);
 
-      const runtimeReadyEvents = statuses.filter(status => /(?:Worker 中文模型已就绪|兼容模式已就绪)/u.test(status)).length;
+      const runtimeReadyEvents = statuses.filter(status => /(?:Worker 中文模型已就绪|WebGPU 模型已就绪|兼容模式已就绪)/u.test(status)).length;
       return {
         fixtureKind: 'deterministic-camera-like-jpeg',
         engine: String(batchOcr.result?.engine || firstOcr.result?.engine || ''),

@@ -150,7 +150,7 @@ test('WebKit runtime registers its lightweight provider while keeping heavy PP-O
   expect(state.primaryIsolation).toBe('webkit-direct-wasm-no-simd');
   expect(state.compatibilityFallback).toBe('webkit-direct-wasm-no-simd');
   expect(state.autoPreload).toBe(false);
-  expect(state.disposePolicy).toBe('capture-session');
+  expect(state.disposePolicy).toBe('capture-session-idle');
   expect(state.roiWorkerOnly).toBe(true);
   expect(state.webPaddle).toBe(true);
   expect(state.heavyResources).toEqual([]);
@@ -205,11 +205,11 @@ test('WebKit PP-OCR reuses its add-session engine and releases it on exit',async
   expect(result.texts.length).toBeGreaterThan(0);
   expect(result.texts.join(' ').toUpperCase()).toMatch(/ETHIOPIA|NATURAL|COFFEE/);
   expect(result.primaryIsolation).toBe('webkit-direct-wasm-no-simd');
-  expect(result.disposePolicy).toBe('capture-session');
+  expect(result.disposePolicy).toBe('capture-session-idle');
   expect(result.reusedEngine).toBe(true);
   expect(result.activeDepth).toBe(1);
   expect(result.closedDepth).toBe(0);
-  expect(result.replacedAfterExit).toBe(true);
+  expect(result.replacedAfterExit).toBe(false);
   expect(result.warmMs).toBeLessThan(60000);
   expect(result.firstMs).toBeLessThan(45000);
   expect(result.secondMs).toBeLessThan(45000);

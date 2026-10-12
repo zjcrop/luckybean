@@ -27,5 +27,5 @@ test('deterministic fast-provider registration does not eagerly initialize SDK, 
   assert.match(provider, /import\(assetUrl\('sdk\.mjs'\)\)/);
   assert.match(provider, /autoPreload:false/);
   assert.match(provider, /beginSession/);
-  assert.match(provider, /disposePolicy:'capture-session'/);
+  assert.match(provider, /disposePolicy:'capture-session-idle'/);
 });
