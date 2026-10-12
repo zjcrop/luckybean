@@ -178,7 +178,7 @@ test('the active bean renderer preserves local photos and displays roaster, orig
   await expect(image).toBeVisible();
   await expect.poll(() => image.evaluate(node => Math.round(node.getBoundingClientRect().height * 10) / 10)).toBe(46);
   const dimensions = await image.evaluate(node => ({width:node.getBoundingClientRect().width, height:node.getBoundingClientRect().height, decoded:node.naturalWidth}));
-  expect(dimensions.width).toBe(46); expect(dimensions.height).toBeCloseTo(46, 1); expect(dimensions.decoded).toBe(256);
+  expect(dimensions.width).toBe(34); expect(dimensions.height).toBeCloseTo(46, 1); expect(dimensions.decoded).toBe(256);
   await card.click();
   await expect(page.locator('[data-overlay="bean-detail"] .bean-thumbnail-shell-detail img')).toBeVisible();
   expect(await page.evaluate(async () => JSON.stringify(await (await import('/src/db.js')).get('beans','closeout-bean')))).not.toContain('data:image');

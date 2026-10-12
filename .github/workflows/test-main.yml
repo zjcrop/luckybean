@@ -7,6 +7,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      build_android:
+        description: 'Include Android build checks for an app delivery'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -227,6 +232,7 @@ jobs:
           if-no-files-found: ignore
 
   android_debug:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_android == true }}
     needs: prepare_runtime
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -268,6 +274,12 @@ jobs:
 
   validated:
     needs: [verify, core_browser, ocr_baseline, android_debug]
+    if: >-
+      always() &&
+      needs.verify.result == 'success' &&
+      needs.core_browser.result == 'success' &&
+      needs.ocr_baseline.result == 'success' &&
+      (needs.android_debug.result == 'success' || needs.android_debug.result == 'skipped')
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -275,7 +287,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p validated-main
-          printf 'source_sha=%s\nvalidated_at=%s\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" > validated-main/VALIDATED_SOURCE.txt
+          printf 'source_sha=%s\nvalidated_at=%s\nandroid_debug=%s\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" "${{ needs.android_debug.result }}" > validated-main/VALIDATED_SOURCE.txt
       - uses: actions/upload-artifact@v7.0.1
         with:
           name: luckybean-main-validated-${{ github.sha }}

@@ -15,9 +15,9 @@ test('thumbnail bytes live in an independent local IndexedDB database', () => {
   assert.doesNotMatch(cloudCodec, /thumbnail/i);
 });
 
-test('required maker and brand are saved separately from local thumbnails', () => {
+test('maker is required and brand defaults to it separately from local thumbnails', () => {
   assert.match(app, /\['beanRoaster','烘豆商'\]/);
-  assert.match(app, /\['beanBrand','品牌'\]/);
+  assert.doesNotMatch(app, /\['beanBrand','品牌'\]/);
   assert.match(app, /roasterName: formValue\('beanRoaster'\), productName: formValue\('beanBrand'\)/);
   assert.match(cards, /getBeanThumbnail\(beanId\)/);
   assert.match(app, /data-bean-thumbnail="\$\{esc\(bean\.id\)\}"/);

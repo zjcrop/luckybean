@@ -50,7 +50,7 @@ export function buildBeanCardProjection(bean = {}, facts = {}) {
 export function buildBeanDetailProjection(bean = {}, facts = {}) {
   const card = buildBeanCardProjection(bean, facts);
   const roaster = clean(bean.roasterName || bean.roaster);
-  const product = clean(bean.productName || bean.brand || bean.product || bean.commercialName);
+  const product = clean(bean.productName || bean.brand || bean.product || bean.commercialName || roaster);
   const region = clean(facts.region || bean.regionName || bean.region || bean.regionCode);
   const station = processingStationLabel(bean, facts);
   const harvest = compactHarvestSeasonLabel(bean.harvestSeason || bean.harvestYear);
@@ -58,7 +58,7 @@ export function buildBeanDetailProjection(bean = {}, facts = {}) {
   const roastColor = clean(bean.roastColor || bean.agtron || bean.colorValue);
   return {
     primary:[card.country, card.variety].filter(Boolean),
-    secondary:[roaster, product].filter(Boolean),
+    secondary:[...new Set([roaster, product].filter(Boolean))],
     origin:[region, station, card.process, harvest].filter(Boolean),
     roast:[roastDate, card.roast, roastColor].filter(Boolean)
   };

@@ -1144,7 +1144,7 @@ function beanFormHtml(bean = {}, source = {}) {
         ${fieldHtml('beanRefrigerated','是否冷藏',`<select id="beanRefrigerated" class="control"><option value="false"${!bean.refrigerated?' selected':''}>否</option><option value="true"${bean.refrigerated?' selected':''}>是</option></select>`,'recommended')}
         ${fieldHtml('beanPrice','购买价格',`<input id="beanPrice" class="control" type="number" min="0" step="0.01" value="${esc(bean.price || '')}">`,'recommended')}
         ${fieldHtml('beanRoaster','烘豆商',`<input id="beanRoaster" class="control" maxlength="60" value="${esc(bean.roasterName || bean.roaster || '')}">`,'required')}
-        ${fieldHtml('beanBrand','品牌',`<input id="beanBrand" class="control" maxlength="60" value="${esc(bean.productName || bean.brand || bean.product || bean.commercialName || '')}">`,'required')}
+        ${fieldHtml('beanBrand','品牌',`<input id="beanBrand" class="control" maxlength="60" placeholder="默认与烘焙商相同" value="${esc(bean.productName || bean.brand || bean.product || bean.commercialName || bean.roasterName || bean.roaster || '')}">`)}
         ${fieldHtml('beanThumbnailFile','豆袋缩略图',`<div class="bean-thumbnail-picker"><img id="beanThumbnailPreview" class="bean-thumbnail-preview" alt="豆袋缩略图预览" hidden><div class="bean-thumbnail-picker-actions"><button id="captureBeanThumbnailBtn" class="button subtle" type="button">拍摄或选择照片</button><input id="beanThumbnailFile" class="hidden" type="file" accept="image/*" capture="environment"><button id="clearBeanThumbnailBtn" class="button subtle" type="button">移除本机照片</button><small>仅保存在本机，不进入云同步或备份。</small></div></div>`)}
         ${fieldHtml('beanAltitude','海拔',`<input id="beanAltitude" class="control" type="number" min="0" max="5000" value="${esc(bean.altitude || '')}">`)}
         ${fieldHtml('beanNotes','备注',`<input id="beanNotes" class="control" maxlength="300" value="${esc(bean.notes || '')}">`)}
@@ -1213,11 +1213,11 @@ async function openBeanForm(bean = {}, source = { type: 'manual' }) {
   state.beanFormDraft = structuredClone(bean);
   const overlay = showOverlay(beanFormHtml(bean, source), { full: true, id: 'bean-form' }); bindClose(overlay);
   const form = $('#beanForm');
-  let preparedThumbnail = null;
+  let preparedThumbnail = source.thumbnailDataUrl || null;
   let thumbnailPreparation = Promise.resolve();
   let thumbnailSelectionChanged = false;
   let thumbnailRequestId = 0;
-  let removeThumbnail = false;
+  let removeThumbnail = Boolean(source.thumbnailRemoved);
   let previewUrl = '';
   const thumbnailPreview = $('#beanThumbnailPreview');
   const thumbnailInput = $('#beanThumbnailFile');
@@ -1226,6 +1226,13 @@ async function openBeanForm(bean = {}, source = { type: 'manual' }) {
     previewUrl = String(dataUrl || '');
     thumbnailPreview.src = previewUrl; thumbnailPreview.hidden = false;
   };
+  if (preparedThumbnail) showThumbnailPreview(preparedThumbnail);
+  const roasterInput = $('#beanRoaster');
+  const brandInput = $('#beanBrand');
+  let brandEdited = Boolean(bean.brandManuallyEdited || (brandInput.value && brandInput.value !== roasterInput.value));
+  brandInput.dataset.manuallyEdited = String(brandEdited);
+  brandInput.addEventListener('input', () => { brandEdited = Boolean(brandInput.value.trim()); brandInput.dataset.manuallyEdited = String(brandEdited); });
+  roasterInput.addEventListener('input', () => { if (!brandEdited) brandInput.value = roasterInput.value; });
   $('#captureBeanThumbnailBtn')?.addEventListener('click', () => thumbnailInput?.click());
   thumbnailInput?.addEventListener('change', () => {
     const file = thumbnailInput.files?.[0];
@@ -1236,7 +1243,7 @@ async function openBeanForm(bean = {}, source = { type: 'manual' }) {
       try {
         const dataUrl = await prepareBeanThumbnail(file);
         if (requestId !== thumbnailRequestId) return;
-        preparedThumbnail = dataUrl; removeThumbnail = false; showThumbnailPreview(preparedThumbnail);
+        preparedThumbnail = dataUrl; source.thumbnailDataUrl = dataUrl; source.thumbnailRemoved = false; removeThumbnail = false; showThumbnailPreview(preparedThumbnail);
       } catch (error) {
         if (requestId !== thumbnailRequestId) return;
         preparedThumbnail = null; thumbnailInput.value = ''; toast(error?.message || '照片处理失败，请换一张图片', 'status-bad');
@@ -1245,11 +1252,11 @@ async function openBeanForm(bean = {}, source = { type: 'manual' }) {
   });
   $('#clearBeanThumbnailBtn')?.addEventListener('click', () => {
     thumbnailRequestId += 1; thumbnailPreparation = Promise.resolve();
-    preparedThumbnail = null; removeThumbnail = true; thumbnailSelectionChanged = true; thumbnailInput.value = '';
+    preparedThumbnail = null; source.thumbnailDataUrl = ''; source.thumbnailRemoved = true; removeThumbnail = true; thumbnailSelectionChanged = true; thumbnailInput.value = '';
     if (previewUrl.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
     previewUrl = ''; thumbnailPreview.removeAttribute('src'); thumbnailPreview.hidden = true;
   });
-  if (bean.id) getBeanThumbnail(bean.id).then(dataUrl => { if (dataUrl && !thumbnailSelectionChanged && thumbnailPreview?.isConnected) showThumbnailPreview(dataUrl); }).catch(() => {});
+  if (bean.id && !preparedThumbnail && !removeThumbnail) getBeanThumbnail(bean.id).then(dataUrl => { if (dataUrl && !thumbnailSelectionChanged && thumbnailPreview?.isConnected) showThumbnailPreview(dataUrl); }).catch(() => {});
   const syncRoastColor = () => {
     const color = formValue('beanRoastColor');
     const select = $('#beanRoast');
@@ -1300,7 +1307,7 @@ async function openBeanForm(bean = {}, source = { type: 'manual' }) {
   form.addEventListener('submit', async event => {
     event.preventDefault();
     await thumbnailPreparation;
-    const required = [['beanCountry','国家'],['beanVariety','豆种'],['beanProcess','处理法'],['beanRoast','烘焙度'],['beanRoastDate','烘焙日期'],['beanInitialWeight','初始克重'],['beanRoaster','烘豆商'],['beanBrand','品牌']];
+    const required = [['beanCountry','国家'],['beanVariety','豆种'],['beanProcess','处理法'],['beanRoast','烘焙度'],['beanRoastDate','烘焙日期'],['beanInitialWeight','初始克重'],['beanRoaster','烘豆商']];
     for (const [id,label] of required) if (!formValue(id)) return toast(`请填写${label}`, 'status-bad');
     const initialWeight = parseNumber(formValue('beanInitialWeight'));
     if (initialWeight <= 0) return toast('初始克重必须大于 0', 'status-bad');
@@ -1315,7 +1322,7 @@ async function openBeanForm(bean = {}, source = { type: 'manual' }) {
       harvestSeason: harvestParsed.normalizedValue || harvestInput, harvestYear: harvestParsed.harvestYear || 0, harvestEndYear: harvestParsed.harvestEndYear || 0,
       roastColor: parseNumber(formValue('beanRoastColor'), 0) || '', roastCode: formValue('beanRoast'), roastDate: formValue('beanRoastDate'), initialWeight,
       remainingWeight: bean.id ? Number(bean.remainingWeight) : initialWeight, refrigerated: formValue('beanRefrigerated') === 'true', freezeDate: formValue('beanRefrigerated') === 'true' ? (bean.freezeDate || todayISO()) : '',
-      price: parseNumber(formValue('beanPrice'), 0), roasterName: formValue('beanRoaster'), productName: formValue('beanBrand'), altitude: parseNumber(formValue('beanAltitude'), 0), notes: formValue('beanNotes'),
+      price: parseNumber(formValue('beanPrice'), 0), roasterName: formValue('beanRoaster'), productName: formValue('beanBrand') || formValue('beanRoaster'), brandManuallyEdited:brandEdited, altitude: parseNumber(formValue('beanAltitude'), 0), notes: formValue('beanNotes'),
       flavorCodes: selectedSummaryCodes(), recognitionProvenance: source.parseMetadata ? { parseMetadata: structuredClone(source.parseMetadata), evidence: structuredClone(source.evidence || {}), confidence: structuredClone(source.confidence || {}), confirmedAt: source.parseMetadata?.dateReview?.confirmedAt || now } : (bean.recognitionProvenance || null), archived: Boolean(bean.archived), source: source.type || bean.source || 'manual',
       codebookSchemaVersion: Number(state.codebook._schemaVersion || 1), codebookDataVersion: String(state.codebook.version || '6'),
       recognitionMetadata: source.parseMetadata || bean.recognitionMetadata || null,
@@ -1333,7 +1340,7 @@ async function openBeanForm(bean = {}, source = { type: 'manual' }) {
 
 function selectedSummaryCodes() { return $$('#formFlavorSummary [data-summary-code]').map(node => node.dataset.summaryCode); }
 function captureBeanFormDraft() {
-  return { ...state.beanFormDraft, countryCode: formValue('beanCountry'), regionCode: formValue('beanRegion'), entityCode: formValue('beanEntity'), varietyCode: formValue('beanVariety'), harvestSeason: formValue('beanHarvestSeason'), processCode: formValue('beanProcess'), roastColor: formValue('beanRoastColor'), roastCode: formValue('beanRoast'), roastDate: formValue('beanRoastDate'), initialWeight: formValue('beanInitialWeight'), refrigerated: formValue('beanRefrigerated') === 'true', price: formValue('beanPrice'), roasterName: formValue('beanRoaster'), productName: formValue('beanBrand'), altitude: formValue('beanAltitude'), notes: formValue('beanNotes'), flavorCodes: selectedSummaryCodes() };
+  return { ...state.beanFormDraft, countryCode: formValue('beanCountry'), regionCode: formValue('beanRegion'), entityCode: formValue('beanEntity'), varietyCode: formValue('beanVariety'), harvestSeason: formValue('beanHarvestSeason'), processCode: formValue('beanProcess'), roastColor: formValue('beanRoastColor'), roastCode: formValue('beanRoast'), roastDate: formValue('beanRoastDate'), initialWeight: formValue('beanInitialWeight'), refrigerated: formValue('beanRefrigerated') === 'true', price: formValue('beanPrice'), roasterName: formValue('beanRoaster'), productName: formValue('beanBrand'), brandManuallyEdited: $('#beanBrand')?.dataset.manuallyEdited === 'true', altitude: formValue('beanAltitude'), notes: formValue('beanNotes'), flavorCodes: selectedSummaryCodes() };
 }
 
 function flavorGroupLabel(name = '') {
@@ -1450,7 +1457,7 @@ function openRecognitionPreflight({ merged, parsed, sourceText, dateDecision, re
   bindClose(overlay);
   $('#preflightBackBtn').addEventListener('click', () => openTextRecognition(sourceText, merged, recognitionDocument));
   $('#preflightConfirmBtn').addEventListener('click', () => openBeanForm(merged, {
-    type: 'text', text: sourceText, recognitionDocument,
+    type: 'text', text: sourceText, recognitionDocument, thumbnailDataUrl:recognitionDocument?.localThumbnailDataUrl || '',
     parseMetadata: parsed.parseMetadata,
     evidence: parsed.evidence,
     confidence: parsed.confidence
@@ -1519,6 +1526,7 @@ function openTextRecognition(text = '', existingDraft = null, suppliedDocument =
     const pendingMatches = pendingDocument
       && [pendingDocument.fullText, pendingDocument.rawFullText].map(value => String(value || '').trim()).includes(sourceText);
     const recognitionDocument = pendingMatches ? pendingDocument : recognitionDocumentFromText(sourceText);
+    if (pendingDocument?.localThumbnailDataUrl) recognitionDocument.localThumbnailDataUrl = pendingDocument.localThumbnailDataUrl;
     processRecognitionDocument(recognitionDocument, { existingDraft, overwrite });
   });
   $('#speechTextBtn').addEventListener('click', () => startSpeechRecognition('recognitionText'));
@@ -1527,6 +1535,7 @@ function openTextRecognition(text = '', existingDraft = null, suppliedDocument =
 globalThis.LuckyBeanRecognitionFlow = {
   evidenceSignalProvider() { return createRecognitionEvidenceSignalProvider({ book:state.codebook }); },
   acceptDocument(recognitionDocument, options = {}) {
+    if (options.thumbnailDataUrl) recognitionDocument.localThumbnailDataUrl = options.thumbnailDataUrl;
     return Promise.resolve(processRecognitionDocument(recognitionDocument, options));
   },
   openText(text = '', existingDraft = null, recognitionDocument = null) {

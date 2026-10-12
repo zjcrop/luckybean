@@ -4,6 +4,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      build_android:
+        description: 'Explicitly run Android build and device checks'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -14,6 +19,8 @@ concurrency:
 
 jobs:
   android:
+    # Android generation is manual; web deliveries never create an APK.
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_android == true }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:

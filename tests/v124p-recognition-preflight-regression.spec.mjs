@@ -90,6 +90,34 @@ test('native OCR auto-handoff still requires canonical preflight confirmation be
   await expect(page.locator('#beanInitialWeight')).toHaveValue('150');
   await expect(page.locator('#beanRoastDate')).toHaveValue('2026-08-12');
   await expect(page.locator('#formFlavorSummary')).toContainText('蓝莓');
+  await expect(page.locator('#beanThumbnailPreview')).toBeVisible();
+  await page.locator('#beanRoaster').fill('识别照片烘焙商');
+  await expect(page.locator('#beanBrand')).toHaveValue('识别照片烘焙商');
+  await page.locator('#beanBrand').fill('手工品牌');
+  await page.locator('#beanRoaster').fill('更新后的烘焙商');
+  await expect(page.locator('#beanBrand')).toHaveValue('手工品牌');
+  await page.locator('#beanBrand').fill('');
+  await page.locator('#beanRoaster').fill('最终烘焙商');
+  await expect(page.locator('#beanBrand')).toHaveValue('最终烘焙商');
+  await page.locator('#beanRoast').selectOption('RL-L1');
+  await page.locator('#beanForm').evaluate(form => form.requestSubmit());
+  await expect(page.locator('[data-overlay="bean-form"]')).toHaveCount(0);
+  const card = page.locator('.bean-card').filter({hasText:'最终烘焙商'});
+  await expect(card).toHaveCount(1);
+  const image = card.locator('img[data-bean-thumbnail]');
+  await expect(image).toBeVisible();
+  await expect.poll(() => image.evaluate(node => Math.round(node.getBoundingClientRect().height * 10) / 10)).toBe(46);
+  const dimensions = await image.evaluate(node => ({width:node.getBoundingClientRect().width,height:node.getBoundingClientRect().height}));
+  expect(dimensions.width).toBe(34); expect(dimensions.height).toBeCloseTo(46, 1);
+  const beanId = await card.getAttribute('data-bean-id');
+  const saved = await page.evaluate(async id => (await import('/src/db.js')).get('beans',id),beanId);
+  expect(saved.productName).toBe('最终烘焙商');
+  expect(JSON.stringify(saved)).not.toContain('data:image');
+  await card.click();
+  await expect(page.locator('.bean-thumbnail-shell-detail img')).toBeVisible();
+  await page.reload();
+  await page.locator('#splashScreen').click();
+  await expect(page.locator(`.bean-card[data-bean-id="${beanId}"] img[data-bean-thumbnail]`)).toBeVisible();
 });
 
 test('date ownership confirmation is followed by preflight before roast date enters the bean form', async ({ page }) => {
