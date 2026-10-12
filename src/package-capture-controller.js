@@ -18,6 +18,7 @@ const captureState = {
   images: [], busy: false, ocrText: '', ocrEngine: '', ocrError: '', blocks: [], recognitionDocument: null, analysis: null,
   aiStatus: 'idle', aiDetail: ''
 };
+let resultCache = new Map();
 let operationGeneration = 0;
 let pendingGalleryFiles = [];
 
@@ -50,7 +51,11 @@ function releasePreview(image) {
   if (image && !image.nativeSource) { image.previewUrl = ''; image.previewAvailable = false; image.previewReleased = true; }
 }
 function disposeBrowserOcr() {
-  try { void globalThis.LuckyBeanPaddleOCR?.dispose?.(); } catch {}
+  try {
+    const provider = globalThis.LuckyBeanPaddleOCR;
+    if (typeof provider?.releaseAfterCapture === 'function') provider.releaseAfterCapture();
+    else void provider?.dispose?.();
+  } catch {}
 }
 function bindAndroidImageSource(imageId, includePreview) {
   if (!globalThis.__LUCKYBEAN_ANDROID__) return '';
@@ -60,6 +65,7 @@ function bindAndroidImageSource(imageId, includePreview) {
 }
 function clearCapture({ keepOverlay = false } = {}) {
   operationGeneration += 1;
+  resultCache = new Map();
   pendingGalleryFiles = [];
   for (const image of captureState.images) releasePreview(image);
   captureState.images = []; captureState.busy = false; captureState.ocrText = ''; captureState.ocrEngine = ''; captureState.ocrError = ''; captureState.blocks = [];
@@ -220,7 +226,7 @@ async function runRecognition() {
   render();
   let localSuccess = false; let book = null; let documentRef = null;
   try {
-    const result = await recognizeCoffeeBag(captureState.images, { locale:'zh-CN' });
+    const result = await recognizeCoffeeBag(captureState.images, { locale:'zh-CN', resultCache });
     if (generation !== operationGeneration) return;
     captureState.ocrText = result.fullText || ''; captureState.ocrEngine = result.engine || 'OCR'; captureState.blocks = result.blocks || [];
     if (!captureState.ocrText) throw new Error('没有检测到可用文字，请补拍更清晰的局部照片');

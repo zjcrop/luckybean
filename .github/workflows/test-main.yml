@@ -212,7 +212,7 @@ jobs:
           cat /tmp/luckybean-ocr-http.log
           exit 1
       - name: Record Stage 0 OCR performance baseline
-        run: npx playwright test tests/stage0-ocr-baseline.spec.mjs --browser=chromium --reporter=line --workers=1
+        run: npx playwright test tests/stage0-ocr-baseline.spec.mjs tests/ocr-performance-browser.spec.mjs --browser=chromium --reporter=line --workers=1
       - name: Upload OCR runtime fingerprint
         if: always()
         uses: actions/upload-artifact@v7.0.1

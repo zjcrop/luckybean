@@ -24,7 +24,7 @@ test('fast path bounds long-edge detection while retaining the absolute safety c
   assert.match(source, /looksLikeCompatibilityFailure/);
   assert.match(source, /worker-no-simd-fallback/);
   assert.match(source, /predict-runtime-recovery-success/);
-  assert.match(source, /disposePolicy:'capture-session'/);
+  assert.match(source, /disposePolicy:'capture-session-idle'/);
   assert.doesNotMatch(source, /textDetMaxSideLimit:LOW_MEMORY \? 1280 : 2200/);
 });
 

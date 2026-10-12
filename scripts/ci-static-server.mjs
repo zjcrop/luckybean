@@ -76,6 +76,11 @@ async function loadTarget(requestUrl) {
 }
 
 const server = http.createServer(async (req, res) => {
+  if (process.env.LUCKYBEAN_TEST_COI === '1') {
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  }
   const startedAt = performance.now();
   const method = String(req.method || 'GET').toUpperCase();
   const requestUrl = String(req.url || '/');
@@ -100,7 +105,7 @@ const server = http.createServer(async (req, res) => {
   try {
     const { target, body } = await loadTarget(requestUrl);
     // Match GitHub Pages: Fetch decodes gzip, but Content-Length is transfer size.
-    const compressed = target.endsWith('/paddleocr/worker.js') && /\bgzip\b/.test(req.headers['accept-encoding'] || '');
+    const compressed = target.replace(/\\/g, '/').endsWith('/paddleocr/worker.js') && /\bgzip\b/.test(req.headers['accept-encoding'] || '');
     const wireBody = compressed ? gzipSync(body) : body;
     const contentType = MIME.get(path.extname(target).toLowerCase()) || 'application/octet-stream';
     res.writeHead(200, {
