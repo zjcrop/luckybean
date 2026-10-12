@@ -91,6 +91,12 @@ test('GPU inference failure retries the same model on CPU and remembers the fall
   assert.equal(h.api.acceleration.gpuDisabled,true);await h.api.dispose(true);
 });
 
+test('an abandoned add menu cannot keep an idle model alive indefinitely',async()=>{
+  const h=providerHarness();await h.api.beginSession();await h.api.beginSession();
+  const idle=[...h.timers.values()].find(t=>t.ms===120000);assert.ok(idle);idle.fn();
+  await Promise.resolve();await h.api.warmForRecognition();assert.equal(h.calls.length,2);await h.api.dispose(true);
+});
+
 test('thread startup failure retains SIMD and falls back to one thread',async()=>{
   const h=providerHarness({isolated:true,failThreads:true});await h.api.beginSession();
   assert.deepEqual(h.calls.map(c=>c.numThreads),[4,1]);assert.equal(h.calls[1].simd,true);await h.api.dispose(true);

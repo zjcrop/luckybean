@@ -363,6 +363,7 @@ async function ensureEngine() {
   const pending = startEngine();
   const tracked = pending.then(ocr => {
     emit(engineMode === 'worker-webgpu' ? 'PP-OCRv5 WebGPU 模型已就绪' : engineMode.startsWith('worker-simd') ? 'PP-OCRv5 Worker 中文模型已就绪' : 'PP-OCRv5 兼容模式已就绪', 18);
+    scheduleOutsideSessionDispose();
     return ocr;
   }).catch(error => {
     if (enginePromise === tracked) enginePromise = null;
@@ -392,8 +393,8 @@ async function dispose(force = false) {
 }
 function scheduleOutsideSessionDispose() {
   globalThis.clearTimeout(disposeTimer);
-  if (sessionDepth > 0 || busy) return;
-  disposeTimer = globalThis.setTimeout(() => { void dispose(); }, OUTSIDE_SESSION_IDLE_MS);
+  if (busy) return;
+  disposeTimer = globalThis.setTimeout(() => { if (!busy) void dispose(true); }, OUTSIDE_SESSION_IDLE_MS);
 }
 
 function meaningful(text) {
@@ -519,7 +520,7 @@ async function beginSession(reason = 'add-flow') {
   globalThis.clearTimeout(disposeTimer);
   recordDiagnostic('session-begin', diagnosticNow(), { reason, sessionDepth });
   if (globalThis.__LUCKYBEAN_ANDROID__) return null;
-  try { return await ensureEngine(); }
+  try { const ocr = await ensureEngine(); scheduleOutsideSessionDispose(); return ocr; }
   catch (error) { emit(`PP-OCRv5 预热未完成：${error.message}`, 0); return null; }
 }
 async function endSession(reason = 'add-flow') {
