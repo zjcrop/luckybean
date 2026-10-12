@@ -238,8 +238,22 @@ function scheduleIdleWork(task, timeout = 1800) {
 
 async function loadBeanDisplayIndex() {
   if (state.beanDisplayIndex) return state.beanDisplayIndex;
-  if (!beanDisplayIndexPromise) beanDisplayIndexPromise = fetch('./public/bean-display-index.json', { cache: 'force-cache' })
-    .then(response => { if (!response.ok) throw new Error(`显示索引 HTTP ${response.status}`); return response.json(); })
+  const revision = document.body?.dataset.releaseRevision || '';
+  if (!beanDisplayIndexPromise) beanDisplayIndexPromise = get('syncMetadata', 'bean-display-index.v1').catch(() => null)
+    .then(async stored => {
+      if (stored?.revision === revision && stored.data?.format === 'luckybean-bean-display-index-v1') return stored.data;
+      const abort = new AbortController();
+      const timer = setTimeout(() => abort.abort(), 3000);
+      try {
+        const response = await fetch('./public/bean-display-index.json', { cache:'force-cache', signal:abort.signal });
+        if (!response.ok) throw new Error(`显示索引 HTTP ${response.status}`);
+        const data = await response.json();
+        if (data?.format !== 'luckybean-bean-display-index-v1') throw new Error('显示索引格式不兼容');
+        // Keep this derived cache local; it is not a preference or a cloud record.
+        await put('syncMetadata', { id:'bean-display-index.v1', revision, data }).catch(() => {});
+        return data;
+      } finally { clearTimeout(timer); }
+    })
     .then(data => {
       if (data?.format !== 'luckybean-bean-display-index-v1') throw new Error('显示索引格式不兼容');
       state.beanDisplayIndex = data;

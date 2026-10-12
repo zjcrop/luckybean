@@ -18,7 +18,7 @@
 .bean-thumbnail { display:block; inline-size:100%; block-size:100%; object-fit:cover; border-radius:10px; }
 .bean-thumbnail[hidden], .bean-thumbnail-fallback[hidden] { display:none; }
 .bean-thumbnail-fallback { display:block; inline-size:8px; block-size:8px; border-radius:50%; background:var(--accent, #b7312c); }
-.bean-card.compact.lb-one-line-bean { padding-block:0; padding-inline-start:0; }
+.bean-card.compact.lb-one-line-bean { padding-block:0 8px; padding-inline-start:0; }
 .bean-card.compact:not(.lb-one-line-bean) { grid-template-columns:34px minmax(0,1fr) 54px; }
 .bean-detail-header { display:grid; grid-template-columns:3em minmax(0,1fr) auto; column-gap:12px; font-size:21px; }
 .bean-detail-header .bean-thumbnail-shell-detail { grid-column:1; grid-row:1 / span 2; inline-size:3em; block-size:3em; }
