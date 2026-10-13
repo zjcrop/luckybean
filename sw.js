@@ -16,6 +16,9 @@ const newerDocumentClients = new Set();
 // making first load depend on a large all-or-nothing precache transaction.
 const LAZY_RUNTIME_RESOURCES = [
   './src/app.js',
+  './src/ui/recovery-backup-controller.js',
+  './src/domain/archive/recovery-snapshot-codec.js',
+  './src/domain/archive/recovery-snapshot-service.js',
   './src/domain/recognition/recognition-performance-policy.js',
   './src/domain/beans/bean-group-settings.js',
   './src/domain/recognition/recognition-dictionary-aliases.js',
