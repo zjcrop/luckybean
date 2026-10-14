@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { RECOVERY_FORMAT, RECOVERY_STORES, RECOVERY_PREFERENCES, sealRecoverySnapshot, openRecoverySnapshot, validateSnapshot, canonical, snapshotManifest } from '../src/domain/archive/recovery-snapshot-codec.js';
+import { RECOVERY_FORMAT, RECOVERY_STORES, RECOVERY_PREFERENCES, sealRecoverySnapshot, openRecoverySnapshot, validateSnapshot, canonical, snapshotManifest, packRecoveryValue, unpackRecoveryValue, digest } from '../src/domain/archive/recovery-snapshot-codec.js';
 function fixture() {
   return { format: RECOVERY_FORMAT, schemaVersion: 10, createdAt: '2026-10-13T12:00:00Z', stores: Object.fromEntries(RECOVERY_STORES.map(name => [name, []])), photos: [{ key: 'b1', value: 'data:image/jpeg;base64,YWJj' }], preferences: Object.fromEntries(RECOVERY_PREFERENCES.map(key => [key, null])) };
 }
@@ -45,4 +45,35 @@ test('manifest detects photo and preference changes', async () => {
 test('short password and future schema are refused', async () => {
   await assert.rejects(sealRecoverySnapshot(fixture(), 'short'), /12/);
   assert.throws(() => validateSnapshot({ ...fixture(), schemaVersion: 11 }), /schema 10/);
+});
+test('optional brew fields, sparse arrays and negative zero survive encrypted file and hashes', async () => {
+  const source = fixture();
+  const value = { id: 'brew1', input: { water: { customProfile: undefined } }, optional: [undefined, , null, -0], marker: ['undefined'] };
+  source.stores.brewSessions.push({ key: value.id, value });
+  const opened = await openRecoverySnapshot(JSON.parse(JSON.stringify(await sealRecoverySnapshot(source, password))), password);
+  assert.deepEqual(opened, source);
+  assert(Object.hasOwn(opened.stores.brewSessions[0].value.input.water, 'customProfile'));
+  assert(!Object.hasOwn(opened.stores.brewSessions[0].value.optional, 1));
+  const hashes = await Promise.all([{}, { optional: undefined }, { optional: null }, { optional: 0 }, { optional: -0 }].map(value => digest(value)));
+  assert.equal(new Set(hashes).size, hashes.length);
+  assert.deepEqual(await snapshotManifest(source), await snapshotManifest(opened));
+});
+test('typed decoding rejects duplicate, prototype and out-of-range keys; unsupported types fail closed', () => {
+  for (const node of [
+    ['object', [['__proto__', ['value', 'x']]]],
+    ['object', [['x', ['undefined']], ['x', ['value', null]]]],
+    ['array', 1, [[1, ['value', 'x']]]],
+    ['array', 1000001, []], ['value', {}], ['undefined', 0], ['unknown']
+  ]) assert.throws(() => unpackRecoveryValue(node));
+  const cyclic = {}; cyclic.self = cyclic;
+  for (const value of [NaN, Infinity, new Date(), new Uint8Array(2), cyclic]) assert.throws(() => packRecoveryValue(value));
+});
+test('first-stage encrypted files with the original plain JSON payload remain readable', async () => {
+  const source = fixture(), encoder = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const header = { format: 'luckybean-recovery-encrypted/1', kdf: 'PBKDF2-SHA256', iterations: 310000, encryption: 'AES-GCM-256', salt: Buffer.from(salt).toString('base64'), iv: Buffer.from(iv).toString('base64') };
+  const base = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: 310000 }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt']);
+  const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: encoder.encode(canonical(header)) }, key, encoder.encode(canonical(source)));
+  assert.deepEqual(await openRecoverySnapshot({ ...header, cipher: Buffer.from(cipher).toString('base64') }, password), source);
 });

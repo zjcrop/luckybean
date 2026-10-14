@@ -1,0 +1,18 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+[WebServer] (node:44) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 6 tests using 1 worker
+
+(node:56) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/6] tests/recovery-backup.spec.mjs:20:1 › file encryption and isolated IDB restore retain photos, ciphertext, keys and live data
+[2/6] tests/recovery-backup.spec.mjs:44:1 › wrong password and broken private key preserve failure evidence without replacing data
+[3/6] tests/recovery-backup.spec.mjs:63:1 › read errors and rehearsal write errors fail closed, never emit an empty successful backup
+[4/6] tests/recovery-backup.spec.mjs:84:1 › recovery UI exports then reads a saved file; never offers live restore
+[5/6] tests/recovery-backup.spec.mjs:104:1 › writes observed during capture block export instead of mixing database states
+[6/6] tests/recovery-backup.spec.mjs:125:1 › settings entry opens the recovery workflow in the actual app
+  6 passed (4.9s)

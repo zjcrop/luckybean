@@ -9,7 +9,7 @@ const decoder = new TextDecoder('utf-8', { fatal: true });
 
 // Reject unsupported values instead of silently dropping fields in JSON export.
 export function canonical(value, depth = 0) {
-  if (depth > 64) throw new Error('备份数据嵌套过深');
+  if (depth > 256) throw new Error('备份数据嵌套过深');
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value);
   if (typeof value === 'number' && Number.isFinite(value)) return JSON.stringify(value);
   if (Array.isArray(value)) return '[' + Array.from(value, item => canonical(item, depth + 1)).join(',') + ']';
@@ -22,8 +22,50 @@ export function canonical(value, depth = 0) {
   throw new Error('备份含无法无损保存的字段；原数据未修改');
 }
 
+// Typed tuples keep present-but-undefined fields distinct from absent/null fields.
+// Every container is tagged, so ordinary user objects cannot collide with markers.
+export function packRecoveryValue(value, depth = 0, ancestors = new Set()) {
+  if (depth > 64) throw new Error('备份数据嵌套过深');
+  if (value === undefined) return ['undefined'];
+  if (Object.is(value, -0)) return ['negative-zero'];
+  if (value === null || typeof value === 'string' || typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value))) return ['value', value];
+  if (!value || typeof value !== 'object' || ancestors.has(value)) throw new Error('备份含不支持的类型或循环引用');
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) {
+      if (value.length > 1000000 || Object.keys(value).some(key => !/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= value.length)) throw new Error('备份数组格式不支持');
+      return ['array', value.length, Object.keys(value).map(key => [Number(key), packRecoveryValue(value[key], depth + 1, ancestors)])];
+    }
+    if (![Object.prototype, null].includes(Object.getPrototypeOf(value))) throw new Error('备份含无法无损保存的类型');
+    return ['object', Object.keys(value).sort().map(key => {
+      if (['__proto__', 'prototype', 'constructor'].includes(key)) throw new Error('备份字段不受支持');
+      return [key, packRecoveryValue(value[key], depth + 1, ancestors)];
+    })];
+  } finally { ancestors.delete(value); }
+}
+export function unpackRecoveryValue(node, depth = 0) {
+  if (depth > 64 || !Array.isArray(node)) throw new Error('备份类型编码无效');
+  if (node[0] === 'undefined' && node.length === 1) return undefined;
+  if (node[0] === 'negative-zero' && node.length === 1) return -0;
+  if (node[0] === 'value' && node.length === 2 && (node[1] === null || ['string', 'boolean'].includes(typeof node[1]) || (typeof node[1] === 'number' && Number.isFinite(node[1])))) return node[1];
+  const array = node[0] === 'array';
+  if (array ? node.length !== 3 || !Number.isInteger(node[1]) || node[1] < 0 || node[1] > 1000000 : node[0] !== 'object' || node.length !== 2) throw new Error('备份容器编码无效');
+  const entries = node[array ? 2 : 1];
+  if (!Array.isArray(entries)) throw new Error('备份容器条目无效');
+  const result = array ? new Array(node[1]) : {};
+  const keys = new Set();
+  for (const entry of entries) {
+    if (!Array.isArray(entry) || entry.length !== 2) throw new Error('备份条目无效');
+    const [key, value] = entry;
+    if (keys.has(key) || (array ? !Number.isInteger(key) || key < 0 || key >= node[1] : typeof key !== 'string' || ['__proto__', 'prototype', 'constructor'].includes(key))) throw new Error('备份条目键无效或重复');
+    keys.add(key);
+    result[key] = unpackRecoveryValue(value, depth + 1);
+  }
+  return result;
+}
+
 export async function digest(value) {
-  const bytes = await crypto.subtle.digest('SHA-256', encoder.encode(canonical(value)));
+  const bytes = await crypto.subtle.digest('SHA-256', encoder.encode(canonical(packRecoveryValue(value))));
   return Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
@@ -50,8 +92,8 @@ export function validateSnapshot(snapshot) {
   for (const name of RECOVERY_STORES) validateRows(snapshot.stores[name], name);
   validateRows(snapshot.photos, 'photos');
   for (const value of Object.values(snapshot.preferences)) if (value !== null && typeof value !== 'string') throw new Error('偏好备份格式无效');
-  const serialized = canonical(snapshot);
-  if (encoder.encode(serialized).byteLength > MAX_RECOVERY_BYTES) throw new Error('安全备份超过 64MB；未生成不完整文件');
+  const serialized = canonical(packRecoveryValue(snapshot));
+  if (encoder.encode(serialized).byteLength + 64 > MAX_RECOVERY_BYTES) throw new Error('安全备份超过 64MB；未生成不完整文件');
   return snapshot;
 }
 export async function snapshotManifest(snapshot) {
@@ -81,7 +123,7 @@ export async function sealRecoverySnapshot(snapshot, password) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const header = { format: 'luckybean-recovery-encrypted/1', kdf: 'PBKDF2-SHA256', iterations: ITERATIONS, encryption: 'AES-GCM-256', salt: encode64(salt), iv: encode64(iv) };
-  const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: encoder.encode(canonical(header)) }, await passwordKey(password, salt), encoder.encode(canonical(snapshot)));
+  const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: encoder.encode(canonical(header)) }, await passwordKey(password, salt), encoder.encode(canonical({ encoding: 'typed-values/1', snapshot: packRecoveryValue(snapshot) })));
   return { ...header, cipher: encode64(new Uint8Array(cipher)) };
 }
 export async function openRecoverySnapshot(envelope, password) {
@@ -94,5 +136,11 @@ export async function openRecoverySnapshot(envelope, password) {
   let plain;
   try { plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: encoder.encode(canonical(header)) }, key, bytes); }
   catch { throw new Error('口令错误或备份损坏；原数据未修改'); }
-  return validateSnapshot(JSON.parse(decoder.decode(plain)));
+  const payload = JSON.parse(decoder.decode(plain));
+  if (payload?.encoding === 'typed-values/1') {
+    exactKeys(payload, ['encoding', 'snapshot']);
+    return validateSnapshot(unpackRecoveryValue(payload.snapshot));
+  }
+  // Read first-stage files created before typed optional fields were supported.
+  return validateSnapshot(payload);
 }

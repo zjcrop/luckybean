@@ -6,7 +6,7 @@ async function seed(page) {
     const db = await import('/src/db.js');
     const photo = await import('/src/domain/beans/bean-thumbnail-storage.js');
     await db.put('beans', { id: 'b1', name: '真实形态测试豆', remainingWeight: 85, custom: { keep: true } });
-    await db.put('brewSessions', { id: 'brew1', beanId: 'b1', createdAt: '2026-10-13T00:00:00Z' });
+    await db.put('brewSessions', { id: 'brew1', beanId: 'b1', createdAt: '2026-10-13T00:00:00Z', input: { water: { customProfile: undefined } } });
     await db.put('sensoryRecords', { id: 'sensory1', beanId: 'b1', createdAt: '2026-10-13T00:00:00Z', naturalNote: 'PRIVATE-NOTE', answers: {}, score: 80 });
     await db.setSetting('app.settings', { identity: { publicId: 'private-person', email: 'private@example.invalid' }, groupMethod: 'roast' });
     await db.put('recycleBin', { id: 'trash1', value: { id: 'old-bean' } });
@@ -28,6 +28,8 @@ test('file encryption and isolated IDB restore retain photos, ciphertext, keys a
     const report = await service.verifyRecoveryBackup(JSON.parse(bytes), 'local-recovery-password');
     const after = await service.captureRecoverySnapshot();
     const opened = await codec.openRecoverySnapshot(backup.envelope, 'local-recovery-password');
+    const water = opened.stores.brewSessions[0].value.input.water;
+    if (!Object.hasOwn(water, 'customProfile') || water.customProfile !== undefined) throw new Error('Optional brew field was lost');
     return { report, unchanged: codec.canonical(await codec.snapshotManifest(before)) === codec.canonical(await codec.snapshotManifest(after)), excludedAuth: !JSON.stringify(opened).includes('DO-NOT-EXPORT'), privateCipher: !!opened.stores.sensoryRecords[0].value.cipher, diagnostics: JSON.stringify(service.recoveryDiagnostics()), temp: (await indexedDB.databases()).filter(db => db.name.startsWith('luckybean-recovery-rehearsal-')) };
   });
   expect(result.unchanged).toBe(true);
