@@ -1,0 +1,109 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+Running 4 tests using 1 worker
+
+(node:32) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/4] tests/recovery-backup.spec.mjs:20:1 › file encryption and isolated IDB restore retain photos, ciphertext, keys and live data
+  1) tests/recovery-backup.spec.mjs:20:1 › file encryption and isolated IDB restore retain photos, ciphertext, keys and live data 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:4173/public/fallback-codebook.json
+    Call log:
+      - navigating to "http://127.0.0.1:4173/public/fallback-codebook.json", waiting until "load"
+
+
+      2 | const BASE = 'http://127.0.0.1:4173';
+      3 | async function seed(page) {
+    > 4 |   await page.goto(`${BASE}/public/fallback-codebook.json`);
+        |              ^
+      5 |   await page.evaluate(async () => {
+      6 |     const db = await import('/src/db.js');
+      7 |     const photo = await import('/src/domain/beans/bean-thumbnail-storage.js');
+        at seed (/workspace/scratch/61a590473c64/luckybean-stage1/tests/recovery-backup.spec.mjs:4:14)
+        at /workspace/scratch/61a590473c64/luckybean-stage1/tests/recovery-backup.spec.mjs:21:9
+
+    Error Context: ../../../../tmp/luckybean-stage1-browser-results/recovery-backup-file-encry-b57be-phertext-keys-and-live-data/error-context.md
+
+
+(node:108) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[2/4] tests/recovery-backup.spec.mjs:42:1 › wrong password and broken private key preserve failure evidence without replacing data
+  2) tests/recovery-backup.spec.mjs:42:1 › wrong password and broken private key preserve failure evidence without replacing data 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:4173/public/fallback-codebook.json
+    Call log:
+      - navigating to "http://127.0.0.1:4173/public/fallback-codebook.json", waiting until "load"
+
+
+      2 | const BASE = 'http://127.0.0.1:4173';
+      3 | async function seed(page) {
+    > 4 |   await page.goto(`${BASE}/public/fallback-codebook.json`);
+        |              ^
+      5 |   await page.evaluate(async () => {
+      6 |     const db = await import('/src/db.js');
+      7 |     const photo = await import('/src/domain/beans/bean-thumbnail-storage.js');
+        at seed (/workspace/scratch/61a590473c64/luckybean-stage1/tests/recovery-backup.spec.mjs:4:14)
+        at /workspace/scratch/61a590473c64/luckybean-stage1/tests/recovery-backup.spec.mjs:43:9
+
+    Error Context: ../../../../tmp/luckybean-stage1-browser-results/recovery-backup-wrong-pass-a9594-ence-without-replacing-data/error-context.md
+
+
+(node:187) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[3/4] tests/recovery-backup.spec.mjs:61:1 › read errors and rehearsal write errors fail closed, never emit an empty successful backup
+  3) tests/recovery-backup.spec.mjs:61:1 › read errors and rehearsal write errors fail closed, never emit an empty successful backup 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:4173/public/fallback-codebook.json
+    Call log:
+      - navigating to "http://127.0.0.1:4173/public/fallback-codebook.json", waiting until "load"
+
+
+      2 | const BASE = 'http://127.0.0.1:4173';
+      3 | async function seed(page) {
+    > 4 |   await page.goto(`${BASE}/public/fallback-codebook.json`);
+        |              ^
+      5 |   await page.evaluate(async () => {
+      6 |     const db = await import('/src/db.js');
+      7 |     const photo = await import('/src/domain/beans/bean-thumbnail-storage.js');
+        at seed (/workspace/scratch/61a590473c64/luckybean-stage1/tests/recovery-backup.spec.mjs:4:14)
+        at /workspace/scratch/61a590473c64/luckybean-stage1/tests/recovery-backup.spec.mjs:62:9
+
+    Error Context: ../../../../tmp/luckybean-stage1-browser-results/recovery-backup-read-error-8e023--an-empty-successful-backup/error-context.md
+
+
+(node:265) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[4/4] tests/recovery-backup.spec.mjs:82:1 › recovery UI exports then reads a saved file; never offers live restore
+  4) tests/recovery-backup.spec.mjs:82:1 › recovery UI exports then reads a saved file; never offers live restore 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:4173/public/fallback-codebook.json
+    Call log:
+      - navigating to "http://127.0.0.1:4173/public/fallback-codebook.json", waiting until "load"
+
+
+      2 | const BASE = 'http://127.0.0.1:4173';
+      3 | async function seed(page) {
+    > 4 |   await page.goto(`${BASE}/public/fallback-codebook.json`);
+        |              ^
+      5 |   await page.evaluate(async () => {
+      6 |     const db = await import('/src/db.js');
+      7 |     const photo = await import('/src/domain/beans/bean-thumbnail-storage.js');
+        at seed (/workspace/scratch/61a590473c64/luckybean-stage1/tests/recovery-backup.spec.mjs:4:14)
+        at /workspace/scratch/61a590473c64/luckybean-stage1/tests/recovery-backup.spec.mjs:83:9
+
+    Error Context: ../../../../tmp/luckybean-stage1-browser-results/recovery-backup-recovery-U-fe822-e-never-offers-live-restore/error-context.md
+
+
+  4 failed
+    tests/recovery-backup.spec.mjs:20:1 › file encryption and isolated IDB restore retain photos, ciphertext, keys and live data 
+    tests/recovery-backup.spec.mjs:42:1 › wrong password and broken private key preserve failure evidence without replacing data 
+    tests/recovery-backup.spec.mjs:61:1 › read errors and rehearsal write errors fail closed, never emit an empty successful backup 
+    tests/recovery-backup.spec.mjs:82:1 › recovery UI exports then reads a saved file; never offers live restore 
