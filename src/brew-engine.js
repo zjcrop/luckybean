@@ -496,10 +496,13 @@ export async function requestPrivatePlan(endpoint, input, timeoutMs = 9000) {
   if (!plan.profileIntegrity.stageCountValid) {
     throw new Error(`专业引擎分段不一致：${requested} 应为 ${expectedStages} 段，返回 ${actualStages} 段`);
   }
-  plan.clientAdjusted = IS_LUCKYBEAN_DS;
-  plan.executionSource = IS_LUCKYBEAN_DS ? 'local-reference' : 'brew-profiles-authoritative';
   if (IS_LUCKYBEAN_DS) {
+    plan.clientAdjusted = true;
+    plan.executionSource = 'local-reference';
     plan.warnings = [...new Set([...(plan.warnings || []), 'LuckyBean DS 使用本地参考计算；结果不是 BrewProfiles 权威分析。'])];
+  } else {
+    plan.clientAdjusted = false;
+    plan.executionSource = 'brew-profiles-authoritative';
   }
   return plan;
 }
