@@ -17,6 +17,7 @@ on:
       - 'release.json'
       - 'scripts/prepare-paddleocr-vendor.mjs'
       - 'scripts/verify-ocr-runtime.mjs'
+      - 'scripts/verify-offline-apk-install.sh'
       - 'src/**'
       - 'styles.css'
       - 'sw.js'
@@ -36,7 +37,7 @@ jobs:
   build:
     needs: prepare_runtime
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7.0.1
 
@@ -80,8 +81,15 @@ jobs:
           set -euo pipefail
           apk='android/app/build/outputs/apk/debug/app-debug.apk'
           test -s "$apk"
+          unzip -tq "$apk"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -p 4 "$apk"
+          signing=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs --min-sdk-version 23 "$apk")
+          printf '%s\n' "$signing"
+          grep -Fq 'Verified using v1 scheme (JAR signing): true' <<< "$signing"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' <<< "$signing"
           badging=$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk")
           [[ "$badging" == *"package: name='com.luckybean.ds'"* ]]
+          [[ "$badging" == *"sdkVersion:'26'"* ]]
           apk_entries=$(unzip -Z1 "$apk")
           for required in \
             'assets/web-cache/public/vendor/paddleocr/sdk.mjs' \
@@ -100,6 +108,14 @@ jobs:
           sha256sum "$artifact" > dist/SHA256SUMS.txt
           printf 'source_sha=%s\nbranch=%s\napplication_id=com.luckybean.ds\nbuild_type=debug\n' \
             "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist/BUILD_INFO.txt
+
+      - name: Install Android 10 emulator image
+        run: sdkmanager 'emulator' 'system-images;android-29;google_apis;x86_64'
+
+      - name: Verify fresh installation on Android 10
+        run: |
+          expected_code=$(node -p "require('./release.json').androidVersionCode")
+          bash scripts/verify-offline-apk-install.sh android/app/build/outputs/apk/debug/app-debug.apk "$expected_code"
 
       - uses: actions/upload-artifact@v7.0.1
         with:
