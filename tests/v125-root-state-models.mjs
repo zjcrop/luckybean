@@ -10,6 +10,7 @@ const account = read('src/ui/account-sync-panel.js');
 const runtime = read('src/features/runtime-features.js');
 const sw = read('sw.js');
 const androidBuild = read('android/app/build.gradle');
+const androidStrings = read('android/app/src/main/res/values/strings.xml');
 const androidActivity = read('android/app/src/main/java/com/luckybean/app/MainActivity.java');
 const androidBridge = read('android/native-bridge.js');
 const dataContract = JSON.parse(read('contracts/luckybean-brew-data.schema.json'));
