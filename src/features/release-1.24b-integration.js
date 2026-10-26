@@ -250,4 +250,3 @@ function observe(){
 document.addEventListener('click',e=>{const card=e.target.closest?.('.bean-card[data-bean-id]');if(card)lastBeanId=card.dataset.beanId||'';},true);
 installOrderAndTransitApi(); installRecognitionBatchAdapter(); observe();
 console.info(`[LuckyBean] ${LB_VERSION} integration active`);
-
