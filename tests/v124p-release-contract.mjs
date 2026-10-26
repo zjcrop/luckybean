@@ -51,7 +51,11 @@ assert.match(gradle, /JsonSlurper/);
 assert.match(gradle, /releaseMetaFile/);
 assert.match(gradle, /versionCode \(releaseMeta\.androidVersionCode as int\)/);
 assert.match(gradle, /versionName releaseMeta\.displayVersion as String/);
-assert.match(activity, /LuckyBeanAndroid\/" \+ BuildConfig\.VERSION_NAME/);
+if (gradle.includes("applicationId 'com.luckybean.ds'")) {
+  assert.match(activity, /setUserAgentString\(settings\.getUserAgentString\(\) \+ " LuckyBeanDS\/" \+ BuildConfig\.VERSION_NAME\)/);
+} else {
+  assert.match(activity, /LuckyBeanAndroid\/" \+ BuildConfig\.VERSION_NAME/);
+}
 assert.doesNotMatch(activity, /LuckyBeanAndroid\/1\.24B/);
 
 assert.match(brewResult, /BREW_RESULT_VERSION = '1\.1'/);
