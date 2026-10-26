@@ -73,7 +73,8 @@ function miniFreshnessSvg(bean) {
 }
 
 async function compactBeanDetail(root) {
-  if (processingOverlay || !root?.matches?.('[data-overlay="bean-detail"]')) return;
+  if (processingOverlay || !root?.matches?.('[data-overlay="bean-detail"]') || root.dataset.lbDetailCompacted === '1' || root.dataset.lbDetailCompacting === '1') return;
+  root.dataset.lbDetailCompacting = '1';
   processingOverlay = true;
   try {
     const bean = lastBeanId ? await get('beans', lastBeanId).catch(()=>null) : null;
@@ -130,7 +131,11 @@ async function compactBeanDetail(root) {
       $('[data-lb-open-brews]', links)?.addEventListener('click',()=>openRecordsSheet('冲煮记录',bClone));
       $('[data-lb-open-sensory]', links)?.addEventListener('click',()=>openRecordsSheet('最近品鉴',sClone));
     }
-  } finally { processingOverlay = false; }
+    root.dataset.lbDetailCompacted = '1';
+  } finally {
+    delete root.dataset.lbDetailCompacting;
+    processingOverlay = false;
+  }
 }
 
 function openRecordsSheet(title, contentNode) {
