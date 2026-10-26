@@ -12,7 +12,7 @@ gradle -p android :app:assembleDebug
 
 生成：`android/app/build/outputs/apk/debug/app-debug.apk`。该 APK 为 DS 本地版调试签名包。
 
-推送与应用资源相关的改动到 `LuckyBean-DS-B` 分支后，GitHub Actions 会自动构建并归档 APK。完成后在该提交的 `LuckyBean DS-B APK` 工作流运行记录中下载 `luckybean-ds-b-apk-<commit SHA>`；产物包含 APK、SHA-256 校验值和构建来源信息。该流程生成调试签名包，不是正式发布签名包。
+推送与应用资源相关的改动到 `LuckyBean-DS-B` 分支后，GitHub Actions 会先恢复并校验离线 PP-OCRv5 运行时，再构建 APK。构建还会校验包名和 APK 内的 OCR 模型/WASM 文件，并归档 APK、SHA-256 与构建来源信息。完成后在该提交的 `LuckyBean DS-B APK` 工作流运行记录中下载 `luckybean-ds-b-apk-<commit SHA>`。该流程生成调试签名包，不是正式发布签名包。
 
 正式发布APK由GitHub Actions读取仓库Secrets中的长期发布Keystore，执行
 `:app:assembleRelease`，并对照`android/signing/CERT_SHA256.txt`锁定签名。

@@ -10,9 +10,13 @@ on:
       - 'contracts/**'
       - 'index.html'
       - 'manifest.webmanifest'
+      - 'package-lock.json'
+      - 'package.json'
       - 'public/**'
       - 'recognition-test.html'
       - 'release.json'
+      - 'scripts/prepare-paddleocr-vendor.mjs'
+      - 'scripts/verify-ocr-runtime.mjs'
       - 'src/**'
       - 'styles.css'
       - 'sw.js'
@@ -26,11 +30,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  prepare_runtime:
+    uses: ./.github/workflows/prepare-ocr-runtime.yml
+
   build:
+    needs: prepare_runtime
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Restore offline PP-OCRv5 runtime
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: luckybean-ocr-runtime-${{ github.sha }}
+          path: public/vendor/paddleocr/
+
+      - run: npm run verify:ocr
 
       - uses: actions/setup-java@v5.7.0
         with:
@@ -59,6 +82,17 @@ jobs:
           test -s "$apk"
           badging=$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk")
           [[ "$badging" == *"package: name='com.luckybean.ds'"* ]]
+          apk_entries=$(unzip -Z1 "$apk")
+          for required in \
+            'assets/web-cache/public/vendor/paddleocr/sdk.mjs' \
+            'assets/web-cache/public/vendor/paddleocr/ort/ort-wasm-simd-threaded.wasm' \
+            'assets/web-cache/public/vendor/paddleocr/models/PP-OCRv5_mobile_det_onnx_infer.tar' \
+            'assets/web-cache/public/vendor/paddleocr/models/PP-OCRv5_mobile_rec_onnx_infer.tar'; do
+            if ! grep -Fqx "$required" <<< "$apk_entries"; then
+              echo "Missing offline OCR asset in APK: $required" >&2
+              exit 1
+            fi
+          done
 
           mkdir -p dist
           artifact="dist/LuckyBean-DS-B-${GITHUB_SHA:0:12}.apk"
