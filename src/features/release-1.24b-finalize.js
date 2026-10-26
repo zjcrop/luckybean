@@ -1,4 +1,5 @@
 import { all, getSetting, setSetting, put } from '../db.js';
+import { IS_LUCKYBEAN_DS } from '../distribution.js';
 import { preparePackageImage } from '../image-quality.js';
 import { recognizeCoffeeBag } from '../recognition-bridge.js';
 import { normalizeBeanRecord, beanCardVisualState, markBeanInTransit, LOCAL_BREW_METHODS } from '../release-1.24b.js';
@@ -133,5 +134,5 @@ function installGrinderCalibration(){
 
 function observe(){if(observing)return;observing=true;const run=()=>{fixBeanDetail();addTransitCards();enhanceAddMenu();enhanceBrewMethods();enhanceCoolingHelp();};new MutationObserver(run).observe(document.documentElement,{subtree:true,childList:true});run();}
 
-bindLastBean();addSwipeClose();installGrinderCalibration();document.addEventListener('luckybean:cloud-registration-pending',e=>showRegistrationPending(e.detail?.email||''));document.addEventListener('click',e=>{if(e.target.closest?.('[data-lb-order-add]')){e.preventDefault();openOrderEntry();}},true);observe();
+bindLastBean();addSwipeClose();installGrinderCalibration();document.addEventListener('luckybean:cloud-registration-pending',e=>{if(!IS_LUCKYBEAN_DS)showRegistrationPending(e.detail?.email||'');});document.addEventListener('click',e=>{if(e.target.closest?.('[data-lb-order-add]')){e.preventDefault();openOrderEntry();}},true);observe();
 console.info('[LuckyBean] 1.24B final integration active');

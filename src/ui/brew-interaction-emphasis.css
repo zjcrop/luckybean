@@ -18,6 +18,7 @@ html[data-theme="light"]{
 #pageBrew #brewContent #generatePlanBtn,
 #pageBrew #brewContent #directSensoryBtn,
 #pageBrew #brewContent #startBrewBtn,
+#pageBrew #brewContent #xBloomProfileBtn,
 #pageBrew #brewContent .brew-strategy-options .recommended-profile-option{
   border:1px solid var(--lb-brew-action-border)!important;
   border-radius:12px!important;
@@ -30,6 +31,7 @@ html[data-theme="light"]{
 #pageBrew #brewContent #generatePlanBtn:active,
 #pageBrew #brewContent #directSensoryBtn:active,
 #pageBrew #brewContent #startBrewBtn:active,
+#pageBrew #brewContent #xBloomProfileBtn:active,
 #pageBrew #brewContent .brew-strategy-options .recommended-profile-option:active,
 #pageBrew #brewContent .brew-strategy-options .recommended-profile-option.selected{
   background:var(--lb-brew-action-fill-strong)!important;
@@ -146,9 +148,14 @@ html[data-theme="light"]{
   display:flex!important;
   justify-content:center!important;
   align-items:stretch!important;
-  gap:0!important;
+  gap:10px!important;
+  flex-wrap:wrap!important;
 }
-#pageBrew #generatedPlan #startBrewBtn{
+#pageBrew #generatedPlan #startBrewBtn,
+#pageBrew #generatedPlan #xBloomProfileBtn{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
   flex:0 1 280px!important;
   width:min(100%,280px)!important;
   min-height:52px!important;
@@ -160,6 +167,11 @@ html[data-theme="light"]{
   letter-spacing:.035em!important;
 }
 #pageBrew #generatedPlan #planToSensoryBtn{display:none!important;}
+@media(max-width:560px){
+  #pageBrew #generatedPlan > .row.menu-row{flex-direction:column!important;align-items:center!important;}
+  #pageBrew #generatedPlan #startBrewBtn,
+  #pageBrew #generatedPlan #xBloomProfileBtn{flex:0 0 auto!important;}
+}
 
 /* Dose and ratio are peer settings: exactly matched typography and underline. */
 #pageBrew #brewContent #brewDose,

@@ -1,4 +1,5 @@
 import { all } from '../db.js';
+import { IS_LUCKYBEAN_DS } from '../distribution.js';
 
 const KEY = 'luckybean.onboarding.v2';
 const LEGACY_KEY = 'luckybean.onboarding.v1';
@@ -27,7 +28,7 @@ async function hasMeaningfulLocalHistory() {
 }
 function removePrompt() { $('[data-lb-onboarding]')?.remove(); }
 function showPrompt() {
-  if ($('[data-lb-onboarding]') || cloudSession()?.user?.id) return;
+  if (IS_LUCKYBEAN_DS || $('[data-lb-onboarding]') || cloudSession()?.user?.id) return;
   const stage = currentStage();
   if (['guide-completed','existing-user','dismissed'].includes(stage)) return;
   const node = document.createElement('aside');
@@ -47,6 +48,7 @@ function openSettingsSection(key) {
   }));
 }
 function routeToAccount() {
+  if (IS_LUCKYBEAN_DS) return;
   writeState('account-pending');
   removePrompt();
   openSettingsSection('account');
@@ -76,6 +78,7 @@ function maybeRouteAfterRegistration(state) {
   }
 }
 async function initialize() {
+  if (IS_LUCKYBEAN_DS) { removePrompt(); return; }
   const state = readState();
   const session = cloudSession();
   if (!state && localStorage.getItem(LEGACY_KEY)) {
@@ -106,10 +109,12 @@ document.addEventListener('click', event => {
   if (event.target.closest?.('[data-lb-onboard-later]')) { event.preventDefault(); removePrompt(); }
 });
 document.addEventListener('luckybean:cloud-registration-pending', event => {
+  if (IS_LUCKYBEAN_DS) return;
   writeState('account-pending-verification', { email:event.detail?.email || '' });
   removePrompt();
 });
 document.addEventListener('luckybean:cloud-register-success', event => {
+  if (IS_LUCKYBEAN_DS) return;
   writeState('account-completed', { email:event.detail?.email || '', verificationCompleted:Boolean(event.detail?.verificationCompleted) });
   removePrompt();
   routeAfterSync = true;
@@ -117,14 +122,15 @@ document.addEventListener('luckybean:cloud-register-success', event => {
   globalThis.LuckyBeanCloudSync?.ensureAutomatic?.('onboarding-registration');
 });
 document.addEventListener('luckybean:cloud-login-success', event => {
+  if (IS_LUCKYBEAN_DS) return;
   const action = event.detail?.authAction || 'login';
   if (action !== 'login') return;
   const stage = currentStage();
   if (['new','account-pending','account-pending-verification',''].includes(stage)) writeState('existing-user', { reason:'existing-account-login' });
   removePrompt();
 });
-document.addEventListener('luckybean:cloud-sync-state', event => maybeRouteAfterRegistration(event.detail?.state || ''));
-document.addEventListener('luckybean:about-ready', () => { if (currentStage() === 'account-completed' && (syncSucceededAfterRegistration || TERMINAL_SYNC_STATES.has(document.documentElement.dataset.cloudSync))) routeToGuide(); });
+document.addEventListener('luckybean:cloud-sync-state', event => { if (!IS_LUCKYBEAN_DS) maybeRouteAfterRegistration(event.detail?.state || ''); });
+document.addEventListener('luckybean:about-ready', () => { if (!IS_LUCKYBEAN_DS && currentStage() === 'account-completed' && (syncSucceededAfterRegistration || TERMINAL_SYNC_STATES.has(document.documentElement.dataset.cloudSync))) routeToGuide(); });
 document.addEventListener('luckybean:local-app-ready', () => initialize().catch(console.error), { once:true });
 if (document.documentElement.dataset.startup === 'ready') initialize().catch(console.error);
 

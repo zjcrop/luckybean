@@ -271,6 +271,7 @@ function values() { return { nickname:document.querySelector('#cloudAuthNickname
 function setDialogMessage(message) { const node = document.querySelector('[data-cloud-auth-message]'); if (node) node.textContent = message; }
 
 function openDialog(mode = 'login', notice = '', preset = {}) {
+  if (IS_LUCKYBEAN_DS) return;
   const root = overlayRoot(); if (!root) return;
   const register = mode === 'register';
   const passwordRules = register ? ' minlength="8" placeholder="至少8位"' : ' placeholder="输入账户密码"';
@@ -349,8 +350,8 @@ async function warmSession() {
 }
 
 globalThis.LuckyBeanCloudAuth = {
-  revision:'cloud-auth-service-v11-head-session-parity', getSession:readSession, warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut, consumeAuthCallback,
-  isRemembered:() => Boolean(readSession()?.refresh_token && Date.now() <= rememberUntil()), rememberUntil,
+  revision:'cloud-auth-service-v11-head-session-parity', getSession:() => IS_LUCKYBEAN_DS ? null : readSession(), warmSession, refreshSession, getAccessToken, apiRequest, openDialog, signOut, consumeAuthCallback,
+  isRemembered:() => !IS_LUCKYBEAN_DS && Boolean(readSession()?.refresh_token && Date.now() <= rememberUntil()), rememberUntil,
   pendingRegistration:readPendingRegistration
 };
 // Start callback consumption immediately. The async function accepts and stores callback tokens
