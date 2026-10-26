@@ -64,7 +64,11 @@ assert.match(androidBuild, /versionName releaseMeta\.displayVersion as String/);
 assert.ok(Number.isInteger(release.androidVersionCode) && release.androidVersionCode >= 102416);
 assert.equal(release.displayVersion, '1.24P');
 assert.equal(release.androidUserAgent, `LuckyBeanAndroid/${release.displayVersion}`);
-assert.match(androidActivity, /LuckyBeanAndroid\/" \+ BuildConfig\.VERSION_NAME/);
+if (androidBuild.includes("applicationId 'com.luckybean.ds'")) {
+  assert.match(androidActivity, /setUserAgentString\(settings\.getUserAgentString\(\) \+ " LuckyBeanDS\/" \+ BuildConfig\.VERSION_NAME\)/);
+} else {
+  assert.match(androidActivity, /LuckyBeanAndroid\/" \+ BuildConfig\.VERSION_NAME/);
+}
 assert.doesNotMatch(androidActivity, /LuckyBeanAndroid\/1\.24B/);
 assert.match(androidBridge, /https:\/\/zjcrop\.github\.io\/luckybean\//);
 assert.doesNotMatch(androidBridge, /zjcrop\.github\.io\/(?:BrewIon\/luckybean|LuckyBean)\//);
