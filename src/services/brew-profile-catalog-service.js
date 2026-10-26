@@ -1,4 +1,5 @@
 import { brewApiJson } from './brew-api-client.js';
+import { IS_LUCKYBEAN_DS } from '../distribution.js';
 
 export const BREW_PROFILE_CATALOG_CONTRACT = 'brew-profile-catalog/1.0';
 const CACHE_KEY = 'luckybean.brew.profile.catalog.v2';
@@ -139,7 +140,7 @@ function scheduleRefresh() {
   else setTimeout(run, 400);
 }
 
-if (typeof globalThis.window !== 'undefined') {
+if (!IS_LUCKYBEAN_DS && typeof globalThis.window !== 'undefined') {
   globalThis.window.addEventListener('online', scheduleRefresh, { passive: true });
   scheduleRefresh();
 }

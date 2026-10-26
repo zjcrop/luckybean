@@ -1,5 +1,6 @@
 import * as core from './brew-engine-core.js';
 import { requestAuthoritativePlan } from './services/brew-analysis-service.js';
+import { IS_LUCKYBEAN_DS } from './distribution.js';
 import { toBrewProfilesTransport, toStableBrewData } from './contracts/stable-brew-data.js';
 import { listCachedBrewProfiles, refreshBrewProfileCatalog } from './services/brew-profile-catalog-service.js';
 import {
@@ -470,10 +471,12 @@ export async function buildCorrectedPlan(input, sensoryRecord, previousPlan = nu
 export async function requestPrivatePlan(endpoint, input, timeoutMs = 9000) {
   const stable = toStableBrewData(input);
   const normalized = normalizeExplicitInput(toBrewProfilesTransport(stable));
-  const plan = await requestAuthoritativePlan(normalized, {
-    endpoint: endpoint || undefined,
-    timeoutMs: Math.min(Math.max(Number(timeoutMs) || 6500, 2500), 12000)
-  });
+  const plan = IS_LUCKYBEAN_DS
+    ? await computeOptimizedPlan(normalized)
+    : await requestAuthoritativePlan(normalized, {
+      endpoint: endpoint || undefined,
+      timeoutMs: Math.min(Math.max(Number(timeoutMs) || 6500, 2500), 12000)
+    });
   const requested = explicitProfileId(normalized);
   const resolved = String(plan.profile?.id || String(plan.profileVersion || '').split('@')[0] || '');
   const expectedStages = EXPECTED_STAGE_COUNTS[requested];
@@ -493,7 +496,10 @@ export async function requestPrivatePlan(endpoint, input, timeoutMs = 9000) {
   if (!plan.profileIntegrity.stageCountValid) {
     throw new Error(`专业引擎分段不一致：${requested} 应为 ${expectedStages} 段，返回 ${actualStages} 段`);
   }
-  plan.clientAdjusted = false;
-  plan.executionSource = 'brew-profiles-authoritative';
+  plan.clientAdjusted = IS_LUCKYBEAN_DS;
+  plan.executionSource = IS_LUCKYBEAN_DS ? 'local-reference' : 'brew-profiles-authoritative';
+  if (IS_LUCKYBEAN_DS) {
+    plan.warnings = [...new Set([...(plan.warnings || []), 'LuckyBean DS 使用本地参考计算；结果不是 BrewProfiles 权威分析。'])];
+  }
   return plan;
 }

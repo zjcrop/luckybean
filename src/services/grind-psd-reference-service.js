@@ -1,3 +1,5 @@
+import { IS_LUCKYBEAN_DS } from '../distribution.js';
+
 const GRIND_PSD_DATABASE_URL = 'https://raw.githubusercontent.com/zjcrop/Grind-PSD/main/data/database.json';
 const CACHE_KEY = 'luckybean.grindPsdReference.v1';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -19,6 +21,11 @@ function safeCacheWrite(data) {
 }
 
 export async function loadGrindPsdReference({ force=false } = {}) {
+  if (IS_LUCKYBEAN_DS) {
+    const cached = safeCacheRead();
+    if (cached) return { data:cached, source:'cache' };
+    throw new Error('LuckyBean DS 不联网读取 Grind-PSD；请使用本机已缓存数据或手动校准。');
+  }
   if (!force) {
     const cached = safeCacheRead();
     if (cached) return { data:cached, source:'cache' };

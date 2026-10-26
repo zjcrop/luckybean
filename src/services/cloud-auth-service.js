@@ -1,3 +1,5 @@
+import { IS_LUCKYBEAN_DS } from '../distribution.js';
+
 const SUPABASE_URL = 'https://vaxwncdcuvbpvdbbketb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_MsB0RFoxxf5zJbbT9PPBjQ_WP7GBMMn';
 const SESSION_KEY = 'luckybean.supabase.session.v099d';
@@ -134,6 +136,7 @@ function friendlyAuthMessage(error, mode = 'login') {
 }
 
 async function rawRequest(path, { method = 'POST', body, token, timeoutMs = 6000, headers = {} } = {}) {
+  if (IS_LUCKYBEAN_DS) throw new Error('LuckyBean DS 为本地版，不提供云端账户或同步服务');
   const controller = typeof AbortController === 'function' ? new AbortController() : null;
   let timeout = null;
   try {
@@ -333,6 +336,7 @@ async function signOut() {
   writeSession(null); storageRemove(REMEMBER_UNTIL_KEY); emit('signed-out');
 }
 async function warmSession() {
+  if (IS_LUCKYBEAN_DS) { emit('offline', { edition:'ds' }); return null; }
   const callback = await consumeAuthCallback();
   if (callback?.refresh_token) return callback;
   const active = readSession();

@@ -1,4 +1,5 @@
 import { BREW_API_PUBLIC_KEY, getInstallationId } from './brew-api-client.js';
+import { IS_LUCKYBEAN_DS } from '../distribution.js';
 
 export const RECOGNITION_AI_ENDPOINT = 'https://vaxwncdcuvbpvdbbketb.supabase.co/functions/v1/recognition-ai-v1';
 export const RECOGNITION_AI_CLIENT_VERSION = 'luckybean-recognition-ai/1.1.0';
@@ -41,6 +42,7 @@ function validateStructureResult(result) {
 }
 
 async function postRecognitionAi(body, { timeoutMs = 14000 } = {}) {
+  if (IS_LUCKYBEAN_DS) return { ok:false, skipped:true, reason:'offline-edition' };
   const controller = typeof AbortController === 'function' ? new AbortController() : null;
   let timer = null;
   const request = fetch(RECOGNITION_AI_ENDPOINT, {

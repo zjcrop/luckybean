@@ -1,4 +1,5 @@
 import { BREW_API_PUBLIC_KEY, getInstallationId } from './brew-api-client.js';
+import { IS_LUCKYBEAN_DS } from '../distribution.js';
 
 export const MEDIA_TASTING_ENDPOINT = 'https://vaxwncdcuvbpvdbbketb.supabase.co/functions/v1/media-tasting-v1';
 export const MEDIA_TASTING_CLIENT_VERSION = 'luckybean-media-tasting/1.0.0';
@@ -26,6 +27,7 @@ function compact(value, depth = 0) {
 }
 
 export async function generateMediaTastingCopy({ template, facts, timeoutMs = 20000 } = {}) {
+  if (IS_LUCKYBEAN_DS) return { ok:false, reason:'offline-edition' };
   const controller = typeof AbortController === 'function' ? new AbortController() : null;
   let timer = null;
   try {

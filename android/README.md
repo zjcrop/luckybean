@@ -1,6 +1,6 @@
-# 富贵盒子 Android v0.6.0
+# LuckyBean DS Android
 
-这是 Lucky Bean Web 应用的 Android WebView 封装工程。应用通过受控 HTTPS 虚拟源加载内置静态资源，保留 ES Modules、IndexedDB、本地存储、二维码相机权限与文件选择能力。
+这是 LuckyBean DS 离线本地版的 Android WebView 封装工程。应用通过受控 HTTPS 虚拟源加载内置静态资源，保留 ES Modules、IndexedDB、本地存储、相机和文件选择能力；APK 使用 `com.luckybean.ds`，可与 LuckyBean Cloud 并行安装，且不声明 INTERNET 权限。
 
 ## 构建
 
@@ -10,7 +10,7 @@
 gradle -p android :app:assembleDebug
 ```
 
-生成：`android/app/build/outputs/apk/debug/app-debug.apk`。
+生成：`android/app/build/outputs/apk/debug/app-debug.apk`。该 APK 为 DS 本地版调试签名包。
 
 正式发布APK由GitHub Actions读取仓库Secrets中的长期发布Keystore，执行
 `:app:assembleRelease`，并对照`android/signing/CERT_SHA256.txt`锁定签名。

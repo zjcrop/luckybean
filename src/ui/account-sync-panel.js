@@ -1,3 +1,5 @@
+import { IS_LUCKYBEAN_DS } from '../distribution.js';
+
 const STATUS_TEXT = {
   authenticated:'服务器同步账户已登录', connecting:'正在连接服务器…', comparing:'正在核对本机与云端数据…', offline:'网络不可用，本地功能正常',
   'signed-out':'尚未登录服务器同步账户', expired:'登录已超过7天，请重新登录', 'reauth-required':'服务器登录已失效，请重新登录',
@@ -102,6 +104,15 @@ async function renderPanel() {
   const account = accountSection(root); if (!account) return;
   normalizeAccountSection(account); removeLegacyAccountUi(root, account);
   const body = account.querySelector(':scope > .settings-category-body'); if (!body) return;
+  if (IS_LUCKYBEAN_DS) {
+    const section = document.createElement('section');
+    section.className = 'cloud-account-panel single-sync-account-panel';
+    section.dataset.cloudAccountPanel = '1';
+    section.innerHTML = '<div class="setting-row"><div><h3>LuckyBean DS 本地版</h3><p>豆卡、冲煮与品鉴数据保存在本机，不连接云端。</p></div></div><p class="muted small">请定期通过“数据管理”导出本地备份。卸载应用或清除应用数据会删除本机记录。</p>';
+    body.replaceChildren(section);
+    document.dispatchEvent(new CustomEvent('luckybean:account-panel-rendered', { detail:{ signedIn:false, distribution:'ds' } }));
+    return;
+  }
   const info = await panelState();
   const signedIn = Boolean(session()?.user?.id);
   const reviewRequired = lastSyncState === 'deletion-confirmation-required' || info.state?.lastStatus === 'deletion-confirmation-required';

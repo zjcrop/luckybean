@@ -4,6 +4,7 @@ import { loadCodebook, makeIndex, displayName } from '../codebook.js';
 import { BREW_API_ENDPOINT, brewApiJson } from './brew-api-client.js';
 import { sanitizeExecutionText, sanitizeExecutionPlanText } from './execution-text-sanitizer.js';
 import { buildMatchingEnvelope, MATCH_CONTRACT, resolveDripperPhysics, resolveFilterPaperPhysics } from '../domain/matching/flavor-vector.js';
+import { IS_LUCKYBEAN_DS } from '../distribution.js';
 
 export const BREW_ANALYSIS_CONTRACT = 'brew-analysis/2.1';
 export const BREW_SPATIAL_CONTRACT = 'brew-spatial/1.3';
@@ -189,6 +190,10 @@ async function fetchAnalysis(input, { endpoint = BREW_ANALYSIS_ENDPOINT, timeout
 }
 export async function requestBrewAnalysis(input, options = {}) {
   const preparedInput = await attachMatching(input), cacheRecord = await cached(preparedInput), online = globalThis.navigator?.onLine !== false;
+  if (IS_LUCKYBEAN_DS) {
+    if (cacheRecord) return { ...cacheRecord, plan:adaptAuthoritativePlan(cacheRecord.analysis), stale:true, offline:true };
+    throw new Error('LuckyBean DS 不调用云端专业引擎；请使用本地参考方案。');
+  }
   if (!online && cacheRecord) return { ...cacheRecord, plan:adaptAuthoritativePlan(cacheRecord.analysis), stale:true, offline:true };
   if (options.preferCache === true && cacheRecord) return { ...cacheRecord, plan:adaptAuthoritativePlan(cacheRecord.analysis) };
   try { const analysis = await fetchAnalysis(preparedInput,options), cacheId = await persistCache(preparedInput,analysis); return { analysis, plan:adaptAuthoritativePlan(analysis), cacheId, cached:false }; }

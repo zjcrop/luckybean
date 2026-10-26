@@ -59,7 +59,9 @@ android {
         buildConfig true
     }
     defaultConfig {
-        applicationId 'com.luckybean.app'
+        // LuckyBean DS is an independent local-only install and keeps its data
+        // separate from the LuckyBean Cloud package.
+        applicationId 'com.luckybean.ds'
         minSdk 26
         targetSdk 35
         versionCode (releaseMeta.androidVersionCode as int)
