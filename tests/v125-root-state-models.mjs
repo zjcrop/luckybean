@@ -52,7 +52,11 @@ assert.doesNotMatch(professional, /skipNativeToScore|injectProfessionalNote|star
 assert.match(account, /<span>账户<\/span><small>唯一的登录与自动同步入口<\/small>/);
 assert.doesNotMatch(runtime, /postbrew-sensory/);
 assert.doesNotMatch(sw, /postbrew-sensory-controller/);
-assert.match(androidBuild, /applicationId 'com\.luckybean\.app'/);
+if (androidBuild.includes("applicationId 'com.luckybean.ds'")) {
+  assert.match(androidStrings, /<string name="app_name">LuckyBean DS<\\/string>/);
+} else {
+  assert.match(androidBuild, /applicationId 'com\\.luckybean\\.app'/);
+}
 assert.match(androidBuild, /releaseMetaFile = new File\(repositoryRoot, 'release\.json'\)/);
 assert.match(androidBuild, /new JsonSlurper\(\)\.parse\(releaseMetaFile\)/);
 assert.match(androidBuild, /versionCode \(releaseMeta\.androidVersionCode as int\)/);
