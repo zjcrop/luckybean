@@ -38,7 +38,9 @@ function normalizeAccountSection(section) {
   if (!section) return;
   section.dataset.settingsKey = 'account'; section.id ||= 'accountCategory';
   const summary = section.querySelector(':scope > summary');
-  if (summary) summary.innerHTML = '<span>账户</span><small>唯一的登录与自动同步入口</small>';
+  if (summary) summary.innerHTML = IS_LUCKYBEAN_DS
+    ? '<span>本地数据</span><small>本机存储与备份</small>'
+    : '<span>账户</span><small>唯一的登录与自动同步入口</small>';
 }
 function removeLegacyAccountUi(root, account) {
   root.querySelectorAll(LEGACY_CONTROL_SELECTOR).forEach(node => node.remove());
