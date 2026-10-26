@@ -1,6 +1,6 @@
 {
-  "name": "富贵盒子 1.24P",
-  "short_name": "富贵盒子",
+  "name": "LuckyBean DS-B 1.24P",
+  "short_name": "LuckyBean DS-B",
   "start_url": "./?v=1.24P",
   "scope": "./",
   "display": "standalone",

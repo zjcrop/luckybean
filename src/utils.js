@@ -1,3 +1,5 @@
+import { DISTRIBUTION_NAME } from './distribution.js';
+
 export const APP_VERSION = '1.24P';
 export const SCHEMA_VERSION = 10;
 
@@ -68,7 +70,7 @@ export function downloadBlob(filename, content, type = 'application/octet-stream
   document.body.append(anchor);
   anchor.click();
   anchor.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 export function parseNumber(value, fallback = 0) {
@@ -112,7 +114,7 @@ export function assertPlainObject(value, label = '对象') {
 }
 
 export function browserTitle(pageTitle) {
-  document.title = `${pageTitle} · 富贵盒子`;
+  document.title = `${pageTitle} · ${DISTRIBUTION_NAME}`;
 }
 
 function effectiveStorageAge(bean, now, roastDate) {

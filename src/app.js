@@ -35,7 +35,7 @@ import { analyzeRecognitionDocument } from './domain/recognition/recognition-pip
 import { classifyRecognitionDates } from './domain/recognition/recognition-date-classifier.js';
 import { buildDateReviewModel, resolveDateReviewSelections } from './domain/recognition/recognition-date-review.js';
 import { convertPlanToXbloom, parseXbloomStatusNotification, validateXbloomRecipe, XBLOOM_STUDIO_CAPABILITIES } from './domain/brew/xbloom-profile.js';
-import { connectXbloom, disconnectXbloom, loadRecipeToXbloom } from './services/xbloom-ble.js';
+import { connectXbloom, disconnectXbloom, loadRecipeToXbloom, getXbloomConnectionCapability } from './services/xbloom-ble.js';
 
 const PAGE_META = {
   beans: { nav: '藏', title: '豆藏', browser: '豆藏' },
@@ -2199,6 +2199,7 @@ function planHtml(plan) {
 }
 
 function openXbloomEditor() {
+  const connectionCapability = getXbloomConnectionCapability();
   const plan = state.currentPlan;
   if (!plan) return toast('请先生成 LuckyBean 冲煮方案');
   const bean = state.beans.find(item => item.id === plan.beanId || item.id === state.selectedBeanId);
@@ -2292,7 +2293,7 @@ function openXbloomEditor() {
     $('#xbloomValidation').innerHTML = errors.length
       ? errors.map(value => `<p class="status-bad small">${esc(value)}</p>`).join('')
       : '<p class="status-good small">参数在当前 Studio/J15 配方范围内。</p>';
-    $('#sendXbloomProfileBtn').disabled = Boolean(errors.length);
+    $('#sendXbloomProfileBtn').disabled = Boolean(errors.length) || !connectionCapability.supported;
     $('#saveXbloomProfileBtn').disabled = Boolean(errors.length);
     $('#exportXbloomProfileBtn').disabled = Boolean(errors.length);
     $('#xbloomGrindSize').disabled = !next.grinding;
@@ -2320,6 +2321,11 @@ function openXbloomEditor() {
     refreshValidation();
   });
   refreshValidation();
+
+  if (!connectionCapability.supported) {
+    $('#sendXbloomProfileBtn').textContent = '当前浏览器无法蓝牙直连';
+    $('#xbloomConnectionStatus').textContent = connectionCapability.reason;
+  }
 
   $('#saveXbloomProfileBtn').addEventListener('click', async () => {
     const { next, errors } = refreshValidation();
@@ -2353,7 +2359,7 @@ function openXbloomEditor() {
       status.textContent = `发送失败：${error.message}`;
       toast(`xBloom 发送失败：${error.message}`, 'status-bad');
     } finally {
-      button.disabled = false;
+      button.disabled = Boolean(refreshValidation().errors.length) || !connectionCapability.supported;
     }
   });
   $('#disconnectXbloomBtn').addEventListener('click', async () => {

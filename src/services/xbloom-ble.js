@@ -77,12 +77,24 @@ function receiveWebNotification(event) {
   }));
 }
 
+export function getXbloomConnectionCapability() {
+  if (globalThis.__LUCKYBEAN_ANDROID__ && typeof globalThis.LuckyBeanNative?.connectXbloom === 'function') {
+    return { supported: true, transport: 'native', reason: '' };
+  }
+  if (!globalThis.isSecureContext) {
+    return { supported: false, transport: null, reason: '蓝牙连接需要通过 HTTPS 安全链接打开；方案转换、编辑和保存仍可使用。' };
+  }
+  if (typeof globalThis.navigator?.bluetooth?.requestDevice !== 'function') {
+    return { supported: false, transport: null, reason: '当前浏览器不提供网页蓝牙。iPhone/iPad Safari 可转换、编辑、保存和导出方案；蓝牙装载需要支持 Web Bluetooth 的浏览器或 Android 安装版。' };
+  }
+  return { supported: true, transport: 'web', reason: '' };
+}
+
 export async function connectXbloom() {
+  const capability = getXbloomConnectionCapability();
+  if (!capability.supported) throw new Error(capability.reason);
   if (globalThis.__LUCKYBEAN_ANDROID__ && globalThis.LuckyBeanNative) {
     return { name: await nativeCall('connectXbloom'), native: true };
-  }
-  if (!globalThis.isSecureContext || !navigator.bluetooth?.requestDevice) {
-    throw new Error('当前浏览器不支持 BLE 设备连接；iPhone Safari 无法使用网页蓝牙，请用 LuckyBean DS Android 版');
   }
   const device = await navigator.bluetooth.requestDevice({
     filters: [{ services: [SERVICE_UUID] }],
