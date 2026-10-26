@@ -84,3 +84,45 @@ export async function deleteBeanThumbnail(beanId) {
     transaction.onabort = () => reject(transaction.error || new Error('本机照片删除已取消'));
   });
 }
+
+export async function exportBeanThumbnails() {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readonly');
+    const rows = [];
+    const request = transaction.objectStore(STORE_NAME).openCursor();
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) return;
+      if (typeof cursor.key === 'string' && typeof cursor.value === 'string') {
+        rows.push({ beanId: cursor.key, dataUrl: cursor.value });
+      }
+      cursor.continue();
+    };
+    transaction.oncomplete = () => resolve(rows);
+    transaction.onerror = () => reject(transaction.error || new Error('本机豆袋缩略图读取失败'));
+    transaction.onabort = () => reject(transaction.error || new Error('本机豆袋缩略图读取已取消'));
+  });
+}
+
+export async function replaceBeanThumbnails(rows = []) {
+  if (!Array.isArray(rows)) throw new Error('备份中的豆袋缩略图列表无效');
+  const prepared = rows.map((row, index) => {
+    const beanId = String(row?.beanId || '').trim();
+    const dataUrl = String(row?.dataUrl || '');
+    if (!beanId || !/^data:image\/jpeg;base64,/.test(dataUrl)) throw new Error(`第 ${index + 1} 张豆袋缩略图无效`);
+    return [beanId, dataUrl];
+  });
+  const ids = new Set(prepared.map(([id]) => id));
+  if (ids.size !== prepared.length) throw new Error('备份中存在重复豆卡缩略图');
+  const db = await openDatabase();
+  await new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    store.clear();
+    for (const [id, dataUrl] of prepared) store.put(dataUrl, id);
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error || new Error('本机豆袋缩略图恢复失败'));
+    transaction.onabort = () => reject(transaction.error || new Error('本机豆袋缩略图恢复已取消'));
+  });
+}

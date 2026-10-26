@@ -81,9 +81,18 @@ function legacyStores(payload) {
   });
 }
 
-export async function buildLuckyBeanArchive({ stores, schemaVersion, appVersion, createdAt = new Date().toISOString() }) {
+export async function buildLuckyBeanArchive({ stores, assets = [], schemaVersion, appVersion, createdAt = new Date().toISOString() }) {
   const normalized = normalizeStores(stores);
+  if (!Array.isArray(assets)) throw new Error('备份中的本机照片清单无效');
+  const portableAssets = assets.map((asset, index) => {
+    const beanId = String(asset?.beanId || '').trim();
+    const dataUrl = String(asset?.dataUrl || '');
+    if (!beanId || !/^data:image\/jpeg;base64,/.test(dataUrl)) throw new Error(`第 ${index + 1} 张本机照片无效`);
+    return { beanId, dataUrl };
+  });
+  if (new Set(portableAssets.map(asset => asset.beanId)).size !== portableAssets.length) throw new Error('备份中存在重复豆卡照片');
   safeTree(normalized, 'stores');
+  safeTree(portableAssets, 'assets');
   const body = {
     format: LUCKYBEAN_ARCHIVE_FORMAT,
     formatVersion: LUCKYBEAN_ARCHIVE_VERSION,
@@ -91,7 +100,8 @@ export async function buildLuckyBeanArchive({ stores, schemaVersion, appVersion,
     appVersion: String(appVersion || ''),
     createdAt,
     manifest: await sectionManifest(normalized),
-    stores: normalized
+    stores: normalized,
+    assets: portableAssets
   };
   return { ...body, sha256: await sha256(JSON.stringify(body)) };
 }
@@ -110,6 +120,7 @@ export async function parseLuckyBeanArchive(value, { currentSchemaVersion } = {}
       appVersion: String(payload.appVersion || 'legacy'),
       createdAt: payload.exportedAt || '',
       stores: legacyStores(payload),
+      assets: [],
       migratedFrom: 'luckybean-backup'
     };
   }
@@ -126,6 +137,13 @@ export async function parseLuckyBeanArchive(value, { currentSchemaVersion } = {}
   if (!expected || await sha256(JSON.stringify(body)) !== expected) throw new Error('备份总校验失败，文件可能已损坏');
 
   const stores = normalizeStores(payload.stores);
+  const assets = Array.isArray(payload.assets) ? payload.assets.map((asset, index) => {
+    const beanId = String(asset?.beanId || '').trim();
+    const dataUrl = String(asset?.dataUrl || '');
+    if (!beanId || !/^data:image\/jpeg;base64,/.test(dataUrl)) throw new Error(`第 ${index + 1} 张本机照片无效`);
+    return { beanId, dataUrl };
+  }) : [];
+  if (new Set(assets.map(asset => asset.beanId)).size !== assets.length) throw new Error('备份中存在重复豆卡照片');
   const manifest = plainObject(payload.manifest, '备份清单');
   for (const name of PORTABLE_STORES) {
     const entry = plainObject(manifest[name], `${name}清单`);
@@ -136,9 +154,12 @@ export async function parseLuckyBeanArchive(value, { currentSchemaVersion } = {}
       throw new Error(`${name}数据校验失败`);
     }
   }
-  return { ...body, stores };
+  return { ...body, stores, assets };
 }
 
-export function archiveCounts(stores = {}) {
-  return Object.fromEntries(PORTABLE_STORES.map(name => [name, Array.isArray(stores[name]) ? stores[name].length : 0]));
+export function archiveCounts(stores = {}, assets = []) {
+  return {
+    ...Object.fromEntries(PORTABLE_STORES.map(name => [name, Array.isArray(stores[name]) ? stores[name].length : 0])),
+    beanThumbnails: Array.isArray(assets) ? assets.length : 0
+  };
 }

@@ -13,6 +13,7 @@ LuckyBean DS 是 LuckyBean 的离线本地版，与线上 LuckyBean Cloud 分开
 - 本地参考冲煮方案、冷热冲、实时注水引导与语音执行
 - 品鉴记录与本地反馈优化
 - 本地优先 IndexedDB、可导入/导出本地备份
+- xBloom Studio/J15 设备配方转换、逐段流量/温度编辑与 Android BLE 装载
 - Android 本地安装包
 
-Cloud 线上版本继续由 `main` 维护；DS 本地版在 `luckybean-ds` 分支维护。
+Cloud 线上版本继续由 `main` 维护；基础 DS 本地版在 `luckybean-ds` 分支维护，本分支 `LuckyBean-DS-B` 基于 DS 增加 xBloom 设备适配。设备参数与协议边界见 [`docs/XBLOOM_DS_B.md`](docs/XBLOOM_DS_B.md)。

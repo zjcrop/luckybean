@@ -57,6 +57,7 @@ public final class MainActivity extends Activity {
     private static final int FILE_CHOOSER_REQUEST = 2101;
     private static final int MEDIA_PERMISSION_REQUEST = 2102;
     private static final int SAVE_FILE_REQUEST = 2103;
+    private static final int BLUETOOTH_PERMISSION_REQUEST = 2104;
     private static final int IMAGE_PREVIEW_MAX_EDGE = 960;
 
     private WebView webView;
@@ -67,6 +68,8 @@ public final class MainActivity extends Activity {
     private String pendingExportMime;
     private TextRecognizer chineseTextRecognizer;
     private TextRecognizer latinTextRecognizer;
+    private XbloomBleClient xbloomBleClient;
+    private String pendingXbloomConnectRequestId = "";
     private final Object recognitionSourceLock = new Object();
     private final ArrayDeque<Uri> pendingRecognitionUris = new ArrayDeque<>();
     private final Map<String, Uri> recognitionUriByImageId = new HashMap<>();
@@ -85,6 +88,33 @@ public final class MainActivity extends Activity {
         LuckyBeanApplication recognitionRuntime = (LuckyBeanApplication) getApplication();
         chineseTextRecognizer = recognitionRuntime.chineseRecognizer();
         latinTextRecognizer = recognitionRuntime.latinRecognizer();
+        xbloomBleClient = new XbloomBleClient(this, new XbloomBleClient.Listener() {
+            @Override public void onConnected(String requestId, String deviceName) {
+                resolveBluetooth(requestId, JSONObject.quote(deviceName));
+            }
+            @Override public void onConnectFailed(String requestId, String message) {
+                rejectBluetooth(requestId, message);
+            }
+            @Override public void onWriteComplete(String requestId) {
+                resolveBluetooth(requestId, "true");
+            }
+            @Override public void onWriteFailed(String requestId, String message) {
+                rejectBluetooth(requestId, message);
+            }
+            @Override public void onNotification(byte[] value) {
+                String encoded = Base64.encodeToString(value, Base64.NO_WRAP);
+                runOnUiThread(() -> {
+                    if (webView != null) webView.evaluateJavascript(
+                        "globalThis.LuckyBeanNativeBluetooth&&globalThis.LuckyBeanNativeBluetooth.notify(" + JSONObject.quote(encoded) + ")", null);
+                });
+            }
+            @Override public void onDisconnected() {
+                runOnUiThread(() -> {
+                    if (webView != null) webView.evaluateJavascript(
+                        "globalThis.LuckyBeanNativeBluetooth&&globalThis.LuckyBeanNativeBluetooth.disconnected()", null);
+                });
+            }
+        });
         configureWebView();
         registerSystemBackCallback();
         // Always start from the bundled local entry point. WebView history may
@@ -267,6 +297,28 @@ public final class MainActivity extends Activity {
 
     private final class NativeFileBridge {
         @JavascriptInterface
+        public void connectXbloom(String requestId) {
+            runOnUiThread(() -> connectXbloomWithPermissions(requestId));
+        }
+
+        @JavascriptInterface
+        public void writeXbloomFrame(String requestId, String base64) {
+            runOnUiThread(() -> {
+                try {
+                    byte[] bytes = Base64.decode(base64 == null ? "" : base64, Base64.DEFAULT);
+                    xbloomBleClient.write(bytes, requestId == null ? "" : requestId);
+                } catch (Exception error) {
+                    rejectBluetooth(requestId, error.getMessage() == null ? "xBloom 配方帧无效" : error.getMessage());
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void disconnectXbloom() {
+            runOnUiThread(() -> xbloomBleClient.disconnect());
+        }
+
+        @JavascriptInterface
         public String bindImageSource(String imageId, boolean includePreview) {
             Uri sourceUri = claimRecognitionSource(imageId);
             if (sourceUri == null) return "";
@@ -393,6 +445,43 @@ public final class MainActivity extends Activity {
         public void exitApp() {
             runOnUiThread(MainActivity.this::finish);
         }
+    }
+
+    private void connectXbloomWithPermissions(String requestId) {
+        pendingXbloomConnectRequestId = requestId == null ? "" : requestId;
+        ArrayList<String> needed = new ArrayList<>();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) needed.add(Manifest.permission.BLUETOOTH_SCAN);
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) needed.add(Manifest.permission.BLUETOOTH_CONNECT);
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+            && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            needed.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+        if (!needed.isEmpty()) {
+            requestPermissions(needed.toArray(new String[0]), BLUETOOTH_PERMISSION_REQUEST);
+            return;
+        }
+        startXbloomScan();
+    }
+
+    private void startXbloomScan() {
+        String requestId = pendingXbloomConnectRequestId;
+        pendingXbloomConnectRequestId = "";
+        xbloomBleClient.scanAndConnect(requestId);
+    }
+
+    private void resolveBluetooth(String requestId, String jsonValue) {
+        if (requestId == null || requestId.isEmpty()) return;
+        String script = "globalThis.LuckyBeanNativeBluetooth&&globalThis.LuckyBeanNativeBluetooth.resolve("
+            + JSONObject.quote(requestId) + "," + (jsonValue == null ? "null" : jsonValue) + ");";
+        runOnUiThread(() -> { if (webView != null) webView.evaluateJavascript(script, null); });
+    }
+
+    private void rejectBluetooth(String requestId, String message) {
+        if (requestId == null || requestId.isEmpty()) return;
+        String script = "globalThis.LuckyBeanNativeBluetooth&&globalThis.LuckyBeanNativeBluetooth.reject("
+            + JSONObject.quote(requestId) + "," + JSONObject.quote(message == null ? "xBloom 蓝牙操作失败" : message) + ");";
+        runOnUiThread(() -> { if (webView != null) webView.evaluateJavascript(script, null); });
     }
 
     private static void appendRecognizedLines(Map<String, JSONObject> target, Text result,
@@ -579,6 +668,17 @@ public final class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == BLUETOOTH_PERMISSION_REQUEST) {
+            boolean granted = grantResults.length > 0;
+            for (int result : grantResults) granted &= result == PackageManager.PERMISSION_GRANTED;
+            if (granted) startXbloomScan();
+            else {
+                String requestId = pendingXbloomConnectRequestId;
+                pendingXbloomConnectRequestId = "";
+                rejectBluetooth(requestId, "需要授予蓝牙扫描和连接权限才能查找 xBloom");
+            }
+            return;
+        }
         if (requestCode != MEDIA_PERMISSION_REQUEST || pendingWebPermission == null) return;
         boolean granted = true;
         for (int result : grantResults) granted &= result == PackageManager.PERMISSION_GRANTED;
@@ -680,6 +780,7 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (xbloomBleClient != null) xbloomBleClient.close();
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         cleanupUnusedCameraOutput(null);
         synchronized (recognitionSourceLock) {

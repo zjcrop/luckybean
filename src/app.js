@@ -33,6 +33,8 @@ import { recognitionDocumentFromText } from './domain/recognition/recognition-do
 import { analyzeRecognitionDocument } from './domain/recognition/recognition-pipeline.js';
 import { classifyRecognitionDates } from './domain/recognition/recognition-date-classifier.js';
 import { buildDateReviewModel, resolveDateReviewSelections } from './domain/recognition/recognition-date-review.js';
+import { convertPlanToXbloom, parseXbloomStatusNotification, validateXbloomRecipe, XBLOOM_STUDIO_CAPABILITIES } from './domain/brew/xbloom-profile.js';
+import { connectXbloom, disconnectXbloom, loadRecipeToXbloom } from './services/xbloom-ble.js';
 
 const PAGE_META = {
   beans: { nav: '藏', title: '豆藏', browser: '豆藏' },
@@ -73,6 +75,7 @@ const DEFAULT_SETTINGS = {
   identity: { mode: 'guest', nickname: '访客', publicId: '', idSalt: '', verified: false, email: '', phone: '', wechat: '', qq: '' },
   gear: { filters: [], drippers: [{ id: 'dripper_flat', name: '平底滤杯', type: '平底滤杯', material: 'plastic' }], grinders: [] },
   health: { ...DEFAULT_CAFFEINE_HEALTH_SETTINGS },
+  xbloom: { profiles: {} },
   sensoryRecentLimit: 50,
   shareRecordLimit: 5,
   groupMethod: 'country'
@@ -192,6 +195,7 @@ async function loadSettings() {
       flavorTargets: { ...DEFAULT_SETTINGS.brew.flavorTargets, ...(saved?.brew?.flavorTargets || {}) }
     },
     identity: { ...DEFAULT_SETTINGS.identity, ...(saved?.identity || {}) },
+    xbloom: { ...DEFAULT_SETTINGS.xbloom, ...(saved?.xbloom || {}), profiles: { ...DEFAULT_SETTINGS.xbloom.profiles, ...(saved?.xbloom?.profiles || {}) } },
     gear: normalizeGearSettings(saved?.gear || DEFAULT_SETTINGS.gear),
     health: { ...DEFAULT_SETTINGS.health, ...(saved?.health || {}) }
   };
@@ -1159,7 +1163,7 @@ function beanFormHtml(bean = {}, source = {}) {
         ${fieldHtml('beanPrice','购买价格',`<input id="beanPrice" class="control" type="number" min="0" step="0.01" value="${esc(bean.price || '')}">`,'recommended')}
         ${fieldHtml('beanRoaster','烘豆商',`<input id="beanRoaster" class="control" maxlength="60" value="${esc(bean.roasterName || bean.roaster || '')}">`,'required')}
         ${fieldHtml('beanBrand','品牌',`<input id="beanBrand" class="control" maxlength="60" placeholder="默认与烘焙商相同" value="${esc(bean.productName || bean.brand || bean.product || bean.commercialName || bean.roasterName || bean.roaster || '')}">`)}
-        ${fieldHtml('beanThumbnailFile','豆袋缩略图',`<div class="bean-thumbnail-picker"><img id="beanThumbnailPreview" class="bean-thumbnail-preview" alt="豆袋缩略图预览" hidden><div class="bean-thumbnail-picker-actions"><button id="captureBeanThumbnailBtn" class="button subtle" type="button">拍摄或选择照片</button><input id="beanThumbnailFile" class="hidden" type="file" accept="image/*" capture="environment"><button id="clearBeanThumbnailBtn" class="button subtle" type="button">移除本机照片</button><small>仅保存在本机，不进入云同步或备份。</small></div></div>`)}
+        ${fieldHtml('beanThumbnailFile','豆袋缩略图',`<div class="bean-thumbnail-picker"><img id="beanThumbnailPreview" class="bean-thumbnail-preview" alt="豆袋缩略图预览" hidden><div class="bean-thumbnail-picker-actions"><button id="captureBeanThumbnailBtn" class="button subtle" type="button">拍摄或选择照片</button><input id="beanThumbnailFile" class="hidden" type="file" accept="image/*" capture="environment"><button id="clearBeanThumbnailBtn" class="button subtle" type="button">移除本机照片</button><small>仅保存在本机；随完整备份导出，不进入云同步。</small></div></div>`)}
         ${fieldHtml('beanAltitude','海拔',`<input id="beanAltitude" class="control" type="number" min="0" max="5000" value="${esc(bean.altitude || '')}">`)}
         ${fieldHtml('beanNotes','备注',`<input id="beanNotes" class="control" maxlength="300" value="${esc(bean.notes || '')}">`)}
       </div>
@@ -2190,11 +2194,194 @@ function planHtml(plan) {
     ${plan.correction?.changes ? `<div class="correction-note"><strong>修正依据</strong>${plan.correction.changes.map(value=>`<p>${esc(value)}</p>`).join('')}</div>` : ''}
     <div class="plan-export-row"><select id="planExportFormat" class="control"><option value="json">JSON脚本</option><option value="txt">TXT</option><option value="md">Markdown</option></select><button id="exportPlanBtn" class="button" type="button">导出方案</button></div>
   </div></details>
-  <div class="row menu-row"><button id="startBrewBtn" class="button primary" type="button">开始计时</button><button id="planToSensoryBtn" class="button" type="button" data-brew-action="plan-sensory" data-bean-id="${esc(String(plan.beanId || state.selectedBeanId || ''))}" data-plan-reference="${esc(authoritativePlanReference(plan))}" data-profile-id="${esc(String(plan.profile?.id || state.currentBrewInput?.brew?.profileId || ''))}">直接品鉴</button></div></section>`;
+  <div class="row menu-row"><button id="startBrewBtn" class="button primary" type="button">开始计时</button><button id="xBloomProfileBtn" class="button" type="button">转换为 xBloom 设备方案</button><button id="planToSensoryBtn" class="button" type="button" data-brew-action="plan-sensory" data-bean-id="${esc(String(plan.beanId || state.selectedBeanId || ''))}" data-plan-reference="${esc(authoritativePlanReference(plan))}" data-profile-id="${esc(String(plan.profile?.id || state.currentBrewInput?.brew?.profileId || ''))}">直接品鉴</button></div></section>`;
+}
+
+function openXbloomEditor() {
+  const plan = state.currentPlan;
+  if (!plan) return toast('请先生成 LuckyBean 冲煮方案');
+  const bean = state.beans.find(item => item.id === plan.beanId || item.id === state.selectedBeanId);
+  const beanId = String(plan.beanId || state.selectedBeanId || '');
+  const saved = state.settings.xbloom?.profiles?.[beanId] || {};
+  let converted;
+  try { converted = convertPlanToXbloom(plan, saved); }
+  catch (error) { return toast(`xBloom 转换失败：${error.message}`, 'status-bad'); }
+  const recipe = converted.recipe;
+  recipe.name = bean ? beanDisplayName(bean) : (plan.profile?.label || recipe.name);
+  recipe.beanId = beanId;
+  const cap = XBLOOM_STUDIO_CAPABILITIES;
+  const flowOptions = Array.from({ length: 6 }, (_, index) => (cap.flowMinMlS + index * cap.flowStepMlS).toFixed(1));
+  const tempOptions = Array.from({ length: cap.temperatureMaxC - cap.temperatureMinC + 1 }, (_, index) => cap.temperatureMinC + index);
+  const patternLabels = { center: '中心', ring: '环绕', spiral: '螺旋' };
+  const pourRows = recipe.pours.map((pour, index) => `<article class="xbloom-pour-row" data-xbloom-pour="${index}">
+    <div class="xbloom-pour-title"><strong>${index === 0 ? '闷蒸' : `注水 ${index + 1}`}</strong><small>${esc(pour.name)}</small></div>
+    <label class="field"><span>水量 ml</span><input class="control" data-xbloom-volume type="number" min="1" max="${cap.pourMaxMl}" step="1" value="${Number(pour.volumeMl)}"></label>
+    <label class="field"><span>水温 °C</span><select class="control" data-xbloom-temperature>${tempOptions.map(value => `<option value="${value}"${Number(pour.temperatureC) === value ? ' selected' : ''}>${value}°C</option>`).join('')}</select></label>
+    <label class="field"><span>流量 ml/s</span><select class="control" data-xbloom-flow>${flowOptions.map(value => `<option value="${value}"${Number(pour.flowMlS).toFixed(1) === value ? ' selected' : ''}>${value}</option>`).join('')}</select></label>
+    <label class="field"><span>注水方式</span><select class="control" data-xbloom-pattern>${Object.entries(patternLabels).map(([value, label]) => `<option value="${value}"${pour.pattern === value ? ' selected' : ''}>${label}</option>`).join('')}</select></label>
+    <label class="field"><span>段后暂停 s</span><input class="control" data-xbloom-pause type="number" min="${cap.pauseMinS}" max="${cap.pauseMaxS}" step="1" value="${Number(pour.pauseSeconds)}"></label>
+    <label class="field"><span>螺旋搅动</span><select class="control" data-xbloom-agitation><option value="off"${!pour.agitation ? ' selected' : ''}>关闭</option><option value="on"${pour.agitation ? ' selected' : ''}>开启</option></select></label>
+  </article>`).join('');
+  const overlay = showOverlay(`${dialogHeader('xBloom Studio 设备方案', '把通用冲煮计划适配为设备可执行的逐段配方', { centered: true })}
+    <div class="xbloom-editor">
+      <div class="xbloom-device-info"><strong>${cap.label} · 社区逆向协议，当前按 V12.0D.500 参考实现</strong><span>粉量 1–18g（5–18g 为常见使用区间）· 研磨度 1–80 · 首段旋转转速 60–120 RPM（10 RPM/档）</span><span>逐段数字水温 40–95°C（1°C/档）· 流量 3.0–3.5 ml/s（0.1 ml/s/档）· 编辑单段上限 240ml · 暂停 0–99s</span><span>机器预热设定 40–130°C；此项与逐段出水温度不同。更大的注水段由 BLE 协议按 127ml 子步拆分。</span><small>RT/BP 是特殊温度模式，公开配方字节未确认其编码；转换器不会猜测。协议范围来自社区逆向项目，不代表 xBloom 官方 API 兼容承诺。</small></div>
+      <div class="xbloom-recipe-head">
+        <label class="field"><span>粉量 g</span><input id="xbloomDose" class="control" type="number" min="${cap.doseMinG}" max="${cap.doseMaxG}" step="1" value="${Number(recipe.doseG)}"></label>
+        <label class="field"><span>粉豆处理</span><select id="xbloomGrinding" class="control"><option value="auto"${recipe.grinding ? ' selected' : ''}>设备研磨</option><option value="manual"${!recipe.grinding ? ' selected' : ''}>已磨粉</option></select></label>
+        <label class="field"><span>研磨度</span><input id="xbloomGrindSize" class="control" type="number" min="1" max="80" step="1" value="${Number(recipe.grindSize)}"></label>
+        <label class="field"><span>首段旋转转速 RPM</span><select id="xbloomRpm" class="control">${[0, ...Array.from({length: 7}, (_, index) => 60 + index * 10)].map(value => `<option value="${value}"${Number(recipe.rpm) === value ? ' selected' : ''}>${value === 0 ? '0（中心注水）' : value}</option>`).join('')}</select></label>
+        <label class="field"><span>机器预热设定 1 °C</span><input id="xbloomStageTemp1" class="control" type="number" min="${cap.stageTemperatureMinC}" max="${cap.stageTemperatureMaxC}" step="1" value="${Number(recipe.stageTemperaturesC[0])}"></label>
+        <label class="field"><span>机器预热设定 2 °C</span><input id="xbloomStageTemp2" class="control" type="number" min="${cap.stageTemperatureMinC}" max="${cap.stageTemperatureMaxC}" step="1" value="${Number(recipe.stageTemperaturesC[1])}"></label>
+      </div>
+      <p id="xbloomWaterSummary" class="xbloom-summary"></p>
+      <div class="xbloom-pour-list">${pourRows}</div>
+      <div id="xbloomValidation" class="xbloom-validation" aria-live="polite"></div>
+      <div class="xbloom-warning-list">${converted.warnings.map(value => `<p class="small status-warn">${esc(value)}</p>`).join('')}</div>
+      <p id="xbloomConnectionStatus" class="muted small">发送只会装载配方，不会自动启动；确认容器、豆量和水箱后，再到机器上按键开始。</p>
+      <div class="row menu-row xbloom-actions"><button id="saveXbloomProfileBtn" class="button" type="button">保存设备方案</button><button id="exportXbloomProfileBtn" class="button" type="button">导出 JSON</button><span class="grow"></span><button id="sendXbloomProfileBtn" class="button primary" type="button">连接并装载到设备</button><button id="disconnectXbloomBtn" class="button" type="button" hidden>断开设备</button></div>
+    </div>`, { id: 'xbloom-editor', backdropClose: true, dialogClass: 'xbloom-editor-dialog' });
+  bindClose(overlay);
+  let lastDoseG = recipe.doseG;
+
+  const readRecipe = () => {
+    const next = {
+      ...recipe,
+      name: recipe.name,
+      doseG: Number($('#xbloomDose')?.value),
+      grinding: $('#xbloomGrinding')?.value !== 'manual',
+      grindSize: Number($('#xbloomGrindSize')?.value),
+      rpm: Number($('#xbloomRpm')?.value),
+      stageTemperaturesC: [Number($('#xbloomStageTemp1')?.value), Number($('#xbloomStageTemp2')?.value)],
+      pours: $$('.xbloom-pour-row', overlay).map((row, index) => {
+        return {
+          ...recipe.pours[index],
+          volumeMl: Number(row.querySelector('[data-xbloom-volume]')?.value),
+          temperatureC: Number(row.querySelector('[data-xbloom-temperature]')?.value),
+          flowMlS: Number(row.querySelector('[data-xbloom-flow]')?.value),
+          pattern: row.querySelector('[data-xbloom-pattern]')?.value || 'spiral',
+          pauseSeconds: Number(row.querySelector('[data-xbloom-pause]')?.value),
+          agitation: row.querySelector('[data-xbloom-agitation]')?.value === 'on'
+        };
+      })
+    };
+    next.totalWaterMl = next.pours.reduce((sum, pour) => sum + Number(pour.volumeMl || 0), 0);
+    next.ratio = next.totalWaterMl / Math.max(0.1, next.doseG);
+    return next;
+  };
+  const refreshValidation = () => {
+    const firstPattern = $$('.xbloom-pour-row', overlay)[0]?.querySelector('[data-xbloom-pattern]')?.value;
+    const rpmSelect = $('#xbloomRpm');
+    if (rpmSelect) {
+      const zeroOption = rpmSelect.querySelector('option[value="0"]');
+      if (zeroOption) zeroOption.disabled = firstPattern !== 'center';
+      if (firstPattern === 'center' && Number(rpmSelect.value) !== 0) rpmSelect.value = '0';
+      if (firstPattern !== 'center' && Number(rpmSelect.value) === 0) rpmSelect.value = '90';
+    }
+    $$('.xbloom-pour-row', overlay).forEach(row => {
+      const pattern = row.querySelector('[data-xbloom-pattern]')?.value;
+      const agitation = row.querySelector('[data-xbloom-agitation]');
+      if (agitation) {
+        agitation.disabled = pattern !== 'spiral';
+        if (pattern !== 'spiral') agitation.value = 'off';
+      }
+    });
+    const next = readRecipe();
+    const errors = validateXbloomRecipe(next);
+    $('#xbloomWaterSummary').textContent = `${next.totalWaterMl} ml 热水 · 机器粉水比 1:${next.ratio.toFixed(1)} · ${next.pours.length} 段`;
+    $('#xbloomValidation').innerHTML = errors.length
+      ? errors.map(value => `<p class="status-bad small">${esc(value)}</p>`).join('')
+      : '<p class="status-good small">参数在当前 Studio/J15 配方范围内。</p>';
+    $('#sendXbloomProfileBtn').disabled = Boolean(errors.length);
+    $('#saveXbloomProfileBtn').disabled = Boolean(errors.length);
+    $('#exportXbloomProfileBtn').disabled = Boolean(errors.length);
+    $('#xbloomGrindSize').disabled = !next.grinding;
+    return { next, errors };
+  };
+  overlay.addEventListener('input', refreshValidation);
+  overlay.addEventListener('change', event => {
+    if (event.target?.id === 'xbloomDose') {
+      const previous = readRecipe();
+      const nextDose = Number(event.target.value);
+      if (lastDoseG > 0 && nextDose > 0 && previous.totalWaterMl > 0) {
+        const newTotal = Math.round(previous.totalWaterMl * nextDose / lastDoseG);
+        let allocated = 0;
+        $$('.xbloom-pour-row', overlay).forEach((row, index) => {
+          const field = row.querySelector('[data-xbloom-volume]');
+          const value = index === recipe.pours.length - 1
+            ? newTotal - allocated
+            : Math.max(1, Math.round(newTotal * Number(previous.pours[index].volumeMl || 0) / previous.totalWaterMl));
+          field.value = String(value);
+          allocated += value;
+        });
+        lastDoseG = nextDose;
+      }
+    }
+    refreshValidation();
+  });
+  refreshValidation();
+
+  $('#saveXbloomProfileBtn').addEventListener('click', async () => {
+    const { next, errors } = refreshValidation();
+    if (errors.length) return;
+    state.settings.xbloom = state.settings.xbloom || { profiles: {} };
+    state.settings.xbloom.profiles = { ...(state.settings.xbloom.profiles || {}), [beanId]: next };
+    await saveSettings();
+    toast('xBloom 设备方案已保存在本机备份数据中', 'status-good');
+  });
+  $('#exportXbloomProfileBtn').addEventListener('click', () => {
+    const { next, errors } = refreshValidation();
+    if (errors.length) return;
+    const safeName = String(next.name || 'xBloom').replace(/[\\/:*?"<>|]/g, '_');
+    downloadBlob(`${safeName}_xBloom.json`, JSON.stringify(next, null, 2), 'application/json;charset=utf-8');
+  });
+  $('#sendXbloomProfileBtn').addEventListener('click', async event => {
+    const button = event.currentTarget;
+    const { next, errors } = refreshValidation();
+    if (errors.length) return;
+    button.disabled = true;
+    const status = $('#xbloomConnectionStatus');
+    try {
+      status.textContent = '正在查找 xBloom；请唤醒机器并先断开官方 App。';
+      const connected = await connectXbloom();
+      $('#disconnectXbloomBtn').hidden = false;
+      status.textContent = `已连接 ${connected.name}，正在写入配方帧……`;
+      const result = await loadRecipeToXbloom(next);
+      status.textContent = `已发送 ${result.frameCount} 帧并装载配方。机器不会自动开始，请检查投豆/滤杯/水箱后在设备上确认。`;
+      toast('xBloom 配方已装载，请在机器上确认后开始', 'status-good');
+    } catch (error) {
+      status.textContent = `发送失败：${error.message}`;
+      toast(`xBloom 发送失败：${error.message}`, 'status-bad');
+    } finally {
+      button.disabled = false;
+    }
+  });
+  $('#disconnectXbloomBtn').addEventListener('click', async () => {
+    await disconnectXbloom();
+    $('#disconnectXbloomBtn').hidden = true;
+    $('#xbloomConnectionStatus').textContent = '蓝牙已断开。';
+  });
+  const notificationHandler = event => {
+    const status = parseXbloomStatusNotification(event.detail || []);
+    if (status?.state === 0x1f) $('#xbloomConnectionStatus').textContent = '设备已确认配方装载完成；机器不会自动开始，请检查投豆/滤杯/水箱后在设备上确认。';
+  };
+  const disconnectedHandler = () => {
+    $('#disconnectXbloomBtn').hidden = true;
+    $('#xbloomConnectionStatus').textContent = 'xBloom 蓝牙连接已断开。';
+  };
+  document.addEventListener('luckybean:xbloom-notification', notificationHandler);
+  document.addEventListener('luckybean:xbloom-disconnected', disconnectedHandler);
+  overlay.addEventListener('click', event => {
+    if (event.target === overlay || event.target.closest('[data-close-overlay]')) {
+      document.removeEventListener('luckybean:xbloom-notification', notificationHandler);
+      document.removeEventListener('luckybean:xbloom-disconnected', disconnectedHandler);
+      disconnectXbloom().catch(() => {});
+    }
+  });
 }
 
 function bindPlanActions() {
   $('#startBrewBtn')?.addEventListener('click', startTimer);
+  $('#xBloomProfileBtn')?.addEventListener('click', openXbloomEditor);
   $('#exportPlanBtn')?.addEventListener('click', () => exportCurrentPlan($('#planExportFormat')?.value || 'json'));
   $$('[data-recommended-profile]').forEach(button => button.addEventListener('click', async () => {
     const profileId = button.dataset.recommendedProfile;
@@ -2993,9 +3180,9 @@ async function updateCodebook() {
 }
 async function exportData() {
   try {
-    const { archive, mime } = await createPortableArchive();
+    const { archive, mime, counts } = await createPortableArchive();
     downloadBlob(`LuckyBean_${todayISO()}.luckybean`, JSON.stringify(archive), mime);
-    toast('完整备份已导出', 'status-good');
+    toast(`完整备份已导出（含 ${Number(counts.beanThumbnails || 0)} 张豆卡缩略图）`, 'status-good');
   } catch (error) {
     toast(`导出失败：${error.message}`, 'status-bad');
   }
@@ -3005,7 +3192,7 @@ async function importData(file) {
   try {
     const payload=JSON.parse(await file.text());
     const preview=await inspectPortableArchive(payload);
-    const countText=`豆卡 ${preview.counts.beans}、冲煮 ${preview.counts.brewSessions}、品鉴 ${preview.counts.sensoryRecords}、库存变更 ${preview.counts.inventoryEvents}`;
+    const countText=`豆卡 ${preview.counts.beans}、豆卡缩略图 ${preview.counts.beanThumbnails || 0} 张、冲煮 ${preview.counts.brewSessions}、品鉴 ${preview.counts.sensoryRecords}、库存变更 ${preview.counts.inventoryEvents}`;
     const overlay=showOverlay(`${dialogHeader('恢复完整备份','校验已经通过')}<p>${esc(countText)}</p><p class="status-bad">恢复后，本机现有数据将被备份内容完整替换。服务器同步账号不会从备份导入。</p><div class="text-actions"><button id="cancelArchiveRestoreBtn" class="button" type="button">取消</button><button id="confirmArchiveRestoreBtn" class="button danger" type="button">确认恢复</button></div>`);
     bindClose(overlay);
     $('#cancelArchiveRestoreBtn').addEventListener('click',closeOverlay);
