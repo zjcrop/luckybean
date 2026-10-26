@@ -1,5 +1,13 @@
 # LuckyBean DS-B：xBloom Studio 配方适配
 
+## 网页版本
+
+公开链接：[LuckyBean DS-B](https://luckybean-ds-b.racingllama18.chatgpt.site)。网页无需账户，豆卡、冲煮记录、设备方案和设置保存在当前浏览器的本机数据库中；它与 APK、LuckyBean Cloud 以及其他浏览器的数据不会自动同步。跨设备迁移使用完整备份导出和导入。
+
+网页以显式发行标记启用 DS-B 模式，普通 Safari 不会被误识别成 Cloud 并出现注册引导。蓝牙按钮按实际 API 能力启用：iPhone/iPad Safari 中可转换、编辑、保存和导出 xBloom 方案，直接 BLE 装载按钮会禁用并说明原因。添加到主屏幕不能给 Safari 增加 Web Bluetooth 能力。支持 Web Bluetooth 的安全浏览器及 Android 原生桥接使用原有装载流程。
+
+Safari 下载保留文件地址 60 秒，供浏览器接管下载；设备编辑器采用移动视口高度和至少 16px 的表单字号，避免聚焦时自动缩放。
+
 ## 目标设备与数据依据
 
 该功能以 xBloom Studio（社区实现中也称 J15）为目标。xBloom 官方产品页列出了设备、研磨和冲煮形态等功能，但没有公布 BLE 配方协议。LuckyBean DS-B 因此只把社区逆向协议作为可选兼容实现，不宣称它是 xBloom 官方 API，也不推定适用于其他型号或固件。
@@ -55,4 +63,4 @@ iPhone Safari 网页环境不提供 Web Bluetooth；设备直连目前需要 And
 
 ## 发布验证范围
 
-帧格式和状态顺序按公开项目的 V12.0D.500 说明实现，但当前工作环境没有 Android SDK/JDK，无法在这里构建 APK；也没有目标 xBloom 实机可用于蓝牙验证。发布前后的必要实机核对包括：设备进入装载状态、每段温度/流量/注水模式显示，以及预磨粉和现磨两条装载路径。未完成这些核对前，不应把“代码已实现”描述成“已在用户设备验证”。
+帧格式和状态顺序按公开项目的 V12.0D.500 说明实现。APK 通过 GitHub Actions 构建，并检查签名及模拟器全新安装；网页版用 Playwright WebKit 检查移动布局、无图片豆卡编辑、备份下载、设备方案转换与导出、真实 OCR 和在线计算。桌面 WebKit 测试不能替代 iPhone 真机测试。目前没有目标 xBloom 实机可用于蓝牙验证，仍需核对设备进入装载状态、每段温度/流量/注水模式显示，以及预磨粉和现磨两条装载路径。

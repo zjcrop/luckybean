@@ -108,7 +108,7 @@ test('xBloom editor remains usable without browser Bluetooth and exports a valid
   expect(recipe.pours[0].flowMlS).toBe(3.1);
 });
 
-test('live online brew calculation opens the device editor', async ({ page }) => {
+test('live online brew calculation opens the device editor', async ({ page }, testInfo) => {
   test.skip(process.env.DSB_LIVE !== '1', 'Run explicitly when checking the live provider');
   await enter(page);
   await seed(page);
@@ -119,4 +119,5 @@ test('live online brew calculation opens the device editor', async ({ page }) =>
   await page.locator('#xBloomProfileBtn').click();
   await expect(page.locator('[data-overlay="xbloom-editor"]')).toBeVisible();
   await expect(page.locator('#saveXbloomProfileBtn')).toBeEnabled();
+  await page.screenshot({ path: testInfo.outputPath('dsb-live-iphone-editor.png') });
 });

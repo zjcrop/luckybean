@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL='http://127.0.0.1:4173';
+const BASE_URL=process.env.DSB_TEST_URL || 'http://127.0.0.1:4173';
 const SUPABASE_PATTERN='https://vaxwncdcuvbpvdbbketb.supabase.co/**';
 const ACCESS=['access','token'].join('_');
 const REFRESH=['refresh','token'].join('_');
