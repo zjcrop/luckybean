@@ -1,4 +1,4 @@
-name: Diagnose delivered offline APKs
+name: Diagnose rebuilt APKs on Android 15
 
 on:
   push:
@@ -27,15 +27,15 @@ jobs:
       - name: Download delivered DS APK
         uses: actions/download-artifact@v8.0.1
         with:
-          name: luckybean-ds-apk-7eb1e353da0ce1e624a63567118fc0cb68334274
-          run-id: 40403196876
+          name: luckybean-ds-apk-b10c81a8ea48eaf39e988f72a7f438690be25e10
+          run-id: 40405194105
           github-token: ${{ github.token }}
           path: delivered/ds
       - name: Download delivered DS-B APK
         uses: actions/download-artifact@v8.0.1
         with:
-          name: luckybean-ds-b-apk-28ccdfb3771979f9d6fad923d45620c7d6841213
-          run-id: 40403197533
+          name: luckybean-ds-b-apk-a789da57ae09f8e19da5f63550c24982eb110461
+          run-id: 40405193909
           github-token: ${{ github.token }}
           path: delivered/dsb
       - name: Verify both delivered packages
@@ -50,15 +50,15 @@ jobs:
             "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" > badging.txt
             sed -n '1,15p' badging.txt
           done
-      - name: Install emulator and Android 10 image
-        run: sdkmanager 'emulator' 'system-images;android-29;google_apis;x86_64'
+      - name: Install emulator and Android 15 image
+        run: sdkmanager 'emulator' 'system-images;android-35;google_apis;x86_64'
       - name: Install both APKs on a fresh Android emulator
         shell: bash
         run: |
           set -euo pipefail
           export ANDROID_AVD_HOME="$RUNNER_TEMP/android-avd"
           mkdir -p "$ANDROID_AVD_HOME"
-          echo no | avdmanager create avd -n luckybean-diagnostic -k 'system-images;android-29;google_apis;x86_64' --device pixel_2 --force
+          echo no | avdmanager create avd -n luckybean-diagnostic -k 'system-images;android-35;google_apis;x86_64' --device pixel_2 --force
           accel_args=()
           if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; else accel_args=(-accel off); fi
           "$ANDROID_HOME/emulator/emulator" -avd luckybean-diagnostic -port 5554 -no-window -noaudio -no-boot-anim -no-snapshot -gpu swiftshader_indirect "${accel_args[@]}" > emulator.log 2>&1 &
@@ -81,10 +81,10 @@ jobs:
             set -e
             cat install.log
             timeout 30 adb -s emulator-5554 shell dumpsys package com.luckybean.ds > installed.txt
-            if ! grep -q 'versionCode=102436 ' installed.txt; then
+            if ! grep -q 'versionCode=102437 ' installed.txt; then
               echo "Installation failed, status $status" >&2
               exit 1
             fi
-            echo "Verified installed package com.luckybean.ds, versionCode 102436"
+            echo "Verified installed package com.luckybean.ds, versionCode 102437"
             adb -s emulator-5554 uninstall com.luckybean.ds
           done
