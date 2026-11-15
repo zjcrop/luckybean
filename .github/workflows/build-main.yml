@@ -136,7 +136,7 @@ jobs:
           unzip -p "$apk" assets/web-cache/index.html | grep -Fq "application-version\" content=\"$DISPLAY_VERSION\""
           unzip -p "$apk" assets/web-cache/index.html | grep -Fq "release-revision\" content=\"$RELEASE_REVISION\""
           unzip -p "$apk" assets/web-cache/sw.js | grep -Fq "REVISION = '$RELEASE_REVISION'"
-          unzip -p "$apk" assets/web-cache/src/contracts/brew-contract-adapter.js | grep -Fq "luckybean-brew-contract-adapter/${DISPLAY_VERSION}.2"
+          unzip -p "$apk" assets/web-cache/src/contracts/brew-contract-adapter.js | grep -Fq "luckybean-brew-contract-adapter/${DISPLAY_VERSION}.3"
           source_app_sha=$(sha256sum src/app.js | awk '{print $1}')
           apk_app_sha=$(unzip -p "$apk" assets/web-cache/src/app.js | sha256sum | awk '{print $1}')
           test "$source_app_sha" = "$apk_app_sha"
@@ -188,7 +188,7 @@ jobs:
             fi
             gh release upload "$RELEASE_TAG" "dist/$apk_name" "dist/$web_name" dist/BUILD_PROVENANCE.json dist/SHA256SUMS.txt --clobber
           else
-            gh release create "$RELEASE_TAG" "dist/$apk_name" "dist/$web_name" dist/BUILD_PROVENANCE.json dist/SHA256SUMS.txt --target "$SOURCE_SHA" --title "LuckyBean ${DISPLAY_VERSION}" --notes "$notes"
+            gh release create "$RELEASE_TAG" "dist/$apk_name" "dist/$web_name" dist/BUILD_PROVENANCE.json dist/SHA256SUMS.txt --target "$SOURCE_SHA" --title "LuckyBean ${DISPLAY_VERSION}" --notes-file docs/WATER_TDS_VOICE_20261115.md
           fi
           tag_sha=$(git ls-remote origin "refs/tags/$RELEASE_TAG" | awk '{print $1}')
           test "$tag_sha" = "$SOURCE_SHA"

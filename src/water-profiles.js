@@ -104,7 +104,7 @@ export function calculateWaterRecipe(profileId, { volumeL = 5, targets = {}, cus
     operationalTdsRange: [Math.max(0, selected.tds[0] - 8), selected.tds[1] + 8],
     tendency: { ...selected.tendency },
     externalTool: WATER_EXTERNAL_APP,
-    warning: 'LuckyBean仅保存水型、参考TDS和风味倾向；不保存精确离子、盐质量或配方。精细调整请使用“萃离”。'
+    warning: 'LuckyBean区分参考水型、明确水样读数和导入离子账本；不从TDS反推矿物组成。盐类配方与投加仍在“萃离”中调整。'
   };
 }
 

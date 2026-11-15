@@ -20,6 +20,34 @@ seconds (`startSec`, `durationSec`), degrees Celsius (`temperatureC`,
 `coreTemperatureC`), grams per second (`flowGPerSec`), milligrams per litre
 (`tdsMgL`) and a dimensionless brew ratio.
 
+Planning numeric fields accept finite numbers. Only an omitted field may receive
+its documented default; explicit `null`, empty strings, booleans and numeric
+strings are rejected for required dose, ratio, recipe volume and targets.
+Optional measured values preserve `null` as unknown and preserve a real zero.
+
+`water.tdsMgL` is a supplied source-water reading in mg/L. Preset
+`referenceTdsMgL` / `referenceTdsRangeMgL` are separate reference data and never
+fill a missing reading. Optional `water.ionsMgL` uses `Ca`, `Mg`, `Na`, `K`,
+`HCO3`, `CO3`, `Cl`, `SO4`; absent ion concentrations remain unknown.
+`water.alkalinityMgLAsCaCO3` is separately supplied total alkalinity.
+`water.concentrationBasis` records whether ions are pre-heating calculated,
+source-water measured, post-heating measured, or unspecified. Calculated
+carbonate contribution does not replace total alkalinity or heated-water data.
+
+Optional `measurements.beverageTdsPct` is the beverage TDS mass percentage
+(for example `1.35`, not `0.0135`), paired with the actual final
+`measurements.beverageMassG` and actual `measurements.doseG`. If measurement dose
+is omitted, an explicitly supplied `brew.doseG` may be used with that assumption
+recorded; an explicit measurement dose `null` must not fall back. Apparent
+recovered yield in percent is `beverageTdsPct * beverageMassG / doseG`.
+Total input water never substitutes for final beverage mass, and source-water
+EC-derived ppm is never blindly subtracted from a coffee refractometer reading.
+
+Additive output `waterAnalysis` and `extractionAssessment` are also preserved in
+`BrewResult.physical` and its history snapshot. They distinguish supplied data,
+unknown values, chemical accounting and apparent measured mass balance from
+empirical recipe references; they do not alter the authoritative recipe.
+
 ## Stable output data
 
 Stages use these canonical fields:

@@ -1,4 +1,6 @@
-export const BREW_NATIVE_EXECUTION_REVISION = 'p2-native-brew-execution/1.1';
+import { formatStageLabel, formatStageSpeech, canAnnounceNextStage, canAnnounceStageCountdown } from '../domain/brew/timer-presentation.js';
+
+export const BREW_NATIVE_EXECUTION_REVISION = 'p2-native-brew-execution/1.2';
 
 let latestPlan = null;
 let latestPreparationSpeech = '';
@@ -10,22 +12,13 @@ function nativeBridge() {
   return globalThis.__LUCKYBEAN_ANDROID__ ? globalThis.LuckyBeanNative : null;
 }
 
-function stageSpeech(stage = {}) {
-  const parts = [String(stage.name || '').trim()];
-  if (Number.isFinite(Number(stage.stageWaterG))) parts.push(`注水${Math.round(Number(stage.stageWaterG))}克`);
-  if (Number.isFinite(Number(stage.temperatureC))) parts.push(`水温${Math.round(Number(stage.temperatureC))}度`);
-  const method = String(stage.method || '').trim();
-  if (method) parts.push(method);
-  return parts.filter(Boolean).join('，');
-}
-
 function prefixDurationSec(stages = [], stageIndex = 0) {
   return stages.slice(0, Math.max(0, stageIndex)).reduce((sum, stage) => sum + Math.max(0, Number(stage.durationSec || 0)), 0);
 }
 
-export function buildNativeBrewExecutionPayload(plan = {}, { stageIndex = 0 } = {}) {
+export function buildNativeBrewExecutionPayload(plan = {}, { stageIndex = 0, startCue = 'start' } = {}) {
   const stages = Array.isArray(plan?.stages) ? plan.stages : [];
-  const startIndex = Math.min(Math.max(0, Number(stageIndex) || 0), Math.max(0, stages.length - 1));
+  const startIndex = Math.min(Math.max(0, Math.trunc(Number(stageIndex)) || 0), Math.max(0, stages.length - 1));
   const baseSec = prefixDurationSec(stages, startIndex);
   let elapsedMs = 0;
   const stageRows = stages.slice(startIndex).map((stage, offset) => {
@@ -34,7 +27,7 @@ export function buildNativeBrewExecutionPayload(plan = {}, { stageIndex = 0 } = 
       index: startIndex + offset,
       startMs: elapsedMs,
       endMs: elapsedMs + durationMs,
-      name: String(stage.name || ''),
+      name: formatStageLabel(stage, startIndex + offset),
       waterG: Number(stage.stageWaterG || 0),
       cumulativeWaterG: Number(stage.cumulativeWaterG || 0),
       method: String(stage.method || ''),
@@ -48,12 +41,17 @@ export function buildNativeBrewExecutionPayload(plan = {}, { stageIndex = 0 } = 
     id: `stage-${row.index}`,
     atMs: row.startMs,
     validWindowMs: 5000,
-    text: stageSpeech(stages[startIndex + offset])
+    text: formatStageSpeech(stages[startIndex + offset], row.index, { cue:offset === 0 ? startCue : 'advance' })
   }));
 
   stageRows.slice(1).forEach(row => {
-    events.push({ id:`prepare-stage-${row.index}`, atMs:Math.max(0, row.startMs - 8000), validWindowMs:3000, text:`准备：${stageSpeech(stages[row.index])}` });
-    events.push({ id:`countdown-stage-${row.index}`, atMs:Math.max(0, row.startMs - 3200), validWindowMs:1200, text:'三，二，一', fixedKey:'countdown_321' });
+    const previous = stages[row.index - 1];
+    if (canAnnounceNextStage(previous?.durationSec)) {
+      events.push({ id:`prepare-stage-${row.index}`, atMs:row.startMs - 8000, validWindowMs:3000, text:String(stages[row.index]?.advanceSpeech || '').trim() || formatStageSpeech(stages[row.index], row.index, { cue:'prepare', notice:false }) });
+    }
+    if (canAnnounceStageCountdown(previous?.durationSec)) {
+      events.push({ id:`countdown-stage-${row.index}`, atMs:row.startMs - 3200, validWindowMs:1200, text:'三，二，一', fixedKey:'countdown_321' });
+    }
   });
 
   for (const action of Array.isArray(plan?.executionActions) ? plan.executionActions : []) {
@@ -115,9 +113,9 @@ function prepareNative(plan, speech) {
   if (latestPreparationSpeech) callNative('announceBrewPreparation', latestPreparationSpeech);
 }
 
-function startNativeFromStage(stageIndex = 0) {
+function startNativeFromStage(stageIndex = 0, startCue = 'start') {
   if (!nativeBridge() || !latestPlan) return;
-  latestPayload = buildNativeBrewExecutionPayload(latestPlan, { stageIndex });
+  latestPayload = buildNativeBrewExecutionPayload(latestPlan, { stageIndex, startCue });
   callNative('prepareBrewExecution', latestPayload);
   callNative('startBrewExecution', latestPayload);
 }
@@ -156,7 +154,7 @@ document.addEventListener('click', event => {
     return;
   }
   if (event.target.closest?.('#timerPrevBtn,#timerNextBtn')) {
-    requestAnimationFrame(() => { if (timerActive()) startNativeFromStage(currentTimerStageIndex()); });
+    requestAnimationFrame(() => { if (timerActive()) startNativeFromStage(currentTimerStageIndex(), 'switch'); });
     return;
   }
   if (event.target.closest?.('#timerEndBtn,#cancelPreparationBtn')) {

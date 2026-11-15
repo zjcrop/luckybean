@@ -54,6 +54,12 @@ jobs:
             echo 'Private key or server secret material found in source'
             exit 1
           fi
+      - uses: actions/setup-java@v5.7.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify timer speech and Java cache identity
+        run: node --test test/brew-timer-state-machine.test.js test/brew-timer-presentation.test.js test/brew-speech-cache-key.test.js
       - run: npm run test:static
       - name: Verify live BrewIon Coffee Foundation contract
         run: node tests/foundation-live-contract.mjs
