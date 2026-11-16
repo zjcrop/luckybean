@@ -56,10 +56,10 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node scripts/validate-release-meta.mjs
-          test "$(jq -r .revision release.json)" = '1.24P-main.22-dsb'
-          test "$(jq -r .androidVersionCode release.json)" = '102439'
+          test "$(jq -r .revision release.json)" = '1.24P-main.23-dsb'
+          test "$(jq -r .androidVersionCode release.json)" = '102441'
           test "$(jq -r .androidUserAgent release.json)" = 'LuckyBeanDS/1.24P'
-          test "$(jq -r .releaseTag release.json)" = 'v1.24P-main.22-dsb'
+          test "$(jq -r .releaseTag release.json)" = 'v1.24P-main.23-dsb'
           printf 'SOURCE_SHA=%s\nDISPLAY_VERSION=%s\nRELEASE_REVISION=%s\nANDROID_VERSION_CODE=%s\nRELEASE_TAG=%s\n' \
             "$GITHUB_SHA" "$(jq -r .displayVersion release.json)" "$(jq -r .revision release.json)" \
             "$(jq -r .androidVersionCode release.json)" "$(jq -r .releaseTag release.json)" >> "$GITHUB_ENV"
@@ -164,7 +164,8 @@ jobs:
               assert "REVISION = '" + metadata["revision"] + "'" in apk.read(prefix + "sw.js").decode("utf-8"), "Packaged cache revision differs"
               for source in (
                   "src/app.js", "src/core/startup-controller.js",
-                  "src/domain/water/water-analysis.js", "src/domain/water/cuili-water-record.js",
+                  "src/domain/recognition/ocr-model-transport.js", "src/recognition-paddle-ocr-fast.js",
+                  "src/recognition-paddle-ocr.js", "src/domain/water/water-analysis.js", "src/domain/water/cuili-water-record.js",
                   "src/domain/brew/extraction-assessment.js", "src/domain/brew/timer-presentation.js",
                   "src/ui/water-extraction-panel.js", "src/ui/brew-native-execution-controller.js",
                   "src/services/brew-calculation-coordinator.js", "src/contracts/brew-contract-adapter.js",
@@ -175,8 +176,8 @@ jobs:
               for required in (
                   "native-bridge.js", "public/vendor/paddleocr/sdk.mjs",
                   "public/vendor/paddleocr/ort/ort-wasm-simd-threaded.wasm",
-                  "public/vendor/paddleocr/models/PP-OCRv5_mobile_det_onnx_infer.tar",
-                  "public/vendor/paddleocr/models/PP-OCRv5_mobile_rec_onnx_infer.tar",
+                  "public/vendor/paddleocr/models/PP-OCRv5_mobile_det.json",
+                  "public/vendor/paddleocr/models/PP-OCRv5_mobile_rec.json",
               ):
                   assert apk.getinfo(prefix + required).file_size > 0, "Missing offline asset: " + required
           print("Packaged DS-B revision, water/timer source and offline OCR assets verified.")
@@ -240,11 +241,11 @@ jobs:
           revision=$(jq -r .revision release.json)
           version=$(jq -r .displayVersion release.json)
           apk_name="LuckyBean-DS-B-${version}-release.apk"
-          test "$release_tag" = 'v1.24P-main.22-dsb'
-          test "$revision" = '1.24P-main.22-dsb'
+          test "$release_tag" = 'v1.24P-main.23-dsb'
+          test "$revision" = '1.24P-main.23-dsb'
           grep -Fxq "source_sha=$GITHUB_SHA" dist/BUILD_INFO.txt
           grep -Fxq "revision=$revision" dist/BUILD_INFO.txt
-          grep -Fxq 'version_code=102439' dist/BUILD_INFO.txt
+          grep -Fxq 'version_code=102441' dist/BUILD_INFO.txt
           (cd dist && sha256sum --check SHA256SUMS.txt)
           if git show-ref --verify --quiet "refs/tags/$release_tag"; then
             tag_sha=$(git rev-parse "refs/tags/$release_tag^{commit}")

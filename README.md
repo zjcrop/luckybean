@@ -4,14 +4,16 @@
 
 | 版本 | 正式签名 APK | 校验文件 |
 | --- | --- | --- |
-| 云端版 · 1.24P-main.22 | [下载云端版 APK](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22/LuckyBean-1.24P-release.apk) | [SHA256](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22/SHA256SUMS.txt) |
-| DS-B 离线版 · 1.24P-main.22-dsb | [下载 DS-B APK](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22-dsb/LuckyBean-DS-B-1.24P-release.apk) | [SHA256](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22-dsb/SHA256SUMS.txt) |
+| 云端版 · 1.24P-main.23 | [下载云端版 APK](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.23/LuckyBean-1.24P-release.apk) | [SHA256](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.23/SHA256SUMS.txt) |
+| DS-B 离线版 · 1.24P-main.23-dsb | [下载 DS-B APK](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.23-dsb/LuckyBean-DS-B-1.24P-release.apk) | [SHA256](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.23-dsb/SHA256SUMS.txt) |
 
-两款 APK 均包含本次水质、实测萃取核算与计时播报更新，使用各自的 Android 包名，可并行安装。下载后可直接安装或转发发布。
+两款 APK 均包含本次水质、实测萃取核算、计时播报与 OCR JSON 模型加载修复，使用各自的 Android 包名，可并行安装。下载后可直接安装或转发发布。
+
+OCR 下载接管修复详见 [更新说明](docs/OCR_MODEL_TRANSPORT_20261116.md)。
 
 ## 本次水质与计时更新
 
-DS-B 1.24P-main.22-dsb：原水TDS与咖啡液TDS分开，增加本杯实测核算和萃离离子账本核对；修复重复段号及Android旧语音缓存。详见[更新与验证说明](docs/WATER_TDS_VOICE_20261115.md)。
+DS-B 1.24P-main.23-dsb：原水TDS与咖啡液TDS分开，增加本杯实测核算和萃离离子账本核对；修复重复段号及Android旧语音缓存。详见[更新与验证说明](docs/WATER_TDS_VOICE_20261115.md)。
 
 
 LuckyBean DS 是 LuckyBean 的离线本地版，与线上 LuckyBean Cloud 分开发布。豆卡、库存、冲煮记录、品鉴记录和设置保存在本机。
@@ -32,6 +34,6 @@ LuckyBean DS 是 LuckyBean 的离线本地版，与线上 LuckyBean Cloud 分开
 
 Cloud 线上版本继续由 `main` 维护；基础 DS 本地版在 `luckybean-ds` 分支维护，本分支 `LuckyBean-DS-B` 基于 DS 增加 xBloom 设备适配。设备参数与协议边界见 [`docs/XBLOOM_DS_B.md`](docs/XBLOOM_DS_B.md)。
 
-正式安装包由本分支 CI 校验官方签名、入包源码及 Android 10 全新安装后发布：[DS-B 1.24P APK](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22-dsb/LuckyBean-DS-B-1.24P-release.apk)、[SHA256 校验](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22-dsb/SHA256SUMS.txt)、[构建来源](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22-dsb/BUILD_INFO.txt)。DS-B 独立发布，不替换 Cloud 的最新版入口。若已安装旧 debug 包，签名不同会阻止覆盖；更换前先导出本地备份。
+正式安装包由本分支 CI 校验官方签名、入包源码及 Android 10 全新安装后发布：[DS-B 1.24P APK](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.23-dsb/LuckyBean-DS-B-1.24P-release.apk)、[SHA256 校验](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.23-dsb/SHA256SUMS.txt)、[构建来源](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.23-dsb/BUILD_INFO.txt)。DS-B 独立发布，不替换 Cloud 的最新版入口。若已安装旧 debug 包，签名不同会阻止覆盖；更换前先导出本地备份。
 
 DS-B 网页入口：[打开 LuckyBean DS-B](https://luckybean-ds-b.jjlink2025.chatgpt.site)。

@@ -41,8 +41,6 @@ assert.doesNotMatch(paddle, /const\s+DEFAULT_RUNTIME_BASE\s*=\s*new URL/);
 assert.match(paddle, /assetUrl\('sdk\.mjs'\)/);
 assert.match(paddle, /assetUrl\('worker\.js'\)/);
 assert.match(paddle, /assetUrl\('roi-worker\.js'\)/);
-assert.match(paddle, /assetUrl\('models\/PP-OCRv5_mobile_det_onnx_infer\.tar'\)/);
-assert.match(paddle, /assetUrl\('models\/PP-OCRv5_mobile_rec_onnx_infer\.tar'\)/);
 assert.match(paddle, /globalThis\.CoffeeFoundationPaddleOCR\s*=\s*paddleOcrApi/);
 assert.match(paddle, /coffee-foundation:ocr-progress/);
 
@@ -51,3 +49,5 @@ assert.equal(deprecated.properties.schemaVersion.const, 'recognition-document/1.
 assert.notEqual(consumer.localSnapshots.recognitionDocument, 'contracts/recognition-document-v1.schema.json');
 
 console.log('Coffee Foundation local contract regression passed');
+assert.match(paddle, /withOcrModelAssets/, 'all OCR creation paths must use JSON model transport');
+assert.doesNotMatch(paddle, /onnx_infer\.tar/, 'browser providers must not request archive URLs');
