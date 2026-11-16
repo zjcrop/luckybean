@@ -53,7 +53,7 @@ assert.match(account, /<span>账户<\/span><small>唯一的登录与自动同步
 assert.doesNotMatch(runtime, /postbrew-sensory/);
 assert.doesNotMatch(sw, /postbrew-sensory-controller/);
 if (androidBuild.includes("applicationId 'com.luckybean.ds'")) {
-  assert.match(androidStrings, /<string name="app_name">LuckyBean DS<\/string>/);
+  assert.match(androidStrings, /<string name="app_name">LuckyBean DS_B<\/string>/);
 } else {
   assert.match(androidBuild, /applicationId 'com\.luckybean\.app'/);
 }

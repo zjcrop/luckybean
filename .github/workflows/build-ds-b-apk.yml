@@ -56,10 +56,11 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node scripts/validate-release-meta.mjs
-          test "$(jq -r .revision release.json)" = '1.24P-main.23-dsb'
-          test "$(jq -r .androidVersionCode release.json)" = '102441'
+          grep -Fq '<string name="app_name">LuckyBean DS_B</string>' android/app/src/main/res/values/strings.xml
+          test "$(jq -r .revision release.json)" = '1.24P-main.24-dsb'
+          test "$(jq -r .androidVersionCode release.json)" = '102442'
           test "$(jq -r .androidUserAgent release.json)" = 'LuckyBeanDS/1.24P'
-          test "$(jq -r .releaseTag release.json)" = 'v1.24P-main.23-dsb'
+          test "$(jq -r .releaseTag release.json)" = 'v1.24P-main.24-dsb'
           printf 'SOURCE_SHA=%s\nDISPLAY_VERSION=%s\nRELEASE_REVISION=%s\nANDROID_VERSION_CODE=%s\nRELEASE_TAG=%s\n' \
             "$GITHUB_SHA" "$(jq -r .displayVersion release.json)" "$(jq -r .revision release.json)" \
             "$(jq -r .androidVersionCode release.json)" "$(jq -r .releaseTag release.json)" >> "$GITHUB_ENV"
@@ -241,11 +242,11 @@ jobs:
           revision=$(jq -r .revision release.json)
           version=$(jq -r .displayVersion release.json)
           apk_name="LuckyBean-DS-B-${version}-release.apk"
-          test "$release_tag" = 'v1.24P-main.23-dsb'
-          test "$revision" = '1.24P-main.23-dsb'
+          test "$release_tag" = 'v1.24P-main.24-dsb'
+          test "$revision" = '1.24P-main.24-dsb'
           grep -Fxq "source_sha=$GITHUB_SHA" dist/BUILD_INFO.txt
           grep -Fxq "revision=$revision" dist/BUILD_INFO.txt
-          grep -Fxq 'version_code=102441' dist/BUILD_INFO.txt
+          grep -Fxq 'version_code=102442' dist/BUILD_INFO.txt
           (cd dist && sha256sum --check SHA256SUMS.txt)
           if git show-ref --verify --quiet "refs/tags/$release_tag"; then
             tag_sha=$(git rev-parse "refs/tags/$release_tag^{commit}")
