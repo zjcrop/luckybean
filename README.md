@@ -24,3 +24,5 @@ LuckyBean DS 是 LuckyBean 的离线本地版，与线上 LuckyBean Cloud 分开
 Cloud 线上版本继续由 `main` 维护；基础 DS 本地版在 `luckybean-ds` 分支维护，本分支 `LuckyBean-DS-B` 基于 DS 增加 xBloom 设备适配。设备参数与协议边界见 [`docs/XBLOOM_DS_B.md`](docs/XBLOOM_DS_B.md)。
 
 正式安装包由本分支 CI 校验官方签名、入包源码及 Android 10 全新安装后发布：[DS-B 1.24P APK](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22-dsb/LuckyBean-DS-B-1.24P-release.apk)、[SHA256 校验](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22-dsb/SHA256SUMS.txt)、[构建来源](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22-dsb/BUILD_INFO.txt)。DS-B 独立发布，不替换 Cloud 的最新版入口。若已安装旧 debug 包，签名不同会阻止覆盖；更换前先导出本地备份。
+
+DS-B 网页入口：[打开 LuckyBean DS-B](https://luckybean-ds-b.jjlink2025.chatgpt.site)。

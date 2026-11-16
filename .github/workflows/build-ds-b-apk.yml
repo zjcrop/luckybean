@@ -133,7 +133,7 @@ jobs:
           test -s "$apk"
           unzip -tq "$apk"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -p 4 "$apk"
-          signing=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs --min-sdk-version 26 "$apk")
+          signing=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs --min-sdk-version 23 "$apk")
           printf '%s\n' "$signing"
           grep -Fq 'Verified using v1 scheme (JAR signing): true' <<< "$signing"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' <<< "$signing"
