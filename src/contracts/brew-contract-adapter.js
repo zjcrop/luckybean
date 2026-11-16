@@ -1,14 +1,15 @@
 import { buildBrewResult } from '../brew-result-schema.js';
 
 export const BREW_PLAN_SCHEMA_VERSION = 'brew-plan/1.0';
-export const BREW_CONTRACT_ADAPTER_VERSION = 'luckybean-brew-contract-adapter/1.24P.2';
+export const BREW_CONTRACT_ADAPTER_VERSION = 'luckybean-brew-contract-adapter/1.24P.3';
 
 const STAGE_TYPES = new Set(['BLOOM', 'POUR', 'STEEP', 'STIR', 'RELEASE', 'DRAIN', 'COOL']);
 const MOTIONS = new Set(['CENTER', 'SMALL_CIRCLE', 'CIRCLE', 'SPIRAL_OUT', 'SPIRAL_IN', 'NONE']);
 
 function finiteOrUndefined(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : undefined;
+  if (value === null || value === undefined) return undefined;
+  if (typeof value !== 'number' || !Number.isFinite(value)) throw new TypeError('阶段数据须为有限数字，未知值不可转成零');
+  return value;
 }
 
 function normalizeStageType(stage = {}, index = 0) {
@@ -130,7 +131,9 @@ export function attachBrewContracts(plan = {}, input = {}) {
       temperature: plan.temperature || plan.professional?.temperature || null,
       trajectory: Array.isArray(plan.trajectory) ? plan.trajectory : [],
       stages: brewPlan.stages,
-      extraction: plan.extraction || plan.analysis?.extraction || null,
+      extraction: plan.extraction ?? plan.analysis?.extraction ?? plan.extractionModel ?? null,
+      waterAnalysis: plan.waterAnalysis ?? plan.analysis?.waterAnalysis ?? plan.analysisSnapshot?.plan?.waterAnalysis ?? null,
+      extractionAssessment: plan.extractionAssessment ?? plan.analysis?.extractionAssessment ?? plan.analysisSnapshot?.plan?.extractionAssessment ?? null,
       spatial: findSpatialScene(plan)
     },
     flavor: findFlavorSource(plan),

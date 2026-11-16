@@ -1,4 +1,4 @@
-name: LuckyBean DS APK
+name: LuckyBean DS Signed Release APK
 
 on:
   push:
@@ -16,9 +16,11 @@ on:
       - 'recognition-test.html'
       - 'release.json'
       - 'scripts/prepare-paddleocr-vendor.mjs'
+      - 'scripts/validate-release-meta.mjs'
       - 'scripts/verify-ocr-runtime.mjs'
       - 'scripts/verify-offline-apk-install.sh'
       - 'src/**'
+      - 'test/**'
       - 'styles.css'
       - 'sw.js'
   workflow_dispatch:
@@ -27,8 +29,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: luckybean-ds-apk-${{ github.ref }}
-  cancel-in-progress: true
+  group: luckybean-ds-release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   prepare_runtime:
@@ -40,11 +42,27 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
           cache: npm
+
+      - name: Verify exact DS release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node scripts/validate-release-meta.mjs
+          test "$(jq -r .revision release.json)" = '1.24P-main.23-ds'
+          test "$(jq -r .androidVersionCode release.json)" = '102441'
+          test "$(jq -r .androidUserAgent release.json)" = 'LuckyBeanDS/1.24P'
+          test "$(jq -r .releaseTag release.json)" = 'v1.24P-main.23-ds'
+          printf 'SOURCE_SHA=%s\nDISPLAY_VERSION=%s\nRELEASE_REVISION=%s\nANDROID_VERSION_CODE=%s\nRELEASE_TAG=%s\n' \
+            "$GITHUB_SHA" "$(jq -r .displayVersion release.json)" "$(jq -r .revision release.json)" \
+            "$(jq -r .androidVersionCode release.json)" "$(jq -r .releaseTag release.json)" >> "$GITHUB_ENV"
 
       - run: npm ci
 
@@ -61,6 +79,12 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Verify timer speech and Java cache identity
+        run: node --test test/brew-timer-state-machine.test.js test/brew-timer-presentation.test.js test/brew-speech-cache-key.test.js
+
+      - name: Verify offline source regression suite
+        run: npm run test:static
+
       - uses: android-actions/setup-android@v4.0.1
         with:
           packages: 'platform-tools'
@@ -72,14 +96,40 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Assemble DS debug APK
-        run: gradle --no-daemon -p android :app:assembleDebug
+      - name: Restore existing official release keystore
+        shell: bash
+        env:
+          LUCKYBEAN_KEYSTORE_B64: ${{ secrets.LUCKYBEAN_KEYSTORE_B64 }}
+          LUCKYBEAN_STORE_PASSWORD: ${{ secrets.LUCKYBEAN_STORE_PASSWORD }}
+          LUCKYBEAN_KEY_ALIAS: ${{ secrets.LUCKYBEAN_KEY_ALIAS }}
+          LUCKYBEAN_KEY_PASSWORD: ${{ secrets.LUCKYBEAN_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for secret_name in LUCKYBEAN_KEYSTORE_B64 LUCKYBEAN_STORE_PASSWORD LUCKYBEAN_KEY_ALIAS LUCKYBEAN_KEY_PASSWORD; do
+            if [ -z "${!secret_name:-}" ]; then
+              echo "::error::Required official signing secret is missing: $secret_name. No unsigned or debug fallback is allowed."
+              exit 1
+            fi
+          done
+          umask 077
+          printf '%s' "$LUCKYBEAN_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/luckybean-ds-release.jks"
+          test -s "$RUNNER_TEMP/luckybean-ds-release.jks"
+          keytool -list -keystore "$RUNNER_TEMP/luckybean-ds-release.jks" \
+            -storepass:env LUCKYBEAN_STORE_PASSWORD -alias "$LUCKYBEAN_KEY_ALIAS" >/dev/null
 
-      - name: Verify package and prepare download artifact
+      - name: Assemble DS signed release APK
+        env:
+          LUCKYBEAN_KEYSTORE_FILE: ${{ runner.temp }}/luckybean-ds-release.jks
+          LUCKYBEAN_STORE_PASSWORD: ${{ secrets.LUCKYBEAN_STORE_PASSWORD }}
+          LUCKYBEAN_KEY_ALIAS: ${{ secrets.LUCKYBEAN_KEY_ALIAS }}
+          LUCKYBEAN_KEY_PASSWORD: ${{ secrets.LUCKYBEAN_KEY_PASSWORD }}
+        run: gradle --no-daemon -p android :app:assembleRelease
+
+      - name: Verify official signature, offline boundary and embedded source
         shell: bash
         run: |
           set -euo pipefail
-          apk='android/app/build/outputs/apk/debug/app-debug.apk'
+          apk='android/app/build/outputs/apk/release/app-release.apk'
           test -s "$apk"
           unzip -tq "$apk"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -p 4 "$apk"
@@ -87,35 +137,74 @@ jobs:
           printf '%s\n' "$signing"
           grep -Fq 'Verified using v1 scheme (JAR signing): true' <<< "$signing"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' <<< "$signing"
+          expected_cert=$(tr -d '[:space:]:' < android/signing/CERT_SHA256.txt | tr '[:lower:]' '[:upper:]')
+          actual_cert=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' <<< "$signing" | tr -d '[:space:]:' | tr '[:lower:]' '[:upper:]')
+          [[ "$expected_cert" =~ ^[0-9A-F]{64}$ ]]
+          test "$actual_cert" = "$expected_cert"
+          printf 'SIGNING_CERT_SHA256=%s\n' "$actual_cert" >> "$GITHUB_ENV"
           badging=$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk")
-          [[ "$badging" == *"package: name='com.luckybean.ds'"* ]]
+          [[ "$badging" == *"package: name='com.luckybean.ds' versionCode='$ANDROID_VERSION_CODE' versionName='$DISPLAY_VERSION'"* ]]
           [[ "$badging" == *"sdkVersion:'26'"* ]]
-          apk_entries=$(unzip -Z1 "$apk")
-          for required in \
-            'assets/web-cache/public/vendor/paddleocr/sdk.mjs' \
-            'assets/web-cache/public/vendor/paddleocr/ort/ort-wasm-simd-threaded.wasm' \
-            'assets/web-cache/public/vendor/paddleocr/models/PP-OCRv5_mobile_det_onnx_infer.tar' \
-            'assets/web-cache/public/vendor/paddleocr/models/PP-OCRv5_mobile_rec_onnx_infer.tar'; do
-            if ! grep -Fqx "$required" <<< "$apk_entries"; then
-              echo "Missing offline OCR asset in APK: $required" >&2
-              exit 1
-            fi
-          done
-
+          permissions=$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump permissions "$apk")
+          if grep -Fq 'android.permission.INTERNET' <<< "$permissions"; then
+            echo 'DS APK must not request INTERNET permission' >&2
+            exit 1
+          fi
+          if grep -Fq 'android.permission.BLUETOOTH' <<< "$permissions"; then
+            echo 'DS offline APK must not request Bluetooth permissions' >&2
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json
+          import pathlib
+          import zipfile
+          metadata = json.loads(pathlib.Path("release.json").read_text(encoding="utf-8"))
+          with zipfile.ZipFile("android/app/build/outputs/apk/release/app-release.apk") as apk:
+              prefix = "assets/web-cache/"
+              assert json.loads(apk.read(prefix + "release.json")) == metadata, "Packaged release metadata differs"
+              html = apk.read(prefix + "index.html").decode("utf-8")
+              assert 'release-revision" content="' + metadata["revision"] + '"' in html, "Packaged HTML revision differs"
+              assert 'application-version" content="' + metadata["displayVersion"] + '"' in html, "Packaged HTML version differs"
+              assert "REVISION = '" + metadata["revision"] + "'" in apk.read(prefix + "sw.js").decode("utf-8"), "Packaged cache revision differs"
+              for source in (
+                  "src/app.js", "src/core/startup-controller.js",
+                  "src/domain/recognition/ocr-model-transport.js", "src/recognition-paddle-ocr-fast.js",
+                  "src/recognition-paddle-ocr.js", "src/domain/water/water-analysis.js", "src/domain/water/cuili-water-record.js",
+                  "src/domain/brew/extraction-assessment.js", "src/domain/brew/timer-presentation.js",
+                  "src/ui/water-extraction-panel.js", "src/ui/brew-native-execution-controller.js",
+                  "src/services/brew-calculation-coordinator.js", "src/contracts/brew-contract-adapter.js",
+              ):
+                  assert apk.read(prefix + source) == pathlib.Path(source).read_bytes(), "Packaged source differs: " + source
+              adapter = apk.read(prefix + "src/contracts/brew-contract-adapter.js").decode("utf-8")
+              assert "luckybean-brew-contract-adapter/" + metadata["displayVersion"] + ".3" in adapter, "Packaged adapter is outdated"
+              for required in (
+                  "native-bridge.js", "public/vendor/paddleocr/sdk.mjs",
+                  "public/vendor/paddleocr/ort/ort-wasm-simd-threaded.wasm",
+                  "public/vendor/paddleocr/models/PP-OCRv5_mobile_det.json",
+                  "public/vendor/paddleocr/models/PP-OCRv5_mobile_rec.json",
+              ):
+                  assert apk.getinfo(prefix + required).file_size > 0, "Missing offline asset: " + required
+          print("Packaged DS revision, water/timer source and offline OCR assets verified.")
+          PY
           mkdir -p dist
-          artifact="dist/LuckyBean-DS-${GITHUB_SHA:0:12}.apk"
-          cp "$apk" "$artifact"
-          sha256sum "$artifact" > dist/SHA256SUMS.txt
-          printf 'source_sha=%s\nbranch=%s\napplication_id=com.luckybean.ds\nbuild_type=debug\n' \
-            "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist/BUILD_INFO.txt
+          cp "$apk" "dist/LuckyBean-DS-${DISPLAY_VERSION}-release.apk"
 
       - name: Install Android 10 emulator image
         run: sdkmanager 'emulator' 'system-images;android-29;google_apis;x86_64'
 
-      - name: Verify fresh installation on Android 10
+      - name: Verify signed release fresh installation on Android 10
+        shell: bash
         run: |
-          expected_code=$(node -p "require('./release.json').androidVersionCode")
-          bash scripts/verify-offline-apk-install.sh android/app/build/outputs/apk/debug/app-debug.apk "$expected_code"
+          set -euo pipefail
+          bash scripts/verify-offline-apk-install.sh android/app/build/outputs/apk/release/app-release.apk "$ANDROID_VERSION_CODE"
+
+      - name: Record verified release provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'source_sha=%s\nbranch=%s\napplication_id=com.luckybean.ds\nbuild_type=release\ndisplay_version=%s\nrevision=%s\nversion_code=%s\nrelease_tag=%s\ncertificate_sha256=%s\nandroid_10_fresh_install=passed\ninternet_permission=absent\n' \
+            "$SOURCE_SHA" "$GITHUB_REF_NAME" "$DISPLAY_VERSION" "$RELEASE_REVISION" "$ANDROID_VERSION_CODE" "$RELEASE_TAG" "$SIGNING_CERT_SHA256" > dist/BUILD_INFO.txt
+          (cd dist && sha256sum "LuckyBean-DS-${DISPLAY_VERSION}-release.apk" BUILD_INFO.txt > SHA256SUMS.txt)
 
       - uses: actions/upload-artifact@v7.0.1
         with:
@@ -123,3 +212,60 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 30
+
+      - name: Remove temporary signing material
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/luckybean-ds-release.jks"
+
+  publish:
+    name: Publish DS signed release
+    needs: build
+    if: github.ref == 'refs/heads/luckybean-ds' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v8.0.1
+        with:
+          name: luckybean-ds-apk-${{ github.sha }}
+          path: dist/
+      - name: Publish immutable DS tag without changing Cloud latest
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          release_tag=$(jq -r .releaseTag release.json)
+          revision=$(jq -r .revision release.json)
+          version=$(jq -r .displayVersion release.json)
+          apk_name="LuckyBean-DS-${version}-release.apk"
+          test "$release_tag" = 'v1.24P-main.23-ds'
+          test "$revision" = '1.24P-main.23-ds'
+          grep -Fxq "source_sha=$GITHUB_SHA" dist/BUILD_INFO.txt
+          grep -Fxq "revision=$revision" dist/BUILD_INFO.txt
+          grep -Fxq 'version_code=102441' dist/BUILD_INFO.txt
+          (cd dist && sha256sum --check SHA256SUMS.txt)
+          if git show-ref --verify --quiet "refs/tags/$release_tag"; then
+            tag_sha=$(git rev-parse "refs/tags/$release_tag^{commit}")
+            echo "::error::$release_tag already exists at $tag_sha; no tag will be moved or assets reuploaded. Inspect it or increment the release revision."
+            exit 1
+          fi
+          existing_release=$(gh release list --limit 100 --json tagName --jq ".[] | select(.tagName == \"$release_tag\") | .tagName")
+          if [ -n "$existing_release" ]; then
+            echo "::error::$release_tag already has a release or draft; refusing to replace its assets."
+            exit 1
+          fi
+          notes="LuckyBean DS $version ($revision). Official certificate, embedded-source parity and Android 10 fresh installation verified. Source: $GITHUB_SHA. Offline package com.luckybean.ds; Cloud latest is unchanged."
+          gh release create "$release_tag" --draft --latest=false --target "$GITHUB_SHA" \
+            --title "LuckyBean DS $version" --notes "$notes"
+          gh release upload "$release_tag" "dist/$apk_name" dist/SHA256SUMS.txt dist/BUILD_INFO.txt
+          gh release edit "$release_tag" --draft=false --latest=false
+          tag_sha=$(git ls-remote origin "refs/tags/$release_tag" | awk '{print $1}')
+          test "$tag_sha" = "$GITHUB_SHA"
+          gh release view "$release_tag" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"

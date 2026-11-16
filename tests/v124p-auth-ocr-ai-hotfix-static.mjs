@@ -56,7 +56,7 @@ assert.match(bridge,/webkit-direct-wasm-no-simd/);
 assert.match(bridge,/provider\.roiWorkerOnly !== true/);
 assert.doesNotMatch(bridge,/invokeWebProvider\(globalThis\.LuckyBeanWebOCR|result\s*=\s*await[^\n]*LuckyBeanWebOCR/,'automatic Tesseract fallback must remain disabled');
 
-assert.match(release.revision,/^1\.24P-main\.\d+$/);
+assert.match(release.revision,/^1\.24P-main\.\d+-ds$/);
 assert.ok(Number.isInteger(release.androidVersionCode));
 assert.equal(release.releaseTag,`v${release.revision}`);
 assert.match(sw,/recognition-ai-service\.js/);

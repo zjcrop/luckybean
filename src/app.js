@@ -8,6 +8,8 @@ import { CameraScanner, scanQrFile, decodeJsQrResult } from './qr.js';
 import { computeFallbackPlan, requestPrivatePlan, validatePlan, FALLBACK_ENGINE_VERSION, buildCorrectedPlan, listBrewProfiles, recommendProfile } from './brew-engine.js';
 import { brewProfileCatalogStatus } from './services/brew-profile-catalog-service.js';
 import { listWaterProfiles, inferWaterProfile } from './water-profiles.js';
+import {measurementPanelHtml,readBrewMeasurements,clearBrewMeasurementFields,measurementsForEngine,waterForEngine,measurementPreview,waterExtractionResultHtml} from './ui/water-extraction-panel.js';
+import { parseCuiLiWaterRecord, describeCuiLiWaterRecord, customWaterProfileForTransport, withCuiLiWaterWarnings, CUILI_WATER_LOCAL_KEY, MAX_CUILI_WATER_JSON_BYTES } from './domain/water/cuili-water-record.js';
 import { buildCompactSharePayload, encodeSharePayload, decodeSharePayload } from './share-codec.js';
 import { computeAutomaticScore, sensoryPreferenceTags, buildPreferenceModel, recommendedBeanIds } from './preference-model.js';
 import { commitCompletedBrew, permanentlyDeleteBrewRecords } from './domain/history/history-service.js';
@@ -17,6 +19,7 @@ import { buildBeanConsumptionSummary, DEFAULT_CAFFEINE_HEALTH_SETTINGS } from '.
 import { prepareBeanThumbnail, saveBeanThumbnail, getBeanThumbnail, deleteBeanThumbnail } from './domain/beans/bean-thumbnail-storage.js';
 import { planRemainingBeanDoses } from './domain/beans/leftover-brew-recommendation.js';
 import { TIMER_STATUS, transitionBrewTimerState } from './domain/brew/timer-state-machine.js';
+import { formatStageLabel, formatStageSpeech, normalizePreparationSpeech, canAnnounceNextStage, canAnnounceStageCountdown } from './domain/brew/timer-presentation.js';
 import { beanGroupState, setBeanGroupMode, openBeanGroupState, closeBeanGroupState, hasActiveBeanGroup } from './domain/beans/bean-group-state.js';
 import { loadBeanGroupMode } from './domain/beans/bean-group-settings.js';
 import { createLocalReferenceAnalysis } from './services/local-reference-analysis.js';
@@ -103,7 +106,7 @@ const state = {
   data: { beansReady: false, beansMode: 'summary', detailBeanId: '', sensoryScope: 'none', sensoryBeanId: '', inventoryReady: false },
   settings: structuredClone(DEFAULT_SETTINGS), page: 'beans', selectedBeanId: null,
   filter: { search: '', country: '', variety: '', process: '', flavors: [], sort: 'freshness', dir: 'asc' },
-  recommendedBeanId: null, currentPlan: null, currentBrewInput: null,
+  recommendedBeanId: null, currentPlan: null, currentBrewInput: null, localWaterRecord: null, brewMeasurements: null,
   brewProfileOverride: null, brewDripperOverride: null, brewEntryMode: 'normal',
   beanFormSource: null, beanFormDraft: null, cameraScanner: null,
   timer: { interval: null, paused: false, status: TIMER_STATUS.READY, stageIndex: 0, remaining: 0, actionCues:new Set() }, currentExecution: null,
@@ -199,6 +202,8 @@ async function loadSettings() {
   state.settings.sensoryRecentLimit = clamp(state.settings.sensoryRecentLimit || 50, 5, 200);
   if (!state.settings.brew.waterProfileId || state.settings.brew.waterProfileId === 'auto') state.settings.brew.waterProfileId = 'plain';
   state.settings.brew.profileId = 'recommended';
+  try { const local = localStorage.getItem(CUILI_WATER_LOCAL_KEY); state.localWaterRecord = local ? parseCuiLiWaterRecord(local) : null; }
+  catch (error) { state.localWaterRecord = null; console.warn('本地萃离水样记录未通过核验', error.message); }
 }
 
 async function saveSettings() { await setSetting('app.settings', state.settings); }
@@ -1780,6 +1785,7 @@ function buildBrewInput(bean) {
     ? Number(state.settings.brew.ratio || DEFAULT_SETTINGS.brew.ratio)
     : parseNumber(ratioSelection, state.settings.brew.ratio || DEFAULT_SETTINGS.brew.ratio);
   const leftoverDose = state.leftoverDoseOverride?.beanId === bean.id ? state.leftoverDoseOverride : null;
+  const measurementValues=readBrewMeasurements(document);
   return {
     bean: { countryCode: bean.countryCode, regionCode: bean.regionCode, entityCode: bean.entityCode, varietyCode: bean.varietyCode, processCode: bean.processCode, roastCode: bean.roastCode, roastColor: bean.roastColor || null, roastDate: bean.roastDate, altitude: bean.altitude || null },
     brew: {
@@ -1792,7 +1798,8 @@ function buildBrewInput(bean) {
       temperatureTune: Number(state.settings.brew.temperatureTune || 0), grindTune: Number(state.settings.brew.grindTune || 0), bloomTune: Number(state.settings.brew.bloomTune || 0),
       repeatability: Boolean(state.settings.brew.repeatability), waterProfileId: resolvedWater
     },
-    water: { selectionMode: waterSelection === 'plain' ? 'plain' : 'profile', profileId: resolvedWater, recipeVolumeL: Number(state.settings.brew.waterVolumeL || 5), tdsMgL: waterSelection === 'plain' ? null : Number(customWater.tds || 85), customProfile: resolvedWater === 'custom' ? (waterSelection === 'plain' ? plainWater : customWater) : undefined },
+    water: { selectionMode: waterSelection === 'plain' ? 'plain' : 'profile', profileId: resolvedWater, recipeVolumeL: Number(state.settings.brew.waterVolumeL || 5), ...waterForEngine({values:measurementValues,localWaterRecord:waterSelection==='custom'?state.localWaterRecord:null}), customProfile: resolvedWater === 'custom' ? (waterSelection === 'plain' ? plainWater : customWaterProfileForTransport(customWater)) : undefined },
+    measurements: measurementsForEngine(measurementValues),
     environment: { ...state.settings.brew.environment },
     targets: { acidity: Number(targets.acidity), floral: Number(targets.floral), fruity: Number(targets.fruity), sweetness: Number(targets.sweetness), bitterness: Number(targets.bitterness), astringency: Number(targets.astringency) }
   };
@@ -1955,6 +1962,11 @@ function renderBrew() {
   const settings = state.settings.brew;
   const waterProfiles = listWaterProfiles();
   const currentWater = settings.waterProfileId && settings.waterProfileId !== 'auto' ? settings.waterProfileId : 'plain';
+  const measurementScope = JSON.stringify([state.selectedBeanId || null, currentWater]);
+  if (state.brewMeasurementScope !== measurementScope) {
+    state.brewMeasurements = clearBrewMeasurementFields(document);
+    state.brewMeasurementScope = measurementScope;
+  }
   const drippers = gearDrippers();
   const currentProfileId = brewProfileSelection();
   const currentDripperSelection = state.brewDripperOverride || 'recommended';
@@ -1971,7 +1983,7 @@ function renderBrew() {
   const recentSessions = state.brewSessions.filter(session => session.beanId === state.selectedBeanId).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,5);
   const heading = $('#brewHeadingBean');
   if (heading) heading.innerHTML = `<select id="brewBean" class="control brew-bean-heading" aria-label="选择豆子">${activeBeans.map(bean=>`<option value="${esc(bean.id)}"${bean.id===state.selectedBeanId?' selected':''}>${esc(beanDisplayName(bean))}</option>`).join('')}</select>`;
-  const customWaterLabel = currentWater === 'custom' ? `${settings.customWater?.name || '自定义'} · TDS ${Number(settings.customWater?.tds || 85)}` : '';
+  const customWaterLabel = currentWater === 'custom' ? `${settings.customWater?.name || '自定义'} · 参考TDS ${Number(settings.customWater?.tds ?? 85)}` : '';
   const ratioRecommendedLabel = `1:${Number(settings.ratio || 15.5)}`;
   container.innerHTML = `${leftoverSuggestion}<section class="panel brew-form"><div class="brew-compact-grid lb-brew-five-row">
     <div class="brew-row brew-row-primary brew-mode-dose-ratio" data-brew-row="dose-ratio"><label class="field brew-primary-field brew-mode-field"><span>冷热</span><button id="brewServeMode" class="control control-button brew-serve-toggle ${serveMode}" type="button" aria-label="切换冷热冲煮"><span aria-hidden="true">${serveMode==='cold'?'❄':'♨'}</span><strong>${serveMode==='cold'?'冷':'热'}</strong></button></label><label class="field brew-primary-field"><span>粉量</span><button id="brewDose" class="control control-button brew-large-control brew-dose-button${settings.doseMode!=='manual'?' model-recommended lb-auto-field':' custom-selected'}"${settings.doseMode!=='manual'?' data-source="auto"':''} type="button">${esc(resolvedDoseLabel(brewProfiles))}</button></label><label class="field brew-primary-field"><span>粉水比</span><select id="brewRatio" class="control brew-large-control${settings.ratioMode!=='manual'?' model-recommended lb-auto-field':' custom-selected'}"${settings.ratioMode!=='manual'?' data-source="auto"':''}><option value="auto"${settings.ratioMode!=='manual'?' selected':''}>${esc(ratioRecommendedLabel)}</option>${[10,11,12,13,14,14.5,15,15.5,16,16.5,17,18].map(value=>`<option value="${value}"${settings.ratioMode==='manual'&&Number(settings.ratio)===value?' selected':''}>1:${value}</option>`).join('')}</select></label></div>
@@ -1981,9 +1993,14 @@ function renderBrew() {
     <div class="brew-row one brew-profile-row" data-brew-row="profile"><label class="field brew-profile-field"><span>冲煮法</span><select id="brewProfile" class="control brew-large-profile${currentProfileId==='recommended'?' model-recommended':' custom-selected'}"><option value="recommended"${currentProfileId==='recommended'?' selected':''}>自动</option>${brewProfiles.filter(profile=>profile.id!=='recommended').map(profile=>`<option value="${esc(profile.id)}"${currentProfileId===profile.id?' selected':''}>${esc(profile.label)}</option>`).join('')}</select><small class="profile-catalog-status">${esc(catalogLabel)}</small></label></div>
     <div class="brew-generate-row menu-row"><button id="generatePlanBtn" class="button primary" type="button"${selected?'':' disabled'}>生成方案</button><button id="directSensoryBtn" class="button" type="button"${selected?'':' disabled'}>直接品鉴</button></div>
   </div></section>
+  ${measurementPanelHtml(state.brewMeasurements||{},esc)}
   <div id="planResult">${state.currentPlan && state.currentPlan.beanId === state.selectedBeanId ? planHtml(state.currentPlan) : ''}</div>
   ${recentSessions.length ? `<section class="panel"><div class="panel-title"><div><h3>往次方案</h3><p>点击复刻，修正方案标“修”</p></div></div><div class="record-list">${recentSessions.map(sessionRecordHtml).join('')}</div></section>` : ''}`;
-  $('#brewBean')?.addEventListener('change', event => { state.selectedBeanId = event.target.value; state.leftoverDoseOverride = null; state.leftoverPromptDismissedBeanId = ''; state.currentPlan = null; state.brewProfileOverride = null; state.brewDripperOverride = null; state.brewEntryMode = 'normal'; renderBrew(); });
+  $('#brewMeasurementsPreview').textContent=measurementPreview(state.brewMeasurements||{});
+  for(const id of ['sourceWaterTdsReading','measuredCoffeeDose','measuredBeverageTds','measuredBeverageMass']){
+    $('#'+id)?.addEventListener('input',()=>{const preview=$('#brewMeasurementsPreview');try{state.brewMeasurements=readBrewMeasurements(document);preview.textContent=measurementPreview(state.brewMeasurements);preview.className='muted small';}catch(error){preview.textContent=error.message;preview.className='small status-bad';}});
+  }
+  $('#brewBean')?.addEventListener('change', event => { state.brewMeasurements=clearBrewMeasurementFields(document); state.selectedBeanId = event.target.value; state.leftoverDoseOverride = null; state.leftoverPromptDismissedBeanId = ''; state.currentPlan = null; state.brewProfileOverride = null; state.brewDripperOverride = null; state.brewEntryMode = 'normal'; renderBrew(); });
   $('#useRemainingBeanBtn')?.addEventListener('click', async () => {
     const bean = state.beans.find(item => item.id === state.selectedBeanId);
     const dosePlan = bean ? planRemainingBeanDoses(bean.remainingWeight) : null;
@@ -2023,7 +2040,7 @@ function renderBrew() {
   $('#directSensoryBtn')?.addEventListener('click', () => openSensoryModeChooser({ beanId: state.selectedBeanId, source: 'direct-brew' }));
   $('#openFlavorTargetBtn')?.addEventListener('click', openFlavorTargetDialog);
   $('#openBrewTuneBtn')?.addEventListener('click', openBrewTuneDialog);
-  $('#brewWaterProfile')?.addEventListener('change', async event => { state.settings.brew.waterProfileId = event.target.value; await saveSettings(); if (event.target.value === 'custom') openCustomWaterDialog(); else renderBrew(); });
+  $('#brewWaterProfile')?.addEventListener('change', async event => { state.brewMeasurements=clearBrewMeasurementFields(document); state.settings.brew.waterProfileId = event.target.value; if (event.target.value !== 'custom' && state.currentPlan) state.currentPlan = withCuiLiWaterWarnings(state.currentPlan, null); await saveSettings(); if (event.target.value === 'custom') openCustomWaterDialog(); else renderBrew(); });
   $('#openEnvironmentBtn')?.addEventListener('click', openBrewEnvironmentDialog);
   $('#firstCoolingMode')?.addEventListener('click', () => openCoolingModeMenu('first'));
   $('#tailCoolingMode')?.addEventListener('click', () => openCoolingModeMenu('tail'));
@@ -2067,10 +2084,32 @@ function waterDirectionOptions(value = 0) {
 
 function openCustomWaterDialog() {
   const water = state.settings.brew.customWater || DEFAULT_SETTINGS.brew.customWater;
+  let pendingWaterRecord = state.localWaterRecord ? structuredClone(state.localWaterRecord) : null;
+  let importError = '';
+
   const tendency = { ...DEFAULT_SETTINGS.brew.customWater.tendency, ...(water.tendency || {}) };
-  const overlay = showOverlay(`${dialogHeader('自定义水型', '仅保存名称、TDS和风味倾向；精确配方请在“萃离”中调整', { centered: true })}<div class="grid-2"><label class="field"><span>水型名称</span><input id="customWaterName" class="control" maxlength="40" value="${esc(water.name || '我的水型')}"></label><label class="field"><span>参考TDS mg/L</span><input id="customWaterTds" class="control" type="number" min="0" max="300" value="${Number(water.tds||85)}"></label><label class="field"><span>花香倾向</span><select id="customWaterFloral" class="control">${waterDirectionOptions(tendency.floral)}</select></label><label class="field"><span>酸质倾向</span><select id="customWaterAcidity" class="control">${waterDirectionOptions(tendency.acidity)}</select></label><label class="field"><span>甜感倾向</span><select id="customWaterSweetness" class="control">${waterDirectionOptions(tendency.sweetness)}</select></label><label class="field"><span>醇厚倾向</span><select id="customWaterBody" class="control">${waterDirectionOptions(tendency.body)}</select></label><label class="field"><span>苦感倾向</span><select id="customWaterBitterness" class="control">${waterDirectionOptions(tendency.bitterness)}</select></label><label class="field"><span>涩感倾向</span><select id="customWaterAstringency" class="control">${waterDirectionOptions(tendency.astringency)}</select></label></div><label class="field"><span>备注</span><textarea id="customWaterNote" class="control" rows="3" placeholder="例如：在萃离中微调后，花香更突出、涩感降低">${esc(water.note || '')}</textarea></label><p class="muted small">LuckyBean不记录盐类、离子浓度和精确投加量。</p><div class="row end"><button id="saveCustomWaterBtn" class="button primary" type="button">确定</button></div>`, { id: 'custom-water', backdropClose: true });
+  const overlay = showOverlay(`${dialogHeader('自定义水型', '保存水型与风味倾向，可附加萃离单次加热记录', { centered: true })}<div class="grid-2"><label class="field"><span>水型名称</span><input id="customWaterName" class="control" maxlength="40" value="${esc(water.name || '我的水型')}"></label><label class="field"><span>参考TDS mg/L</span><input id="customWaterTds" class="control" type="number" min="0" max="300" value="${Number(water.tds??85)}"></label><label class="field"><span>花香倾向</span><select id="customWaterFloral" class="control">${waterDirectionOptions(tendency.floral)}</select></label><label class="field"><span>酸质倾向</span><select id="customWaterAcidity" class="control">${waterDirectionOptions(tendency.acidity)}</select></label><label class="field"><span>甜感倾向</span><select id="customWaterSweetness" class="control">${waterDirectionOptions(tendency.sweetness)}</select></label><label class="field"><span>醇厚倾向</span><select id="customWaterBody" class="control">${waterDirectionOptions(tendency.body)}</select></label><label class="field"><span>苦感倾向</span><select id="customWaterBitterness" class="control">${waterDirectionOptions(tendency.bitterness)}</select></label><label class="field"><span>涩感倾向</span><select id="customWaterAstringency" class="control">${waterDirectionOptions(tendency.astringency)}</select></label></div><label class="field"><span>备注</span><textarea id="customWaterNote" class="control" rows="3" placeholder="例如：在萃离中微调后，花香更突出、涩感降低">${esc(water.note || '')}</textarea></label><details class="panel" style="margin-top:12px"><summary>导入萃离水样与单次加热记录</summary><p class="muted small">作为本机附加用水记录，不自动切换水型；云端与离线版使用同样的水质核对规则。明确的离子账本会随本次计算用于水质核对；加热记录保留在本机。离子为加热前配方计算值，不是热后实测，不能据此直接增减冲煮温度或时间。</p><label class="field"><span>选择萃离导出的JSON</span><input id="cuiLiWaterFile" class="control" type="file" accept=".json,application/json"></label><label class="field"><span>或粘贴JSON</span><textarea id="cuiLiWaterJson" class="control" rows="4" maxlength="65536" placeholder="{&quot;water&quot;:{...}}"></textarea></label><div class="row"><button id="importCuiLiWaterBtn" class="button" type="button">检查并附加</button><button id="clearCuiLiWaterBtn" class="button" type="button">移除附加记录</button></div><p id="cuiLiWaterStatus" class="muted small" role="status">${esc(describeCuiLiWaterRecord(pendingWaterRecord))}</p></details><p class="muted small">盐类配方与精确投加仍在萃离中调整；附加记录用于明确离子来源和单次加热用水提示，不从TDS反推矿物配比。</p><div class="row end"><button id="saveCustomWaterBtn" class="button primary" type="button">确定</button></div>`, { id: 'custom-water', backdropClose: true });
   bindClose(overlay);
+  const status = $('#cuiLiWaterStatus');
+  const checkImport = text => {
+    try { pendingWaterRecord = parseCuiLiWaterRecord(text); importError = ''; status.textContent = describeCuiLiWaterRecord(pendingWaterRecord) + ' 待点击确定保存到本机。'; status.className = 'small status-good'; return true; }
+    catch (error) { importError = error.message; status.textContent = '未导入：' + error.message; status.className = 'small status-bad'; return false; }
+  };
+  $('#importCuiLiWaterBtn').addEventListener('click', () => checkImport($('#cuiLiWaterJson').value));
+  $('#cuiLiWaterFile').addEventListener('change', async event => {
+    const file = event.target.files?.[0]; if (!file) return;
+    if (file.size > MAX_CUILI_WATER_JSON_BYTES) { importError = '水样JSON超过64KiB限制'; status.textContent = importError; status.className = 'small status-bad'; return; }
+    try { const text = await file.text(); $('#cuiLiWaterJson').value = text; checkImport(text); }
+    catch (error) { importError = error.message; status.textContent = '无法读取文件：' + error.message; status.className = 'small status-bad'; }
+  });
+  $('#clearCuiLiWaterBtn').addEventListener('click', () => { pendingWaterRecord = null; importError = ''; $('#cuiLiWaterJson').value = ''; $('#cuiLiWaterFile').value = ''; status.textContent = '附加记录已移除，点击确定后保存。'; status.className = 'muted small'; });
   $('#saveCustomWaterBtn').addEventListener('click', async () => {
+    const pasted = $('#cuiLiWaterJson').value.trim();
+    if (pasted && !checkImport(pasted)) return;
+    if (importError) return toast('请先修正或移除未通过检查的水样JSON', 'status-bad');
+    try { if (pendingWaterRecord) localStorage.setItem(CUILI_WATER_LOCAL_KEY, JSON.stringify(pendingWaterRecord)); else localStorage.removeItem(CUILI_WATER_LOCAL_KEY); }
+    catch (error) { return toast('水样记录未能保存到本机：' + error.message, 'status-bad'); }
+    state.localWaterRecord = pendingWaterRecord ? structuredClone(pendingWaterRecord) : null;
     state.settings.brew.customWater = {
       name: $('#customWaterName').value.trim() || '我的水型',
       tds: parseNumber($('#customWaterTds').value,85),
@@ -2081,7 +2120,7 @@ function openCustomWaterDialog() {
       },
       note: $('#customWaterNote').value.trim()
     };
-    state.settings.brew.waterProfileId='custom'; await saveSettings(); closeOverlay(); renderBrew();
+    state.settings.brew.waterProfileId='custom'; if(state.currentPlan) state.currentPlan=withCuiLiWaterWarnings(state.currentPlan,state.localWaterRecord); await saveSettings(); closeOverlay(); renderBrew();
   });
 }
 function openFlavorTargetDialog() {
@@ -2114,12 +2153,19 @@ async function generatePlan() {
   const sessionOnlyDose = state.leftoverDoseOverride?.beanId === bean.id;
   const persistentDoseMode = state.settings.brew.doseMode;
   const persistentDoseG = state.settings.brew.doseG;
-  const requestedInput = buildBrewInput(bean);
+  let requestedInput;
+  try { requestedInput = buildBrewInput(bean); }
+  catch (error) {
+    state.currentPlan = null; state.currentBrewInput = null;
+    $('#planResult').innerHTML = `<p class="status-bad" role="alert">${esc(error.message)}</p>`;
+    button.textContent = '生成方案';
+    return toast(error.message, 'status-bad');
+  }
   button.disabled = true; button.textContent = '正在计算…';
   try {
     let plan;
     try {
-      const result = await brewCalculationCoordinator.calculate({ endpoint:state.settings.brew.apiEndpoint, input:requestedInput, previousPlan:state.currentPlan, beanId:bean.id });
+      const result = await brewCalculationCoordinator.calculate({ endpoint:state.settings.brew.apiEndpoint, input:requestedInput, previousPlan:state.currentPlan, beanId:bean.id, localWaterRecord:$('#brewWaterProfile')?.value === 'custom' ? state.localWaterRecord : null });
       if (!result.latest) return;
       plan = sanitizeExecutionPlanText(result.plan);
       state.currentBrewInput = result.input;
@@ -2179,9 +2225,10 @@ function planHtml(plan) {
   const matchPercent = score => Math.round(clamp(Number(score) <= 1 ? Number(score) * 100 : Number(score), 0, 100));
   return `<section class="panel generated-plan" id="generatedPlan"><div class="panel-title"><div><h2>${cold?'冰冲':'热冲'}方案${corrected ? ' · 修正' : ''}</h2><p>${Number(plan.totals?.doseG||0).toFixed(1)}g · ${waterSummary} · ${formatSeconds(plan.totals?.targetTimeSec||0)}</p></div><span class="plan-profile-label">${esc(plan.profile?.label || String(plan.profileVersion || '').split('@')[0])}</span></div>
   ${(plan.warnings||[]).map(warning=>`<p class="small status-warn">${esc(warning)}</p>`).join('')}
-  ${preparation ? `<div class="brew-preparation-card"><strong>计时前准备</strong><p>${esc(preparation.speech)}</p></div>` : ''}
+  ${preparation ? `<div class="brew-preparation-card"><strong>计时前准备</strong><p>${esc(preparationSpeech(plan))}</p></div>` : ''}
   ${first ? `<p class="low-temp-note">首段建议 ${Number(first.temperatureC).toFixed(0)}°C：${esc(plan.firstPourReason || '控制初段释放并保留香气与甜感。')}</p>` : ''}
   <div>${plan.stages.map(stage=>`<article class="plan-stage"><div class="stage-index">${stage.index}</div><div class="stage-lines"><div class="stage-line"><div class="stage-cell"><span>本段注水</span><strong>${Number(stage.stageWaterG).toFixed(0)}g</strong></div><div class="stage-cell"><span>累计注水</span><strong>${Number(stage.cumulativeWaterG).toFixed(0)}g</strong></div><div class="stage-cell"><span>阶段</span><strong>${esc(stage.name)}</strong></div></div><div class="stage-line"><div class="stage-cell"><span>壶中/粉床</span><strong>${Number(stage.temperatureC).toFixed(0)}°/${Number(stage.coreTemperatureC ?? stage.temperatureC).toFixed(0)}°C</strong></div><div class="stage-cell"><span>时间/流速</span><strong>${Number(stage.durationSec).toFixed(0)}s · ${Number(stage.flowGPerSec||0).toFixed(1)}g/s</strong></div><div class="stage-cell"><span>注水方法</span><strong>${esc(stage.method)}</strong><small>${esc(stage.notice || '')}</small></div></div></div></article>`).join('')}</div>
+  ${waterExtractionResultHtml(plan,esc)}
   <details class="details-block professional-result"><summary>专业内容……</summary><div class="details-content">
     <section class="visual-section"><h3>风味拟合</h3><div class="bar-chart">${Object.entries({花香:flavor.floral,酸质:flavor.acidity,甜感:flavor.sweetness,口感:flavor.body,苦感风险:flavor.bitterness,洁净度:flavor.clarity}).map(([key,value])=>`<div class="bar-row"><span>${key}</span><div class="bar-track"><div class="bar-fill" style="width:${clamp(Number(value||0)*100,0,100)}%"></div></div><strong>${Math.round(Number(value||0)*100)}</strong></div>`).join('')}</div></section>
     <dl class="professional-list"><dt>研磨建议</dt><dd>${esc(plan.grinder ? `${plan.grinder.label} ${plan.grinder.recommended}${plan.grinder.unit}` : '未提供')}</dd><dt>品种模型</dt><dd>${esc(plan.temperature?.model?.model || '通用模型')}</dd><dt>关键化学标记</dt><dd>${esc((plan.temperature?.model?.markers || []).join('、') || '未提供')}</dd><dt>敏感度</dt><dd>${esc(plan.temperature?.model?.sensitivityText || '未提供')}</dd><dt>执行主轴</dt><dd>${esc(plan.temperature?.model?.execution || '未提供')}</dd><dt>容差参考</dt><dd>${plan.temperature?.model?.tolerance ? `温度 ±${plan.temperature.model.tolerance.temperatureC}°C / 流速 ±${plan.temperature.model.tolerance.flowGPerSec}g/s / 水量 ±${plan.temperature.model.tolerance.waterG}g` : '未提供'}</dd><dt>调水方案</dt><dd>${esc(water?.profile?.name || '未提供')} · 参考TDS ${Number(water?.profile?.tdsMid ?? water?.targetTdsRange?.[0] ?? state.settings.brew.customWater?.tds ?? 85)} mg/L</dd><dt>水质判断</dt><dd>${esc(plan.temperature?.model?.waterAdvice || '未提供')}</dd><dt>调水版本</dt><dd>${esc(water?.modelVersion || '—')}</dd><dt>计算模型</dt><dd>${esc(plan.professional?.calculationModelVersion || plan.engineVersion || '—')}</dd><dt>平均流速</dt><dd>${esc(String(plan.professional?.hydraulics?.averageFlowGPerSec ?? '—'))} g/s</dd></dl>
@@ -2232,10 +2279,10 @@ function speak(text) {
 function preparationSpeech(plan) {
   plan = sanitizeExecutionPlanText(plan);
   const prepared = (plan?.executionActions || []).find(action => action.type === 'prepare' && action.speech)?.speech;
-  if (prepared) return String(prepared);
+  if (prepared) return normalizePreparationSpeech(prepared, plan?.stages?.[0]);
   const first = plan?.stages?.[0];
   if (!first) return '请准备好冲煮器具，准备完成后开始计时。';
-  return `请准备好滤杯、滤纸、分享壶和热水。第一段是${first.name}，注水${Math.round(first.stageWaterG)}克，水温${Math.round(first.temperatureC)}度，用时${Math.round(first.durationSec)}秒，${first.method}。准备完成后开始计时。`;
+  return `请准备好滤杯、滤纸、分享壶和热水。${formatStageSpeech(first, 0, { duration:true, notice:false })}。准备完成后开始计时。`;
 }
 function beginTimedBrew() {
   if (!state.currentPlan) return;
@@ -2251,7 +2298,7 @@ function beginTimedBrew() {
   transitionTimer('start');
   state.timer.stageIndex = 0; state.timer.remaining = Number(first.durationSec); state.timer.paused = false; state.timer.actionCues = new Set();
   renderTimerDialog(); startTimerInterval();
-  speak(`第一段，${first.name}，注水${Math.round(first.stageWaterG)}克，水温${Math.round(first.temperatureC)}度，${first.method}。${first.notice || ''}`);
+  speak(formatStageSpeech(first, 0, { cue:'start' }));
 }
 
 function startTimer() {
@@ -2286,8 +2333,9 @@ function startTimerInterval() {
       }
     }
     const next = stages[state.timer.stageIndex + 1];
-    if (state.timer.remaining === 8 && next) speak(next.advanceSpeech || `下一段，${next.name}，注水${Math.round(next.stageWaterG)}克，水温${Math.round(next.temperatureC)}度，${next.method}`);
-    if ([3,2,1].includes(state.timer.remaining)) speak(String(state.timer.remaining));
+    const current = stages[state.timer.stageIndex];
+    if (state.timer.remaining === 8 && next && canAnnounceNextStage(current?.durationSec)) speak(next.advanceSpeech || formatStageSpeech(next, state.timer.stageIndex + 1, { cue:'prepare', notice:false }));
+    if (canAnnounceStageCountdown(current?.durationSec) && [3,2,1].includes(state.timer.remaining)) speak(String(state.timer.remaining));
     if (state.timer.remaining <= 0) advanceTimerStage();
     renderTimerValues();
   }, 1000);
@@ -2302,7 +2350,7 @@ function renderTimerDialog() {
   }
   const stage = state.currentPlan.stages[state.timer.stageIndex];
   const next = state.currentPlan.stages[state.timer.stageIndex+1];
-  const content = `<div class="timer-full"><div class="timer-top"><span id="timerStageCounter">${state.timer.stageIndex+1}/${state.currentPlan.stages.length}</span><strong id="timerStatusLabel" class="timer-state-label">${timerStatusLabel()}</strong></div><div class="timer-stage-name" id="timerStageName">${esc(stage.name)}</div><div id="timerClock" class="timer-clock">${formatSeconds(state.timer.remaining)}</div><div class="timer-totals"><span>总时长 <strong id="timerTotal">${formatSeconds(state.currentPlan.totals?.targetTimeSec||0)}</strong></span><span>已进行 <strong id="timerElapsed">00:00</strong></span><span>总剩余 <strong id="timerTotalRemaining">${formatSeconds(state.currentPlan.totals?.targetTimeSec||0)}</strong></span></div><div class="timer-stage-grid"><div><span>本段目标</span><strong id="timerStageWater">${Number(stage.stageWaterG).toFixed(0)}g</strong></div><div><span>累计水量</span><strong id="timerCumulativeWater">${Number(stage.cumulativeWaterG).toFixed(0)}g</strong></div><div><span>目标水温</span><strong id="timerTemperature">${Number(stage.temperatureC).toFixed(0)}°C</strong></div><div><span>本段时长</span><strong id="timerStageDuration">${formatSeconds(stage.durationSec)}</strong></div></div><p id="timerStageText"><b class="timer-action-label">本段动作</b>${esc(stage.method)}${stage.notice?`<small>${esc(stage.notice)}</small>`:''}</p><div id="timerNextCue" class="timer-next-cue">${next?`下一段：${esc(next.name)} · ${Math.round(next.stageWaterG)}g · ${Math.round(next.temperatureC)}°C · ${esc(next.method)}`:'最后一段'}</div><div class="timer-progress"><span id="timerProgressFill"></span></div><div class="timer-actions four"><button id="timerPrevBtn" class="button" type="button" aria-label="上一步">上一步</button><button id="timerPauseBtn" class="button active" type="button" aria-pressed="false" data-timer-action="pause">暂停</button><button id="timerNextBtn" class="button" type="button" aria-label="下一步">下一步</button><button id="timerEndBtn" class="button" type="button">中止</button></div></div>`;
+  const content = `<div class="timer-full"><div class="timer-top"><span id="timerStageCounter">${state.timer.stageIndex+1}/${state.currentPlan.stages.length}</span><strong id="timerStatusLabel" class="timer-state-label">${timerStatusLabel()}</strong></div><div class="timer-stage-name" id="timerStageName">${esc(formatStageLabel(stage, state.timer.stageIndex))}</div><div class="muted small timer-countdown-label">本段剩余</div><div id="timerClock" class="timer-clock" role="timer" aria-label="本段剩余">${formatSeconds(state.timer.remaining)}</div><div class="timer-totals"><span>总时长 <strong id="timerTotal">${formatSeconds(state.currentPlan.totals?.targetTimeSec||0)}</strong></span><span>已进行 <strong id="timerElapsed">00:00</strong></span><span>总剩余 <strong id="timerTotalRemaining">${formatSeconds(state.currentPlan.totals?.targetTimeSec||0)}</strong></span></div><div class="timer-stage-grid"><div><span>本段目标</span><strong id="timerStageWater">${Number(stage.stageWaterG).toFixed(0)}g</strong></div><div><span>累计水量</span><strong id="timerCumulativeWater">${Number(stage.cumulativeWaterG).toFixed(0)}g</strong></div><div><span>目标水温</span><strong id="timerTemperature">${Number(stage.temperatureC).toFixed(0)}°C</strong></div><div><span>本段时长</span><strong id="timerStageDuration">${formatSeconds(stage.durationSec)}</strong></div></div><p id="timerStageText"><b class="timer-action-label">本段动作</b>${esc(stage.method)}${stage.notice?`<small>${esc(stage.notice)}</small>`:''}</p><div id="timerNextCue" class="timer-next-cue">${next?`下一段：${esc(formatStageLabel(next, state.timer.stageIndex + 1))} · ${Math.round(next.stageWaterG)}g · ${Math.round(next.temperatureC)}°C · ${esc(next.method)}`:'最后一段'}</div><div class="timer-progress"><span id="timerProgressFill"></span></div><div class="timer-actions four"><button id="timerPrevBtn" class="button" type="button" aria-label="上一步">上一步</button><button id="timerPauseBtn" class="button active" type="button" aria-pressed="false" data-timer-action="pause">暂停</button><button id="timerNextBtn" class="button" type="button" aria-label="下一步">下一步</button><button id="timerEndBtn" class="button" type="button">中止</button></div></div>`;
   showOverlay(content, { full:true, id:'timer' });
   $('#timerPauseBtn').addEventListener('click', () => {
     state.timer.paused = !state.timer.paused;
@@ -2335,10 +2383,10 @@ function renderTimerValues() {
   $('#timerStageDuration').textContent = formatSeconds(stage.durationSec);
   $('#timerElapsed').textContent = formatSeconds(elapsed); $('#timerTotalRemaining').textContent = formatSeconds(Math.max(0,total-elapsed));
   const statusLabel = $('#timerStatusLabel'); if (statusLabel) statusLabel.textContent = timerStatusLabel();
-  $('#timerStageCounter').textContent = `${state.timer.stageIndex+1}/${stages.length}`; $('#timerStageName').textContent = stage.name;
+  $('#timerStageCounter').textContent = `${state.timer.stageIndex+1}/${stages.length}`; $('#timerStageName').textContent = formatStageLabel(stage, state.timer.stageIndex);
   $('#timerStageText').innerHTML = `<b class="timer-action-label">本段动作</b>${esc(stage.method)}${stage.notice?`<small>${esc(stage.notice)}</small>`:''}`;
   $('#timerStageWater').textContent = `${Number(stage.stageWaterG).toFixed(0)}g`; $('#timerCumulativeWater').textContent = `${Number(stage.cumulativeWaterG).toFixed(0)}g`; $('#timerTemperature').textContent = `${Number(stage.temperatureC).toFixed(0)}°C`;
-  if ($('#timerNextCue')) $('#timerNextCue').textContent = next ? `下一段：${next.name} · ${Math.round(next.stageWaterG)}g · ${Math.round(next.temperatureC)}°C · ${next.method}` : '最后一段';
+  if ($('#timerNextCue')) $('#timerNextCue').textContent = next ? `下一段：${formatStageLabel(next, state.timer.stageIndex + 1)} · ${Math.round(next.stageWaterG)}g · ${Math.round(next.temperatureC)}°C · ${next.method}` : '最后一段';
   $('#timerProgressFill').style.width = `${clamp((1-state.timer.remaining/Math.max(1,Number(stage.durationSec)))*100,0,100)}%`;
 }
 
@@ -2352,7 +2400,7 @@ function moveTimerStage(direction = 1, automatic = false) {
   const stage = state.currentPlan.stages[next];
   if ($('#timerPauseBtn')) { const pauseButton = $('#timerPauseBtn'); pauseButton.textContent = '暂停'; pauseButton.dataset.timerAction = 'pause'; pauseButton.setAttribute('aria-pressed', 'false'); pauseButton.classList.remove('active'); }
   renderTimerValues();
-  speak(`${automatic?'进入':'切换到'}第${stage.index}段，${stage.name}，注水${Math.round(stage.stageWaterG)}克，水温${Math.round(stage.temperatureC)}度，${stage.method}。${stage.notice || ''}`);
+  speak(formatStageSpeech(stage, next, { cue:automatic ? 'advance' : 'switch' }));
 }
 
 function promptRecordConsumption(reason) {

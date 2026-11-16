@@ -63,7 +63,7 @@ assert.match(androidBuild, /versionCode \(releaseMeta\.androidVersionCode as int
 assert.match(androidBuild, /versionName releaseMeta\.displayVersion as String/);
 assert.ok(Number.isInteger(release.androidVersionCode) && release.androidVersionCode >= 102416);
 assert.equal(release.displayVersion, '1.24P');
-assert.equal(release.androidUserAgent, `LuckyBeanAndroid/${release.displayVersion}`);
+assert.equal(release.androidUserAgent, `LuckyBeanDS/${release.displayVersion}`);
 if (androidBuild.includes("applicationId 'com.luckybean.ds'")) {
   assert.match(androidActivity, /setUserAgentString\(settings\.getUserAgentString\(\) \+ " LuckyBeanDS\/" \+ BuildConfig\.VERSION_NAME\)/);
 } else {

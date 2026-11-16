@@ -1,4 +1,5 @@
 import * as core from './brew-engine-core.js';
+import { withCuiLiWaterWarnings } from './domain/water/cuili-water-record.js';
 import { requestAuthoritativePlan } from './services/brew-analysis-service.js';
 import { IS_LUCKYBEAN_DS } from './distribution.js';
 import { toBrewProfilesTransport, toStableBrewData } from './contracts/stable-brew-data.js';
@@ -7,6 +8,7 @@ import {
   BREW_OPTIMIZER_VERSION,
   TRAJECTORY_MODEL_VERSION,
   deriveSensoryFeedback,
+  finalizeReferencePlan,
   optimizeBrewPlan,
   optimizerProfileIds,
   summarizeCandidate
@@ -395,6 +397,7 @@ async function computeOptimizedPlan(input, { feedback = null, forceProfile = '' 
     // The inverse optimizer may redistribute stage water. Re-apply the chosen
     // method's structural invariant afterwards, especially exact 33666.
     plan = normalizeStageSemantics(plan, id);
+    plan = finalizeReferencePlan(requestedInput, plan);
     plan.profile = { ...profileDefinition(id) };
     plan.professional ||= {};
     plan.professional.profile = { ...profileDefinition(id) };
@@ -420,7 +423,7 @@ async function computeOptimizedPlan(input, { feedback = null, forceProfile = '' 
   return attachLegacyTrajectory(best.plan);
 }
 
-export async function computeFallbackPlan(input = {}) { return computeOptimizedPlan(input); }
+export async function computeFallbackPlan(input = {}, { localWaterRecord = null } = {}) { return withCuiLiWaterWarnings(await computeOptimizedPlan(input), localWaterRecord); }
 
 function feedbackSummary(feedback) {
   const labels = { underExtracted: '欠萃/酸尖', overExtracted: '过萃/苦涩', lowSweet: '甜感不足', lowAroma: '香气不足', highAroma:'香气过强', muddy: '浑浊', thin: '单薄', heavy: '滞重' };

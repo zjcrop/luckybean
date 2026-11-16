@@ -14,7 +14,9 @@ export function buildBrewResult({ input = {}, physical = {}, flavor = {}, uncert
       temperature: physical.temperature || null,
       trajectory: physical.trajectory || [],
       stages: physical.stages || [],
-      extraction: physical.extraction || null,
+      extraction: physical.extraction ?? null,
+      waterAnalysis: physical.waterAnalysis ?? null,
+      extractionAssessment: physical.extractionAssessment ?? null,
       spatial: physical.spatial || null
     },
     flavor: normalizeFlavorVector(flavor),

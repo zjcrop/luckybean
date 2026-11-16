@@ -1,7 +1,7 @@
 // LuckyBean 1.24P: resilient offline shell with lazy feature/runtime caching.
-const REVISION = '1.24P-main.20-ds';
+const REVISION = '1.24P-main.23-ds';
 const CACHE_PREFIX = 'luckybean-main-v124p-';
-const CACHE_NAME = `${CACHE_PREFIX}ds-offline-20261027`;
+const CACHE_NAME = `${CACHE_PREFIX}ds-23-ocr-json-20261116`;
 const LEGACY_CACHE_PREFIXES = [
   'luckybean-main-v124b-', 'luckybean-main-v123e-', 'luckybean-main-v123d-', 'luckybean-main-v123-', 'luckybean-v120-test-',
   'luckybean-v121-account-test-', 'luckybean-v122-cloud-safety-test-',

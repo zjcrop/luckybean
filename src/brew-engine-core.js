@@ -1,6 +1,8 @@
 import { clamp, sha256Hex } from './utils.js';
 import { calculateWaterRecipe, inferWaterProfile, WATER_MODEL_VERSION } from './water-profiles.js';
 import { BREW_MODEL_VERSION, professionalTemperatureModel, applyTemperatureOverrides, buildDetailedTrajectory, targetExtractionModel } from './brew-model-v09.js';
+import { analyzeSourceWater } from './domain/water/water-analysis.js';
+import { assessExtractionMeasurements } from './domain/brew/extraction-assessment.js';
 
 /**
  * Public browser-compatible brew engine for Lucky Bean.
@@ -10,7 +12,7 @@ import { BREW_MODEL_VERSION, professionalTemperatureModel, applyTemperatureOverr
  * or depending on GitHub at runtime. The exact private engine remains optional through
  * requestPrivatePlan().
  */
-export const FALLBACK_ENGINE_VERSION = 'lucky-brew-0.9.0-beta.1';
+export const FALLBACK_ENGINE_VERSION = 'lucky-brew-0.10.0-reference';
 export const BREW_SCHEMA_VERSION = 2;
 
 export const BREW_PROFILES = Object.freeze([
@@ -117,7 +119,6 @@ function resolveTemperature(input, level, process, water) {
   if (process.natural) temperature -= 0.8;
   if (process.honey) temperature -= 0.2;
   if (process.washed) temperature += 0.4;
-  if (water.profile.id === 'dark') temperature -= 0.8;
   temperature += clamp(tune, -6, 6);
   return round(clamp(temperature, 82, 97), 0);
 }
@@ -269,12 +270,10 @@ function buildFlavorFit(level, process, targets, water, profileId) {
     'pulse-30x15': { sweetness: 0.04 }
   }[profileId] || {};
   const natural = process.natural ? 0.07 : 0;
-  const waterMg = clamp((water.profile.mg - 8) / 20, -0.1, 0.4);
-  const waterBuffer = clamp((water.profile.hco3 - 20) / 60, -0.1, 0.4);
   return {
-    floral: round(clamp(0.42 + target01(targets.floral) * 0.38 + (level <= 2 ? 0.08 : -0.08) + waterMg * 0.10 + (profileBoost.floral || 0), 0.1, 0.98), 3),
-    acidity: round(clamp(0.40 + target01(targets.acidity) * 0.38 + (level <= 2 ? 0.08 : -0.07) + waterMg * 0.08 - waterBuffer * 0.12 + (profileBoost.acidity || 0), 0.1, 0.98), 3),
-    sweetness: round(clamp(0.44 + target01(targets.sweetness) * 0.36 + natural + waterBuffer * 0.06 + (profileBoost.sweetness || 0), 0.15, 0.98), 3),
+    floral: round(clamp(0.42 + target01(targets.floral) * 0.38 + (level <= 2 ? 0.08 : -0.08) + (profileBoost.floral || 0), 0.1, 0.98), 3),
+    acidity: round(clamp(0.40 + target01(targets.acidity) * 0.38 + (level <= 2 ? 0.08 : -0.07) + (profileBoost.acidity || 0), 0.1, 0.98), 3),
+    sweetness: round(clamp(0.44 + target01(targets.sweetness) * 0.36 + natural + (profileBoost.sweetness || 0), 0.15, 0.98), 3),
     body: round(clamp(0.38 + target01(targets.body) * 0.40 + level * 0.035 + (profileBoost.body || 0), 0.15, 0.98), 3),
     bitterness: round(clamp(0.18 + level * 0.08 - target01(targets.bitterness ?? 2) * 0.12, 0.05, 0.9), 3),
     clarity: round(clamp(0.72 + (profileId === 'flat46-clean' ? 0.14 : 0) - level * 0.035 - (profileId === 'one-pour' ? 0.08 : 0), 0.25, 0.98), 3)
@@ -320,13 +319,15 @@ export async function computeFallbackPlan(input) {
   const waterProfileId = brew.waterProfileId || input.water?.profileId || inferWaterProfile(bean);
   const customWater = waterProfileId === 'custom' && input.water?.customProfile;
   const water = calculateWaterRecipe(waterProfileId, {
-    volumeL: Number(input.water?.recipeVolumeL || 5),
+    volumeL: input.water?.recipeVolumeL === undefined ? 5 : input.water.recipeVolumeL,
     targets,
     customProfile: customWater || null
   });
+  const waterAnalysis = analyzeSourceWater({ water: input.water === undefined ? {} : input.water, referenceProfile: water.profile });
+  const extractionAssessment = assessExtractionMeasurements({ measurements: input.measurements === undefined ? {} : input.measurements, brew });
   const legacyTemperature = resolveTemperature(input, level, process, water);
   const temperatureModel = professionalTemperatureModel(bean, water.profile, targets);
-  const temperature = Number.isFinite(Number(brew.mainTemperatureC))
+  const temperature = Number.isFinite(brew.mainTemperatureC)
     ? round(clamp(Number(brew.mainTemperatureC), 82, 97), 1)
     : round(clamp((legacyTemperature + temperatureModel.mainC) / 2, 82, 97), 1);
   temperatureModel.mainC = temperature;
@@ -372,12 +373,14 @@ export async function computeFallbackPlan(input) {
     explanation: [
       `${resolved.profile.label}由滤杯、烘焙度、处理法和目标风味共同选择。`,
       `主萃温度 ${temperature}°C，建议研磨 ${grinder.recommended}${grinder.unit}，目标水质 ${water.profile.name}。`,
-      `模型目标 EY ${extractionModel.targetEY}%、预测 TDS ${extractionModel.predictedTds}%；仅作为冲煮设定参考，不能替代折光仪实测。`,
+      `经验设定参考 EY ${extractionModel.targetEY}%；饮品TDS与杯中回收产率须用实际饮品测量，未用注水量推算杯中TDS。`,
       '萃取轨迹整合温度、流量、累计注水和风味窗口；用于比较阶段相对趋势，不等同于实测浓度曲线。'
     ],
     trajectory,
     trajectoryModel,
     extractionModel,
+    waterAnalysis,
+    extractionAssessment,
     flavorFit,
     professional
   };
