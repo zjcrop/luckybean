@@ -1,4 +1,6 @@
+import { withCuiLiWaterWarnings } from './domain/water/cuili-water-record.js';
 import * as core from './brew-engine-core.js';
+import { attachInputAssessments } from './domain/brew/input-assessments.js';
 import { requestAuthoritativePlan } from './services/brew-analysis-service.js';
 import { toBrewProfilesTransport, toStableBrewData } from './contracts/stable-brew-data.js';
 import { listCachedBrewProfiles, refreshBrewProfileCatalog } from './services/brew-profile-catalog-service.js';
@@ -419,7 +421,7 @@ async function computeOptimizedPlan(input, { feedback = null, forceProfile = '' 
   return attachLegacyTrajectory(best.plan);
 }
 
-export async function computeFallbackPlan(input = {}) { return computeOptimizedPlan(input); }
+export async function computeFallbackPlan(input = {}, { localWaterRecord = null } = {}) { return withCuiLiWaterWarnings(await computeOptimizedPlan(input), localWaterRecord); }
 
 function feedbackSummary(feedback) {
   const labels = { underExtracted: '欠萃/酸尖', overExtracted: '过萃/苦涩', lowSweet: '甜感不足', lowAroma: '香气不足', highAroma:'香气过强', muddy: '浑浊', thin: '单薄', heavy: '滞重' };
@@ -495,5 +497,5 @@ export async function requestPrivatePlan(endpoint, input, timeoutMs = 9000) {
   }
   plan.clientAdjusted = false;
   plan.executionSource = 'brew-profiles-authoritative';
-  return plan;
+  return attachInputAssessments(plan, normalized);
 }

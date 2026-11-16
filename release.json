@@ -2,14 +2,14 @@
   "product": "LuckyBean",
   "displayVersion": "1.24P",
   "semver": "1.24.24",
-  "revision": "1.24P-main.19",
-  "androidVersionCode": 102435,
+  "revision": "1.24P-main.22",
+  "androidVersionCode": 102438,
   "androidUserAgent": "LuckyBeanAndroid/1.24P",
-  "releaseTag": "v1.24P-main.19",
+  "releaseTag": "v1.24P-main.22",
   "cachePrefix": "luckybean-main-v124p-",
-  "cacheRevision": "main-19-startup-field-layout-20261012",
+  "cacheRevision": "main-22-water-tds-voice-20261115",
   "schemaVersion": 10,
   "brewResultVersion": "1.1",
   "brewPlanVersion": "brew-plan/1.0",
-  "hotfix": "startup-field-layout-20261012"
+  "hotfix": "water-tds-stage-voice-20261115"
 }

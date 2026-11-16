@@ -1,5 +1,10 @@
 # LuckyBean / 富贵盒子
 
+## 本次水质与计时更新
+
+Cloud 1.24P-main.22：原水TDS与咖啡液TDS分开，增加本杯实测核算和萃离离子账本核对；修复重复段号及Android旧语音缓存。详见[更新与验证说明](docs/WATER_TDS_VOICE_20261115.md)。
+
+
 LuckyBean 是一个本地优先的咖啡豆管理、冲煮方案、冲煮执行与感官记录工具。
 
 当前发布候选：**1.24P-main.3**（语义版本 `1.24.17`，本地数据 Schema v10）。正式可用版本以 GitHub `main` 最新通过同 SHA 发布门禁的 Release 为准。

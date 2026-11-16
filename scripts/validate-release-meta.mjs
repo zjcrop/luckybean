@@ -20,7 +20,8 @@ assert.equal(release.product, 'LuckyBean');
 assert.match(release.displayVersion, /^1\.24[A-Z]$/);
 assert.match(release.semver, /^\d+\.\d+\.\d+$/);
 assert.ok(Number.isInteger(release.androidVersionCode) && release.androidVersionCode > 102402, 'Android versionCode must increase beyond 1.24B');
-assert.equal(release.androidUserAgent, `LuckyBeanAndroid/${release.displayVersion}`);
+const uaPrefix = index.includes('name="luckybean-distribution" content="ds-b"') ? 'LuckyBeanDS' : 'LuckyBeanAndroid';
+assert.equal(release.androidUserAgent, `${uaPrefix}/${release.displayVersion}`);
 assert.equal(release.releaseTag, `v${release.revision}`);
 assert.ok(release.revision.startsWith(`${release.displayVersion}-main.`));
 assert.ok(release.cachePrefix.includes(release.displayVersion.toLowerCase().replace('.', '')));
@@ -51,13 +52,13 @@ assert.match(gradle, /versionCode \(releaseMeta\.androidVersionCode as int\)/);
 assert.match(gradle, /versionName releaseMeta\.displayVersion as String/);
 assert.match(gradle, /include 'index\.html', 'recognition-test\.html', 'release\.json'/);
 
-const uaDynamic = /LuckyBeanAndroid\/" \+ BuildConfig\.VERSION_NAME/.test(activity);
-const uaExact = activity.includes(`LuckyBeanAndroid/${release.displayVersion}`);
+const uaDynamic = activity.includes(uaPrefix + '/" + BuildConfig.VERSION_NAME');
+const uaExact = activity.includes(`${uaPrefix}/${release.displayVersion}`);
 assert.ok(uaDynamic || uaExact, 'Android user agent must follow current release version');
 assert.ok(!activity.includes('LuckyBeanAndroid/1.24B'), 'Android source must not advertise previous release UA');
 
 assert.ok(brewResult.includes(`BREW_RESULT_VERSION = '${release.brewResultVersion}'`));
 assert.ok(adapter.includes(`BREW_PLAN_SCHEMA_VERSION = '${release.brewPlanVersion}'`));
-assert.ok(adapter.includes(`luckybean-brew-contract-adapter/${release.displayVersion}.2`));
+assert.ok(adapter.includes(`luckybean-brew-contract-adapter/${release.displayVersion}.3`));
 
 console.log(`Release metadata validated: ${release.displayVersion} ${release.revision} / Android ${release.androidVersionCode} / BrewResult ${release.brewResultVersion}`);
