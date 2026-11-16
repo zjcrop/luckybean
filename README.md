@@ -6,9 +6,9 @@
 | --- | --- | --- | --- |
 | LuckyBean（无后缀） | 在线版 | [下载 APK](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.23/LuckyBean-1.24P-release.apk) | [SHA256](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.23/SHA256SUMS.txt) |
 | LuckyBean DS | 离线版 | [下载 DS APK](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.23-ds/LuckyBean-DS-1.24P-release.apk) | [SHA256](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.23-ds/SHA256SUMS.txt) |
-| LuckyBean DS_B | 蓝牙版 | [下载 DS_B APK](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.23-dsb/LuckyBean-DS-B-1.24P-release.apk) | [SHA256](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.23-dsb/SHA256SUMS.txt) |
+| LuckyBean DS_B | 蓝牙版 | [下载 DS_B APK](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.24-dsb/LuckyBean-DS-B-1.24P-release.apk) | [SHA256](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.24-dsb/SHA256SUMS.txt) |
 
-本轮版本均为 1.24P-main.23 系列，包含水质、实测萃取核算、计时播报与 OCR JSON 模型加载修复。可直接下载安装或转发发布。
+本轮更新包含水质、实测萃取核算、计时播报与 OCR JSON 模型加载修复。可直接下载安装或转发发布。
 
 在线版可与 DS 或 DS_B 并行安装。DS 与 DS_B 沿用既有的同一 Android 包名，彼此安装会覆盖，不能并行安装；切换前请先导出本地备份。DS_B 的仓库分支、历史文件名沿用 `DS-B` 拼写，指同一蓝牙版本。
 
