@@ -1,5 +1,14 @@
 # LuckyBean DS
 
+## Android APK 下载
+
+| 版本 | 正式签名 APK | 校验文件 |
+| --- | --- | --- |
+| 云端版 · 1.24P-main.22 | [下载云端版 APK](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22/LuckyBean-1.24P-release.apk) | [SHA256](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22/SHA256SUMS.txt) |
+| DS-B 离线版 · 1.24P-main.22-dsb | [下载 DS-B APK](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22-dsb/LuckyBean-DS-B-1.24P-release.apk) | [SHA256](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22-dsb/SHA256SUMS.txt) |
+
+两款 APK 均包含本次水质、实测萃取核算与计时播报更新，使用各自的 Android 包名，可并行安装。下载后可直接安装或转发发布。
+
 ## 本次水质与计时更新
 
 DS-B 1.24P-main.22-dsb：原水TDS与咖啡液TDS分开，增加本杯实测核算和萃离离子账本核对；修复重复段号及Android旧语音缓存。详见[更新与验证说明](docs/WATER_TDS_VOICE_20261115.md)。
