@@ -11,7 +11,8 @@ import {
 export const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
 
 export async function createPortableArchive() {
-  const rows = await Promise.all(PORTABLE_STORES.map(name => all(name).catch(() => [])));
+  const rows = await Promise.all(PORTABLE_STORES.map(name => all(name)));
+  if (rows.flat().some(row => row?.storageError || row?.value?.identity?.decryptionError)) throw new Error('存在无法解密的记录，停止导出以防数据遗漏');
   const stores = Object.fromEntries(PORTABLE_STORES.map((name, index) => [name, rows[index]]));
   const archive = await buildLuckyBeanArchive({ stores, schemaVersion: SCHEMA_VERSION, appVersion: APP_VERSION });
   return {

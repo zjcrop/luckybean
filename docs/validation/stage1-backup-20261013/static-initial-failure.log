@@ -1,0 +1,126 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> luckybean-static-app@1.24.24 test:static
+> node scripts/run-static-tests.mjs
+
+
+[static] tests/v110-local-first-sync-static.mjs
+LuckyBean 1.24P local-first, cache isolation and current BrewProfiles contract checks passed
+
+[static] tests/v120-core-contracts-static.mjs
+v1.2 core analysis, completed history, provider, spatial and environment-dialog contracts passed
+
+[static] tests/v120-requirements-static.mjs
+LuckyBean 1.24P single server account, mandatory sync, cache isolation, shared sorting and all-profile checks passed
+BrewProfiles方案目录尚未更新，暂用本地启动目录 timeout
+
+[static] tests/v122-cloud-sync-safety.mjs
+v1.23D cloud union baseline and deletion propagation checks passed
+
+[static] tests/v123-brewprofiles-integration.mjs
+✔ professional brew API has a persistent installation identity and no cloud-account dependency (3.065916ms)
+✔ catalog is authoritative, cached, and includes all six competition profiles (1.534505ms)
+✔ ratio defaults to automatic recommendation while preserving explicit manual override (1.222625ms)
+✔ cooling defaults to model recommendation and custom tail accepts 60°C (1.110209ms)
+✔ client rejects empty or incomplete target geometry (0.494901ms)
+✔ new plan generation never converts an API failure into a fake successful 3D scene (1.67973ms)
+✔ profile resolver accepts catalog IDs instead of a fixed explicit-profile whitelist (0.600667ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14.911564
+
+[static] tests/v123d-main-parity.mjs
+✔ all pages use the same red seal slot geometry (3.412207ms)
+✔ bean custom fields and five-row brew order are locked to the current interaction contract (2.191796ms)
+✔ about section contains the shipped illustration (2.075354ms)
+✔ settings data collection owns coffee world and preference profile (2.712034ms)
+✔ bean page shows inventory and health digest above its leaderboard (1.533444ms)
+✔ cloud panel exposes status and both recovery actions (1.231869ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 17.778086
+
+[static] tests/v124-stable-data-format.mjs
+Stable cross-project brew data is version-independent and uses the fixed six-target contract.
+
+[static] tests/foundation-contract-regression.mjs
+Coffee Foundation local contract regression passed
+
+[static] tests/v125-root-state-models.mjs
+v1.2.5 independent sensory state machines and LuckyBean 1.24P Android package contracts passed
+
+[static] tests/v124p-release-contract.mjs
+LuckyBean 1.24P canonical release identity, npm metadata, BrewResult consumers and same-SHA signed deployment contract passed
+
+[static] tests/v124p-startup-auth-hotfix-static.mjs
+LuckyBean P0 deterministic head snapshot consumption, module auth and startup compatibility contract passed
+
+[static] tests/v124p-auth-ocr-ai-hotfix-static.mjs
+LuckyBean P0 deterministic auth callback, Safari OCR fallback and advisory AI recognition safety contract passed
+
+[static] tests/v124p-local-first-data-architecture.mjs
+local-first data architecture and final recognition integration contract passed
+
+[static] tests/v124p-execution-copy-regression.mjs
+v124p execution copy regression: ok
+
+[static] tests/v127-dose-inventory-timer-regression.mjs
+Dose allocation, custom dose, brew timer, and supported Android SDK package contracts passed
+
+[static] tests/v124p-brew-action-emphasis.mjs
+1.24P 1.24P-main.19 brew calculation, automatic selection, timer start and preparation actions are visually emphasized
+
+[static] tests/v124p-pour-guide-regression.mjs
+1.24P dynamic pour guidance contract passed
+
+[static] tests/v123d-ui-sensory-regressions.mjs
+LuckyBean 1.24P canonical settings and sensory regression contracts passed
+
+[static] tests/v123e-batch-onboarding-static.mjs
+LuckyBean canonical bean lifecycle, long-press onboarding, matching and spatial-preservation checks passed
+
+[static] tests/v126-full-integration-static.mjs
+v126 canonical full integration static checks passed
+
+[static] tests/v127-user-regressions-static.mjs
+v127 canonical cooling/gear ownership and 1.24P Android image pipeline static checks passed
+
+[static] tests/v123e-cloud-gear-sync.mjs
+LuckyBean 1.23E gear cloud-sync compatibility checks passed through the P2 codec facade
+
+[static] tests/v123e-plan-contract-regression.mjs
+Verified LuckyBean plan and brew-history validators accept BrewProfiles 2.0/2.1 and spatial 1.1/1.2/1.3 while rejecting unknown plan contracts.
+
+[static] tests/v123e-freshness-timeline-regression.mjs
+LuckyBean 1.24P immediate one-line freshness timeline and stage grouping checks passed
+
+[static] tests/v123e-interaction-repair-static.mjs
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: npm postinstall must vendor jsQR before tests
+    at file:///workspace/scratch/61a590473c64/luckybean-stage1/tests/v123e-interaction-repair-static.mjs:28:8
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:643:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0
+::error file=tests/v123e-interaction-repair-static.mjs,title=Static regression failed::node:internal/modules/run_main:107%0A    triggerUncaughtException(%0A    ^%0A%0AAssertionError [ERR_ASSERTION]: npm postinstall must vendor jsQR before tests%0A    at file:///workspace/scratch/61a590473c64/luckybean-stage1/tests/v123e-interaction-repair-static.mjs:28:8%0A    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)%0A    at async node:internal/modules/esm/loader:643:26%0A    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {%0A  generatedMessage: false,%0A  code: 'ERR_ASSERTION',%0A  actual: false,%0A  expected: true,%0A  operator: '==',%0A  diff: 'simple'%0A}%0A%0ANode.js v24.19.0
