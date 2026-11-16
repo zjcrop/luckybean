@@ -10,8 +10,8 @@ if (manifest.runtime !== 'self-hosted' || manifest.paddleVersion !== '0.4.2' || 
 }
 const required = new Map([
   ['sdk.mjs', 10000], ['worker.js', 100000], ['roi-worker.js', 1000],
-  ['models/PP-OCRv5_mobile_det_onnx_infer.tar', 1000000],
-  ['models/PP-OCRv5_mobile_rec_onnx_infer.tar', 1000000],
+  ['models/PP-OCRv5_mobile_det.json', 1000000],
+  ['models/PP-OCRv5_mobile_rec.json', 1000000],
   ['ort/ort-wasm-simd-threaded.mjs', 10000],
   ['ort/ort-wasm-simd-threaded.wasm', 5000000],
   ['ort/ort-wasm-simd-threaded.jsep.mjs', 10000],
@@ -20,6 +20,12 @@ const required = new Map([
 for (const [relative, minimum] of required) {
   const bytes = await fs.readFile(path.join(root, relative));
   if (bytes.length < minimum) throw new Error(`Missing/truncated OCR asset: ${relative}`);
+  if (relative.endsWith('.json')) {
+    const model = JSON.parse(bytes.toString('utf8'));
+    const decoded = Buffer.from(model.base64, 'base64');
+    if (model.format !== 'luckybean-ocr-model/1' || decoded.length !== model.byteLength ||
+        createHash('sha256').update(decoded).digest('hex') !== model.sha256) throw new Error(`Invalid OCR model JSON: ${relative}`);
+  }
   if (relative.endsWith('.wasm') && !bytes.subarray(0, 4).equals(Buffer.from([0, 97, 115, 109]))) {
     throw new Error(`Invalid WASM asset: ${relative}`);
   }

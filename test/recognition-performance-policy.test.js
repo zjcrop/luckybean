@@ -55,7 +55,7 @@ test('analysis cache does not share edited fields and invalidates corrected raw 
   assert.notEqual(analyzeRecognitionDocument(doc,book).parsed.countryCode,expected);
 });
 
-const providerSource=fs.readFileSync('src/recognition-paddle-ocr-fast.js','utf8').replace(/\r\n/g,'\n').replace(/^import .*;\n/m,'')
+const providerSource=fs.readFileSync('src/recognition-paddle-ocr-fast.js','utf8').replace(/\r\n/g,'\n').replace(/^import .*;\n/gm,'')
   .replaceAll('import.meta.url',"'https://example.test/src/recognition-paddle-ocr-fast.js'")
   .replace(/async function loadModule\(\) \{[\s\S]*?\n\}\nfunction supportsPreloadedBlobWorker/, 'async function loadModule() { return testSdk; }\nfunction supportsPreloadedBlobWorker');
 
@@ -63,6 +63,7 @@ function providerHarness({gpu=false,isolated=false,failGpu=false,failThreads=fal
   const calls=[],timers=new Map();let nextTimer=0;
   const context={Blob,URL,SharedArrayBuffer,performance,console,structuredClone,
     runtimeAcceleration,detectionLimit,needsDetectionDetail,preferDetailedRecognition,OCR_PERFORMANCE_POLICY,
+    withOcrModelAssets:async (_url,create)=>create({detection:{url:'blob:det'},recognition:{url:'blob:rec'}}),
     crossOriginIsolated:isolated,navigator:{userAgent:'Chrome',deviceMemory:8,hardwareConcurrency:8,
       ...(gpu?{gpu:{requestAdapter:async()=>({info:{vendor:'test-hardware'}})}}:{})},
     document:{hidden:false,documentElement:{dataset:{}},addEventListener(){}},
