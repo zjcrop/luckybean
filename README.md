@@ -1,5 +1,14 @@
 # LuckyBean / 富贵盒子
 
+## Android APK 下载
+
+| 版本 | 正式签名 APK | 校验文件 |
+| --- | --- | --- |
+| 云端版 · 1.24P-main.22 | [下载云端版 APK](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22/LuckyBean-1.24P-release.apk) | [SHA256](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22/SHA256SUMS.txt) |
+| DS-B 离线版 · 1.24P-main.22-dsb | [下载 DS-B APK](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22-dsb/LuckyBean-DS-B-1.24P-release.apk) | [SHA256](https://github.com/zjcrop/luckybean/releases/download/v1.24P-main.22-dsb/SHA256SUMS.txt) |
+
+两款 APK 均包含本次水质、实测萃取核算与计时播报更新，使用各自的 Android 包名，可并行安装。下载后可直接安装或转发发布。
+
 ## 本次水质与计时更新
 
 Cloud 1.24P-main.22：原水TDS与咖啡液TDS分开，增加本杯实测核算和萃离离子账本核对；修复重复段号及Android旧语音缓存。详见[更新与验证说明](docs/WATER_TDS_VOICE_20261115.md)。
@@ -7,7 +16,7 @@ Cloud 1.24P-main.22：原水TDS与咖啡液TDS分开，增加本杯实测核算�
 
 LuckyBean 是一个本地优先的咖啡豆管理、冲煮方案、冲煮执行与感官记录工具。
 
-当前发布候选：**1.24P-main.3**（语义版本 `1.24.17`，本地数据 Schema v10）。正式可用版本以 GitHub `main` 最新通过同 SHA 发布门禁的 Release 为准。
+当前正式发布：**1.24P-main.22**（语义版本 `1.24.24`，本地数据 Schema v10）。上方 APK 来自已通过同 SHA 发布门禁的正式 Release。
 
 ## 主要能力
 
