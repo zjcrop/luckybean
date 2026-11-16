@@ -1,0 +1,98 @@
+{
+  "water": {
+    "profileId": "geisha",
+    "source": "萃离配方（近零矿化RO水）",
+    "recipeVolumeL": 5,
+    "tdsMgL": null,
+    "pH": null,
+    "pHSource": "unknown",
+    "alkalinityMgLAsCaCO3": null,
+    "calciumMgL": 5.850647841,
+    "magnesiumMgL": 9.348043877,
+    "sodiumMgL": 4.334947504,
+    "potassiumMgL": 6.031359057,
+    "bicarbonateMgL": 20.917881997,
+    "chlorideMgL": 3.884231393,
+    "sulfateMgL": 6.478483675,
+    "concentrationBasis": "pre-heating-calculated",
+    "ionicAccountingComplete": true,
+    "heatingAssessment": {
+      "method": "thermal-history-screening/1.0",
+      "scenario": "single-heating",
+      "scope": "single-heating-open-kettle-water-use-guidance-not-espresso-boiler-design-or-precipitation-equilibrium",
+      "applicable": true,
+      "context": "kettle",
+      "status": "post-heat-check-advised",
+      "inputWaterBasis": "pre-heating-calculated-or-user-provided-ions-not-overwritten",
+      "ionsMgL": {
+        "Ca": 5.850647841,
+        "Mg": 9.348043877,
+        "HCO3": 20.917881997,
+        "CO3": 0
+      },
+      "history": {
+        "heatingCycles": 1,
+        "scopeSource": "user-specified-single-heating",
+        "heatingTemperatureC": 100,
+        "context": "kettle",
+        "evaporationFraction": 0.05,
+        "visiblePrecipitate": true,
+        "pHMeasured": null
+      },
+      "flags": [
+        "evaporation-reported",
+        "visible-precipitate"
+      ],
+      "missingInputs": [],
+      "advice": [
+        "需要冲煮时单次加热到原配方所需温度后使用；保留原有冲煮温度、时间与研磨设置作为对照。",
+        "升温本身不会凭空生成新的钙镁或永久硬度；读数变化需分别核对蒸发浓缩、析出及检测条件。",
+        "蒸发减少水量；非反应物可能浓缩，但不能把同一倍率直接用于预测钙、镁或碳酸氢根的加热后浓度。",
+        "本次加热后已观察到析出或沉积：记录最终水量，再测实际使用水的硬度与碱度；不要把沉积简单换算为钙损失。",
+        "按本次单次加热条件复测实际使用水的硬度和总碱度，记录取样温度、滴定方法及终点。"
+      ],
+      "requirePostHeatMeasurement": true,
+      "missingPostHeatMeasurements": [
+        "postHeatGHmgLAsCaCO3",
+        "postHeatAlkalinitymgLAsCaCO3"
+      ],
+      "preHeatCalculatedReference": {
+        "hardnessMgLAsCaCO3": 53.104312344,
+        "carbonateAlkalinityMgLAsCaCO3": 17.155769192,
+        "totalAlkalinityMgLAsCaCO3": null
+      },
+      "measurements": {
+        "preHeatGHmgLAsCaCO3": null,
+        "postHeatGHmgLAsCaCO3": null,
+        "preHeatAlkalinitymgLAsCaCO3": null,
+        "postHeatAlkalinitymgLAsCaCO3": null
+      },
+      "measuredDifferences": {
+        "hardnessMgLAsCaCO3": null,
+        "totalAlkalinityMgLAsCaCO3": null,
+        "interpretation": "paired measurements only; not modeled thermal loss and not convertible to calcium loss from GH alone"
+      },
+      "evaporationScenario": {
+        "fraction": 0.05,
+        "nonreactiveConcentrationFactor": 1.0526315789473684,
+        "scope": "volume-only scenario for non-reacting material; not a heated Ca/Mg/HCO3 concentration prediction",
+        "heatedIonConcentrationsMgL": null
+      },
+      "carbonateOnlyLedgerCapacity": null,
+      "brewAdjustment": {
+        "automatic": false,
+        "temperatureDeltaC": 0,
+        "timeDeltaSec": 0,
+        "reason": "单次加热记录不证明需要改变咖啡萃取温度或时间；使用加热后实测水质与同豆杯测确认，当前不自动改动冲煮方案。"
+      },
+      "predictions": {
+        "precipitationOnsetTemperatureC": null,
+        "heatedCalciumMgL": null,
+        "calciumLossMgL": null,
+        "permanentHardnessIncreaseMgL": null,
+        "pH": null,
+        "LSI": null
+      }
+    }
+  }
+}

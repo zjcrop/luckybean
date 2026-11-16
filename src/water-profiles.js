@@ -1,10 +1,11 @@
 import { clamp } from './utils.js';
+import { optionalMeasurement } from './domain/water/water-analysis.js';
 
 /**
  * LuckyBean intentionally stores only water profile identity, reference TDS and
  * sensory tendency. Exact ions, salts, purity and dosing belong to the 萃离 app.
  */
-export const WATER_MODEL_VERSION = 'luckybean-water-selection/1.0.0';
+export const WATER_MODEL_VERSION = 'luckybean-water-selection/1.1.0';
 export const WATER_EXTERNAL_APP = Object.freeze({
   id: 'brew-water-calibrato',
   name: '萃离',
@@ -70,23 +71,27 @@ function direction(value) {
 export function tuneWaterProfile(profileId, targets = {}, customProfile = null) {
   const base = WATER_PROFILES[profileId] || WATER_PROFILES.custom;
   const custom = profileId === 'custom' && customProfile ? customProfile : null;
-  const tdsValue = Number(custom?.tds);
+  const tdsValue = optionalMeasurement(custom?.tds, '自定义参考TDS mg/L');
   const tendency = {
     ...base.tendency,
     ...(custom?.tendency && typeof custom.tendency === 'object' ? custom.tendency : {})
   };
   // Targets only alter the explanatory tendency, never infer a chemical recipe.
-  tendency.floral = clamp(tendency.floral + (Number(targets.floral || 1.5) - 1.5) * .25, -2, 2);
-  tendency.acidity = clamp(tendency.acidity + (Number(targets.acidity || 1.5) - 1.5) * .2, -2, 2);
-  tendency.sweetness = clamp(tendency.sweetness + (Number(targets.sweetness || 1.5) - 1.5) * .2, -2, 2);
-  tendency.body = clamp(tendency.body + (Number(targets.body || 1.5) - 1.5) * .2, -2, 2);
-  const tdsRange = Number.isFinite(tdsValue) ? [tdsValue, tdsValue] : [...base.tds];
+  tendency.floral = clamp(tendency.floral + (Number(targets.floral ?? 1.5) - 1.5) * .25, -2, 2);
+  tendency.acidity = clamp(tendency.acidity + (Number(targets.acidity ?? 1.5) - 1.5) * .2, -2, 2);
+  tendency.sweetness = clamp(tendency.sweetness + (Number(targets.sweetness ?? 1.5) - 1.5) * .2, -2, 2);
+  tendency.body = clamp(tendency.body + (Number(targets.body ?? 1.5) - 1.5) * .2, -2, 2);
+  const tdsRange = custom ? (tdsValue === null ? null : [tdsValue, tdsValue]) : [...base.tds];
+  const referenceTdsMgL = tdsRange ? (tdsRange[0] + tdsRange[1]) / 2 : null;
   return {
     ...base,
     id: profileId,
     name: String(custom?.name || base.name),
     tds: tdsRange,
-    tdsMid: Math.round((tdsRange[0] + tdsRange[1]) / 2),
+    tdsMid: referenceTdsMgL,
+    referenceTdsMgL,
+    referenceTdsRangeMgL: tdsRange,
+    tdsBasis: 'profile-reference-only',
     tendency,
     tendencyText: Object.fromEntries(Object.entries(tendency).map(([key, value]) => [key, direction(value)])),
     note: String(custom?.note || base.note),
@@ -96,15 +101,19 @@ export function tuneWaterProfile(profileId, targets = {}, customProfile = null) 
 
 export function calculateWaterRecipe(profileId, { volumeL = 5, targets = {}, customProfile = null } = {}) {
   const selected = tuneWaterProfile(profileId, targets, customProfile);
+  const volume = optionalMeasurement(volumeL, '配制体积L', { max: 100000, positive: true });
+  if (volume === null) throw new TypeError('配制体积L不可为空');
   return {
     modelVersion: WATER_MODEL_VERSION,
     profile: selected,
-    volumeL: Number(volumeL || 5),
-    targetTdsRange: [...selected.tds],
-    operationalTdsRange: [Math.max(0, selected.tds[0] - 8), selected.tds[1] + 8],
+    volumeL: volume,
+    targetTdsRange: selected.tds ? [...selected.tds] : null,
+    referenceTdsRangeMgL: selected.referenceTdsRangeMgL,
+    referenceTdsMgL: selected.referenceTdsMgL,
+    operationalTdsRange: null,
     tendency: { ...selected.tendency },
     externalTool: WATER_EXTERNAL_APP,
-    warning: 'LuckyBean仅保存水型、参考TDS和风味倾向；不保存精确离子、盐质量或配方。精细调整请使用“萃离”。'
+    warning: '水型与TDS区间为经验参考，不能当作原水实测、离子组成或已验证的萃取规律；精确配方请使用“萃离”。'
   };
 }
 

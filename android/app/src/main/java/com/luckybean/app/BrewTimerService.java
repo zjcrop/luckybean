@@ -31,12 +31,12 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class BrewTimerService extends Service {
     public static final String ACTION_PREPARE = "com.luckybean.app.action.PREPARE_BREW";
@@ -51,12 +51,15 @@ public final class BrewTimerService extends Service {
     private static final int NOTIFICATION_ID = 23011;
     private static final long TICK_INTERVAL_MS = 50L;
     private static final int MAX_TTS_PREPARE_RETRIES = 30;
+    private static final float TTS_SPEECH_RATE = 1.05f;
+    private static final float TTS_PITCH = 1.0f;
+    private static final String SPEECH_CACHE_REVISION = BrewSpeechCacheKey.REVISION;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final List<SpeechEvent> speechEvents = new ArrayList<>();
     private final Set<String> firedEventIds = new HashSet<>();
-    private final Map<String, File> preparedFiles = new HashMap<>();
-    private final Map<String, SpeechEvent> synthesisQueue = new HashMap<>();
+    private final Map<String, File> preparedFiles = new ConcurrentHashMap<>();
+    private final Map<String, SpeechEvent> synthesisQueue = new ConcurrentHashMap<>();
 
     private ExoPlayer player;
     private TextToSpeech textToSpeech;
@@ -104,18 +107,20 @@ public final class BrewTimerService extends Service {
             }
             int language = textToSpeech.setLanguage(Locale.SIMPLIFIED_CHINESE);
             ttsReady = language != TextToSpeech.LANG_MISSING_DATA && language != TextToSpeech.LANG_NOT_SUPPORTED;
-            textToSpeech.setSpeechRate(1.05f);
+            textToSpeech.setSpeechRate(TTS_SPEECH_RATE);
+            textToSpeech.setPitch(TTS_PITCH);
             textToSpeech.setOnUtteranceProgressListener(new UtteranceProgressListener() {
                 @Override public void onStart(String utteranceId) { }
                 @Override public void onDone(String utteranceId) {
                     SpeechEvent event = synthesisQueue.remove(utteranceId);
                     if (event != null) {
-                        File file = cacheFile(event.id);
-                        if (file.isFile() && file.length() > 44) preparedFiles.put(event.id, file);
+                        File file = cacheFile(event);
+                        if (file.isFile() && file.length() > 44) preparedFiles.put(file.getName(), file);
                     }
                 }
                 @Override public void onError(String utteranceId) { synthesisQueue.remove(utteranceId); }
                 @Override public void onError(String utteranceId, int errorCode) { synthesisQueue.remove(utteranceId); }
+                @Override public void onStop(String utteranceId, boolean interrupted) { synthesisQueue.remove(utteranceId); }
             });
         });
     }
@@ -161,6 +166,7 @@ public final class BrewTimerService extends Service {
             totalMs = Math.max(0L, parsedTotal);
             speechEvents.clear();
             firedEventIds.clear();
+            preparedFiles.clear();
             if (events != null) {
                 for (int i = 0; i < events.length(); i++) {
                     JSONObject event = events.optJSONObject(i);
@@ -185,16 +191,16 @@ public final class BrewTimerService extends Service {
             return;
         }
         if (!ttsReady || textToSpeech == null) return;
-        File directory = new File(getCacheDir(), "brew-speech-v1");
+        File directory = new File(getCacheDir(), SPEECH_CACHE_REVISION);
         if (!directory.exists() && !directory.mkdirs()) return;
         for (SpeechEvent event : speechEvents) {
             if (rawResourceId(event.fixedKey) != 0) continue;
-            File file = cacheFile(event.id);
+            File file = cacheFile(event);
             if (file.isFile() && file.length() > 44) {
-                preparedFiles.put(event.id, file);
+                preparedFiles.put(file.getName(), file);
                 continue;
             }
-            String utteranceId = "prepare:" + event.id;
+            String utteranceId = "prepare:" + file.getName();
             synthesisQueue.put(utteranceId, event);
             Bundle params = new Bundle();
             int result = textToSpeech.synthesizeToFile(event.text, params, file, utteranceId);
@@ -215,10 +221,16 @@ public final class BrewTimerService extends Service {
         textToSpeech.speak(value, TextToSpeech.QUEUE_FLUSH, null, "brew-preparation");
     }
 
-    private File cacheFile(String eventId) {
-        File directory = new File(getCacheDir(), "brew-speech-v1");
+    // Content and actual TTS configuration identify audio; event IDs repeat across plans.
+    private File cacheFile(SpeechEvent event) {
+        android.speech.tts.Voice voice = textToSpeech == null ? null : textToSpeech.getVoice();
+        String voiceName = voice == null ? "" : voice.getName();
+        String languageTag = voice == null ? Locale.SIMPLIFIED_CHINESE.toLanguageTag() : voice.getLocale().toLanguageTag();
+        String engineName = textToSpeech == null ? "" : String.valueOf(textToSpeech.getDefaultEngine());
+        String cacheKey = BrewSpeechCacheKey.create(event.text, voiceName, languageTag, engineName, TTS_SPEECH_RATE, TTS_PITCH);
+        File directory = new File(getCacheDir(), SPEECH_CACHE_REVISION);
         if (!directory.exists()) directory.mkdirs();
-        return new File(directory, eventId.replaceAll("[^A-Za-z0-9._-]", "_") + ".wav");
+        return new File(directory, cacheKey + ".wav");
     }
 
     private int rawResourceId(String key) {
@@ -264,9 +276,9 @@ public final class BrewTimerService extends Service {
             playUri(Uri.parse("android.resource://" + getPackageName() + "/" + resourceId));
             return;
         }
-        File file = preparedFiles.get(event.id);
+        File candidate = cacheFile(event);
+        File file = preparedFiles.get(candidate.getName());
         if (file == null) {
-            File candidate = cacheFile(event.id);
             if (candidate.isFile() && candidate.length() > 44) file = candidate;
         }
         if (file != null && file.isFile()) {

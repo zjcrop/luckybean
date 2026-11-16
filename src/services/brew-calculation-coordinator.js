@@ -1,4 +1,5 @@
 import { attachBrewContracts } from '../contracts/brew-contract-adapter.js';
+import { parseCuiLiWaterRecord, withCuiLiWaterWarnings } from '../domain/water/cuili-water-record.js';
 
 export const BREW_CALCULATION_COORDINATOR_CONTRACT = 'brew-calculation-coordinator/1.1';
 
@@ -27,12 +28,13 @@ export class BrewCalculationCoordinator {
     this.revision = 0;
   }
 
-  async calculate({ endpoint = '', input, previousPlan = null, beanId = '' }) {
+  async calculate({ endpoint = '', input, previousPlan = null, beanId = '', localWaterRecord = null }) {
     const revision = ++this.revision;
+    const localRecord = localWaterRecord ? parseCuiLiWaterRecord(localWaterRecord) : null;
     const authoritativeInput = preserveExecutedProfile(input, previousPlan, beanId);
     const startedAt = performance.now();
     const rawPlan = await this.request(endpoint, authoritativeInput);
-    const plan = attachBrewContracts(rawPlan, authoritativeInput);
+    const plan = withCuiLiWaterWarnings(attachBrewContracts(rawPlan, authoritativeInput), localRecord);
     return {
       contract: BREW_CALCULATION_COORDINATOR_CONTRACT,
       plan,

@@ -53,6 +53,38 @@
     },
     "water": {
       "type": "object",
+      "properties": {
+        "tdsMgL": { "$ref": "#/$defs/nullableWaterConcentration" },
+        "alkalinityMgLAsCaCO3": { "$ref": "#/$defs/nullableWaterConcentration" },
+        "recipeVolumeL": { "type": "number", "exclusiveMinimum": 0 },
+        "concentrationBasis": {
+          "type": "string",
+          "enum": ["provided-unspecified", "pre-heating-calculated", "source-water-measured", "post-heating-measured"]
+        },
+        "ionsMgL": {
+          "type": ["object", "null"],
+          "properties": {
+            "Ca": { "$ref": "#/$defs/nullableWaterConcentration" },
+            "Mg": { "$ref": "#/$defs/nullableWaterConcentration" },
+            "Na": { "$ref": "#/$defs/nullableWaterConcentration" },
+            "K": { "$ref": "#/$defs/nullableWaterConcentration" },
+            "HCO3": { "$ref": "#/$defs/nullableWaterConcentration" },
+            "CO3": { "$ref": "#/$defs/nullableWaterConcentration" },
+            "Cl": { "$ref": "#/$defs/nullableWaterConcentration" },
+            "SO4": { "$ref": "#/$defs/nullableWaterConcentration" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": true
+    },
+    "measurements": {
+      "type": "object",
+      "properties": {
+        "beverageTdsPct": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+        "beverageMassG": { "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 1000000 },
+        "doseG": { "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 10000 }
+      },
       "additionalProperties": true
     },
     "environment": {
@@ -139,5 +171,8 @@
       }
     ]
   },
-  "additionalProperties": true
+  "additionalProperties": true,
+  "$defs": {
+    "nullableWaterConcentration": { "type": ["number", "null"], "minimum": 0, "maximum": 10000 }
+  }
 }
