@@ -142,7 +142,12 @@ async function prepareModels() {
   await fs.mkdir(modelsRoot, { recursive: true });
   for (const file of MODEL_FILES) {
     const url = `${MODEL_BASE}/${file}`;
-    await fs.writeFile(path.join(modelsRoot, file), await fetchBinary(url, 1_000_000));
+    const bytes = await fetchBinary(url, 1_000_000);
+    const role = file.includes('_det_') ? 'det' : 'rec';
+    await fs.writeFile(path.join(modelsRoot, `PP-OCRv5_mobile_${role}.json`), JSON.stringify({
+      format:'luckybean-ocr-model/1', role, byteLength:bytes.length,
+      sha256:createHash('sha256').update(bytes).digest('hex'), base64:bytes.toString('base64')
+    }), 'utf8');
   }
 }
 
@@ -166,7 +171,8 @@ const manifest = {
   workerSha256: workerIntegrity.workerSha256,
   roiWorker: 'roi-worker.js',
   ort: ORT_FILES,
-  models: MODEL_FILES,
+  models: ['PP-OCRv5_mobile_det.json', 'PP-OCRv5_mobile_rec.json'],
+  modelTransport: 'json-base64-sha256/1',
   mirroredEsmModules: moduleMap.size,
   generatedAt: new Date().toISOString()
 };

@@ -188,7 +188,7 @@ jobs:
             fi
             gh release upload "$RELEASE_TAG" "dist/$apk_name" "dist/$web_name" dist/BUILD_PROVENANCE.json dist/SHA256SUMS.txt --clobber
           else
-            gh release create "$RELEASE_TAG" "dist/$apk_name" "dist/$web_name" dist/BUILD_PROVENANCE.json dist/SHA256SUMS.txt --target "$SOURCE_SHA" --title "LuckyBean ${DISPLAY_VERSION}" --notes-file docs/WATER_TDS_VOICE_20261115.md
+            gh release create "$RELEASE_TAG" "dist/$apk_name" "dist/$web_name" dist/BUILD_PROVENANCE.json dist/SHA256SUMS.txt --target "$SOURCE_SHA" --title "LuckyBean ${DISPLAY_VERSION}" --notes-file docs/OCR_MODEL_TRANSPORT_20261116.md
           fi
           tag_sha=$(git ls-remote origin "refs/tags/$RELEASE_TAG" | awk '{print $1}')
           test "$tag_sha" = "$SOURCE_SHA"

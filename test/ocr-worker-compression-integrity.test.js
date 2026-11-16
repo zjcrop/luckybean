@@ -38,7 +38,7 @@ function runtimeWithResponse({ corrupt = false, missingIdentity = false } = {}) 
       // Fetch exposes the decoded body while Content-Length still describes gzip bytes.
       : new Response(bytes, { headers: { 'content-encoding': 'gzip', 'content-length': '137' } })
   };
-  vm.runInNewContext(runtime.replaceAll('import.meta.url', '"https://example.test/src/recognition-paddle-ocr.js"')
+  vm.runInNewContext(runtime.replace(/^import .*;\r?\n/gm, '').replaceAll('import.meta.url', '"https://example.test/src/recognition-paddle-ocr.js"')
     + '\nglobalThis.fetchWorkerForTest = fetchCompleteWorkerBundle;', context);
   return context.fetchWorkerForTest;
 }

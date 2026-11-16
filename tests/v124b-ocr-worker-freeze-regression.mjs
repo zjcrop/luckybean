@@ -25,8 +25,6 @@ assert.match(paddle, /public\/vendor\/paddleocr/, 'LuckyBean standalone runtime 
 assert.match(paddle, /CoffeeFoundationOcrAssetBase/, 'Foundation consumers must be able to provide a relocated OCR asset base');
 assert.match(paddle, /function defaultRuntimeBase\(\)[\s\S]*new URL\('\.\.\/public\/vendor\/paddleocr\/',\s*import\.meta\.url\)/, 'import.meta fallback must be lazy and source-module only');
 assert.doesNotMatch(paddle, /const\s+DEFAULT_RUNTIME_BASE\s*=\s*new URL\([^\n]*import\.meta\.url/, 'import.meta must not be evaluated at module initialization because classic-IIFE consumers cannot provide it');
-assert.match(paddle, /textDetectionModelAsset:\s*\{\s*url:\s*assetUrl\('models\/PP-OCRv5_mobile_det_onnx_infer\.tar'\)\s*\}/, 'detection model must resolve from the configured same-origin asset base');
-assert.match(paddle, /textRecognitionModelAsset:\s*\{\s*url:\s*assetUrl\('models\/PP-OCRv5_mobile_rec_onnx_infer\.tar'\)\s*\}/, 'recognition model must resolve from the configured same-origin asset base');
 assert.match(paddle, /wasmPaths:\s*assetUrl\('ort\/'\)/, 'ONNX Runtime WASM must resolve from the configured same-origin asset base');
 assert.doesNotMatch(paddle, /cdn\.jsdelivr\.net/, 'browser OCR source must not depend on jsDelivr at runtime');
 assert.doesNotMatch(paddle, /paddle-model-ecology\.bj\.bcebos\.com/, 'browser OCR source must not fetch Paddle models cross-origin at runtime');
@@ -78,3 +76,5 @@ assert.doesNotMatch(capture, /recognitionQueued/, 'manual recognition click queu
 assert.doesNotMatch(capture, /bagRecognizeBtn/, 'manual recognition button must stay removed from package capture UI');
 
 console.log(`LuckyBean ${release.displayVersion} browser OCR is same-origin, lazy, capture-reusable, memory-bounded, ROI-capable, timeout-bounded, and has no automatic Tesseract fallback`);
+assert.match(paddle, /withOcrModelAssets/, 'all OCR creation paths must use JSON model transport');
+assert.doesNotMatch(paddle, /onnx_infer\.tar/, 'browser providers must not request archive URLs');

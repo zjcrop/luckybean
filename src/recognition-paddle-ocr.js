@@ -1,3 +1,4 @@
+import { withOcrModelAssets } from './domain/recognition/ocr-model-transport.js';
 const VERSION = '0.4.13';
 const ENGINE = `PP-OCRv5-browser-${VERSION}-self-hosted`;
 
@@ -241,11 +242,11 @@ function createModuleWorker(preloadedBlobUrl = '') {
     throw new Error(`本地 PP-OCRv5 Worker 创建失败：${error.message}`);
   }
 }
-function ocrCreateOptions({ compatibility = false, workerBlobUrl = '', forceWorker = false } = {}) {
+function ocrCreateOptions(models, { compatibility = false, workerBlobUrl = '', forceWorker = false } = {}) {
   return {
     lang:'ch', ocrVersion:'PP-OCRv5',
-    textDetectionModelName:'PP-OCRv5_mobile_det', textDetectionModelAsset:{ url:assetUrl('models/PP-OCRv5_mobile_det_onnx_infer.tar') },
-    textRecognitionModelName:'PP-OCRv5_mobile_rec', textRecognitionModelAsset:{ url:assetUrl('models/PP-OCRv5_mobile_rec_onnx_infer.tar') },
+    textDetectionModelName:'PP-OCRv5_mobile_det', textDetectionModelAsset:models.detection,
+    textRecognitionModelName:'PP-OCRv5_mobile_rec', textRecognitionModelAsset:models.recognition,
     ...((forceWorker || !compatibility) ? { worker:{ createWorker:() => createModuleWorker(workerBlobUrl) } } : {}),
     textDetectionBatchSize:1, textRecognitionBatchSize:1,
     ortOptions:{ backend:'wasm', wasmPaths:assetUrl('ort/'), numThreads:1, simd:compatibility ? false : true }
@@ -255,12 +256,12 @@ async function createWorkerEngine({ direct = false } = {}) {
   const module = await loadModule();
   if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');
   const workerBlobUrl = direct ? '' : (await prepareWorkerBundle()) || '';
-  return module.PaddleOCR.create(ocrCreateOptions({ compatibility:false, workerBlobUrl }));
+  return withOcrModelAssets(assetUrl, models => module.PaddleOCR.create(ocrCreateOptions(models, { compatibility:false, workerBlobUrl })));
 }
 async function createLowMemoryWorkerEngine() {
   const module = await loadModule();
   if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');
-  return module.PaddleOCR.create(ocrCreateOptions({ compatibility:true, workerBlobUrl:'', forceWorker:true }));
+  return withOcrModelAssets(assetUrl, models => module.PaddleOCR.create(ocrCreateOptions(models, { compatibility:true, workerBlobUrl:'', forceWorker:true })));
 }
 function isOpaqueWorkerStartupFailure(error) {
   const message = String(error?.message || error || '');
@@ -276,7 +277,7 @@ function isOnnxSessionCreationFailure(error) {
 }
 async function createCompatibilityEngine() {
   const module = await loadModule(); if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');
-  return module.PaddleOCR.create(ocrCreateOptions({ compatibility:true }));
+  return withOcrModelAssets(assetUrl, models => module.PaddleOCR.create(ocrCreateOptions(models, { compatibility:true })));
 }
 function disposeInstance(ocr) { if (!ocr?.dispose) return; Promise.resolve().then(() => ocr.dispose()).catch(() => {}); }
 function detachEngine() {

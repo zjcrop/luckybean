@@ -1,3 +1,4 @@
+import { withOcrModelAssets } from './domain/recognition/ocr-model-transport.js';
 import { runtimeAcceleration, detectionLimit, needsDetectionDetail, preferDetailedRecognition, OCR_PERFORMANCE_POLICY } from './domain/recognition/recognition-performance-policy.js';
 
 const VERSION = '0.5.3-performance';
@@ -251,14 +252,14 @@ function createModuleWorker(preloadedBlobUrl = '') {
   recordDiagnostic('worker-bootstrap', startedAt, { mode:workerBootstrapMode });
   return worker;
 }
-function ocrCreateOptions({ compatibility = false, forceWorker = false, workerBlobUrl = '' } = {}) {
+function ocrCreateOptions(models, { compatibility = false, forceWorker = false, workerBlobUrl = '' } = {}) {
   return {
     lang:'ch',
     ocrVersion:'PP-OCRv5',
     textDetectionModelName:'PP-OCRv5_mobile_det',
-    textDetectionModelAsset:{ url:assetUrl('models/PP-OCRv5_mobile_det_onnx_infer.tar') },
+    textDetectionModelAsset:models.detection,
     textRecognitionModelName:'PP-OCRv5_mobile_rec',
-    textRecognitionModelAsset:{ url:assetUrl('models/PP-OCRv5_mobile_rec_onnx_infer.tar') },
+    textRecognitionModelAsset:models.recognition,
     ...((forceWorker || !compatibility) ? { worker:{ createWorker:() => createModuleWorker(workerBlobUrl) } } : {}),
     textDetectionBatchSize:1,
     textRecognitionBatchSize:1,
@@ -269,12 +270,12 @@ async function createWorkerEngine({ compatibility = false } = {}) {
   const module = await loadModule();
   if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');
   const workerBlobUrl = compatibility ? '' : await prepareWorkerBundle();
-  return module.PaddleOCR.create(ocrCreateOptions({ compatibility, forceWorker:true, workerBlobUrl }));
+  return withOcrModelAssets(assetUrl, models => module.PaddleOCR.create(ocrCreateOptions(models, { compatibility, forceWorker:true, workerBlobUrl })));
 }
 async function createWebKitEngine() {
   const module = await loadModule();
   if (!module?.PaddleOCR?.create) throw new Error('PP-OCRv5 SDK 接口不可用');
-  return module.PaddleOCR.create(ocrCreateOptions({ compatibility:true, forceWorker:false }));
+  return withOcrModelAssets(assetUrl, models => module.PaddleOCR.create(ocrCreateOptions(models, { compatibility:true, forceWorker:false })));
 }
 function looksLikeCompatibilityFailure(error) {
   return /Unknown worker error|Failed to construct.*Worker|SecurityError|WebAssembly|WASM|out of memory|could not allocate memory|InferenceSession|ONNX session|No available adapters/iu.test(String(error?.message || error || ''));
